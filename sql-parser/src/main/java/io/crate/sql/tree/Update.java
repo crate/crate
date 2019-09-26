@@ -31,10 +31,10 @@ import java.util.Optional;
 public class Update extends Statement {
 
     private final Relation relation;
-    private final List<Assignment> assignments;
+    private final List<Assignment<Expression>> assignments;
     private final Optional<Expression> where;
 
-    public Update(Relation relation, List<Assignment> assignments, Optional<Expression> where) {
+    public Update(Relation relation, List<Assignment<Expression>> assignments, Optional<Expression> where) {
         Preconditions.checkNotNull(relation, "relation is null");
         Preconditions.checkNotNull(assignments, "assignments are null");
         this.relation = relation;
@@ -46,7 +46,7 @@ public class Update extends Statement {
         return relation;
     }
 
-    public List<Assignment> assignments() {
+    public List<Assignment<Expression>> assignments() {
         return assignments;
     }
 

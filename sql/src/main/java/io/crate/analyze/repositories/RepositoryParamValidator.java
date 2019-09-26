@@ -55,7 +55,7 @@ public class RepositoryParamValidator {
         Map<String, Setting<?>> allSettings = typeSettings.all();
 
         // create string settings for all dynamic settings
-        GenericProperties dynamicProperties = typeSettings.dynamicProperties(genericProperties);
+        GenericProperties<?> dynamicProperties = typeSettings.dynamicProperties(genericProperties);
         if (!dynamicProperties.isEmpty()) {
             // allSettings are immutable by default, copy map
             allSettings = Maps.newHashMap(allSettings);

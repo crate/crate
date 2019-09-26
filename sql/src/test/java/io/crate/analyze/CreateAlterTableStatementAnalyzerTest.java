@@ -21,10 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.Option;
-import io.crate.action.sql.SessionContext;
-import io.crate.auth.user.User;
-import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.InvalidRelationName;
@@ -32,12 +29,13 @@ import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.ddl.CreateTablePlan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
-import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -77,6 +75,7 @@ import static org.hamcrest.Matchers.startsWith;
 public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private PlannerContext plannerContext;
 
     @Before
     public void prepare() throws IOException {
@@ -91,11 +90,29 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .build();
         ClusterServiceUtils.setState(clusterService, state);
         e = SQLExecutor.builder(clusterService, 3, Randomness.get()).enableDefaultTables().build();
+        plannerContext = e.getPlannerContext(clusterService.state());
+    }
+
+    private CreateTableAnalyzedStatement analyze(String stmt, Object... arguments) {
+        return analyze(e, stmt, arguments);
+    }
+
+    private CreateTableAnalyzedStatement analyze(SQLExecutor e, String stmt, Object... arguments) {
+        return CreateTablePlan.createStatement(
+            e.analyze(stmt),
+            plannerContext.transactionContext(),
+            plannerContext.functions(),
+            new RowN(arguments),
+            SubQueryResults.EMPTY,
+            new NumberOfShards(clusterService),
+            e.schemas(),
+            e.fulltextAnalyzerResolver()
+        );
     }
 
     @Test
     public void testTimestampDataTypeDeprecationWarning() {
-        e.analyze("create table t (ts timestamp)");
+        analyze("create table t (ts timestamp)");
         assertWarnings(
             "Column [ts]: Usage of the `TIMESTAMP` data type as a timestamp with zone is deprecated," +
             " use the `TIMESTAMPTZ` or `TIMESTAMP WITH TIME ZONE` data type instead."
@@ -106,7 +123,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableInSystemSchemasIsProhibited() {
         for (String schema : Schemas.READ_ONLY_SCHEMAS) {
             try {
-                e.analyze(String.format("CREATE TABLE %s.%s (ordinal INTEGER, name STRING)", schema, "my_table"));
+                analyze(String.format("CREATE TABLE %s.%s (ordinal INTEGER, name STRING)", schema, "my_table"));
                 fail("create table in read-only schema must fail");
             } catch (IllegalArgumentException e) {
                 assertThat(e.getLocalizedMessage(), startsWith("Cannot create relation in read-only schema: " + schema));
@@ -116,7 +133,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithAlternativePrimaryKeySyntax() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer, name string, primary key (id, name))"
         );
 
@@ -129,7 +146,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     @SuppressWarnings("unchecked")
     public void testSimpleCreateTable() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, name string not null) " +
             "clustered into 3 shards with (number_of_replicas=0)");
 
@@ -159,13 +176,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithDefaultNumberOfShards() {
-        CreateTableAnalyzedStatement analysis = e.analyze("create table foo (id integer primary key, name string)");
+        CreateTableAnalyzedStatement analysis = analyze("create table foo (id integer primary key, name string)");
         assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("6"));
     }
 
     @Test
     public void testCreateTableWithDefaultNumberOfShardsWithClusterByClause() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key) clustered by (id)"
         );
         assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("6"));
@@ -173,7 +190,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableNumberOfShardsProvidedInClusteredClause() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key) " +
             "clustered by (id) into 8 shards"
         );
@@ -182,7 +199,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithTotalFieldsLimit() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "CREATE TABLE foo (id int primary key) " +
             "with (\"mapping.total_fields.limit\"=5000)");
         assertThat(analysis.tableParameter().settings().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()), is("5000"));
@@ -190,7 +207,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithRefreshInterval() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "CREATE TABLE foo (id int primary key, content string) " +
             "with (refresh_interval='5000ms')");
         assertThat(analysis.tableParameter().settings().get(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey()), is("5s"));
@@ -200,13 +217,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithNumberOfShardsOnWithClauseIsInvalid() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid property \"number_of_shards\" passed to [ALTER | CREATE] TABLE statement");
-        e.analyze("CREATE TABLE foo (id int primary key, content string) " +
-                    "with (number_of_shards=8)");
+        analyze("CREATE TABLE foo (id int primary key, content string) " +
+                "with (number_of_shards=8)");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testCreateTableWithRefreshIntervalWrongNumberFormat() {
-        e.analyze("CREATE TABLE foo (id int primary key, content string) " +
+        analyze("CREATE TABLE foo (id int primary key, content string) " +
                 "with (refresh_interval='1asdf')");
     }
 
@@ -254,7 +271,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid value for argument 'column_policy'");
         e.analyze("ALTER TABLE user_refresh_interval " +
-                "SET (column_policy = 'ignored')");
+                  "SET (column_policy = 'ignored')");
     }
 
     @Test
@@ -276,7 +293,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithClusteredBy() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer, name string) clustered by(id)");
 
         Map<String, Object> meta = (Map) analysis.mapping().get("_meta");
@@ -287,13 +304,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test(expected = IllegalArgumentException.class)
     @SuppressWarnings("unchecked")
     public void testCreateTableWithClusteredByNotInPrimaryKeys() {
-        e.analyze("create table foo (id integer primary key, name string) clustered by(name)");
+        analyze("create table foo (id integer primary key, name string) clustered by(name)");
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithObjects() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, details object as (name string, age integer))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -313,7 +330,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithStrictObject() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, details object(strict) as (name string, age integer))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -326,7 +343,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithIgnoredObject()  {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, details object(ignored))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -339,7 +356,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithSubscriptInFulltextIndexDefinition() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table my_table1g (" +
             "   title string, " +
             "   author object(dynamic) as ( " +
@@ -357,7 +374,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test(expected = ColumnUnknownException.class)
     public void testCreateTableWithInvalidFulltextIndexDefinition() {
-        e.analyze(
+        analyze(
             "create table my_table1g (" +
             "   title string, " +
             "   author object(dynamic) as ( " +
@@ -370,7 +387,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @SuppressWarnings("unchecked")
     @Test
     public void testCreateTableWithArray() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, details array(string))");
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> details = (Map<String, Object>) mappingProperties.get("details");
@@ -383,20 +400,20 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithObjectsArray() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, details array(object as (name string, age integer, tags array(string))))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         assertThat(mapToSortedString(mappingProperties),
-            is("details={inner={dynamic=true, position=2, properties={age={type=integer}, name={type=keyword}, " +
-               "tags={inner={type=keyword}, type=array}}, type=object}, type=array}, " +
-               "id={position=1, type=integer}"));
+                   is("details={inner={dynamic=true, position=2, properties={age={type=integer}, name={type=keyword}, " +
+                      "tags={inner={type=keyword}, type=array}}, type=object}, type=array}, " +
+                      "id={position=1, type=integer}"));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithAnalyzer() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, content string INDEX using fulltext with (analyzer='german'))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -409,9 +426,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithAnalyzerParameter() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, content string INDEX using fulltext with (analyzer=?))",
-            new Object[]{"german"}
+            "german"
         );
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -424,7 +441,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @SuppressWarnings("unchecked")
     @Test
     public void textCreateTableWithCustomAnalyzerInNestedColumn() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table ft_search (" +
             "\"user\" object (strict) as (" +
             "name string index using fulltext with (analyzer='ft_search') " +
@@ -443,7 +460,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableWithSchemaName() {
         CreateTableAnalyzedStatement analysis =
-            e.analyze("create table something.foo (id integer primary key)");
+            analyze("create table something.foo (id integer primary key)");
         RelationName relationName = analysis.tableIdent();
         assertThat(relationName.schema(), is("something"));
         assertThat(relationName.name(), is("foo"));
@@ -452,7 +469,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithIndexColumn() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, content string, INDEX content_ft using fulltext (content))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -469,7 +486,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithPlainIndexColumn() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, content string, INDEX content_ft using plain (content))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -487,14 +504,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithIndexColumnOverNonString() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("INDEX definition only support 'string' typed source columns");
-        e.analyze("create table foo (id integer, id2 integer, INDEX id_ft using fulltext (id, id2))");
+        analyze("create table foo (id integer, id2 integer, INDEX id_ft using fulltext (id, id2))");
     }
 
     @Test
     public void testCreateTableWithIndexColumnOverNonString2() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("INDEX definition only support 'string' typed source columns");
-        e.analyze("create table foo (id integer, name string, INDEX id_ft using fulltext (id, name))");
+        analyze("create table foo (id integer, name string, INDEX id_ft using fulltext (id, name))");
     }
 
     @Test
@@ -531,7 +548,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithMultiplePrimaryKeys() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table test (id integer primary key, name string primary key)");
 
         String[] primaryKeys = analysis.primaryKeys().toArray(new String[0]);
@@ -542,7 +559,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithMultiplePrimaryKeysAndClusteredBy() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table test (id integer primary key, name string primary key) " +
             "clustered by(name)");
 
@@ -560,41 +577,41 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithObjectAndUnderscoreColumnPrefix() {
-        CreateTableAnalyzedStatement analysis = e.analyze("create table test (o object as (_id integer), name string)");
+        CreateTableAnalyzedStatement analysis = analyze("create table test (o object as (_id integer), name string)");
 
         assertThat(analysis.analyzedTableElements().columns().size(), is(2)); // id pk column is also added
-        AnalyzedColumnDefinition column = analysis.analyzedTableElements().columns().get(0);
+        AnalyzedColumnDefinition<Object> column = analysis.analyzedTableElements().columns().get(0);
         assertEquals(column.ident(), new ColumnIdent("o"));
         assertThat(column.children().size(), is(1));
-        AnalyzedColumnDefinition xColumn = column.children().get(0);
+        AnalyzedColumnDefinition<Object> xColumn = column.children().get(0);
         assertEquals(xColumn.ident(), new ColumnIdent("o", Collections.singletonList("_id")));
     }
 
     @Test(expected = InvalidColumnNameException.class)
     public void testCreateTableWithUnderscoreColumnPrefix() {
-        e.analyze("create table test (_id integer, name string)");
+        analyze("create table test (_id integer, name string)");
     }
 
     @Test(expected = ParsingException.class)
     public void testCreateTableWithColumnDot() {
-        e.analyze("create table test (dot.column integer)");
+        analyze("create table test (dot.column integer)");
     }
 
     @Test(expected = InvalidRelationName.class)
     public void testCreateTableIllegalTableName() {
-        e.analyze("create table \"abc.def\" (id integer primary key, name string)");
+        analyze("create table \"abc.def\" (id integer primary key, name string)");
     }
 
     @Test
     public void testTableStartWithUnderscore() {
         expectedException.expect(InvalidRelationName.class);
         expectedException.expectMessage("Relation name \"doc._invalid\" is invalid.");
-        e.analyze("create table _invalid (id integer primary key)");
+        analyze("create table _invalid (id integer primary key)");
     }
 
     @Test
     public void testHasColumnDefinition() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table my_table (" +
             "  id integer primary key, " +
             "  name string, " +
@@ -622,7 +639,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithGeoPoint() {
-        CreateTableAnalyzedStatement analyze = e.analyze(
+        CreateTableAnalyzedStatement analyze = analyze(
             "create table geo_point_table (\n" +
             "    id integer primary key,\n" +
             "    my_point geo_point\n" +
@@ -633,7 +650,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test(expected = IllegalArgumentException.class)
     public void testClusteredIntoZeroShards() {
-        e.analyze("create table my_table (" +
+        analyze("create table my_table (" +
                 "  id integer," +
                 "  name string" +
                 ") clustered into 0 shards");
@@ -642,12 +659,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test(expected = IllegalArgumentException.class)
     public void testBlobTableClusteredIntoZeroShards() {
         e.analyze("create blob table my_table " +
-                "clustered into 0 shards");
+                  "clustered into 0 shards");
     }
 
     @Test
     public void testEarlyPrimaryKeyConstraint() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table my_table (" +
             "primary key (id1, id2)," +
             "id1 integer," +
@@ -659,7 +676,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test(expected = ColumnUnknownException.class)
     public void testPrimaryKeyConstraintNonExistingColumns() {
-        e.analyze("create table my_table (" +
+        analyze("create table my_table (" +
                 "primary key (id1, id2)," +
                 "title string," +
                 "name string" +
@@ -669,7 +686,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @SuppressWarnings("unchecked")
     @Test
     public void testEarlyIndexDefinition() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table my_table (" +
             "index ft using fulltext(title, name) with (analyzer='snowball')," +
             "title string," +
@@ -693,7 +710,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test(expected = ColumnUnknownException.class)
     public void testIndexDefinitionNonExistingColumns() {
-        e.analyze("create table my_table (" +
+        analyze("create table my_table (" +
                 "index ft using fulltext(id1, id2) with (analyzer='snowball')," +
                 "title string," +
                 "name string" +
@@ -702,31 +719,31 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test(expected = IllegalArgumentException.class)
     public void testAnalyzerOnInvalidType() {
-        e.analyze("create table my_table (x integer INDEX using fulltext with (analyzer='snowball'))");
+        analyze("create table my_table (x integer INDEX using fulltext with (analyzer='snowball'))");
     }
 
     @Test
     public void createTableNegativeReplicas() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Failed to parse value [-1] for setting [number_of_replicas] must be >= 0");
-        e.analyze("create table t (id int, name string) with (number_of_replicas=-1)");
+        analyze("create table t (id int, name string) with (number_of_replicas=-1)");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testCreateTableSameColumn() {
-        e.analyze("create table my_table (title string, title integer)");
+        analyze("create table my_table (title string, title integer)");
     }
 
 
     @Test(expected = UnsupportedOperationException.class)
     public void testCreateTableWithArrayPrimaryKeyUnsupported() {
-        e.analyze("create table t (id array(int) primary key)");
+        analyze("create table t (id array(int) primary key)");
     }
 
     @Test
     public void testCreateTableWithClusteredIntoShardsParameter() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
-            "create table t (id int primary key) clustered into ? shards", new Object[]{2});
+        CreateTableAnalyzedStatement analysis = analyze(
+            "create table t (id int primary key) clustered into ? shards", 2);
         assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("2"));
     }
 
@@ -734,14 +751,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithClusteredIntoShardsParameterNonNumeric() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid number 'foo'");
-        e.analyze("create table t (id int primary key) clustered into ? shards", new Object[]{"foo"});
+        analyze("create table t (id int primary key) clustered into ? shards", "foo");
     }
 
     @Test
     public void testCreateTableWithParitionedColumnInClusteredBy() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use CLUSTERED BY column in PARTITIONED BY clause");
-        e.analyze("create table t(id int primary key) partitioned by (id) clustered by (id)");
+        analyze("create table t(id int primary key) partitioned by (id) clustered by (id)");
     }
 
     @Test
@@ -750,7 +767,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .setSearchPath("firstSchema", "secondSchema")
             .build();
 
-        CreateTableAnalyzedStatement analysis = sqlExecutor.analyze("create table t (id int)");
+        CreateTableAnalyzedStatement analysis = analyze(sqlExecutor, "create table t (id int)");
         assertThat(analysis.tableIdent().schema(), is(sqlExecutor.getSessionContext().searchPath().currentSchema()));
     }
 
@@ -758,18 +775,18 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithEmptySchema() {
         expectedException.expect(InvalidSchemaNameException.class);
         expectedException.expectMessage("schema name \"\" is invalid.");
-        e.analyze("create table \"\".my_table (" +
-                  "id long primary key" +
-                  ")");
+        analyze("create table \"\".my_table (" +
+                "id long primary key" +
+                ")");
     }
 
     @Test
     public void testCreateTableWithIllegalSchema() {
         expectedException.expect(InvalidSchemaNameException.class);
         expectedException.expectMessage("schema name \"with.\" is invalid.");
-        e.analyze("create table \"with.\".my_table (" +
-                  "id long primary key" +
-                  ")");
+        analyze("create table \"with.\".my_table (" +
+                "id long primary key" +
+                ")");
     }
 
     @Test
@@ -777,32 +794,28 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expect(InvalidColumnNameException.class);
         expectedException.expectMessage(
             "\"_test\" conflicts with system column pattern");
-        e.analyze("create table my_table (\"_test\" string)");
+        analyze("create table my_table (\"_test\" string)");
     }
 
     @Test
     public void testCreateTableShouldRaiseErrorIfItExists() {
         expectedException.expect(RelationAlreadyExists.class);
-        e.analyze("create table users (\"'test\" string)");
+        analyze("create table users (\"'test\" string)");
     }
 
     @Test
     public void testExplicitSchemaHasPrecedenceOverDefaultSchema() {
-        CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) e.analyzer.boundAnalyze(
-            SqlParser.createStatement("create table foo.bar (x string)"),
-            new CoordinatorTxnCtx(new SessionContext(Option.NONE, User.CRATE_USER, "hoschi")),
-            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
+        SQLExecutor e = SQLExecutor.builder(clusterService).setSearchPath("hoschi").build();
+        CreateTableAnalyzedStatement statement = analyze(e, "create table foo.bar (x string)");
 
         // schema from statement must take precedence
         assertThat(statement.tableIdent().schema(), is("foo"));
     }
 
     @Test
-    public void testDefaultSchemaIsAddedToTableIdentIfNoEplicitSchemaExistsInTheStatement() {
-        CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) e.analyzer.boundAnalyze(
-            SqlParser.createStatement("create table bar (x string)"),
-            new CoordinatorTxnCtx(new SessionContext(Option.NONE, User.CRATE_USER, "hoschi")),
-            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
+    public void testDefaultSchemaIsAddedToTableIdentIfNoExplicitSchemaExistsInTheStatement() {
+        SQLExecutor e = SQLExecutor.builder(clusterService).setSearchPath("hoschi").build();
+        CreateTableAnalyzedStatement statement = analyze(e, "create table bar (x string)");
 
         assertThat(statement.tableIdent().schema(), is("hoschi"));
     }
@@ -916,7 +929,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateReadOnlyTable() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id integer primary key, name string) "
             + "clustered into 3 shards with (\"blocks.read_only\"=true)");
         assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_READ_ONLY_SETTING.getKey()), is("true"));
@@ -925,7 +938,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @SuppressWarnings("unchecked")
     @Test
     public void testCreateTableWithGeneratedColumn() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (" +
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts))");
@@ -944,7 +957,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithColumnOfArrayTypeAndGeneratedExpression() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (arr array(integer) as ([1.0, 2.0]))");
 
         assertThat(
@@ -955,7 +968,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @SuppressWarnings("unchecked")
     @Test
     public void testCreateTableGeneratedColumnWithCast() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (" +
             "   ts timestamp with time zone," +
             "   day timestamp with time zone GENERATED ALWAYS as ts + 1)");
@@ -973,7 +986,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @SuppressWarnings("unchecked")
     @Test
     public void testCreateTableWithCurrentTimestampAsGeneratedColumnIsntNormalized() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (ts timestamp with time zone GENERATED ALWAYS as current_timestamp)");
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
@@ -986,7 +999,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @SuppressWarnings("unchecked")
     @Test
     public void testCreateTableGeneratedColumnWithSubscript() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (\"user\" object as (name string), name as concat(\"user\"['name'], 'foo'))");
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
@@ -997,7 +1010,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @SuppressWarnings("unchecked")
     @Test
     public void testCreateTableGeneratedColumnParameter() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (\"user\" object as (name string), name as concat(\"user\"['name'], ?))", $("foo"));
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
@@ -1008,8 +1021,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableGeneratedColumnWithInvalidType() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("expression value type" +
-            " 'timestamp with time zone' not supported for conversion to 'ip'");
-        e.analyze(
+                                        " 'timestamp with time zone' not supported for conversion to 'ip'");
+        analyze(
             "create table foo (" +
             "   ts timestamp with time zone," +
             "   day ip GENERATED ALWAYS as date_trunc('day', ts))");
@@ -1019,14 +1032,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableGeneratedColumnWithMatch() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("can only MATCH on columns, not on name");
-        e.analyze("create table foo (name string, bar as match(name, 'crate'))");
+        analyze("create table foo (name string, bar as match(name, 'crate'))");
     }
 
     @Test
     public void testCreateTableGeneratedColumnBasedOnGeneratedColumn() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("A generated column cannot be based on a generated column");
-        e.analyze(
+        analyze(
             "create table foo (" +
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)," +
@@ -1046,7 +1059,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithDefaultExpressionLiteral() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (name text default 'bar')");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -1056,7 +1069,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithDefaultExpressionFunction() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (name text default upper('bar'))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -1066,7 +1079,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithDefaultExpressionWithCast() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (id int default 3.5)");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -1076,7 +1089,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithDefaultExpressionIsNotNormalized() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (ts timestamp with time zone default current_timestamp(3))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
@@ -1088,7 +1101,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithDefaultExpressionAsCompoundTypes() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (" +
             "   obj object as (key text) default {key=''}," +
             "   arr array(long) default [1, 2])");
@@ -1100,7 +1113,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableWithDefaultExpressionAsGeoTypes() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table foo (" +
             "   p geo_point default [0,0]," +
             "   s geo_shape default 'LINESTRING (0 0, 1 1)')");
@@ -1115,28 +1128,28 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Columns cannot be used in this context. " +
                                         "Maybe you wanted to use a string literal which requires single quotes: 'name'");
-        e.analyze("create table foo (name text, name_def text default upper(name))");
+        analyze("create table foo (name text, name_def text default upper(name))");
     }
 
     @Test
     public void testCreateTableWithObjectAsPrimaryKey() {
         expectedException.expectMessage("Cannot use columns of type \"object\" as primary key");
         expectedException.expect(UnsupportedOperationException.class);
-        e.analyze("create table t (obj object as (x int) primary key)");
+        analyze("create table t (obj object as (x int) primary key)");
     }
 
     @Test
     public void testCreateTableWithGeoPointAsPrimaryKey() {
         expectedException.expectMessage("Cannot use columns of type \"geo_point\" as primary key");
         expectedException.expect(UnsupportedOperationException.class);
-        e.analyze("create table t (c geo_point primary key)");
+        analyze("create table t (c geo_point primary key)");
     }
 
     @Test
     public void testCreateTableWithGeoShapeAsPrimaryKey() {
         expectedException.expectMessage("Cannot use columns of type \"geo_shape\" as primary key");
         expectedException.expect(UnsupportedOperationException.class);
-        e.analyze("create table t (c geo_shape primary key)");
+        analyze("create table t (c geo_shape primary key)");
     }
 
     @Test
@@ -1149,7 +1162,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     private void assertDuplicatePrimaryKey(String stmt) {
         try {
-            e.analyze(stmt);
+            analyze(stmt);
             fail(String.format(Locale.ENGLISH, "Statement '%s' did not result in duplicate primary key exception", stmt));
         } catch (IllegalArgumentException e) {
             String msg = "appears twice in primary key constraint";
@@ -1163,26 +1176,26 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithPrimaryKeyConstraintInArrayItem() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot use column \"id\" as primary key within an array object");
-        e.analyze("create table test (arr array(object as (id long primary key)))");
+        analyze("create table test (arr array(object as (id long primary key)))");
     }
 
     @Test
     public void testCreateTableWithDeepNestedPrimaryKeyConstraintInArrayItem() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot use column \"name\" as primary key within an array object");
-        e.analyze("create table test (arr array(object as (\"user\" object as (name string primary key), id long)))");
+        analyze("create table test (arr array(object as (\"user\" object as (name string primary key), id long)))");
     }
 
     @Test
     public void testCreateTableWithInvalidIndexConstraint() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("INDEX constraint cannot be used on columns of type \"object\"");
-        e.analyze("create table test (obj object index off)");
+        analyze("create table test (obj object index off)");
     }
 
     @Test
     public void testCreateTableWithColumnStoreDisabled() {
-        CreateTableAnalyzedStatement analysis = e.analyze(
+        CreateTableAnalyzedStatement analysis = analyze(
             "create table columnstore_disabled (s string STORAGE WITH (columnstore = false))");
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         assertThat(mapToSortedString(mappingProperties), is("s={doc_values=false, position=1, type=keyword}"));
@@ -1192,7 +1205,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithColumnStoreDisabledOnInvalidDataType() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid storage option \"columnstore\" for data type \"integer\"");
-        e.analyze("create table columnstore_disabled (s int STORAGE WITH (columnstore = false))");
+        analyze("create table columnstore_disabled (s int STORAGE WITH (columnstore = false))");
     }
 
     @Test
@@ -1202,32 +1215,32 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .build();
         expectedException.expect(RelationAlreadyExists.class);
         expectedException.expectMessage("Relation 'doc.v1' already exists");
-        executor.analyze("create table v1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        analyze(executor, "create table v1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
     }
 
     @Test
     public void testGeneratedColumnInsideObjectIsProcessed() {
-        CreateTableAnalyzedStatement stmt = e.analyze("create table t (obj object as (c as 1 + 1))");
-        AnalyzedColumnDefinition obj = stmt.analyzedTableElements().columns().get(0);
+        CreateTableAnalyzedStatement stmt = analyze("create table t (obj object as (c as 1 + 1))");
+        AnalyzedColumnDefinition<Object> obj = stmt.analyzedTableElements().columns().get(0);
         AnalyzedColumnDefinition c = obj.children().get(0);
 
         assertThat(c.dataType(), is(DataTypes.LONG));
         assertThat(c.formattedGeneratedExpression(), is("2"));
-        assertThat(stmt.analyzedTableElements().toMapping().toString(),
-            is("{_meta={generated_columns={obj.c=2}}, " +
-               "properties={obj={dynamic=true, position=1, type=object, properties={c={type=long}}}}}"));
+        assertThat(AnalyzedTableElements.toMapping(stmt.analyzedTableElements()).toString(),
+                   is("{_meta={generated_columns={obj.c=2}}, " +
+                      "properties={obj={dynamic=true, position=1, type=object, properties={c={type=long}}}}}"));
     }
 
     @Test
     public void testNumberOfRoutingShardsCanBeSetAtCreateTable() {
-        CreateTableAnalyzedStatement stmt = e.analyze("create table t (x int) with (number_of_routing_shards = 10)");
+        CreateTableAnalyzedStatement stmt = analyze("create table t (x int) with (number_of_routing_shards = 10)");
         assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
     }
 
     @Test
     public void testNumberOfRoutingShardsCanBeSetAtCreateTableForPartitionedTables() {
-        CreateTableAnalyzedStatement stmt = e.analyze("create table t (p int, x int) partitioned by (p) " +
-                                                      "with (number_of_routing_shards = 10)");
+        CreateTableAnalyzedStatement stmt = analyze("create table t (p int, x int) partitioned by (p) " +
+                                                    "with (number_of_routing_shards = 10)");
         assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
     }
 
@@ -1249,6 +1262,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithIntervalFails() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use the type `interval` for column: i");
-        e.analyze("create table test (i interval)");
+        analyze("create table test (i interval)");
     }
 }

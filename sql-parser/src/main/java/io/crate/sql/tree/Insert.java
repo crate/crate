@@ -26,13 +26,13 @@ import com.google.common.base.Objects;
 import java.util.Collections;
 import java.util.List;
 
-public abstract class Insert extends Statement {
+public abstract class Insert<T> extends Statement {
 
-    protected final Table table;
-    private final DuplicateKeyContext duplicateKeyContext;
+    protected final Table<T> table;
+    private final DuplicateKeyContext<T> duplicateKeyContext;
     protected final List<String> columns;
 
-    Insert(Table table, List<String> columns, DuplicateKeyContext duplicateKeyContext) {
+    Insert(Table<T> table, List<String> columns, DuplicateKeyContext<T> duplicateKeyContext) {
         this.table = table;
         this.columns = columns;
         this.duplicateKeyContext = duplicateKeyContext;
@@ -46,7 +46,7 @@ public abstract class Insert extends Statement {
         return columns;
     }
 
-    public DuplicateKeyContext getDuplicateKeyContext() {
+    public DuplicateKeyContext<T> getDuplicateKeyContext() {
         return duplicateKeyContext;
     }
 
@@ -76,10 +76,14 @@ public abstract class Insert extends Statement {
     }
 
 
-    public static class DuplicateKeyContext {
+    public static class DuplicateKeyContext<T> {
 
-        public static final DuplicateKeyContext NONE =
-            new DuplicateKeyContext(Type.NONE, Collections.emptyList(), Collections.emptyList());
+        private static final DuplicateKeyContext<?> NONE =
+            new DuplicateKeyContext<>(Type.NONE, Collections.emptyList(), Collections.emptyList());
+
+        public static <T> DuplicateKeyContext<T> none() {
+            return (DuplicateKeyContext<T>) NONE;
+        }
 
         public enum Type {
             ON_CONFLICT_DO_UPDATE_SET,
@@ -88,11 +92,11 @@ public abstract class Insert extends Statement {
         }
 
         private final Type type;
-        private final List<Assignment> onDuplicateKeyAssignments;
+        private final List<Assignment<T>> onDuplicateKeyAssignments;
         private final List<String> constraintColumns;
 
         public DuplicateKeyContext(Type type,
-                                   List<Assignment> onDuplicateKeyAssignments,
+                                   List<Assignment<T>> onDuplicateKeyAssignments,
                                    List<String> constraintColumns) {
             this.type = type;
             this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
@@ -103,7 +107,7 @@ public abstract class Insert extends Statement {
             return type;
         }
 
-        public List<Assignment> getAssignments() {
+        public List<Assignment<T>> getAssignments() {
             return onDuplicateKeyAssignments;
         }
 

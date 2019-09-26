@@ -21,10 +21,14 @@
 
 package io.crate.analyze;
 
+import io.crate.data.RowN;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.ddl.CreateTablePlan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -57,42 +61,57 @@ import static org.hamcrest.Matchers.not;
 public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private PlannerContext plannerContext;
 
     @Before
     public void prepare() throws IOException {
         String analyzerSettings = FulltextAnalyzerResolver.encodeSettings(
             Settings.builder().put("search", "foobar").build()).utf8ToString();
         MetaData metaData = MetaData.builder()
-                                    .persistentSettings(
-                                        Settings.builder()
-                                                .put(ANALYZER.buildSettingName("ft_search"), analyzerSettings)
-                                                .build())
-                                    .build();
+            .persistentSettings(
+                Settings.builder()
+                    .put(ANALYZER.buildSettingName("ft_search"), analyzerSettings)
+                    .build())
+            .build();
         ClusterState state =
             ClusterState.builder(ClusterName.DEFAULT)
-                        .nodes(DiscoveryNodes.builder()
-                                             .add(new DiscoveryNode("n1", buildNewFakeTransportAddress(),
-                                                                    Version.CURRENT))
-                                             .add(new DiscoveryNode("n2", buildNewFakeTransportAddress(),
-                                                                    Version.CURRENT))
-                                             .add(new DiscoveryNode("n3", buildNewFakeTransportAddress(),
-                                                                    Version.CURRENT))
-                                             .localNodeId("n1")
-                              )
-                        .metaData(metaData)
-                        .build();
+                .nodes(DiscoveryNodes.builder()
+                           .add(new DiscoveryNode("n1", buildNewFakeTransportAddress(),
+                                                  Version.CURRENT))
+                           .add(new DiscoveryNode("n2", buildNewFakeTransportAddress(),
+                                                  Version.CURRENT))
+                           .add(new DiscoveryNode("n3", buildNewFakeTransportAddress(),
+                                                  Version.CURRENT))
+                           .localNodeId("n1")
+                )
+                .metaData(metaData)
+                .build();
         ClusterServiceUtils.setState(clusterService, state);
         e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        plannerContext = e.getPlannerContext(clusterService.state());
+    }
+
+    private CreateTableAnalyzedStatement analyze(String stmt, Object... arguments) {
+        return CreateTablePlan.createStatement(
+            e.analyze(stmt),
+            plannerContext.transactionContext(),
+            plannerContext.functions(),
+            new RowN(arguments),
+            SubQueryResults.EMPTY,
+            new NumberOfShards(clusterService),
+            e.schemas(),
+            e.fulltextAnalyzerResolver()
+        );
     }
 
     @Test
     public void testPartitionedBy() {
-        CreateTableAnalyzedStatement analysis = e.analyze("create table my_table (" +
-                                                          "  id integer," +
-                                                          "  no_index string index off," +
-                                                          "  name string," +
-                                                          "  date timestamp with time zone" +
-                                                          ") partitioned by (name)");
+        CreateTableAnalyzedStatement analysis = analyze("create table my_table (" +
+                                                        "  id integer," +
+                                                        "  no_index string index off," +
+                                                        "  name string," +
+                                                        "  date timestamp with time zone" +
+                                                        ") partitioned by (name)");
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("name", "keyword"));
 
@@ -111,34 +130,34 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testPartitionedByMultipleColumns() {
-        CreateTableAnalyzedStatement analysis = e.analyze("create table my_table (" +
-                                                          "  name string," +
-                                                          "  date timestamp with time zone" +
-                                                          ") partitioned by (name, date)");
+        CreateTableAnalyzedStatement analysis = analyze("create table my_table (" +
+                                                        "  name string," +
+                                                        "  date timestamp with time zone" +
+                                                        ") partitioned by (name, date)");
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> properties = analysis.mappingProperties();
         assertThat(mapToSortedString(properties),
-            is("date={format=epoch_millis||strict_date_optional_time, index=false, position=2, type=date}, " +
-               "name={index=false, position=1, type=keyword}"));
+                   is("date={format=epoch_millis||strict_date_optional_time, index=false, position=2, type=date}, " +
+                      "name={index=false, position=1, type=keyword}"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
-            allOf(
-                not(hasKey("name")),
-                not(hasKey("date"))
-            ));
+                   allOf(
+                       not(hasKey("name")),
+                       not(hasKey("date"))
+                   ));
         assertThat(analysis.partitionedBy().get(0), contains("name", "keyword"));
         assertThat(analysis.partitionedBy().get(1), contains("date", "date"));
     }
 
     @Test
     public void testPartitionedByNestedColumns() {
-        CreateTableAnalyzedStatement analysis = e.analyze("create table my_table (" +
-                                                          "  id integer," +
-                                                          "  no_index string index off," +
-                                                          "  o object as (" +
-                                                          "    name string" +
-                                                          "  )," +
-                                                          "  date timestamp with time zone" +
-                                                          ") partitioned by (date, o['name'])");
+        CreateTableAnalyzedStatement analysis = analyze("create table my_table (" +
+                                                        "  id integer," +
+                                                        "  no_index string index off," +
+                                                        "  o object as (" +
+                                                        "    name string" +
+                                                        "  )," +
+                                                        "  date timestamp with time zone" +
+                                                        ") partitioned by (date, o['name'])");
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("o");
         assertThat(mapToSortedString(oMapping), is(
@@ -153,90 +172,90 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test(expected = IllegalArgumentException.class)
     public void testPartitionedByArrayNestedColumns() {
-        e.analyze("create table my_table (" +
-                  "  a array(object as (" +
-                  "    name string" +
-                  "  ))," +
-                  "  date timestamp with time zone" +
-                  ") partitioned by (date, a['name'])");
+        analyze("create table my_table (" +
+                "  a array(object as (" +
+                "    name string" +
+                "  ))," +
+                "  date timestamp with time zone" +
+                ") partitioned by (date, a['name'])");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testPartitionedByArray() {
-        e.analyze("create table my_table (" +
-                  "  a array(string)," +
-                  "  date timestamp with time zone" +
-                  ") partitioned by (a)");
+        analyze("create table my_table (" +
+                "  a array(string)," +
+                "  date timestamp with time zone" +
+                ") partitioned by (a)");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testPartitionedByInnerArray() {
-        e.analyze("create table my_table (" +
-                  "  a object as (names array(string))," +
-                  "  date timestamp with time zone" +
-                  ") partitioned by (a['names'])");
+        analyze("create table my_table (" +
+                "  a object as (names array(string))," +
+                "  date timestamp with time zone" +
+                ") partitioned by (a['names'])");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testPartitionedByObject() {
-        e.analyze("create table my_table (" +
-                  "  a object as(name string)," +
-                  "  date timestamp with time zone" +
-                  ") partitioned by (a)");
+        analyze("create table my_table (" +
+                "  a object as(name string)," +
+                "  date timestamp with time zone" +
+                ") partitioned by (a)");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testPartitionedByInnerObject() {
-        e.analyze("create table my_table (" +
-                  "  a object as(b object as(name string))," +
-                  "  date timestamp with time zone" +
-                  ") partitioned by (a['b'])");
+        analyze("create table my_table (" +
+                "  a object as(b object as(name string))," +
+                "  date timestamp with time zone" +
+                ") partitioned by (a['b'])");
     }
 
     @Test
     public void testPartitionByUnknownColumn() {
         expectedException.expect(ColumnUnknownException.class);
-        e.analyze("create table my_table (p string) partitioned by (a)");
+        analyze("create table my_table (p string) partitioned by (a)");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testPartitionedByNotPartOfPrimaryKey() {
-        e.analyze("create table my_table (" +
-                  "  id1 integer," +
-                  "  id2 integer," +
-                  "  date timestamp with time zone," +
-                  "  primary key (id1, id2)" +
-                  ") partitioned by (id1, date)");
+        analyze("create table my_table (" +
+                "  id1 integer," +
+                "  id2 integer," +
+                "  date timestamp with time zone," +
+                "  primary key (id1, id2)" +
+                ") partitioned by (id1, date)");
     }
 
     @Test
     public void testPartitionedByPartOfPrimaryKey() {
-        CreateTableAnalyzedStatement analysis = e.analyze("create table my_table (" +
-                                                          "  id1 integer," +
-                                                          "  id2 integer," +
-                                                          "  date timestamp with time zone," +
-                                                          "  primary key (id1, id2)" +
-                                                          ") partitioned by (id1)");
+        CreateTableAnalyzedStatement analysis = analyze("create table my_table (" +
+                                                        "  id1 integer," +
+                                                        "  id2 integer," +
+                                                        "  date timestamp with time zone," +
+                                                        "  primary key (id1, id2)" +
+                                                        ") partitioned by (id1)");
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
 
         Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("id1");
         assertThat(mapToSortedString(oMapping), is("index=false, position=1, type=integer"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
-            not(hasKey("id1")));
+                   not(hasKey("id1")));
     }
 
     @Test
     public void testPartitionedByIndexed() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use column name with fulltext index in PARTITIONED BY clause");
-        e.analyze("create table my_table(" +
-                  "  name string index using fulltext," +
-                  "  no_index string index off," +
-                  "  stuff string," +
-                  "  o object as (s string)," +
-                  "  index ft using fulltext(stuff, o['s']) with (analyzer='snowball')" +
-                  ") partitioned by (name)");
+        analyze("create table my_table(" +
+                "  name string index using fulltext," +
+                "  no_index string index off," +
+                "  stuff string," +
+                "  o object as (s string)," +
+                "  index ft using fulltext(stuff, o['s']) with (analyzer='snowball')" +
+                ") partitioned by (name)");
 
     }
 
@@ -244,23 +263,23 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testPartitionedByCompoundIndex() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use column ft with fulltext index in PARTITIONED BY clause");
-        e.analyze("create table my_table(" +
-                  "  name string index using fulltext," +
-                  "  no_index string index off," +
-                  "  stuff string," +
-                  "  o object as (s string)," +
-                  "  index ft using fulltext(stuff, o['s']) with (analyzer='snowball')" +
-                  ") partitioned by (ft)");
+        analyze("create table my_table(" +
+                "  name string index using fulltext," +
+                "  no_index string index off," +
+                "  stuff string," +
+                "  o object as (s string)," +
+                "  index ft using fulltext(stuff, o['s']) with (analyzer='snowball')" +
+                ") partitioned by (ft)");
 
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testPartitionedByClusteredBy() {
-        e.analyze("create table my_table (" +
-                  "  id integer," +
-                  "  name string" +
-                  ") partitioned by (id)" +
-                  "  clustered by (id) into 5 shards");
+        analyze("create table my_table (" +
+                "  id integer," +
+                "  name string" +
+                ") partitioned by (id)" +
+                "  clustered by (id) into 5 shards");
     }
 
     @Test
@@ -346,7 +365,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testCreatePartitionedByGeoShape() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use column shape of type geo_shape in PARTITIONED BY clause");
-        e.analyze("create table shaped (id int, shape geo_shape) partitioned by (shape)");
+        analyze("create table shaped (id int, shape geo_shape) partitioned by (shape)");
     }
 
     @Test
@@ -354,10 +373,10 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         AlterTableAnalyzedStatement analyzedStatement = e.analyze(
             "ALTER TABLE parted SET (\"write.wait_for_active_shards\"= 'ALL')");
         assertThat(analyzedStatement.tableParameter().settings().get(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
-            is("ALL"));
+                   is("ALL"));
 
         analyzedStatement = e.analyze("ALTER TABLE parted RESET (\"write.wait_for_active_shards\")");
         assertThat(analyzedStatement.tableParameter().settings().get(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
-            is("1"));
+                   is("1"));
     }
 }

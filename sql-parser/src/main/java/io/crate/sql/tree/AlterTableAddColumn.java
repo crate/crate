@@ -23,21 +23,21 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
-public class AlterTableAddColumn extends Statement {
+public class AlterTableAddColumn<T> extends Statement {
 
-    private final Table table;
-    private final AddColumnDefinition addColumnDefinition;
+    private final Table<T> table;
+    private final AddColumnDefinition<T> addColumnDefinition;
 
-    public AlterTableAddColumn(Table table, AddColumnDefinition addColumnDefinition) {
+    public AlterTableAddColumn(Table<T> table, AddColumnDefinition<T> addColumnDefinition) {
         this.table = table;
         this.addColumnDefinition = addColumnDefinition;
     }
 
-    public TableElement tableElement() {
+    public TableElement<T> tableElement() {
         return addColumnDefinition;
     }
 
-    public Table table() {
+    public Table<T> table() {
         return table;
     }
 

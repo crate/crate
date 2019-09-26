@@ -25,22 +25,34 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
-public class ColumnStorageDefinition extends ColumnConstraint {
+public class ColumnStorageDefinition<T> extends ColumnConstraint<T> {
 
-    private final GenericProperties properties;
+    private final GenericProperties<T> properties;
 
-    public ColumnStorageDefinition(GenericProperties properties) {
+    public ColumnStorageDefinition(GenericProperties<T> properties) {
         this.properties = properties;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<T> properties() {
         return properties;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitColumnStorageDefinition(this, context);
+    }
+
+    @Override
+    public <U> ColumnConstraint<U> map(Function<? super T, ? extends U> mapper) {
+        return new ColumnStorageDefinition<>(properties.map(mapper));
+    }
+
+    @Override
+    public void visit(Consumer<? super T> consumer) {
+        properties.properties().values().forEach(consumer);
     }
 
     @Override

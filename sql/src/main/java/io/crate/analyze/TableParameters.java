@@ -128,7 +128,7 @@ public class TableParameters {
 
     private static final Map<String, Setting<?>> SUPPORTED_MAPPINGS_DEFAULT = Map.of("column_policy", COLUMN_POLICY);
 
-    static final TableParameters TABLE_CREATE_PARAMETER_INFO
+    public static final TableParameters TABLE_CREATE_PARAMETER_INFO
         = new TableParameters(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
 
     static final TableParameters TABLE_ALTER_PARAMETER_INFO

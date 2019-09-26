@@ -275,7 +275,7 @@ class CopyAnalyzer {
         return Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
     }
 
-    private static List<String> resolvePartitions(List<Assignment> partitionProperties, Row parameters, DocTableInfo table) {
+    private static List<String> resolvePartitions(List<Assignment<Expression>> partitionProperties, Row parameters, DocTableInfo table) {
         if (partitionProperties.isEmpty()) {
             return Collections.emptyList();
         }

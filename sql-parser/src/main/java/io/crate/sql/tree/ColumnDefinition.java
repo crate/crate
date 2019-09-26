@@ -23,36 +23,54 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import io.crate.common.collections.Lists2;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
-public class ColumnDefinition extends TableElement {
+public class ColumnDefinition<T> extends TableElement<T> {
 
     private final String ident;
 
     @Nullable
-    private final Expression defaultExpression;
+    private final T defaultExpression;
 
     @Nullable
-    private final Expression generatedExpression;
+    private final T generatedExpression;
+
+    private final boolean generated;
 
     @Nullable
-    private final ColumnType type;
+    private final ColumnType<T> type;
 
-    private final List<ColumnConstraint> constraints;
+    private final List<ColumnConstraint<T>> constraints;
 
     public ColumnDefinition(String ident,
-                            @Nullable Expression defaultExpression,
-                            @Nullable Expression generatedExpression,
-                            @Nullable ColumnType type,
-                            List<ColumnConstraint> constraints) {
+                            @Nullable T defaultExpression,
+                            @Nullable T generatedExpression,
+                            @Nullable ColumnType<T> type,
+                            List<ColumnConstraint<T>> constraints) {
+        this(ident, defaultExpression, generatedExpression, type, constraints, true, generatedExpression != null);
+    }
+
+    private ColumnDefinition(String ident,
+                             @Nullable T defaultExpression,
+                             @Nullable T generatedExpression,
+                             @Nullable ColumnType<T> type,
+                             List<ColumnConstraint<T>> constraints,
+                             boolean validate,
+                             boolean generated) {
         this.ident = ident;
         this.defaultExpression = defaultExpression;
         this.generatedExpression = generatedExpression;
+        this.generated = generated;
         this.type = type;
         this.constraints = constraints;
-        validateColumnDefinition();
+        if (validate) {
+            validateColumnDefinition();
+        }
     }
 
     private void validateColumnDefinition() {
@@ -71,22 +89,26 @@ public class ColumnDefinition extends TableElement {
         return ident;
     }
 
+    public boolean isGenerated() {
+        return generated;
+    }
+
     @Nullable
-    public Expression generatedExpression() {
+    public T generatedExpression() {
         return generatedExpression;
     }
 
     @Nullable
-    public Expression defaultExpression() {
+    public T defaultExpression() {
         return defaultExpression;
     }
 
     @Nullable
-    public ColumnType type() {
+    public ColumnType<T> type() {
         return type;
     }
 
-    public List<ColumnConstraint> constraints() {
+    public List<ColumnConstraint<T>> constraints() {
         return constraints;
     }
 
@@ -127,5 +149,44 @@ public class ColumnDefinition extends TableElement {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitColumnDefinition(this, context);
+    }
+
+    @Override
+    public <U> ColumnDefinition<U> map(Function<? super T, ? extends U> mapper) {
+        return new ColumnDefinition<>(
+            ident,
+            null, // expression must be mapped later on using mapExpressions()
+            null,
+            type == null ? null : type.map(mapper),
+            Lists2.map(constraints, x -> x.map(mapper)),
+            false,
+            generatedExpression != null
+        );
+    }
+
+    @Override
+    public <U> TableElement<U> mapExpressions(TableElement<U> mappedElement,
+                                              Function<? super T, ? extends U> mapper) {
+        ColumnDefinition<U> mappedDefinition = (ColumnDefinition<U>) mappedElement;
+        return new ColumnDefinition<>(
+            mappedDefinition.ident,
+            defaultExpression == null ? null : mapper.apply(defaultExpression),
+            generatedExpression == null ? null : mapper.apply(generatedExpression),
+            type == null ? null : type.mapExpressions(mappedDefinition.type, mapper),
+            mappedDefinition.constraints
+        );
+    }
+
+    @Override
+    public void visit(Consumer<? super T> consumer) {
+        if (defaultExpression != null) {
+            consumer.accept(defaultExpression);
+        }
+        if (generatedExpression != null) {
+            consumer.accept(generatedExpression);
+        }
+        for (ColumnConstraint<T> constraint : constraints) {
+            constraint.visit(consumer);
+        }
     }
 }

@@ -26,14 +26,14 @@ import com.google.common.base.Objects;
 
 import java.util.List;
 
-public class InsertFromSubquery extends Insert {
+public class InsertFromSubquery<T> extends Insert<T> {
 
     private final Query subQuery;
 
-    public InsertFromSubquery(Table table,
+    public InsertFromSubquery(Table<T> table,
                               Query subQuery,
                               List<String> columns,
-                              DuplicateKeyContext duplicateKeyContext) {
+                              DuplicateKeyContext<T> duplicateKeyContext) {
         super(table, columns, duplicateKeyContext);
         this.subQuery = subQuery;
     }

@@ -396,7 +396,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        protected Void visitTable(Table node, Integer indent) {
+        protected Void visitTable(Table<?> node, Integer indent) {
             if (node.excludePartitions()) {
                 builder.append("ONLY ");
             }
@@ -566,24 +566,25 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitColumnDefinition(ColumnDefinition node, Integer indent) {
-            builder.append(quoteIdentifierIfNeeded(node.ident()))
+        public Void visitColumnDefinition(ColumnDefinition<?> node, Integer indent) {
+            ColumnDefinition<Expression> columnDefinition = (ColumnDefinition<Expression>) node;
+            builder.append(quoteIdentifierIfNeeded(columnDefinition.ident()))
                 .append(" ");
-            ColumnType type = node.type();
+            ColumnType type = columnDefinition.type();
             if (type != null) {
                 type.accept(this, indent);
             }
-            if (node.defaultExpression() != null) {
+            if (columnDefinition.defaultExpression() != null) {
                 builder.append(" DEFAULT ")
-                    .append(formatStandaloneExpression(node.defaultExpression(), parameters));
+                    .append(formatStandaloneExpression(columnDefinition.defaultExpression(), parameters));
             }
-            if (node.generatedExpression() != null) {
+            if (columnDefinition.generatedExpression() != null) {
                 builder.append(" GENERATED ALWAYS AS ")
-                    .append(formatStandaloneExpression(node.generatedExpression(), parameters));
+                    .append(formatStandaloneExpression(columnDefinition.generatedExpression(), parameters));
             }
 
-            if (!node.constraints().isEmpty()) {
-                for (ColumnConstraint constraint : node.constraints()) {
+            if (!columnDefinition.constraints().isEmpty()) {
+                for (ColumnConstraint constraint : columnDefinition.constraints()) {
                     builder.append(" ");
                     constraint.accept(this, indent);
                 }
@@ -599,15 +600,16 @@ public final class SqlFormatter {
 
         @Override
         public Void visitObjectColumnType(ObjectColumnType node, Integer indent) {
+            ObjectColumnType<Expression> objectColumnType = node;
             builder.append("OBJECT");
-            if (node.objectType().isPresent()) {
+            if (objectColumnType.objectType().isPresent()) {
                 builder.append('(');
-                builder.append(node.objectType().get().name());
+                builder.append(objectColumnType.objectType().get().name());
                 builder.append(')');
             }
-            if (!node.nestedColumns().isEmpty()) {
+            if (!objectColumnType.nestedColumns().isEmpty()) {
                 builder.append(" AS ");
-                appendNestedNodeList(node.nestedColumns(), indent);
+                appendNestedNodeList(objectColumnType.nestedColumns(), indent);
             }
             return null;
         }
@@ -624,7 +626,7 @@ public final class SqlFormatter {
         @Override
         public Void visitIndexColumnConstraint(IndexColumnConstraint node, Integer indent) {
             builder.append("INDEX ");
-            if (node.equals(IndexColumnConstraint.OFF)) {
+            if (node.equals(IndexColumnConstraint.off())) {
                 builder.append(node.indexMethod().toUpperCase(Locale.ENGLISH));
             } else {
                 builder.append("USING ")

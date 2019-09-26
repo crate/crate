@@ -53,8 +53,7 @@ public class AlterUserAnalyzer {
         );
 
         Map<String, Symbol> rows = new HashMap<>();
-        GenericProperties genericProperties = node.genericProperties();
-
+        GenericProperties<Expression> genericProperties = node.genericProperties();
         for (Map.Entry<String, Expression> expr : genericProperties.properties().entrySet()) {
             Symbol valueSymbol = expressionAnalyzer.convert(expr.getValue(), exprContext);
             rows.put(expr.getKey(), valueSymbol);

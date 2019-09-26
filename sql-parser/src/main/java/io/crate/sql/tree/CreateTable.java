@@ -24,20 +24,20 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Optional;
 
-public final class CreateTable extends Statement {
+public final class CreateTable<T> extends Statement {
 
-    private final Table name;
-    private final List<TableElement> tableElements;
-    private final Optional<PartitionedBy> partitionedBy;
-    private final Optional<ClusteredBy> clusteredBy;
+    private final Table<T> name;
+    private final List<TableElement<T>> tableElements;
+    private final Optional<PartitionedBy<T>> partitionedBy;
+    private final Optional<ClusteredBy<T>> clusteredBy;
     private final boolean ifNotExists;
-    private final GenericProperties properties;
+    private final GenericProperties<T> properties;
 
-    public CreateTable(Table name,
-                       List<TableElement> tableElements,
-                       Optional<PartitionedBy> partitionedBy,
-                       Optional<ClusteredBy> clusteredBy,
-                       GenericProperties genericProperties,
+    public CreateTable(Table<T> name,
+                       List<TableElement<T>> tableElements,
+                       Optional<PartitionedBy<T>> partitionedBy,
+                       Optional<ClusteredBy<T>> clusteredBy,
+                       GenericProperties<T> genericProperties,
                        boolean ifNotExists) {
         this.name = name;
         this.tableElements = tableElements;
@@ -51,23 +51,23 @@ public final class CreateTable extends Statement {
         return ifNotExists;
     }
 
-    public Table name() {
+    public Table<T> name() {
         return name;
     }
 
-    public List<TableElement> tableElements() {
+    public List<TableElement<T>> tableElements() {
         return tableElements;
     }
 
-    public Optional<ClusteredBy> clusteredBy() {
+    public Optional<ClusteredBy<T>> clusteredBy() {
         return clusteredBy;
     }
 
-    public Optional<PartitionedBy> partitionedBy() {
+    public Optional<PartitionedBy<T>> partitionedBy() {
         return partitionedBy;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<T> properties() {
         return properties;
     }
 

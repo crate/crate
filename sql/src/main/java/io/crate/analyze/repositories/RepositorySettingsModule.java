@@ -72,15 +72,15 @@ public class RepositorySettingsModule extends AbstractModule {
             .build()) {
 
         @Override
-        public GenericProperties dynamicProperties(GenericProperties genericProperties) {
+        public GenericProperties<Expression> dynamicProperties(GenericProperties<Expression> genericProperties) {
             if (genericProperties.isEmpty()) {
                 return genericProperties;
             }
-            GenericProperties dynamicProperties = new GenericProperties();
+            GenericProperties<Expression> dynamicProperties = new GenericProperties<>();
             for (Map.Entry<String, Expression> entry : genericProperties.properties().entrySet()) {
                 String key = entry.getKey();
                 if (key.startsWith("conf.")) {
-                    dynamicProperties.add(new GenericProperty(key, entry.getValue()));
+                    dynamicProperties.add(new GenericProperty<>(key, entry.getValue()));
                 }
             }
             return dynamicProperties;

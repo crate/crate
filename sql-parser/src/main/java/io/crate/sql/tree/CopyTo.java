@@ -28,20 +28,20 @@ import java.util.Optional;
 
 public class CopyTo extends Statement {
 
-    private final Table table;
+    private final Table<Expression> table;
     private final boolean directoryUri;
     private final Expression targetUri;
 
-    private final GenericProperties genericProperties;
+    private final GenericProperties<Expression> genericProperties;
     private final List<Expression> columns;
     private final Optional<Expression> whereClause;
 
-    public CopyTo(Table table,
+    public CopyTo(Table<Expression> table,
                   List<Expression> columns,
                   Optional<Expression> whereClause,
                   boolean directoryUri,
                   Expression targetUri,
-                  GenericProperties genericProperties) {
+                  GenericProperties<Expression> genericProperties) {
 
         this.table = table;
         this.directoryUri = directoryUri;
@@ -51,7 +51,7 @@ public class CopyTo extends Statement {
         this.whereClause = whereClause;
     }
 
-    public Table table() {
+    public Table<Expression> table() {
         return table;
     }
 
@@ -67,7 +67,7 @@ public class CopyTo extends Statement {
         return columns;
     }
 
-    public GenericProperties genericProperties() {
+    public GenericProperties<Expression> genericProperties() {
         return genericProperties;
     }
 

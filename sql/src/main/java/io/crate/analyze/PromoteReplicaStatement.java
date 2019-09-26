@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Expression;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -36,7 +37,7 @@ public class PromoteReplicaStatement extends RerouteAnalyzedStatement {
     private final Symbol node;
 
     public PromoteReplicaStatement(ShardedTable tableInfo,
-                                   List<Assignment> partitionProperties,
+                                   List<Assignment<Expression>> partitionProperties,
                                    Symbol node,
                                    Symbol shardId,
                                    Symbol acceptDataLoss) {

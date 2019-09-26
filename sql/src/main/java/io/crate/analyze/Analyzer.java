@@ -68,6 +68,7 @@ import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.InsertFromSubquery;
@@ -160,15 +161,7 @@ public class Analyzer {
         this.schemas = schemas;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.userManager = userManager;
-        FulltextAnalyzerResolver fulltextAnalyzerResolver =
-            new FulltextAnalyzerResolver(clusterService, analysisRegistry);
-        NumberOfShards numberOfShards = new NumberOfShards(clusterService);
-        this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(
-            schemas,
-            fulltextAnalyzerResolver,
-            functions,
-            numberOfShards
-        );
+        this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(functions);
         this.swapTableAnalyzer = new SwapTableAnalyzer(functions, schemas);
         this.createViewAnalyzer = new CreateViewAnalyzer(relationAnalyzer);
         this.showCreateTableAnalyzer = new ShowCreateTableAnalyzer(schemas);
@@ -186,8 +179,12 @@ public class Analyzer {
             updateAnalyzer,
             insertFromValuesAnalyzer,
             insertFromSubQueryAnalyzer,
-            explainStatementAnalyzer
+            explainStatementAnalyzer,
+            createTableStatementAnalyzer
         );
+        FulltextAnalyzerResolver fulltextAnalyzerResolver =
+            new FulltextAnalyzerResolver(clusterService, analysisRegistry);
+        NumberOfShards numberOfShards = new NumberOfShards(clusterService);
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, numberOfShards);
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
@@ -279,8 +276,8 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateTable(CreateTable node, Analysis analysis) {
-            return createTableStatementAnalyzer.analyze(node, analysis.parameterContext(), analysis.transactionContext());
+        public AnalyzedStatement visitCreateTable(CreateTable<?> node, Analysis analysis) {
+            return createTableStatementAnalyzer.analyze((CreateTable<Expression>) node, analysis.paramTypeHints(), analysis.transactionContext());
         }
 
         @Override

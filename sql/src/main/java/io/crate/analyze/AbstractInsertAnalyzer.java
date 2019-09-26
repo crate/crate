@@ -26,6 +26,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Insert;
 
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ abstract class AbstractInsertAnalyzer {
                 actual, expected));
     }
 
-    void handleInsertColumns(Insert node, int maxInsertValues, AbstractInsertAnalyzedStatement context) {
+    void handleInsertColumns(Insert<Expression> node, int maxInsertValues, AbstractInsertAnalyzedStatement context) {
         // allocate columnsLists
         int numColumns;
 
@@ -57,7 +58,7 @@ abstract class AbstractInsertAnalyzer {
             if (maxInsertValues > numColumns) {
                 throw tooManyValuesException(maxInsertValues, numColumns);
             }
-            context.columns(new ArrayList<Reference>(numColumns));
+            context.columns(new ArrayList<>(numColumns));
 
             int i = 0;
             for (Reference columnInfo : context.tableInfo().columns()) {
@@ -73,7 +74,7 @@ abstract class AbstractInsertAnalyzer {
             if (maxInsertValues > numColumns) {
                 throw tooManyValuesException(maxInsertValues, numColumns);
             }
-            context.columns(new ArrayList<Reference>(numColumns));
+            context.columns(new ArrayList<>(numColumns));
             for (int i = 0; i < node.columns().size(); i++) {
                 addColumn(ColumnIdent.fromNameSafe(node.columns().get(i)), context, i);
             }

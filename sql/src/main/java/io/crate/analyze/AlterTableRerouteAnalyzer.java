@@ -68,22 +68,22 @@ public class AlterTableRerouteAnalyzer {
         }
         tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_REROUTE);
         return node.rerouteOption().accept(rerouteOptionVisitor, new Context(
-                tableInfo,
-                node.table().partitionProperties(),
-                context.transactionContext(),
-                context.paramTypeHints()
-            ));
+            tableInfo,
+            node.table().partitionProperties(),
+            context.transactionContext(),
+            context.paramTypeHints()
+        ));
     }
 
-    private class Context {
+    private static class Context {
 
         private final ShardedTable tableInfo;
-        private final List<Assignment> partitionProperties;
+        private final List<Assignment<Expression>> partitionProperties;
         private final CoordinatorTxnCtx txnCtx;
         private final ParamTypeHints paramTypeHints;
 
         private Context(ShardedTable tableInfo,
-                        List<Assignment> partitionProperties,
+                        List<Assignment<Expression>> partitionProperties,
                         CoordinatorTxnCtx txnCtx,
                         ParamTypeHints paramTypeHints) {
             this.tableInfo = tableInfo;

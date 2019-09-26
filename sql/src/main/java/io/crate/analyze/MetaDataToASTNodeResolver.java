@@ -85,12 +85,12 @@ public class MetaDataToASTNodeResolver {
             this.tableInfo = tableInfo;
         }
 
-        private Table extractTable() {
-            return new Table(QualifiedName.of(tableInfo.ident().fqn()), false);
+        private Table<Expression> extractTable() {
+            return new Table<>(QualifiedName.of(tableInfo.ident().fqn()), false);
         }
 
-        private List<TableElement> extractTableElements() {
-            List<TableElement> elements = new ArrayList<>();
+        private List<TableElement<Expression>> extractTableElements() {
+            List<TableElement<Expression>> elements = new ArrayList<>();
             // column definitions
             elements.addAll(extractColumnDefinitions(null));
             // primary key constraint
@@ -101,9 +101,9 @@ public class MetaDataToASTNodeResolver {
             return elements;
         }
 
-        private List<ColumnDefinition> extractColumnDefinitions(@Nullable ColumnIdent parent) {
+        private List<ColumnDefinition<Expression>> extractColumnDefinitions(@Nullable ColumnIdent parent) {
             Iterator<Reference> referenceIterator = tableInfo.iterator();
-            List<ColumnDefinition> elements = new ArrayList<>();
+            List<ColumnDefinition<Expression>> elements = new ArrayList<>();
             while (referenceIterator.hasNext()) {
                 Reference info = referenceIterator.next();
                 ColumnIdent ident = info.column();
@@ -116,12 +116,12 @@ public class MetaDataToASTNodeResolver {
 
                 ColumnType columnType;
                 if (info.valueType().id() == ObjectType.ID) {
-                    columnType = new ObjectColumnType(info.columnPolicy().name(), extractColumnDefinitions(ident));
+                    columnType = new ObjectColumnType<>(info.columnPolicy().name(), extractColumnDefinitions(ident));
                 } else if (info.valueType().id() == ArrayType.ID) {
                     DataType innerType = ((ArrayType) info.valueType()).innerType();
                     ColumnType innerColumnType;
                     if (innerType.id() == ObjectType.ID) {
-                        innerColumnType = new ObjectColumnType(info.columnPolicy().name(), extractColumnDefinitions(ident));
+                        innerColumnType = new ObjectColumnType<>(info.columnPolicy().name(), extractColumnDefinitions(ident));
                     } else {
                         innerColumnType = new ColumnType(innerType.getName());
                     }
@@ -130,35 +130,35 @@ public class MetaDataToASTNodeResolver {
                     columnType = new ColumnType(info.valueType().getName());
                 }
 
-                List<ColumnConstraint> constraints = new ArrayList<>();
+                List<ColumnConstraint<Expression>> constraints = new ArrayList<>();
                 if (!info.isNullable()) {
-                    constraints.add(new NotNullColumnConstraint());
+                    constraints.add(new NotNullColumnConstraint<>());
                 }
                 if (info.indexType().equals(Reference.IndexType.NO)
                     && info.valueType().id() != ObjectType.ID
                     && !(info.valueType().id() == ArrayType.ID &&
                          ((ArrayType) info.valueType()).innerType().id() == ObjectType.ID)) {
-                    constraints.add(IndexColumnConstraint.OFF);
+                    constraints.add(IndexColumnConstraint.off());
                 } else if (info.indexType().equals(Reference.IndexType.ANALYZED)) {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);
-                    GenericProperties properties = new GenericProperties();
+                    GenericProperties<Expression> properties = new GenericProperties<>();
                     if (analyzer != null) {
-                        properties.add(new GenericProperty(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
+                        properties.add(new GenericProperty<>(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
                     }
-                    constraints.add(new IndexColumnConstraint("fulltext", properties));
+                    constraints.add(new IndexColumnConstraint<>("fulltext", properties));
                 } else if (info.valueType().equals(DataTypes.GEO_SHAPE)) {
                     GeoReference geoReference = (GeoReference) info;
-                    GenericProperties properties = new GenericProperties();
+                    GenericProperties<Expression> properties = new GenericProperties<>();
                     if (geoReference.distanceErrorPct() != null) {
-                        properties.add(new GenericProperty("distance_error_pct", StringLiteral.fromObject(geoReference.distanceErrorPct())));
+                        properties.add(new GenericProperty<>("distance_error_pct", StringLiteral.fromObject(geoReference.distanceErrorPct())));
                     }
                     if (geoReference.precision() != null) {
-                        properties.add(new GenericProperty("precision", StringLiteral.fromObject(geoReference.precision())));
+                        properties.add(new GenericProperty<>("precision", StringLiteral.fromObject(geoReference.precision())));
                     }
                     if (geoReference.treeLevels() != null) {
-                        properties.add(new GenericProperty("tree_levels", StringLiteral.fromObject(geoReference.treeLevels())));
+                        properties.add(new GenericProperty<>("tree_levels", StringLiteral.fromObject(geoReference.treeLevels())));
                     }
-                    constraints.add(new IndexColumnConstraint(geoReference.geoTree(), properties));
+                    constraints.add(new IndexColumnConstraint<>(geoReference.geoTree(), properties));
                 }
 
                 Expression generatedExpression = null;
@@ -173,13 +173,13 @@ public class MetaDataToASTNodeResolver {
                 }
 
                 if (info.isColumnStoreDisabled()) {
-                    GenericProperties properties = new GenericProperties();
-                    properties.add(new GenericProperty("columnstore", BooleanLiteral.fromObject(false)));
-                    constraints.add(new ColumnStorageDefinition(properties));
+                    GenericProperties<Expression> properties = new GenericProperties<>();
+                    properties.add(new GenericProperty<>("columnstore", BooleanLiteral.fromObject(false)));
+                    constraints.add(new ColumnStorageDefinition<>(properties));
                 }
 
                 String columnName = ident.isTopLevel() ? ident.name() : ident.path().get(ident.path().size() - 1);
-                elements.add(new ColumnDefinition(
+                elements.add(new ColumnDefinition<>(
                     columnName,
                     defaultExpression,
                     generatedExpression,
@@ -190,18 +190,18 @@ public class MetaDataToASTNodeResolver {
             return elements;
         }
 
-        private PrimaryKeyConstraint extractPrimaryKeyConstraint() {
+        private PrimaryKeyConstraint<Expression> extractPrimaryKeyConstraint() {
             if (!tableInfo.primaryKey().isEmpty()) {
                 if (tableInfo.primaryKey().size() == 1 && tableInfo.primaryKey().get(0).isSystemColumn()) {
                     return null;
                 }
-                return new PrimaryKeyConstraint(expressionsFromColumns(tableInfo.primaryKey()));
+                return new PrimaryKeyConstraint<>(expressionsFromColumns(tableInfo.primaryKey()));
             }
             return null;
         }
 
-        private List<IndexDefinition> extractIndexDefinitions() {
-            List<IndexDefinition> elements = new ArrayList<>();
+        private List<IndexDefinition<Expression>> extractIndexDefinitions() {
+            List<IndexDefinition<Expression>> elements = new ArrayList<>();
             Iterator indexColumns = tableInfo.indexColumns();
             if (indexColumns != null) {
                 while (indexColumns.hasNext()) {
@@ -210,41 +210,41 @@ public class MetaDataToASTNodeResolver {
                     List<Expression> columns = expressionsFromReferences(indexRef.columns());
                     if (indexRef.indexType().equals(Reference.IndexType.ANALYZED)) {
                         String analyzer = indexRef.analyzer();
-                        GenericProperties properties = new GenericProperties();
+                        GenericProperties<Expression> properties = new GenericProperties<>();
                         if (analyzer != null) {
-                            properties.add(new GenericProperty(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
+                            properties.add(new GenericProperty<>(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
                         }
-                        elements.add(new IndexDefinition(name, "fulltext", columns, properties));
+                        elements.add(new IndexDefinition<>(name, "fulltext", columns, properties));
                     } else if (indexRef.indexType().equals(Reference.IndexType.NOT_ANALYZED)) {
-                        elements.add(new IndexDefinition(name, "plain", columns, GenericProperties.EMPTY));
+                        elements.add(new IndexDefinition<>(name, "plain", columns, GenericProperties.empty()));
                     }
                 }
             }
             return elements;
         }
 
-        private Optional<PartitionedBy> createPartitionedBy() {
+        private Optional<PartitionedBy<Expression>> createPartitionedBy() {
             if (tableInfo.partitionedBy().isEmpty()) {
                 return Optional.empty();
             } else {
-                return Optional.of(new PartitionedBy(expressionsFromColumns(tableInfo.partitionedBy())));
+                return Optional.of(new PartitionedBy<>(expressionsFromColumns(tableInfo.partitionedBy())));
             }
         }
 
-        private Optional<ClusteredBy> createClusteredBy() {
+        private Optional<ClusteredBy<Expression>> createClusteredBy() {
             ColumnIdent clusteredByColumn = tableInfo.clusteredBy();
             Expression clusteredBy = clusteredByColumn == null || clusteredByColumn.isSystemColumn()
                 ? null
                 : expressionFromColumn(clusteredByColumn);
             Expression numShards = new LongLiteral(Integer.toString(tableInfo.numberOfShards()));
-            return Optional.of(new ClusteredBy(Optional.ofNullable(clusteredBy), Optional.of(numShards)));
+            return Optional.of(new ClusteredBy<>(Optional.ofNullable(clusteredBy), Optional.of(numShards)));
         }
 
-        private GenericProperties extractTableProperties() {
+        private GenericProperties<Expression> extractTableProperties() {
             // WITH ( key = value, ... )
-            GenericProperties properties = new GenericProperties();
+            GenericProperties<Expression> properties = new GenericProperties<>();
             Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas());
-            properties.add(new GenericProperty(
+            properties.add(new GenericProperty<>(
                 TableParameters.NUMBER_OF_REPLICAS.getKey(),
                 numReplicas
                 )
@@ -252,13 +252,13 @@ public class MetaDataToASTNodeResolver {
             // we want a sorted map of table parameters
             TreeMap<String, Object> tableParameters = new TreeMap<>(tableInfo.parameters());
             for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
-                properties.add(new GenericProperty(
+                properties.add(new GenericProperty<>(
                         stripIndexPrefix(entry.getKey()),
                         Literal.fromObject(entry.getValue())
                     )
                 );
             }
-            properties.add(new GenericProperty(
+            properties.add(new GenericProperty<>(
                 "column_policy",
                 new StringLiteral(tableInfo.columnPolicy().lowerCaseName())
             ));
@@ -266,12 +266,12 @@ public class MetaDataToASTNodeResolver {
         }
 
 
-        private CreateTable extractCreateTable() {
-            Table table = extractTable();
-            List<TableElement> tableElements = extractTableElements();
-            Optional<PartitionedBy> partitionedBy = createPartitionedBy();
-            Optional<ClusteredBy> clusteredBy = createClusteredBy();
-            return new CreateTable(table, tableElements, partitionedBy, clusteredBy, extractTableProperties(), true);
+        private CreateTable<Expression> extractCreateTable() {
+            Table<Expression> table = extractTable();
+            List<TableElement<Expression>> tableElements = extractTableElements();
+            Optional<PartitionedBy<Expression>> partitionedBy = createPartitionedBy();
+            Optional<ClusteredBy<Expression>> clusteredBy = createClusteredBy();
+            return new CreateTable<>(table, tableElements, partitionedBy, clusteredBy, extractTableProperties(), true);
         }
 
         private Expression expressionFromColumn(ColumnIdent ident) {

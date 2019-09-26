@@ -21,10 +21,17 @@
 
 package io.crate.sql.tree;
 
-public abstract class ColumnConstraint extends Node {
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+public abstract class ColumnConstraint<T> extends Node {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitColumnConstraint(this, context);
     }
+
+    public abstract <U> ColumnConstraint<U> map(Function<? super T, ? extends U> mapper);
+
+    public abstract void visit(Consumer<? super T> consumer);
 }

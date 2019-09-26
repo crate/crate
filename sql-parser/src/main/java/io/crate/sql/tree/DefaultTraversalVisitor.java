@@ -278,7 +278,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     }
 
     @Override
-    public R visitInsertFromValues(InsertFromValues node, C context) {
+    public R visitInsertFromValues(InsertFromValues<?> node, C context) {
         node.table().accept(this, context);
         for (ValuesList valuesList : node.valuesLists()) {
             valuesList.accept(this, context);
@@ -331,7 +331,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     }
 
     @Override
-    public R visitInsertFromSubquery(InsertFromSubquery node, C context) {
+    public R visitInsertFromSubquery(InsertFromSubquery<?> node, C context) {
         node.table().accept(this, context);
         node.subQuery().accept(this, context);
         return null;
@@ -344,7 +344,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     }
 
     @Override
-    public R visitCreateTable(CreateTable node, C context) {
+    public R visitCreateTable(CreateTable<?> node, C context) {
         node.name().accept(this, context);
         return null;
     }

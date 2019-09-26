@@ -29,6 +29,7 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AbstractDDLAnalyzedStatement;
 import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.CreateBlobTableAnalyzedStatement;
@@ -87,11 +88,13 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
+import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.user.StubUserManager;
 import org.apache.logging.log4j.LogManager;
@@ -184,6 +187,7 @@ public class SQLExecutor {
     private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final Random random;
     private final Schemas schemas;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     /**
      * Shortcut for {@link #getPlannerContext(ClusterState, Random)}
@@ -226,6 +230,7 @@ public class SQLExecutor {
         private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
         private final AllocationService allocationService;
         private final Random random;
+        private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
         private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
         private User user = User.CRATE_USER;
         private UserManager userManager = new StubUserManager();
@@ -277,12 +282,8 @@ public class SQLExecutor {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            createTableStatementAnalyzer = new CreateTableStatementAnalyzer(
-                schemas,
-                new FulltextAnalyzerResolver(clusterService, analysisRegistry),
-                functions,
-                new NumberOfShards(clusterService)
-            );
+            fulltextAnalyzerResolver = new FulltextAnalyzerResolver(clusterService, analysisRegistry);
+            createTableStatementAnalyzer = new CreateTableStatementAnalyzer(functions);
             createBlobTableAnalyzer = new CreateBlobTableAnalyzer(
                 schemas,
                 new NumberOfShards(clusterService)
@@ -378,12 +379,12 @@ public class SQLExecutor {
 
             RelationName multiPartName = new RelationName("doc", "multi_parted");
             addPartitionedTable(
-                    "create table doc.multi_parted (" +
-                    "   id int," +
-                    "   date timestamp with time zone," +
-                    "   num long," +
-                    "   obj object as (name string)" +
-                    ") partitioned by (date, obj['name'])",
+                "create table doc.multi_parted (" +
+                "   id int," +
+                "   date timestamp with time zone," +
+                "   num long," +
+                "   obj object as (name string)" +
+                ") partitioned by (date, obj['name'])",
                 new PartitionName(multiPartName, Arrays.asList("1395874800000", "0")).toString(),
                 new PartitionName(multiPartName, Arrays.asList("1395961200000", "-100")).toString(),
                 new PartitionName(multiPartName, Arrays.asList(null, "-100")).toString()
@@ -416,12 +417,16 @@ public class SQLExecutor {
                     clusterService,
                     functions,
                     tableStats,
+                    null,
+                    null,
+                    schemas,
                     () -> hasValidLicense
                 ),
                 relationAnalyzer,
                 new SessionContext(Option.NONE, user, searchPath),
                 schemas,
-                random
+                random,
+                fulltextAnalyzerResolver
             );
         }
 
@@ -441,9 +446,21 @@ public class SQLExecutor {
         }
 
         public Builder addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
-            CreateTable stmt = (CreateTable) SqlParser.createStatement(createTableStmt);
-            CreateTableAnalyzedStatement analyzedStmt = createTableStatementAnalyzer.analyze(
-                stmt, ParameterContext.EMPTY, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
+            CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
+            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+            AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
+                stmt, ParameterContext.EMPTY, txnCtx);
+
+            CreateTableAnalyzedStatement analyzedStmt = CreateTablePlan.createStatement(
+                analyzedCreateTable,
+                txnCtx,
+                functions,
+                Row.EMPTY,
+                SubQueryResults.EMPTY,
+                new NumberOfShards(clusterService),
+                schemas,
+                fulltextAnalyzerResolver
+            );
             if (!analyzedStmt.isPartitioned()) {
                 throw new IllegalArgumentException("use addTable(..) to add non partitioned tables");
             }
@@ -485,9 +502,20 @@ public class SQLExecutor {
          * Add a table to the clusterState
          */
         public Builder addTable(String createTableStmt) throws IOException {
-            CreateTable stmt = (CreateTable) SqlParser.createStatement(createTableStmt);
-            CreateTableAnalyzedStatement analyzedStmt = createTableStatementAnalyzer.analyze(
-                stmt, ParameterContext.EMPTY, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
+            CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
+            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+            AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
+                stmt, ParameterContext.EMPTY, txnCtx);
+            CreateTableAnalyzedStatement analyzedStmt = CreateTablePlan.createStatement(
+                analyzedCreateTable,
+                txnCtx,
+                functions,
+                Row.EMPTY,
+                SubQueryResults.EMPTY,
+                new NumberOfShards(clusterService),
+                schemas,
+                fulltextAnalyzerResolver
+            );
 
             if (analyzedStmt.isPartitioned()) {
                 throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
@@ -624,7 +652,8 @@ public class SQLExecutor {
                         RelationAnalyzer relAnalyzer,
                         SessionContext sessionContext,
                         Schemas schemas,
-                        Random random) {
+                        Random random,
+                        FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         this.functions = functions;
         this.relationNormalizer = new RelationNormalizer(functions);
         this.analyzer = analyzer;
@@ -634,10 +663,15 @@ public class SQLExecutor {
         this.coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         this.schemas = schemas;
         this.random = random;
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
     public Functions functions() {
         return functions;
+    }
+
+    public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
+        return fulltextAnalyzerResolver;
     }
 
     private <T extends AnalyzedStatement> T analyzeInternal(String stmt, ParameterContext parameterContext) {

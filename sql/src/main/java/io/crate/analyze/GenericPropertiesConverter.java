@@ -61,29 +61,38 @@ public class GenericPropertiesConverter {
         }
     }
 
-    private static void genericPropertiesToSettings(Settings.Builder builder,
-                                                    GenericProperties genericProperties,
-                                                    Row parameters) {
-        for (Map.Entry<String, Expression> entry : genericProperties.properties().entrySet()) {
-            genericPropertyToSetting(builder, entry.getKey(), entry.getValue(), parameters);
+    private static void genericPropertyToSetting(Settings.Builder builder,
+                                                 String name,
+                                                 Object value) {
+        if (value instanceof String[]) {
+            builder.putList(name, (String[]) value);
+        } else {
+            builder.put(name, value.toString());
         }
     }
 
-    static Settings genericPropertiesToSettings(GenericProperties genericProperties, Row parameters) {
+    public static Settings genericPropertiesToSettings(GenericProperties<Object> genericProperties) {
         Settings.Builder builder = Settings.builder();
-        genericPropertiesToSettings(builder, genericProperties, parameters);
+        genericPropertiesToSettings(builder, genericProperties);
         return builder.build();
     }
 
+    private static void genericPropertiesToSettings(Settings.Builder builder,
+                                                    GenericProperties<Object> genericProperties) {
+        for (Map.Entry<String, Object> entry : genericProperties.properties().entrySet()) {
+            builder.put(entry.getKey(), entry.getValue().toString());
+        }
+    }
 
-    static Settings.Builder settingsFromProperties(GenericProperties properties,
+
+    static Settings.Builder settingsFromProperties(GenericProperties<Expression> properties,
                                                    Row parameters,
                                                    Map<String, Setting<?>> supportedSettings) {
 
         return settingsFromProperties(properties, parameters, supportedSettings, true);
     }
 
-    public static Settings.Builder settingsFromProperties(GenericProperties properties,
+    public static Settings.Builder settingsFromProperties(GenericProperties<Expression> properties,
                                                           Row parameters,
                                                           Map<String, Setting<?>> supportedSettings,
                                                           boolean setDefaults) {
@@ -94,7 +103,7 @@ public class GenericPropertiesConverter {
     }
 
     static void settingsFromProperties(Settings.Builder builder,
-                                       GenericProperties properties,
+                                       GenericProperties<Expression> properties,
                                        Row parameters,
                                        Map<String, Setting<?>> supportedSettings,
                                        boolean setDefaults,
@@ -117,6 +126,32 @@ public class GenericPropertiesConverter {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
             }
             settingHolder.apply(builder, entry.getValue(), parameters);
+        }
+    }
+
+    static void settingsFromProperties(Settings.Builder builder,
+                                       GenericProperties<Object> properties,
+                                       Map<String, Setting<?>> supportedSettings,
+                                       boolean setDefaults,
+                                       Predicate<String> ignoreProperty,
+                                       String invalidMessage) {
+        if (setDefaults) {
+            setDefaults(builder, supportedSettings);
+        }
+        for (Map.Entry<String, Object> entry : properties.properties().entrySet()) {
+            String settingName = entry.getKey();
+            if (ignoreProperty.test(settingName)) {
+                continue;
+            }
+            String groupName = getPossibleGroup(settingName);
+            if (groupName != null && ignoreProperty.test(groupName)) {
+                continue;
+            }
+            SettingHolder settingHolder = getSupportedSetting(supportedSettings, settingName);
+            if (settingHolder == null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
+            }
+            settingHolder.apply(builder, entry.getValue());
         }
     }
 
@@ -220,6 +255,23 @@ public class GenericPropertiesConverter {
             }
             Settings.Builder singleSettingBuilder = Settings.builder();
             genericPropertyToSetting(singleSettingBuilder, setting.getKey(), valueExpression, parameters);
+            Object value = setting.get(singleSettingBuilder.build());
+            if (value instanceof Settings) {
+                builder.put((Settings) value);
+            } else {
+                builder.put(setting.getKey(), value.toString());
+            }
+
+        }
+
+        void apply(Settings.Builder builder, Object valueSymbol) {
+            if (isAffixSetting) {
+                // only concrete affix settings are supported otherwise it's not possible to parse values
+                throw new IllegalArgumentException(
+                    "Cannot change a dynamic group setting, only concrete settings allowed.");
+            }
+            Settings.Builder singleSettingBuilder = Settings.builder();
+            genericPropertyToSetting(singleSettingBuilder, setting.getKey(), valueSymbol);
             Object value = setting.get(singleSettingBuilder.build());
             if (value instanceof Settings) {
                 builder.put((Settings) value);

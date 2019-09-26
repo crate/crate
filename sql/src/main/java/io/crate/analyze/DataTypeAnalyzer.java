@@ -39,12 +39,12 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType<?>,
 
     private static final DataTypeAnalyzer INSTANCE = new DataTypeAnalyzer();
 
-    public static DataType convert(ColumnType columnType) {
+    public static DataType convert(ColumnType<?> columnType) {
         return columnType.accept(INSTANCE, null);
     }
 
     @Override
-    public DataType<?> visitColumnType(ColumnType node, Void context) {
+    public DataType<?> visitColumnType(ColumnType<?> node, Void context) {
         String typeName = node.name();
         if (typeName == null) {
             return DataTypes.NOT_SUPPORTED;
@@ -54,10 +54,11 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType<?>,
     }
 
     @Override
-    public DataType<?> visitObjectColumnType(ObjectColumnType node, Void context) {
+    public DataType<?> visitObjectColumnType(ObjectColumnType<?> node, Void context) {
+        ObjectColumnType<?> objectColumnType = node;
         ObjectType.Builder builder = ObjectType.builder();
-        for (ColumnDefinition columnDefinition : node.nestedColumns()) {
-            ColumnType type = columnDefinition.type();
+        for (ColumnDefinition<?> columnDefinition : objectColumnType.nestedColumns()) {
+            ColumnType<?> type = columnDefinition.type();
             // can be null for generated columns, as then the type is inferred from the expression.
             builder.setInnerType(
                 columnDefinition.ident(),
@@ -68,7 +69,7 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType<?>,
     }
 
     @Override
-    public DataType<?> visitCollectionColumnType(CollectionColumnType node, Void context) {
+    public DataType<?> visitCollectionColumnType(CollectionColumnType<?> node, Void context) {
         DataType<?> innerType = node.innerType().accept(this, context);
         return new ArrayType<>(innerType);
     }

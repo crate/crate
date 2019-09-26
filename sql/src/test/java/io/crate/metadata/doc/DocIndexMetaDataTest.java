@@ -6,11 +6,13 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
+import io.crate.data.Row;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -22,9 +24,12 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.view.ViewInfoFactory;
+import io.crate.planner.node.ddl.CreateTablePlan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Statement;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
@@ -1035,36 +1040,45 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         ViewInfoFactory viewInfoFactory = (ident, state) -> null;
         DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, functions, udfService, viewInfoFactory, docTableInfoFactory );
         Path homeDir = createTempDir();
-        CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
-            new Schemas(
+        Schemas schemas = new Schemas(
                 ImmutableMap.of("doc", docSchemaInfo),
                 clusterService,
-                new DocSchemaInfoFactory(docTableInfoFactory, viewInfoFactory, functions, udfService)),
-            new FulltextAnalyzerResolver(clusterService,
-                new AnalysisRegistry(
-                    new Environment(Settings.builder()
-                        .put(Environment.PATH_HOME_SETTING.getKey(), homeDir.toString())
-                        .build(),
-                        homeDir.resolve("config")
-                    ),
-                    emptyMap(),
-                    emptyMap(),
-                    emptyMap(),
-                    emptyMap(),
-                    emptyMap(),
-                    emptyMap(),
-                    emptyMap(),
-                    emptyMap(),
-                    emptyMap()
-                )
-            ),
-            functions,
-            new NumberOfShards(clusterService)
-        );
+                new DocSchemaInfoFactory(docTableInfoFactory, viewInfoFactory, functions, udfService));
+        FulltextAnalyzerResolver fulltextAnalyzerResolver = new FulltextAnalyzerResolver(
+            clusterService,
+            new AnalysisRegistry(
+                new Environment(Settings.builder()
+                    .put(Environment.PATH_HOME_SETTING.getKey(), homeDir.toString())
+                    .build(),
+                    homeDir.resolve("config")
+                ),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap(),
+                emptyMap()
+            ));
+
+        CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(functions);
 
         Analysis analysis = new Analysis(new CoordinatorTxnCtx(SessionContext.systemSessionContext()), ParameterContext.EMPTY, ParamTypeHints.EMPTY);
-        CreateTableAnalyzedStatement analyzedStatement = analyzer.analyze(
-            (CreateTable) statement, analysis.parameterContext(), analysis.transactionContext());
+        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+        AnalyzedCreateTable analyzedCreateTable = analyzer.analyze(
+            (CreateTable<Expression>) statement, analysis.parameterContext(), analysis.transactionContext());
+        CreateTableAnalyzedStatement analyzedStatement = CreateTablePlan.createStatement(
+            analyzedCreateTable,
+            txnCtx,
+            functions,
+            Row.EMPTY,
+            SubQueryResults.EMPTY,
+            new NumberOfShards(clusterService),
+            schemas,
+            fulltextAnalyzerResolver
+        );
 
         Settings.Builder settingsBuilder = Settings.builder()
             .put("index.number_of_shards", 1)

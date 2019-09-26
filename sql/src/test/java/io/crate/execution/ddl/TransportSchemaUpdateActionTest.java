@@ -63,7 +63,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
                     .patterns(template.patterns())
                     .putMapping(
                         Constants.DEFAULT_MAPPING_TYPE,
-                        Strings.toString(JsonXContent.contentBuilder().map(addXLong.analyzedTableElements().toMapping()))))
+                        Strings.toString(JsonXContent.contentBuilder().map(addXLong.mapping()))))
                 .build()
             ).build();
 
@@ -72,7 +72,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
             NamedXContentRegistry.EMPTY,
             stateWithXLong,
             templateName,
-            addXString.analyzedTableElements().toMapping()
+            addXString.mapping()
         );
     }
 

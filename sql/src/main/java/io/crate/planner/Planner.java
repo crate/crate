@@ -26,6 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
+import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedDecommissionNodeStatement;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
@@ -36,7 +37,6 @@ import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
-import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
@@ -48,21 +48,25 @@ import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.KillAnalyzedStatement;
+import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.LicenseViolationException;
+import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.license.LicenseService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
+import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
@@ -104,6 +108,9 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final Functions functions;
     private final LogicalPlanner logicalPlanner;
     private final IsStatementExecutionAllowed isStatementExecutionAllowed;
+    private final NumberOfShards numberOfShards;
+    private final TableCreator tableCreator;
+    private final Schemas schemas;
 
     private List<String> awarenessAttributes;
 
@@ -112,12 +119,18 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    ClusterService clusterService,
                    Functions functions,
                    TableStats tableStats,
-                   LicenseService licenseService) {
+                   LicenseService licenseService,
+                   NumberOfShards numberOfShards,
+                   TableCreator tableCreator,
+                   Schemas schemas) {
         this(
             settings,
             clusterService,
             functions,
             tableStats,
+            numberOfShards,
+            tableCreator,
+            schemas,
             () -> licenseService.getLicenseState() == LicenseService.LicenseState.VALID
         );
     }
@@ -127,11 +140,17 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    ClusterService clusterService,
                    Functions functions,
                    TableStats tableStats,
+                   NumberOfShards numberOfShards,
+                   TableCreator tableCreator,
+                   Schemas schemas,
                    BooleanSupplier hasValidLicense) {
         this.clusterService = clusterService;
         this.functions = functions;
         this.logicalPlanner = new LogicalPlanner(functions, tableStats);
         this.isStatementExecutionAllowed = new IsStatementExecutionAllowed(hasValidLicense);
+        this.numberOfShards = numberOfShards;
+        this.tableCreator = tableCreator;
+        this.schemas = schemas;
         initAwarenessAttributes(settings);
     }
 
@@ -171,7 +190,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     protected Plan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, PlannerContext context) {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-            "Cannot create Plan from AnalyzedStatement \"%s\"  - not supported.", analyzedStatement));
+                                                              "Cannot create Plan from AnalyzedStatement \"%s\"  - not supported.", analyzedStatement));
     }
 
     @Override
@@ -267,11 +286,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    protected Plan visitCreateTableStatement(CreateTableAnalyzedStatement analysis, PlannerContext context) {
-        if (analysis.noOp()) {
-            return NoopPlan.INSTANCE;
-        }
-        return new GenericDDLPlan(analysis);
+    public Plan visitCreateTable(AnalyzedCreateTable createTable, PlannerContext context) {
+        return new CreateTablePlan(createTable, numberOfShards, tableCreator, schemas);
     }
 
     @Override

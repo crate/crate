@@ -49,7 +49,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -77,7 +76,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
                 consumer.accept(InMemoryBatchIterator.of(params, null), null);
             }
         };
-        Planner planner = new Planner(Settings.EMPTY, clusterService, sqlExecutor.functions(), new TableStats(), () -> true) {
+        Planner planner = new Planner(Settings.EMPTY, clusterService, sqlExecutor.functions(), new TableStats(), null, null, sqlExecutor.schemas(), () -> true) {
             @Override
             public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
                 return insertPlan;

@@ -212,7 +212,7 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
-    protected R visitTable(Table node, C context) {
+    protected R visitTable(Table<?> node, C context) {
         return visitQueryBody(node, context);
     }
 
@@ -264,7 +264,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitAssignment(Assignment node, C context) {
+    public R visitAssignment(Assignment<?> node, C context) {
         return visitNode(node, context);
     }
 
@@ -272,7 +272,7 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
-    public R visitCreateTable(CreateTable node, C context) {
+    public R visitCreateTable(CreateTable<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -312,59 +312,59 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
-    public R visitClusteredBy(ClusteredBy node, C context) {
+    public R visitClusteredBy(ClusteredBy<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitColumnDefinition(ColumnDefinition node, C context) {
+    public R visitColumnDefinition(ColumnDefinition<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitColumnType(ColumnType node, C context) {
+    public R visitColumnType(ColumnType<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitObjectColumnType(ObjectColumnType node, C context) {
+    public R visitObjectColumnType(ObjectColumnType<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitColumnConstraint(ColumnConstraint node, C context) {
+    public R visitColumnConstraint(ColumnConstraint<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint node, C context) {
+    public R visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitNotNullColumnConstraint(NotNullColumnConstraint node, C context) {
+    public R visitNotNullColumnConstraint(NotNullColumnConstraint<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitIndexColumnConstraint(IndexColumnConstraint node, C context) {
+    public R visitIndexColumnConstraint(IndexColumnConstraint<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitColumnStorageDefinition(ColumnStorageDefinition node, C context) {
+    public R visitColumnStorageDefinition(ColumnStorageDefinition<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitGenericProperties(GenericProperties node, C context) {
+    public R visitGenericProperties(GenericProperties<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitGenericProperty(GenericProperty node, C context) {
+    public R visitGenericProperty(GenericProperty<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitPrimaryKeyConstraint(PrimaryKeyConstraint node, C context) {
+    public R visitPrimaryKeyConstraint(PrimaryKeyConstraint<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitIndexDefinition(IndexDefinition node, C context) {
+    public R visitIndexDefinition(IndexDefinition<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitCollectionColumnType(CollectionColumnType node, C context) {
+    public R visitCollectionColumnType(CollectionColumnType<?> node, C context) {
         return visitNode(node, context);
     }
 
@@ -488,11 +488,11 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
-    public R visitAddColumnDefinition(AddColumnDefinition node, C context) {
+    public R visitAddColumnDefinition(AddColumnDefinition<?> node, C context) {
         return visitTableElement(node, context);
     }
 
-    public R visitInsertFromValues(InsertFromValues node, C context) {
+    public R visitInsertFromValues(InsertFromValues<?> node, C context) {
         return visitInsert(node, context);
     }
 
@@ -500,7 +500,7 @@ public abstract class AstVisitor<R, C> {
         return visitLiteral(node, context);
     }
 
-    public R visitInsertFromSubquery(InsertFromSubquery node, C context) {
+    public R visitInsertFromSubquery(InsertFromSubquery<?> node, C context) {
         return visitInsert(node, context);
     }
 

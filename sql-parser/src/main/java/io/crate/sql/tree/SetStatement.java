@@ -40,20 +40,20 @@ public class SetStatement extends Statement {
 
     private final Scope scope;
     private final SettingType settingType;
-    private final List<Assignment> assignments;
+    private final List<Assignment<Expression>> assignments;
 
-    public SetStatement(Scope scope, List<Assignment> assignments) {
+    public SetStatement(Scope scope, List<Assignment<Expression>> assignments) {
         this(scope, SettingType.TRANSIENT, assignments);
     }
 
-    public SetStatement(Scope scope, SettingType settingType, List<Assignment> assignments) {
+    public SetStatement(Scope scope, SettingType settingType, List<Assignment<Expression>> assignments) {
         Preconditions.checkNotNull(assignments, "assignments are null");
         this.scope = scope;
         this.settingType = settingType;
         this.assignments = assignments;
     }
 
-    public SetStatement(Scope scope, Assignment assignment) {
+    public SetStatement(Scope scope, Assignment<Expression> assignment) {
         Preconditions.checkNotNull(assignment, "assignment is null");
         this.scope = scope;
         this.settingType = SettingType.TRANSIENT;
@@ -64,7 +64,7 @@ public class SetStatement extends Statement {
         return scope;
     }
 
-    public List<Assignment> assignments() {
+    public List<Assignment<Expression>> assignments() {
         return assignments;
     }
 
