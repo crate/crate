@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that prevented subqueries from being used in select item
+  expressions that also contain a reference accessed via a relation alias.
+  For example: ``SELECT t.y IN (SELECT x FROM t2) FROM t1 t``
+
 - Fail the storage engine if indexing on a replica shard fails after it was
   successfully done on a primary shard. It prevents replica and primary shards
   from going out of sync.

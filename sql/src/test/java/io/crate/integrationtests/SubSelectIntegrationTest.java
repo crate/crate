@@ -715,4 +715,14 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is("3\n" +
                                                      "2\n"));
     }
+
+    @Test
+    public void test_select_item_expression_with_subselect_and_reference_accessed_via_relation_alias() {
+        execute("CREATE TABLE t1 (x LONG)");
+        execute("INSERT INTO t1 (x) VALUES (1)");
+        execute("REFRESH TABLE t1");
+
+        execute("SELECT t.x IN (SELECT x FROM t1) FROM t1 t");
+        assertThat(printedTable(response.rows()), is("true\n"));
+    }
 }

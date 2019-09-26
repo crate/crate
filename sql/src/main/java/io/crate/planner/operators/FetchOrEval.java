@@ -285,12 +285,13 @@ public class FetchOrEval extends ForwardingLogicalPlan {
         List<Symbol> fetchOutputs = new ArrayList<>(outputs.size());
         for (Symbol output : outputs) {
             fetchOutputs.add(toInputColOrFetchRef(
-                SubQueryAndParamBinder.convert(output, params, subQueryResults),
+                output,
                 sourceOutputs,
                 fetchInputColumnsByTable,
                 allocateFetchRef,
                 source.expressionMapping(),
-                null)
+                null,
+                (s) -> SubQueryAndParamBinder.convert(s, params,subQueryResults))
             );
         }
         if (source.baseTables().size() == 1) {
@@ -421,12 +422,15 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                                                Map<FullQualifiedTableRelation, InputColumn> fetchInputColumnsByTable,
                                                BiConsumer<FullQualifiedTableRelation, Reference> allocateFetchRef,
                                                Map<Symbol, Symbol> expressionMapping,
-                                               @Nullable QualifiedName currentQualifiedName) {
-        int idxInSource = sourceOutputs.indexOf(output);
+                                               @Nullable QualifiedName currentQualifiedName,
+                                               java.util.function.Function<Symbol, Symbol> symbolConverter) {
+        Symbol boundedOutput = symbolConverter.apply(output);
+        int idxInSource = sourceOutputs.indexOf(boundedOutput);
         if (idxInSource > -1) {
             return new InputColumn(idxInSource, sourceOutputs.get(idxInSource).valueType());
         }
-        return FieldReplacer.replaceFields(output, f -> {
+
+        return FieldReplacer.replaceFields(boundedOutput, f -> {
             int idx = sourceOutputs.indexOf(f);
             if (idx > -1) {
                 return new InputColumn(idx, sourceOutputs.get(idx).valueType());
@@ -465,7 +469,13 @@ public class FetchOrEval extends ForwardingLogicalPlan {
             assert symbol != null
                 : "Field mapping must exists for " + output + " in " + expressionMapping;
             return toInputColOrFetchRef(
-                symbol, sourceOutputs, fetchInputColumnsByTable, allocateFetchRef, expressionMapping, qualifiedName);
+                symbol,
+                sourceOutputs,
+                fetchInputColumnsByTable,
+                allocateFetchRef,
+                expressionMapping,
+                qualifiedName,
+                symbolConverter);
         });
     }
 
