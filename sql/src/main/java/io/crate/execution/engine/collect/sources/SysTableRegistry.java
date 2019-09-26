@@ -50,8 +50,8 @@ public class SysTableRegistry {
     }
 
     public <R> void registerSysTable(TableInfo tableInfo,
-                                     Supplier<CompletableFuture<? extends Iterable<R>>> iterableSupplier,
-                                     Map<ColumnIdent, ? extends RowCollectExpressionFactory<R>> expressionFactories) {
+                                     Supplier<CompletableFuture<Iterable<R>>> iterableSupplier,
+                                     Map<ColumnIdent,RowCollectExpressionFactory<R>> expressionFactories) {
         RelationName ident = tableInfo.ident();
         sysSchemaInfo.registerSysTable(tableInfo);
         tableDefinitions.registerTableDefinition(ident, new StaticTableDefinition<>(

@@ -39,17 +39,17 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public class StaticTableDefinition<T> {
 
-    private final BiFunction<TransactionContext, User, CompletableFuture<? extends Iterable<T>>> recordsForUser;
+    private final BiFunction<TransactionContext, User, CompletableFuture<Iterable<T>>> recordsForUser;
     private final StaticTableReferenceResolver<T> referenceResolver;
 
-    public StaticTableDefinition(Supplier<CompletableFuture<? extends Iterable<T>>> iterable,
-                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories) {
+    public StaticTableDefinition(Supplier<CompletableFuture<Iterable<T>>> iterable,
+                                 Map<ColumnIdent,RowCollectExpressionFactory<T>> expressionFactories) {
         this.recordsForUser = (t, u) -> iterable.get();
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
     }
 
-    public StaticTableDefinition(Supplier<? extends Iterable<T>> iterable,
-                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories,
+    public StaticTableDefinition(Supplier<Iterable<T>> iterable,
+                                 Map<ColumnIdent,RowCollectExpressionFactory<T>> expressionFactories,
                                  BiFunction<TransactionContext, T, T> applyContext) {
         this.recordsForUser = (txnCtx, u) -> completedFuture(() ->
             StreamSupport.stream(iterable.get().spliterator(), false)
@@ -58,16 +58,16 @@ public class StaticTableDefinition<T> {
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
     }
 
-    public StaticTableDefinition(Supplier<? extends Iterable<T>> iterable,
+    public StaticTableDefinition(Supplier<Iterable<T>> iterable,
                                  BiPredicate<User, T> predicate,
-                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories) {
+                                 Map<ColumnIdent,RowCollectExpressionFactory<T>> expressionFactories) {
         this.recordsForUser = (txnCtx, u) -> completedFuture(() -> StreamSupport.stream(iterable.get().spliterator(), false)
             .filter(t -> u == null || predicate.test(u, t)).iterator());
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
     }
 
-    public StaticTableDefinition(Supplier<CompletableFuture<? extends Iterable<T>>> futureRecords,
-                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories,
+    public StaticTableDefinition(Supplier<CompletableFuture<Iterable<T>>> futureRecords,
+                                 Map<ColumnIdent,RowCollectExpressionFactory<T>> expressionFactories,
                                  BiPredicate<User, T> predicate) {
         this.recordsForUser = (txnCtx, user) ->
             futureRecords.get().thenApply((records) ->
@@ -78,7 +78,7 @@ public class StaticTableDefinition<T> {
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
     }
 
-    public CompletableFuture<? extends Iterable<T>> retrieveRecords(TransactionContext txnCtx, @Nullable User user) {
+    public CompletableFuture<Iterable<T>> retrieveRecords(TransactionContext txnCtx, @Nullable User user) {
         return recordsForUser.apply(txnCtx, user);
     }
 
