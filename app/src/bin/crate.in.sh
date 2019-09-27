@@ -96,7 +96,7 @@ JAVA_OPTS="$JAVA_OPTS -Djna.nosys=true"
 JAVA_OPTS="$JAVA_OPTS -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=true -Dlog4j.skipJansi=true"
 
 # Disable netty recycler
-JAVA_OPTS="$JAVA_OPTS -Dio.netty.noUnsafe=true -Dio.netty.noKeySetOptimization=true -Dio.netty.recycler.maxCapacityPerThread=0"
+JAVA_OPTS="$JAVA_OPTS -Dio.netty.recycler.maxCapacityPerThread=0"
 
 # Dump heap on OOM
 JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
