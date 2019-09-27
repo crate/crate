@@ -69,7 +69,7 @@ public class TableElementsAnalyzer {
             TableElement tableElement = tableElements.get(i);
             int position = positionOffset + i + 1;
             ColumnDefinitionContext<Object> ctx = new ColumnDefinitionContext<>(
-                position, null, parameters, fulltextAnalyzerResolver, analyzedTableElements, relationName, tableInfo);
+                position, null, parameters, fulltextAnalyzerResolver, analyzedTableElements, relationName, tableInfo, true);
             tableElement.accept(ANALYZER, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition);
@@ -88,6 +88,13 @@ public class TableElementsAnalyzer {
     public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
                                                        RelationName relationName,
                                                        @Nullable TableInfo tableInfo) {
+        return analyze(tableElements, relationName, tableInfo, true);
+    }
+
+    public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
+                                                       RelationName relationName,
+                                                       @Nullable TableInfo tableInfo,
+                                                       boolean logWarnings) {
         AnalyzedTableElements<T> analyzedTableElements = new AnalyzedTableElements<>();
         int positionOffset = tableInfo == null ? 0 : tableInfo.columns().size();
         InnerTableElementsAnalyzer<T> analyzer = new InnerTableElementsAnalyzer<>();
@@ -95,7 +102,14 @@ public class TableElementsAnalyzer {
             TableElement<T> tableElement = tableElements.get(i);
             int position = positionOffset + i + 1;
             ColumnDefinitionContext<T> ctx = new ColumnDefinitionContext<>(
-                position, null, Row.EMPTY, null, analyzedTableElements, relationName, tableInfo);
+                position,
+                null,
+                Row.EMPTY,
+                null,
+                analyzedTableElements,
+                relationName,
+                tableInfo,
+                logWarnings);
 
             tableElement.accept(analyzer, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
@@ -114,6 +128,7 @@ public class TableElementsAnalyzer {
         final RelationName relationName;
         @Nullable
         final TableInfo tableInfo;
+        final boolean logWarnings;
 
         ColumnDefinitionContext(Integer position,
                                 @Nullable AnalyzedColumnDefinition<T> parent,
@@ -121,13 +136,15 @@ public class TableElementsAnalyzer {
                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                 AnalyzedTableElements<T> analyzedTableElements,
                                 RelationName relationName,
-                                @Nullable TableInfo tableInfo) {
+                                @Nullable TableInfo tableInfo,
+                                boolean logWarnings) {
             this.analyzedColumnDefinition = new AnalyzedColumnDefinition<>(position, parent);
             this.parameters = parameters;
             this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
             this.analyzedTableElements = analyzedTableElements;
             this.relationName = relationName;
             this.tableInfo = tableInfo;
+            this.logWarnings = logWarnings;
         }
     }
 
@@ -211,7 +228,7 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitColumnType(ColumnType<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedColumnDefinition.dataType(node.name());
+            context.analyzedColumnDefinition.dataType(node.name(), context.logWarnings);
             return null;
         }
 
@@ -229,7 +246,8 @@ public class TableElementsAnalyzer {
                     context.fulltextAnalyzerResolver,
                     context.analyzedTableElements,
                     context.relationName,
-                    context.tableInfo
+                    context.tableInfo,
+                    context.logWarnings
                 );
                 columnDefinition.accept(this, childContext);
                 context.analyzedColumnDefinition.addChild(childContext.analyzedColumnDefinition);
