@@ -83,7 +83,7 @@ public final class CreateTableStatementAnalyzer {
             tableElementsWithExpressions.add(elementExpression.mapExpressions(elementSymbol, x -> exprAnalyzerWithReferences.convert(x, exprCtx)));
         }
         AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
-            tableElementsWithExpressions, relationName, null);
+            tableElementsWithExpressions, relationName, null, false);
 
         return new AnalyzedCreateTable(relationName, analyzedCreateTable, analyzedTableElements, analyzedTableElementsWithExpressions);
     }

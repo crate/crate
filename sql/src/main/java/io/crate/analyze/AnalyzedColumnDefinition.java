@@ -242,7 +242,11 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     public void dataType(String dataType) {
-        if ("timestamp".equals(dataType)) {
+        dataType(dataType, true);
+    }
+
+    public void dataType(String dataType, boolean logWarnings) {
+        if ("timestamp".equals(dataType) && logWarnings) {
             DEPRECATION_LOGGER.deprecated(
                 "Column [{}]: Usage of the `TIMESTAMP` data type as a timestamp with zone " +
                 "is deprecated, use the `TIMESTAMPTZ` or `TIMESTAMP WITH TIME ZONE` data type instead.",
