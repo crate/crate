@@ -165,6 +165,11 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could prevent accounted memory from being properly
+  de-accounted on queries using ``hyperloglog_distinct``, leading clients to
+  eventually receive ``CircuitBreakingException`` error messages and also
+  breaking internal recovery operations.
+
 - Fixed an issue that caused the users list in the privileges tab to not
   displayed when the CrateDB Admin UI is not served from ``/``.
 
