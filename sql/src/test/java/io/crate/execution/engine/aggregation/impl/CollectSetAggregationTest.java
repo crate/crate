@@ -33,7 +33,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.util.BigArrays;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -67,7 +66,7 @@ public class CollectSetAggregationTest extends AggregationTest {
         AggregationFunction impl = (AggregationFunction) functions.get(
                 null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
 
-        Object state = impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
+        Object state = impl.newState(ramAccountingContext, Version.CURRENT);
 
         BytesStreamOutput streamOutput = new BytesStreamOutput();
         impl.partialType().streamer().writeValueTo(streamOutput, state);
@@ -83,7 +82,7 @@ public class CollectSetAggregationTest extends AggregationTest {
         AggregationFunction aggregationFunction = impl.optimizeForExecutionAsWindowFunction();
 
         Object state = aggregationFunction.newState(
-            ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
+            ramAccountingContext, Version.CURRENT);
         state = aggregationFunction.iterate(ramAccountingContext, state, Literal.of(10));
         state = aggregationFunction.iterate(ramAccountingContext, state, Literal.of(10));
 

@@ -34,7 +34,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.util.BigArrays;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -75,7 +74,6 @@ public class AggregateCollectorBenchmark {
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { sumAggregation },
             Version.CURRENT,
-            BigArrays.NON_RECYCLING_INSTANCE,
             new Input[][] { {inExpr0 } },
             new Input[] { Literal.BOOLEAN_TRUE }
         );

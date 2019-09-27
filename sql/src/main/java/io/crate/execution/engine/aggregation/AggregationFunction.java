@@ -28,7 +28,6 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 
@@ -45,13 +44,10 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      *
      * @param ramAccountingContext used to account the memory used for the state.
      * @param indexVersionCreated the version the current index was created on, this is useful for BWC
-     * @param bigArrays the BigArrays singleton instance of the current node
      * @return a new state instance or null
      */
     @Nullable
-    public abstract TPartial newState(RamAccountingContext ramAccountingContext,
-                                      Version indexVersionCreated,
-                                      BigArrays bigArrays);
+    public abstract TPartial newState(RamAccountingContext ramAccountingContext, Version indexVersionCreated);
 
     /**
      * the "aggregate" function.

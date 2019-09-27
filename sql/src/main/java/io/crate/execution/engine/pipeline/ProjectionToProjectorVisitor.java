@@ -292,8 +292,7 @@ public class ProjectionToProjectorVisitor
             projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccountingContext,
-            indexVersionCreated,
-            bigArrays
+            indexVersionCreated
         );
     }
 
@@ -311,8 +310,8 @@ public class ProjectionToProjectorVisitor
             projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccountingContext,
-            indexVersionCreated,
-            bigArrays);
+            indexVersionCreated
+        );
     }
 
     @Override
@@ -627,7 +626,6 @@ public class ProjectionToProjectorVisitor
             inputFactory,
             context.txnCtx,
             context.ramAccountingContext,
-            bigArrays,
             indexVersionCreated,
             ThreadPools.numIdleThreads(searchThreadPool, numProcessors),
             searchThreadPool

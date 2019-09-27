@@ -34,7 +34,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -47,7 +46,6 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private final ExpressionsInput<Row, Boolean> filter;
     private final RamAccountingContext ramAccountingContext;
     private final Version indexVersionCreated;
-    private final BigArrays bigArrays;
     private Object accumulatedState;
 
     private int seenFrameLowerBound = -1;
@@ -57,14 +55,12 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     AggregateToWindowFunctionAdapter(AggregationFunction aggregationFunction,
                                      ExpressionsInput<Row, Boolean> filter,
                                      Version indexVersionCreated,
-                                     BigArrays bigArrays,
                                      RamAccountingContext ramAccountingContext) {
         this.aggregationFunction = aggregationFunction.optimizeForExecutionAsWindowFunction();
         this.filter = filter;
         this.ramAccountingContext = ramAccountingContext;
         this.indexVersionCreated = indexVersionCreated;
-        this.bigArrays = bigArrays;
-        this.accumulatedState = this.aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
+        this.accumulatedState = this.aggregationFunction.newState(ramAccountingContext, indexVersionCreated);
     }
 
     @Override
@@ -127,7 +123,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private void recomputeFunction(WindowFrameState frame,
                                    List<? extends CollectExpression<Row, ?>> expressions,
                                    Input[] args) {
-        accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
+        accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated);
         seenFrameUpperBound = -1;
         seenFrameLowerBound = -1;
         executeAggregateForFrame(frame, expressions, args);

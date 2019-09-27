@@ -34,7 +34,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 
@@ -69,8 +68,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         @Nullable
         @Override
         public Comparable newState(RamAccountingContext ramAccountingContext,
-                                   Version indexVersionCreated,
-                                   BigArrays bigArrays) {
+                                   Version indexVersionCreated) {
             ramAccountingContext.addBytes(size);
             return null;
         }
@@ -102,8 +100,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         @Nullable
         @Override
         public Comparable newState(RamAccountingContext ramAccountingContext,
-                                   Version indexVersionCreated,
-                                   BigArrays bigArrays) {
+                                   Version indexVersionCreated) {
             return null;
         }
 

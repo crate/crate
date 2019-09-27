@@ -85,7 +85,6 @@ public class HyperLogLogDistinctAggregationBenchmark {
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { hllAggregation },
             Version.CURRENT,
-            BigArrays.NON_RECYCLING_INSTANCE,
             new Input[][] { {inExpr0 } },
             new Input[] { Literal.BOOLEAN_TRUE }
         );

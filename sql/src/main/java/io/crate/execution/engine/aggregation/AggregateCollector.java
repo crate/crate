@@ -22,15 +22,14 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.data.RowN;
-import io.crate.expression.InputCondition;
-import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.InputCondition;
+import io.crate.expression.symbol.AggregateMode;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
 
 import java.util.Collections;
 import java.util.List;
@@ -50,25 +49,22 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private final RamAccountingContext ramAccounting;
     private final AggregationFunction[] aggregations;
     private final Version indexVersionCreated;
-    private final BigArrays bigArrays;
     private final Input<Boolean>[] filters;
     private final Input[][] inputs;
     private final BiConsumer<Object[], Row> accumulator;
     private final Function<Object[], Iterable<Row>> finisher;
 
     public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
-                       RamAccountingContext ramAccounting,
-                       AggregateMode mode,
-                       AggregationFunction[] aggregations,
-                       Version indexVersionCreated,
-                       BigArrays bigArrays,
-                       Input[][] inputs,
-                       Input<Boolean>[] filters) {
+                              RamAccountingContext ramAccounting,
+                              AggregateMode mode,
+                              AggregationFunction[] aggregations,
+                              Version indexVersionCreated,
+                              Input[][] inputs,
+                              Input<Boolean>[] filters) {
         this.expressions = expressions;
         this.ramAccounting = ramAccounting;
         this.aggregations = aggregations;
         this.indexVersionCreated = indexVersionCreated;
-        this.bigArrays = bigArrays;
         this.filters = filters;
         this.inputs = inputs;
         switch (mode) {
@@ -122,7 +118,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private Object[] prepareState() {
         Object[] states = new Object[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
-            states[i] = aggregations[i].newState(ramAccounting, indexVersionCreated, bigArrays);
+            states[i] = aggregations[i].newState(ramAccounting, indexVersionCreated);
         }
         return states;
     }

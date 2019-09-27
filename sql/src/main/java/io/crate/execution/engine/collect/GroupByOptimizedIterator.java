@@ -291,7 +291,7 @@ final class GroupByOptimizedIterator {
                         long ord = values.nextOrd();
                         Object[] states = statesByOrd.get(ord);
                         if (states == null) {
-                            statesByOrd.set(ord, initStates(bigArrays, aggregations, ramAccounting));
+                            statesByOrd.set(ord, initStates(aggregations, ramAccounting));
                         } else {
                             aggregateValues(aggregations, ramAccounting, states);
                         }
@@ -300,7 +300,7 @@ final class GroupByOptimizedIterator {
                         }
                     } else {
                         if (nullStates == null) {
-                            nullStates = initStates(bigArrays, aggregations, ramAccounting);
+                            nullStates = initStates(aggregations, ramAccounting);
                         } else {
                             aggregateValues(aggregations, ramAccounting, nullStates);
                         }
@@ -359,15 +359,13 @@ final class GroupByOptimizedIterator {
         }
     }
 
-    private static Object[] initStates(BigArrays bigArrays,
-                                       List<AggregationContext> aggregations,
-                                       RamAccountingContext ramAccounting) {
+    private static Object[] initStates(List<AggregationContext> aggregations, RamAccountingContext ramAccounting) {
         Object[] states = new Object[aggregations.size()];
         for (int i = 0; i < aggregations.size(); i++) {
             AggregationContext aggregation = aggregations.get(i);
             AggregationFunction function = aggregation.function();
 
-            var newState = function.newState(ramAccounting, Version.CURRENT, bigArrays);
+            var newState = function.newState(ramAccounting, Version.CURRENT);
             if (InputCondition.matches(aggregation.filter())) {
                 //noinspection unchecked
                 states[i] = function.iterate(

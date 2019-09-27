@@ -44,7 +44,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -67,7 +66,6 @@ public class WindowProjector {
                                            InputFactory inputFactory,
                                            TransactionContext txnCtx,
                                            RamAccountingContext ramAccountingContext,
-                                           BigArrays bigArrays,
                                            Version indexVersionCreated,
                                            IntSupplier numThreads,
                                            Executor executor) {
@@ -102,7 +100,6 @@ public class WindowProjector {
                         (AggregationFunction) impl,
                         filter,
                         indexVersionCreated,
-                        bigArrays,
                         ramAccountingContext)
                 );
             } else if (impl instanceof WindowFunction) {

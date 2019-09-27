@@ -36,7 +36,6 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.util.BigArrays;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -131,7 +130,8 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     @Override
-    public StringAggState newState(RamAccountingContext ramAccountingContext, Version indexVersionCreated, BigArrays bigArrays) {
+    public StringAggState newState(RamAccountingContext ramAccountingContext,
+                                   Version indexVersionCreated) {
         return new StringAggState();
     }
 
