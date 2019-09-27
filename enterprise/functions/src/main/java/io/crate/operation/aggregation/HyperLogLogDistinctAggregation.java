@@ -88,7 +88,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     public HllState newState(RamAccountingContext ramAccountingContext,
                              Version indexVersionCreated,
                              BigArrays bigArrays) {
-        return new HllState(bigArrays, dataType);
+        return new HllState(dataType);
     }
 
     @Override
@@ -115,7 +115,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
         if (state2.isInitialized()) {
             state1.merge(state2);
-            state2.close();
         }
         return state1;
     }
@@ -123,9 +122,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @Override
     public Long terminatePartial(RamAccountingContext ramAccountingContext, HllState state) {
         if (state.isInitialized()) {
-            long count = state.value();
-            state.close();
-            return count;
+            return state.value();
         }
         return null;
     }
@@ -140,32 +137,32 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         return info;
     }
 
-    public static class HllState implements Comparable<HllState>, Writeable, AutoCloseable {
+    public static class HllState implements Comparable<HllState>, Writeable {
 
         private final DataType dataType;
         private final Murmur3Hash murmur3Hash;
-        private final BigArrays bigArrays;
+
+        // Although HyperLogLogPlus implements Releasable we do not close instances.
+        // We're using BigArrays.NON_RECYCLING_INSTANCE and instances created using it are not accounted / recycled
         private HyperLogLogPlusPlus hyperLogLogPlusPlus;
 
-        HllState(BigArrays bigArrays, DataType dataType) {
-            this.bigArrays = bigArrays;
+        HllState(DataType dataType) {
             this.dataType = dataType;
             murmur3Hash = Murmur3Hash.getForType(dataType);
         }
 
         HllState(StreamInput in) throws IOException {
-            bigArrays = BigArrays.NON_RECYCLING_INSTANCE;
             dataType = DataTypes.fromStream(in);
             murmur3Hash = Murmur3Hash.getForType(dataType);
             if (in.readBoolean()) {
-                hyperLogLogPlusPlus = HyperLogLogPlusPlus.readFrom(in, bigArrays);
+                hyperLogLogPlusPlus = HyperLogLogPlusPlus.readFrom(in, BigArrays.NON_RECYCLING_INSTANCE);
             }
         }
 
         void init(int precision) {
             assert hyperLogLogPlusPlus == null : "hyperLogLog algorithm was already initialized";
             try {
-                hyperLogLogPlusPlus = new HyperLogLogPlusPlus(precision, bigArrays, 1);
+                hyperLogLogPlusPlus = new HyperLogLogPlusPlus(precision, BigArrays.NON_RECYCLING_INSTANCE, 1);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("precision must be >= 4 and <= 18");
             }
@@ -203,16 +200,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             if (isInitialized()) {
                 out.writeBoolean(true);
                 hyperLogLogPlusPlus.writeTo(0, out);
-                hyperLogLogPlusPlus.close();
             } else {
                 out.writeBoolean(false);
-            }
-        }
-
-        @Override
-        public void close() {
-            if (hyperLogLogPlusPlus != null) {
-                hyperLogLogPlusPlus.close();
             }
         }
     }

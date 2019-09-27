@@ -30,7 +30,6 @@ import io.crate.types.IntegerType;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
 import org.junit.Before;
 import org.junit.Test;
@@ -134,9 +133,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
 
     @Test
     public void testStreaming() throws Exception {
-        HyperLogLogDistinctAggregation.HllState hllState1 = new HyperLogLogDistinctAggregation.HllState(
-            BigArrays.NON_RECYCLING_INSTANCE,
-            DataTypes.IP);
+        HyperLogLogDistinctAggregation.HllState hllState1 = new HyperLogLogDistinctAggregation.HllState(DataTypes.IP);
         hllState1.init(HyperLogLogPlusPlus.DEFAULT_PRECISION);
         BytesStreamOutput out = new BytesStreamOutput();
         Streamer streamer = HyperLogLogDistinctAggregation.HllStateType.INSTANCE.streamer();
