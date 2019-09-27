@@ -225,7 +225,6 @@ public class BigArrays {
     final PageCacheRecycler recycler;
     private final CircuitBreakerService breakerService;
     private final boolean checkBreaker;
-    private final BigArrays circuitBreakingInstance;
     private final String breakerName;
 
     public BigArrays(PageCacheRecycler recycler, @Nullable final CircuitBreakerService breakerService, String breakerName) {
@@ -239,11 +238,6 @@ public class BigArrays {
         this.recycler = recycler;
         this.breakerService = breakerService;
         this.breakerName = breakerName;
-        if (checkBreaker) {
-            this.circuitBreakingInstance = this;
-        } else {
-            this.circuitBreakingInstance = new BigArrays(recycler, breakerService, breakerName, true);
-        }
     }
 
     /**
@@ -281,10 +275,6 @@ public class BigArrays {
                 breaker.addWithoutBreaking(delta);
             }
         }
-    }
-
-    public CircuitBreakerService breakerService() {
-        return this.circuitBreakingInstance.breakerService;
     }
 
     private <T extends AbstractBigArray> T resizeInPlace(T array, long newSize) {
