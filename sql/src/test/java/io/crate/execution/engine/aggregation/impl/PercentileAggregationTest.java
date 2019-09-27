@@ -32,7 +32,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.util.BigArrays;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -199,7 +198,7 @@ public class PercentileAggregationTest extends AggregationTest {
             new FunctionIdent(NAME, Arrays.asList(DataTypes.LONG, doubleArray)));
 
         RamAccountingContext memoryCtx = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
-        Object state = impl.newState(memoryCtx, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
+        Object state = impl.newState(memoryCtx, Version.CURRENT);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), doubleArray);
         impl.iterate(memoryCtx, state, Literal.of(10L), fractions);
         impl.iterate(memoryCtx, state, Literal.of(20L), fractions);

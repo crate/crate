@@ -26,7 +26,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -69,11 +68,11 @@ public class StringAggTest extends AggregationTest {
     @Test
     public void testMergeOf2States() throws Exception {
         var stringAgg = new StringAgg();
-        var state1 = stringAgg.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
+        var state1 = stringAgg.newState(ramAccountingContext, Version.CURRENT);
         stringAgg.iterate(ramAccountingContext, state1, Literal.of("a"), Literal.of(","));
         stringAgg.iterate(ramAccountingContext, state1, Literal.of("b"), Literal.of(";"));
 
-        var state2 = stringAgg.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
+        var state2 = stringAgg.newState(ramAccountingContext, Version.CURRENT);
         stringAgg.iterate(ramAccountingContext, state2, Literal.of("c"), Literal.of(","));
         stringAgg.iterate(ramAccountingContext, state2, Literal.of("d"), Literal.of(";"));
 

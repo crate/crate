@@ -32,7 +32,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -71,8 +70,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     @Nullable
     @Override
     public TDigestState newState(RamAccountingContext ramAccountingContext,
-                                 Version indexVersionCreated,
-                                 BigArrays bigArrays) {
+                                 Version indexVersionCreated) {
         return TDigestState.createEmptyState();
     }
 

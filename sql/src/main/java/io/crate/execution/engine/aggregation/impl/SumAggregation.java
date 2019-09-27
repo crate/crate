@@ -31,7 +31,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -86,7 +85,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     @Nullable
     @Override
-    public T newState(RamAccountingContext ramAccountingContext, Version indexVersionCreated, BigArrays bigArrays) {
+    public T newState(RamAccountingContext ramAccountingContext, Version indexVersionCreated) {
         ramAccountingContext.addBytes(bytesSize);
         return null;
     }

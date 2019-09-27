@@ -34,7 +34,6 @@ import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -68,7 +67,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private BiConsumer<Map<K, Object[]>, K> accountForNewEntry;
     private final Function<Row, K> keyExtractor;
     private final Version indexVersionCreated;
-    private final BigArrays bigArrays;
     private final BiConsumer<Map<K, Object[]>, Row> accumulator;
     private final Supplier<Map<K, Object[]>> supplier;
 
@@ -80,8 +78,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                RamAccountingContext ramAccountingContext,
                                                Input<?> keyInput,
                                                DataType keyType,
-                                               Version indexVersionCreated,
-                                               BigArrays bigArrays) {
+                                               Version indexVersionCreated) {
         return new GroupingCollector<>(
             expressions,
             aggregations,
@@ -98,7 +95,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             ),
             row -> keyInput.value(),
             indexVersionCreated,
-            bigArrays,
             GroupByMaps.mapForType(keyType)
         );
     }
@@ -111,8 +107,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                     RamAccountingContext ramAccountingContext,
                                                     List<Input<?>> keyInputs,
                                                     List<? extends DataType> keyTypes,
-                                                    Version indexVersionCreated,
-                                                    BigArrays bigArrays) {
+                                                    Version indexVersionCreated) {
         return new GroupingCollector<>(
             expressions,
             aggregations,
@@ -129,7 +124,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             ),
             row -> evalKeyInputs(keyInputs),
             indexVersionCreated,
-            bigArrays,
             HashMap::new
         );
     }
@@ -159,7 +153,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                               BiConsumer<Map<K, Object[]>, K> accountForNewEntry,
                               Function<Row, K> keyExtractor,
                               Version indexVersionCreated,
-                              BigArrays bigArrays,
                               Supplier<Map<K, Object[]>> supplier) {
         this.expressions = expressions;
         this.aggregations = aggregations;
@@ -172,7 +165,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.accountForNewEntry = accountForNewEntry;
         this.keyExtractor = keyExtractor;
         this.indexVersionCreated = indexVersionCreated;
-        this.bigArrays = bigArrays;
         this.accumulator = mode == AggregateMode.PARTIAL_FINAL ? this::reduce : this::iter;
         this.supplier = supplier;
     }
@@ -252,7 +244,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         for (int i = 0; i < aggregations.length; i++) {
             AggregationFunction aggregation = aggregations[i];
 
-            var newState = aggregation.newState(ramAccountingContext, indexVersionCreated, bigArrays);
+            var newState = aggregation.newState(ramAccountingContext, indexVersionCreated);
             if (InputCondition.matches(filters[i])) {
                 //noinspection unchecked
                 states[i] = aggregation.iterate(ramAccountingContext, newState, inputs[i]);

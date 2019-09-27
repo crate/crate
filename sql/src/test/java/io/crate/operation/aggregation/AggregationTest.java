@@ -40,7 +40,6 @@ import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.util.BigArrays;
 import org.junit.Before;
 
 import java.util.ArrayList;
@@ -84,13 +83,13 @@ public abstract class AggregationTest extends CrateUnitTest {
         }
         AggregationFunction impl = (AggregationFunction) functions.getQualified(fi);
         List<Object> states = new ArrayList<>();
-        states.add(impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE));
+        states.add(impl.newState(ramAccountingContext, Version.CURRENT));
         for (Row row : new ArrayBucket(data)) {
             for (InputCollectExpression input : inputs) {
                 input.setNextRow(row);
             }
             if (randomIntBetween(1, 4) == 1) {
-                states.add(impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE));
+                states.add(impl.newState(ramAccountingContext, Version.CURRENT));
             }
             int idx = states.size() - 1;
             states.set(idx, impl.iterate(ramAccountingContext, states.get(idx), inputs));

@@ -35,7 +35,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.UncheckedObjectType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -104,8 +103,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     @Nullable
     @Override
     public Map<Object, Object> newState(RamAccountingContext ramAccountingContext,
-                                        Version indexVersionCreated,
-                                        BigArrays bigArrays) {
+                                        Version indexVersionCreated) {
         ramAccountingContext.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
         return new HashMap<>();
     }
@@ -168,8 +166,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         @Nullable
         @Override
         public Map<Object, Long> newState(RamAccountingContext ramAccountingContext,
-                                          Version indexVersionCreated,
-                                          BigArrays bigArrays) {
+                                          Version indexVersionCreated) {
             ramAccountingContext.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
             return new HashMap<>();
         }

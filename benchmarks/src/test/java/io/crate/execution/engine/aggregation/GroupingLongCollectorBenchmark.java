@@ -59,7 +59,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.util.BigArrays;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -135,8 +134,7 @@ public class GroupingLongCollectorBenchmark {
             RAM_ACCOUNTING_CONTEXT,
             keyInputs.get(0),
             DataTypes.LONG,
-            Version.CURRENT,
-            BigArrays.NON_RECYCLING_INSTANCE
+            Version.CURRENT
         );
     }
 

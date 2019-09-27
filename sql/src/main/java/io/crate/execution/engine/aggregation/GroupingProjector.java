@@ -35,7 +35,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
 
 import java.util.List;
 import java.util.stream.Collector;
@@ -53,8 +52,7 @@ public class GroupingProjector implements Projector {
                              AggregateMode mode,
                              AggregationContext[] aggregations,
                              RamAccountingContext ramAccountingContext,
-                             Version indexVersionCreated,
-                             BigArrays bigArrays) {
+                             Version indexVersionCreated) {
         assert keys.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         ensureAllTypesSupported(keys);
 
@@ -78,8 +76,7 @@ public class GroupingProjector implements Projector {
                 ramAccountingContext,
                 keyInputs.get(0),
                 key.valueType(),
-                indexVersionCreated,
-                bigArrays
+                indexVersionCreated
             );
         } else {
             //noinspection unchecked
@@ -92,8 +89,7 @@ public class GroupingProjector implements Projector {
                 ramAccountingContext,
                 keyInputs,
                 typeView(keys),
-                indexVersionCreated,
-                bigArrays
+                indexVersionCreated
             );
         }
     }

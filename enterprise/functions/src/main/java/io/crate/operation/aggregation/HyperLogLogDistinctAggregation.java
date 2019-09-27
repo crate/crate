@@ -85,9 +85,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
     @Nullable
     @Override
-    public HllState newState(RamAccountingContext ramAccountingContext,
-                             Version indexVersionCreated,
-                             BigArrays bigArrays) {
+    public HllState newState(RamAccountingContext ramAccountingContext, Version indexVersionCreated) {
         return new HllState(dataType);
     }
 

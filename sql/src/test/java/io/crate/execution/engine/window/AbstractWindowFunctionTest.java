@@ -23,9 +23,7 @@
 package io.crate.execution.engine.window;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WindowFrameDefinition;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.auth.user.User;
@@ -76,19 +74,9 @@ import java.util.stream.Collectors;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
-import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
-import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
-import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
-import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
 import static org.hamcrest.Matchers.instanceOf;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
-
-    static final WindowFrameDefinition RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
-        RANGE,
-        new FrameBoundDefinition(CURRENT_ROW, Literal.NULL),
-        new FrameBoundDefinition(UNBOUNDED_FOLLOWING, Literal.NULL)
-    );
 
     private RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext
         ("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
@@ -159,7 +147,6 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
                 (AggregationFunction) impl,
                 new ExpressionsInput<>(Literal.BOOLEAN_TRUE, List.of()),
                 Version.CURRENT,
-                NON_RECYCLING_INSTANCE,
                 RAM_ACCOUNTING_CONTEXT
             );
         } else {
