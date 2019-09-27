@@ -52,7 +52,7 @@ public class LicenseConverterTest {
     }
 
     @Test
-    public void testLicenseDataSerialisationAndDeserialisation() throws IOException {
+    public void testLicenseDataSerializationAndDeserialization() throws IOException {
         final long expiryDate = System.currentTimeMillis() + TimeUnit.HOURS.toMillis(1);
         final int numNodes = 3;
         LicenseData licenseData = new LicenseData(expiryDate, "crate", numNodes);
@@ -65,7 +65,7 @@ public class LicenseConverterTest {
     }
 
     @Test
-    public void testThatDeserialisationOfV2LicenseNoMaxNodesThrowsException() throws IOException {
+    public void testThatDeserializationOfV2LicenseNoMaxNodesThrowsException() throws IOException {
         byte[] data = createV1JsonLicense(Long.MAX_VALUE, "crate");
 
         expectedException.expect(IllegalStateException.class);
@@ -74,7 +74,7 @@ public class LicenseConverterTest {
     }
 
     @Test
-    public void testDeserialisationFromV1SerialisedData() throws IOException {
+    public void testDeserializationFromV1SerialisedData() throws IOException {
         final long expiryDate = System.currentTimeMillis() + TimeUnit.HOURS.toMillis(1);
         byte[] data = createV1JsonLicense(expiryDate, "crate");
         LicenseData licenseDataFromByteArray =

@@ -38,10 +38,10 @@ import java.util.concurrent.CompletionStage;
  * A helper {@link #activeIt} variable points to the currently active iterator thus making
  * transparent to the consumer of this BatchIterator, which calls the methods {@link #allLoaded()}
  * and {@link #loadNextBatch()}, which of the sides (left or right) are currently processed.
- * Usually those methods don't need to be overriden.
+ * Usually those methods don't need to be overridden.
  * <p>
  * The methods {@link #close()} and {@link #kill(Throwable)} are closing or killing the
- * left and right iterators and usually don't need to be overriden.
+ * left and right iterators and usually don't need to be overridden.
  */
 public abstract class JoinBatchIterator<L, R, C> implements BatchIterator<C> {
 
