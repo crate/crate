@@ -51,5 +51,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that could prevent accounted memory from being properly
+  de-accounted on queries using ``hyperloglog_distinct``, leading clients to
+  eventually receive ``CircuitBreakingException`` error messages and also
+  breaking internal recovery operations.
+
 - Removed a case where a ``NullPointerException`` was logged if a HTTP client
   disconnected before a pending response could be sent to the client.
