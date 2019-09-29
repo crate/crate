@@ -591,7 +591,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
      */
     public ElasticsearchException[] guessRootCauses() {
         final Throwable cause = getCause();
-        if (cause != null && cause instanceof ElasticsearchException) {
+        if (cause instanceof ElasticsearchException) {
             return ((ElasticsearchException) cause).guessRootCauses();
         }
         return new ElasticsearchException[]{this};

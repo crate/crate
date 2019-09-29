@@ -464,7 +464,7 @@ public class MatchQuery {
         public Query createCommonTermsQuery(String field, String queryText, Occur highFreqOccur, Occur lowFreqOccur, float
             maxTermFrequency) {
             Query booleanQuery = createBooleanQuery(field, queryText, lowFreqOccur);
-            if (booleanQuery != null && booleanQuery instanceof BooleanQuery) {
+            if (booleanQuery instanceof BooleanQuery) {
                 BooleanQuery bq = (BooleanQuery) booleanQuery;
                 return boolToExtendedCommonTermsQuery(bq, highFreqOccur, lowFreqOccur, maxTermFrequency);
             }
