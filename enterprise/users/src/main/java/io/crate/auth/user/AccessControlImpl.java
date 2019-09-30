@@ -55,7 +55,7 @@ import io.crate.analyze.KillAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.RefreshTableAnalyzedStatement;
+import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
@@ -76,9 +76,8 @@ import io.crate.exceptions.SchemaScopeException;
 import io.crate.exceptions.TableScopeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.SetStatement;
 
@@ -397,18 +396,12 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, User user) {
-            for (String indexName : analysis.indexNames()) {
-                String tableName;
-                if (IndexParts.isPartitioned(indexName)) {
-                    tableName = PartitionName.fromIndexOrTemplate(indexName).relationName().toString();
-                } else {
-                    tableName = RelationName.fqnFromIndexName(indexName);
-                }
+        public Void visitRefreshTableStatement(AnalyzedRefreshTable analysis, User user) {
+            for (DocTableInfo tableInfo : analysis.tables().values()) {
                 Privileges.ensureUserHasPrivilege(
                     Privilege.Type.DQL,
                     Privilege.Clazz.TABLE,
-                    tableName,
+                    tableInfo.ident().fqn(),
                     user,
                     defaultSchema);
             }

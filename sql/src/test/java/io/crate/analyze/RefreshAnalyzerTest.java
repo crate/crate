@@ -23,19 +23,21 @@ package io.crate.analyze;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Table;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
-import static org.hamcrest.Matchers.contains;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.contains;
 
 public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -67,29 +69,21 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRefreshPartition() throws Exception {
-        PartitionName partition = new PartitionName(new RelationName("doc", "parted"), Arrays.asList("1395874800000"));
-        RefreshTableAnalyzedStatement analysis = e.analyze("refresh table parted PARTITION (date=1395874800000)");
-        assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+        AnalyzedRefreshTable analysis = e.analyze("REFRESH TABLE parted PARTITION (date=1395874800000)");
+        Set<Table<Symbol>> analyzedTables = analysis.tables().keySet();
+        assertThat(analyzedTables.size(), is(1));
+
+        List<Assignment<Symbol>> partitionProperties = analyzedTables.iterator().next().partitionProperties();
+        assertThat(partitionProperties.size(), is(1));
+        assertThat(partitionProperties.get(0).columnName(), isLiteral("date"));
+        assertThat(partitionProperties.get(0).expressions(), contains(isLiteral(1395874800000L)));
     }
 
-    @Test(expected = RelationUnknown.class)
+    @Test
     public void testRefreshMultipleTablesUnknown() throws Exception {
-        RefreshTableAnalyzedStatement analysis = e.analyze("refresh table parted, foo, bar");
-
-        assertThat(analysis.indexNames().size(), is(1));
-        assertThat(analysis.indexNames(), contains(Matchers.hasToString("doc.parted")));
-    }
-
-    @Test
-    public void testRefreshInvalidPartitioned() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        e.analyze("refresh table parted partition (invalid_column='hddsGNJHSGFEFZÜ')");
-    }
-
-    @Test
-    public void testRefreshNonPartitioned() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        e.analyze("refresh table users partition (foo='n')");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'foo' unknown");
+        e.analyze("REFRESH TABLE parted, foo, bar");
     }
 
     @Test
@@ -110,7 +104,12 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRefreshPartitionedTableNullPartition() throws Exception {
-        RefreshTableAnalyzedStatement analysis = e.analyze("refresh table parted PARTITION (date=null)");
-        assertThat(analysis.indexNames(), contains(Matchers.hasToString(".partitioned.parted.0400")));
+        AnalyzedRefreshTable analysis = e.analyze("REFRESH TABLE parted PARTITION (date=null)");
+        Set<Table<Symbol>> analyzedTables = analysis.tables().keySet();
+        assertThat(analyzedTables.size(), is(1));
+
+        List<Assignment<Symbol>> partitionProperties = analyzedTables.iterator().next().partitionProperties();
+        assertThat(partitionProperties.size(), is(1));
+        assertThat(partitionProperties.get(0).expressions(), contains(isLiteral(null)));
     }
 }

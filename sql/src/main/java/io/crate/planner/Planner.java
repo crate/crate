@@ -32,6 +32,7 @@ import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedDecommissionNodeStatement;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
+import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedSwapTable;
@@ -73,6 +74,7 @@ import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
+import io.crate.planner.node.ddl.RefreshTablePlan;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.management.ExplainPlan;
@@ -299,6 +301,10 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         return new AlterTablePlan(alterTable);
     }
 
+    public Plan visitRefreshTableStatement(AnalyzedRefreshTable analysis, PlannerContext context) {
+        return new RefreshTablePlan(analysis);
+    }
+    
     @Override
     protected Plan visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, PlannerContext context) {
         return new CreateDropAnalyzerPlan(analysis.buildSettings());

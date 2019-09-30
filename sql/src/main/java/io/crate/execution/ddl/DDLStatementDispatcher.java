@@ -40,7 +40,6 @@ import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.analyze.OptimizeTableAnalyzedStatement;
 import io.crate.analyze.PromoteReplicaStatement;
-import io.crate.analyze.RefreshTableAnalyzedStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
@@ -61,9 +60,6 @@ import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAct
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
@@ -101,7 +97,6 @@ public class DDLStatementDispatcher {
     private final UserDefinedFunctionDDLClient udfDDLClient;
     private final Provider<TransportUpgradeAction> transportUpgradeActionProvider;
     private final Provider<TransportForceMergeAction> transportForceMergeActionProvider;
-    private final Provider<TransportRefreshAction> transportRefreshActionProvider;
     private final UserManager userManager;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
@@ -120,7 +115,6 @@ public class DDLStatementDispatcher {
                                   Provider<UserManager> userManagerProvider,
                                   Provider<TransportUpgradeAction> transportUpgradeActionProvider,
                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
-                                  Provider<TransportRefreshAction> transportRefreshActionProvider,
                                   Functions functions) {
         this.blobAdminClient = blobAdminClient;
         this.clusterService = clusterService;
@@ -130,7 +124,6 @@ public class DDLStatementDispatcher {
         this.udfDDLClient = udfDDLClient;
         this.transportUpgradeActionProvider = transportUpgradeActionProvider;
         this.transportForceMergeActionProvider = transportForceMergeActionProvider;
-        this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.userManager = userManagerProvider.get();
         this.rerouteAction = rerouteAction;
         this.functions = functions;
@@ -178,21 +171,6 @@ public class DDLStatementDispatcher {
             } else {
                 return executeMergeSegments(analysis, transportForceMergeActionProvider.get());
             }
-        }
-
-        @Override
-        public CompletableFuture<Long> visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, Ctx ctx) {
-            if (analysis.indexNames().isEmpty()) {
-                return CompletableFuture.completedFuture(null);
-            }
-            RefreshRequest request = new RefreshRequest(analysis.indexNames().toArray(
-                new String[analysis.indexNames().size()]));
-            request.indicesOptions(IndicesOptions.lenientExpandOpen());
-
-            FutureActionListener<RefreshResponse, Long> listener =
-                new FutureActionListener<>(r -> (long) analysis.indexNames().size());
-            transportRefreshActionProvider.get().execute(request, listener);
-            return listener;
         }
 
         @Override

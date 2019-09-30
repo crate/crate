@@ -21,46 +21,53 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Table;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.function.Function;
 
 class RefreshTableAnalyzer {
 
+    private final Functions functions;
     private final Schemas schemas;
 
-    RefreshTableAnalyzer(Schemas schemas) {
+    RefreshTableAnalyzer(Functions functions, Schemas schemas) {
+        this.functions = functions;
         this.schemas = schemas;
     }
 
-    public RefreshTableAnalyzedStatement analyze(RefreshStatement refreshStatement, Analysis analysis) {
-        return new RefreshTableAnalyzedStatement(getIndexNames(
-            refreshStatement.tables(),
-            schemas,
-            analysis.parameterContext(),
-            analysis.sessionContext().searchPath()
-        ));
-    }
+    public AnalyzedRefreshTable analyze(RefreshStatement<Expression> refreshStatement,
+                                        Function<ParameterExpression, Symbol> convertParamFunction,
+                                        CoordinatorTxnCtx txnCtx,
+                                        SearchPath searchPath) {
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+        var exprCtx = new ExpressionAnalysisContext();
 
-    private static Set<String> getIndexNames(List<Table> tables,
-                                             Schemas schemas,
-                                             ParameterContext parameterContext,
-                                             SearchPath searchPath) {
-        Set<String> indexNames = new HashSet<>(tables.size());
-        for (Table nodeTable : tables) {
-            DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(nodeTable.getName(), Operation.REFRESH,
+        HashMap<Table<Symbol>, DocTableInfo> analyzedTables = new HashMap<>();
+        for (var table : refreshStatement.tables()) {
+            var analyzedTable = table.map(t -> exprAnalyzerWithFieldsAsString.convert(t, exprCtx));
+
+            // resolve table info and validate whether a table exists
+            var tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+                table.getName(),
+                Operation.REFRESH,
                 searchPath);
-            indexNames.addAll(TableAnalyzer.filteredIndices(
-                    parameterContext,
-                    nodeTable.partitionProperties(), tableInfo));
+            analyzedTables.put(analyzedTable, tableInfo);
         }
-        return indexNames;
+        return new AnalyzedRefreshTable(analyzedTables);
     }
 }

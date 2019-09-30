@@ -26,15 +26,15 @@ import com.google.common.base.Objects;
 
 import java.util.List;
 
-public class RefreshStatement extends Statement {
+public class RefreshStatement<T> extends Statement {
 
-    private final List<Table> tables;
+    private final List<Table<T>> tables;
 
-    public RefreshStatement(List<Table> tableList) {
-        this.tables = tableList;
+    public RefreshStatement(List<Table<T>> tables) {
+        this.tables = tables;
     }
 
-    public List<Table> tables() {
+    public List<Table<T>> tables() {
         return tables;
     }
 

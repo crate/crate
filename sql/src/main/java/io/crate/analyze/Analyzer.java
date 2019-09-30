@@ -190,7 +190,7 @@ public class Analyzer {
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, numberOfShards);
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
-        this.refreshTableAnalyzer = new RefreshTableAnalyzer(schemas);
+        this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
         this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
@@ -340,8 +340,12 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis context) {
-            return refreshTableAnalyzer.analyze(node, context);
+        public AnalyzedStatement visitRefreshStatement(RefreshStatement<?> node, Analysis context) {
+            return refreshTableAnalyzer.analyze(
+                (RefreshStatement<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext(),
+                context.sessionContext().searchPath());
         }
 
         @Override

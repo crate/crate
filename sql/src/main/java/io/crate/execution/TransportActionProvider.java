@@ -37,6 +37,7 @@ import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshot
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 
@@ -62,6 +63,7 @@ public class TransportActionProvider {
     private final Provider<TransportGetSnapshotsAction> transportGetSnapshotsActionProvider;
 
     private final Provider<TransportDecommissionNodeAction> transportDecommissionNodeActionProvider;
+    private final Provider<TransportRefreshAction> transportRefreshActionProvider;
 
     @Inject
     public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
@@ -77,8 +79,9 @@ public class TransportActionProvider {
                                    Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider,
                                    Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider,
                                    Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider,
-                                   Provider<TransportGetSnapshotsAction> transportGetSnapshotsActionPovider,
-                                   Provider<TransportDecommissionNodeAction> transportDecommissionNodeActionProvider) {
+                                   Provider<TransportGetSnapshotsAction> transportGetSnapshotsActionProvider,
+                                   Provider<TransportDecommissionNodeAction> transportDecommissionNodeActionProvider,
+                                   Provider<TransportRefreshAction> transportRefreshActionProvider) {
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
         this.transportShardDeleteActionProvider = transportShardDeleteActionProvider;
@@ -92,8 +95,9 @@ public class TransportActionProvider {
         this.transportDeleteSnapshotActionProvider = transportDeleteSnapshotActionProvider;
         this.transportCreateSnapshotActionProvider = transportCreateSnapshotActionProvider;
         this.transportRestoreSnapshotActionProvider = transportRestoreSnapshotActionProvider;
-        this.transportGetSnapshotsActionProvider = transportGetSnapshotsActionPovider;
+        this.transportGetSnapshotsActionProvider = transportGetSnapshotsActionProvider;
         this.transportDecommissionNodeActionProvider = transportDecommissionNodeActionProvider;
+        this.transportRefreshActionProvider = transportRefreshActionProvider;
     }
 
     public TransportCreatePartitionsAction transportBulkCreateIndicesAction() {
@@ -154,5 +158,9 @@ public class TransportActionProvider {
 
     public TransportDecommissionNodeAction transportDecommissionNodeAction() {
         return transportDecommissionNodeActionProvider.get();
+    }
+
+    public TransportRefreshAction transportRefreshAction() {
+        return transportRefreshActionProvider.get();
     }
 }
