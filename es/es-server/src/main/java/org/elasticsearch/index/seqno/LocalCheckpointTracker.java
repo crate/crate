@@ -32,18 +32,18 @@ public class LocalCheckpointTracker {
      * We keep a bit for each sequence number that is still pending. To optimize allocation, we do so in multiple sets allocating them on
      * demand and cleaning up while completed. This constant controls the size of the sets.
      */
-    static final short BIT_SET_SIZE = 1024;
+    private static final short BIT_SET_SIZE = 1024;
 
     /**
      * A collection of bit sets representing pending sequence numbers. Each sequence number is mapped to a bit set by dividing by the
      * bit set size.
      */
-    final LongObjectHashMap<CountedBitSet> processedSeqNo = new LongObjectHashMap<>();
+    private final LongObjectHashMap<CountedBitSet> processedSeqNo = new LongObjectHashMap<>();
 
     /**
      * The current local checkpoint, i.e., all sequence numbers no more than this number have been completed.
      */
-    volatile long checkpoint;
+    private volatile long checkpoint;
 
     /**
      * The next available sequence number.
@@ -104,19 +104,6 @@ public class LocalCheckpointTracker {
     }
 
     /**
-     * Resets the checkpoint to the specified value.
-     *
-     * @param checkpoint the local checkpoint to reset this tracker to
-     */
-    public synchronized void resetCheckpoint(final long checkpoint) {
-        // TODO: remove this method as after we restore the local history on promotion.
-        assert checkpoint != SequenceNumbers.UNASSIGNED_SEQ_NO;
-        assert checkpoint <= this.checkpoint;
-        processedSeqNo.clear();
-        this.checkpoint = checkpoint;
-    }
-
-    /**
      * The current checkpoint which can be advanced by {@link #markSeqNoAsCompleted(long)}.
      *
      * @return the current checkpoint
@@ -170,11 +157,11 @@ public class LocalCheckpointTracker {
             return true;
         }
         final long bitSetKey = getBitSetKey(seqNo);
-        final CountedBitSet bitSet;
+        final int bitSetOffset = seqNoToBitSetOffset(seqNo);
         synchronized (this) {
-            bitSet = processedSeqNo.get(bitSetKey);
+            final CountedBitSet bitSet = processedSeqNo.get(bitSetKey);
+            return bitSet != null && bitSet.get(bitSetOffset);
         }
-        return bitSet != null && bitSet.get(seqNoToBitSetOffset(seqNo));
     }
 
     /**
