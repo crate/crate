@@ -2169,6 +2169,23 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    public void test_refresh_not_existing_partition() {
+        execute("CREATE TABLE doc.parted (x TEXT) PARTITIONED BY (x)");
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(
+            "No partition for table 'doc.parted' with ident '048mgp34ed3ksii8ad3kcha6bb1po' exists");
+        execute("REFRESH TABLE doc.parted PARTITION (x = 'hddsGNJHSGFEFZÜ')");
+    }
+
+    @Test
+    public void test_refresh_partition_in_non_partitioned_table() {
+        execute("CREATE TABLE doc.not_parted (x TEXT)");
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("table 'doc.not_parted' is not partitioned");
+        execute("REFRESH TABLE doc.not_parted PARTITION (x = 'n')");
+    }
+
+    @Test
     public void test_partition_filter_and_column_filter_are_both_applied() {
         execute("create table t (p string primary key, v string) " +
                 "partitioned by (p) " +

@@ -21,18 +21,27 @@
 
 package io.crate.analyze;
 
-import java.util.Set;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.Table;
 
-public class RefreshTableAnalyzedStatement implements DDLStatement {
+import java.util.Map;
 
-    private final Set<String> indexNames;
+public class AnalyzedRefreshTable implements DDLStatement {
 
-    public RefreshTableAnalyzedStatement(Set<String> indexNames) {
-        this.indexNames = indexNames;
+    private final Map<Table<Symbol>, DocTableInfo> tables;
+
+    AnalyzedRefreshTable(Map<Table<Symbol>, DocTableInfo> tables) {
+        this.tables = tables;
     }
 
-    public Set<String> indexNames() {
-        return indexNames;
+    public Map<Table<Symbol>, DocTableInfo> tables() {
+        return tables;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 
     @Override

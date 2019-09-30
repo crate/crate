@@ -99,7 +99,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, C context) {
+    public R visitRefreshTableStatement(AnalyzedRefreshTable analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
 
