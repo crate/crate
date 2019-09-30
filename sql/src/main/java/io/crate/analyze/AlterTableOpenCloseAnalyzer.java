@@ -54,7 +54,7 @@ class AlterTableOpenCloseAnalyzer {
         DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_OPEN_CLOSE);
         PartitionName partitionName = null;
         if (tableInfo.isPartitioned()) {
-            partitionName = AlterTableAnalyzer.createPartitionName(table.partitionProperties(), tableInfo, null);
+            partitionName = PartitionPropertiesAnalyzer.createPartitionName(table.partitionProperties(), tableInfo, null);
         }
         return new AlterTableOpenCloseAnalyzedStatement(tableInfo, partitionName, node.openTable());
     }

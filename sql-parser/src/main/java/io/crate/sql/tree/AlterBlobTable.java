@@ -23,13 +23,13 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public class AlterBlobTable extends AlterTable {
+public class AlterBlobTable<T> extends AlterTable<T> {
 
-    public AlterBlobTable(Table table, GenericProperties genericProperties) {
+    public AlterBlobTable(Table<T> table, GenericProperties<T> genericProperties) {
         super(table, genericProperties);
     }
 
-    public AlterBlobTable(Table table, List<String> resetProperties) {
+    public AlterBlobTable(Table<T> table, List<String> resetProperties) {
         super(table, resetProperties);
     }
 

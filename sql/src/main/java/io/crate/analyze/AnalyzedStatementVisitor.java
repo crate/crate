@@ -250,4 +250,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitAlterTableAddColumn(AnalyzedAlterTableAddColumn alterTableAddColumn, C context) {
         return visitDDLStatement(alterTableAddColumn, context);
     }
+
+    public R visitAlterTable(AnalyzedAlterTable alterTable, C context) {
+        return visitDDLStatement(alterTable, context);
+    }
 }

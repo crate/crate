@@ -55,6 +55,17 @@ public class PartitionPropertiesAnalyzer {
         return map;
     }
 
+    public static Map<ColumnIdent, Object> assignmentsToMap(List<Assignment<Object>> assignments) {
+        Map<ColumnIdent, Object> map = new HashMap<>(assignments.size());
+        for (Assignment<Object> assignment : assignments) {
+            map.put(
+                ColumnIdent.fromPath(assignment.columnName().toString()),
+                assignment.expression()
+            );
+        }
+        return map;
+    }
+
     public static PartitionName toPartitionName(DocTableInfo tableInfo,
                                                 List<Assignment<Expression>> partitionProperties,
                                                 Row parameters) {
@@ -66,6 +77,34 @@ public class PartitionPropertiesAnalyzer {
             partitionProperties.size()
         );
         Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties, parameters);
+        String[] values = new String[properties.size()];
+
+        for (Map.Entry<ColumnIdent, Object> entry : properties.entrySet()) {
+            Object value = entry.getValue();
+
+            int idx = tableInfo.partitionedBy().indexOf(entry.getKey());
+            try {
+                Reference reference = tableInfo.partitionedByColumns().get(idx);
+                Object converted = reference.valueType().value(value);
+                values[idx] = DataTypes.STRING.value(converted);
+            } catch (IndexOutOfBoundsException ex) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "\"%s\" is no known partition column", entry.getKey().sqlFqn()));
+            }
+        }
+        return new PartitionName(tableInfo.ident(), Arrays.asList(values));
+    }
+
+    public static PartitionName toPartitionName(DocTableInfo tableInfo,
+                                                List<Assignment<Object>> partitionProperties) {
+        Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().fqn());
+        Preconditions.checkArgument(partitionProperties.size() == tableInfo.partitionedBy().size(),
+            "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
+            tableInfo.ident().fqn(),
+            tableInfo.partitionedBy().size(),
+            partitionProperties.size()
+        );
+        Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties);
         String[] values = new String[properties.size()];
 
         for (Map.Entry<ColumnIdent, Object> entry : properties.entrySet()) {
@@ -107,5 +146,48 @@ public class PartitionPropertiesAnalyzer {
                                           List<Assignment<Expression>> partitionProperties,
                                           Row parameters) {
         return toPartitionName(tableInfo, partitionProperties, parameters).ident();
+    }
+
+    /**
+     * Creates and returns a PartitionName based on a list of partition properties, table info and row params from
+     * the query. Used so that the analyzer/operation can determine the partition supplied with the query.
+     *
+     * @param partitionsProperties A list of partition property assignments
+     * @param tableInfo The table info of the relevant table
+     * @param parameters The parameters supplied with the query
+     * @return An instance of PartitionName based on the supplied partition properties, table info and params.
+     */
+    @Nullable
+    public static PartitionName createPartitionName(List<Assignment<Expression>> partitionsProperties,
+                                                    DocTableInfo tableInfo,
+                                                    Row parameters) {
+        if (partitionsProperties.isEmpty()) {
+            return null;
+        }
+        PartitionName partitionName = toPartitionName(
+            tableInfo,
+            partitionsProperties,
+            parameters
+        );
+        if (tableInfo.partitions().contains(partitionName) == false) {
+            throw new IllegalArgumentException("Referenced partition \"" + partitionName + "\" does not exist.");
+        }
+        return partitionName;
+    }
+
+    @Nullable
+    public static PartitionName createPartitionName(List<Assignment<Object>> partitionsProperties,
+                                                    DocTableInfo tableInfo) {
+        if (partitionsProperties.isEmpty()) {
+            return null;
+        }
+        PartitionName partitionName = toPartitionName(
+            tableInfo,
+            partitionsProperties
+        );
+        if (tableInfo.partitions().contains(partitionName) == false) {
+            throw new IllegalArgumentException("Referenced partition \"" + partitionName + "\" does not exist.");
+        }
+        return partitionName;
     }
 }

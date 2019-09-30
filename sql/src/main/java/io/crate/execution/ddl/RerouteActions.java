@@ -22,7 +22,7 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.analyze.AlterTableAnalyzer;
+import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.PromoteReplicaStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteAnalyzedStatement;
@@ -155,8 +155,8 @@ public final class RerouteActions {
         if (shardedTable instanceof DocTableInfo) {
             DocTableInfo docTableInfo = (DocTableInfo) shardedTable;
             String indexName = docTableInfo.ident().indexNameOrAlias();
-            PartitionName partitionName = AlterTableAnalyzer.createPartitionName(statement.partitionProperties(),
-                docTableInfo, parameters);
+            PartitionName partitionName = PartitionPropertiesAnalyzer.createPartitionName(statement.partitionProperties(),
+                                                                                          docTableInfo, parameters);
             if (partitionName != null) {
                 indexName = partitionName.asIndexName();
             } else if (docTableInfo.isPartitioned()) {

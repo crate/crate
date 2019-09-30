@@ -27,6 +27,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
@@ -91,17 +92,31 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
-    private CreateTableAnalyzedStatement analyze(String stmt, Object... arguments) {
-        return CreateTablePlan.createStatement(
-            e.analyze(stmt),
-            plannerContext.transactionContext(),
-            plannerContext.functions(),
-            new RowN(arguments),
-            SubQueryResults.EMPTY,
-            new NumberOfShards(clusterService),
-            e.schemas(),
-            e.fulltextAnalyzerResolver()
-        );
+    @SuppressWarnings("unchecked")
+    private <S> S analyze(String stmt, Object... arguments) {
+        AnalyzedStatement analyzedStatement = e.analyze(stmt);
+        if (analyzedStatement instanceof AnalyzedCreateTable) {
+            return (S) CreateTablePlan.createStatement(
+                (AnalyzedCreateTable) analyzedStatement,
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                new RowN(arguments),
+                SubQueryResults.EMPTY,
+                new NumberOfShards(clusterService),
+                e.schemas(),
+                e.fulltextAnalyzerResolver()
+            );
+        } else if (analyzedStatement instanceof AnalyzedAlterTable) {
+            return (S) AlterTablePlan.createStatement(
+                (AnalyzedAlterTable) analyzedStatement,
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                new RowN(arguments),
+                SubQueryResults.EMPTY
+            );
+        } else {
+            throw new AssertionError("Statement of type " + analyzedStatement.getClass() + " not supported");
+        }
     }
 
     @Test
@@ -284,7 +299,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterPartitionedTable() {
-        AlterTableAnalyzedStatement analysis = e.analyze(
+        AlterTableAnalyzedStatement analysis = analyze(
             "alter table parted set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.table().isPartitioned(), is(true));
@@ -293,7 +308,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterPartitionedTablePartition() {
-        AlterTableAnalyzedStatement analysis = e.analyze(
+        AlterTableAnalyzedStatement analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.partitionName().get(), is(new PartitionName(
@@ -303,27 +318,27 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test(expected = IllegalArgumentException.class)
     public void testAlterPartitionedTableNonExistentPartition() {
-        e.analyze("alter table parted partition (date='1970-01-01') set (number_of_replicas='0-all')");
+        analyze("alter table parted partition (date='1970-01-01') set (number_of_replicas='0-all')");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testAlterPartitionedTableInvalidPartitionColumns() {
-        e.analyze("alter table parted partition (a=1) set (number_of_replicas='0-all')");
+        analyze("alter table parted partition (a=1) set (number_of_replicas='0-all')");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testAlterPartitionedTableInvalidNumber() {
-        e.analyze("alter table multi_parted partition (date=1395874800000) set (number_of_replicas='0-all')");
+        analyze("alter table multi_parted partition (date=1395874800000) set (number_of_replicas='0-all')");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testAlterNonPartitionedTableWithPartitionClause() {
-        e.analyze("alter table users partition (date='1970-01-01') reset (number_of_replicas)");
+        analyze("alter table users partition (date='1970-01-01') reset (number_of_replicas)");
     }
 
     @Test
     public void testAlterPartitionedTableShards() {
-        AlterTableAnalyzedStatement analysis = e.analyze(
+        AlterTableAnalyzedStatement analysis = analyze(
             "alter table parted set (number_of_shards=10)");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.table().isPartitioned(), is(true));
@@ -332,7 +347,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterTablePartitionWithNumberOfShards() {
-        AlterTableAnalyzedStatement analysis = e.analyze(
+        AlterTableAnalyzedStatement analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_shards=1)");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.table().isPartitioned(), is(true));
@@ -341,7 +356,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterTablePartitionResetShards() {
-        AlterTableAnalyzedStatement analysis = e.analyze(
+        AlterTableAnalyzedStatement analysis = analyze(
             "alter table parted partition (date=1395874800000) reset (number_of_shards)");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.table().isPartitioned(), is(true));
@@ -352,13 +367,13 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testAlterPartitionedTablePartitionColumnPolicy() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid property \"column_policy\" passed to [ALTER | CREATE] TABLE statement");
-        e.analyze("alter table parted partition (date=1395874800000) set (column_policy='strict')");
+        analyze("alter table parted partition (date=1395874800000) set (column_policy='strict')");
     }
 
     @Test
     public void testAlterPartitionedTableOnlyWithPartition() {
         expectedException.expect(ParsingException.class);
-        e.analyze("alter table ONLY parted partition (date=1395874800000) set (column_policy='strict')");
+        analyze("alter table ONLY parted partition (date=1395874800000) set (column_policy='strict')");
     }
 
     @Test
@@ -370,12 +385,12 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterTableWithWaitForActiveShards() {
-        AlterTableAnalyzedStatement analyzedStatement = e.analyze(
+        AlterTableAnalyzedStatement analyzedStatement = analyze(
             "ALTER TABLE parted SET (\"write.wait_for_active_shards\"= 'ALL')");
         assertThat(analyzedStatement.tableParameter().settings().get(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
                    is("ALL"));
 
-        analyzedStatement = e.analyze("ALTER TABLE parted RESET (\"write.wait_for_active_shards\")");
+        analyzedStatement = analyze("ALTER TABLE parted RESET (\"write.wait_for_active_shards\")");
         assertThat(analyzedStatement.tableParameter().settings().get(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
                    is("1"));
     }

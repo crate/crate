@@ -97,9 +97,9 @@ public final class TablePropertiesAnalyzer {
      * Processes the property names which should be reset and updates the settings or mappings with the related
      * default value.
      */
-    static void analyzeResetProperties(TableParameter tableParameter,
-                                       TableParameters tableParameters,
-                                       List<String> properties) {
+    public static void analyzeResetProperties(TableParameter tableParameter,
+                                              TableParameters tableParameters,
+                                              List<String> properties) {
         Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
         Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
 
