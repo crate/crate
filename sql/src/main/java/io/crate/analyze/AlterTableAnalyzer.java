@@ -22,42 +22,49 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.data.Row;
-import io.crate.metadata.PartitionName;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableRename;
-import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Table;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.sql.tree.ParameterExpression;
 
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Function;
 
 import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
 
 public class AlterTableAnalyzer {
 
     private final Schemas schemas;
+    private final Functions functions;
 
-    AlterTableAnalyzer(Schemas schemas) {
+    AlterTableAnalyzer(Schemas schemas, Functions functions) {
         this.schemas = schemas;
+        this.functions = functions;
     }
 
-    public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, SessionContext sessionContext) {
-        Table<Expression> table = node.table();
-        DocTableInfo docTableInfo = (DocTableInfo) schemas.resolveTableInfo(table.getName(), Operation.ALTER_BLOCKS,
-            sessionContext.searchPath());
-        PartitionName partitionName = createPartitionName(table.partitionProperties(), docTableInfo, parameters);
-        TableParameters tableParameters = getTableParameterInfo(table, partitionName);
-        TableParameter tableParameter = getTableParameter(node, parameters, tableParameters);
-        maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
-        return new AlterTableAnalyzedStatement(docTableInfo, partitionName, tableParameter, table.excludePartitions());
+    public AnalyzedAlterTable analyze(AlterTable<Expression> node,
+                                               Function<ParameterExpression, Symbol> convertParamFunction,
+                                               CoordinatorTxnCtx txnCtx) {
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+        var exprCtx = new ExpressionAnalysisContext();
+
+        AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
+
+        DocTableInfo docTableInfo = (DocTableInfo) schemas.resolveTableInfo(alterTable.table().getName(), Operation.ALTER_BLOCKS,
+            txnCtx.sessionContext().searchPath());
+
+        return new AnalyzedAlterTable(docTableInfo, alterTable);
     }
 
     AlterTableRenameAnalyzedStatement analyzeRename(AlterTableRename node, SessionContext sessionContext) {
@@ -83,61 +90,5 @@ public class AlterTableAnalyzer {
         RelationName newRelationName = new RelationName(relationName.schema(), newIdentParts.get(0));
         newRelationName.ensureValidForRelationCreation();
         return new AlterTableRenameAnalyzedStatement(tableInfo, newRelationName);
-    }
-
-    private static TableParameters getTableParameterInfo(Table table,
-                                                         @Nullable PartitionName partitionName) {
-        if (partitionName == null) {
-            return TableParameters.TABLE_ALTER_PARAMETER_INFO;
-        }
-        assert !table.excludePartitions() : "Alter table ONLY not supported when using a partition";
-        return TableParameters.PARTITION_PARAMETER_INFO;
-    }
-
-    private static TableParameter getTableParameter(AlterTable node, Row parameters, TableParameters tableParameters) {
-        TableParameter tableParameter = new TableParameter();
-        if (!node.genericProperties().isEmpty()) {
-            TablePropertiesAnalyzer.analyze(tableParameter, tableParameters, node.genericProperties(), parameters);
-        } else if (!node.resetProperties().isEmpty()) {
-            TablePropertiesAnalyzer.analyzeResetProperties(tableParameter, tableParameters, node.resetProperties());
-        }
-        return tableParameter;
-    }
-
-    // Only check for permission if statement is not changing the metadata blocks, so don't block `re-enabling` these.
-    private static void maybeRaiseBlockedException(DocTableInfo tableInfo, Settings tableSettings) {
-        if (tableSettings.size() != 1 ||
-            (tableSettings.get(IndexMetaData.SETTING_BLOCKS_METADATA) == null &&
-             tableSettings.get(IndexMetaData.SETTING_READ_ONLY) == null)) {
-
-            Operation.blockedRaiseException(tableInfo, Operation.ALTER);
-        }
-    }
-
-    /**
-     * Creates and returns a PartitionName based on a list of partition properties, table info and row params from
-     * the query. Used so that the analyzer/operation can determine the partition supplied with the query.
-     *
-     * @param partitionsProperties A list of partition property assignments
-     * @param tableInfo The table info of the relevant table
-     * @param parameters The parameters supplied with the query
-     * @return An instance of PartitionName based on the supplied partition properties, table info and params.
-     */
-    @Nullable
-    public static PartitionName createPartitionName(List<Assignment<Expression>> partitionsProperties,
-                                                    DocTableInfo tableInfo,
-                                                    Row parameters) {
-        if (partitionsProperties.isEmpty()) {
-            return null;
-        }
-        PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-            tableInfo,
-            partitionsProperties,
-            parameters
-        );
-        if (tableInfo.partitions().contains(partitionName) == false) {
-            throw new IllegalArgumentException("Referenced partition \"" + partitionName + "\" does not exist.");
-        }
-        return partitionName;
     }
 }

@@ -162,6 +162,7 @@ public class Analyzer {
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.userManager = userManager;
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(functions);
+        this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, functions);
         this.swapTableAnalyzer = new SwapTableAnalyzer(functions, schemas);
         this.createViewAnalyzer = new CreateViewAnalyzer(relationAnalyzer);
         this.showCreateTableAnalyzer = new ShowCreateTableAnalyzer(schemas);
@@ -180,7 +181,8 @@ public class Analyzer {
             insertFromValuesAnalyzer,
             insertFromSubQueryAnalyzer,
             explainStatementAnalyzer,
-            createTableStatementAnalyzer
+            createTableStatementAnalyzer,
+            alterTableAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -190,7 +192,6 @@ public class Analyzer {
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(schemas);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
-        this.alterTableAnalyzer = new AlterTableAnalyzer(schemas);
         this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
         this.alterTableOpenCloseAnalyzer = new AlterTableOpenCloseAnalyzer(schemas);
@@ -349,9 +350,9 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterTable(AlterTable node, Analysis context) {
+        public AnalyzedStatement visitAlterTable(AlterTable<?> node, Analysis context) {
             return alterTableAnalyzer.analyze(
-                node, context.parameterContext().parameters(), context.sessionContext());
+                (AlterTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override

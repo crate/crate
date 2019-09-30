@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Delete;
@@ -61,7 +62,8 @@ class UnboundAnalyzer {
                     InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                     InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                     ExplainStatementAnalyzer explainStatementAnalyzer,
-                    CreateTableStatementAnalyzer createTableAnalyzer) {
+                    CreateTableStatementAnalyzer createTableAnalyzer,
+                    AlterTableAnalyzer alterTableAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showCreateTableAnalyzer,
@@ -71,7 +73,8 @@ class UnboundAnalyzer {
             insertFromValuesAnalyzer,
             insertFromSubQueryAnalyzer,
             explainStatementAnalyzer,
-            createTableAnalyzer
+            createTableAnalyzer,
+            alterTableAnalyzer
         );
     }
 
@@ -92,6 +95,7 @@ class UnboundAnalyzer {
         private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
         private final ExplainStatementAnalyzer explainStatementAnalyzer;
         private final CreateTableStatementAnalyzer createTableAnalyzer;
+        private final AlterTableAnalyzer alterTableAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowCreateTableAnalyzer showCreateTableAnalyzer,
@@ -101,7 +105,8 @@ class UnboundAnalyzer {
                           InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                           InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                           ExplainStatementAnalyzer explainStatementAnalyzer,
-                          CreateTableStatementAnalyzer createTableAnalyzer) {
+                          CreateTableStatementAnalyzer createTableAnalyzer,
+                          AlterTableAnalyzer alterTableAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showCreateTableAnalyzer = showCreateTableAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
@@ -111,11 +116,18 @@ class UnboundAnalyzer {
             this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
             this.explainStatementAnalyzer = explainStatementAnalyzer;
             this.createTableAnalyzer = createTableAnalyzer;
+            this.alterTableAnalyzer = alterTableAnalyzer;
         }
 
         @Override
         public AnalyzedStatement visitCreateTable(CreateTable node, Analysis analysis) {
             return createTableAnalyzer.analyze((CreateTable<Expression>) node, analysis.paramTypeHints(), analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTable(AlterTable<?> node, Analysis context) {
+            return alterTableAnalyzer.analyze(
+                (AlterTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override

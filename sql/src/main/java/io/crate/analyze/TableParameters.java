@@ -131,13 +131,13 @@ public class TableParameters {
     public static final TableParameters TABLE_CREATE_PARAMETER_INFO
         = new TableParameters(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
 
-    static final TableParameters TABLE_ALTER_PARAMETER_INFO
+    public static final TableParameters TABLE_ALTER_PARAMETER_INFO
         = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, SUPPORTED_MAPPINGS_DEFAULT);
 
     public static final TableParameters PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
         = new TableParameters(SUPPORTED_SETTINGS_DEFAULT, Map.of());
 
-    static final TableParameters PARTITION_PARAMETER_INFO
+    public static final TableParameters PARTITION_PARAMETER_INFO
         = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, Map.of());
 
     static final TableParameters CREATE_BLOB_TABLE_PARAMETERS = new TableParameters(
