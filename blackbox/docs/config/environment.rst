@@ -130,7 +130,7 @@ in better latency.
 
 Example of using :ref:`CRATE_JAVA_OPTS <conf-env-java-opts>` to enable the `G1`_::
 
-  export CRATE_JAVA_OPTS="-XX:-UseConcMarkSweepGC -XX:-UseCMSInitiatingOccupancyOnly -XX:+UseG1GC -XX:InitiatingHeapOccupancyPercent=75"
+  export CRATE_JAVA_OPTS="-XX:-UseConcMarkSweepGC -XX:-UseCMSInitiatingOccupancyOnly -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30"
 
 
 Logging
