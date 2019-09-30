@@ -72,7 +72,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         int numDocs = randomInt(10);
         for (int i = 0; i < numDocs; i++) {
             // Index doc but not advance local checkpoint.
-            IndexResult result = shard.applyIndexOperationOnPrimary(
+            shard.applyIndexOperationOnPrimary(
                 Versions.MATCH_ANY,
                 VersionType.INTERNAL,
                 new SourceToParse(shard.shardId().getIndexName(), Integer.toString(i), new BytesArray("{}"), XContentType.JSON),
@@ -81,7 +81,6 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
                 -1L,
                 true
             );
-            assertThat(result.isCreated(), is(true));
         }
 
         long globalCheckPoint = numDocs > 0 ? randomIntBetween(0, numDocs - 1) : 0;
