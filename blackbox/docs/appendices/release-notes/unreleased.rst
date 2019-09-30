@@ -62,6 +62,9 @@ Deprecations
 Changes
 =======
 
+- Added new system table :ref:`sys.segments <sys-segments>` which contains
+  information about the Lucene segments of a shard.
+
 - Added a ``node`` column to :ref:`sys.jobs_log <sys-logs>`.
 
 - Added support for the operator :ref:`ILIKE <sql_dql_like>`, the case
