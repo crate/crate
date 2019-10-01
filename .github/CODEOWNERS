@@ -1,3 +1,2 @@
 *.rst @crate/docs
-blackbox/docs/ @crate/docs
-blackbox/test_docs.py @crate/docs
+docs/ @crate/docs
