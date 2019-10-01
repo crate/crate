@@ -62,6 +62,8 @@ Deprecations
 Changes
 =======
 
+- Added a ``seq_no_stats`` column to the :ref:`sys.shards <sys-shards>` table.
+
 - Added new system table :ref:`sys.segments <sys-segments>` which contains
   information about the Lucene segments of a shard.
 

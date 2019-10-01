@@ -50,10 +50,12 @@ import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.ObjectType;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
@@ -61,13 +63,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
 
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.metadata.table.ColumnRegistrar.entry;
 import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.STRING;
 
 public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
 
@@ -99,6 +103,7 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
 
         static final ColumnIdent MIN_LUCENE_VERSION = new ColumnIdent("min_lucene_version");
         static final ColumnIdent NODE = new ColumnIdent("node");
+        static final ColumnIdent SEQ_NO_STATS = new ColumnIdent("seq_no_stats");
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<ShardRowContext>> expressions() {
@@ -118,39 +123,12 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
             .put(Columns.STATE, () -> forFunction(UnassignedShard::state))
             .put(Columns.ROUTING_STATE, () -> forFunction(UnassignedShard::state))
             .put(Columns.ORPHAN_PARTITION, () -> forFunction(UnassignedShard::orphanedPartition))
-            .put(Columns.RECOVERY, () -> new NestableCollectExpression<>() {
-                @Override
-                public void setNextRow(UnassignedShard unassignedShard) {
-                }
-
-                @Override
-                public Object value() {
-                    return null;
-                }
-
-                @Override
-                public NestableInput getChild(String name) {
-                    return this;
-                }
-            })
+            .put(Columns.RECOVERY, NestedNullObjectExpression::new)
             .put(Columns.PATH, () -> constant(null))
             .put(Columns.BLOB_PATH, () -> constant(null))
             .put(Columns.MIN_LUCENE_VERSION, () -> constant(null))
-            .put(Columns.NODE, () -> new NestableCollectExpression<>() {
-                @Override
-                public void setNextRow(UnassignedShard unassignedShard) {
-                }
-
-                @Override
-                public Object value() {
-                    return null; // unassigned shards are on *no* node.
-                }
-
-                @Override
-                public NestableInput<?> getChild(String name) {
-                    return this;
-                }
-            })
+            .put(Columns.NODE, NestedNullObjectExpression::new)
+            .put(Columns.SEQ_NO_STATS, NestedNullObjectExpression::new)
             .build();
     }
 
@@ -201,7 +179,25 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
             .register("node", ObjectType.builder()
                 .setInnerType("id", STRING)
                 .setInnerType("name", STRING)
-                .build(), NodeNestableInput::new);
+                .build(), NodeNestableInput::new)
+            .register(
+                Columns.SEQ_NO_STATS.name(),
+                ColumnRegistrar.object(
+                    entry(SeqNoStats.MAX_SEQ_NO, LONG, or0IfClosed(r -> r.indexShard().seqNoStats().getMaxSeqNo())),
+                    entry(SeqNoStats.LOCAL_CHECKPOINT, LONG, or0IfClosed(r -> r.indexShard().seqNoStats().getLocalCheckpoint())),
+                    entry(SeqNoStats.GLOBAL_CHECKPOINT, LONG, or0IfClosed(r -> r.indexShard().seqNoStats().getGlobalCheckpoint()))
+                )
+            );
+    }
+
+    private static <T> Function<T, Long> or0IfClosed(Function<T, Long> getProperty) {
+        return x -> {
+            try {
+                return getProperty.apply(x);
+            } catch (AlreadyClosedException e) {
+                return 0L;
+            }
+        };
     }
 
     SysShardsTableInfo() {
@@ -278,5 +274,22 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
             processShardRouting(clusterState.getNodes().getLocalNodeId(), locations, shardRouting, shardIt.shardId());
         }
         return new Routing(locations);
+    }
+
+    private static class NestedNullObjectExpression implements NestableCollectExpression<UnassignedShard, Object> {
+
+        @Override
+        public void setNextRow(UnassignedShard unassignedShard) {
+        }
+
+        @Override
+        public Object value() {
+            return null;
+        }
+
+        @Override
+        public NestableInput getChild(String name) {
+            return this;
+        }
     }
 }

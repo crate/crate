@@ -24,6 +24,8 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
+import io.crate.expression.NestableInput;
+import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -38,11 +40,15 @@ import io.crate.types.ObjectType;
 import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Function;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class ColumnRegistrar<T> {
 
@@ -54,6 +60,41 @@ public class ColumnRegistrar<T> {
     private final RowGranularity rowGranularity;
 
     private int position = 1;
+
+    /*
+     * Type safe registration of object columns that makes
+     * sure that you can select both the root object (`select obj`) as well as child columns (`select obj['x']`)
+     */
+    @SafeVarargs
+    public static <C> ObjectRegistration<C> object(ObjectEntry<C, ?> ... entries) {
+        return new ObjectRegistration<>(entries);
+    }
+
+    public static <C, R> ObjectEntry<C, R> entry(String name, DataType<R> type, Function<C, R> getProperty) {
+        return new ObjectEntry<>(name, type, getProperty);
+    }
+
+    public static class ObjectRegistration<C> {
+
+        private final ObjectEntry<C, ?>[] entries;
+
+        ObjectRegistration(ObjectEntry<C, ?>[] entries) {
+            this.entries = entries;
+        }
+    }
+
+    public static class ObjectEntry<C, R> {
+
+        private final String name;
+        private final DataType<R> type;
+        private final Function<C, R> getProperty;
+
+        ObjectEntry(String name, DataType<R> type, Function<C, R> getProperty) {
+            this.name = name;
+            this.type = type;
+            this.getProperty = getProperty;
+        }
+    }
 
     public ColumnRegistrar(RelationName relationName, RowGranularity rowGranularity) {
         this.relationName = relationName;
@@ -67,10 +108,17 @@ public class ColumnRegistrar<T> {
         return register(column, type, true, null);
     }
 
-    public <R> ColumnRegistrar<T> register(ColumnIdent column,
-                                           DataType<R> type,
-                                           @Nullable RowCollectExpressionFactory<T> expression) {
-        return register(column, type, true, expression);
+    public ColumnRegistrar<T> register(String column, ObjectRegistration<T> object) {
+        ObjectType.Builder objTypeBuilder = ObjectType.builder();
+        HashMap<String, NestableInput> childExpressions = new HashMap<>();
+        ColumnIdent columnIdent = new ColumnIdent(column);
+        for (ObjectEntry<T, ?> entry : object.entries) {
+            objTypeBuilder.setInnerType(entry.name, entry.type);
+            childExpressions.put(entry.name, forFunction(entry.getProperty));
+        }
+        ObjectType objectType = objTypeBuilder.build();
+        register(columnIdent, objectType, true, () -> new ObjectCollectExpression<>(childExpressions));
+        return this;
     }
 
     public <R> ColumnRegistrar<T> register(String column,
@@ -101,9 +149,9 @@ public class ColumnRegistrar<T> {
     }
 
     public ColumnRegistrar<T> register(ColumnIdent column,
-                                           DataType type,
-                                           boolean nullable,
-                                           @Nullable RowCollectExpressionFactory<T> expression) {
+                                       DataType type,
+                                       boolean nullable,
+                                       @Nullable RowCollectExpressionFactory<T> expression) {
         Reference ref = new Reference(
             new ReferenceIdent(relationName, column),
             rowGranularity,
