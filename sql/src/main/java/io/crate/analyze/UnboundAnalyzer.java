@@ -179,7 +179,7 @@ class UnboundAnalyzer {
         }
 
         @Override
-        public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis context) {
+        public AnalyzedStatement visitShowCreateTable(ShowCreateTable<?> node, Analysis context) {
             return showCreateTableAnalyzer.analyze(node.table(), context.sessionContext());
         }
 

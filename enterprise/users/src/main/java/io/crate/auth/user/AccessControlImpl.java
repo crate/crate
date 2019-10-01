@@ -59,7 +59,7 @@ import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
-import io.crate.analyze.ShowCreateTableAnalyzedStatement;
+import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
@@ -479,7 +479,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement analysis, User user) {
+        public Void visitShowCreateTableAnalyzedStatement(AnalyzedShowCreateTable analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DQL,
                 Privilege.Clazz.TABLE,

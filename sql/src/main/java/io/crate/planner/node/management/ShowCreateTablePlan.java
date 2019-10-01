@@ -21,8 +21,8 @@
 
 package io.crate.planner.node.management;
 
+import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.MetaDataToASTNodeResolver;
-import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -38,9 +38,9 @@ import static io.crate.data.SentinelRow.SENTINEL;
 
 public class ShowCreateTablePlan implements Plan {
 
-    private final ShowCreateTableAnalyzedStatement statement;
+    private final AnalyzedShowCreateTable statement;
 
-    public ShowCreateTablePlan(ShowCreateTableAnalyzedStatement statement) {
+    public ShowCreateTablePlan(AnalyzedShowCreateTable statement) {
         this.statement = statement;
     }
 
