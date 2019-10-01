@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
@@ -74,10 +75,11 @@ class ShowStatementAnalyzer {
     }
 
     AnalyzedStatement analyzeShowTransaction(Analysis analysis) {
-        Query query = rewriteShowTransaction();
-        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.transactionContext(), ParameterContext.EMPTY);
-        analysis.rootRelation(newAnalysis.rootRelation());
-        return newAnalysis.analyzedStatement();
+        AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(rewriteShowTransaction(),
+                                                                      analysis.sessionContext(),
+                                                                      ParamTypeHints.EMPTY);
+        analysis.rootRelation((AnalyzedRelation) analyzedStatement);
+        return analyzedStatement;
     }
 
     static Query rewriteShowSessionParameter(ShowSessionParameter node) {
@@ -110,14 +112,7 @@ class ShowStatementAnalyzer {
 
     public AnalyzedStatement analyze(ShowSessionParameter node, Analysis analysis) {
         validateSessionSetting(node.parameter());
-        Query query = rewriteShowSessionParameter(node);
-        Analysis newAnalysis = analyzer.boundAnalyze(
-            query,
-            analysis.transactionContext(),
-            analysis.parameterContext()
-        );
-        analysis.rootRelation(newAnalysis.rootRelation());
-        return newAnalysis.analyzedStatement();
+        return unboundAnalyze(rewriteShowSessionParameter(node), analysis);
     }
 
     static void validateSessionSetting(@Nullable QualifiedName settingParameter) {
@@ -155,10 +150,7 @@ class ShowStatementAnalyzer {
     }
 
     public AnalyzedStatement analyze(ShowSchemas node, Analysis analysis) {
-        Query query = rewriteShowSchemas(node);
-        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.transactionContext(), analysis.parameterContext());
-        analysis.rootRelation(newAnalysis.rootRelation());
-        return newAnalysis.analyzedStatement();
+        return unboundAnalyze(rewriteShowSchemas(node), analysis);
     }
 
 
@@ -203,18 +195,21 @@ class ShowStatementAnalyzer {
 
     public AnalyzedStatement analyze(ShowColumns node, Analysis analysis) {
         SessionContext sessionContext = analysis.sessionContext();
-        Query query = rewriteShowColumns(node, sessionContext.searchPath().currentSchema());
-        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.transactionContext(), analysis.parameterContext());
-        analysis.rootRelation(newAnalysis.rootRelation());
-        return newAnalysis.analyzedStatement();
+        return unboundAnalyze(rewriteShowColumns(node, sessionContext.searchPath().currentSchema()), analysis);
     }
 
     public AnalyzedStatement analyze(ShowTables node, Analysis analysis) {
-        Query query = rewriteShowTables(node);
-        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.transactionContext(), analysis.parameterContext());
-        analysis.rootRelation(newAnalysis.rootRelation());
-        return newAnalysis.analyzedStatement();
+        return unboundAnalyze(rewriteShowTables(node), analysis);
     }
+
+    private AnalyzedStatement unboundAnalyze(Query query, Analysis analysis) {
+        AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(query,
+                                                                      analysis.sessionContext(),
+                                                                      analysis.paramTypeHints());
+        analysis.rootRelation((AnalyzedRelation) analyzedStatement);
+        return analyzedStatement;
+    }
+
 
     public Query rewriteShowTables(ShowTables node) {
         /*
