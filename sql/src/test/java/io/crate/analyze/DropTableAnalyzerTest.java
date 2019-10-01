@@ -36,7 +36,6 @@ import java.io.IOException;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static java.util.Locale.ENGLISH;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -86,21 +85,21 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropExistingTable() throws Exception {
-        DropTableAnalyzedStatement<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table %s", USER_TABLE_IDENT.name()));
+        AnalyzedDropTable<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table %s", USER_TABLE_IDENT.name()));
         assertThat(dropTable.dropIfExists(), is(false));
         assertThat(dropTable.table().ident().indexNameOrAlias(), is(USER_TABLE_IDENT.name()));
     }
 
     @Test
     public void testDropIfExistExistingTable() throws Exception {
-        DropTableAnalyzedStatement<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table if exists %s", USER_TABLE_IDENT.name()));
+        AnalyzedDropTable<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table if exists %s", USER_TABLE_IDENT.name()));
         assertThat(dropTable.dropIfExists(), is(true));
         assertThat(dropTable.table().ident().indexNameOrAlias(), is(USER_TABLE_IDENT.name()));
     }
 
     @Test
     public void testNonExistentTableIsRecognizedCorrectly() throws Exception {
-        DropTableAnalyzedStatement<TableInfo> dropTable = e.analyze("drop table if exists unknowntable");
+        AnalyzedDropTable<TableInfo> dropTable = e.analyze("drop table if exists unknowntable");
         assertThat(dropTable.table(), Matchers.nullValue());
     }
 }

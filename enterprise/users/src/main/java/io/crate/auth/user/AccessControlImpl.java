@@ -31,6 +31,7 @@ import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedUpdateStatement;
@@ -46,7 +47,6 @@ import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
-import io.crate.analyze.DropTableAnalyzedStatement;
 import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
@@ -360,7 +360,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropTable(DropTableAnalyzedStatement<?> dropTable, User user) {
+        public Void visitDropTable(AnalyzedDropTable<?> dropTable, User user) {
             TableInfo table = dropTable.table();
             if (table != null) {
                 Privileges.ensureUserHasPrivilege(

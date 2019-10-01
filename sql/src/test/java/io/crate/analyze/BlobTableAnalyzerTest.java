@@ -171,7 +171,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropBlobTable() {
-        DropTableAnalyzedStatement<BlobTableInfo> analysis = e.analyze("drop blob table blobs");
+        AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table blobs");
         assertThat(analysis.table().ident().name(), is("blobs"));
         assertThat(analysis.table().ident().schema(), is(BlobSchemaInfo.NAME));
     }
@@ -184,7 +184,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropBlobTableWithValidSchema() {
-        DropTableAnalyzedStatement<BlobTableInfo> analysis = e.analyze("drop blob table \"blob\".blobs");
+        AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table \"blob\".blobs");
         assertThat(analysis.table().ident().name(), is("blobs"));
     }
 
@@ -195,14 +195,14 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropBlobTableIfExists() {
-        DropTableAnalyzedStatement<BlobTableInfo> analysis = e.analyze("drop blob table if exists blobs");
+        AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table if exists blobs");
         assertThat(analysis.dropIfExists(), is(true));
         assertThat(analysis.table().ident().fqn(), is("blob.blobs"));
     }
 
     @Test
     public void testDropNonExistentBlobTableIfExists() {
-        DropTableAnalyzedStatement<BlobTableInfo> analysis = e.analyze("drop blob table if exists unknown");
+        AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table if exists unknown");
         assertThat(analysis.dropIfExists(), is(true));
     }
 
