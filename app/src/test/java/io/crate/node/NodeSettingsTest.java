@@ -22,12 +22,12 @@
 package io.crate.node;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.InternalSettingsPreparer;
@@ -121,12 +121,14 @@ public class NodeSettingsTest extends CrateUnitTest {
      */
     @Test
     public void testClusterName() {
-        SQLResponse response = SQLTransportExecutor.execute(
-            "select name from sys.cluster",
-            new Object[0],
-            sqlOperations.newSystemSession())
-            .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
-        assertThat(response.rows()[0][0], is("crate"));
+        try (Session session = sqlOperations.newSystemSession()) {
+            SQLResponse response = SQLTransportExecutor.execute(
+                "select name from sys.cluster",
+                new Object[0],
+                session)
+                .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+            assertThat(response.rows()[0][0], is("crate"));
+        }
     }
 
     @Test
