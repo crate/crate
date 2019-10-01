@@ -25,12 +25,12 @@ package io.crate.analyze;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 
-public class AlterTableRenameAnalyzedStatement implements DDLStatement {
+public class AnalyzedAlterTableRename implements DDLStatement {
 
     private final DocTableInfo sourceTableInfo;
     private final RelationName targetRelationName;
 
-    AlterTableRenameAnalyzedStatement(DocTableInfo sourceTableInfo, RelationName targetRelationName) {
+    AnalyzedAlterTableRename(DocTableInfo sourceTableInfo, RelationName targetRelationName) {
         this.sourceTableInfo = sourceTableInfo;
         this.targetRelationName = targetRelationName;
     }
@@ -45,11 +45,16 @@ public class AlterTableRenameAnalyzedStatement implements DDLStatement {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitAlterTableRenameStatement(this, context);
+        return analyzedStatementVisitor.visitAnalyzedAlterTableRename(this, context);
     }
 
     @Override
     public boolean isWriteOperation() {
+        return true;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
         return true;
     }
 }

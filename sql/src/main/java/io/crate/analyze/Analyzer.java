@@ -365,8 +365,8 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterTableRename(AlterTableRename node, Analysis context) {
-            return alterTableAnalyzer.analyzeRename(node, context.sessionContext());
+        public AnalyzedStatement visitAlterTableRename(AlterTableRename<?> node, Analysis context) {
+            return alterTableAnalyzer.analyze((AlterTableRename<Expression>) node, context.sessionContext());
         }
 
         @Override

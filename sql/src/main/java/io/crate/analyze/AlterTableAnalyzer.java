@@ -42,7 +42,7 @@ import java.util.function.Function;
 
 import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
 
-public class AlterTableAnalyzer {
+class AlterTableAnalyzer {
 
     private final Schemas schemas;
     private final Functions functions;
@@ -52,9 +52,9 @@ public class AlterTableAnalyzer {
         this.functions = functions;
     }
 
-    public AnalyzedAlterTable analyze(AlterTable<Expression> node,
-                                               Function<ParameterExpression, Symbol> convertParamFunction,
-                                               CoordinatorTxnCtx txnCtx) {
+    AnalyzedAlterTable analyze(AlterTable<Expression> node,
+                               Function<ParameterExpression, Symbol> convertParamFunction,
+                               CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
@@ -67,7 +67,7 @@ public class AlterTableAnalyzer {
         return new AnalyzedAlterTable(docTableInfo, alterTable);
     }
 
-    AlterTableRenameAnalyzedStatement analyzeRename(AlterTableRename node, SessionContext sessionContext) {
+    AnalyzedAlterTableRename analyze(AlterTableRename<Expression> node, SessionContext sessionContext) {
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Renaming a single partition is not supported");
         }
@@ -89,6 +89,6 @@ public class AlterTableAnalyzer {
         DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_TABLE_RENAME);
         RelationName newRelationName = new RelationName(relationName.schema(), newIdentParts.get(0));
         newRelationName.ensureValidForRelationCreation();
-        return new AlterTableRenameAnalyzedStatement(tableInfo, newRelationName);
+        return new AnalyzedAlterTableRename(tableInfo, newRelationName);
     }
 }
