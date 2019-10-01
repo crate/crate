@@ -29,7 +29,6 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.analyze.AlterTableAnalyzedStatement;
-import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
@@ -128,15 +127,16 @@ public class AlterTableOperation {
         return session;
     }
 
-    public CompletableFuture<Long> executeAlterTableOpenClose(final AlterTableOpenCloseAnalyzedStatement analysis) {
+    public CompletableFuture<Long> executeAlterTableOpenClose(DocTableInfo tableInfo,
+                                                              boolean openTable,
+                                                              @Nullable PartitionName partitionName) {
         FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         String partitionIndexName = null;
-        Optional<PartitionName> partitionName = analysis.partitionName();
-        if (partitionName.isPresent()) {
-            partitionIndexName = partitionName.get().asIndexName();
+        if (partitionName != null) {
+            partitionIndexName = partitionName.asIndexName();
         }
         OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(
-            analysis.tableInfo().ident(), partitionIndexName, analysis.openTable());
+            tableInfo.ident(), partitionIndexName, openTable);
         transportOpenCloseTableOrPartitionAction.execute(request, listener);
         return listener;
     }

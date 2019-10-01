@@ -20,7 +20,7 @@ package io.crate.auth.user;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AlterBlobTableAnalyzedStatement;
-import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
+import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AlterUserAnalyzedStatement;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -457,7 +457,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAlterTableOpenCloseStatement(AlterTableOpenCloseAnalyzedStatement analysis, User user) {
+        public Void visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
