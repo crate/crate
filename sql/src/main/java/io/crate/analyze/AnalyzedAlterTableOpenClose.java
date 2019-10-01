@@ -22,25 +22,23 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.Table;
 
-import javax.annotation.Nullable;
-import java.util.Optional;
-
-public class AlterTableOpenCloseAnalyzedStatement implements DDLStatement {
+public class AnalyzedAlterTableOpenClose implements DDLStatement {
 
 
     private final DocTableInfo tableInfo;
-    private final PartitionName partitionName;
+    private final Table<Symbol> table;
     private final boolean openTable;
 
 
-    public AlterTableOpenCloseAnalyzedStatement(DocTableInfo tableInfo,
-                                                @Nullable PartitionName partitionName,
-                                                boolean openTable) {
+    AnalyzedAlterTableOpenClose(DocTableInfo tableInfo,
+                                Table<Symbol> table,
+                                boolean openTable) {
         this.tableInfo = tableInfo;
-        this.partitionName = partitionName;
+        this.table = table;
         this.openTable = openTable;
     }
 
@@ -48,16 +46,21 @@ public class AlterTableOpenCloseAnalyzedStatement implements DDLStatement {
         return tableInfo;
     }
 
-    public Optional<PartitionName> partitionName() {
-        return Optional.ofNullable(partitionName);
+    public Table<Symbol> table() {
+        return table;
     }
 
-    public boolean openTable() {
+    public boolean isOpenTable() {
         return openTable;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitAlterTableOpenCloseStatement(this, context);
+        return analyzedStatementVisitor.visitAnalyzedAlterTableOpenClose(this, context);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 }

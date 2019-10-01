@@ -24,7 +24,6 @@ package io.crate.execution.ddl;
 
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.AlterBlobTableAnalyzedStatement;
-import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterUserAnalyzedStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -151,12 +150,6 @@ public class DDLStatementDispatcher {
         @Override
         protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Ctx ctx) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
-        }
-
-        @Override
-        public CompletableFuture<Long> visitAlterTableOpenCloseStatement(AlterTableOpenCloseAnalyzedStatement analysis,
-                                                                         Ctx ctx) {
-            return alterTableOperation.executeAlterTableOpenClose(analysis);
         }
 
         @Override

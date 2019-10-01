@@ -24,13 +24,13 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
-public class AlterTableOpenClose extends Statement {
+public class AlterTableOpenClose<T> extends Statement {
 
-    private final Table table;
+    private final Table<T> table;
     private final boolean blob;
     private final boolean openTable;
 
-    public AlterTableOpenClose(Table table, boolean blob, boolean openTable) {
+    public AlterTableOpenClose(Table<T> table, boolean blob, boolean openTable) {
         this.table = table;
         this.blob = blob;
         this.openTable = openTable;
@@ -42,7 +42,7 @@ public class AlterTableOpenClose extends Statement {
         return visitor.visitAlterTableOpenClose(this, context);
     }
 
-    public Table table() {
+    public Table<T> table() {
         return table;
     }
 
