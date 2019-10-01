@@ -59,7 +59,7 @@ import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.DropAnalyzerStatement;
-import io.crate.analyze.DropTableAnalyzedStatement;
+import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
@@ -341,7 +341,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitDropTable(DropTableAnalyzedStatement<?> dropTable, PlannerContext context) {
+    public Plan visitDropTable(AnalyzedDropTable<?> dropTable, PlannerContext context) {
         TableInfo table = dropTable.table();
         if (table == null) {
             return NoopPlan.INSTANCE;

@@ -786,7 +786,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitDropTable(DropTable node, Integer indent) {
+        public Void visitDropTable(DropTable<?> node, Integer indent) {
             builder.append("DROP TABLE ");
             if (node.dropIfExists()) {
                 builder.append("IF EXISTS ");
@@ -796,7 +796,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitDropBlobTable(DropBlobTable node, Integer indent) {
+        public Void visitDropBlobTable(DropBlobTable<?> node, Integer indent) {
             builder.append("DROP BLOB TABLE ");
             if (node.ignoreNonExistentTable()) {
                 builder.append("IF EXISTS ");

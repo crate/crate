@@ -194,7 +194,8 @@ public class Analyzer {
             userAnalyzer,
             createBlobTableAnalyzer,
             createFunctionAnalyzer,
-            dropFunctionAnalyzer
+            dropFunctionAnalyzer,
+            dropTableAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -270,7 +271,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitDropTable(DropTable node, Analysis context) {
+        public AnalyzedStatement visitDropTable(DropTable<?> node, Analysis context) {
             return dropTableAnalyzer.analyze(node, context.sessionContext());
         }
 
@@ -326,7 +327,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis context) {
+        public AnalyzedStatement visitDropBlobTable(DropBlobTable<?> node, Analysis context) {
             return dropTableAnalyzer.analyze(node, context.sessionContext());
         }
 

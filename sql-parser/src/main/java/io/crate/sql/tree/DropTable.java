@@ -24,12 +24,12 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-public class DropTable extends Statement {
+public class DropTable<T> extends Statement {
 
-    private final Table table;
+    private final Table<T> table;
     private final boolean dropIfExists;
 
-    public DropTable(Table table, boolean dropIfExists) {
+    public DropTable(Table<T> table, boolean dropIfExists) {
         this.table = table;
         this.dropIfExists = dropIfExists;
     }
@@ -38,7 +38,7 @@ public class DropTable extends Statement {
         return dropIfExists;
     }
 
-    public Table table() {
+    public Table<T> table() {
         return table;
     }
 

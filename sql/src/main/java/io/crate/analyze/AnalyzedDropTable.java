@@ -25,14 +25,14 @@ import io.crate.metadata.table.TableInfo;
 
 import javax.annotation.Nullable;
 
-public final class DropTableAnalyzedStatement<T extends TableInfo> implements DDLStatement {
+public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatement {
 
     private final boolean dropIfExists;
 
     @Nullable
     private final T tableInfo;
 
-    DropTableAnalyzedStatement(@Nullable T tableInfo, boolean dropIfExists) {
+    AnalyzedDropTable(@Nullable T tableInfo, boolean dropIfExists) {
         this.tableInfo = tableInfo;
         this.dropIfExists = dropIfExists;
     }
@@ -49,5 +49,10 @@ public final class DropTableAnalyzedStatement<T extends TableInfo> implements DD
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitDropTable(this, context);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 }
