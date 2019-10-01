@@ -156,14 +156,13 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name = 'characters'");
         assertEquals(8L, response.rowCount());
-        assertEquals(16, response.cols().length);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
         assertEquals(26L, response.rowCount());
-        assertEquals(16, response.cols().length);
+        assertEquals(17, response.cols().length);
         assertThat(response.cols(), arrayContaining(
             "blob_path",
             "id",
@@ -178,6 +177,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
             "relocating_node",
             "routing_state",
             "schema_name",
+            "seq_no_stats",
             "size",
             "state",
             "table_name"));
@@ -188,7 +188,6 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name like 'charact%'");
         assertEquals(8L, response.rowCount());
-        assertEquals(16, response.cols().length);
     }
 
     @Test
@@ -196,7 +195,6 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name not like 'quotes%'");
         assertEquals(18L, response.rowCount());
-        assertEquals(16, response.cols().length);
     }
 
     @Test
@@ -204,7 +202,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name in ('characters')");
         assertEquals(8L, response.rowCount());
-        assertEquals(16, response.cols().length);
+        assertEquals(17, response.cols().length);
     }
 
     @Test

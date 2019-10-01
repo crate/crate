@@ -24,6 +24,7 @@ package io.crate.metadata.sys;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.expression.reference.sys.check.node.SysNodeCheck;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -34,17 +35,16 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.expression.reference.sys.check.node.SysNodeCheck;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
 
 
 public class SysNodeChecksTableInfo extends StaticTableInfo<SysNodeCheck> {
@@ -70,7 +70,7 @@ public class SysNodeChecksTableInfo extends StaticTableInfo<SysNodeCheck> {
             .register("description", STRING, () -> forFunction(SysNodeCheck::description))
             .register("passed", BOOLEAN, () -> forFunction(SysNodeCheck::isValid))
             .register("acknowledged", BOOLEAN, () -> forFunction(SysNodeCheck::acknowledged))
-            .register(DocSysColumns.ID, STRING, () -> forFunction(SysNodeCheck::rowId))
+            .register(DocSysColumns.ID.name(), STRING, () -> forFunction(SysNodeCheck::rowId))
             .putInfoOnly(DocSysColumns.ID, DocSysColumns.forTable(IDENT, DocSysColumns.ID));
     }
 
