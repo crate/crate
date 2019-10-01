@@ -37,12 +37,12 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
+public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelation {
 
     private final DocTableInfo tableInfo;
     private final List<Field> fields;
 
-    public ShowCreateTableAnalyzedStatement(DocTableInfo tableInfo) {
+    public AnalyzedShowCreateTable(DocTableInfo tableInfo) {
         String columnName = "SHOW CREATE TABLE " + tableInfo.ident().fqn();
         this.fields = Collections.singletonList(new Field(this, new ColumnIdent(columnName), new InputColumn(0, DataTypes.STRING)));
         this.tableInfo = tableInfo;
@@ -64,7 +64,7 @@ public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, Anal
 
     @Override
     public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField() is not supported on ShowCreateTableAnalyzedStatement");
+        throw new UnsupportedOperationException("getWritableField() is not supported on AnalyzedShowCreateTable");
     }
 
     @Override

@@ -57,7 +57,7 @@ import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
-import io.crate.analyze.ShowCreateTableAnalyzedStatement;
+import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.LicenseViolationException;
 import io.crate.execution.ddl.tables.TableCreator;
@@ -272,7 +272,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement statement, PlannerContext context) {
+    public Plan visitShowCreateTableAnalyzedStatement(AnalyzedShowCreateTable statement, PlannerContext context) {
         return new ShowCreateTablePlan(statement);
     }
 

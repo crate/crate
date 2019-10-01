@@ -281,7 +281,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis analysis) {
-            ShowCreateTableAnalyzedStatement showCreateTableStatement =
+            AnalyzedShowCreateTable showCreateTableStatement =
                 showCreateTableAnalyzer.analyze(node.table(), analysis.sessionContext());
             analysis.rootRelation(showCreateTableStatement);
             return showCreateTableStatement;

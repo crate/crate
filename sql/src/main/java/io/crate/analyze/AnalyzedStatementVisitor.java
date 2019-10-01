@@ -147,7 +147,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    public R visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement analysis, C context) {
+    public R visitShowCreateTableAnalyzedStatement(AnalyzedShowCreateTable analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 

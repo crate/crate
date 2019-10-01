@@ -35,9 +35,9 @@ class ShowCreateTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public ShowCreateTableAnalyzedStatement analyze(Table table, SessionContext sessionContext) {
+    public AnalyzedShowCreateTable analyze(Table table, SessionContext sessionContext) {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(table.getName(), Operation.SHOW_CREATE,
             sessionContext.searchPath());
-        return new ShowCreateTableAnalyzedStatement(tableInfo);
+        return new AnalyzedShowCreateTable(tableInfo);
     }
 }
