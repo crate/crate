@@ -24,13 +24,13 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
-public class AlterTableRename extends Statement {
+public class AlterTableRename<T> extends Statement {
 
-    private final Table table;
+    private final Table<T> table;
     private final boolean blob;
     private final QualifiedName newName;
 
-    public AlterTableRename(Table table, boolean blob, QualifiedName newName) {
+    public AlterTableRename(Table<T> table, boolean blob, QualifiedName newName) {
         this.table = table;
         this.blob = blob;
         this.newName = newName;
@@ -42,7 +42,7 @@ public class AlterTableRename extends Statement {
         return visitor.visitAlterTableRename(this, context);
     }
 
-    public Table table() {
+    public Table<T> table() {
         return table;
     }
 
@@ -69,7 +69,7 @@ public class AlterTableRename extends Statement {
 
         AlterTableRename that = (AlterTableRename) o;
 
-        if (!blob == blob) return false;
+        if (!blob == that.blob) return false;
         if (!newName.equals(that.newName)) return false;
         if (!table.equals(that.table)) return false;
 

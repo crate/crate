@@ -107,7 +107,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitAlterTableRenameStatement(AlterTableRenameAnalyzedStatement analysis, C context) {
+    public R visitAnalyzedAlterTableRename(AnalyzedAlterTableRename analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
 

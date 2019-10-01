@@ -30,7 +30,7 @@ import io.crate.action.sql.Session;
 import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
-import io.crate.analyze.AlterTableRenameAnalyzedStatement;
+import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
@@ -322,7 +322,7 @@ public class AlterTableOperation {
         return listener;
     }
 
-    public CompletableFuture<Long> executeAlterTableRenameTable(AlterTableRenameAnalyzedStatement statement) {
+    public CompletableFuture<Long> executeAlterTableRenameTable(AnalyzedAlterTableRename statement) {
         DocTableInfo sourceTableInfo = statement.sourceTableInfo();
         RelationName sourceRelationName = sourceTableInfo.ident();
         RelationName targetRelationName = statement.targetTableIdent();
