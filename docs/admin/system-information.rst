@@ -867,11 +867,12 @@ Table schema
 | Column Name                        | Description                                        | Return Type |
 +====================================+====================================================+=============+
 +------------------------------------+----------------------------------------------------+-------------+
-| ``_node``                          | Information about the node the shard is located    | ``OBJECT``  |
+| ``node``                           | Information about the node the shard is located    | ``OBJECT``  |
 |                                    | at.                                                |             |
-|                                    |                                                    |             |
-|                                    | Contains the same information as the ``sys.nodes`` |             |
-|                                    | table.                                             |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``node['name']``                   | The name of the node the shard is located at.      | ``TEXT``    |
++------------------------------------+----------------------------------------------------+-------------+
+| ``node['id']``                     | The id of the node the shard is located at.        | ``TEXT``    |
 +------------------------------------+----------------------------------------------------+-------------+
 | ``blob_path``                      | Path to the directory which contains the blob      | ``TEXT``    |
 |                                    | files of the shard, or null if the shard is not a  |             |
