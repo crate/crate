@@ -50,9 +50,11 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.support.AdapterActionFuture;
 import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.action.support.PlainListenableActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
@@ -180,9 +182,10 @@ public class SQLTransportExecutor {
         }
         try {
             if (!sessionList.isEmpty()) {
-                Session session = newSession();
-                sessionList.forEach((setting) -> exec(setting, session));
-                return execute(stmt, args, session).actionGet(timeout);
+                try (Session session = newSession()) {
+                    sessionList.forEach((setting) -> exec(setting, session));
+                    return execute(stmt, args, session).actionGet(timeout);
+                }
             }
             return execute(stmt, args).actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
@@ -196,7 +199,20 @@ public class SQLTransportExecutor {
     }
 
     public ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
-        return execute(stmt, args, newSession());
+        Session session = newSession();
+        ListenableActionFuture<SQLResponse> execute = execute(stmt, args, session);
+        execute.addListener(new ActionListener<>() {
+            @Override
+            public void onResponse(SQLResponse sqlResponse) {
+                session.close();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                session.close();
+            }
+        });
+        return execute;
     }
 
     public Session newSession() {
@@ -211,10 +227,10 @@ public class SQLTransportExecutor {
         return execute(statement, null, session).actionGet(REQUEST_TIMEOUT);
     }
 
-    public static ActionFuture<SQLResponse> execute(String stmt,
-                                                    @Nullable Object[] args,
-                                                    Session session) {
-        final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new PlainActionFuture<>();
+    public static ListenableActionFuture<SQLResponse> execute(String stmt,
+                                                              @Nullable Object[] args,
+                                                              Session session) {
+        PlainListenableActionFuture<SQLResponse> actionFuture = PlainListenableActionFuture.newListenableFuture();
         execute(stmt, args, actionFuture, session);
         return actionFuture;
     }
@@ -270,8 +286,10 @@ public class SQLTransportExecutor {
                 } else {
                     listener.onFailure(SQLExceptions.createSQLActionException(t, e -> {}));
                 }
+                session.close();
             });
         } catch (Throwable t) {
+            session.close();
             listener.onFailure(SQLExceptions.createSQLActionException(t, e -> {}));
         }
     }
