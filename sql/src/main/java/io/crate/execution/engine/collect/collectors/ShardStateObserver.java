@@ -51,11 +51,14 @@ public final class ShardStateObserver {
     }
 
     public CompletableFuture<ShardRouting> waitForActiveShard(ShardId shardId) {
-        ClusterState state = clusterService.state();
+        return checkStateOrWaitForActiveShard(shardId, clusterService.state());
+    }
+
+    private CompletableFuture<ShardRouting> checkStateOrWaitForActiveShard(ShardId shardId, ClusterState state) {
         try {
             var routingTable = state.routingTable().shardRoutingTable(shardId);
             var primaryShardRouting = routingTable.primaryShard();
-            if (primaryShardRouting.active() || primaryShardRouting.started()) {
+            if (primaryShardRouting.started()) {
                 return CompletableFuture.completedFuture(primaryShardRouting);
             } else {
                 return waitForActiveShard(shardId, state);
@@ -71,14 +74,13 @@ public final class ShardStateObserver {
         var stateObserver = new ClusterStateObserver(
             state, clusterService, MAX_WAIT_TIME_FOR_NEW_STATE, LOGGER, threadContext);
         var listener = new RetryIsShardActive(shardId);
-        stateObserver.waitForNextChange(listener, newState -> shardBecameActiveOrIndexWasDeleted(newState, shardId));
+        stateObserver.waitForNextChange(listener, newState -> shardStartedOrIndexDeleted(newState, shardId));
         return listener.result();
     }
 
-    private static boolean shardBecameActiveOrIndexWasDeleted(ClusterState state, ShardId shardId) {
+    private static boolean shardStartedOrIndexDeleted(ClusterState state, ShardId shardId) {
         try {
-            var routingTable = state.routingTable().shardRoutingTable(shardId);
-            return routingTable.primaryShard().started() || routingTable.primaryShard().active();
+            return state.routingTable().shardRoutingTable(shardId).primaryShard().started();
         } catch (ShardNotFoundException e) {
             return false;
         } catch (IndexNotFoundException e) {
@@ -98,7 +100,7 @@ public final class ShardStateObserver {
 
         @Override
         public void onNewClusterState(ClusterState state) {
-            waitForActiveShard(shardId).whenComplete((routingTable, err) -> {
+            checkStateOrWaitForActiveShard(shardId, state).whenComplete((routingTable, err) -> {
                 if (routingTable == null) {
                     result.completeExceptionally(err);
                 } else {
