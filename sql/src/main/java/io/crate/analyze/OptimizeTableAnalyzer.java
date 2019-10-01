@@ -22,90 +22,53 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.OptimizeStatement;
+import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.function.Function;
 
 public class OptimizeTableAnalyzer {
 
-    public static final Setting<Integer> MAX_NUM_SEGMENTS =
-        Setting.intSetting(
-            "max_num_segments",
-            ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS,
-            ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS,
-            Integer.MAX_VALUE);
-
-    public static final Setting<Boolean> ONLY_EXPUNGE_DELETES =
-        Setting.boolSetting("only_expunge_deletes", ForceMergeRequest.Defaults.ONLY_EXPUNGE_DELETES);
-
-    public static final Setting<Boolean> FLUSH = Setting.boolSetting("flush", ForceMergeRequest.Defaults.FLUSH);
-
-    public static final Setting<Boolean> UPGRADE_SEGMENTS = Setting.boolSetting("upgrade_segments", false);
-
-    private static final Map<String, Setting<?>> SETTINGS = Map.of(
-        MAX_NUM_SEGMENTS.getKey(), MAX_NUM_SEGMENTS,
-        ONLY_EXPUNGE_DELETES.getKey(), ONLY_EXPUNGE_DELETES,
-        FLUSH.getKey(), FLUSH,
-        UPGRADE_SEGMENTS.getKey(), UPGRADE_SEGMENTS
-    );
-
     private final Schemas schemas;
+    private final Functions functions;
 
-    OptimizeTableAnalyzer(Schemas schemas) {
+    OptimizeTableAnalyzer(Schemas schemas, Functions functions) {
         this.schemas = schemas;
+        this.functions = functions;
     }
 
-    public OptimizeTableAnalyzedStatement analyze(OptimizeStatement stmt, Analysis analysis) {
-        Set<String> indexNames = getIndexNames(
-            stmt.tables(),
-            schemas,
-            analysis.parameterContext(),
-            analysis.sessionContext().searchPath());
+    public AnalyzedOptimizeTable analyze(OptimizeStatement<Expression> statement,
+                                         Function<ParameterExpression, Symbol> convertParamFunction,
+                                         CoordinatorTxnCtx txnCtx,
+                                         SearchPath searchPath) {
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
 
-        // validate and extract settings
-        Settings.Builder builder = GenericPropertiesConverter.settingsFromProperties(
-            stmt.properties(), analysis.parameterContext().parameters(), SETTINGS);
-        Settings settings = builder.build();
-        validateSettings(settings, stmt.properties());
-        return new OptimizeTableAnalyzedStatement(indexNames, settings);
-    }
+        var exprCtx = new ExpressionAnalysisContext();
+        OptimizeStatement<Symbol> analyzedStatement =
+            statement.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
 
-    private static Set<String> getIndexNames(List<Table> tables,
-                                             Schemas schemas,
-                                             ParameterContext parameterContext,
-                                             SearchPath searchPath) {
-        Set<String> indexNames = new HashSet<>(tables.size());
-        for (Table nodeTable : tables) {
-            TableInfo tableInfo = schemas.resolveTableInfo(nodeTable.getName(), Operation.OPTIMIZE, searchPath);
-            if (tableInfo instanceof BlobTableInfo) {
-                indexNames.add(((BlobTableInfo) tableInfo).concreteIndices()[0]);
-            } else {
-                indexNames.addAll(TableAnalyzer.filteredIndices(
-                    parameterContext,
-                    nodeTable.partitionProperties(), (DocTableInfo) tableInfo));
-            }
+        HashMap<Table<Symbol>, TableInfo> analyzedOptimizeTables = new HashMap<>();
+        for (Table<Symbol> table : analyzedStatement.tables()) {
+            TableInfo tableInfo = schemas.resolveTableInfo(
+                table.getName(),
+                Operation.OPTIMIZE,
+                searchPath);
+            analyzedOptimizeTables.put(table, tableInfo);
         }
-        return indexNames;
-    }
-
-    private void validateSettings(Settings settings, GenericProperties stmtParameters) {
-        if (UPGRADE_SEGMENTS.get(settings) && stmtParameters.size() > 1) {
-            throw new IllegalArgumentException("cannot use other parameters if " +
-                                               UPGRADE_SEGMENTS.getKey() + " is set to true");
-        }
+        return new AnalyzedOptimizeTable(analyzedOptimizeTables, analyzedStatement.properties());
     }
 }

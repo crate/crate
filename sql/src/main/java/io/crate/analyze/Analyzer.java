@@ -169,6 +169,7 @@ public class Analyzer {
         this.deleteAnalyzer = new DeleteAnalyzer(functions, relationAnalyzer);
         this.insertFromValuesAnalyzer = new InsertFromValuesAnalyzer(functions, schemas);
         this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
+        this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -178,7 +179,8 @@ public class Analyzer {
             insertFromSubQueryAnalyzer,
             explainStatementAnalyzer,
             createTableStatementAnalyzer,
-            alterTableAnalyzer
+            alterTableAnalyzer,
+            optimizeTableAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -187,7 +189,6 @@ public class Analyzer {
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
-        this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
         this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
@@ -341,11 +342,6 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitOptimizeStatement(OptimizeStatement node, Analysis context) {
-            return optimizeTableAnalyzer.analyze(node, context);
-        }
-
-        @Override
         public AnalyzedStatement visitAlterTable(AlterTable<?> node, Analysis context) {
             return alterTableAnalyzer.analyze(
                 (AlterTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
@@ -462,6 +458,15 @@ public class Analyzer {
                 context.sessionContext().user(),
                 context.sessionContext().searchPath(),
                 schemas);
+        }
+
+        @Override
+        public AnalyzedStatement visitOptimizeStatement(OptimizeStatement<?> node, Analysis context) {
+            return optimizeTableAnalyzer.analyze(
+                (OptimizeStatement<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext(),
+                context.sessionContext().searchPath());
         }
 
         @Override

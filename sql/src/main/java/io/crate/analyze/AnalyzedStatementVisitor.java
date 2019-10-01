@@ -95,7 +95,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, C context) {
+    public R visitOptimizeTableStatement(AnalyzedOptimizeTable analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
 

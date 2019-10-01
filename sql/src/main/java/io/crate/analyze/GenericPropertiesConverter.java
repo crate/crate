@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_SETTING_PREFIX;
@@ -71,19 +72,36 @@ public class GenericPropertiesConverter {
         }
     }
 
+    public static Settings genericPropertiesToSettings(GenericProperties<Object> genericProperties,
+                                                       Map<String, Setting<?>> supportedSettings) {
+        Settings.Builder builder = Settings.builder();
+        genericPropertiesToSettings(
+            builder,
+            genericProperties,
+            (settingKey) -> {
+                if (!supportedSettings.containsKey(settingKey)) {
+                    throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, INVALID_SETTING_MESSAGE, settingKey));
+                }
+            });
+        return builder.build();
+    }
+
     public static Settings genericPropertiesToSettings(GenericProperties<Object> genericProperties) {
         Settings.Builder builder = Settings.builder();
-        genericPropertiesToSettings(builder, genericProperties);
+        genericPropertiesToSettings(builder, genericProperties, (settingKey) -> {
+        });
         return builder.build();
     }
 
     private static void genericPropertiesToSettings(Settings.Builder builder,
-                                                    GenericProperties<Object> genericProperties) {
+                                                    GenericProperties<Object> genericProperties,
+                                                    Consumer<String> settingKeyValidator) {
         for (Map.Entry<String, Object> entry : genericProperties.properties().entrySet()) {
+            settingKeyValidator.accept(entry.getKey());
             builder.put(entry.getKey(), entry.getValue().toString());
         }
     }
-
 
     static Settings.Builder settingsFromProperties(GenericProperties<Expression> properties,
                                                    Row parameters,
