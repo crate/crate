@@ -227,7 +227,8 @@ A repository that stores its snapshot on the Amazon S3 service.
   | *Type:*    ``text``
   | *Default:* ``root directory``
 
-  Specifies the path within bucket to repository data.
+  Specifies the relative path within the bucket of the repository data. It
+  must not contain a leading ``/`` (forward slash).
 
 **endpoint**
   | *Type:*    ``text``
