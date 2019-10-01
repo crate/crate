@@ -35,6 +35,7 @@ import io.crate.analyze.AnalyzedDecommissionNodeStatement;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedSwapTable;
@@ -78,6 +79,7 @@ import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
+import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.node.ddl.RefreshTablePlan;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.node.dml.LegacyUpsertById;
@@ -414,6 +416,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitDropView(DropViewStmt dropViewStmt, PlannerContext context) {
         return new DropViewPlan(dropViewStmt);
+    }
+
+    @Override
+    public Plan visitOptimizeTableStatement(AnalyzedOptimizeTable analysis, PlannerContext context) {
+        return new OptimizeTablePlan(analysis);
     }
 
     private static LegacyUpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis) {

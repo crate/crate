@@ -23,25 +23,34 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
+import io.crate.common.collections.Lists2;
 
 import java.util.List;
+import java.util.function.Function;
 
-public class OptimizeStatement extends Statement {
+public class OptimizeStatement<T> extends Statement {
 
-    private final List<Table> tables;
-    private final GenericProperties properties;
+    private final List<Table<T>> tables;
+    private final GenericProperties<T> properties;
 
-    public OptimizeStatement(List<Table> tables, GenericProperties properties) {
+    public OptimizeStatement(List<Table<T>> tables, GenericProperties<T> properties) {
         this.tables = tables;
         this.properties = properties;
     }
 
-    public List<Table> tables() {
+    public List<Table<T>> tables() {
         return tables;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<T> properties() {
         return properties;
+    }
+
+    public <U> OptimizeStatement<U> map(Function<? super T, ? extends U> mapper) {
+        return new OptimizeStatement(
+            Lists2.map(tables, x -> x.map(mapper)),
+            properties.map(mapper)
+        );
     }
 
     @Override

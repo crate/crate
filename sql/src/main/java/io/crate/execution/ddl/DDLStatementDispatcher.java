@@ -22,7 +22,6 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.action.FutureActionListener;
 import io.crate.analyze.AlterBlobTableAnalyzedStatement;
 import io.crate.analyze.AlterUserAnalyzedStatement;
 import io.crate.analyze.AnalyzedStatement;
@@ -36,7 +35,6 @@ import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
-import io.crate.analyze.OptimizeTableAnalyzedStatement;
 import io.crate.analyze.PromoteReplicaStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
@@ -55,27 +53,15 @@ import io.crate.user.SecureHash;
 import io.crate.user.UserActions;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
-import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
-import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeAction;
-import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
-import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 
 import java.security.GeneralSecurityException;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
-import static io.crate.analyze.OptimizeTableAnalyzer.FLUSH;
-import static io.crate.analyze.OptimizeTableAnalyzer.MAX_NUM_SEGMENTS;
-import static io.crate.analyze.OptimizeTableAnalyzer.ONLY_EXPUNGE_DELETES;
-import static io.crate.analyze.OptimizeTableAnalyzer.UPGRADE_SEGMENTS;
 import static java.util.concurrent.CompletableFuture.failedFuture;
 
 /**
@@ -93,8 +79,6 @@ public class DDLStatementDispatcher {
     private final RepositoryService repositoryService;
     private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
     private final UserDefinedFunctionDDLClient udfDDLClient;
-    private final Provider<TransportUpgradeAction> transportUpgradeActionProvider;
-    private final Provider<TransportForceMergeAction> transportForceMergeActionProvider;
     private final UserManager userManager;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
@@ -111,8 +95,6 @@ public class DDLStatementDispatcher {
                                   UserDefinedFunctionDDLClient udfDDLClient,
                                   TransportClusterRerouteAction rerouteAction,
                                   Provider<UserManager> userManagerProvider,
-                                  Provider<TransportUpgradeAction> transportUpgradeActionProvider,
-                                  Provider<TransportForceMergeAction> transportForceMergeActionProvider,
                                   Functions functions) {
         this.blobAdminClient = blobAdminClient;
         this.clusterService = clusterService;
@@ -120,8 +102,6 @@ public class DDLStatementDispatcher {
         this.repositoryService = repositoryService;
         this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
         this.udfDDLClient = udfDDLClient;
-        this.transportUpgradeActionProvider = transportUpgradeActionProvider;
-        this.transportForceMergeActionProvider = transportForceMergeActionProvider;
         this.userManager = userManagerProvider.get();
         this.rerouteAction = rerouteAction;
         this.functions = functions;
@@ -150,15 +130,6 @@ public class DDLStatementDispatcher {
         @Override
         protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Ctx ctx) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
-        }
-
-        @Override
-        public CompletableFuture<Long> visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, Ctx ctx) {
-            if (UPGRADE_SEGMENTS.get(analysis.settings())) {
-                return executeUpgradeSegments(analysis, transportUpgradeActionProvider.get());
-            } else {
-                return executeMergeSegments(analysis, transportForceMergeActionProvider.get());
-            }
         }
 
         @Override
@@ -288,33 +259,5 @@ public class DDLStatementDispatcher {
                 RerouteActions::retryFailedAffectedShardsRowCount
             );
         }
-
-    }
-
-    private static CompletableFuture<Long> executeMergeSegments(OptimizeTableAnalyzedStatement analysis,
-                                                                TransportForceMergeAction transportForceMergeAction) {
-        ForceMergeRequest request = new ForceMergeRequest(analysis.indexNames().toArray(new String[0]));
-
-        // Pass parameters to ES request
-        Settings settings = analysis.settings();
-        request.maxNumSegments(MAX_NUM_SEGMENTS.get(settings));
-        request.onlyExpungeDeletes(ONLY_EXPUNGE_DELETES.get(settings));
-        request.flush(FLUSH.get(settings));
-
-        request.indicesOptions(IndicesOptions.lenientExpandOpen());
-
-        FutureActionListener<ForceMergeResponse, Long> listener =
-            new FutureActionListener<>(r -> (long) analysis.indexNames().size());
-        transportForceMergeAction.execute(request, listener);
-        return listener;
-    }
-
-    private static CompletableFuture<Long> executeUpgradeSegments(OptimizeTableAnalyzedStatement analysis,
-                                                                  TransportUpgradeAction transportUpgradeAction) {
-        UpgradeRequest request = new UpgradeRequest(analysis.indexNames().toArray(new String[0]));
-        FutureActionListener<UpgradeResponse, Long> listener =
-            new FutureActionListener<>(r -> (long) analysis.indexNames().size());
-        transportUpgradeAction.execute(request, listener);
-        return listener;
     }
 }
