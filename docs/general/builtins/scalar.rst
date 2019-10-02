@@ -335,6 +335,42 @@ Examples
    +---------------------+
    SELECT 1 row in set (... sec)
 
+.. _scalar-ltrim:
+
+``ltrim(text, [ trimmingText ])``
+---------------------------------
+
+Removes set of characters which are matching ``trimmingText`` (``' '``
+by default) to the left of ``text``.
+
+::
+
+   cr> select ltrim('xxxzzzabcba', 'xz');
+   +----------------------------+
+   | ltrim('xxxzzzabcba', 'xz') |
+   +----------------------------+
+   | abcba                      |
+   +----------------------------+
+   SELECT 1 row in set (... sec)
+
+.. _scalar-rtrim:
+
+``rtrim(text, [ trimmingText ])``
+---------------------------------
+
+Removes set of characters which are matching ``trimmingText`` (``' '``
+by default) to the right of ``text``.
+
+::
+
+   cr> select rtrim('abcbaxxxzzz', 'xz');
+   +----------------------------+
+   | rtrim('abcbaxxxzzz', 'xz') |
+   +----------------------------+
+   | abcba                      |
+   +----------------------------+
+   SELECT 1 row in set (... sec)
+
 .. _scalar-quote-ident:
 
 ``quote_ident(text)``
