@@ -22,18 +22,16 @@ package org.elasticsearch.index.seqno;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Objects;
 
-public class SeqNoStats implements ToXContentFragment, Writeable {
+public class SeqNoStats implements Writeable {
 
-    private static final String SEQ_NO = "seq_no";
-    private static final String MAX_SEQ_NO = "max_seq_no";
-    private static final String LOCAL_CHECKPOINT = "local_checkpoint";
-    private static final String GLOBAL_CHECKPOINT = "global_checkpoint";
+    public static final String MAX_SEQ_NO = "max_seq_no";
+    public static final String LOCAL_CHECKPOINT = "local_checkpoint";
+    public static final String GLOBAL_CHECKPOINT = "global_checkpoint";
 
     private final long maxSeqNo;
     private final long localCheckpoint;
@@ -72,16 +70,6 @@ public class SeqNoStats implements ToXContentFragment, Writeable {
         out.writeZLong(maxSeqNo);
         out.writeZLong(localCheckpoint);
         out.writeZLong(globalCheckpoint);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(SEQ_NO);
-        builder.field(MAX_SEQ_NO, maxSeqNo);
-        builder.field(LOCAL_CHECKPOINT, localCheckpoint);
-        builder.field(GLOBAL_CHECKPOINT, globalCheckpoint);
-        builder.endObject();
-        return builder;
     }
 
     @Override

@@ -124,7 +124,8 @@ public class RemoteCollectorFactory {
         String nodeId = activePrimaryRouting.currentNodeId();
         String localNodeId = clusterService.localNode().getId();
         if (localNodeId.equalsIgnoreCase(nodeId)) {
-            var indexShard = indicesService.indexServiceSafe(activePrimaryRouting.index()).getShard(activePrimaryRouting.shardId().id());
+            var indexShard = indicesService.indexServiceSafe(activePrimaryRouting.index())
+                .getShard(activePrimaryRouting.shardId().id());
             var collectorProvider = shardCollectorProviderFactory.create(indexShard);
             BatchIterator<Row> it;
             try {

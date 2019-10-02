@@ -130,7 +130,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
@@ -359,8 +358,10 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             // If enterprise is not enabled there is no UserLookup instance bound in guice
             userLookup = userName -> User.CRATE_USER;
         }
-        Session session = sqlOperations.createSession(schema, userLookup.findUser("crate"));
-        response = SQLTransportExecutor.execute(stmt, null, session).actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+        try (Session session = sqlOperations.createSession(schema, userLookup.findUser("crate"))) {
+            response = SQLTransportExecutor.execute(
+                stmt, null, session).actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+        }
         return response;
     }
 
@@ -401,19 +402,19 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                             String statement,
                             Matcher<SQLResponse> matcher) {
         for (List<String> setSessionStatements : setSessionStatementsList) {
-            Session session = sqlExecutor.newSession();
+            try (Session session = sqlExecutor.newSession()) {
 
-            for (String setSessionStatement : setSessionStatements) {
-                sqlExecutor.exec(setSessionStatement, session);
-            }
+                for (String setSessionStatement : setSessionStatements) {
+                    sqlExecutor.exec(setSessionStatement, session);
+                }
 
-            SQLResponse resp = sqlExecutor.exec(statement, session);
+                SQLResponse resp = sqlExecutor.exec(statement, session);
             assertThat(
-                "The query:\n\t" + statement + "\nwith session statements: [" + setSessionStatements
-                    .stream()
-                    .collect(Collectors.joining(", ")) + "] must produce correct result",
+                "The query:\n\t" + statement + "\nwith session statements: [" +
+                String.join(", ", setSessionStatements) + "] must produce correct result",
                 resp,
                 matcher);
+            }
         }
     }
 
@@ -527,15 +528,17 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
         return response;
     }
+
     public SQLResponse execute(String stmt, Object[] args, String node) {
         return execute(stmt, args, node, SQLTransportExecutor.REQUEST_TIMEOUT);
     }
+
     public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
-        Session session = sqlOperations.createSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER);
-        response = SQLTransportExecutor.execute(stmt, args, session)
-            .actionGet(timeout);
-        return response;
+        try (Session session = sqlOperations.createSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER)) {
+            response = SQLTransportExecutor.execute(stmt, args, session).actionGet(timeout);
+            return response;
+        }
     }
 
     /**
