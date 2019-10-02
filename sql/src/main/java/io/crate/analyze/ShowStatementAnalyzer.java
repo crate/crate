@@ -24,7 +24,10 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
@@ -34,6 +37,7 @@ import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
+import io.crate.sql.tree.Table;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -48,12 +52,15 @@ import java.util.Optional;
  */
 class ShowStatementAnalyzer {
 
-    private Analyzer analyzer;
+    private final Analyzer analyzer;
 
-    private String[] explicitSchemas = new String[]{"information_schema", "sys", "pg_catalog"};
+    private final String[] explicitSchemas = new String[]{"information_schema", "sys", "pg_catalog"};
 
-    ShowStatementAnalyzer(Analyzer analyzer) {
+    private final Schemas schemas;
+
+    ShowStatementAnalyzer(Analyzer analyzer, Schemas schemas) {
         this.analyzer = analyzer;
+        this.schemas = schemas;
     }
 
     Query rewriteShowTransaction() {
@@ -75,10 +82,15 @@ class ShowStatementAnalyzer {
     }
 
     AnalyzedStatement analyzeShowTransaction(Analysis analysis) {
-        AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(rewriteShowTransaction(),
-                                                                      analysis.sessionContext(),
-                                                                      ParamTypeHints.EMPTY);
-        analysis.rootRelation((AnalyzedRelation) analyzedStatement);
+        return unboundAnalyze(rewriteShowTransaction(), analysis);
+    }
+
+    public AnalyzedStatement analyzeShowCreateTable(Table table, Analysis analysis) {
+        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(table.getName(),
+                                                                         Operation.SHOW_CREATE,
+                                                                         analysis.sessionContext().searchPath());
+        AnalyzedShowCreateTable analyzedStatement = new AnalyzedShowCreateTable(tableInfo);
+        analysis.rootRelation(analyzedStatement);
         return analyzedStatement;
     }
 
@@ -209,7 +221,6 @@ class ShowStatementAnalyzer {
         analysis.rootRelation((AnalyzedRelation) analyzedStatement);
         return analyzedStatement;
     }
-
 
     public Query rewriteShowTables(ShowTables node) {
         /*
