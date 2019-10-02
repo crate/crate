@@ -29,6 +29,7 @@ import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.not;
 
 public class TrimFunctionTest extends AbstractScalarFunctionsTest {
@@ -44,8 +45,28 @@ public class TrimFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testNormalizeOneSideTrim() {
+        String input = "  Hello World   ";
+        assertNormalize(String.format("ltrim('%s')", input), isLiteral("Hello World   "));
+        assertNormalize(String.format("rtrim('%s')", input), isLiteral("  Hello World"));
+    }
+
+    @Test
+    public void testNormalizeOneSideTrimMultiCharsToTrim() {
+        String input = "zyxzyzHello Worldzyxzyz";
+        assertNormalize(String.format("ltrim('%s', 'xyz')", input), isLiteral("Hello Worldzyxzyz"));
+        assertNormalize(String.format("rtrim('%s', 'xyz')", input), isLiteral("zyxzyzHello World"));
+    }
+
+    @Test
     public void testNormalizeTrimForEmptyString() {
         assertNormalize("trim('')", isLiteral(""));
+        assertNormalize("ltrim('')", isLiteral(""));
+        assertNormalize("rtrim('')", isLiteral(""));
+        assertNormalize("ltrim('','')", isLiteral(""));
+        assertNormalize("rtrim('','')", isLiteral(""));
+        assertNormalize("rtrim('','xyz')", isLiteral(""));
+        assertNormalize("rtrim('','xyz')", isLiteral(""));
     }
 
     @Test
@@ -117,6 +138,10 @@ public class TrimFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateNullInputOptimisedTrim() {
         assertEvaluate("trim(name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluate("ltrim(name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluate("rtrim(name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluate("ltrim(name, null)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluate("rtrim(name, null)", null, Literal.of(DataTypes.STRING, null));
     }
 
     @Test

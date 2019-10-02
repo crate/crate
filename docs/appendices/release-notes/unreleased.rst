@@ -62,6 +62,8 @@ Deprecations
 Changes
 =======
 
+- Added the ``ltrim`` and ``rtrim`` scalar functions.
+
 - Improved the error messages that were returned if a relation or schema is not
   found. They now may include suggestions for similarly named tables. This
   should make typos more apparent and can help users figure out that they were
