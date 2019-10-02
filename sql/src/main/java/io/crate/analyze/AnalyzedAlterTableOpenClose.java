@@ -22,34 +22,45 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.RelationName;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.Table;
 
-public class AlterTableRenameAnalyzedStatement implements DDLStatement {
+public class AnalyzedAlterTableOpenClose implements DDLStatement {
 
-    private final DocTableInfo sourceTableInfo;
-    private final RelationName targetRelationName;
 
-    AlterTableRenameAnalyzedStatement(DocTableInfo sourceTableInfo, RelationName targetRelationName) {
-        this.sourceTableInfo = sourceTableInfo;
-        this.targetRelationName = targetRelationName;
+    private final DocTableInfo tableInfo;
+    private final Table<Symbol> table;
+    private final boolean openTable;
+
+
+    AnalyzedAlterTableOpenClose(DocTableInfo tableInfo,
+                                Table<Symbol> table,
+                                boolean openTable) {
+        this.tableInfo = tableInfo;
+        this.table = table;
+        this.openTable = openTable;
     }
 
-    public DocTableInfo sourceTableInfo() {
-        return sourceTableInfo;
+    public DocTableInfo tableInfo() {
+        return tableInfo;
     }
 
-    public RelationName targetTableIdent() {
-        return targetRelationName;
+    public Table<Symbol> table() {
+        return table;
+    }
+
+    public boolean isOpenTable() {
+        return openTable;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitAlterTableRenameStatement(this, context);
+        return analyzedStatementVisitor.visitAnalyzedAlterTableOpenClose(this, context);
     }
 
     @Override
-    public boolean isWriteOperation() {
+    public boolean isUnboundPlanningSupported() {
         return true;
     }
 }

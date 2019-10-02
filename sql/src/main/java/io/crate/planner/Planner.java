@@ -26,6 +26,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTable;
+import io.crate.analyze.AnalyzedAlterTableOpenClose;
+import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -69,7 +71,9 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
+import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
+import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
 import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.node.ddl.DropTablePlan;
@@ -305,6 +309,18 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         return new RefreshTablePlan(analysis);
     }
     
+    @Override
+    public Plan visitAnalyzedAlterTableRename(AnalyzedAlterTableRename analysis,
+                                              PlannerContext context) {
+        return new AlterTableRenameTablePlan(analysis);
+    }
+
+    @Override
+    public Plan visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis,
+                                                 PlannerContext context) {
+        return new AlterTableOpenClosePlan(analysis);
+    }
+
     @Override
     protected Plan visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, PlannerContext context) {
         return new CreateDropAnalyzerPlan(analysis.buildSettings());

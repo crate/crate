@@ -26,6 +26,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Delete;
@@ -123,6 +124,12 @@ class UnboundAnalyzer {
         public AnalyzedStatement visitAlterTable(AlterTable<?> node, Analysis context) {
             return alterTableAnalyzer.analyze(
                 (AlterTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableRename(AlterTableRename<?> node,
+                                                       Analysis context) {
+            return alterTableAnalyzer.analyze((AlterTableRename<Expression>) node, context.sessionContext());
         }
 
         @Override

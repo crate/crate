@@ -22,42 +22,39 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 
-import javax.annotation.Nullable;
-import java.util.Optional;
+public class AnalyzedAlterTableRename implements DDLStatement {
 
-public class AlterTableOpenCloseAnalyzedStatement implements DDLStatement {
+    private final DocTableInfo sourceTableInfo;
+    private final RelationName targetRelationName;
 
-
-    private final DocTableInfo tableInfo;
-    private final PartitionName partitionName;
-    private final boolean openTable;
-
-
-    public AlterTableOpenCloseAnalyzedStatement(DocTableInfo tableInfo,
-                                                @Nullable PartitionName partitionName,
-                                                boolean openTable) {
-        this.tableInfo = tableInfo;
-        this.partitionName = partitionName;
-        this.openTable = openTable;
+    AnalyzedAlterTableRename(DocTableInfo sourceTableInfo, RelationName targetRelationName) {
+        this.sourceTableInfo = sourceTableInfo;
+        this.targetRelationName = targetRelationName;
     }
 
-    public DocTableInfo tableInfo() {
-        return tableInfo;
+    public DocTableInfo sourceTableInfo() {
+        return sourceTableInfo;
     }
 
-    public Optional<PartitionName> partitionName() {
-        return Optional.ofNullable(partitionName);
-    }
-
-    public boolean openTable() {
-        return openTable;
+    public RelationName targetTableIdent() {
+        return targetRelationName;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitAlterTableOpenCloseStatement(this, context);
+        return analyzedStatementVisitor.visitAnalyzedAlterTableRename(this, context);
+    }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 }

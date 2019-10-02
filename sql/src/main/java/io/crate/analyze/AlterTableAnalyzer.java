@@ -33,16 +33,18 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.Table;
 
 import java.util.List;
 import java.util.function.Function;
 
 import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
 
-public class AlterTableAnalyzer {
+class AlterTableAnalyzer {
 
     private final Schemas schemas;
     private final Functions functions;
@@ -52,9 +54,9 @@ public class AlterTableAnalyzer {
         this.functions = functions;
     }
 
-    public AnalyzedAlterTable analyze(AlterTable<Expression> node,
-                                               Function<ParameterExpression, Symbol> convertParamFunction,
-                                               CoordinatorTxnCtx txnCtx) {
+    AnalyzedAlterTable analyze(AlterTable<Expression> node,
+                               Function<ParameterExpression, Symbol> convertParamFunction,
+                               CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
@@ -67,7 +69,7 @@ public class AlterTableAnalyzer {
         return new AnalyzedAlterTable(docTableInfo, alterTable);
     }
 
-    AlterTableRenameAnalyzedStatement analyzeRename(AlterTableRename node, SessionContext sessionContext) {
+    AnalyzedAlterTableRename analyze(AlterTableRename<Expression> node, SessionContext sessionContext) {
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Renaming a single partition is not supported");
         }
@@ -89,6 +91,25 @@ public class AlterTableAnalyzer {
         DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_TABLE_RENAME);
         RelationName newRelationName = new RelationName(relationName.schema(), newIdentParts.get(0));
         newRelationName.ensureValidForRelationCreation();
-        return new AlterTableRenameAnalyzedStatement(tableInfo, newRelationName);
+        return new AnalyzedAlterTableRename(tableInfo, newRelationName);
+    }
+
+    public AnalyzedAlterTableOpenClose analyze(AlterTableOpenClose<Expression> node,
+                                               Function<ParameterExpression, Symbol> convertParamFunction,
+                                               CoordinatorTxnCtx txnCtx) {
+        var exprAnalyzerWithFieldsAsStrings = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+        var exprCtx = new ExpressionAnalysisContext();
+
+        Table<Symbol> table = node.table().map(x -> exprAnalyzerWithFieldsAsStrings.convert(x, exprCtx));
+        RelationName relationName;
+        if (node.blob()) {
+            relationName = tableToIdent(table);
+        } else {
+            relationName = schemas.resolveRelation(table.getName(), txnCtx.sessionContext().searchPath());
+        }
+
+        DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_OPEN_CLOSE);
+        return new AnalyzedAlterTableOpenClose(tableInfo, table, node.openTable());
     }
 }

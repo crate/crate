@@ -412,11 +412,11 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitAlterTableOpenClose(AlterTableOpenClose node, C context) {
+    public R visitAlterTableOpenClose(AlterTableOpenClose<?> node, C context) {
         return visitStatement(node, context);
     }
 
-    public R visitAlterTableRename(AlterTableRename node, C context) {
+    public R visitAlterTableRename(AlterTableRename<?> node, C context) {
         return visitStatement(node, context);
     }
 

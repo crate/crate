@@ -119,7 +119,6 @@ public class Analyzer {
     private final AlterTableAnalyzer alterTableAnalyzer;
     private final AlterBlobTableAnalyzer alterBlobTableAnalyzer;
     private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
-    private final AlterTableOpenCloseAnalyzer alterTableOpenCloseAnalyzer;
     private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
     private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
     private final CopyAnalyzer copyAnalyzer;
@@ -191,7 +190,6 @@ public class Analyzer {
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
         this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
-        this.alterTableOpenCloseAnalyzer = new AlterTableOpenCloseAnalyzer(schemas);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
@@ -359,8 +357,8 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterTableRename(AlterTableRename node, Analysis context) {
-            return alterTableAnalyzer.analyzeRename(node, context.sessionContext());
+        public AnalyzedStatement visitAlterTableRename(AlterTableRename<?> node, Analysis context) {
+            return alterTableAnalyzer.analyze((AlterTableRename<Expression>) node, context.sessionContext());
         }
 
         @Override
@@ -368,13 +366,15 @@ public class Analyzer {
             return alterTableAddColumnAnalyzer.analyze(
                 (AlterTableAddColumn<Expression>) node,
                 analysis.sessionContext().searchPath(),
-                analysis.parameterContext(),
+                analysis.paramTypeHints(),
                 analysis.transactionContext());
         }
 
         @Override
-        public AnalyzedStatement visitAlterTableOpenClose(AlterTableOpenClose node, Analysis context) {
-            return alterTableOpenCloseAnalyzer.analyze(node, context.sessionContext());
+        public AnalyzedStatement visitAlterTableOpenClose(AlterTableOpenClose<?> node, Analysis context) {
+            return alterTableAnalyzer.analyze((AlterTableOpenClose<Expression>) node,
+                                              context.paramTypeHints(),
+                                              context.transactionContext());
         }
 
         @Override
