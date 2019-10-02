@@ -108,7 +108,6 @@ public class Analyzer {
     private final RelationAnalyzer relationAnalyzer;
     private final DropTableAnalyzer dropTableAnalyzer;
     private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
-    private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
     private final ExplainStatementAnalyzer explainStatementAnalyzer;
     private final ShowStatementAnalyzer showStatementAnalyzer;
     private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
@@ -165,16 +164,14 @@ public class Analyzer {
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, functions);
         this.swapTableAnalyzer = new SwapTableAnalyzer(functions, schemas);
         this.createViewAnalyzer = new CreateViewAnalyzer(relationAnalyzer);
-        this.showCreateTableAnalyzer = new ShowCreateTableAnalyzer(schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
-        this.showStatementAnalyzer = new ShowStatementAnalyzer(this);
+        this.showStatementAnalyzer = new ShowStatementAnalyzer(this, schemas);
         this.updateAnalyzer = new UpdateAnalyzer(functions, relationAnalyzer);
         this.deleteAnalyzer = new DeleteAnalyzer(functions, relationAnalyzer);
         this.insertFromValuesAnalyzer = new InsertFromValuesAnalyzer(functions, schemas);
         this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
-            showCreateTableAnalyzer,
             showStatementAnalyzer,
             deleteAnalyzer,
             updateAnalyzer,
@@ -283,10 +280,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis analysis) {
-            AnalyzedShowCreateTable showCreateTableStatement =
-                showCreateTableAnalyzer.analyze(node.table(), analysis.sessionContext());
-            analysis.rootRelation(showCreateTableStatement);
-            return showCreateTableStatement;
+            return showStatementAnalyzer.analyzeShowCreateTable(node.table(), analysis);
         }
 
         @Override

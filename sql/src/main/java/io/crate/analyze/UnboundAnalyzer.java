@@ -55,7 +55,6 @@ class UnboundAnalyzer {
     private final UnboundDispatcher dispatcher;
 
     UnboundAnalyzer(RelationAnalyzer relationAnalyzer,
-                    ShowCreateTableAnalyzer showCreateTableAnalyzer,
                     ShowStatementAnalyzer showStatementAnalyzer,
                     DeleteAnalyzer deleteAnalyzer,
                     UpdateAnalyzer updateAnalyzer,
@@ -66,7 +65,6 @@ class UnboundAnalyzer {
                     AlterTableAnalyzer alterTableAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
-            showCreateTableAnalyzer,
             showStatementAnalyzer,
             deleteAnalyzer,
             updateAnalyzer,
@@ -87,7 +85,6 @@ class UnboundAnalyzer {
     private static class UnboundDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
 
         private final RelationAnalyzer relationAnalyzer;
-        private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
         private final ShowStatementAnalyzer showStatementAnalyzer;
         private final DeleteAnalyzer deleteAnalyzer;
         private final UpdateAnalyzer updateAnalyzer;
@@ -98,7 +95,6 @@ class UnboundAnalyzer {
         private final AlterTableAnalyzer alterTableAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
-                          ShowCreateTableAnalyzer showCreateTableAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
                           DeleteAnalyzer deleteAnalyzer,
                           UpdateAnalyzer updateAnalyzer,
@@ -108,7 +104,6 @@ class UnboundAnalyzer {
                           CreateTableStatementAnalyzer createTableAnalyzer,
                           AlterTableAnalyzer alterTableAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
-            this.showCreateTableAnalyzer = showCreateTableAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
             this.updateAnalyzer = updateAnalyzer;
@@ -148,9 +143,7 @@ class UnboundAnalyzer {
 
         @Override
         public AnalyzedStatement visitShowTransaction(ShowTransaction showTransaction, Analysis context) {
-            Query query = showStatementAnalyzer.rewriteShowTransaction();
-            return relationAnalyzer.analyzeUnbound(
-                query, context.transactionContext(), ParamTypeHints.EMPTY);
+            return showStatementAnalyzer.analyzeShowTransaction(context);
         }
 
         @Override
@@ -180,7 +173,7 @@ class UnboundAnalyzer {
 
         @Override
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable<?> node, Analysis context) {
-            return showCreateTableAnalyzer.analyze(node.table(), context.sessionContext());
+            return showStatementAnalyzer.analyzeShowCreateTable(node.table(), context);
         }
 
         @Override
