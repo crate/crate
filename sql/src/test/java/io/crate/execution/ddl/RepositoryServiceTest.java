@@ -23,7 +23,6 @@
 package io.crate.execution.ddl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -114,8 +113,9 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             deleteRepositoryAction,
             putRepo);
         try {
-            repositoryService.execute(
-                new CreateRepositoryAnalyzedStatement("repo1", "fs", Settings.EMPTY)).get(10, TimeUnit.SECONDS);
+            PutRepositoryRequest request = new PutRepositoryRequest("repo1");
+            request.type("fs");
+            repositoryService.execute(request).get(10, TimeUnit.SECONDS);
         } catch (ExecutionException e) {
             assertThat(deleteRepoCalled.get(), is(true));
             throw e.getCause();

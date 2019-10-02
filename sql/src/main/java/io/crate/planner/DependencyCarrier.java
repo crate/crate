@@ -23,8 +23,10 @@
 package io.crate.planner;
 
 import io.crate.action.sql.DCLStatementDispatcher;
+import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.DDLStatementDispatcher;
+import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
@@ -67,6 +69,8 @@ public class DependencyCarrier {
     private final LicenseService licenseService;
     private final AlterTableOperation alterTableOperation;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private final RepositoryService repositoryService;
+    private final RepositoryParamValidator repositoryParamValidator;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -84,7 +88,9 @@ public class DependencyCarrier {
                              TransportDropViewAction dropViewAction,
                              TransportSwapRelationsAction swapRelationsAction,
                              AlterTableOperation alterTableOperation,
-                             FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+                             FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                             RepositoryService repositoryService,
+                             RepositoryParamValidator repositoryParamValidator) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
@@ -102,6 +108,8 @@ public class DependencyCarrier {
         this.swapRelationsAction = swapRelationsAction;
         this.alterTableOperation = alterTableOperation;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+        this.repositoryService = repositoryService;
+        this.repositoryParamValidator = repositoryParamValidator;
     }
 
     public Schemas schemas() {
@@ -178,5 +186,13 @@ public class DependencyCarrier {
 
     public AlterTableOperation alterTableOperation() {
         return alterTableOperation;
+    }
+
+    public RepositoryParamValidator repositoryParamValidator() {
+        return repositoryParamValidator;
+    }
+
+    public RepositoryService repositoryService() {
+        return repositoryService;
     }
 }

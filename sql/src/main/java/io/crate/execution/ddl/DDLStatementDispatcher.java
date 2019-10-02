@@ -28,7 +28,6 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CreateBlobTableAnalyzedStatement;
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
-import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
@@ -51,6 +50,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.user.SecureHash;
 import io.crate.user.UserActions;
+import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -146,13 +146,7 @@ public class DDLStatementDispatcher {
         @Override
         public CompletableFuture<Long> visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis,
                                                                             Ctx ctx) {
-            return repositoryService.execute(analysis);
-        }
-
-        @Override
-        public CompletableFuture<Long> visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis,
-                                                                              Ctx ctx) {
-            return repositoryService.execute(analysis);
+            return repositoryService.execute(new DeleteRepositoryRequest(analysis.repositoryName()));
         }
 
         @Override

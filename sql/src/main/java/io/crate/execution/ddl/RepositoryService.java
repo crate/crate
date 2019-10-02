@@ -23,8 +23,6 @@
 package io.crate.execution.ddl;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.CreateRepositoryAnalyzedStatement;
-import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
@@ -79,16 +77,15 @@ public class RepositoryService {
         }
     }
 
-    public CompletableFuture<Long> execute(DropRepositoryAnalyzedStatement analyzedStatement) {
+    public CompletableFuture<Long> execute(DeleteRepositoryRequest request) {
         final CompletableFuture<Long> future = new CompletableFuture<>();
-        final String repoName = analyzedStatement.repositoryName();
         deleteRepositoryAction.execute(
-            new DeleteRepositoryRequest(repoName),
-            new ActionListener<AcknowledgedResponse>() {
+            request,
+            new ActionListener<>() {
                 @Override
                 public void onResponse(AcknowledgedResponse deleteRepositoryResponse) {
                     if (!deleteRepositoryResponse.isAcknowledged()) {
-                        LOGGER.info("delete repository '{}' not acknowledged", repoName);
+                        LOGGER.info("delete repository '{}' not acknowledged", request.name());
                     }
                     future.complete(1L);
                 }
@@ -102,14 +99,10 @@ public class RepositoryService {
         return future;
     }
 
-    public CompletableFuture<Long> execute(CreateRepositoryAnalyzedStatement statement) {
+    public CompletableFuture<Long> execute(PutRepositoryRequest request) {
         final CompletableFuture<Long> result = new CompletableFuture<>();
-        final String repoName = statement.repositoryName();
 
-        PutRepositoryRequest request = new PutRepositoryRequest(repoName);
-        request.type(statement.repositoryType());
-        request.settings(statement.settings());
-        putRepositoryAction.execute(request, new ActionListener<AcknowledgedResponse>() {
+        putRepositoryAction.execute(request, new ActionListener<>() {
             @Override
             public void onResponse(AcknowledgedResponse putRepositoryResponse) {
                 result.complete(1L);
@@ -122,12 +115,7 @@ public class RepositoryService {
                 // in case the put repo action fails in the verificationPhase the repository got already created
                 // but an exception is raised anyway.
                 // --> remove the repo and then return the exception to the user
-                dropIfExists(repoName, new Runnable() {
-                    @Override
-                    public void run() {
-                        result.completeExceptionally(t);
-                    }
-                });
+                dropIfExists(request.name(), () -> result.completeExceptionally(t));
             }
         });
         return result;
@@ -138,7 +126,7 @@ public class RepositoryService {
         if (repository == null) {
             callback.run();
         } else {
-            execute(new DropRepositoryAnalyzedStatement(repoName)).whenComplete(
+            execute(new DeleteRepositoryRequest(repoName)).whenComplete(
                 (Long result, Throwable t) -> {
                     if (t != null) {
                         LOGGER.error("Error occurred whilst trying to delete repository", t);
@@ -154,7 +142,7 @@ public class RepositoryService {
         e = SQLExceptions.unwrap(e);
         Throwable cause = e.getCause();
 
-        /**
+        /*
          * usually the exception looks like:
          *      RepositoryException
          *          cause: CreationException (from guice)

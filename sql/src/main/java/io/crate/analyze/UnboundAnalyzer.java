@@ -28,6 +28,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Explain;
@@ -65,7 +66,8 @@ class UnboundAnalyzer {
                     ExplainStatementAnalyzer explainStatementAnalyzer,
                     CreateTableStatementAnalyzer createTableAnalyzer,
                     AlterTableAnalyzer alterTableAnalyzer,
-                    OptimizeTableAnalyzer optimizeTableAnalyzer) {
+                    OptimizeTableAnalyzer optimizeTableAnalyzer,
+                    CreateRepositoryAnalyzer createRepositoryAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -76,7 +78,8 @@ class UnboundAnalyzer {
             explainStatementAnalyzer,
             createTableAnalyzer,
             alterTableAnalyzer,
-            optimizeTableAnalyzer
+            optimizeTableAnalyzer,
+            createRepositoryAnalyzer
         );
     }
 
@@ -98,6 +101,7 @@ class UnboundAnalyzer {
         private final CreateTableStatementAnalyzer createTableAnalyzer;
         private final AlterTableAnalyzer alterTableAnalyzer;
         private final OptimizeTableAnalyzer optimizeTableAnalyzer;
+        private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -108,7 +112,8 @@ class UnboundAnalyzer {
                           ExplainStatementAnalyzer explainStatementAnalyzer,
                           CreateTableStatementAnalyzer createTableAnalyzer,
                           AlterTableAnalyzer alterTableAnalyzer,
-                          OptimizeTableAnalyzer optimizeTableAnalyzer) {
+                          OptimizeTableAnalyzer optimizeTableAnalyzer,
+                          CreateRepositoryAnalyzer createRepositoryAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -119,6 +124,7 @@ class UnboundAnalyzer {
             this.createTableAnalyzer = createTableAnalyzer;
             this.alterTableAnalyzer = alterTableAnalyzer;
             this.optimizeTableAnalyzer = optimizeTableAnalyzer;
+            this.createRepositoryAnalyzer = createRepositoryAnalyzer;
         }
 
         @Override
@@ -136,6 +142,14 @@ class UnboundAnalyzer {
         public AnalyzedStatement visitAlterTableRename(AlterTableRename<?> node,
                                                        Analysis context) {
             return alterTableAnalyzer.analyze((AlterTableRename<Expression>) node, context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
+            return createRepositoryAnalyzer.analyze(
+                (CreateRepository<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override
