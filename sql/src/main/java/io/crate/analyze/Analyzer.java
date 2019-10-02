@@ -24,7 +24,6 @@ package io.crate.analyze;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.auth.user.UserManager;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationsUnknown;
@@ -153,7 +152,6 @@ public class Analyzer {
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
-                    RepositoryParamValidator repositoryParamValidator,
                     UserManager userManager) {
         this.relationAnalyzer = relationAnalyzer;
         this.schemas = schemas;
@@ -170,6 +168,7 @@ public class Analyzer {
         this.insertFromValuesAnalyzer = new InsertFromValuesAnalyzer(functions, schemas);
         this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, functions);
+        this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -180,7 +179,8 @@ public class Analyzer {
             explainStatementAnalyzer,
             createTableStatementAnalyzer,
             alterTableAnalyzer,
-            optimizeTableAnalyzer
+            optimizeTableAnalyzer,
+            createRepositoryAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -194,7 +194,6 @@ public class Analyzer {
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
-        this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, repositoryParamValidator);
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
         this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, schemas);
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
@@ -404,7 +403,10 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
-            return createRepositoryAnalyzer.analyze(node, context.parameterContext());
+            return createRepositoryAnalyzer.analyze(
+                (CreateRepository<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override

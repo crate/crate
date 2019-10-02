@@ -21,15 +21,23 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.repositories.RepositoryParamValidator;
+import io.crate.analyze.repositories.RepositorySettingsModule;
+import io.crate.data.RowN;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.RepositoryUnknownException;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.ddl.CreateRepositoryPlan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
@@ -37,13 +45,15 @@ import org.junit.Test;
 
 import java.util.Collections;
 
-import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 
 public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private PlannerContext plannerContext;
+    private RepositoryParamValidator repositoryParamValidator;
 
     @Before
     public void prepare() {
@@ -53,37 +63,65 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                     "my_repo",
                     "fs",
                     Settings.builder().put("location", "/tmp/my_repo").build()
-            )));
+                )));
         ClusterState clusterState = ClusterState.builder(new ClusterName("testing"))
             .metaData(MetaData.builder()
-                .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))
+                          .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
         e = SQLExecutor.builder(clusterService).build();
+        plannerContext = e.getPlannerContext(clusterService.state());
+        repositoryParamValidator = new ModulesBuilder()
+            .add(new RepositorySettingsModule())
+            .createInjector()
+            .getInstance(RepositoryParamValidator.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <S> S analyze(SQLExecutor e, String stmt, Object... arguments) {
+        AnalyzedStatement analyzedStatement = e.analyze(stmt);
+        if (analyzedStatement instanceof AnalyzedCreateRepository) {
+            return (S) CreateRepositoryPlan.createRequest(
+                (AnalyzedCreateRepository) analyzedStatement,
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                new RowN(arguments),
+                SubQueryResults.EMPTY,
+                repositoryParamValidator);
+        } else {
+            throw new AssertionError("Statement of type " + analyzedStatement.getClass() + " not supported");
+        }
     }
 
     @Test
     public void testCreateRepository() {
-        CreateRepositoryAnalyzedStatement statement = e.analyze(
-            "CREATE REPOSITORY \"new_repository\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
-        assertThat(statement.repositoryName(), is("new_repository"));
-        assertThat(statement.repositoryType(), is("fs"));
-        assertThat(statement.settings().get("compress"), is("true"));
-        assertThat(statement.settings().get("location"), is("/mount/backups/my_backup"));
+        PutRepositoryRequest request = analyze(
+            e,
+            "CREATE REPOSITORY \"new_repository\" TYPE \"fs\" WITH (" +
+            "   location='/mount/backups/my_backup'," +
+            "   compress=True)");
+        assertThat(request.name(), is("new_repository"));
+        assertThat(request.type(), is("fs"));
+        assertThat(
+            request.settings().getAsStructuredMap(),
+            allOf(
+                hasEntry("compress", "true"),
+                hasEntry("location", "/mount/backups/my_backup"))
+        );
     }
 
     @Test
     public void testCreateExistingRepository() {
         expectedException.expect(RepositoryAlreadyExistsException.class);
         expectedException.expectMessage("Repository 'my_repo' already exists");
-        e.analyze("create repository my_repo TYPE fs");
+        analyze(e, "CREATE REPOSITORY my_repo TYPE fs");
     }
 
     @Test
     public void testDropUnknownRepository() {
         expectedException.expect(RepositoryUnknownException.class);
         expectedException.expectMessage("Repository 'unknown_repo' unknown");
-        e.analyze("DROP REPOSITORY \"unknown_repo\"");
+        analyze(e, "DROP REPOSITORY \"unknown_repo\"");
     }
 
     @Test
@@ -94,7 +132,8 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testCreateS3RepositoryWithAllSettings() {
-        CreateRepositoryAnalyzedStatement analysis = e.analyze(
+        PutRepositoryRequest request = analyze(
+            e,
             "CREATE REPOSITORY foo TYPE s3 WITH (" +
             "   bucket='abc'," +
             "   endpoint='www.example.com'," +
@@ -109,10 +148,10 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
             "   max_retries=2," +
             "   use_throttle_retries=false," +
             "   canned_acl=false)");
-        assertThat(analysis.repositoryType(), is("s3"));
-        assertThat(analysis.repositoryName(), is("foo"));
+        assertThat(request.name(), is("foo"));
+        assertThat(request.type(), is("s3"));
         assertThat(
-            analysis.settings(),
+            request.settings().getAsStructuredMap(),
             allOf(
                 hasEntry("access_key", "0xAFFE"),
                 hasEntry("base_path", "/holz/"),
@@ -135,12 +174,13 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("The following required parameters are missing to" +
                                         " create a repository of type \"s3\": [secret_key]");
-        e.analyze("CREATE REPOSITORY foo TYPE s3 WITH (access_key='test')");
+        analyze(e, "CREATE REPOSITORY foo TYPE s3 WITH (access_key='test')");
     }
 
     @Test
     public void testCreateAzureRepositoryWithAllSettings() {
-        CreateRepositoryAnalyzedStatement analysis = e.analyze(
+        PutRepositoryRequest request = analyze(
+            e,
             "CREATE REPOSITORY foo TYPE azure WITH (" +
             "   container='test_container'," +
             "   base_path='test_path'," +
@@ -156,10 +196,10 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
             "   proxy_port=0," +
             "   proxy_type='socks'," +
             "   proxy_host='localhost')");
-        assertThat(analysis.repositoryType(), is("azure"));
-        assertThat(analysis.repositoryName(), is("foo"));
+        assertThat(request.name(), is("foo"));
+        assertThat(request.type(), is("azure"));
         assertThat(
-            analysis.settings(),
+            request.settings().getAsStructuredMap(),
             allOf(
                 hasEntry("container", "test_container"),
                 hasEntry("base_path", "test_path"),
@@ -172,7 +212,7 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                 hasEntry("endpoint_suffix", ".com"),
                 hasEntry("timeout", "30s"),
                 hasEntry("proxy_port", "0"),
-                hasEntry("proxy_type", "SOCKS"),
+                hasEntry("proxy_type", "socks"),
                 hasEntry("proxy_host", "localhost")
             )
         );
@@ -183,20 +223,20 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("The following required parameters are missing to" +
                                         " create a repository of type \"azure\": [key]");
-        e.analyze("CREATE REPOSITORY foo TYPE azure WITH (account='test')");
+        analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (account='test')");
     }
 
     @Test
     public void testCreateAzureRepoWithWrongSettings() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("setting 'wrong' not supported");
-        e.analyze("CREATE REPOSITORY foo TYPE azure WITH (wrong=true)");
+        analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (wrong=true)");
     }
 
     @Test
     public void testCreateS3RepoWithWrongSettings() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("setting 'wrong' not supported");
-        e.analyze("CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)");
+        analyze(e, "CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)");
     }
 }

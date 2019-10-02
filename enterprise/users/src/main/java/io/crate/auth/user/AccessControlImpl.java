@@ -37,7 +37,7 @@ import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
 import io.crate.analyze.CreateBlobTableAnalyzedStatement;
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
-import io.crate.analyze.CreateRepositoryAnalyzedStatement;
+import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.CreateViewStmt;
@@ -286,7 +286,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis, User user) {
+        protected Void visitCreateRepositoryAnalyzedStatement(AnalyzedCreateRepository analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,

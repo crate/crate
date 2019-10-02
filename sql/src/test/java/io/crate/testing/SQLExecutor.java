@@ -49,8 +49,6 @@ import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.StatementAnalysisContext;
-import io.crate.analyze.repositories.RepositoryParamValidator;
-import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.data.Row;
@@ -125,7 +123,6 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -407,9 +404,6 @@ public class SQLExecutor {
                         mock(TransportDeleteRepositoryAction.class),
                         mock(TransportPutRepositoryAction.class)
                     ),
-                    new ModulesBuilder().add(new RepositorySettingsModule())
-                        .createInjector()
-                        .getInstance(RepositoryParamValidator.class),
                     userManager
                 ),
                 new Planner(

@@ -21,37 +21,47 @@
 
 package io.crate.analyze;
 
-import org.elasticsearch.common.settings.Settings;
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.GenericProperties;
 
-import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.function.Consumer;
 
-@ParametersAreNonnullByDefault
-public class CreateRepositoryAnalyzedStatement implements DDLStatement {
+public class AnalyzedCreateRepository implements DDLStatement {
 
-    private final String repositoryName;
-    private final String repositoryType;
-    private final Settings settings;
+    private final String name;
+    private final String type;
+    private final GenericProperties<Symbol> properties;
 
-    public CreateRepositoryAnalyzedStatement(String repositoryName, String repositoryType, Settings settings) {
-        this.repositoryName = repositoryName;
-        this.repositoryType = repositoryType;
-        this.settings = settings;
+    public AnalyzedCreateRepository(String name, String type, GenericProperties<Symbol> properties) {
+        this.name = name;
+        this.type = type;
+        this.properties = properties;
     }
 
-    public String repositoryName() {
-        return repositoryName;
+    public String name() {
+        return name;
     }
 
-    public String repositoryType() {
-        return repositoryType;
+    public String type() {
+        return type;
     }
 
-    public Settings settings() {
-        return settings;
+    public GenericProperties<Symbol> properties() {
+        return properties;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        properties.properties().values().forEach(consumer);
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitCreateRepositoryAnalyzedStatement(this, context);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 }

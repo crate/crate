@@ -25,8 +25,6 @@ package io.crate.analyze.repositories;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import io.crate.analyze.GenericPropertiesConverter;
-import io.crate.analyze.ParameterContext;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -46,12 +44,8 @@ public class RepositoryParamValidator {
         typeSettings = repositoryTypeSettings;
     }
 
-    public Settings convertAndValidate(String type, GenericProperties genericProperties, ParameterContext parameterContext) {
-        TypeSettings typeSettings = this.typeSettings.get(type);
-        if (typeSettings == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid repository type \"%s\"", type));
-        }
-
+    public void validate(String type, GenericProperties<?> genericProperties, Settings settings) {
+        TypeSettings typeSettings = settingsForType(type);
         Map<String, Setting<?>> allSettings = typeSettings.all();
 
         // create string settings for all dynamic settings
@@ -64,22 +58,25 @@ public class RepositoryParamValidator {
             }
         }
 
-        // convert and validate all settings
-        Settings settings = GenericPropertiesConverter.settingsFromProperties(
-            genericProperties,
-            parameterContext.parameters(),
-            allSettings,
-            false)
-            .build();
-
+        // validate all settings
         Set<String> names = settings.keySet();
         Sets.SetView<String> missingRequiredSettings = Sets.difference(typeSettings.required().keySet(), names);
         if (!missingRequiredSettings.isEmpty()) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "The following required parameters are missing to create a repository of type \"%s\": [%s]",
-                type, Joiner.on(", ").join(missingRequiredSettings)));
+            throw new IllegalArgumentException(
+                String.format(
+                    Locale.ENGLISH,
+                    "The following required parameters are missing to create a repository of type \"%s\": [%s]",
+                    type,
+                    Joiner.on(", ").join(missingRequiredSettings)));
+        }
+    }
+
+    public TypeSettings settingsForType(String type) {
+        TypeSettings typeSettings = this.typeSettings.get(type);
+        if (typeSettings == null) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid repository type \"%s\"", type));
         }
 
-        return settings;
+        return typeSettings;
     }
 }

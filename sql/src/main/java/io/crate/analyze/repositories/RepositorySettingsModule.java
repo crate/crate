@@ -23,7 +23,6 @@
 package io.crate.analyze.repositories;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -72,15 +71,15 @@ public class RepositorySettingsModule extends AbstractModule {
             .build()) {
 
         @Override
-        public GenericProperties<Expression> dynamicProperties(GenericProperties<Expression> genericProperties) {
+        public GenericProperties<?> dynamicProperties(GenericProperties<?> genericProperties) {
             if (genericProperties.isEmpty()) {
                 return genericProperties;
             }
-            GenericProperties<Expression> dynamicProperties = new GenericProperties<>();
-            for (Map.Entry<String, Expression> entry : genericProperties.properties().entrySet()) {
+            GenericProperties<?> dynamicProperties = new GenericProperties<>();
+            for (Map.Entry<String, ?> entry : genericProperties.properties().entrySet()) {
                 String key = entry.getKey();
                 if (key.startsWith("conf.")) {
-                    dynamicProperties.add(new GenericProperty<>(key, entry.getValue()));
+                    dynamicProperties.add(new GenericProperty(key, entry.getValue()));
                 }
             }
             return dynamicProperties;
