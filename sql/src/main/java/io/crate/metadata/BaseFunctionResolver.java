@@ -34,7 +34,7 @@ import java.util.List;
  */
 public abstract class BaseFunctionResolver implements FunctionResolver {
 
-    private final FuncParams funcParams;
+    protected final FuncParams funcParams;
 
     protected BaseFunctionResolver(FuncParams funcParams) {
         this.funcParams = funcParams;

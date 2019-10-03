@@ -170,13 +170,14 @@ These special numeric values can also be inserted into a column of type
     ... VALUES ('NaN', 'Infinity');
     INSERT OK, 1 row affected (... sec)
 
+.. _ip-type:
 
 ``ip``
 ======
 
 The ``ip`` type allows to store IPv4 and IPv6 addresses by inserting their string
-representation. Internally it maps to a ``bigint`` allowing expected sorting,
-filtering, and aggregation.
+representation. Internally ips are stored as ``bigint`` allowing expected sorting,
+filtering and aggregation.
 
 Example::
 
@@ -198,6 +199,11 @@ Example::
     cr> insert into my_table_ips (fqdn, ip_addr)
     ... values ('localhost', 'not.a.real.ip');
     SQLActionException[ColumnValidationException: Validation failed for ip_addr: Cannot cast 'not.a.real.ip' to type ip]
+
+
+Ip addresses support the binary operator `<<`, which checks for subnet inclusion
+using `CIDR notation`_ [ip address/prefix_length]. The left operand must be of
+type ``ip`` and the right of ``text`` e.g. `'192.168.1.5' << '192.168.1/24'`.
 
 .. _date-time-types:
 
@@ -1179,4 +1185,5 @@ See the table below for a full list of aliases:
 .. _IEEE 754: http://ieeexplore.ieee.org/document/30711/?arnumber=30711&filter=AND(p_Publication_Number:2355)
 .. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
+.. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
 

@@ -50,7 +50,6 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
         return info;
     }
 
-
     @Override
     public T evaluate(TransactionContext txnCtx, Input<T>[] args) {
         T arg0Value = type.value(args[0].value());

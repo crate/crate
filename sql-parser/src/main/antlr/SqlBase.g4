@@ -319,7 +319,7 @@ subscriptSafe
     ;
 
 cmpOp
-    : EQ | NEQ | LT | LTE | GT | GTE | REGEX_MATCH | REGEX_NO_MATCH | REGEX_MATCH_CI | REGEX_NO_MATCH_CI
+    : EQ | NEQ | LT | LTE | GT | GTE | LLT | REGEX_MATCH | REGEX_NO_MATCH | REGEX_MATCH_CI | REGEX_NO_MATCH_CI
     ;
 
 setCmpQuantifier
@@ -925,6 +925,7 @@ LT  : '<';
 LTE : '<=';
 GT  : '>';
 GTE : '>=';
+LLT  : '<<';
 REGEX_MATCH: '~';
 REGEX_NO_MATCH: '!~';
 REGEX_MATCH_CI: '~*';

@@ -62,6 +62,12 @@ Deprecations
 Changes
 =======
 
+- Added support for CIDR notation comparisons through special purpose
+  operator ``<<`` associated with type ip.
+  Statements like ``192.168.0.0 << 192.168.0.1/24`` are true,
+  ``select ip from ips_table where ip << 192.168.0.1/24`` returns
+  matching :ref:`ip <ip-type>` addresses.
+
 - Added the ``ltrim`` and ``rtrim`` scalar functions.
 
 - Improved the error messages that were returned if a relation or schema is not

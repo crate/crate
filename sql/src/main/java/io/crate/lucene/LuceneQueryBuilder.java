@@ -31,6 +31,7 @@ import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
+import io.crate.expression.operator.CIDROperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
@@ -375,6 +376,7 @@ public class LuceneQueryBuilder {
         private static final RangeQuery LTE_QUERY = new RangeQuery("lte");
         private static final RangeQuery GT_QUERY = new RangeQuery("gt");
         private static final RangeQuery GTE_QUERY = new RangeQuery("gte");
+        private static final CIDRRangeQuery LLT_QUERY = new CIDRRangeQuery();
         private static final WithinQuery WITHIN_QUERY = new WithinQuery();
         private final ImmutableMap<String, FunctionToQuery> functions =
             ImmutableMap.<String, FunctionToQuery>builder()
@@ -386,6 +388,7 @@ public class LuceneQueryBuilder {
                 .put(LteOperator.NAME, LTE_QUERY)
                 .put(GteOperator.NAME, GTE_QUERY)
                 .put(GtOperator.NAME, GT_QUERY)
+                .put(CIDROperator.CONTAINED_WITHIN, LLT_QUERY)
                 .put(LikeOperators.OP_LIKE, new LikeQuery(false))
                 .put(LikeOperators.OP_ILIKE, new LikeQuery(true))
                 .put(NotPredicate.NAME, new NotQuery())
