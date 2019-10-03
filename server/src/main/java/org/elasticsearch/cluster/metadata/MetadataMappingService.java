@@ -43,7 +43,6 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.MapperService.MergeReason;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.InvalidTypeNameException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -241,7 +240,7 @@ public class MetadataMappingService {
 
         public ClusterState applyRequest(ClusterState currentState, PutMappingClusterStateUpdateRequest request,
                                           Map<Index, MapperService> indexMapperServices) throws IOException {
-            String mappingType = request.type();
+
             CompressedXContent mappingUpdateSource = new CompressedXContent(request.source());
             final Metadata metadata = currentState.metadata();
             final List<IndexMetadata> updateList = new ArrayList<>();
@@ -261,17 +260,6 @@ public class MetadataMappingService {
                     // first, simulate: just call merge and ignore the result
                     existingMapper.merge(newMapper.mapping());
                 }
-                if (mappingType == null) {
-                    mappingType = newMapper.type();
-                } else if (mappingType.equals(newMapper.type()) == false) {
-                    throw new InvalidTypeNameException("Type name provided does not match type name within mapping definition");
-                }
-            }
-            assert mappingType != null;
-
-            if (MapperService.SINGLE_MAPPING_NAME.equals(mappingType) == false
-                    && mappingType.charAt(0) == '_') {
-                throw new InvalidTypeNameException("Document mapping type name can't start with '_', found: [" + mappingType + "]");
             }
             Metadata.Builder builder = Metadata.builder(metadata);
             boolean updated = false;
@@ -281,12 +269,13 @@ public class MetadataMappingService {
                 // we use the exact same indexService and metadata we used to validate above here to actually apply the update
                 final Index index = indexMetadata.getIndex();
                 final MapperService mapperService = indexMapperServices.get(index);
+
                 CompressedXContent existingSource = null;
                 DocumentMapper existingMapper = mapperService.documentMapper();
                 if (existingMapper != null) {
                     existingSource = existingMapper.mappingSource();
                 }
-                DocumentMapper mergedMapper = mapperService.merge(mappingType, mappingUpdateSource, MergeReason.MAPPING_UPDATE);
+                DocumentMapper mergedMapper = mapperService.merge(request.type(), mappingUpdateSource, MergeReason.MAPPING_UPDATE);
                 CompressedXContent updatedSource = mergedMapper.mappingSource();
 
                 if (existingSource != null) {
@@ -305,9 +294,9 @@ public class MetadataMappingService {
                 } else {
                     updatedMapping = true;
                     if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("{} create_mapping [{}] with source [{}]", index, mappingType, updatedSource);
+                        LOGGER.debug("{} create_mapping with source [{}]", index, updatedSource);
                     } else if (LOGGER.isInfoEnabled()) {
-                        LOGGER.info("{} create_mapping [{}]", index, mappingType);
+                        LOGGER.info("{} create_mapping", index);
                     }
                 }
 
