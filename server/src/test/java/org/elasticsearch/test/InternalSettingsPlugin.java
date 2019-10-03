@@ -24,6 +24,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.Arrays;
@@ -53,7 +54,8 @@ public final class InternalSettingsPlugin extends Plugin {
                 TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING,
                 IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
                 IndexModule.INDEX_QUERY_CACHE_EVERYTHING_SETTING,
-                INDEX_UUID
+                INDEX_UUID,
+                IndexSettings.INDEX_TRANSLOG_RETENTION_TOTAL_FILES_SETTING
             );
     }
 }
