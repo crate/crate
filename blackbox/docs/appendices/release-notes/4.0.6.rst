@@ -1,0 +1,87 @@
+.. _version_4.0.6:
+
+=============
+Version 4.0.6
+=============
+
+Released on 2019/10/03.
+
+.. NOTE::
+
+    Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading from
+    CrateDB 3.x or earlier.
+    Before upgrading to 4.0.6 you should be running a CrateDB cluster that is
+    at least on 3.0.7.
+
+    We recommend that you upgrade to the latest 3.3 release before moving to 4.0.6.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_4.0.2`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+    When restarting, CrateDB will migrate indexes to a newer format. Depending
+    on the amount of data, this may delay node start-up time.
+
+.. WARNING::
+
+    Tables that were created prior CrateDB 3.x will not function with 4.x
+    and must be recreated before moving to 4.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.0.0` release notes for a full list of changes in the
+4.0 series.
+
+Fixes
+=====
+
+- Fixed an issue that could prevent accounted memory from being properly
+  de-accounted on queries using ``hyperloglog_distinct``, leading clients to
+  eventually receive ``CircuitBreakingException`` error messages and also
+  breaking internal recovery operations.
+
+- Fixed an issue that caused the users list in the privileges tab to not
+  displayed when the CrateDB Admin UI is not served from ``/``.
+
+- Fixed various issues in the CrateDB Admin UI console.
+
+- Fixed an issue that caused the Twitter tutorial to not start automatically
+  after the login redirect in the CrateDB Admin UI.
+
+- Fixed an issue that prevented subqueries from being used in select item
+  expressions that also contain a reference accessed via a relation alias.
+  For example: ``SELECT t.y IN (SELECT x FROM t2) FROM t1 t``
+
+- Fail the storage engine if indexing on a replica shard fails after it was
+  successfully done on a primary shard. It prevents replica and primary shards
+  from going out of sync.
+
+- Fixed bug in the disk threshold decider logic that would ignore to account
+  new relocating shard (``STARTED`` to ``RELOCATING``) when deciding how to
+  allocate or relocate shards with respect to
+  :ref:`cluster.routing.allocation.disk.watermark.low
+  <cluster.routing.allocation.disk.watermark.low>` and
+  :ref:`cluster.routing.allocation.disk.watermark.high
+  <cluster.routing.allocation.disk.watermark.high>` settings.
+
+- Fixed regression that prevented shards from reallocation when a node passes
+  over :ref:`cluster.routing.allocation.disk.watermark.high
+  <cluster.routing.allocation.disk.watermark.high>`.
+
+- Removed a case where a ``NullPointerException`` was logged if a HTTP client
+  disconnected before a pending response could be sent to the client.
