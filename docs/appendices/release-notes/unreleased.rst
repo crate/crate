@@ -170,34 +170,4 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that could prevent accounted memory from being properly
-  de-accounted on queries using ``hyperloglog_distinct``, leading clients to
-  eventually receive ``CircuitBreakingException`` error messages and also
-  breaking internal recovery operations.
-
-- Fixed an issue that caused the users list in the privileges tab to not
-  displayed when the CrateDB Admin UI is not served from ``/``.
-
-- Fixed various issues in the CrateDB Admin UI console.
-
-- Fixed an issue that caused the Twitter tutorial to not start automatically
-  after the login redirect in the CrateDB Admin UI.
-
-- Fixed bug in the disk threshold decider logic that would ignore to account
-  new relocating shard (``STARTED`` to ``RELOCATING``) when deciding how to
-  allocate or relocate shards with respect to
-  :ref:`cluster.routing.allocation.disk.watermark.low
-  <cluster.routing.allocation.disk.watermark.low>` and
-  :ref:`cluster.routing.allocation.disk.watermark.high
-  <cluster.routing.allocation.disk.watermark.high>` settings.
-
-- Fixed regression that prevented shards from reallocation when a node passes
-  over :ref:`cluster.routing.allocation.disk.watermark.high
-  <cluster.routing.allocation.disk.watermark.high>`.
-
-- Removed a case where a ``NullPointerException`` was logged if a HTTP client
-  disconnected before a pending response could be sent to the client.
-
-- Fail the storage engine if indexing on a replica shard fails after it was
-  successfully done on a primary shard. It prevents replica and primary shards
-  from going out of sync.
+None
