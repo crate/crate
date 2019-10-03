@@ -33,6 +33,7 @@ public class Operators {
     public static final ImmutableSet<String> COMPARISON_OPERATORS = ImmutableSet.of(
         EqOperator.NAME,
         GtOperator.NAME, GteOperator.NAME,
-        LtOperator.NAME, LteOperator.NAME
+        LtOperator.NAME, LteOperator.NAME,
+        CIDROperator.CONTAINED_WITHIN
     );
 }

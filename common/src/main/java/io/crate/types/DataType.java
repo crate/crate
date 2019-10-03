@@ -123,10 +123,12 @@ public abstract class DataType<T> implements Comparable, Writeable {
         return Objects.compare(val1, val2, cmp);
     }
 
+    @Override
     public int hashCode() {
         return id();
     }
 
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof DataType)) return false;

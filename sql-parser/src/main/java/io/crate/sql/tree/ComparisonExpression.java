@@ -32,6 +32,7 @@ public class ComparisonExpression
         LESS_THAN_OR_EQUAL("<="),
         GREATER_THAN(">"),
         GREATER_THAN_OR_EQUAL(">="),
+        CONTAINED_WITHIN("<<"),
         IS_DISTINCT_FROM("IS DISTINCT FROM"),
         REGEX_MATCH("~"),
         REGEX_NO_MATCH("!~"),

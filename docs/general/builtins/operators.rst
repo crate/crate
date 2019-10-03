@@ -27,6 +27,15 @@ Operator          Description
 !=                not equal - same as <>
 ================  ==================================
 
+In addition, when the left operand is an `IP` and the right is `text`
+that follows `CIDR notation`_ [ip address/prefix_length], the ``<<``
+operator can be used as in:
+
+``'192.160.0.1' << '192.160.0.0/24'``
+
+returning true when the `IP` is included in the range described by the
+CIDR.
+
 If used in the :ref:`sql_dql_where_clause` the following operators are valid in
 addition.
 
@@ -45,6 +54,11 @@ Operator                      Description
 ----------------------------  ----------------------------------
 !~                            negated regular expression match
 ----------------------------  ----------------------------------
+<<                            IP is included in CIDR
+----------------------------  ----------------------------------
 between                       ``a BETWEEN x and y``:
                               shortcut for ``a >= x AND a <= y``
 ============================  ==================================
+
+
+.. _CIDR notation: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation
