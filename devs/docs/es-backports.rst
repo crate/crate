@@ -406,7 +406,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 98611e77cc9 Introduce simple remote connection strategy (#47480)
 - [ ] c26ce1d7f52 DocValueFormat implementation for date range fields (#47472)
 - [ ] 8c464775663 Limit number of retaining translog files for peer recovery (#47414)
-- [ ] 29463551aea Remove typename checks in mapping updates (#47347)
+- [x] 29463551aea Remove typename checks in mapping updates (#47347)
 - [x] 9993cf391f1 Use standard semantics for retried auto-id requests (#47311)
 - [d] 8585d58b767 Provide better error when updating geo_shape field mapper settings (#47281)
 - [s] 50e0c96f3f4 Extract remote "sniffing" to connection strategy (#47253)
