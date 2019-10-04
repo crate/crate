@@ -22,118 +22,73 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import io.crate.exceptions.PartitionUnknownException;
-import io.crate.exceptions.ResourceUnknownException;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.common.collections.Lists2;
 import io.crate.execution.ddl.RepositoryService;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.sql.tree.CreateSnapshot;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 
-import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
-
-import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
-import static io.crate.analyze.SnapshotSettings.SETTINGS;
+import java.util.function.Function;
 
 class CreateSnapshotAnalyzer {
 
-    private static final Logger LOGGER = LogManager.getLogger(CreateSnapshotAnalyzer.class);
     private final RepositoryService repositoryService;
-    private final Schemas schemas;
+    private final Functions functions;
 
-
-    CreateSnapshotAnalyzer(RepositoryService repositoryService, Schemas schemas) {
+    CreateSnapshotAnalyzer(RepositoryService repositoryService, Functions functions) {
         this.repositoryService = repositoryService;
-        this.schemas = schemas;
+        this.functions = functions;
     }
 
-    public CreateSnapshotAnalyzedStatement analyze(CreateSnapshot node, Analysis analysis) {
-        Optional<QualifiedName> repositoryName = node.name().getPrefix();
-        // validate repository
-        Preconditions.checkArgument(repositoryName.isPresent(), "Snapshot must be specified by \"<repository_name>\".\"<snapshot_name>\"");
-        Preconditions.checkArgument(repositoryName.get().getParts().size() == 1,
-            String.format(Locale.ENGLISH, "Invalid repository name '%s'", repositoryName.get()));
-        repositoryService.failIfRepositoryDoesNotExist(repositoryName.get().toString());
+    public AnalyzedCreateSnapshot analyze(CreateSnapshot<Expression> createSnapshot,
+                                          Function<ParameterExpression, Symbol> convertParamFunction,
+                                          CoordinatorTxnCtx txnCtx) {
+        String repositoryName = createSnapshot.name().getPrefix()
+            .map(name -> {
+                validateRepository(name);
+                return name.toString();
+            })
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Snapshot must be specified by \"<repository_name>\".\"<snapshot_name>\""));
 
-        // snapshot existence in repo is validated upon execution
-        String snapshotName = node.name().getSuffix();
-        Snapshot snapshot = new Snapshot(repositoryName.get().toString(), new SnapshotId(snapshotName, UUID.randomUUID().toString()));
+        String snapshotName = createSnapshot.name().getSuffix();
+        Snapshot snapshot = new Snapshot(repositoryName, new SnapshotId(snapshotName, UUID.randomUUID().toString()));
 
-        // validate and extract settings
-        Settings settings = GenericPropertiesConverter.settingsFromProperties(
-            node.properties(), analysis.parameterContext().parameters(), SETTINGS).build();
+        var exprCtx = new ExpressionAnalysisContext();
+        var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
 
-        boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
+        List<Table<Symbol>> tables = Lists2.map(
+            createSnapshot.tables(),
+            (table) -> table.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx)));
+        GenericProperties<Symbol> properties = createSnapshot.properties()
+            .map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx));
 
-        // iterate tables
-        if (!node.tableList().isEmpty()) {
-            Set<String> snapshotIndices = new HashSet<>(node.tableList().size());
-            for (Table table : node.tableList()) {
-                DocTableInfo docTableInfo;
-                try {
-                    docTableInfo = (DocTableInfo) schemas.resolveTableInfo(
-                        table.getName(),
-                        Operation.CREATE_SNAPSHOT,
-                        analysis.sessionContext().user(),
-                        analysis.sessionContext().searchPath()
-                    );
-                } catch (ResourceUnknownException e) {
-                    if (ignoreUnavailable) {
-                        LOGGER.info("ignoring: {}", e.getMessage());
-                        continue;
-                    } else {
-                        throw e;
-                    }
-                }
-                if (table.partitionProperties().isEmpty()) {
-                    Stream.of(docTableInfo.concreteIndices()).forEach(snapshotIndices::add);
-                } else {
-                    PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                        docTableInfo,
-                        table.partitionProperties(),
-                        analysis.parameterContext().parameters()
-                    );
-                    if (!docTableInfo.partitions().contains(partitionName)) {
-                        if (!ignoreUnavailable) {
-                            throw new PartitionUnknownException(partitionName);
-                        } else {
-                            LOGGER.info("ignoring unknown partition of table '{}' with ident '{}'", partitionName.relationName(), partitionName.ident());
-                        }
-                    } else {
-                        snapshotIndices.add(partitionName.asIndexName());
-                    }
-                }
-            }
-            return CreateSnapshotAnalyzedStatement.forTables(snapshot,
-                settings,
-                ImmutableList.copyOf(snapshotIndices));
-        } else {
-            for (SchemaInfo schemaInfo : schemas) {
-                for (TableInfo tableInfo : schemaInfo.getTables()) {
-                    // only check for user generated tables
-                    if (tableInfo instanceof DocTableInfo) {
-                        Operation.blockedRaiseException(tableInfo, Operation.READ);
-                    }
-                }
-            }
-            return CreateSnapshotAnalyzedStatement.all(snapshot, settings);
+        return new AnalyzedCreateSnapshot(snapshot, tables, properties);
+    }
+
+    private void validateRepository(QualifiedName name) {
+        if (name.getParts().size() != 1) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "Invalid repository name '%s'", name)
+            );
         }
+        repositoryService.failIfRepositoryDoesNotExist(name.toString());
     }
 }

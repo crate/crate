@@ -24,10 +24,8 @@ package io.crate.execution.ddl;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.FutureActionListener;
-import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
-import io.crate.exceptions.CreateSnapshotException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.IndexParts;
@@ -36,8 +34,6 @@ import io.crate.metadata.RelationName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
@@ -50,7 +46,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
-import org.elasticsearch.snapshots.SnapshotState;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -98,51 +93,6 @@ public class SnapshotRestoreDDLDispatcher {
         );
         return future;
 
-    }
-
-    public CompletableFuture<Long> dispatch(final CreateSnapshotAnalyzedStatement statement) {
-        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
-
-        Settings settings = statement.snapshotSettings();
-        boolean waitForCompletion = WAIT_FOR_COMPLETION.get(settings);
-        boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(settings);
-
-        // ignore_unavailable as set by statement
-        IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
-
-        CreateSnapshotRequest request = new CreateSnapshotRequest(statement.snapshot().getRepository(), statement.snapshot().getSnapshotId().getName())
-            .includeGlobalState(true)
-            .waitForCompletion(waitForCompletion)
-            .indices(statement.indices())
-            .indicesOptions(indicesOptions)
-            .settings(statement.snapshotSettings());
-
-        transportActionProvider.transportCreateSnapshotAction().execute(request, new ActionListener<>() {
-            @Override
-            public void onResponse(CreateSnapshotResponse createSnapshotResponse) {
-                SnapshotInfo snapshotInfo = createSnapshotResponse.getSnapshotInfo();
-                if (snapshotInfo == null) {
-                    // if wait_for_completion is false the snapshotInfo is null
-                    resultFuture.complete(1L);
-                } else if (snapshotInfo.state() == SnapshotState.FAILED) {
-                    // fail request if snapshot creation failed
-                    String reason = createSnapshotResponse.getSnapshotInfo().reason()
-                        .replaceAll("Index", "Table")
-                        .replaceAll("Indices", "Tables");
-                    resultFuture.completeExceptionally(
-                        new CreateSnapshotException(statement.snapshot(), reason)
-                    );
-                } else {
-                    resultFuture.complete(1L);
-                }
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                resultFuture.completeExceptionally(e);
-            }
-        });
-        return resultFuture;
     }
 
     public CompletableFuture<Long> dispatch(final RestoreSnapshotAnalyzedStatement analysis) {

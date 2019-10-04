@@ -33,7 +33,7 @@ public final class SnapshotSettings {
 
     public static final Setting<Boolean> WAIT_FOR_COMPLETION = Setting.boolSetting("wait_for_completion", false);
 
-    static final Map<String, Setting<?>> SETTINGS = Map.of(
+    public static final Map<String, Setting<?>> SETTINGS = Map.of(
         IGNORE_UNAVAILABLE.getKey(), IGNORE_UNAVAILABLE,
         WAIT_FOR_COMPLETION.getKey(), WAIT_FOR_COMPLETION
     );

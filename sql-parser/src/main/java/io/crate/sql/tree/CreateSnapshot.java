@@ -21,70 +21,69 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-public class CreateSnapshot extends Statement {
+public class CreateSnapshot<T> extends Statement {
 
     private final QualifiedName name;
-    private final GenericProperties properties;
-    private final List<Table> tableList;
+    private final GenericProperties<T> properties;
+    private final List<Table<T>> tables;
 
     public CreateSnapshot(QualifiedName name,
-                          GenericProperties genericProperties) {
+                          GenericProperties<T> properties) {
         this.name = name;
-        this.properties = genericProperties;
-        this.tableList = Collections.emptyList();
+        this.properties = properties;
+        this.tables = Collections.emptyList();
     }
 
     public CreateSnapshot(QualifiedName name,
-                          List<Table> tableList,
-                          GenericProperties genericProperties) {
+                          List<Table<T>> tables,
+                          GenericProperties<T> properties) {
         this.name = name;
-        this.tableList = tableList;
-        this.properties = genericProperties;
-
+        this.tables = tables;
+        this.properties = properties;
     }
 
     public QualifiedName name() {
         return this.name;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<T> properties() {
         return properties;
     }
 
-    public List<Table> tableList() {
-        return tableList;
+    public List<Table<T>> tables() {
+        return tables;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CreateSnapshot<?> that = (CreateSnapshot<?>) o;
+        return Objects.equals(name, that.name) &&
+               Objects.equals(properties, that.properties) &&
+               Objects.equals(tables, that.tables);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, tableList, properties);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        CreateSnapshot that = (CreateSnapshot) obj;
-        if (!name.equals(that.name)) return false;
-        if (!properties.equals(that.properties)) return false;
-        if (!tableList.equals(that.tableList)) return false;
-        return true;
+        return Objects.hash(name, properties, tables);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("properties", properties)
-            .add("tableList", tableList)
-            .toString();
+        return "CreateSnapshot{" +
+               "name=" + name +
+               ", properties=" + properties +
+               ", tables=" + tables +
+               '}';
     }
 
     @Override
