@@ -107,8 +107,12 @@ class InsertFromSubQueryAnalyzer {
     }
 
     public AnalyzedInsertStatement analyze(InsertFromSubquery insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
-        DocTableInfo targetTable = (DocTableInfo) schemas.resolveTableInfo(insert.table().getName(), Operation.INSERT,
-            txnCtx.sessionContext().searchPath());
+        DocTableInfo targetTable = (DocTableInfo) schemas.resolveTableInfo(
+            insert.table().getName(),
+            Operation.INSERT,
+            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().searchPath()
+        );
         DocTableRelation tableRelation = new DocTableRelation(targetTable);
 
         AnalyzedRelation subQueryRelation =
@@ -131,8 +135,12 @@ class InsertFromSubQueryAnalyzer {
     }
 
     public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(node.table().getName(), Operation.INSERT,
-            analysis.sessionContext().searchPath());
+        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+            node.table().getName(),
+            Operation.INSERT,
+            analysis.sessionContext().user(),
+            analysis.sessionContext().searchPath()
+        );
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);

@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
@@ -147,8 +148,9 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(tableIdent, "doc", "schema").build();
 
         QualifiedName fqn = QualifiedName.of("schema", "t");
+        SessionContext sessionContext = sqlExecutor.getSessionContext();
         TableInfo tableInfo = sqlExecutor.schemas()
-            .resolveTableInfo(fqn, Operation.READ, sqlExecutor.getSessionContext().searchPath());
+            .resolveTableInfo(fqn, Operation.READ, sessionContext.user(), sessionContext.searchPath());
 
         RelationName relation = tableInfo.ident();
         assertThat(relation.schema(), is("schema"));
@@ -166,9 +168,10 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t")).build();
         QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
 
+        SessionContext sessionContext = sqlExecutor.getSessionContext();
         expectedException.expect(SchemaUnknownException.class);
         expectedException.expectMessage("Schema 'bogus_schema' unknown");
-        sqlExecutor.schemas().resolveTableInfo(invalidFqn, Operation.READ, sqlExecutor.getSessionContext().searchPath());
+        sqlExecutor.schemas().resolveTableInfo(invalidFqn, Operation.READ, sessionContext.user(), sessionContext.searchPath());
     }
 
     @Test
@@ -176,9 +179,10 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t")).build();
         QualifiedName table = QualifiedName.of("missing_table");
 
+        SessionContext sessionContext = sqlExecutor.getSessionContext();
         expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage("Relation 'missing_table' unknown");
-        sqlExecutor.schemas().resolveTableInfo(table, Operation.READ, sqlExecutor.getSessionContext().searchPath());
+        sqlExecutor.schemas().resolveTableInfo(table, Operation.READ, sessionContext.user(), sessionContext.searchPath());
     }
 
     @Test
@@ -186,8 +190,9 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
             .build();
         QualifiedName tableQn = QualifiedName.of("t");
+        SessionContext sessionContext = sqlExecutor.getSessionContext();
         TableInfo tableInfo = sqlExecutor.schemas()
-            .resolveTableInfo(tableQn, Operation.READ, sqlExecutor.getSessionContext().searchPath());
+            .resolveTableInfo(tableQn, Operation.READ, sessionContext.user(), sessionContext.searchPath());
 
         RelationName relation = tableInfo.ident();
         assertThat(relation.schema(), is("schema"));

@@ -30,7 +30,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AddColumnDefinition;
@@ -54,14 +53,16 @@ class AlterTableAddColumnAnalyzer {
     }
 
     public AnalyzedAlterTableAddColumn analyze(AlterTableAddColumn<Expression> alterTable,
-                                               SearchPath searchPath,
                                                Function<ParameterExpression, Symbol> convertParamFunction,
                                                CoordinatorTxnCtx txnCtx) {
         if (!alterTable.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(alterTable.table().getName(), Operation.ALTER,
-                                                                         searchPath);
+        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+            alterTable.table().getName(),
+            Operation.ALTER,
+            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().searchPath());
         TableReferenceResolver referenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
 
         var exprAnalyzerWithReferenceResolver = new ExpressionAnalyzer(

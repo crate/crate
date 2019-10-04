@@ -117,8 +117,12 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             throw new IllegalArgumentException("VALUES clause must not be empty");
         }
 
-        DocTableInfo targetTable = (DocTableInfo) schemas.resolveTableInfo(insert.table().getName(), Operation.INSERT,
-            txnCtx.sessionContext().searchPath());
+        DocTableInfo targetTable = (DocTableInfo) schemas.resolveTableInfo(
+            insert.table().getName(),
+            Operation.INSERT,
+            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().searchPath()
+        );
         DocTableRelation tableRelation = new DocTableRelation(targetTable);
 
         ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
@@ -166,7 +170,10 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     }
 
     public AnalyzedStatement analyze(InsertFromValues<Expression> node, Analysis analysis) {
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(node.table().getName(), Operation.INSERT,
+        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+            node.table().getName(),
+            Operation.INSERT,
+            analysis.sessionContext().user(),
             analysis.sessionContext().searchPath());
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);

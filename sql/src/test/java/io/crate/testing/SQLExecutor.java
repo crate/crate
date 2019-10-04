@@ -797,6 +797,6 @@ public class SQLExecutor {
     public <T extends TableInfo> T resolveTableInfo(String tableName) {
         IndexParts indexParts = new IndexParts(tableName);
         QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
-        return (T) schemas.resolveTableInfo(qualifiedName, Operation.READ, sessionContext.searchPath());
+        return (T) schemas.resolveTableInfo(qualifiedName, Operation.READ, sessionContext.user(), sessionContext.searchPath());
     }
 }

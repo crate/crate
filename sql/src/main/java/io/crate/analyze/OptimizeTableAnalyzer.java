@@ -29,7 +29,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Expression;
@@ -52,8 +51,7 @@ public class OptimizeTableAnalyzer {
 
     public AnalyzedOptimizeTable analyze(OptimizeStatement<Expression> statement,
                                          Function<ParameterExpression, Symbol> convertParamFunction,
-                                         CoordinatorTxnCtx txnCtx,
-                                         SearchPath searchPath) {
+                                         CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
 
@@ -66,7 +64,9 @@ public class OptimizeTableAnalyzer {
             TableInfo tableInfo = schemas.resolveTableInfo(
                 table.getName(),
                 Operation.OPTIMIZE,
-                searchPath);
+                txnCtx.sessionContext().user(),
+                txnCtx.sessionContext().searchPath()
+            );
             analyzedOptimizeTables.put(table, tableInfo);
         }
         return new AnalyzedOptimizeTable(analyzedOptimizeTables, analyzedStatement.properties());

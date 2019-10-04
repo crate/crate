@@ -36,8 +36,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
@@ -88,8 +88,12 @@ class CreateSnapshotAnalyzer {
             for (Table table : node.tableList()) {
                 DocTableInfo docTableInfo;
                 try {
-                    docTableInfo = (DocTableInfo) schemas.resolveTableInfo(table.getName(), Operation.CREATE_SNAPSHOT,
-                        analysis.sessionContext().searchPath());
+                    docTableInfo = (DocTableInfo) schemas.resolveTableInfo(
+                        table.getName(),
+                        Operation.CREATE_SNAPSHOT,
+                        analysis.sessionContext().user(),
+                        analysis.sessionContext().searchPath()
+                    );
                 } catch (ResourceUnknownException e) {
                     if (ignoreUnavailable) {
                         LOGGER.info("ignoring: {}", e.getMessage());
