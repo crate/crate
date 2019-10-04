@@ -34,6 +34,7 @@ import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedDecommissionNodeStatement;
 import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.AnalyzedOptimizeTable;
@@ -79,6 +80,7 @@ import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
 import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
+import io.crate.planner.node.ddl.DropRepositoryPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
@@ -284,6 +286,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     protected Plan visitCreateRepositoryAnalyzedStatement(AnalyzedCreateRepository analysis,
                                                           PlannerContext context) {
         return new CreateRepositoryPlan(analysis);
+    }
+
+    @Override
+    public Plan visitDropRepositoryAnalyzedStatement(AnalyzedDropRepository analysis,
+                                                     PlannerContext context) {
+        return new DropRepositoryPlan(analysis);
     }
 
     @Override

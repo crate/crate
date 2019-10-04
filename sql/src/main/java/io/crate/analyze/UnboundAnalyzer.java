@@ -31,6 +31,7 @@ import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.InsertFromSubquery;
@@ -67,7 +68,8 @@ class UnboundAnalyzer {
                     CreateTableStatementAnalyzer createTableAnalyzer,
                     AlterTableAnalyzer alterTableAnalyzer,
                     OptimizeTableAnalyzer optimizeTableAnalyzer,
-                    CreateRepositoryAnalyzer createRepositoryAnalyzer) {
+                    CreateRepositoryAnalyzer createRepositoryAnalyzer,
+                    DropRepositoryAnalyzer dropRepositoryAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -79,7 +81,8 @@ class UnboundAnalyzer {
             createTableAnalyzer,
             alterTableAnalyzer,
             optimizeTableAnalyzer,
-            createRepositoryAnalyzer
+            createRepositoryAnalyzer,
+            dropRepositoryAnalyzer
         );
     }
 
@@ -102,6 +105,7 @@ class UnboundAnalyzer {
         private final AlterTableAnalyzer alterTableAnalyzer;
         private final OptimizeTableAnalyzer optimizeTableAnalyzer;
         private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
+        private final DropRepositoryAnalyzer dropRepositoryAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -113,7 +117,8 @@ class UnboundAnalyzer {
                           CreateTableStatementAnalyzer createTableAnalyzer,
                           AlterTableAnalyzer alterTableAnalyzer,
                           OptimizeTableAnalyzer optimizeTableAnalyzer,
-                          CreateRepositoryAnalyzer createRepositoryAnalyzer) {
+                          CreateRepositoryAnalyzer createRepositoryAnalyzer,
+                          DropRepositoryAnalyzer dropRepositoryAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -125,6 +130,7 @@ class UnboundAnalyzer {
             this.alterTableAnalyzer = alterTableAnalyzer;
             this.optimizeTableAnalyzer = optimizeTableAnalyzer;
             this.createRepositoryAnalyzer = createRepositoryAnalyzer;
+            this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
         }
 
         @Override
@@ -150,6 +156,11 @@ class UnboundAnalyzer {
                 (CreateRepository<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropRepository(DropRepository node, Analysis context) {
+            return dropRepositoryAnalyzer.analyze(node);
         }
 
         @Override

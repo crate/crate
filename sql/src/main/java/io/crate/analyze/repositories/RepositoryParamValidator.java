@@ -22,7 +22,6 @@
 
 package io.crate.analyze.repositories;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.crate.sql.tree.GenericProperties;
@@ -67,7 +66,8 @@ public class RepositoryParamValidator {
                     Locale.ENGLISH,
                     "The following required parameters are missing to create a repository of type \"%s\": [%s]",
                     type,
-                    Joiner.on(", ").join(missingRequiredSettings)));
+                    String.join(", ", missingRequiredSettings))
+            );
         }
     }
 

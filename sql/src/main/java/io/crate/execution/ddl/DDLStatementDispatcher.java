@@ -31,7 +31,6 @@ import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
-import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.analyze.PromoteReplicaStatement;
@@ -43,14 +42,12 @@ import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.auth.user.UserManager;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
-import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.support.Transports;
 import io.crate.expression.udf.UserDefinedFunctionDDLClient;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.user.SecureHash;
 import io.crate.user.UserActions;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -75,8 +72,6 @@ public class DDLStatementDispatcher {
 
     private final Provider<BlobAdminClient> blobAdminClient;
     private ClusterService clusterService;
-    private final AlterTableOperation alterTableOperation;
-    private final RepositoryService repositoryService;
     private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
     private final UserDefinedFunctionDDLClient udfDDLClient;
     private final UserManager userManager;
@@ -89,8 +84,6 @@ public class DDLStatementDispatcher {
     @Inject
     public DDLStatementDispatcher(Provider<BlobAdminClient> blobAdminClient,
                                   ClusterService clusterService,
-                                  AlterTableOperation alterTableOperation,
-                                  RepositoryService repositoryService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   UserDefinedFunctionDDLClient udfDDLClient,
                                   TransportClusterRerouteAction rerouteAction,
@@ -98,8 +91,6 @@ public class DDLStatementDispatcher {
                                   Functions functions) {
         this.blobAdminClient = blobAdminClient;
         this.clusterService = clusterService;
-        this.alterTableOperation = alterTableOperation;
-        this.repositoryService = repositoryService;
         this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
         this.udfDDLClient = udfDDLClient;
         this.userManager = userManagerProvider.get();
@@ -141,12 +132,6 @@ public class DDLStatementDispatcher {
         @Override
         public CompletableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, Ctx ctx) {
             return blobAdminClient.get().alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings());
-        }
-
-        @Override
-        public CompletableFuture<Long> visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis,
-                                                                            Ctx ctx) {
-            return repositoryService.execute(new DeleteRepositoryRequest(analysis.repositoryName()));
         }
 
         @Override

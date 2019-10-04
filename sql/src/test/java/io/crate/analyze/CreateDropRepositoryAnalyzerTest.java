@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.RepositorySettingsModule;
-import io.crate.data.RowN;
+import io.crate.data.Row;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.planner.PlannerContext;
@@ -78,16 +78,18 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @SuppressWarnings("unchecked")
-    private <S> S analyze(SQLExecutor e, String stmt, Object... arguments) {
+    private <S> S analyze(SQLExecutor e, String stmt) {
         AnalyzedStatement analyzedStatement = e.analyze(stmt);
         if (analyzedStatement instanceof AnalyzedCreateRepository) {
             return (S) CreateRepositoryPlan.createRequest(
                 (AnalyzedCreateRepository) analyzedStatement,
                 plannerContext.transactionContext(),
                 plannerContext.functions(),
-                new RowN(arguments),
+                Row.EMPTY,
                 SubQueryResults.EMPTY,
                 repositoryParamValidator);
+        } else if (analyzedStatement instanceof AnalyzedDropRepository) {
+            return (S) analyzedStatement;
         } else {
             throw new AssertionError("Statement of type " + analyzedStatement.getClass() + " not supported");
         }
@@ -126,8 +128,8 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testDropExistingRepo() {
-        DropRepositoryAnalyzedStatement statement = e.analyze("DROP REPOSITORY my_repo");
-        assertThat(statement.repositoryName(), is("my_repo"));
+        AnalyzedDropRepository statement = analyze(e, "DROP REPOSITORY my_repo");
+        assertThat(statement.name(), is("my_repo"));
     }
 
     @Test

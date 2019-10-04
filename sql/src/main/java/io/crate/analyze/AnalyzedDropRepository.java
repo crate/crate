@@ -22,20 +22,25 @@
 
 package io.crate.analyze;
 
-public class DropRepositoryAnalyzedStatement implements DDLStatement {
+public class AnalyzedDropRepository implements DDLStatement {
 
-    private final String repositoryName;
+    private final String name;
 
-    public DropRepositoryAnalyzedStatement(String repository) {
-        repositoryName = repository;
+    public AnalyzedDropRepository(String name) {
+        this.name = name;
     }
 
-    public String repositoryName() {
-        return repositoryName;
+    public String name() {
+        return name;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitDropRepositoryAnalyzedStatement(this, context);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 }
