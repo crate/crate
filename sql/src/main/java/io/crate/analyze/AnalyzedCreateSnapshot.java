@@ -22,51 +22,60 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.Table;
 import org.elasticsearch.snapshots.Snapshot;
 
 import java.util.List;
+import java.util.function.Consumer;
 
-public class CreateSnapshotAnalyzedStatement implements DDLStatement {
+public class AnalyzedCreateSnapshot implements DDLStatement {
 
-    static final List<String> ALL_INDICES = ImmutableList.of("*", "-.blob_*");
+    public static final String[] ALL_INDICES = new String[]{"*", "-.blob_*"};
 
     private final Snapshot snapshot;
-    private final Settings snapshotSettings;
+    private final List<Table<Symbol>> tables;
+    private final GenericProperties<Symbol> properties;
 
-    private final List<String> indices;
-
-    private CreateSnapshotAnalyzedStatement(Snapshot snapshot,
-                                            Settings snapshotSettings,
-                                            List<String> indices) {
+    AnalyzedCreateSnapshot(Snapshot snapshot,
+                           List<Table<Symbol>> tables,
+                           GenericProperties<Symbol> properties) {
         this.snapshot = snapshot;
-        this.snapshotSettings = snapshotSettings;
-        this.indices = indices;
-    }
-
-    public static CreateSnapshotAnalyzedStatement forTables(Snapshot snapshot, Settings snapshotSettings, List<String> indices) {
-        return new CreateSnapshotAnalyzedStatement(snapshot, snapshotSettings, indices);
-    }
-
-    public static CreateSnapshotAnalyzedStatement all(Snapshot snapshot, Settings snapshotSettings) {
-        return new CreateSnapshotAnalyzedStatement(snapshot, snapshotSettings, ALL_INDICES);
+        this.tables = tables;
+        this.properties = properties;
     }
 
     public Snapshot snapshot() {
         return snapshot;
     }
 
-    public Settings snapshotSettings() {
-        return snapshotSettings;
+    public GenericProperties<Symbol> properties() {
+        return properties;
     }
 
-    public List<String> indices() {
-        return indices;
+    public List<Table<Symbol>> tables() {
+        return tables;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (var table : tables) {
+            for (Assignment<Symbol> partitionProperty : table.partitionProperties()) {
+                partitionProperty.expressions().forEach(consumer);
+            }
+        }
+        properties.properties().values().forEach(consumer);
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitCreateSnapshotAnalyzedStatement(this, context);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 }

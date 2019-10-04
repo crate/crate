@@ -28,7 +28,6 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CreateBlobTableAnalyzedStatement;
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
-import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
@@ -137,11 +136,6 @@ public class DDLStatementDispatcher {
         @Override
         public CompletableFuture<Long> visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis,
                                                                           Ctx ctx) {
-            return snapshotRestoreDDLDispatcher.dispatch(analysis);
-        }
-
-        public CompletableFuture<Long> visitCreateSnapshotAnalyzedStatement(CreateSnapshotAnalyzedStatement analysis,
-                                                                            Ctx ctx) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
 

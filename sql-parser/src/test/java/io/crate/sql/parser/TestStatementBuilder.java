@@ -1087,7 +1087,7 @@ public class TestStatementBuilder {
         assertThat(statement.toString(), is("CreateSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={}, " +
-                                            "tableList=[Table{only=false, authors, partitionProperties=[" +
+                                            "tables=[Table{only=false, authors, partitionProperties=[" +
                                             "Assignment{column=\"year\", expressions=[2015]}, " +
                                             "Assignment{column=\"year\", expressions=[2014]}]}, " +
                                             "Table{only=false, books, partitionProperties=[]}]}"));

@@ -765,13 +765,13 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitCreateSnapshot(CreateSnapshot node, Integer indent) {
+        public Void visitCreateSnapshot(CreateSnapshot<?> node, Integer indent) {
             builder.append("CREATE SNAPSHOT ")
                 .append(formatQualifiedName(node.name()));
-            if (!node.tableList().isEmpty()) {
+            if (!node.tables().isEmpty()) {
                 builder.append(" TABLE ");
-                int count = 0, max = node.tableList().size();
-                for (Table table : node.tableList()) {
+                int count = 0, max = node.tables().size();
+                for (Table table : node.tables()) {
                     table.accept(this, indent);
                     if (++count < max) builder.append(",");
                 }

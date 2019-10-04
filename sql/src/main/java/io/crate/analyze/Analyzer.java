@@ -170,6 +170,7 @@ public class Analyzer {
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, functions);
         this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, functions);
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
+        this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -182,7 +183,8 @@ public class Analyzer {
             alterTableAnalyzer,
             optimizeTableAnalyzer,
             createRepositoryAnalyzer,
-            dropRepositoryAnalyzer
+            dropRepositoryAnalyzer,
+            createSnapshotAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -196,7 +198,6 @@ public class Analyzer {
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
-        this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, schemas);
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
@@ -476,8 +477,11 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateSnapshot(CreateSnapshot node, Analysis context) {
-            return createSnapshotAnalyzer.analyze(node, context);
+        public AnalyzedStatement visitCreateSnapshot(CreateSnapshot<?> node, Analysis context) {
+            return createSnapshotAnalyzer.analyze(
+                (CreateSnapshot<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override
