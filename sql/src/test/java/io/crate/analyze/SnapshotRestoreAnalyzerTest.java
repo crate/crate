@@ -57,8 +57,8 @@ import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITIO
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasItemInArray;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.ArrayMatching.arrayContainingInAnyOrder;
@@ -115,7 +115,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "CREATE SNAPSHOT my_repo.my_snapshot ALL WITH (wait_for_completion=true)");
         assertThat(
             request.indices(),
-            arrayContainingInAnyOrder(AnalyzedCreateSnapshot.ALL_INDICES));
+            arrayContainingInAnyOrder(AnalyzedCreateSnapshot.ALL_INDICES.toArray()));
         assertThat(request.repository(), is("my_repo"));
         assertThat(request.snapshot(), is("my_snapshot"));
         assertThat(
@@ -163,8 +163,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         CreateSnapshotRequest request = analyze(
             e,
             "CREATE SNAPSHOT my_repo.my_snapshot TABLE users, t2 WITH (ignore_unavailable=true)");
-        assertThat(request.indices().length, is(1));
-        assertThat(request.indices(), hasItemInArray("users"));
+        assertThat(request.indices(), arrayContaining("users"));
         assertThat(request.indicesOptions().ignoreUnavailable(), is(true));
     }
 
@@ -173,8 +172,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         CreateSnapshotRequest request = analyze(
             e,
             "CREATE SNAPSHOT my_repo.my_snapshot TABLE users, my_schema.t2 WITH (ignore_unavailable=true)");
-        assertThat(request.indices().length, is(1));
-        assertThat(request.indices(), hasItemInArray("users"));
+        assertThat(request.indices(), arrayContaining("users"));
         assertThat(request.indicesOptions().ignoreUnavailable(), is(true));
     }
 
@@ -252,7 +250,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testDropSnapshot() throws Exception {
-        DropSnapshotAnalyzedStatement statement = analyze(e, "DROP SNAPSHOT my_repo.my_snap_1");
+        AnalyzedDropSnapshot statement = analyze(e, "DROP SNAPSHOT my_repo.my_snap_1");
         assertThat(statement.repository(), is("my_repo"));
         assertThat(statement.snapshot(), is("my_snap_1"));
     }
