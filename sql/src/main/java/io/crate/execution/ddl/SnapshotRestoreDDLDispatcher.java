@@ -24,24 +24,19 @@ package io.crate.execution.ddl;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.FutureActionListener;
-import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -60,39 +55,12 @@ import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 @Singleton
 public class SnapshotRestoreDDLDispatcher {
 
-    private static final Logger LOGGER = LogManager.getLogger(SnapshotRestoreDDLDispatcher.class);
     private final TransportActionProvider transportActionProvider;
     private final String[] ALL_TEMPLATES = new String[]{"_all"};
 
     @Inject
     public SnapshotRestoreDDLDispatcher(TransportActionProvider transportActionProvider) {
         this.transportActionProvider = transportActionProvider;
-    }
-
-    public CompletableFuture<Long> dispatch(final DropSnapshotAnalyzedStatement statement) {
-        final CompletableFuture<Long> future = new CompletableFuture<>();
-        final String repositoryName = statement.repository();
-        final String snapshotName = statement.snapshot();
-
-        transportActionProvider.transportDeleteSnapshotAction().execute(
-            new DeleteSnapshotRequest(repositoryName, snapshotName),
-            new ActionListener<AcknowledgedResponse>() {
-                @Override
-                public void onResponse(AcknowledgedResponse response) {
-                    if (!response.isAcknowledged()) {
-                        LOGGER.info("delete snapshot '{}.{}' not acknowledged", repositoryName, snapshotName);
-                    }
-                    future.complete(1L);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    future.completeExceptionally(e);
-                }
-            }
-        );
-        return future;
-
     }
 
     public CompletableFuture<Long> dispatch(final RestoreSnapshotAnalyzedStatement analysis) {

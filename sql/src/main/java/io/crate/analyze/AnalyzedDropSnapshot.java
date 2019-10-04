@@ -21,12 +21,12 @@
 
 package io.crate.analyze;
 
-public class DropSnapshotAnalyzedStatement implements DDLStatement {
+public class AnalyzedDropSnapshot implements DDLStatement {
 
     private final String repository;
     private final String snapshot;
 
-    public DropSnapshotAnalyzedStatement(String repository, String snapshot) {
+    public AnalyzedDropSnapshot(String repository, String snapshot) {
         this.repository = repository;
         this.snapshot = snapshot;
     }

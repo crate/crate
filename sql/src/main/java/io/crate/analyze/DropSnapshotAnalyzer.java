@@ -37,7 +37,7 @@ class DropSnapshotAnalyzer {
         this.repositoryService = repositoryService;
     }
 
-    public DropSnapshotAnalyzedStatement analyze(DropSnapshot node) {
+    public AnalyzedDropSnapshot analyze(DropSnapshot node) {
         List<String> parts = node.name().getParts();
         Preconditions.checkArgument(parts.size() == 2,
             "Snapshot name not supported, only <repository>.<snapshot> works.");
@@ -45,6 +45,6 @@ class DropSnapshotAnalyzer {
         String repositoryName = parts.get(0);
         repositoryService.failIfRepositoryDoesNotExist(repositoryName);
 
-        return new DropSnapshotAnalyzedStatement(repositoryName, parts.get(1));
+        return new AnalyzedDropSnapshot(repositoryName, parts.get(1));
     }
 }

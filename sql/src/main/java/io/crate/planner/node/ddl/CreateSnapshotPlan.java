@@ -147,7 +147,7 @@ public class CreateSnapshotPlan implements Plan {
                     }
                 }
             }
-            snapshotIndices = new HashSet<>(Arrays.asList(AnalyzedCreateSnapshot.ALL_INDICES));
+            snapshotIndices = new HashSet<>(AnalyzedCreateSnapshot.ALL_INDICES);
         } else {
             snapshotIndices = new HashSet<>(createSnapshot.tables().size());
             for (Table<Symbol> table : createSnapshot.tables()) {
@@ -160,7 +160,9 @@ public class CreateSnapshotPlan implements Plan {
                         txnCtx.sessionContext().searchPath());
                 } catch (ResourceUnknownException e) {
                     if (ignoreUnavailable) {
-                        LOGGER.info("ignoring: {}", e.getMessage());
+                        LOGGER.info(
+                            "Ignore unknown relation '{}' for the '{}' snapshot'",
+                            table.getName(), createSnapshot.snapshot());
                         continue;
                     } else {
                         throw e;

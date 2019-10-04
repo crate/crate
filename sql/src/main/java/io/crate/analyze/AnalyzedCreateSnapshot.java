@@ -33,7 +33,7 @@ import java.util.function.Consumer;
 
 public class AnalyzedCreateSnapshot implements DDLStatement {
 
-    public static final String[] ALL_INDICES = new String[]{"*", "-.blob_*"};
+    public static final List<String> ALL_INDICES = List.of("*", "-.blob_*");
 
     private final Snapshot snapshot;
     private final List<Table<Symbol>> tables;
