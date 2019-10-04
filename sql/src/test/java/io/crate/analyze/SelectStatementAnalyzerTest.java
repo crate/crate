@@ -108,6 +108,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addTable("create table foo.users (id bigint primary key, name text)")
+            .addTable("create table fooobar (id bigint primary key, name text)")
+            .addTable("create table \"Foobaarr\" (id bigint primary key, name text)")
             .build();
     }
 
@@ -2039,5 +2041,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void test_select_from_unknown_schema_has_suggestion_for_correct_schema() {
         expectedException.expectMessage("Schema 'Doc' unknown. Maybe you meant 'doc'");
         analyze("select * from \"Doc\".users");
+    }
+
+    @Test
+    public void test_select_from_unkown_table_has_suggestion_for_correct_table() {
+        expectedException.expectMessage("Relation 'uusers' unknown. Maybe you meant 'users'");
+        analyze("select * from uusers");
+    }
+
+    @Test
+    public void test_select_from_unkown_table_has_suggestion_for_similar_tables() {
+        expectedException.expectMessage("Relation 'foobar' unknown. Maybe you meant one of: fooobar, \"Foobaarr\"");
+        analyze("select * from foobar");
     }
 }

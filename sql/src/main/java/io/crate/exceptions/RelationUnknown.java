@@ -21,19 +21,36 @@
 
 package io.crate.exceptions;
 
+import io.crate.common.collections.Lists2;
 import io.crate.metadata.RelationName;
+import io.crate.sql.Identifiers;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 public class RelationUnknown extends ResourceUnknownException implements TableScopeException {
 
-    private RelationName relationName;
+    private final RelationName relationName;
 
-    public RelationUnknown(String tableName) {
-        super(String.format(Locale.ENGLISH, "Relation '%s' unknown", tableName));
-        this.relationName = RelationName.fromIndexName(tableName);
+    public static RelationUnknown of(String relation, List<String> candidates) {
+        switch (candidates.size()) {
+            case 0:
+                return new RelationUnknown(relation);
+
+            case 1: {
+                var name = RelationName.fromIndexName(relation);
+                var msg = "Relation '" + relation + "' unknown. Maybe you meant '" + Identifiers.quoteIfNeeded(candidates.get(0)) + "'";
+                return new RelationUnknown(name, msg);
+            }
+            default: {
+                var name = RelationName.fromIndexName(relation);
+                var msg = "Relation '" + relation + "' unknown. Maybe you meant one of: "
+                          + String.join(", ", Lists2.map(candidates, Identifiers::quoteIfNeeded));
+                return new RelationUnknown(name, msg);
+            }
+        }
     }
 
     public RelationUnknown(String tableName, Throwable e) {
@@ -41,8 +58,16 @@ public class RelationUnknown extends ResourceUnknownException implements TableSc
         this.relationName = RelationName.fromIndexName(tableName);
     }
 
+    public RelationUnknown(String tableName) {
+        this(RelationName.fromIndexName(tableName), String.format(Locale.ENGLISH, "Relation '%s' unknown", tableName));
+    }
+
     public RelationUnknown(RelationName relationName) {
-        super(String.format(Locale.ENGLISH, "Relation '%s' unknown", relationName));
+        this(relationName, String.format(Locale.ENGLISH, "Relation '%s' unknown", relationName));
+    }
+
+    private RelationUnknown(RelationName relationName, String errorMessage) {
+        super(errorMessage);
         this.relationName = relationName;
     }
 
