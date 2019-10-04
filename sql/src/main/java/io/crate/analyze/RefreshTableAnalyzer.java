@@ -28,7 +28,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Expression;
@@ -51,8 +50,7 @@ class RefreshTableAnalyzer {
 
     public AnalyzedRefreshTable analyze(RefreshStatement<Expression> refreshStatement,
                                         Function<ParameterExpression, Symbol> convertParamFunction,
-                                        CoordinatorTxnCtx txnCtx,
-                                        SearchPath searchPath) {
+                                        CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
@@ -65,7 +63,8 @@ class RefreshTableAnalyzer {
             var tableInfo = (DocTableInfo) schemas.resolveTableInfo(
                 table.getName(),
                 Operation.REFRESH,
-                searchPath);
+                txnCtx.sessionContext().user(),
+                txnCtx.sessionContext().searchPath());
             analyzedTables.put(analyzedTable, tableInfo);
         }
         return new AnalyzedRefreshTable(analyzedTables);

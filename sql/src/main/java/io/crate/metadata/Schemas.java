@@ -26,6 +26,8 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.crate.analyze.user.Privilege;
+import io.crate.auth.user.User;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
@@ -43,6 +45,7 @@ import io.crate.metadata.view.ViewsMetaData;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -54,6 +57,7 @@ import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -102,7 +106,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         this.builtInSchemas = builtInSchemas;
     }
 
-    public TableInfo resolveTableInfo(QualifiedName ident, Operation operation, SearchPath searchPath) {
+    public TableInfo resolveTableInfo(QualifiedName ident, Operation operation, User user, SearchPath searchPath) {
         String identSchema = schemaName(ident);
         String tableName = relationName(ident);
 
@@ -121,7 +125,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         } else {
             schemaInfo = schemas.get(identSchema);
             if (schemaInfo == null) {
-                throw new SchemaUnknownException(identSchema);
+                throw SchemaUnknownException.of(identSchema, getSimilarSchemas(user, identSchema));
             } else {
                 tableInfo = schemaInfo.getTableInfo(tableName);
             }
@@ -131,6 +135,21 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         }
         Operation.blockedRaiseException(tableInfo, operation);
         return tableInfo;
+    }
+
+    private List<String> getSimilarSchemas(User user, String schema) {
+        LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
+        ArrayList<String> candidates = new ArrayList<>();
+        for (String availableSchema : schemas.keySet()) {
+            if (user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, availableSchema)) {
+                if (levenshteinDistance.getDistance(schema, availableSchema) > 0.7f) {
+                    candidates.add(availableSchema);
+                } else if (schema.equalsIgnoreCase(availableSchema)) {
+                    candidates.add(availableSchema);
+                }
+            }
+        }
+        return candidates;
     }
 
     /**

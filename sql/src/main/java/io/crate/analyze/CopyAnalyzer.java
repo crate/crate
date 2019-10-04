@@ -101,8 +101,12 @@ class CopyAnalyzer {
     }
 
     CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
-        DocTableInfo tableInfo = (DocTableInfo)
-            schemas.resolveTableInfo(node.table().getName(), Operation.INSERT, analysis.sessionContext().searchPath());
+        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+                node.table().getName(),
+                Operation.INSERT,
+                analysis.sessionContext().user(),
+                analysis.sessionContext().searchPath()
+        );
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 
         String partitionIdent = null;
@@ -177,8 +181,12 @@ class CopyAnalyzer {
             throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is not supported");
         }
 
-        TableInfo tableInfo =
-            schemas.resolveTableInfo(node.table().getName(), Operation.COPY_TO, analysis.sessionContext().searchPath());
+        TableInfo tableInfo = schemas.resolveTableInfo(
+            node.table().getName(),
+            Operation.COPY_TO,
+            analysis.sessionContext().user(),
+            analysis.sessionContext().searchPath()
+        );
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 

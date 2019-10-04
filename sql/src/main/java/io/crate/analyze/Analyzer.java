@@ -337,8 +337,8 @@ public class Analyzer {
             return refreshTableAnalyzer.analyze(
                 (RefreshStatement<Expression>) node,
                 context.paramTypeHints(),
-                context.transactionContext(),
-                context.sessionContext().searchPath());
+                context.transactionContext()
+            );
         }
 
         @Override
@@ -361,7 +361,6 @@ public class Analyzer {
         public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis analysis) {
             return alterTableAddColumnAnalyzer.analyze(
                 (AlterTableAddColumn<Expression>) node,
-                analysis.sessionContext().searchPath(),
                 analysis.paramTypeHints(),
                 analysis.transactionContext());
         }
@@ -465,8 +464,7 @@ public class Analyzer {
             return optimizeTableAnalyzer.analyze(
                 (OptimizeStatement<Expression>) node,
                 context.paramTypeHints(),
-                context.transactionContext(),
-                context.sessionContext().searchPath());
+                context.transactionContext());
         }
 
         @Override
@@ -514,8 +512,7 @@ public class Analyzer {
             return swapTableAnalyzer.analyze(
                 swapTable,
                 analysis.transactionContext(),
-                analysis.paramTypeHints(),
-                analysis.sessionContext().searchPath()
+                analysis.paramTypeHints()
             );
         }
 

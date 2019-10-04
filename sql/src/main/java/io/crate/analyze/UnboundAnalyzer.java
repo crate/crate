@@ -218,8 +218,8 @@ class UnboundAnalyzer {
             return optimizeTableAnalyzer.analyze(
                 (OptimizeStatement<Expression>) node,
                 context.paramTypeHints(),
-                context.transactionContext(),
-                context.sessionContext().searchPath());
+                context.transactionContext()
+            );
         }
     }
 }

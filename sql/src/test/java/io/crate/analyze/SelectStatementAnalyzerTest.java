@@ -2034,4 +2034,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.outputs().get(0),
                    fieldPointsToReferenceOf("friends['id']", "doc.users"));
     }
+
+    @Test
+    public void test_select_from_unknown_schema_has_suggestion_for_correct_schema() {
+        expectedException.expectMessage("Schema 'Doc' unknown. Maybe you meant 'doc'");
+        analyze("select * from \"Doc\".users");
+    }
 }

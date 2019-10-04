@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.auth.user.User;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -51,8 +52,7 @@ public final class SwapTableAnalyzer {
 
     public AnalyzedSwapTable analyze(SwapTable swapTable,
                                      CoordinatorTxnCtx txnCtx,
-                                     ParamTypeHints typeHints,
-                                     SearchPath searchPath) {
+                                     ParamTypeHints typeHints) {
         HashMap<String, Expression> properties = new HashMap<>(swapTable.properties().properties());
         Expression dropSourceExpr = properties.remove(DROP_SOURCE);
         if (!properties.isEmpty()) {
@@ -67,9 +67,11 @@ public final class SwapTableAnalyzer {
                 functions, txnCtx, typeHints, FieldProvider.UNSUPPORTED, null);
             dropSource = exprAnalyzer.convert(dropSourceExpr, new ExpressionAnalysisContext());
         }
+        SearchPath searchPath = txnCtx.sessionContext().searchPath();
+        User user = txnCtx.sessionContext().user();
         return new AnalyzedSwapTable(
-            (DocTableInfo) schemas.resolveTableInfo(swapTable.source(), Operation.ALTER, searchPath),
-            (DocTableInfo) schemas.resolveTableInfo(swapTable.target(), Operation.ALTER, searchPath),
+            (DocTableInfo) schemas.resolveTableInfo(swapTable.source(), Operation.ALTER, user, searchPath),
+            (DocTableInfo) schemas.resolveTableInfo(swapTable.target(), Operation.ALTER, user, searchPath),
             dropSource
         );
     }

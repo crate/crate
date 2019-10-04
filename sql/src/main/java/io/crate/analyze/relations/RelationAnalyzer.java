@@ -644,7 +644,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         AnalyzedRelation relation;
         TableInfo tableInfo;
         try {
-            tableInfo = schemas.resolveTableInfo(tableQualifiedName, context.currentOperation(), searchPath);
+            tableInfo = schemas.resolveTableInfo(
+                tableQualifiedName,
+                context.currentOperation(),
+                context.sessionContext().user(),
+                searchPath
+            );
             if (tableInfo instanceof DocTableInfo) {
                 // Dispatching of doc relations is based on the returned class of the schema information.
                 relation = new DocTableRelation((DocTableInfo) tableInfo);

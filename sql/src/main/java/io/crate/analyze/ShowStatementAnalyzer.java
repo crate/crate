@@ -24,6 +24,7 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.auth.user.User;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -88,6 +89,7 @@ class ShowStatementAnalyzer {
     public AnalyzedStatement analyzeShowCreateTable(Table table, Analysis analysis) {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(table.getName(),
                                                                          Operation.SHOW_CREATE,
+                                                                         User.CRATE_USER,
                                                                          analysis.sessionContext().searchPath());
         AnalyzedShowCreateTable analyzedStatement = new AnalyzedShowCreateTable(tableInfo);
         analysis.rootRelation(analyzedStatement);

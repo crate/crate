@@ -65,7 +65,7 @@ class DropTableAnalyzer {
         T tableInfo;
         try {
             //noinspection unchecked
-            tableInfo = (T) schemas.resolveTableInfo(name, Operation.DROP, sessionContext.searchPath());
+            tableInfo = (T) schemas.resolveTableInfo(name, Operation.DROP, sessionContext.user(), sessionContext.searchPath());
         } catch (SchemaUnknownException | RelationUnknown e) {
             if (dropIfExists) {
                 tableInfo = null;

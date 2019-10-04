@@ -63,7 +63,10 @@ class AlterTableAnalyzer {
 
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
 
-        DocTableInfo docTableInfo = (DocTableInfo) schemas.resolveTableInfo(alterTable.table().getName(), Operation.ALTER_BLOCKS,
+        DocTableInfo docTableInfo = (DocTableInfo) schemas.resolveTableInfo(
+            alterTable.table().getName(),
+            Operation.ALTER_BLOCKS,
+            txnCtx.sessionContext().user(),
             txnCtx.sessionContext().searchPath());
 
         return new AnalyzedAlterTable(docTableInfo, alterTable);
