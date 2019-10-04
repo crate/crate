@@ -760,7 +760,7 @@ public final class SqlFormatter {
         @Override
         public Void visitDropRepository(DropRepository node, Integer indent) {
             builder.append("DROP REPOSITORY ")
-                .append(quoteIdentifierIfNeeded(node.repository()));
+                .append(quoteIdentifierIfNeeded(node.name()));
             return null;
         }
 

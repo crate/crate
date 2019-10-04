@@ -21,39 +21,35 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
 import java.util.Objects;
 
 public class DropRepository extends Statement {
 
-    private final String repository;
+    private final String name;
 
-    public DropRepository(String repository) {
-        this.repository = repository;
+    public DropRepository(String name) {
+        this.name = name;
     }
 
-    public String repository() {
-        return repository;
+    public String name() {
+        return name;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(repository);
+        return Objects.hashCode(name);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
-        return repository.equals(((DropRepository) obj).repository);
+        return name.equals(((DropRepository) obj).name);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("repository", repository)
-            .toString();
+        return "DropRepository{repository=" + name + '}';
     }
 
     @Override

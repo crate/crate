@@ -169,6 +169,7 @@ public class Analyzer {
         this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, functions);
         this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, functions);
+        this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -180,7 +181,8 @@ public class Analyzer {
             createTableStatementAnalyzer,
             alterTableAnalyzer,
             optimizeTableAnalyzer,
-            createRepositoryAnalyzer
+            createRepositoryAnalyzer,
+            dropRepositoryAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -193,7 +195,6 @@ public class Analyzer {
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
-        this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
         this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, schemas);
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
