@@ -59,14 +59,17 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 
@@ -122,35 +125,76 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                     }
                 }
             }
+            if (tableInfo == null) {
+                SchemaInfo currentSchema = schemas.get(searchPath.currentSchema());
+                if (currentSchema == null) {
+                    throw new RelationUnknown(tableName);
+                } else {
+                    throw RelationUnknown.of(tableName, getSimilarTables(user, tableName, currentSchema.getTables()));
+                }
+            }
         } else {
             schemaInfo = schemas.get(identSchema);
             if (schemaInfo == null) {
                 throw SchemaUnknownException.of(identSchema, getSimilarSchemas(user, identSchema));
             } else {
                 tableInfo = schemaInfo.getTableInfo(tableName);
+                if (tableInfo == null) {
+                    throw RelationUnknown.of(ident.toString(), getSimilarTables(user, tableName, schemaInfo.getTables()));
+                }
             }
-        }
-        if (tableInfo == null) {
-            throw new RelationUnknown(ident.toString());
         }
         Operation.blockedRaiseException(tableInfo, operation);
         return tableInfo;
     }
 
-    private List<String> getSimilarSchemas(User user, String schema) {
+    private static List<String> getSimilarTables(User user, String tableName, Iterable<TableInfo> tables) {
         LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
-        ArrayList<String> candidates = new ArrayList<>();
-        for (String availableSchema : schemas.keySet()) {
-            if (user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, availableSchema)) {
-                if (levenshteinDistance.getDistance(schema, availableSchema) > 0.7f) {
-                    candidates.add(availableSchema);
-                } else if (schema.equalsIgnoreCase(availableSchema)) {
-                    candidates.add(availableSchema);
+        ArrayList<Candidate> candidates = new ArrayList<>();
+        for (TableInfo table : tables) {
+            if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, table.ident().fqn())) {
+                String candidate = table.ident().name();
+                float score = levenshteinDistance.getDistance(tableName.toLowerCase(Locale.ENGLISH), candidate.toLowerCase(Locale.ENGLISH));
+                if (score > 0.7f) {
+                    candidates.add(new Candidate(score, candidate));
                 }
             }
         }
-        return candidates;
+        candidates.sort(Comparator.comparing((Candidate x) -> x.score).reversed());
+        return candidates.stream()
+            .limit(5)
+            .map(x -> x.name)
+            .collect(Collectors.toList());
     }
+
+    private List<String> getSimilarSchemas(User user, String schema) {
+        LevenshteinDistance levenshteinDistance = new LevenshteinDistance();
+        ArrayList<Candidate> candidates = new ArrayList<>();
+        for (String availableSchema : schemas.keySet()) {
+            if (user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, availableSchema)) {
+                float score = levenshteinDistance.getDistance(schema.toLowerCase(Locale.ENGLISH), availableSchema.toLowerCase(Locale.ENGLISH));
+                if (score > 0.7f) {
+                    candidates.add(new Candidate(score, availableSchema));
+                }
+            }
+        }
+        candidates.sort(Comparator.comparing((Candidate x) -> x.score).reversed());
+        return candidates.stream()
+            .limit(5)
+            .map(x -> x.name)
+            .collect(Collectors.toList());
+    }
+
+    static class Candidate {
+        final double score;
+        final String name;
+
+        Candidate(double score, String name) {
+            this.score = score;
+            this.name = name;
+        }
+    }
+
 
     /**
      * Resolves the provided ident relation (table or view) against the search path.
