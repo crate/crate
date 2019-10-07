@@ -105,7 +105,7 @@ The number of replicas a blob table has can be changed using the ``ALTER BLOB
 TABLE`` clause::
 
     sh$ crash -c "alter blob table myblobs set (number_of_replicas=0)"
-    ALTER OK, 1 row affected (... sec)
+    ALTER OK, -1 rows affected (... sec)
 
 Deleting a blob table
 =====================

@@ -38,6 +38,7 @@ import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
@@ -143,10 +144,9 @@ public class AlterTableOperation {
 
     public CompletableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {
         final Settings settings = analysis.tableParameter().settings();
-        final DocTableInfo table = analysis.table();
         final boolean includesNumberOfShardsSetting = settings.hasValue(SETTING_NUMBER_OF_SHARDS);
         final boolean isResizeOperationRequired = includesNumberOfShardsSetting &&
-                                                  (!table.isPartitioned() || analysis.partitionName().isPresent());
+                                                  (!analysis.isPartitioned() || analysis.partitionName().isPresent());
 
         if (isResizeOperationRequired) {
             if (settings.size() > 1) {
@@ -162,7 +162,7 @@ public class AlterTableOperation {
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
                 analysis.partitionName().map(PartitionName::asIndexName).orElse(null),
-                analysis.table().isPartitioned(),
+                analysis.isPartitioned(),
                 analysis.excludePartitions(),
                 analysis.tableParameter().settings(),
                 analysis.tableParameter().mappings()
@@ -176,8 +176,8 @@ public class AlterTableOperation {
     }
 
     private CompletableFuture<Long> executeAlterTableChangeNumberOfShards(AlterTableAnalyzedStatement analysis) {
-        final DocTableInfo table = analysis.table();
-        final boolean isPartitioned = table.isPartitioned();
+        final TableInfo table = analysis.table();
+        final boolean isPartitioned = analysis.isPartitioned();
         String sourceIndexName;
         String sourceIndexAlias;
         if (isPartitioned) {

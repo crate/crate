@@ -22,12 +22,16 @@
 package io.crate.analyze;
 
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.data.Row;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.AlterTable;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -35,10 +39,21 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.function.Function;
 
+import static io.crate.planner.node.ddl.AlterTablePlan.getTableParameter;
 import static org.hamcrest.Matchers.is;
 
 public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
+
+    private static Function<? super Symbol, Object> EVAL = x -> SymbolEvaluator.evaluate(
+        null,
+        null,
+        x,
+        Row.EMPTY,
+        SubQueryResults.EMPTY
+    );
+
 
     private SQLExecutor e;
 
@@ -170,21 +185,27 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testAlterBlobTableWithInvalidProperty() {
-        e.analyze("alter blob table blobs set (foobar='2')");
+        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (foobar='2')");
+        AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
+        getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
     }
 
     @Test
     public void testAlterBlobTableWithReplicas() {
-        AlterBlobTableAnalyzedStatement analysis = e.analyze("alter blob table blobs set (number_of_replicas=2)");
-        assertThat(analysis.table().ident().name(), is("blobs"));
-        assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
+        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (number_of_replicas=2)");
+        assertThat(analysis.tableInfo().ident().name(), is("blobs"));
+        AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
+        TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
+        assertThat(parameter.settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
     }
 
     @Test
     public void testAlterBlobTableWithPath() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid property \"blobs_path\" passed to [ALTER | CREATE] TABLE statement");
-        e.analyze("alter blob table blobs set (blobs_path=1)");
+        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (blobs_path=1)");
+        AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
+        getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
     }
 
     @Test

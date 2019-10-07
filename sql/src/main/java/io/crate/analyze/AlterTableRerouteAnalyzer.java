@@ -45,7 +45,7 @@ import io.crate.sql.tree.RerouteMoveShard;
 import java.util.HashMap;
 import java.util.List;
 
-import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
+import static io.crate.metadata.RelationName.fromBlobTable;
 
 public class AlterTableRerouteAnalyzer {
 
@@ -62,7 +62,7 @@ public class AlterTableRerouteAnalyzer {
         ShardedTable tableInfo;
         RelationName relationName;
         if (node.blob()) {
-            relationName = tableToIdent(node.table());
+            relationName = fromBlobTable(node.table());
         } else {
             relationName = schemas.resolveRelation(node.table().getName(), context.sessionContext().searchPath());
         }
