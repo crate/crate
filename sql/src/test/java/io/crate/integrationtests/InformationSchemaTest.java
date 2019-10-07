@@ -588,7 +588,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(696, response.rowCount());
+        assertEquals(701, response.rowCount());
     }
 
     @Test

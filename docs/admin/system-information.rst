@@ -1015,6 +1015,22 @@ Table schema
         that all lower sequence numbers have been processed on all active shard
         copies.
       - ``BIGINT``
+    * - ``translog_stats``
+      - Contains information for the translog of the shard.
+      - ``OBJECT``
+    * - ``translog_stats['size']``
+      - The current size of the translog file in bytes.
+      - ``BIGINT``
+    * - ``translog_stats['uncommitted_size']``
+      - The size in bytes of the translog that has not been committed to Lucene yet.
+      - ``BIGINT``
+    * - ``translog_stats['number_of_operations']``
+      - The number of operations recorded in the translog.
+      - ``INTEGER``
+    * - ``translog_stats['uncommitted_operations']``
+      - The number of operations in the translog which have not been committed to Lucene yet.
+      - ``INTEGER``
+
 
 .. NOTE::
 
