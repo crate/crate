@@ -7,6 +7,7 @@ pipeline {
     CI_RUN = 'true'
     JDK_11 = 'openjdk@1.11.0'
     JDK_12 = 'openjdk@1.12.0'
+    JDK_13 = 'openjdk@1.13.0'
     ADOPT_JDK_12 = 'adopt@1.12.0-2'
   }
   stages {
@@ -56,6 +57,24 @@ pipeline {
             }
           }
         }
+        stage('test jdk13') {
+          agent { label 'large' }
+          environment {
+            CODECOV_TOKEN = credentials('cratedb-codecov-token')
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'jabba install $JDK_13'
+            sh 'JAVA_HOME=$(jabba which --home $JDK_13) ./gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
+            sh 'curl -s https://codecov.io/bash | bash'
+          }
+          post {
+            always {
+              junit '*/build/test-results/test/*.xml'
+            }
+          }
+        }
         stage('itest jdk11') {
           agent { label 'medium' }
           steps {
@@ -90,6 +109,15 @@ pipeline {
             checkout scm
             sh 'jabba install $JDK_12'
             sh 'JAVA_HOME=$(jabba which --home $JDK_12) ./gradlew --no-daemon itest'
+          }
+        }
+        stage('itest jdk13') {
+          agent { label 'medium' }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'jabba install $JDK_13'
+            sh 'JAVA_HOME=$(jabba which --home $JDK_13) ./gradlew --no-daemon itest'
           }
         }
         stage('itest adopt-jdk-12') {
