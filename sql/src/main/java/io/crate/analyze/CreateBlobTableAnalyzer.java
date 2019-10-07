@@ -41,7 +41,7 @@ public class CreateBlobTableAnalyzer {
 
     public CreateBlobTableAnalyzedStatement analyze(CreateBlobTable node, ParameterContext parameterContext) {
         CreateBlobTableAnalyzedStatement statement = new CreateBlobTableAnalyzedStatement();
-        RelationName relationName = BlobTableAnalyzer.tableToIdent(node.name());
+        RelationName relationName = RelationName.fromBlobTable(node.name());
         statement.table(relationName, schemas);
 
         int numShards;

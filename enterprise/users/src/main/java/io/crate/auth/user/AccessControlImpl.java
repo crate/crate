@@ -19,17 +19,18 @@
 package io.crate.auth.user;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AlterBlobTableAnalyzedStatement;
+import io.crate.analyze.AlterUserAnalyzedStatement;
+import io.crate.analyze.AnalyzedAlterBlobTable;
+import io.crate.analyze.AnalyzedAlterTable;
+import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
-import io.crate.analyze.AlterUserAnalyzedStatement;
-import io.crate.analyze.AnalyzedAlterTableAddColumn;
-import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedUpdateStatement;
@@ -55,7 +56,6 @@ import io.crate.analyze.KillAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
@@ -420,11 +420,11 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, User user) {
+        public Void visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
-                analysis.table().ident().toString(),
+                analysis.tableInfo().ident().toString(),
                 user,
                 defaultSchema);
             return null;

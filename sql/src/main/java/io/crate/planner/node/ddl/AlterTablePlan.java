@@ -39,6 +39,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -102,7 +103,12 @@ public class AlterTablePlan implements Plan {
         TableParameters tableParameters = getTableParameterInfo(table, partitionName);
         TableParameter tableParameter = getTableParameter(alterTable, tableParameters);
         maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
-        return new AlterTableAnalyzedStatement(docTableInfo, partitionName, tableParameter, table.excludePartitions());
+        return new AlterTableAnalyzedStatement(
+            docTableInfo,
+            partitionName,
+            tableParameter,
+            table.excludePartitions(),
+            docTableInfo.isPartitioned());
     }
 
     private static TableParameters getTableParameterInfo(Table table,
@@ -114,7 +120,7 @@ public class AlterTablePlan implements Plan {
         return TableParameters.PARTITION_PARAMETER_INFO;
     }
 
-    private static TableParameter getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
+    public static TableParameter getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
         TableParameter tableParameter = new TableParameter();
         if (!node.genericProperties().isEmpty()) {
             TablePropertiesAnalyzer.analyzeWithBoundValues(tableParameter, tableParameters, node.genericProperties(), false);
@@ -125,7 +131,7 @@ public class AlterTablePlan implements Plan {
     }
 
     // Only check for permission if statement is not changing the metadata blocks, so don't block `re-enabling` these.
-    private static void maybeRaiseBlockedException(DocTableInfo tableInfo, Settings tableSettings) {
+    static void maybeRaiseBlockedException(TableInfo tableInfo, Settings tableSettings) {
         if (tableSettings.size() != 1 ||
             (tableSettings.get(IndexMetaData.SETTING_BLOCKS_METADATA) == null &&
              tableSettings.get(IndexMetaData.SETTING_READ_ONLY) == null)) {

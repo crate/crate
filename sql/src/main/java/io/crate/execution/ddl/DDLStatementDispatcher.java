@@ -22,7 +22,6 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.analyze.AlterBlobTableAnalyzedStatement;
 import io.crate.analyze.AlterUserAnalyzedStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -125,11 +124,6 @@ public class DDLStatementDispatcher {
         public CompletableFuture<Long> visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis,
                                                                      Ctx ctx) {
             return blobAdminClient.get().createBlobTable(analysis.tableName(), analysis.tableParameter().settings());
-        }
-
-        @Override
-        public CompletableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, Ctx ctx) {
-            return blobAdminClient.get().alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings());
         }
 
         @Override

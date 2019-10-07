@@ -24,6 +24,7 @@ package io.crate.planner;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
@@ -75,6 +76,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
+import io.crate.planner.node.ddl.AlterBlobTablePlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
@@ -339,10 +341,16 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         return new AlterTablePlan(alterTable);
     }
 
+    @Override
+    public Plan visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis,
+                                            PlannerContext context) {
+        return new AlterBlobTablePlan(analysis);
+    }
+
     public Plan visitRefreshTableStatement(AnalyzedRefreshTable analysis, PlannerContext context) {
         return new RefreshTablePlan(analysis);
     }
-    
+
     @Override
     public Plan visitAnalyzedAlterTableRename(AnalyzedAlterTableRename analysis,
                                               PlannerContext context) {
