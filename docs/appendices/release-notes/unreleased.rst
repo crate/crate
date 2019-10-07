@@ -69,7 +69,8 @@ Changes
   should make typos more apparent and can help users figure out that they were
   missing double quotes in case the table names contain upper case letters.
 
-- Added a ``seq_no_stats`` column to the :ref:`sys.shards <sys-shards>` table.
+- Added a ``seq_no_stats`` and a ``translog_stats`` column to the
+  :ref:`sys.shards <sys-shards>` table.
 
 - Added new system table :ref:`sys.segments <sys-segments>` which contains
   information about the Lucene segments of a shard.
