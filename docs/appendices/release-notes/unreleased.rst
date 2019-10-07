@@ -46,4 +46,6 @@ None
 Fixes
 =====
 
-None
+- Changed the error message returned when a :ref:`CREATE REPOSITORY
+  <ref-create-repository>` statement fails so that it includes more information
+  about the cause of the failure.
