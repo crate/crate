@@ -863,156 +863,158 @@ The table ``sys.shards`` contains real-time statistics for all shards of all
 Table schema
 ------------
 
-+---------------------------------------+-----------------------------------------------------+-------------+
-| Column Name                           | Description                                         | Return Type |
-+=======================================+=====================================================+=============+
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``node``                              | Information about the node the shard is located     | ``OBJECT``  |
-|                                       | at.                                                 |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``node['name']``                      | The name of the node the shard is located at.       | ``TEXT``    |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``node['id']``                        | The id of the node the shard is located at.         | ``TEXT``    |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``blob_path``                         | Path to the directory which contains the blob       | ``TEXT``    |
-|                                       | files of the shard, or null if the shard is not a   |             |
-|                                       | blob shard.                                         |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``id``                                | The shard ID.                                       | ``INTEGER`` |
-|                                       |                                                     |             |
-|                                       | This shard ID is managed by the managed by the      |             |
-|                                       | system ranging from 0 and up to the specified       |             |
-|                                       | number of shards of a table (by default the number  |             |
-|                                       | of shards is 5).                                    |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``min_lucene_version``                | Shows the oldest lucene segment version used in     | ``TEXT``    |
-|                                       | this shard.                                         |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``num_docs``                          | The total amount of docs within a shard.            | ``BIGINT``  |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``orphan_partition``                  | True if the partition has NO table associated       | ``BOOLEAN`` |
-|                                       | with. In rare situations the table is missing.      |             |
-|                                       |                                                     |             |
-|                                       | False on non-partitioned tables.                    |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``partition_ident``                   | The partition ident of a partitioned table.         | ``TEXT``    |
-|                                       |                                                     |             |
-|                                       | Empty string on non-partitioned tables.             |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``path``                              | Path to the shard directory on the filesystem.      | ``TEXT``    |
-|                                       |                                                     |             |
-|                                       | This directory contains state and index files.      |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``primary``                           | Describes if the shard is the primary shard.        | ``BOOLEAN`` |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery``                          | Represents recovery statistic of the particular     | ``OBJECT``  |
-|                                       | shard.                                              |             |
-|                                       |                                                     |             |
-|                                       | Recovery is the process of moving a table shard to  |             |
-|                                       | a different node or loading it from disk, e.g.      |             |
-|                                       | during node startup (local gateway recovery),       |             |
-|                                       | replication, shard rebalancing or snapshot          |             |
-|                                       | recovery.                                           |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['files']``                 | Shards recovery statistic in files.                 | ``OBJECT``  |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['files']['percent']``      | Percentage of files already recovered.              | ``REAL``    |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['files']['recovered']``    | Number of actual files recovered in the shard.      | ``INTEGER`` |
-|                                       | Includes both existing and reused files.            |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['files']['reused']``       | Total number of files reused from a local copy      | ``INTEGER`` |
-|                                       | while recovering the shard.                         |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['files']['used']``         | Total number of files in the shard.                 | ``INTEGER`` |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['size']``                  | Shards recovery statistic in bytes.                 | ``OBJECT``  |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['size']['percent']``       | Percentage of bytes already recovered.              | ``REAL``    |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['size']['recovered']``     | Number of actual bytes recovered in the shard.      | ``BIGINT``  |
-|                                       | Includes both existing and reused bytes.            |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['size']['reused']``        | Number of bytes reused from a local copy            | ``BIGINT``  |
-|                                       | while recovering the shard.                         |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['size']['used']``          | Total number of bytes in the shard.                 | ``BIGINT``  |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['stage']``                 | Recovery stage:                                     | ``TEXT``    |
-|                                       |                                                     |             |
-|                                       | * init: Recovery has not started                    |             |
-|                                       | * index: Reading the Lucene index meta-data and     |             |
-|                                       |   copying bytes from source to destination          |             |
-|                                       | * start: Starting the engine,                       |             |
-|                                       |   opening the index for use                         |             |
-|                                       | * translog: Replaying transaction log               |             |
-|                                       | * finalize: Cleanup                                 |             |
-|                                       | * done: Complete                                    |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['total_time']``            | Returns elapsed time from the start of the shard    | ``BIGINT``  |
-|                                       | recovery.                                           |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``recovery['type']``                  | Recovery type:                                      | ``TEXT``    |
-|                                       |                                                     |             |
-|                                       | * gateway                                           |             |
-|                                       | * snapshot                                          |             |
-|                                       | * replica                                           |             |
-|                                       | * relocating                                        |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``relocating_node``                   | The node ID which the shard is getting relocated    | ``TEXT``    |
-|                                       | to at the time.                                     |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``routing_state``                     | The current state of a shard as defined by the      | ``TEXT``    |
-|                                       | routing.                                            |             |
-|                                       |                                                     |             |
-|                                       | Possible states of the shard routing are:           |             |
-|                                       |                                                     |             |
-|                                       | * UNASSIGNED,                                       |             |
-|                                       | * INITIALIZING                                      |             |
-|                                       | * STARTED                                           |             |
-|                                       | * RELOCATING                                        |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``schema_name``                       | The schema name.                                    | ``TEXT``    |
-|                                       |                                                     |             |
-|                                       | This will be "blob" for shards of blob tables and   |             |
-|                                       | "doc" for shards of common tables without a         |             |
-|                                       | defined schema.                                     |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``size``                              | Current size in bytes.                              | ``BIGINT``  |
-|                                       |                                                     |             |
-|                                       | This value is cached for max. 10 seconds to reduce  |             |
-|                                       | file system access.                                 |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``state``                             | The current state of the shard.                     | ``TEXT``    |
-|                                       |                                                     |             |
-|                                       | Possible states are:                                |             |
-|                                       |                                                     |             |
-|                                       | * CREATED                                           |             |
-|                                       | * RECOVERING                                        |             |
-|                                       | * POST_RECOVERY                                     |             |
-|                                       | * STARTED                                           |             |
-|                                       | * RELOCATED                                         |             |
-|                                       | * CLOSED                                            |             |
-|                                       | * INITIALIZING                                      |             |
-|                                       | * UNASSIGNED                                        |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``table_name``                        | The table name.                                     | ``TEXT``    |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``seq_no_stats``                      | Contains information about internal sequence        | ``OBJECT``  |
-|                                       | numbering and checkpoints for those.                |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``seq_no_stats['max_seq_no']``        | The highest sequence number that has been issued    | ``BIGINT``  |
-|                                       | so far on the shard.                                |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``seq_no_stats['local_checkpoint']``  | The highest sequence number for which all lower     | ``BIGINT``  |
-|                                       | sequence numbers have been processed.               |             |
-|                                       | Due to concurrent indexing this can be lower than   |             |
-|                                       | max_seq_no                                          |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
-| ``seq_no_stats['global_checkpoint']`` | The highest sequence number for which the local     | ``BIGINT``  |
-|                                       | shard can guarantee that all lower sequence numbers |             |
-|                                       | have been processed on all active shard copies      |             |
-+---------------------------------------+-----------------------------------------------------+-------------+
+.. list-table::
+    :header-rows: 1
+
+    * - Column Name
+      - Description
+      - Return Type
+    * - ``node``
+      - Information about the node the shard is located at.
+      - ``OBJECT``
+    * - ``node['name']``
+      - The name of the node the shard is located at.
+      - ``TEXT``
+    * - ``node['id']``
+      - The id of the node the shard is located at.
+      - ``TEXT``
+    * - ``blob_path``
+      - Path to the directory which contains the blob files of the shard, or
+        null if the shard is not a blob shard.
+      - ``TEXT``
+    * - ``id``
+      - The shard id.
+        This shard id is managed by the system, ranging from 0 up to the number
+        of configured shards of the table.
+      - ``INTEGER``
+    * - ``min_lucene_version``
+      - Shows the oldest Lucene segment version used in this shard.
+      - ``TEXT``
+    * - ``num_docs``
+      - The total amount of documents within a shard.
+      - ``BIGINT``
+    * - ``oprhan_partition``
+      - True if this shard belongs to an orphaned partition which doesn't belong to any table anymore.
+      - ``BOOLEAN``
+    * - ``partition_ident``
+      - The partition ident of a partitioned table. Empty for non-partitioned tables.
+      - ``TEXT``
+    * - ``path``
+      - Path to the shard directory on the filesystem. This directory contains state and index files.
+      - ``TEXT``
+    * - ``primary``
+      - Indicates if this shard is the primary shard.
+      - ``BOOLEAN``
+    * - ``recovery``
+      - Recovery statistics of a shard.
+
+        Recovery is the process of moving a shard to a different node or
+        loading a shard from disk, e.g. during node startup or snapshot
+        recovery.
+      - ``OBJECT``
+    * - ``recovery['files']``
+      - File recovery statistics
+      - ``OBJECT``
+    * - ``recovery['files']['percent']``
+      - Percentage of files already recovered.
+      - ``REAL``
+    * - ``recovery['files']['recovered']``
+      - Number of files recovered in the shard. Includes both existing and reused files.
+      - ``INTEGER``
+    * - ``recovery['files']['reused']``
+      - Total number of files reused from a local copy while recovering the shard.
+      - ``INTEGER``
+    * - ``recovery['files']['used']``
+      - Total number of files in the shard.
+      - ``INTEGER``
+    * - ``recovery['size']``
+      - Recovery statistics for the shard in bytes
+      - ``OBJECT``
+    * - ``recovery['size']['percent']``
+      - Percentage of bytes already recovered
+      - ``REAL``
+    * - ``recovery['size']['recovered']``
+      - Number of bytes recovered. Includes both existing and re-used bytes.
+      - ``BIGINT``
+    * - ``recovery['size']['reused']``
+      - Number of bytes re-used from a local copy while recovering the shard.
+      - ``BIGINT``
+    * - ``recovery['size']['used']``
+      - Total number of bytes in the shard.
+      - ``BIGINT``
+    * - ``recovery['stage']``
+      - Recovery stage:
+
+        * init: Recovery has not started
+        * index: Reading the Lucene index meta-data and copying bytes from source to destination
+        * start: Starting the engine, opening the index for use
+        * translog: Replaying transaction log
+        * finalize: Cleanup
+        * done: Complete
+      - ``TEXT``
+    * - ``recovery['total_time']``
+      - Returns elapsed time from the start of the shard recovery.
+      - ``BIGINT``
+    * - ``recovery['type']``
+      - Recovery type:
+
+        * gateway
+        * snapshot
+        * replica
+        * relocating
+      - ``TEXT``
+    * - ``relocating_node``
+      - The id of the node to which the shard is getting relocated to.
+      - ``TEXT``
+    * - ``routing_state``
+      - The current state of the shard in the routing table.
+        Possible states are:
+
+        * UNASSIGNED
+        * INITIALIZING
+        * STARTED
+        * RELOCATING
+      - ``TEXT``
+    * - ``schema_name``
+      - The schema name of the table the shard belongs to
+      - ``TEXT``
+    * - ``size``
+      - The current size in bytes. This value is cached for a short period and
+        may return slightly outdated values.
+      - ``BIGINT``
+    * - ``state``
+      - The current state of the shard.
+        Possible states are:
+
+        * CREATED
+        * RECOVERING
+        * POST_RECOVERY
+        * STARTED
+        * RELOCATED
+        * CLOSED
+        * INITIALIZING
+        * UNASSIGNED
+      - ``TEXT``
+    * - ``table_name``
+      - The name of the table this shard belongs to
+      - ``TEXT``
+    * - ``seq_no_stats``
+      - Contains information about internal sequence numbering and checkpoints
+        for these sequence numbers.
+      - ``OBJECT``
+    * - ``seq_no_stats['max_seq_no']``
+      - The highest sequence number that has been issued so far on the shard.
+      - ``BIGINT``
+    * - ``seq_no_stats['local_checkpoint']``
+      - The highest sequence number for which all lower sequence number of been
+        processed on this shard. Due to concurrent indexing this can be lower
+        than max_seq_no.
+      - ``BIGINT``
+    * - ``seq_no_stats['global_checkpoint']``
+      - The highest sequence number for which the local shard can guarantee
+        that all lower sequence numbers have been processed on all active shard
+        copies.
+      - ``BIGINT``
 
 .. NOTE::
 
