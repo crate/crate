@@ -31,9 +31,6 @@ subprojects {
         }
     }
 
-    tasks.withType(FindBugs) {
-        enabled = false
-    }
 
     tasks.withType(Pmd) {
         enabled = false
