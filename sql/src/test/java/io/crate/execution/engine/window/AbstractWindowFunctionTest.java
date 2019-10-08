@@ -163,7 +163,8 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         InputColumns.SourceSymbols inputColSources = new InputColumns.SourceSymbols(sourceSymbols);
         var mappedWindowDef = windowDef.map(s -> InputColumns.create(s, inputColSources));
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
-            InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).collect(Collectors.toList()), SENTINEL),
+            InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).collect(Collectors.toList()), SENTINEL,
+                                     true),
             new IgnoreRowAccounting(),
             WindowProjector.createComputeStartFrameBoundary(numCellsInSourceRows, functions, txnCtx, mappedWindowDef, cmpOrderBy),
             WindowProjector.createComputeEndFrameBoundary(numCellsInSourceRows, functions, txnCtx, mappedWindowDef, cmpOrderBy),

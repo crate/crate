@@ -40,7 +40,7 @@ public class FlatMapBatchIteratorTest {
 
     @Test
     public void testFlatMap() throws Exception {
-        InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null);
+        InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false);
         FlatMapBatchIterator<Integer, Integer[]> twiceAsArray =
             new FlatMapBatchIterator<>(source, x -> Arrays.asList(new Integer[] {x, x}, new Integer[] {x, x}).iterator());
 

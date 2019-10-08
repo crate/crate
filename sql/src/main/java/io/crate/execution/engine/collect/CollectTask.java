@@ -50,7 +50,6 @@ public class CollectTask extends AbstractTask {
 
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
-    private final String threadPoolName;
     private final RowConsumer consumer;
 
     private BatchIterator<Row> batchIterator = null;
@@ -70,7 +69,6 @@ public class CollectTask extends AbstractTask {
         this.sharedShardContexts = sharedShardContexts;
         this.consumer = consumer;
         this.consumer.completionFuture().whenComplete(closeOrKill(this));
-        this.threadPoolName = threadPoolName(collectPhase);
     }
 
     public void addSearcher(int searcherId, Engine.Searcher searcher) {
@@ -148,6 +146,7 @@ public class CollectTask extends AbstractTask {
 
     @Override
     protected void innerStart() {
+        String threadPoolName = threadPoolName(collectPhase, batchIterator.involvesIO());
         collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
     }
 
@@ -164,7 +163,7 @@ public class CollectTask extends AbstractTask {
     }
 
     @VisibleForTesting
-    static String threadPoolName(CollectPhase phase) {
+    static String threadPoolName(CollectPhase phase, boolean involvedIO) {
         if (phase instanceof RoutedCollectPhase) {
             RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
             if (collectPhase.maxRowGranularity() == RowGranularity.NODE
@@ -173,7 +172,8 @@ public class CollectTask extends AbstractTask {
                 return ThreadPool.Names.GET;
             }
         }
-        // Anything else like doc tables, INFORMATION_SCHEMA tables or sys.cluster table collector, partition collector
-        return ThreadPool.Names.SEARCH;
+        // If there is no IO involved it is a in-memory system tables. These are usually fast and the overhead
+        // of a context switch would be bigger than running this directly.
+        return involvedIO ? ThreadPool.Names.SEARCH : ThreadPool.Names.SAME;
     }
 }

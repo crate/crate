@@ -39,7 +39,7 @@ public class TestingBatchIterators {
      * Returns a batch iterator containing a range of integers.
      */
     public static BatchIterator<Row> range(int startInclusive, int endExclusive) {
-        return InMemoryBatchIterator.of(RowGenerator.range(startInclusive, endExclusive), SENTINEL);
+        return InMemoryBatchIterator.of(RowGenerator.range(startInclusive, endExclusive), SENTINEL, true);
     }
 
     /**
@@ -48,11 +48,11 @@ public class TestingBatchIterators {
     public static BatchIterator<Row> range(long startInclusive, long endExclusive) {
         Iterable<Row> rows = RowGenerator.fromSingleColValues(
             () -> LongStream.range(startInclusive, endExclusive).iterator());
-        return InMemoryBatchIterator.of(rows, SENTINEL);
+        return InMemoryBatchIterator.of(rows, SENTINEL, true);
     }
 
     public static <T> BatchIterator<Row> ofValues(List<T> values) {
         List<RowN> rows = values.stream().map(i -> new RowN(new Object[]{i})).collect(Collectors.toList());
-        return InMemoryBatchIterator.of(rows, SENTINEL);
+        return InMemoryBatchIterator.of(rows, SENTINEL, true);
     }
 }

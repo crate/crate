@@ -274,7 +274,7 @@ public class ShardCollectSource implements CollectSource {
 
         if (collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
             return projectors.wrap(InMemoryBatchIterator.of(
-                getShardsIterator(collectTask.txnCtx(), collectPhase, localNodeId), SentinelRow.SENTINEL));
+                getShardsIterator(collectTask.txnCtx(), collectPhase, localNodeId), SentinelRow.SENTINEL, true));
         }
         OrderBy orderBy = collectPhase.orderBy();
         if (collectPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
