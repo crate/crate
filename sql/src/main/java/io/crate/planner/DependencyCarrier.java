@@ -38,6 +38,7 @@ import io.crate.license.LicenseService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -66,6 +67,7 @@ public class DependencyCarrier {
     private final TransportCreateViewAction createViewAction;
     private final TransportDropViewAction dropViewAction;
     private final TransportSwapRelationsAction swapRelationsAction;
+    private final TransportCreateIndexAction createIndexAction;
     private final LicenseService licenseService;
     private final AlterTableOperation alterTableOperation;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -87,6 +89,7 @@ public class DependencyCarrier {
                              TransportCreateViewAction createViewAction,
                              TransportDropViewAction dropViewAction,
                              TransportSwapRelationsAction swapRelationsAction,
+                             TransportCreateIndexAction createIndexAction,
                              AlterTableOperation alterTableOperation,
                              FulltextAnalyzerResolver fulltextAnalyzerResolver,
                              RepositoryService repositoryService,
@@ -106,6 +109,7 @@ public class DependencyCarrier {
         this.createViewAction = createViewAction;
         this.dropViewAction = dropViewAction;
         this.swapRelationsAction = swapRelationsAction;
+        this.createIndexAction = createIndexAction;
         this.alterTableOperation = alterTableOperation;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.repositoryService = repositoryService;
@@ -178,6 +182,10 @@ public class DependencyCarrier {
 
     public TransportDropViewAction dropViewAction() {
         return dropViewAction;
+    }
+
+    public TransportCreateIndexAction createIndexAction() {
+        return createIndexAction;
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {

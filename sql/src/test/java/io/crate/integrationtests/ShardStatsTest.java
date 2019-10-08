@@ -102,12 +102,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testTableNameBlobTable() throws Exception {
-        BlobAdminClient blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
-        Settings indexSettings = Settings.builder()
-            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
-            .build();
-        blobAdminClient.createBlobTable("blobs", indexSettings).get();
+        execute("create blob table blobs clustered into 2 shards with (number_of_replicas=0)");
         ensureGreen();
 
         execute("select schema_name, table_name from sys.shards where table_name = 'blobs'");

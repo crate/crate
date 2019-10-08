@@ -91,8 +91,8 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    public R visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis, C context) {
-        return visitDDLStatement(analysis, context);
+    public R visitAnalyzedCreateBlobTable(AnalyzedCreateBlobTable analysis, C context) {
+        return visitAnalyzedStatement(analysis, context);
     }
 
     public R visitOptimizeTableStatement(AnalyzedOptimizeTable analysis, C context) {

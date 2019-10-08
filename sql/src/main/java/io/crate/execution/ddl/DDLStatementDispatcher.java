@@ -24,7 +24,6 @@ package io.crate.execution.ddl;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.CreateBlobTableAnalyzedStatement;
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.PromoteReplicaStatement;
@@ -108,12 +107,6 @@ public class DDLStatementDispatcher {
         @Override
         protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Ctx ctx) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
-        }
-
-        @Override
-        public CompletableFuture<Long> visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis,
-                                                                     Ctx ctx) {
-            return blobAdminClient.get().createBlobTable(analysis.tableName(), analysis.tableParameter().settings());
         }
 
         @Override
