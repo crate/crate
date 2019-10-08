@@ -25,7 +25,9 @@ package io.crate.analyze;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AstVisitor;
@@ -195,10 +197,25 @@ class UnboundAnalyzer {
         }
 
         @Override
+        public AnalyzedStatement visitAlterTableOpenClose(AlterTableOpenClose<?> node,
+                                                          Analysis context) {
+            return alterTableAnalyzer.analyze((AlterTableOpenClose<Expression>) node,
+                                              context.paramTypeHints(),
+                                              context.transactionContext());
+        }
+
+        @Override
         public AnalyzedStatement visitCreateBlobTable(CreateBlobTable<?> node,
                                                       Analysis context) {
             return createBlobTableAnalyzer.analyze(
                 (CreateBlobTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterBlobTable(AlterBlobTable<?> node,
+                                                     Analysis context) {
+            return alterTableAnalyzer.analyze(
+                (AlterBlobTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override
