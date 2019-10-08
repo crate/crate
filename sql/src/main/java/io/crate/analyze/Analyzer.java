@@ -173,6 +173,7 @@ public class Analyzer {
         this.userAnalyzer = new UserAnalyzer(functions);
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, functions);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer(functions);
+        this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -190,7 +191,8 @@ public class Analyzer {
             dropSnapshotAnalyzer,
             userAnalyzer,
             createBlobTableAnalyzer,
-            createFunctionAnalyzer
+            createFunctionAnalyzer,
+            dropFunctionAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -201,7 +203,6 @@ public class Analyzer {
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
-        this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
     }
@@ -425,7 +426,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropFunction(DropFunction node, Analysis context) {
-            return dropFunctionAnalyzer.analyze(node, context);
+            return dropFunctionAnalyzer.analyze(node, context.sessionContext().searchPath());
         }
 
         @Override

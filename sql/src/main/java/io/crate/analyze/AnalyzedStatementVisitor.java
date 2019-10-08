@@ -67,8 +67,8 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, C context) {
-        return visitDDLStatement(analysis, context);
+    public R visitDropFunction(AnalyzedDropFunction analysis, C context) {
+        return visitAnalyzedStatement(analysis, context);
     }
 
     protected R visitAnalyzedCreateUser(AnalyzedCreateUser analysis, C context) {
