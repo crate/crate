@@ -414,6 +414,7 @@ public class SQLExecutor {
                     null,
                     null,
                     schemas,
+                    userManager,
                     () -> hasValidLicense
                 ),
                 relationAnalyzer,

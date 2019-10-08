@@ -23,30 +23,16 @@
 package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.GenericProperties;
 
-import java.util.Map;
-import java.util.function.Consumer;
+public class AnalyzedAlterUser extends AnalyzedUser {
 
-abstract class DDLUserAnalyzedStatement implements DDLStatement {
-
-    private final String userName;
-    private final Map<String, Symbol> properties;
-
-    DDLUserAnalyzedStatement(String userName, Map<String, Symbol> properties) {
-        this.userName = userName;
-        this.properties = properties;
-    }
-
-    public Map<String, Symbol> properties() {
-        return properties;
-    }
-
-    public String userName() {
-        return userName;
+    public AnalyzedAlterUser(String userName, GenericProperties<Symbol> properties) {
+        super(userName, properties);
     }
 
     @Override
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-        properties.values().forEach(consumer);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitAnalyzedAlterUser(this, context);
     }
 }

@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 
 /**
@@ -62,7 +61,7 @@ public class GenericProperties<T> extends Node {
         properties = new HashMap<>();
     }
 
-    private GenericProperties(Map<String, T> map) {
+    public GenericProperties(Map<String, T> map) {
         this.properties = map;
     }
 
@@ -88,9 +87,14 @@ public class GenericProperties<T> extends Node {
     }
 
     public <U> GenericProperties<U> map(Function<? super T, ? extends U> mapper) {
-        Map<String, U> mappedProperties = properties.entrySet().stream().collect(Collectors.toMap(
-            Map.Entry::getKey,
-            e -> mapper.apply(e.getValue())
+        if (isEmpty()) {
+            return empty();
+        }
+        // The new map must support NULL values.
+        Map<String, U> mappedProperties = new HashMap<>(properties.size());
+        properties.forEach((key, value) -> mappedProperties.put(
+            key,
+            mapper.apply(value)
         ));
         return new GenericProperties<>(mappedProperties);
     }

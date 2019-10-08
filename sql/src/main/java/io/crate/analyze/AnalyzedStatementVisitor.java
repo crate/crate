@@ -71,8 +71,8 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    protected R visitCreateUserStatement(CreateUserAnalyzedStatement analysis, C context) {
-        return visitDDLStatement(analysis, context);
+    protected R visitAnalyzedCreateUser(AnalyzedCreateUser analysis, C context) {
+        return visitAnalyzedStatement(analysis, context);
     }
 
     protected R visitDropUserStatement(DropUserAnalyzedStatement analysis, C context) {
@@ -115,8 +115,8 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitAlterUserStatement(AlterUserAnalyzedStatement analysis, C context) {
-        return visitDDLStatement(analysis, context);
+    public R visitAnalyzedAlterUser(AnalyzedAlterUser analysis, C context) {
+        return visitAnalyzedStatement(analysis, context);
     }
 
     public R visitSetStatement(SetAnalyzedStatement analysis, C context) {

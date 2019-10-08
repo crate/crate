@@ -23,17 +23,16 @@
 package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.GenericProperties;
 
-import java.util.Map;
+public class AnalyzedCreateUser extends AnalyzedUser {
 
-public class CreateUserAnalyzedStatement extends DDLUserAnalyzedStatement {
-
-    public CreateUserAnalyzedStatement(String userName, Map<String, Symbol> properties) {
+    public AnalyzedCreateUser(String userName, GenericProperties<Symbol> properties) {
         super(userName, properties);
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitCreateUserStatement(this, context);
+        return visitor.visitAnalyzedCreateUser(this, context);
     }
 }

@@ -29,11 +29,13 @@ import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
+import io.crate.analyze.AnalyzedAlterUser;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
+import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.AnalyzedDecommissionNodeStatement;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDropRepository;
@@ -65,6 +67,7 @@ import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.auth.user.UserManager;
 import io.crate.exceptions.LicenseViolationException;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.expression.symbol.Symbol;
@@ -81,10 +84,12 @@ import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
+import io.crate.planner.node.ddl.AlterUserPlan;
 import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
+import io.crate.planner.node.ddl.CreateUserPlan;
 import io.crate.planner.node.ddl.DropRepositoryPlan;
 import io.crate.planner.node.ddl.DropSnapshotPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
@@ -133,6 +138,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final NumberOfShards numberOfShards;
     private final TableCreator tableCreator;
     private final Schemas schemas;
+    private final UserManager userManager;
 
     private List<String> awarenessAttributes;
 
@@ -144,7 +150,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    LicenseService licenseService,
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
-                   Schemas schemas) {
+                   Schemas schemas,
+                   UserManager userManager) {
         this(
             settings,
             clusterService,
@@ -153,6 +160,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             numberOfShards,
             tableCreator,
             schemas,
+            userManager,
             () -> licenseService.getLicenseState() == LicenseService.LicenseState.VALID
         );
     }
@@ -165,6 +173,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
                    Schemas schemas,
+                   UserManager userManager,
                    BooleanSupplier hasValidLicense) {
         this.clusterService = clusterService;
         this.functions = functions;
@@ -173,6 +182,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
         this.schemas = schemas;
+        this.userManager = userManager;
         initAwarenessAttributes(settings);
     }
 
@@ -361,6 +371,17 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis,
                                                  PlannerContext context) {
         return new AlterTableOpenClosePlan(analysis);
+    }
+
+    @Override
+    protected Plan visitAnalyzedCreateUser(AnalyzedCreateUser analysis,
+                                           PlannerContext context) {
+        return new CreateUserPlan(analysis, userManager);
+    }
+
+    @Override
+    public Plan visitAnalyzedAlterUser(AnalyzedAlterUser analysis, PlannerContext context) {
+        return new AlterUserPlan(analysis, userManager);
     }
 
     @Override

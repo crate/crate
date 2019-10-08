@@ -19,7 +19,7 @@
 package io.crate.auth.user;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AlterUserAnalyzedStatement;
+import io.crate.analyze.AnalyzedAlterUser;
 import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -40,7 +40,7 @@ import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
 import io.crate.analyze.CreateBlobTableAnalyzedStatement;
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.AnalyzedCreateRepository;
-import io.crate.analyze.CreateUserAnalyzedStatement;
+import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
@@ -237,7 +237,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAlterUserStatement(AlterUserAnalyzedStatement analysis, User user) {
+        public Void visitAnalyzedAlterUser(AnalyzedAlterUser analysis, User user) {
             // user is allowed to change it's own properties
             if (!analysis.userName().equals(user.name())) {
                 throw new UnauthorizedException("A regular user can use ALTER USER only on himself. " +
@@ -567,7 +567,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCreateUserStatement(CreateUserAnalyzedStatement createUser, User user) {
+        protected Void visitAnalyzedCreateUser(AnalyzedCreateUser createUser, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,

@@ -29,36 +29,49 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.sql.tree.AlterUser;
+import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.ParameterExpression;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.function.Function;
 
-public class AlterUserAnalyzer {
+public class UserAnalyzer {
+
     private final Functions functions;
 
-    public AlterUserAnalyzer(Functions functions) {
+    UserAnalyzer(Functions functions) {
         this.functions = functions;
     }
 
-    public AlterUserAnalyzedStatement analyze(AlterUser node, ParamTypeHints typeHints, CoordinatorTxnCtx txnContext) {
+    public AnalyzedCreateUser analyze(CreateUser<Expression> node,
+                                      Function<ParameterExpression, Symbol> convertParamFunction,
+                                      CoordinatorTxnCtx txnContext) {
+        return new AnalyzedCreateUser(
+            node.name(),
+            mappedProperties(node.properties(), convertParamFunction, txnContext));
+    }
+
+    public AnalyzedAlterUser analyze(AlterUser<Expression> node,
+                                     Function<ParameterExpression, Symbol> convertParamFunction,
+                                     CoordinatorTxnCtx txnContext) {
+        return new AnalyzedAlterUser(
+            node.name(),
+            mappedProperties(node.properties(), convertParamFunction, txnContext));
+    }
+
+    private GenericProperties<Symbol> mappedProperties(GenericProperties<Expression> properties,
+                                                              Function<ParameterExpression, Symbol> convertParamFunction,
+                                                              CoordinatorTxnCtx txnContext) {
         ExpressionAnalysisContext exprContext = new ExpressionAnalysisContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             txnContext,
-            typeHints,
+            convertParamFunction,
             FieldProvider.UNSUPPORTED,
             null
         );
 
-        Map<String, Symbol> rows = new HashMap<>();
-        GenericProperties<Expression> genericProperties = node.genericProperties();
-        for (Map.Entry<String, Expression> expr : genericProperties.properties().entrySet()) {
-            Symbol valueSymbol = expressionAnalyzer.convert(expr.getValue(), exprContext);
-            rows.put(expr.getKey(), valueSymbol);
-        }
-
-        return new AlterUserAnalyzedStatement(node.name(), rows);
+        return properties.map(x -> expressionAnalyzer.convert(x, exprContext));
     }
 }

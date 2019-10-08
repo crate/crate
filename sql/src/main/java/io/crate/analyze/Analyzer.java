@@ -132,8 +132,7 @@ public class Analyzer {
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final PrivilegesAnalyzer privilegesAnalyzer;
     private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
-    private final CreateUserAnalyzer createUserAnalyzer;
-    private final AlterUserAnalyzer alterUserAnalyzer;
+    private final UserAnalyzer userAnalyzer;
     private final CreateViewAnalyzer createViewAnalyzer;
     private final Schemas schemas;
     private final SwapTableAnalyzer swapTableAnalyzer;
@@ -171,6 +170,7 @@ public class Analyzer {
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
         this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, functions);
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
+        this.userAnalyzer = new UserAnalyzer(functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -185,7 +185,8 @@ public class Analyzer {
             createRepositoryAnalyzer,
             dropRepositoryAnalyzer,
             createSnapshotAnalyzer,
-            dropSnapshotAnalyzer
+            dropSnapshotAnalyzer,
+            userAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -201,8 +202,6 @@ public class Analyzer {
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
-        this.createUserAnalyzer = new CreateUserAnalyzer(functions);
-        this.alterUserAnalyzer = new AlterUserAnalyzer(functions);
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
     }
 
@@ -424,8 +423,9 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateUser(CreateUser node, Analysis context) {
-            return createUserAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
+        public AnalyzedStatement visitCreateUser(CreateUser<?> node, Analysis context) {
+            return userAnalyzer.analyze(
+                (CreateUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override
@@ -437,8 +437,9 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterUser(AlterUser node, Analysis context) {
-            return alterUserAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
+        public AnalyzedStatement visitAlterUser(AlterUser<?> node, Analysis context) {
+            return userAnalyzer.analyze(
+                (AlterUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override
