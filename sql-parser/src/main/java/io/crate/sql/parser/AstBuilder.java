@@ -826,7 +826,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitBlobClusteredInto(SqlBaseParser.BlobClusteredIntoContext ctx) {
-        return new ClusteredBy<>(null, visitIfPresent(ctx.numShards, Expression.class));
+        return new ClusteredBy<>(Optional.empty(), visitIfPresent(ctx.numShards, Expression.class));
     }
 
     @Override

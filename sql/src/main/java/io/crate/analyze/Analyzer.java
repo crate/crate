@@ -171,6 +171,7 @@ public class Analyzer {
         this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, functions);
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
         this.userAnalyzer = new UserAnalyzer(functions);
+        this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -186,12 +187,11 @@ public class Analyzer {
             dropRepositoryAnalyzer,
             createSnapshotAnalyzer,
             dropSnapshotAnalyzer,
-            userAnalyzer
+            userAnalyzer,
+            createBlobTableAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
-        NumberOfShards numberOfShards = new NumberOfShards(clusterService);
-        this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, numberOfShards);
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
@@ -317,8 +317,9 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateBlobTable(CreateBlobTable node, Analysis context) {
-            return createBlobTableAnalyzer.analyze(node, context.parameterContext());
+        public AnalyzedStatement visitCreateBlobTable(CreateBlobTable<?> node, Analysis context) {
+            return createBlobTableAnalyzer.analyze(
+                (CreateBlobTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override

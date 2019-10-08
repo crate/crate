@@ -32,6 +32,7 @@ import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
+import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -86,6 +87,7 @@ import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
 import io.crate.planner.node.ddl.AlterUserPlan;
+import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
@@ -357,6 +359,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis,
                                             PlannerContext context) {
         return new AlterBlobTablePlan(analysis);
+    }
+
+    @Override
+    public Plan visitAnalyzedCreateBlobTable(AnalyzedCreateBlobTable analysis,
+                                             PlannerContext context) {
+        return new CreateBlobTablePlan(analysis, numberOfShards);
     }
 
     public Plan visitRefreshTableStatement(AnalyzedRefreshTable analysis, PlannerContext context) {

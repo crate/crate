@@ -140,7 +140,7 @@ public class TableParameters {
     public static final TableParameters PARTITION_PARAMETER_INFO
         = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, Map.of());
 
-    static final TableParameters CREATE_BLOB_TABLE_PARAMETERS = new TableParameters(
+    public static final TableParameters CREATE_BLOB_TABLE_PARAMETERS = new TableParameters(
         Map.of(
             NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS,
             "blobs_path", Setting.simpleString(

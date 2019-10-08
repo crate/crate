@@ -27,12 +27,11 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AbstractDDLAnalyzedStatement;
 import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.CreateBlobTableAnalyzedStatement;
 import io.crate.analyze.CreateBlobTableAnalyzer;
 import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateTableStatementAnalyzer;
@@ -86,6 +85,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
+import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
@@ -132,6 +132,7 @@ import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
@@ -283,7 +284,7 @@ public class SQLExecutor {
             createTableStatementAnalyzer = new CreateTableStatementAnalyzer(functions);
             createBlobTableAnalyzer = new CreateBlobTableAnalyzer(
                 schemas,
-                new NumberOfShards(clusterService)
+                functions
             );
             allocationService = new AllocationService(
                 new AllocationDeciders(
@@ -478,7 +479,10 @@ public class SQLExecutor {
             RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
             for (String partition : partitions) {
                 IndexMetaData indexMetaData= getIndexMetaData(
-                    partition, analyzedStmt, prevState.nodes().getSmallestNonClientNodeVersion())
+                    partition,
+                    analyzedStmt.tableParameter().settings(),
+                    analyzedStmt.mapping(),
+                    prevState.nodes().getSmallestNonClientNodeVersion())
                     .putAlias(alias)
                     .build();
                 mdBuilder.put(indexMetaData, true);
@@ -518,8 +522,11 @@ public class SQLExecutor {
             ClusterState prevState = clusterService.state();
             RelationName relationName = analyzedStmt.tableIdent();
             IndexMetaData indexMetaData = getIndexMetaData(
-                relationName.indexNameOrAlias(), analyzedStmt, prevState.nodes().getSmallestNonClientNodeVersion())
-                .build();
+                relationName.indexNameOrAlias(),
+                analyzedStmt.tableParameter().settings(),
+                analyzedStmt.mapping(),
+                prevState.nodes().getSmallestNonClientNodeVersion()
+            ).build();
 
             ClusterState state = ClusterState.builder(prevState)
                 .metaData(MetaData.builder(prevState.metaData()).put(indexMetaData, true))
@@ -531,10 +538,11 @@ public class SQLExecutor {
         }
 
         private static IndexMetaData.Builder getIndexMetaData(String indexName,
-                                                              AbstractDDLAnalyzedStatement analyzedStmt,
+                                                              Settings settings,
+                                                              @Nullable Map<String, Object> mapping,
                                                               Version smallestNodeVersion) throws IOException {
             Settings.Builder builder = Settings.builder()
-                .put(analyzedStmt.tableParameter().settings())
+                .put(settings)
                 .put(SETTING_VERSION_CREATED, smallestNodeVersion)
                 .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
                 .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
@@ -542,10 +550,10 @@ public class SQLExecutor {
             Settings indexSettings = builder.build();
             IndexMetaData.Builder metaBuilder = IndexMetaData.builder(indexName)
                 .settings(indexSettings);
-            if (analyzedStmt instanceof CreateTableAnalyzedStatement) {
+            if (mapping != null) {
                 metaBuilder.putMapping(new MappingMetaData(
                     Constants.DEFAULT_MAPPING_TYPE,
-                    ((CreateTableAnalyzedStatement) analyzedStmt).mapping()));
+                    mapping));
             }
 
             return metaBuilder;
@@ -571,14 +579,25 @@ public class SQLExecutor {
         }
 
         public Builder addBlobTable(String createBlobTableStmt) throws IOException {
-            CreateBlobTable stmt = (CreateBlobTable) SqlParser.createStatement(createBlobTableStmt);
-            CreateBlobTableAnalyzedStatement analyzedStmt = createBlobTableAnalyzer.analyze(
-                stmt, ParameterContext.EMPTY);
+            CreateBlobTable<Expression> stmt = (CreateBlobTable<Expression>) SqlParser.createStatement(createBlobTableStmt);
+            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+            AnalyzedCreateBlobTable analyzedStmt = createBlobTableAnalyzer.analyze(
+                stmt, ParameterContext.EMPTY, txnCtx);
+            Settings settings = CreateBlobTablePlan.buildSettings(
+                analyzedStmt.createBlobTable(),
+                txnCtx,
+                functions,
+                Row.EMPTY,
+                SubQueryResults.EMPTY,
+                new NumberOfShards(clusterService));
 
             ClusterState prevState = clusterService.state();
             IndexMetaData indexMetaData = getIndexMetaData(
-                fullIndexName(analyzedStmt.tableName()), analyzedStmt, prevState.nodes().getSmallestNonClientNodeVersion())
-                .build();
+                fullIndexName(analyzedStmt.relationName().name()),
+                settings,
+                Collections.emptyMap(),
+                prevState.nodes().getSmallestNonClientNodeVersion()
+            ).build();
 
             ClusterState state = ClusterState.builder(prevState)
                 .metaData(MetaData.builder(prevState.metaData()).put(indexMetaData, true))

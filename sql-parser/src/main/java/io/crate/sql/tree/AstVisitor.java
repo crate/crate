@@ -392,7 +392,7 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
-    public R visitCreateBlobTable(CreateBlobTable node, C context) {
+    public R visitCreateBlobTable(CreateBlobTable<?> node, C context) {
         return visitNode(node, context);
     }
 
