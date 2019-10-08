@@ -173,7 +173,6 @@ public class CollectTask extends AbstractTask {
                 return ThreadPool.Names.GET;
             }
         }
-
         // Anything else like doc tables, INFORMATION_SCHEMA tables or sys.cluster table collector, partition collector
         return ThreadPool.Names.SEARCH;
     }
