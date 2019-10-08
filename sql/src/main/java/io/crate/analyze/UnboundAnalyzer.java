@@ -36,6 +36,7 @@ import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
+import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.InsertFromSubquery;
@@ -177,6 +178,14 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitAlterUser(AlterUser<?> node, Analysis context) {
             return userAnalyzer.analyze((AlterUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropUser(DropUser node, Analysis context) {
+            return new AnalyzedDropUser(
+                node.name(),
+                node.ifExists()
+            );
         }
 
         @Override

@@ -22,19 +22,19 @@
 
 package io.crate.analyze;
 
-public class DropUserAnalyzedStatement implements DDLStatement {
+public class AnalyzedDropUser implements AnalyzedStatement {
 
     private final String userName;
     private final boolean ifExists;
 
-    public DropUserAnalyzedStatement(String userName, boolean ifExists) {
+    public AnalyzedDropUser(String userName, boolean ifExists) {
         this.userName = userName;
         this.ifExists = ifExists;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitDropUserStatement(this, context);
+        return visitor.visitDropUser(this, context);
     }
 
     public String userName() {
@@ -43,5 +43,15 @@ public class DropUserAnalyzedStatement implements DDLStatement {
 
     public boolean ifExists() {
         return ifExists;
+    }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 }

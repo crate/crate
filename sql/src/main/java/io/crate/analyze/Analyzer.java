@@ -430,7 +430,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropUser(DropUser node, Analysis context) {
-            return new DropUserAnalyzedStatement(
+            return new AnalyzedDropUser(
                 node.name(),
                 node.ifExists()
             );

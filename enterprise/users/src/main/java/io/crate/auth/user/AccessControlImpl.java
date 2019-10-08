@@ -47,7 +47,7 @@ import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.DropTableAnalyzedStatement;
-import io.crate.analyze.DropUserAnalyzedStatement;
+import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
@@ -579,7 +579,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitDropUserStatement(DropUserAnalyzedStatement dropUser, User user) {
+        protected Void visitDropUser(AnalyzedDropUser dropUser, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
