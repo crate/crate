@@ -22,13 +22,13 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
 import io.crate.metadata.table.TableInfo;
-import io.crate.expression.reference.StaticTableDefinition;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -51,11 +51,12 @@ public class SysTableRegistry {
 
     public <R> void registerSysTable(TableInfo tableInfo,
                                      Supplier<CompletableFuture<? extends Iterable<R>>> iterableSupplier,
-                                     Map<ColumnIdent, ? extends RowCollectExpressionFactory<R>> expressionFactories) {
+                                     Map<ColumnIdent, ? extends RowCollectExpressionFactory<R>> expressionFactories,
+                                     boolean involvesIO) {
         RelationName ident = tableInfo.ident();
         sysSchemaInfo.registerSysTable(tableInfo);
-        tableDefinitions.registerTableDefinition(ident, new StaticTableDefinition<>(
-            iterableSupplier, expressionFactories));
+        tableDefinitions.registerTableDefinition(
+            ident, new StaticTableDefinition<>(iterableSupplier, expressionFactories, involvesIO));
     }
 
 }

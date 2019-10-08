@@ -41,11 +41,14 @@ public class StaticTableDefinition<T> {
 
     private final BiFunction<TransactionContext, User, CompletableFuture<? extends Iterable<T>>> recordsForUser;
     private final StaticTableReferenceResolver<T> referenceResolver;
+    private final boolean involvesIO;
 
     public StaticTableDefinition(Supplier<CompletableFuture<? extends Iterable<T>>> iterable,
-                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories) {
+                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories,
+                                 boolean involvesIO) {
         this.recordsForUser = (t, u) -> iterable.get();
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
+        this.involvesIO = involvesIO;
     }
 
     public StaticTableDefinition(Supplier<? extends Iterable<T>> iterable,
@@ -56,6 +59,7 @@ public class StaticTableDefinition<T> {
                 .map(record -> applyContext.apply(txnCtx, record))
                 .iterator());
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
+        this.involvesIO = true;
     }
 
     public StaticTableDefinition(Supplier<? extends Iterable<T>> iterable,
@@ -64,11 +68,13 @@ public class StaticTableDefinition<T> {
         this.recordsForUser = (txnCtx, u) -> completedFuture(() -> StreamSupport.stream(iterable.get().spliterator(), false)
             .filter(t -> u == null || predicate.test(u, t)).iterator());
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
+        this.involvesIO = true;
     }
 
     public StaticTableDefinition(Supplier<CompletableFuture<? extends Iterable<T>>> futureRecords,
                                  Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories,
-                                 BiPredicate<User, T> predicate) {
+                                 BiPredicate<User, T> predicate,
+                                 boolean involvesIO) {
         this.recordsForUser = (txnCtx, user) ->
             futureRecords.get().thenApply((records) ->
                 StreamSupport.stream(records.spliterator(), false)
@@ -76,6 +82,7 @@ public class StaticTableDefinition<T> {
                 ::iterator
             );
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
+        this.involvesIO = involvesIO;
     }
 
     public CompletableFuture<? extends Iterable<T>> retrieveRecords(TransactionContext txnCtx, @Nullable User user) {
@@ -84,5 +91,9 @@ public class StaticTableDefinition<T> {
 
     public StaticTableReferenceResolver<T> getReferenceResolver() {
         return referenceResolver;
+    }
+
+    public boolean involvesIO() {
+        return involvesIO;
     }
 }
