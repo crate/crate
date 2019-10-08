@@ -50,7 +50,7 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropUserSimple() {
-        DropUserAnalyzedStatement analysis = e.analyze("DROP USER ROOT");
+        AnalyzedDropUser analysis = e.analyze("DROP USER ROOT");
         assertThat(analysis.userName(), is("root"));
         analysis = e.analyze("DROP USER \"ROOT\"");
         assertThat(analysis.userName(), is("ROOT"));
@@ -58,7 +58,7 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropUserIfExists() {
-        DropUserAnalyzedStatement analysis = e.analyze("DROP USER IF EXISTS ROOT");
+        AnalyzedDropUser analysis = e.analyze("DROP USER IF EXISTS ROOT");
         assertThat(analysis.userName(), is("root"));
         assertThat(analysis.ifExists(), is(true));
     }

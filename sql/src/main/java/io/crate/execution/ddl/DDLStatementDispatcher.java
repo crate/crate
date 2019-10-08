@@ -27,14 +27,12 @@ import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CreateBlobTableAnalyzedStatement;
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
-import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.analyze.PromoteReplicaStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
-import io.crate.auth.user.UserManager;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
 import io.crate.execution.support.Transports;
@@ -66,7 +64,6 @@ public class DDLStatementDispatcher {
     private ClusterService clusterService;
     private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
     private final UserDefinedFunctionDDLClient udfDDLClient;
-    private final UserManager userManager;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
     private final TransportClusterRerouteAction rerouteAction;
@@ -79,13 +76,11 @@ public class DDLStatementDispatcher {
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   UserDefinedFunctionDDLClient udfDDLClient,
                                   TransportClusterRerouteAction rerouteAction,
-                                  Provider<UserManager> userManagerProvider,
                                   Functions functions) {
         this.blobAdminClient = blobAdminClient;
         this.clusterService = clusterService;
         this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
         this.udfDDLClient = udfDDLClient;
-        this.userManager = userManagerProvider.get();
         this.rerouteAction = rerouteAction;
         this.functions = functions;
     }
@@ -136,11 +131,6 @@ public class DDLStatementDispatcher {
         @Override
         public CompletableFuture<Long> visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, Ctx ctx) {
             return udfDDLClient.execute(analysis);
-        }
-
-        @Override
-        protected CompletableFuture<Long> visitDropUserStatement(DropUserAnalyzedStatement analysis, Ctx ctx) {
-            return userManager.dropUser(analysis.userName(), analysis.ifExists());
         }
 
         @Override

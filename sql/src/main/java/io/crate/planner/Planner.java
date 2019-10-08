@@ -40,6 +40,7 @@ import io.crate.analyze.AnalyzedDecommissionNodeStatement;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
+import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.AnalyzedOptimizeTable;
@@ -93,6 +94,7 @@ import io.crate.planner.node.ddl.CreateUserPlan;
 import io.crate.planner.node.ddl.DropRepositoryPlan;
 import io.crate.planner.node.ddl.DropSnapshotPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
+import io.crate.planner.node.ddl.DropUserPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.node.ddl.RefreshTablePlan;
@@ -382,6 +384,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitAnalyzedAlterUser(AnalyzedAlterUser analysis, PlannerContext context) {
         return new AlterUserPlan(analysis, userManager);
+    }
+
+    @Override
+    protected Plan visitDropUser(AnalyzedDropUser analysis, PlannerContext context) {
+        return new DropUserPlan(analysis, userManager);
     }
 
     @Override
