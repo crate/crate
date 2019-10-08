@@ -24,7 +24,6 @@ package io.crate.execution.engine.indexing;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.execution.engine.indexing.BatchIteratorBackpressureExecutor;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -64,7 +63,7 @@ public class BatchIteratorBackpressureExecutorTest extends CrateUnitTest {
 
     @Test
     public void testPauseOnFirstBatch() throws Exception {
-        BatchIterator<Integer> numbersBi = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), -1);
+        BatchIterator<Integer> numbersBi = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), -1, true);
         BatchSimulatingIterator<Integer> it = new BatchSimulatingIterator<>(numbersBi, 2, 5, executor);
         AtomicInteger numRows = new AtomicInteger(0);
         AtomicInteger numPauses = new AtomicInteger(0);
