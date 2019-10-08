@@ -51,8 +51,7 @@ public class BatchIteratorsTest {
 
     @Test
     public void testBatchBySize() throws Exception {
-        BatchIterator<Integer> batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null,
-                                                                        true);
+        var batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, false);
         BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add, r -> false);
 
         assertThat(batchedIt.moveNext(), is(true));
@@ -66,7 +65,7 @@ public class BatchIteratorsTest {
     @Test
     public void testBatchBySizeWithBatchedSource() throws Exception {
         BatchIterator<Integer> batchIterator = new BatchSimulatingIterator<>(
-            InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, true),
+            InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, false),
             3,
             2,
             null
@@ -83,8 +82,7 @@ public class BatchIteratorsTest {
 
     @Test
     public void testBatchBySizeWithDynamicLimiter() throws Exception {
-        BatchIterator<Integer> batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null,
-                                                                        true);
+        var batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null, false);
         final AtomicInteger rowCount = new AtomicInteger();
         BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add,
             r -> rowCount.incrementAndGet() == 3);

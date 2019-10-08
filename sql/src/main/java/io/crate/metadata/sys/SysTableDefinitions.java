@@ -63,40 +63,40 @@ public class SysTableDefinitions {
         tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeJobs()),
             SysJobsTableInfo.expressions(localNode),
-            (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username())
-        ));
+            (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username()),
+            false));
         tableDefinitions.put(SysJobsLogTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.jobsLog()),
             SysJobsLogTableInfo.expressions(localNode),
-            (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username())
-        ));
+            (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username()),
+            false));
         tableDefinitions.put(SysOperationsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeOperations()),
-            SysOperationsTableInfo.expressions(localNode)
-        ));
+            SysOperationsTableInfo.expressions(localNode),
+            false));
         tableDefinitions.put(SysOperationsLogTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.operationsLog()),
-            SysOperationsLogTableInfo.expressions()
-        ));
+            SysOperationsLogTableInfo.expressions(),
+            false));
 
         SysChecker<SysCheck> sysChecker = new SysChecker<>(sysChecks);
         tableDefinitions.put(SysChecksTableInfo.IDENT, new StaticTableDefinition<>(
             sysChecker::computeResultAndGet,
-            SysChecksTableInfo.expressions()
-        ));
+            SysChecksTableInfo.expressions(),
+            true));
 
         tableDefinitions.put(SysNodeChecksTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(sysNodeChecks),
-            SysNodeChecksTableInfo.expressions()
-        ));
+            SysNodeChecksTableInfo.expressions(),
+            true));
         tableDefinitions.put(SysRepositoriesTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(repositoriesService.getRepositoriesList()),
-            SysRepositoriesTableInfo.expressions(clusterService.getClusterSettings().maskedSettings())
-        ));
+            SysRepositoriesTableInfo.expressions(clusterService.getClusterSettings().maskedSettings()),
+            false));
         tableDefinitions.put(SysSnapshotsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(sysSnapshots.currentSnapshots()),
-            SysSnapshotsTableInfo.expressions()
-        ));
+            SysSnapshotsTableInfo.expressions(),
+            true));
 
         tableDefinitions.put(SysAllocationsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> sysAllocations,
@@ -107,22 +107,22 @@ public class SysTableDefinitions {
         SummitsIterable summits = new SummitsIterable();
         tableDefinitions.put(SysSummitsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(summits),
-            SysSummitsTableInfo.expressions()
-        ));
+            SysSummitsTableInfo.expressions(),
+            false));
 
         tableDefinitions.put(SysHealthTableInfo.IDENT, new StaticTableDefinition<>(
             tableHealthService::computeResults,
             SysHealthTableInfo.expressions(),
-            (user, tableHealth) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableHealth.fqn())
-        ));
+            (user, tableHealth) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableHealth.fqn()),
+            true));
         tableDefinitions.put(SysMetricsTableInfo.NAME, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.metrics()),
-            SysMetricsTableInfo.expressions(localNode)
-        ));
+            SysMetricsTableInfo.expressions(localNode),
+            false));
         tableDefinitions.put(SysSegmentsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(shardSegmentInfos),
-            SysSegmentsTableInfo.expressions(clusterService::localNode)
-        ));
+            SysSegmentsTableInfo.expressions(clusterService::localNode),
+            true));
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {
