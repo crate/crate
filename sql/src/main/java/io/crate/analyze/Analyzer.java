@@ -172,6 +172,7 @@ public class Analyzer {
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
         this.userAnalyzer = new UserAnalyzer(functions);
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, functions);
+        this.createFunctionAnalyzer = new CreateFunctionAnalyzer(functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -188,7 +189,8 @@ public class Analyzer {
             createSnapshotAnalyzer,
             dropSnapshotAnalyzer,
             userAnalyzer,
-            createBlobTableAnalyzer
+            createBlobTableAnalyzer,
+            createFunctionAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -199,7 +201,6 @@ public class Analyzer {
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
-        this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
@@ -414,8 +415,12 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateFunction(CreateFunction node, Analysis context) {
-            return createFunctionAnalyzer.analyze(node, context);
+        public AnalyzedStatement visitCreateFunction(CreateFunction<?> node, Analysis context) {
+            return createFunctionAnalyzer.analyze(
+                (CreateFunction<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext(),
+                context.sessionContext().searchPath());
         }
 
         @Override

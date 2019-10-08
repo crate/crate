@@ -34,6 +34,7 @@ import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
+import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.license.LicenseService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
@@ -68,6 +69,7 @@ public class DependencyCarrier {
     private final TransportDropViewAction dropViewAction;
     private final TransportSwapRelationsAction swapRelationsAction;
     private final TransportCreateIndexAction createIndexAction;
+    private final TransportCreateUserDefinedFunctionAction createFunctionAction;
     private final LicenseService licenseService;
     private final AlterTableOperation alterTableOperation;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -90,6 +92,7 @@ public class DependencyCarrier {
                              TransportDropViewAction dropViewAction,
                              TransportSwapRelationsAction swapRelationsAction,
                              TransportCreateIndexAction createIndexAction,
+                             TransportCreateUserDefinedFunctionAction createFunctionAction,
                              AlterTableOperation alterTableOperation,
                              FulltextAnalyzerResolver fulltextAnalyzerResolver,
                              RepositoryService repositoryService,
@@ -110,6 +113,7 @@ public class DependencyCarrier {
         this.dropViewAction = dropViewAction;
         this.swapRelationsAction = swapRelationsAction;
         this.createIndexAction = createIndexAction;
+        this.createFunctionAction = createFunctionAction;
         this.alterTableOperation = alterTableOperation;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.repositoryService = repositoryService;
@@ -186,6 +190,10 @@ public class DependencyCarrier {
 
     public TransportCreateIndexAction createIndexAction() {
         return createIndexAction;
+    }
+
+    public TransportCreateUserDefinedFunctionAction createFunctionAction() {
+        return createFunctionAction;
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {

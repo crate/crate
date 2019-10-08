@@ -26,25 +26,49 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.metadata.SearchPath;
 import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.ParameterExpression;
 
 import java.util.List;
+import java.util.function.Function;
 
 import static io.crate.analyze.FunctionArgumentDefinition.toFunctionArgumentDefinitions;
 
 public class CreateFunctionAnalyzer {
 
-    public CreateFunctionAnalyzedStatement analyze(CreateFunction node, Analysis context) {
+    private final Functions functions;
 
-        List<String> parts = node.name().getParts();
-        return new CreateFunctionAnalyzedStatement(
-            resolveSchemaName(parts, context.sessionContext().searchPath().currentSchema()),
+    CreateFunctionAnalyzer(Functions functions) {
+        this.functions = functions;
+    }
+
+    public AnalyzedCreateFunction analyze(CreateFunction<Expression> node,
+                                          Function<ParameterExpression, Symbol> convertParamFunction,
+                                          CoordinatorTxnCtx txnCtx,
+                                          SearchPath searchPath) {
+        var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+        var exprCtx = new ExpressionAnalysisContext();
+
+        CreateFunction<Symbol> createFunction = node.map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx));
+
+        List<String> parts = createFunction.name().getParts();
+        return new AnalyzedCreateFunction(
+            resolveSchemaName(parts, searchPath.currentSchema()),
             resolveFunctionName(parts),
-            node.replace(),
-            toFunctionArgumentDefinitions(node.arguments()),
-            DataTypeAnalyzer.convert(node.returnType()),
-            node.language(),
-            node.definition()
+            createFunction.replace(),
+            toFunctionArgumentDefinitions(createFunction.arguments()),
+            DataTypeAnalyzer.convert(createFunction.returnType()),
+            createFunction.language(),
+            createFunction.definition()
         );
     }
 
