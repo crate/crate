@@ -24,24 +24,20 @@ package io.crate.execution.ddl;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.PromoteReplicaStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
-import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
 import io.crate.execution.support.Transports;
-import io.crate.expression.udf.UserDefinedFunctionDDLClient;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Locale;
@@ -58,10 +54,8 @@ import static java.util.concurrent.CompletableFuture.failedFuture;
 @Singleton
 public class DDLStatementDispatcher {
 
-    private final Provider<BlobAdminClient> blobAdminClient;
     private ClusterService clusterService;
     private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
-    private final UserDefinedFunctionDDLClient udfDDLClient;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
     private final TransportClusterRerouteAction rerouteAction;
@@ -69,16 +63,12 @@ public class DDLStatementDispatcher {
 
 
     @Inject
-    public DDLStatementDispatcher(Provider<BlobAdminClient> blobAdminClient,
-                                  ClusterService clusterService,
+    public DDLStatementDispatcher(ClusterService clusterService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
-                                  UserDefinedFunctionDDLClient udfDDLClient,
                                   TransportClusterRerouteAction rerouteAction,
                                   Functions functions) {
-        this.blobAdminClient = blobAdminClient;
         this.clusterService = clusterService;
         this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
-        this.udfDDLClient = udfDDLClient;
         this.rerouteAction = rerouteAction;
         this.functions = functions;
     }
@@ -112,11 +102,6 @@ public class DDLStatementDispatcher {
         public CompletableFuture<Long> visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis,
                                                                              Ctx ctx) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
-        }
-
-        @Override
-        public CompletableFuture<Long> visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, Ctx ctx) {
-            return udfDDLClient.execute(analysis);
         }
 
         @Override

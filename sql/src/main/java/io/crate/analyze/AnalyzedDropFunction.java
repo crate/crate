@@ -30,14 +30,14 @@ import io.crate.types.DataType;
 
 import java.util.List;
 
-public class DropFunctionAnalyzedStatement implements DDLStatement {
+public class AnalyzedDropFunction implements AnalyzedStatement {
 
     private final String schema;
     private final String name;
     private final boolean ifExists;
     private final List<DataType> argumentTypes;
 
-    public DropFunctionAnalyzedStatement(String schema, String name, boolean ifExists, List<DataType> argumentTypes) {
+    AnalyzedDropFunction(String schema, String name, boolean ifExists, List<DataType> argumentTypes) {
         this.schema = schema;
         this.name = name;
         this.ifExists = ifExists;
@@ -46,7 +46,7 @@ public class DropFunctionAnalyzedStatement implements DDLStatement {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitDropFunctionStatement(this, context);
+        return analyzedStatementVisitor.visitDropFunction(this, context);
     }
 
     public String name() {
@@ -63,5 +63,15 @@ public class DropFunctionAnalyzedStatement implements DDLStatement {
 
     public boolean ifExists() {
         return ifExists;
+    }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 }
