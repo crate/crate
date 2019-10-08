@@ -33,6 +33,7 @@ import io.crate.analyze.AnalyzedAlterUser;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedCreateBlobTable;
+import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -89,6 +90,7 @@ import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
 import io.crate.planner.node.ddl.AlterUserPlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
+import io.crate.planner.node.ddl.CreateFunctionPlan;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
@@ -408,6 +410,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitAlterTableAddColumn(AnalyzedAlterTableAddColumn alterTableAddColumn,
                                          PlannerContext context) {
         return new AlterTableAddColumnPlan(alterTableAddColumn);
+    }
+
+    @Override
+    protected Plan visitCreateFunction(AnalyzedCreateFunction analysis,
+                                       PlannerContext context) {
+        return new CreateFunctionPlan(analysis);
     }
 
     @Override

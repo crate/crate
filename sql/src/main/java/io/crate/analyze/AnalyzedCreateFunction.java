@@ -26,28 +26,28 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.Expression;
+import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 
 import java.util.List;
 
-public class CreateFunctionAnalyzedStatement implements DDLStatement {
+public class AnalyzedCreateFunction implements DDLStatement {
 
     private final String name;
     private final String schema;
     private final boolean replace;
     private final List<FunctionArgumentDefinition> arguments;
     private final DataType returnType;
-    private final Expression language;
-    private final Expression definition;
+    private final Symbol language;
+    private final Symbol definition;
 
-    public CreateFunctionAnalyzedStatement(String schema,
-                                           String name,
-                                           boolean replace,
-                                           List<FunctionArgumentDefinition> arguments,
-                                           DataType returnType,
-                                           Expression language,
-                                           Expression definition) {
+    AnalyzedCreateFunction(String schema,
+                           String name,
+                           boolean replace,
+                           List<FunctionArgumentDefinition> arguments,
+                           DataType returnType,
+                           Symbol language,
+                           Symbol definition) {
         this.name = name;
         this.schema = schema;
         this.replace = replace;
@@ -59,7 +59,7 @@ public class CreateFunctionAnalyzedStatement implements DDLStatement {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitCreateFunctionStatement(this, context);
+        return analyzedStatementVisitor.visitCreateFunction(this, context);
     }
 
     public String name() {
@@ -78,11 +78,11 @@ public class CreateFunctionAnalyzedStatement implements DDLStatement {
         return returnType;
     }
 
-    public Expression language() {
+    public Symbol language() {
         return language;
     }
 
-    public Expression definition() {
+    public Symbol definition() {
         return definition;
     }
 

@@ -276,7 +276,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitCreateFunction(CreateFunction node, C context) {
+    public R visitCreateFunction(CreateFunction<?> node, C context) {
         return visitStatement(node, context);
     }
 

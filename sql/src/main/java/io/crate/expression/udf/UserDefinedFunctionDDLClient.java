@@ -22,10 +22,7 @@
 package io.crate.expression.udf;
 
 import io.crate.action.FutureActionListener;
-import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
-import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.data.Row;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -35,29 +32,11 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class UserDefinedFunctionDDLClient {
 
-    private final TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction;
     private final TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction;
 
     @Inject
-    public UserDefinedFunctionDDLClient(TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction,
-                                        TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction) {
-        this.createUserDefinedFunctionAction = createUserDefinedFunctionAction;
+    public UserDefinedFunctionDDLClient(TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction) {
         this.dropUserDefinedFunctionAction = dropUserDefinedFunctionAction;
-    }
-
-    public CompletableFuture<Long> execute(final CreateFunctionAnalyzedStatement statement, Row params) {
-        UserDefinedFunctionMetaData metaData = new UserDefinedFunctionMetaData(
-            statement.schema(),
-            statement.name(),
-            statement.arguments(),
-            statement.returnType(),
-            ExpressionToStringVisitor.convert(statement.language(), params),
-            ExpressionToStringVisitor.convert(statement.definition(), params)
-        );
-        CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metaData, statement.replace());
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 1L);
-        createUserDefinedFunctionAction.execute(request, listener);
-        return listener;
     }
 
     public CompletableFuture<Long> execute(final DropFunctionAnalyzedStatement statement) {

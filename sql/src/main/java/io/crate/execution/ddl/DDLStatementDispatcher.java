@@ -24,7 +24,6 @@ package io.crate.execution.ddl;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.PromoteReplicaStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
@@ -113,12 +112,6 @@ public class DDLStatementDispatcher {
         public CompletableFuture<Long> visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis,
                                                                              Ctx ctx) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
-        }
-
-        @Override
-        protected CompletableFuture<Long> visitCreateFunctionStatement(CreateFunctionAnalyzedStatement analysis,
-                                                                       Ctx ctx) {
-            return udfDDLClient.execute(analysis, ctx.parameters);
         }
 
         @Override
