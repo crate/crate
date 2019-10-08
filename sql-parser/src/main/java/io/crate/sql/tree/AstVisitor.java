@@ -432,7 +432,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitAlterUser(AlterUser node, C context) {
+    public R visitAlterUser(AlterUser<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -560,7 +560,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitCreateUser(CreateUser node, C context) {
+    public R visitCreateUser(CreateUser<?> node, C context) {
         return visitStatement(node, context);
     }
 

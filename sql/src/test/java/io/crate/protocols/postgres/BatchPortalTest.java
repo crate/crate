@@ -39,6 +39,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.user.StubUserManager;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -76,7 +77,17 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
                 consumer.accept(InMemoryBatchIterator.of(params, null), null);
             }
         };
-        Planner planner = new Planner(Settings.EMPTY, clusterService, sqlExecutor.functions(), new TableStats(), null, null, sqlExecutor.schemas(), () -> true) {
+        Planner planner = new Planner(
+            Settings.EMPTY,
+            clusterService,
+            sqlExecutor.functions(),
+            new TableStats(),
+            null,
+            null,
+            sqlExecutor.schemas(),
+            new StubUserManager(),
+            () -> true) {
+
             @Override
             public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
                 return insertPlan;

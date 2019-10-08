@@ -25,22 +25,28 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-public class AlterUser extends Statement {
+import java.util.function.Function;
 
-    private final GenericProperties<Expression> genericProperties;
+public class AlterUser<T> extends Statement {
+
+    private final GenericProperties<T> properties;
     private final String name;
 
-    public AlterUser(String name, GenericProperties<Expression> genericProperties) {
-        this.genericProperties = genericProperties;
+    public AlterUser(String name, GenericProperties<T> properties) {
+        this.properties = properties;
         this.name = name;
     }
 
-    public GenericProperties<Expression> genericProperties() {
-        return genericProperties;
+    public GenericProperties<T> properties() {
+        return properties;
     }
 
     public String name() {
         return name;
+    }
+
+    public <U> AlterUser<U> map(Function<? super T, ? extends U> mapper) {
+        return new AlterUser<>(name, properties.map(mapper));
     }
 
     @Override
@@ -50,20 +56,20 @@ public class AlterUser extends Statement {
 
         AlterUser alterUser = (AlterUser) o;
 
-        if (!genericProperties.equals(alterUser.genericProperties)) return false;
+        if (!properties.equals(alterUser.properties)) return false;
         return name.equals(alterUser.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, genericProperties);
+        return Objects.hashCode(name, properties);
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("name", name)
-            .add("properties", genericProperties)
+            .add("properties", properties)
             .toString();
     }
 

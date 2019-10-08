@@ -23,17 +23,40 @@
 package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.GenericProperties;
 
-import java.util.Map;
+import java.util.function.Consumer;
 
-public class AlterUserAnalyzedStatement extends DDLUserAnalyzedStatement {
+abstract class AnalyzedUser implements AnalyzedStatement {
 
-    public AlterUserAnalyzedStatement(String userName, Map<String, Symbol> properties) {
-        super(userName, properties);
+    private final String userName;
+    private final GenericProperties<Symbol> properties;
+
+    AnalyzedUser(String userName, GenericProperties<Symbol> properties) {
+        this.userName = userName;
+        this.properties = properties;
+    }
+
+    public GenericProperties<Symbol> properties() {
+        return properties;
+    }
+
+    public String userName() {
+        return userName;
     }
 
     @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitAlterUserStatement(this, context);
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        properties.properties().values().forEach(consumer);
+    }
+
+    @Override
+    public boolean isWriteOperation() {
+        return true;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 }
