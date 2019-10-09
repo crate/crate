@@ -399,7 +399,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] d8f5a3d647a Avoid unneeded refresh with concurrent realtime gets (#47895)
 - [ ] 694373294fe Allow truncation of clean translog (#47866)
 - [ ] 566e1b7d33e Remove type field from DocWriteRequest and associated Response objects (#47671)
-- [ ] f749bacf34b Sync translog without lock before trim unreferenced readers (#47790)
+- [x] f749bacf34b Sync translog without lock before trim unreferenced readers (#47790)
 - [x] c74527e4bb4 Simplify some Common ActionRunnable Uses (#47799)
 - [d] e3adedf610d Geo: implement proper handling of out of bounds geo points (#47734)
 - [d] f9cb29450ec Geo: Fixes indexing of linestrings that go around the globe (#47471)
