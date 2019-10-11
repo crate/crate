@@ -198,8 +198,8 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 $("foo", 10),
                 $("bar", 20)
             )),
-            SENTINEL
-        ));
+            SENTINEL,
+            true));
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
@@ -251,7 +251,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         rows.add($(human, 34, male));
 
         BatchIterator<Row> batchIterator = topNProjector.apply(projector.apply(
-            InMemoryBatchIterator.of(new CollectionBucket(rows), SENTINEL)));
+            InMemoryBatchIterator.of(new CollectionBucket(rows), SENTINEL, true)));
         TestingRowConsumer consumer = new TestingRowConsumer();
 
         consumer.accept(batchIterator, null);
@@ -282,7 +282,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         rows.add($("vogon", 1));
 
         BatchIterator<Row> filteredBI = projector.apply(
-            InMemoryBatchIterator.of(new CollectionBucket(rows), SENTINEL));
+            InMemoryBatchIterator.of(new CollectionBucket(rows), SENTINEL, true));
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(filteredBI, null);
         Bucket bucket = consumer.getBucket();

@@ -111,7 +111,7 @@ public class GroupingStringCollectorBenchmark {
 
     @Benchmark
     public void measureGroupByMinString(Blackhole blackhole) throws Exception {
-        rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL);
+        rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
         blackhole.consume(BatchIterators.collect(rowsIterator, groupByMinCollector).get());
     }
 }

@@ -116,7 +116,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
         BatchIterator rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)
             .mapToObj(i -> new RowN(new Object[]{i, "{\"id\": " + i + ", \"name\": \"Arthur\"}"}))
-            .collect(Collectors.toList()), SENTINEL);
+            .collect(Collectors.toList()), SENTINEL, true);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(writerProjector.apply(rowsIterator), null);

@@ -83,8 +83,8 @@ public class InformationSchemaTableDefinitions {
         ));
         tableDefinitions.put(InformationSqlFeaturesTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.features()),
-            InformationSqlFeaturesTableInfo.expressions()
-        ));
+            InformationSqlFeaturesTableInfo.expressions(),
+            false));
         tableDefinitions.put(InformationKeyColumnUsageTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::keyColumnUsage,
             (user, k) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, k.getFQN()),
@@ -92,8 +92,8 @@ public class InformationSchemaTableDefinitions {
         ));
         tableDefinitions.put(InformationReferentialConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
-            InformationReferentialConstraintsTableInfo.expressions()
-        ));
+            InformationReferentialConstraintsTableInfo.expressions(),
+            false));
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {
