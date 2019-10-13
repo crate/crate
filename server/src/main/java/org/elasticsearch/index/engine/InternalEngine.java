@@ -679,7 +679,8 @@ public class InternalEngine extends Engine {
                     Translog.Operation operation = translog.readOperation(versionValue.getLocation());
                     // in the case of a already pruned translog generation we might get null here - yet very unlikely
                     if (operation == null) {
-                        refresh("realtime_get", SearcherScope.INTERNAL, true);
+                        assert versionValue.seqNo >= 0 : versionValue;
+                        refreshIfNeeded("realtime_get", versionValue.seqNo);
                         return getFromSearcher(get, searcherFactory, SearcherScope.INTERNAL);
                     }
 
@@ -709,7 +710,8 @@ public class InternalEngine extends Engine {
             } else {
                 trackTranslogLocation.set(true);
             }
-            refresh("realtime_get", SearcherScope.INTERNAL, true);
+            assert versionValue.seqNo >= 0 : versionValue;
+            refreshIfNeeded("realtime_get", versionValue.seqNo);
             // no version, get the version from the index, we know that we refresh on flush
             return getFromSearcher(get, searcherFactory, SearcherScope.INTERNAL);
         }
