@@ -395,7 +395,7 @@ components, so delaying it doesn't make applying other patches more difficult.
 - [ ] 704317da71c Remove Support for pre-5.x Indices in Restore (#48181)
 - [x] 6531369f11d Don't persist type information to translog (#47229)
 - [ ] d6d9fc5881c Don't apply the plugin's reader wrapper in can_match phase (#47816)
-- [ ] e628f35f69b Sequence number based replica allocation (#46959)
+- [x] e628f35f69b Sequence number based replica allocation (#46959)
 - [x] d8f5a3d647a Avoid unneeded refresh with concurrent realtime gets (#47895)
 - [d] 694373294fe Allow truncation of clean translog (#47866)
 - [s] 566e1b7d33e Remove type field from DocWriteRequest and associated Response objects (#47671)
