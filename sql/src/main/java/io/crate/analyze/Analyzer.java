@@ -175,6 +175,7 @@ public class Analyzer {
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, functions);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer(functions);
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
+        this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -195,13 +196,13 @@ public class Analyzer {
             createBlobTableAnalyzer,
             createFunctionAnalyzer,
             dropFunctionAnalyzer,
-            dropTableAnalyzer
+            dropTableAnalyzer,
+            refreshTableAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
-        this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
