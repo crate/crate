@@ -47,6 +47,7 @@ import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.AnalyzedOptimizeTable;
+import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedSwapTable;
@@ -104,6 +105,7 @@ import io.crate.planner.node.ddl.DropUserPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.node.ddl.RefreshTablePlan;
+import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.management.ExplainPlan;
@@ -442,6 +444,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             nullSettings.put(setting, null);
         }
         return new UpdateSettingsPlan(nullSettings, nullSettings);
+    }
+
+    @Override
+    public Plan visitRestoreSnapshotAnalyzedStatement(AnalyzedRestoreSnapshot analysis, PlannerContext context) {
+        return new RestoreSnapshotPlan(analysis);
     }
 
     @Override

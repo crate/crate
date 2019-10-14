@@ -40,7 +40,7 @@ public class GetSnapshotsResponse extends TransportResponse implements ToXConten
 
     private final List<SnapshotInfo> snapshots;
 
-    GetSnapshotsResponse(List<SnapshotInfo> snapshots) {
+    public GetSnapshotsResponse(List<SnapshotInfo> snapshots) {
         this.snapshots = Collections.unmodifiableList(snapshots);
     }
 

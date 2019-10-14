@@ -176,6 +176,7 @@ public class Analyzer {
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer(functions);
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
+        this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -197,7 +198,8 @@ public class Analyzer {
             createFunctionAnalyzer,
             dropFunctionAnalyzer,
             dropTableAnalyzer,
-            refreshTableAnalyzer
+            refreshTableAnalyzer,
+            restoreSnapshotAnalyzer
         );
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -205,7 +207,6 @@ public class Analyzer {
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
-        this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
     }
@@ -499,7 +500,10 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitRestoreSnapshot(RestoreSnapshot node, Analysis context) {
-            return restoreSnapshotAnalyzer.analyze(node, context);
+            return restoreSnapshotAnalyzer.analyze(
+                (RestoreSnapshot<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override

@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.PartitionAlreadyExistsException;
@@ -35,6 +34,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
+import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -51,12 +51,13 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
@@ -102,7 +103,14 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 Row.EMPTY,
                 SubQueryResults.EMPTY,
                 e.schemas());
-
+        } else if (analyzedStatement instanceof AnalyzedRestoreSnapshot) {
+            return (T) RestoreSnapshotPlan.createStatement(
+                (AnalyzedRestoreSnapshot) analyzedStatement,
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                Row.EMPTY,
+                SubQueryResults.EMPTY,
+                e.schemas());
         } else {
             return (T) e.analyze(statement);
         }
@@ -264,30 +272,21 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testRestoreSnapshotAll() throws Exception {
-        RestoreSnapshotAnalyzedStatement statement = analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot ALL");
-        assertThat(statement.snapshotName(), is("my_snapshot"));
-        assertThat(statement.repositoryName(), is("my_repo"));
-        assertThat(statement.restoreAll(), is(true));
-        assertThat(statement.restoreAll(), is(true));
-        assertThat(statement.settings().getAsStructuredMap(), // default settings
-            allOf(
-                hasEntry("wait_for_completion", "false"),
-                hasEntry("ignore_unavailable", "false")
-            ));
+        BoundedRestoreSnapshot statement =
+            analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot ALL");
+        assertThat(statement.repository(), is("my_repo"));
+        assertThat(statement.snapshot(), is("my_snapshot"));
+        assertThat(statement.restoreTables().isEmpty(), is(true));
     }
 
     @Test
     public void testRestoreSnapshotSingleTable() throws Exception {
-        RestoreSnapshotAnalyzedStatement statement = analyze(
-            e,
-            "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
-        assertThat(statement.restoreTables().get(0).tableIdent(), is(new RelationName("custom", "restoreme")));
-        assertThat(statement.restoreTables().get(0).partitionName(), is(nullValue()));
-        assertThat(statement.settings().getAsStructuredMap(),
-            allOf(
-                hasEntry("wait_for_completion", "false"),
-                hasEntry("ignore_unavailable", "false")
-            ));
+        BoundedRestoreSnapshot statement =
+            analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
+        assertThat(statement.restoreTables().size(), is(1));
+        var table = getOnlyElement(statement.restoreTables());
+        assertThat(table.tableIdent(), is(new RelationName("custom", "restoreme")));
+        assertThat(table.partitionName(), is(nullValue()));
     }
 
     @Test
@@ -306,26 +305,28 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testRestoreSinglePartition() throws Exception {
-        RestoreSnapshotAnalyzedStatement statement = analyze(
+        BoundedRestoreSnapshot  statement = analyze(
             e,
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=123)");
         PartitionName partition = new PartitionName(
-            new RelationName("doc", "parted"), ImmutableList.of("123"));
+            new RelationName("doc", "parted"), List.of("123"));
         assertThat(statement.restoreTables().size(), is(1));
-        assertThat(statement.restoreTables().get(0).partitionName(), is(partition));
-        assertThat(statement.restoreTables().get(0).tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted")));
+        var table = getOnlyElement(statement.restoreTables());
+        assertThat(table.partitionName(), is(partition));
+        assertThat(table.tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted")));
     }
 
     @Test
     public void testRestoreSinglePartitionToUnknownTable() throws Exception {
-        RestoreSnapshotAnalyzedStatement statement = analyze(
+        BoundedRestoreSnapshot statement = analyze(
             e,
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE unknown_parted PARTITION (date=123)");
         PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "unknown_parted"), ImmutableList.of("123"));
+            new RelationName("doc", "unknown_parted"), List.of("123"));
         assertThat(statement.restoreTables().size(), is(1));
-        assertThat(statement.restoreTables().get(0).partitionName(), is(partitionName));
-        assertThat(statement.restoreTables().get(0).tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "unknown_parted")));
+        var table = getOnlyElement(statement.restoreTables());
+        assertThat(table.partitionName(), is(partitionName));
+        assertThat(table.tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "unknown_parted")));
     }
 
     @Test

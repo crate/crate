@@ -22,62 +22,45 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
-public class RestoreSnapshotAnalyzedStatement implements DDLStatement {
+public class BoundedRestoreSnapshot {
 
-    private static final List<RestoreTableInfo> ALL_TABLES = ImmutableList.of();
-
-    private final String snapshotName;
-    private final String repositoryName;
+    private final String repository;
+    private final String snapshot;
+    private final HashSet<RestoreTableInfo> restoreTables;
     private final Settings settings;
 
-    private final List<RestoreTableInfo> tables;
-
-    private RestoreSnapshotAnalyzedStatement(String snapshotName, String repositoryName, Settings settings, List<RestoreTableInfo> restoreTables) {
-        this.snapshotName = snapshotName;
-        this.repositoryName = repositoryName;
+    public BoundedRestoreSnapshot(String repository,
+                           String snapshot,
+                           HashSet<RestoreTableInfo> restoreTables,
+                           Settings settings) {
+        this.repository = repository;
+        this.snapshot = snapshot;
+        this.restoreTables = restoreTables;
         this.settings = settings;
-        this.tables = restoreTables;
     }
 
-    public static RestoreSnapshotAnalyzedStatement forTables(String snapshotName, String repositoryName, Settings settings, List<RestoreTableInfo> restoreTables) {
-        return new RestoreSnapshotAnalyzedStatement(snapshotName, repositoryName, settings, restoreTables);
+    public String snapshot() {
+        return snapshot;
     }
 
-    public static RestoreSnapshotAnalyzedStatement all(String snapshotName, String repositoryName, Settings settings) {
-        return new RestoreSnapshotAnalyzedStatement(snapshotName, repositoryName, settings, ALL_TABLES);
-    }
-
-    public String snapshotName() {
-        return snapshotName;
-    }
-
-    public String repositoryName() {
-        return repositoryName;
+    public String repository() {
+        return repository;
     }
 
     public Settings settings() {
         return settings;
     }
 
-    public List<RestoreTableInfo> restoreTables() {
-        return tables;
-    }
-
-    public boolean restoreAll() {
-        return tables == ALL_TABLES;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitRestoreSnapshotAnalyzedStatement(this, context);
+    public Set<RestoreTableInfo> restoreTables() {
+        return restoreTables;
     }
 
     public static class RestoreTableInfo {
