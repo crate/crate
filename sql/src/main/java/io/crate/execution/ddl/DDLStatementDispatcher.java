@@ -29,7 +29,6 @@ import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
-import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.data.Row;
 import io.crate.execution.support.Transports;
 import io.crate.metadata.Functions;
@@ -55,7 +54,6 @@ import static java.util.concurrent.CompletableFuture.failedFuture;
 public class DDLStatementDispatcher {
 
     private ClusterService clusterService;
-    private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
     private final TransportClusterRerouteAction rerouteAction;
@@ -64,11 +62,9 @@ public class DDLStatementDispatcher {
 
     @Inject
     public DDLStatementDispatcher(ClusterService clusterService,
-                                  SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   TransportClusterRerouteAction rerouteAction,
                                   Functions functions) {
         this.clusterService = clusterService;
-        this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
         this.rerouteAction = rerouteAction;
         this.functions = functions;
     }
@@ -96,12 +92,6 @@ public class DDLStatementDispatcher {
         @Override
         protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Ctx ctx) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
-        }
-
-        @Override
-        public CompletableFuture<Long> visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis,
-                                                                             Ctx ctx) {
-            return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
 
         @Override

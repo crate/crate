@@ -95,6 +95,24 @@ public class PartitionPropertiesAnalyzer {
         return new PartitionName(tableInfo.ident(), Arrays.asList(values));
     }
 
+    public static PartitionName toPartitionName(RelationName relationName,
+                                                @Nullable DocTableInfo tableInfo,
+                                                List<Assignment<Object>> partitionProperties) {
+        if (tableInfo != null) {
+            return toPartitionName(tableInfo, partitionProperties);
+        }
+
+        // Because only RelationName is available, types of partitioned columns must be guessed
+        Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties);
+        String[] values = new String[properties.size()];
+
+        int idx = 0;
+        for (Object o : properties.values()) {
+            values[idx++] = DataTypes.STRING.value(o);
+        }
+        return new PartitionName(relationName, List.of(values));
+    }
+
     public static PartitionName toPartitionName(DocTableInfo tableInfo,
                                                 List<Assignment<Object>> partitionProperties) {
         Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().fqn());
