@@ -157,6 +157,7 @@ public class Analyzer {
         this.userManager = userManager;
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(functions);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, functions);
+        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
         this.swapTableAnalyzer = new SwapTableAnalyzer(functions, schemas);
         this.createViewAnalyzer = new CreateViewAnalyzer(relationAnalyzer);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
@@ -184,6 +185,7 @@ public class Analyzer {
             explainStatementAnalyzer,
             createTableStatementAnalyzer,
             alterTableAnalyzer,
+            alterTableAddColumnAnalyzer,
             optimizeTableAnalyzer,
             createRepositoryAnalyzer,
             dropRepositoryAnalyzer,
@@ -200,7 +202,6 @@ public class Analyzer {
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
-        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
@@ -364,7 +365,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis analysis) {
+        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn<?> node, Analysis analysis) {
             return alterTableAddColumnAnalyzer.analyze(
                 (AlterTableAddColumn<Expression>) node,
                 analysis.paramTypeHints(),
