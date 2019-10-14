@@ -26,27 +26,40 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 
 import java.util.List;
 
-public class DropFunctionAnalyzedStatement implements DDLStatement {
+public class AnalyzedCreateFunction implements DDLStatement {
 
-    private final String schema;
     private final String name;
-    private final boolean ifExists;
-    private final List<DataType> argumentTypes;
+    private final String schema;
+    private final boolean replace;
+    private final List<FunctionArgumentDefinition> arguments;
+    private final DataType returnType;
+    private final Symbol language;
+    private final Symbol definition;
 
-    public DropFunctionAnalyzedStatement(String schema, String name, boolean ifExists, List<DataType> argumentTypes) {
-        this.schema = schema;
+    AnalyzedCreateFunction(String schema,
+                           String name,
+                           boolean replace,
+                           List<FunctionArgumentDefinition> arguments,
+                           DataType returnType,
+                           Symbol language,
+                           Symbol definition) {
         this.name = name;
-        this.ifExists = ifExists;
-        this.argumentTypes = argumentTypes;
+        this.schema = schema;
+        this.replace = replace;
+        this.arguments = arguments;
+        this.returnType = returnType;
+        this.language = language;
+        this.definition = definition;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitDropFunctionStatement(this, context);
+        return analyzedStatementVisitor.visitCreateFunction(this, context);
     }
 
     public String name() {
@@ -57,11 +70,23 @@ public class DropFunctionAnalyzedStatement implements DDLStatement {
         return schema;
     }
 
-    public List<DataType> argumentTypes() {
-        return argumentTypes;
+    public boolean replace() {
+        return replace;
     }
 
-    public boolean ifExists() {
-        return ifExists;
+    public DataType returnType() {
+        return returnType;
+    }
+
+    public Symbol language() {
+        return language;
+    }
+
+    public Symbol definition() {
+        return definition;
+    }
+
+    public List<FunctionArgumentDefinition> arguments() {
+        return arguments;
     }
 }

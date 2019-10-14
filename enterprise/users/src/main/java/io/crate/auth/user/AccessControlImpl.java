@@ -38,12 +38,12 @@ import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
 import io.crate.analyze.AnalyzedCreateBlobTable;
-import io.crate.analyze.CreateFunctionAnalyzedStatement;
+import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DeallocateAnalyzedStatement;
-import io.crate.analyze.DropFunctionAnalyzedStatement;
+import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.DropTableAnalyzedStatement;
@@ -338,7 +338,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCreateFunctionStatement(CreateFunctionAnalyzedStatement analysis, User user) {
+        protected Void visitCreateFunction(AnalyzedCreateFunction analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
@@ -349,7 +349,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, User user) {
+        public Void visitDropFunction(AnalyzedDropFunction analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,

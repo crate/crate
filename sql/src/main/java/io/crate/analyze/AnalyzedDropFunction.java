@@ -26,40 +26,27 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 
 import java.util.List;
 
-public class CreateFunctionAnalyzedStatement implements DDLStatement {
+public class AnalyzedDropFunction implements AnalyzedStatement {
 
-    private final String name;
     private final String schema;
-    private final boolean replace;
-    private final List<FunctionArgumentDefinition> arguments;
-    private final DataType returnType;
-    private final Expression language;
-    private final Expression definition;
+    private final String name;
+    private final boolean ifExists;
+    private final List<DataType> argumentTypes;
 
-    public CreateFunctionAnalyzedStatement(String schema,
-                                           String name,
-                                           boolean replace,
-                                           List<FunctionArgumentDefinition> arguments,
-                                           DataType returnType,
-                                           Expression language,
-                                           Expression definition) {
-        this.name = name;
+    AnalyzedDropFunction(String schema, String name, boolean ifExists, List<DataType> argumentTypes) {
         this.schema = schema;
-        this.replace = replace;
-        this.arguments = arguments;
-        this.returnType = returnType;
-        this.language = language;
-        this.definition = definition;
+        this.name = name;
+        this.ifExists = ifExists;
+        this.argumentTypes = argumentTypes;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitCreateFunctionStatement(this, context);
+        return analyzedStatementVisitor.visitDropFunction(this, context);
     }
 
     public String name() {
@@ -70,23 +57,21 @@ public class CreateFunctionAnalyzedStatement implements DDLStatement {
         return schema;
     }
 
-    public boolean replace() {
-        return replace;
+    public List<DataType> argumentTypes() {
+        return argumentTypes;
     }
 
-    public DataType returnType() {
-        return returnType;
+    public boolean ifExists() {
+        return ifExists;
     }
 
-    public Expression language() {
-        return language;
+    @Override
+    public boolean isWriteOperation() {
+        return true;
     }
 
-    public Expression definition() {
-        return definition;
-    }
-
-    public List<FunctionArgumentDefinition> arguments() {
-        return arguments;
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 }

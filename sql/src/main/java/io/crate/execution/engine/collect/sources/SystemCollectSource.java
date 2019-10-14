@@ -145,8 +145,7 @@ public class SystemCollectSource implements CollectSource {
                             records
                         )
                     ),
-            // Most system resources are in-memory but some are not and involves IO.
-            true
+            tableDefinition.involvesIO()
         );
     }
 

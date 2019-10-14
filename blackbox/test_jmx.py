@@ -178,10 +178,10 @@ class JmxIntegrationTest(unittest.TestCase):
             '\n'.join((line.strip() for line in stdout.split('\n'))),
             '''\
 active:          0
-completed:       2
-largestPoolSize: 2
+completed:       1
+largestPoolSize: 1
 name:            search
-poolSize:        2
+poolSize:        1
 queueSize:       0
 rejected:        0
 

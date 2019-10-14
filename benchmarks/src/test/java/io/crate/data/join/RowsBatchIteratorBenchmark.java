@@ -99,7 +99,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeBatchIterator(Blackhole blackhole) {
-        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
+        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL, false);
         while (it.moveNext()) {
             blackhole.consume(it.currentElement().get(0));
         }
@@ -107,7 +107,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeCloseAssertingIterator(Blackhole blackhole) {
-        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
+        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL, false);
         BatchIterator<Row> itCloseAsserting = new CloseAssertingBatchIterator<>(it);
         while (itCloseAsserting.moveNext()) {
             blackhole.consume(itCloseAsserting.currentElement().get(0));
@@ -116,7 +116,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeSkippingBatchIterator(Blackhole blackhole) {
-        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
+        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL, false);
         BatchIterator<Row> skippingIt = new SkippingBatchIterator<>(it, 100);
         while (skippingIt.moveNext()) {
             blackhole.consume(skippingIt.currentElement().get(0));
@@ -126,8 +126,8 @@ public class RowsBatchIteratorBenchmark {
     @Benchmark
     public void measureConsumeNestedLoopJoin(Blackhole blackhole) {
         BatchIterator<Row> crossJoin = JoinBatchIterators.crossJoinNL(
-            InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
-            InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
+            InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
+            InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             new CombinedRow(1, 1)
         );
         while (crossJoin.moveNext()) {
@@ -138,8 +138,8 @@ public class RowsBatchIteratorBenchmark {
     @Benchmark
     public void measureConsumeBlockNestedLoopJoin(Blackhole blackhole) {
         BatchIterator<Row> crossJoin = JoinBatchIterators.crossJoinBlockNL(
-            InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
-            InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
+            InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
+            InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             new CombinedRow(1, 1),
             () -> 1000,
             new NoRowAccounting()
@@ -152,8 +152,8 @@ public class RowsBatchIteratorBenchmark {
     @Benchmark
     public void measureConsumeNestedLoopLeftJoin(Blackhole blackhole) {
         BatchIterator<Row> leftJoin = JoinBatchIterators.leftJoin(
-            InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
-            InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
+            InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
+            InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             new CombinedRow(1, 1),
             row -> Objects.equals(row.get(0), row.get(1))
         );
@@ -165,8 +165,8 @@ public class RowsBatchIteratorBenchmark {
     @Benchmark
     public void measureConsumeHashInnerJoin(Blackhole blackhole) {
         BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator(
-            new RamAccountingBatchIterator<>(InMemoryBatchIterator.of(oneThousandRows, SENTINEL), rowAccounting),
-            InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
+            new RamAccountingBatchIterator<>(InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true), rowAccounting),
+            InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             new CombinedRow(1, 1),
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> Objects.hash(row.get(0)),
@@ -181,8 +181,8 @@ public class RowsBatchIteratorBenchmark {
     @Benchmark
     public void measureConsumeHashInnerJoinWithHashCollisions(Blackhole blackhole) {
         BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator(
-            new RamAccountingBatchIterator<>(InMemoryBatchIterator.of(oneThousandRows, SENTINEL), rowAccounting),
-            InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
+            new RamAccountingBatchIterator<>(InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true), rowAccounting),
+            InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             new CombinedRow(1, 1),
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> {
@@ -203,7 +203,7 @@ public class RowsBatchIteratorBenchmark {
     public void measureConsumeWindowBatchIterator(Blackhole blackhole) throws Exception{
         InputCollectExpression input = new InputCollectExpression(0);
         BatchIterator<Row> batchIterator = WindowFunctionBatchIterator.of(
-            new InMemoryBatchIterator<>(rows, SENTINEL),
+            new InMemoryBatchIterator<>(rows, SENTINEL, false),
             new NoRowAccounting(),
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,

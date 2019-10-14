@@ -33,11 +33,13 @@ import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CreateBlobTable;
+import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropUser;
@@ -83,7 +85,9 @@ class UnboundAnalyzer {
                     CreateSnapshotAnalyzer createSnapshotAnalyzer,
                     DropSnapshotAnalyzer dropSnapshotAnalyzer,
                     UserAnalyzer userAnalyzer,
-                    CreateBlobTableAnalyzer createBlobTableAnalyzer) {
+                    CreateBlobTableAnalyzer createBlobTableAnalyzer,
+                    CreateFunctionAnalyzer createFunctionAnalyzer,
+                    DropFunctionAnalyzer dropFunctionAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -101,7 +105,9 @@ class UnboundAnalyzer {
             createSnapshotAnalyzer,
             dropSnapshotAnalyzer,
             userAnalyzer,
-            createBlobTableAnalyzer
+            createBlobTableAnalyzer,
+            createFunctionAnalyzer,
+            dropFunctionAnalyzer
         );
     }
 
@@ -130,6 +136,8 @@ class UnboundAnalyzer {
         private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
         private final UserAnalyzer userAnalyzer;
         private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
+        private final CreateFunctionAnalyzer createFunctionAnalyzer;
+        private final DropFunctionAnalyzer dropFunctionAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -147,7 +155,9 @@ class UnboundAnalyzer {
                           CreateSnapshotAnalyzer createSnapshotAnalyzer,
                           DropSnapshotAnalyzer dropSnapshotAnalyzer,
                           UserAnalyzer userAnalyzer,
-                          CreateBlobTableAnalyzer createBlobTableAnalyzer) {
+                          CreateBlobTableAnalyzer createBlobTableAnalyzer,
+                          CreateFunctionAnalyzer createFunctionAnalyzer,
+                          DropFunctionAnalyzer dropFunctionAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -165,6 +175,8 @@ class UnboundAnalyzer {
             this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;
             this.userAnalyzer = userAnalyzer;
             this.createBlobTableAnalyzer = createBlobTableAnalyzer;
+            this.createFunctionAnalyzer = createFunctionAnalyzer;
+            this.dropFunctionAnalyzer = dropFunctionAnalyzer;
         }
 
         @Override
@@ -229,6 +241,21 @@ class UnboundAnalyzer {
                                                      Analysis context) {
             return alterTableAnalyzer.analyze(
                 (AlterBlobTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateFunction(CreateFunction<?> node,
+                                                     Analysis context) {
+            return createFunctionAnalyzer.analyze(
+                (CreateFunction<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext(),
+                context.sessionContext().searchPath());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropFunction(DropFunction node, Analysis context) {
+            return dropFunctionAnalyzer.analyze(node, context.sessionContext().searchPath());
         }
 
         @Override

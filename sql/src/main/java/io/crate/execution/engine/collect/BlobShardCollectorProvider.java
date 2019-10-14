@@ -78,7 +78,8 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
     protected BatchIterator<Row> getUnorderedIterator(RoutedCollectPhase collectPhase,
                                                       boolean requiresScroll,
                                                       CollectTask collectTask) {
-        return InMemoryBatchIterator.of(getBlobRows(collectTask.txnCtx(), collectPhase, requiresScroll), SentinelRow.SENTINEL);
+        return InMemoryBatchIterator.of(getBlobRows(collectTask.txnCtx(), collectPhase, requiresScroll), SentinelRow.SENTINEL,
+                                        true);
     }
 
     private Iterable<Row> getBlobRows(TransactionContext txnCtx, RoutedCollectPhase collectPhase, boolean requiresRepeat) {
