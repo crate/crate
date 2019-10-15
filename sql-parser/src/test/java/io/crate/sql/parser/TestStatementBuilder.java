@@ -468,12 +468,12 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetLicense() {
-        SetStatement stmt = (SetStatement) SqlParser.createStatement("set license 'LICENSE_KEY'");
+        SetStatement<?> stmt = (SetStatement) SqlParser.createStatement("set license 'LICENSE_KEY'");
         assertThat(stmt.scope(), is(SetStatement.Scope.LICENSE));
         assertThat(stmt.settingType(), is(SetStatement.SettingType.PERSISTENT));
         assertThat(stmt.assignments().size(), is(1));
 
-        Assignment assignment = stmt.assignments().get(0);
+        Assignment<?> assignment = stmt.assignments().get(0);
         assertThat(assignment.expressions().size(), is(1));
         assertThat(assignment.expressions().get(0).toString(), is("'LICENSE_KEY'"));
     }

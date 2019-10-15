@@ -22,7 +22,8 @@
 
 package io.crate.planner.statement;
 
-import io.crate.analyze.SetLicenseAnalyzedStatement;
+import io.crate.analyze.AnalyzedSetLicenseStatement;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -34,9 +35,9 @@ import io.crate.planner.operators.SubQueryResults;
 
 public class SetLicensePlan implements Plan {
 
-    private final SetLicenseAnalyzedStatement stmt;
+    private final AnalyzedSetLicenseStatement stmt;
 
-    public SetLicensePlan(final SetLicenseAnalyzedStatement stmt) {
+    public SetLicensePlan(final AnalyzedSetLicenseStatement stmt) {
         this.stmt = stmt;
     }
 
@@ -51,7 +52,15 @@ public class SetLicensePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        dependencies.licenseService().registerLicense(stmt.licenseKey())
+        Object license = SymbolEvaluator.evaluate(
+            plannerContext.transactionContext(),
+            plannerContext.functions(),
+            stmt.licenseKey(),
+            params,
+            subQueryResults
+        );
+        dependencies.licenseService().registerLicense(license.toString())
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }
+

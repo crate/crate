@@ -21,19 +21,20 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.Expression;
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.SetStatement;
 
 import java.util.List;
-import java.util.Map;
+import java.util.function.Consumer;
 
-public class SetAnalyzedStatement implements AnalyzedStatement {
+public class AnalyzedSetStatement implements AnalyzedStatement {
 
-    private final Map<String, List<Expression>> settings;
+    private final List<Assignment<Symbol>> settings;
     private final SetStatement.Scope scope;
     private final boolean persistent;
 
-    SetAnalyzedStatement(SetStatement.Scope scope, Map<String, List<Expression>> settings, boolean persistent) {
+    AnalyzedSetStatement(SetStatement.Scope scope, List<Assignment<Symbol>> settings, boolean persistent) {
         this.scope = scope;
         this.settings = settings;
         this.persistent = persistent;
@@ -43,7 +44,7 @@ public class SetAnalyzedStatement implements AnalyzedStatement {
         return scope;
     }
 
-    public Map<String, List<Expression>> settings() {
+    public List<Assignment<Symbol>> settings() {
         return settings;
     }
 
@@ -52,8 +53,20 @@ public class SetAnalyzedStatement implements AnalyzedStatement {
     }
 
     @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (Assignment<Symbol> symbols : settings) {
+            symbols.expressions().forEach(consumer);
+        }
+    }
+
+    @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitSetStatement(this, context);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 
     @Override

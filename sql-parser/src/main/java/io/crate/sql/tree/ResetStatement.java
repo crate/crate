@@ -23,19 +23,27 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import io.crate.common.collections.Lists2;
 
 import java.util.List;
+import java.util.function.Function;
 
-public class ResetStatement extends Statement {
+public class ResetStatement<T> extends Statement {
 
-    private final List<Expression> columns;
+    private final List<T> columns;
 
-    public ResetStatement(List<Expression> columns) {
+    public ResetStatement(List<T> columns) {
         this.columns = columns;
     }
 
-    public List<Expression> columns() {
+    public List<T> columns() {
         return columns;
+    }
+
+    public <U> ResetStatement<U> map(Function<? super T, ? extends U> mapper) {
+        return new ResetStatement<>(
+            Lists2.map(columns, mapper)
+        );
     }
 
     @Override

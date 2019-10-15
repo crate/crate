@@ -57,8 +57,8 @@ import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.AnalyzedPrivileges;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.ResetAnalyzedStatement;
-import io.crate.analyze.SetAnalyzedStatement;
+import io.crate.analyze.AnalyzedResetStatement;
+import io.crate.analyze.AnalyzedSetStatement;
 import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -436,7 +436,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitSetStatement(SetAnalyzedStatement analysis, User user) {
+        public Void visitSetStatement(AnalyzedSetStatement analysis, User user) {
             if (analysis.scope().equals(SetStatement.Scope.GLOBAL)) {
                 Privileges.ensureUserHasPrivilege(
                     Privilege.Type.AL,
@@ -539,7 +539,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitResetAnalyzedStatement(ResetAnalyzedStatement resetAnalyzedStatement, User user) {
+        public Void visitResetAnalyzedStatement(AnalyzedResetStatement resetAnalyzedStatement, User user) {
             throwRequiresSuperUserPermission(user.name());
             return null;
         }

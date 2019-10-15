@@ -21,19 +21,18 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Literal;
+import io.crate.sql.tree.Assignment;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -41,9 +40,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashMap;
+
 import java.util.List;
-import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -100,9 +98,8 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         final String transientSetting = "bulk.request_timeout";
 
         // Update persistent only
-        Map<String, List<Expression>> persistentSettings = new HashMap<String, List<Expression>>(){{
-            put(persistentSetting, ImmutableList.<Expression>of(Literal.fromObject(false)));
-        }};
+        List<Assignment<Symbol>> persistentSettings = List.of(
+            new Assignment<>(Literal.of(persistentSetting), List.of(Literal.of(false))));
 
         UpdateSettingsPlan node = new UpdateSettingsPlan(persistentSettings);
         PlannerContext plannerContext = mock(PlannerContext.class);
@@ -114,11 +111,10 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         );
 
         // Update transient only
-        Map<String, List<Expression>> transientSettings = new HashMap<String, List<Expression>>(){{
-            put(transientSetting, ImmutableList.<Expression>of(Literal.fromObject("123s")));
-        }};
+        List<Assignment<Symbol>> transientSettings = List.of(
+            new Assignment<>(Literal.of(transientSetting), List.of(Literal.of("123s"))));
 
-        node = new UpdateSettingsPlan(ImmutableMap.<String, List<Expression>>of(), transientSettings);
+        node = new UpdateSettingsPlan(List.of(), transientSettings);
         objects = executePlan(node, plannerContext);
 
         assertThat(objects, contains(isRow(1L)));
@@ -127,13 +123,12 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         );
 
         // Update persistent & transient
-        persistentSettings = new HashMap<String, List<Expression>>(){{
-            put(persistentSetting, ImmutableList.<Expression>of(Literal.fromObject(false)));
-        }};
+        persistentSettings = List.of(
+            new Assignment<>(Literal.of(persistentSetting), List.of(Literal.of(false))));
 
-        transientSettings = new HashMap<String, List<Expression>>(){{
-            put(transientSetting, ImmutableList.<Expression>of(Literal.fromObject("243s")));
-        }};
+
+        transientSettings = List.of(
+            new Assignment<>(Literal.of(transientSetting), List.of(Literal.of("243s"))));
 
         node = new UpdateSettingsPlan(persistentSettings, transientSettings);
         objects = executePlan(node, plannerContext);

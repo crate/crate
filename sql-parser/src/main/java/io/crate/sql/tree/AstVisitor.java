@@ -464,11 +464,11 @@ public abstract class AstVisitor<R, C> {
         return visitExpression(node, context);
     }
 
-    public R visitSetStatement(SetStatement node, C context) {
+    public R visitSetStatement(SetStatement<?> node, C context) {
         return visitStatement(node, context);
     }
 
-    public R visitResetStatement(ResetStatement node, C context) {
+    public R visitResetStatement(ResetStatement<?> node, C context) {
         return visitStatement(node, context);
     }
 

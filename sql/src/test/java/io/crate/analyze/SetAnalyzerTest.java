@@ -22,23 +22,18 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Multimap;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Literal;
-import io.crate.sql.tree.ObjectLiteral;
+import io.crate.expression.symbol.Literal;
+import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.SetStatement;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Set;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -56,183 +51,154 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSetGlobal() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT stats.operations_log_size=1");
+        AnalyzedSetStatement analysis = analyze("SET GLOBAL PERSISTENT stats.operations_log_size=1");
         assertThat(analysis.isPersistent(), is(true));
         assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(
-            analysis.settings().get("stats.operations_log_size").get(0),
-            Matchers.<Expression>is(Literal.fromObject(1))
-        );
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(1L)))));
 
         analysis = analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=2");
         assertThat(analysis.isPersistent(), is(false));
         assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(
-            analysis.settings().get("stats.jobs_log_size").get(0),
-            Matchers.<Expression>is(Literal.fromObject(2))
-        );
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(2L)))));
+
 
         analysis = analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size=0");
         assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(analysis.isPersistent(), is(false));
+
         assertThat(
-            analysis.settings().get("stats.operations_log_size").get(0),
-            Matchers.<Expression>is(Literal.fromObject(0))
-        );
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("stats.enabled"), List.of(Literal.of(false)))));
+
         assertThat(
-            analysis.settings().get("stats.jobs_log_size").get(0),
-            Matchers.<Expression>is(Literal.fromObject(0))
-        );
+            analysis.settings().get(1),
+            is(new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(0L)))));
+
+        assertThat(
+            analysis.settings().get(2),
+            is(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(0L)))));
     }
 
     @Test
     public void testSetLocal() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET LOCAL something TO 2");
+        AnalyzedSetStatement analysis = analyze("SET LOCAL something TO 2");
         assertThat(analysis.scope(), is(SetStatement.Scope.LOCAL));
-        assertThat(analysis.settings().get("something").get(0), Matchers.<Expression>is(Literal.fromObject(2)));
+
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(2L)))));
+
 
         analysis = analyze("SET LOCAL something TO DEFAULT");
         assertThat(analysis.scope(), is(SetStatement.Scope.LOCAL));
-        assertThat(analysis.settings().get("something").size(), is(0));
+
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("something"), List.of())));
     }
 
     @Test
     public void testSetSessionTransactionMode() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
+        AnalyzedSetStatement analysis = analyze("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION_TRANSACTION_MODE));
-        assertThat(analysis.settings().get("transaction_mode").size(), is(4));
+
+        assertThat(
+            analysis.settings().get(0).columnName(), is(Literal.of("transaction_mode")));
+
+        assertThat(
+            analysis.settings().get(0).expressions().size(), is(4));
     }
 
     @Test
     public void testSetSession() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET SESSION something TO 2");
+        AnalyzedSetStatement analysis = analyze("SET SESSION something TO 2");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().get("something").size(), is(1));
-        assertThat(analysis.settings().get("something").get(0), Matchers.<Expression>is(Literal.fromObject(2)));
+
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(2L)))));
 
         analysis = analyze("SET SESSION something = 1,2,3");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().get("something").size(), is(3));
-        assertThat(analysis.settings().get("something").get(1), Matchers.<Expression>is(Literal.fromObject(2)));
+
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(1L), Literal.of(2L), Literal.of(3L)))));
     }
 
     @Test
     public void testSet() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET something TO 2");
+        AnalyzedSetStatement analysis = analyze("SET something TO 2");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().get("something").get(0), Matchers.<Expression>is(Literal.fromObject(2)));
+
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("something"), List.of(Literal.of(2L)))));
 
         analysis = analyze("SET something = DEFAULT");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().get("something").size(), is(0));
+
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("something"), List.of())));
 
         analysis = analyze("SET something = default");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().get("something").size(), is(0));
+
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("something"), List.of())));
     }
 
     @Test
     public void testSetFullQualified() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT stats['operations_log_size']=1");
+        AnalyzedSetStatement analysis = analyze("SET GLOBAL PERSISTENT stats['operations_log_size']=1");
         assertThat(analysis.isPersistent(), is(true));
-        assertThat(analysis.settings().get("stats.operations_log_size").get(0), Matchers.<Expression>is(Literal.fromObject(1)));
-    }
 
-    @Test
-    public void testSetSessionInvalidSetting() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("GLOBAL Cluster setting 'stats.operations_log_size' cannot be used with SET SESSION / LOCAL");
-        analyze("SET SESSION stats.operations_log_size=1");
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(1L)))));
     }
-
+//
     @Test
     public void testObjectValue() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT cluster.graceful_stop = {timeout='1h'}");
-        Multimap<String, Expression> map = LinkedListMultimap.create();
-        map.put("timeout", Literal.fromObject("1h"));
-        Literal expected = new ObjectLiteral(map);
-        assertThat(analysis.settings().get("cluster.graceful_stop").get(0), Matchers.<Expression>is(expected));
+        AnalyzedSetStatement analysis = analyze("SET GLOBAL PERSISTENT cluster.graceful_stop = {timeout='1h'}");
+        HashMap<String, Object> expected = new HashMap<>();
+        expected.put("timeout", "1h");
+
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("cluster.graceful_stop"), List.of(Literal.of(expected)))));
     }
 
     @Test
     public void testSetRuntimeSettingSubscript() {
-        SetAnalyzedStatement analysis =
+        AnalyzedSetStatement analysis =
             analyze("SET GLOBAL TRANSIENT cluster['routing']['allocation']['include'] = {_host = 'host1.example.com'}");
-        Expression expression = analysis.settings().get("cluster.routing.allocation.include").get(0);
-        assertThat(expression.toString(), is("{\"_host\"= 'host1.example.com'}"));
-    }
 
-    @Test
-    public void testReset() throws Exception {
-        ResetAnalyzedStatement analysis = analyze("RESET GLOBAL stats.enabled");
-        assertThat(analysis.settingsToRemove(), contains("stats.enabled"));
-
-        analysis = analyze("RESET GLOBAL stats");
         assertThat(
-            analysis.settingsToRemove(),
-            containsInAnyOrder(
-                "stats.breaker.log.operations.limit",
-                "stats.breaker.log.operations.overhead",
-                "stats.breaker.log.jobs.limit",
-                "stats.breaker.log.jobs.overhead",
-                "stats.enabled",
-                "stats.jobs_log_size",
-                "stats.jobs_log_expiration",
-                "stats.jobs_log_filter",
-                "stats.jobs_log_persistent_filter",
-                "stats.operations_log_size",
-                "stats.operations_log_expiration",
-                "stats.service.interval")
-        );
-    }
-
-    @Test
-    public void testSetNonRuntimeSetting() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Setting 'gateway.recover_after_time' cannot be set/reset at runtime");
-        analyze("SET GLOBAL TRANSIENT gateway.recover_after_time = '5m'");
-    }
-
-    @Test
-    public void testResetNonRuntimeSetting() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
-        analyze("RESET GLOBAL gateway.recover_after_nodes");
-    }
-
-    @Test
-    public void testSetNonRuntimeSettingObject() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
-        analyze("SET GLOBAL TRANSIENT gateway = {recover_after_nodes = 3}");
-    }
-
-    @Test
-    public void testResetNonRuntimeSettingObject() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
-        analyze("RESET GLOBAL gateway");
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("cluster.routing.allocation.include"),
+                                List.of(Literal.of(Map.of("_host", "host1.example.com"))))));
     }
 
     @Test
     public void testSetLoggingSetting() {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INFo'");
+        AnalyzedSetStatement analysis = analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INFo'");
         assertThat(analysis.isPersistent(), is(false));
-        assertThat(
-            analysis.settings().get("logger.action").get(0),
-            Matchers.<Expression>is(Literal.fromObject("INFo"))
-        );
-    }
 
-    @Test
-    public void testResetLoggingSetting() {
-        ResetAnalyzedStatement analysis = analyze("RESET GLOBAL \"logger.action\"");
-        assertThat(analysis.settingsToRemove(), Matchers.<Set<String>>is(ImmutableSet.of("logger.action")));
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("logger.action"), List.of(Literal.of("INFo")))));
     }
 
     @Test
     public void testSetLicense() throws Exception {
-        SetLicenseAnalyzedStatement analysis = analyze("SET LICENSE 'ThisShouldBeAnEncryptedLicenseKey'");
-        assertThat(analysis.licenseKey(), is("ThisShouldBeAnEncryptedLicenseKey"));
+        AnalyzedSetLicenseStatement analysis = analyze("SET LICENSE 'ThisShouldBeAnEncryptedLicenseKey'");
+        assertThat(analysis.licenseKey().representation(), is("ThisShouldBeAnEncryptedLicenseKey"));
     }
 }
