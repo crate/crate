@@ -41,7 +41,7 @@ public class Identifiers {
     private static final Pattern ESCAPE_REPLACE_RE = Pattern.compile("\"", Pattern.LITERAL);
     private static final String ESCAPE_REPLACEMENT = Matcher.quoteReplacement("\"\"");
 
-    private static final Set<String> KEYWORDS = identifierCandidates().stream()
+    static final Set<String> KEYWORDS = identifierCandidates().stream()
         .filter(Identifiers::reserved)
         .collect(Collectors.toSet());
 
