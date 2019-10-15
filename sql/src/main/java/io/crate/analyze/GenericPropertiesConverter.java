@@ -62,11 +62,13 @@ public class GenericPropertiesConverter {
         }
     }
 
-    private static void genericPropertyToSetting(Settings.Builder builder,
-                                                 String name,
-                                                 Object value) {
+    public static void genericPropertyToSetting(Settings.Builder builder,
+                                                String name,
+                                                Object value) {
         if (value instanceof String[]) {
             builder.putList(name, (String[]) value);
+        } else if (value instanceof List) {
+            builder.putList(name, (List) value);
         } else {
             builder.put(name, value.toString());
         }

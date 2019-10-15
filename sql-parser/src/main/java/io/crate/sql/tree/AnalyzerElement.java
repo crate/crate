@@ -21,5 +21,5 @@
 
 package io.crate.sql.tree;
 
-public abstract class AnalyzerElement extends Node {
+public abstract class AnalyzerElement<T> extends Node {
 }

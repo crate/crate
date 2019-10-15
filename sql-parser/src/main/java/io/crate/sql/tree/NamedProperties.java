@@ -21,15 +21,14 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
-public class NamedProperties extends Node {
+public class NamedProperties<T> extends Node {
 
     private final String ident;
-    private final GenericProperties<Expression> properties;
+    private final GenericProperties<T> properties;
 
-    public NamedProperties(String ident, GenericProperties<Expression> properties) {
+    public NamedProperties(String ident, GenericProperties<T> properties) {
         this.ident = ident;
         this.properties = properties;
     }
@@ -38,33 +37,33 @@ public class NamedProperties extends Node {
         return ident;
     }
 
-    public GenericProperties<Expression> properties() {
+    public GenericProperties<T> properties() {
         return properties;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(ident, properties);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        NamedProperties<?> that = (NamedProperties<?>) o;
+        return Objects.equals(ident, that.ident) &&
+               Objects.equals(properties, that.properties);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        NamedProperties that = (NamedProperties) o;
-
-        if (!ident.equals(that.ident)) return false;
-        if (!properties.equals(that.properties)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(ident, properties);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("ident", ident)
-            .add("properties", properties)
-            .toString();
+        return "NamedProperties{" +
+               "ident='" + ident + '\'' +
+               ", properties=" + properties +
+               '}';
     }
 }

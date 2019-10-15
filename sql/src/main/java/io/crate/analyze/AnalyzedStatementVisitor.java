@@ -79,7 +79,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    protected R visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, C context) {
+    protected R visitCreateAnalyzerStatement(AnalyzedCreateAnalyzer analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
 
