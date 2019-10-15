@@ -21,43 +21,43 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import java.util.List;
+import java.util.Objects;
 
-public class TokenFilters extends AnalyzerElement {
+public class TokenFilters<T> extends AnalyzerElement<T> {
 
-    private final List<NamedProperties> tokenFilters;
+    private final List<NamedProperties<T>> tokenFilters;
 
-    public TokenFilters(List<NamedProperties> tokenFilters) {
+    public TokenFilters(List<NamedProperties<T>> tokenFilters) {
         this.tokenFilters = tokenFilters;
     }
 
-    public List<NamedProperties> tokenFilters() {
+    public List<NamedProperties<T>> tokenFilters() {
         return tokenFilters;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(tokenFilters);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        TokenFilters<?> that = (TokenFilters<?>) o;
+        return Objects.equals(tokenFilters, that.tokenFilters);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        TokenFilters that = (TokenFilters) o;
-
-        if (!tokenFilters.equals(that.tokenFilters)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(tokenFilters);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("tokenFilters", tokenFilters).toString();
+        return "TokenFilters{" +
+               "tokenFilters=" + tokenFilters +
+               '}';
     }
 
     @Override

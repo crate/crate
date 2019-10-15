@@ -21,22 +21,20 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Objects;
 
-public class CreateAnalyzer extends Statement {
+public class CreateAnalyzer<T> extends Statement {
 
     private final String ident;
     @Nullable
     private final String extendedAnalyzer;
-    private final List<AnalyzerElement> elements;
+    private final List<AnalyzerElement<T>> elements;
 
     public CreateAnalyzer(String ident,
                           @Nullable String extendedAnalyzer,
-                          List<AnalyzerElement> elements) {
+                          List<AnalyzerElement<T>> elements) {
         this.ident = ident;
         this.extendedAnalyzer = extendedAnalyzer;
         this.elements = elements;
@@ -55,34 +53,36 @@ public class CreateAnalyzer extends Statement {
         return extendedAnalyzer != null;
     }
 
-    public List<AnalyzerElement> elements() {
+    public List<AnalyzerElement<T>> elements() {
         return elements;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(ident, extendedAnalyzer, elements);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CreateAnalyzer<?> that = (CreateAnalyzer<?>) o;
+        return Objects.equals(ident, that.ident) &&
+               Objects.equals(extendedAnalyzer, that.extendedAnalyzer) &&
+               Objects.equals(elements, that.elements);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        CreateAnalyzer that = (CreateAnalyzer) o;
-
-        return Objects.equal(elements, that.elements) &&
-               Objects.equal(extendedAnalyzer, that.extendedAnalyzer) &&
-               Objects.equal(ident, that.ident);
+    public int hashCode() {
+        return Objects.hash(ident, extendedAnalyzer, elements);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("ident", ident)
-            .add("extends", extendedAnalyzer)
-            .add("elements", elements)
-            .toString();
+        return "CreateAnalyzer{" +
+               "ident='" + ident + '\'' +
+               ", extends='" + extendedAnalyzer + '\'' +
+               ", elements=" + elements +
+               '}';
     }
 
     @Override

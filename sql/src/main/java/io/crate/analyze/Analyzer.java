@@ -179,6 +179,7 @@ public class Analyzer {
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, functions);
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
+        this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver, functions);
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
@@ -203,9 +204,9 @@ public class Analyzer {
             dropTableAnalyzer,
             refreshTableAnalyzer,
             restoreSnapshotAnalyzer,
+            createAnalyzerStatementAnalyzer,
             dropAnalyzerStatementAnalyzer
         );
-        this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
@@ -314,8 +315,11 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, Analysis context) {
-            return createAnalyzerStatementAnalyzer.analyze(node, context);
+        public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer<?> node, Analysis context) {
+            return createAnalyzerStatementAnalyzer.analyze(
+                (CreateAnalyzer<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override

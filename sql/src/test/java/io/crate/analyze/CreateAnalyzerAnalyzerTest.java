@@ -21,209 +21,227 @@
 
 package io.crate.analyze;
 
+import io.crate.data.RowN;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.ddl.CreateAnalyzerPlan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
 
 public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private PlannerContext plannerContext;
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .build();
+        plannerContext = e.getPlannerContext(clusterService.state());
+    }
+
+    private ClusterUpdateSettingsRequest analyze(String stmt, Object... arguments) {
+        AnalyzedCreateAnalyzer analyzedStatement = e.analyze(stmt);
+        return CreateAnalyzerPlan.createRequest(
+            analyzedStatement,
+            plannerContext.transactionContext(),
+            plannerContext.functions(),
+            new RowN(arguments),
+            SubQueryResults.EMPTY,
+            e.fulltextAnalyzerResolver());
     }
 
     @Test
     public void testCreateAnalyzerSimple() throws Exception {
-        AnalyzedStatement analyzedStatement = e.analyze("CREATE ANALYZER a1 (tokenizer lowercase)");
-        assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
-        CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
-
-        assertEquals("a1", createAnalyzerAnalysis.ident());
-        assertEquals("lowercase", createAnalyzerAnalysis.tokenizerDefinition().v1());
-        assertEquals(Settings.EMPTY, createAnalyzerAnalysis.tokenizerDefinition().v2());
-
-        // be sure build succeeds
-        createAnalyzerAnalysis.buildSettings();
+        ClusterUpdateSettingsRequest request = analyze(
+            "CREATE ANALYZER a1 (TOKENIZER lowercase)");
+        assertThat(
+            extractAnalyzerSettings("a1", request.persistentSettings()),
+            allOf(
+                hasEntry("index.analysis.analyzer.a1.tokenizer", "lowercase"),
+                hasEntry("index.analysis.analyzer.a1.type", "custom")
+            )
+        );
     }
 
     @Test
     public void testCreateAnalyzerWithCustomTokenizer() throws Exception {
-        AnalyzedStatement analyzedStatement = e.analyze("CREATE ANALYZER a2 (" +
-                                                      "   tokenizer tok2 with (" +
-                                                      "       type='ngram'," +
-                                                      "       \"min_ngram\"=2," +
-                                                      "       \"token_chars\"=['letter', 'digits']" +
-                                                      "   )" +
-                                                      ")");
-        assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
-        CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
-
-        assertEquals("a2", createAnalyzerAnalysis.ident());
-        assertEquals("a2_tok2", createAnalyzerAnalysis.tokenizerDefinition().v1());
+        ClusterUpdateSettingsRequest request = analyze(
+            "CREATE ANALYZER a2 (" +
+            "   TOKENIZER tok2 with (" +
+            "       type='ngram'," +
+            "       \"min_ngram\"=2," +
+            "       \"token_chars\"=['letter', 'digits']" +
+            "   )" +
+            ")");
         assertThat(
-            createAnalyzerAnalysis.tokenizerDefinition().v2(),
+            extractAnalyzerSettings("a2", request.persistentSettings()),
             allOf(
-                hasEntry("index.analysis.tokenizer.a2_tok2.type", "ngram"),
-                hasEntry("index.analysis.tokenizer.a2_tok2.min_ngram", "2"),
-                hasEntry("index.analysis.tokenizer.a2_tok2.token_chars", "[letter, digits]")
+                hasEntry("index.analysis.analyzer.a2.tokenizer", "a2_tok2"),
+                hasEntry("index.analysis.analyzer.a2.type", "custom")
             )
         );
 
-        // be sure build succeeds
-        createAnalyzerAnalysis.buildSettings();
+        var tokenizerSettings = FulltextAnalyzerResolver.decodeSettings(
+            request.persistentSettings().get(TOKENIZER.buildSettingName("a2_tok2")));
+        assertThat(
+            tokenizerSettings,
+            allOf(
+                hasEntry("index.analysis.tokenizer.a2_tok2.min_ngram", "2"),
+                hasEntry("index.analysis.tokenizer.a2_tok2.type", "ngram"),
+                hasEntry("index.analysis.tokenizer.a2_tok2.token_chars", "[letter, digits]")
+            )
+        );
     }
 
     @Test
     public void testCreateAnalyzerWithCharFilters() throws Exception {
-        AnalyzedStatement analyzedStatement = e.analyze("CREATE ANALYZER a3 (" +
-                                                      "   tokenizer lowercase," +
-                                                      "   char_filters (" +
-                                                      "       \"html_strip\"," +
-                                                      "       my_mapping WITH (" +
-                                                      "           type='mapping'," +
-                                                      "           mappings=['ph=>f', 'ß=>ss', 'ö=>oe']" +
-                                                      "       )" +
-                                                      "   )" +
-                                                      ")");
-        assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
-        CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
-
-        assertEquals("a3", createAnalyzerAnalysis.ident());
-        assertEquals("lowercase", createAnalyzerAnalysis.tokenizerDefinition().v1());
+        ClusterUpdateSettingsRequest request = analyze(
+            "CREATE ANALYZER a3 (" +
+            "   TOKENIZER lowercase," +
+            "   CHAR_FILTERS (" +
+            "       \"html_strip\"," +
+            "       my_mapping WITH (" +
+            "           type='mapping'," +
+            "           mappings=['ph=>f', 'ß=>ss', 'ö=>oe']" +
+            "       )" +
+            "   )" +
+            ")");
 
         assertThat(
-            createAnalyzerAnalysis.charFilters().keySet(),
-            containsInAnyOrder("html_strip", "a3_my_mapping")
+            extractAnalyzerSettings("a3", request.persistentSettings()),
+            allOf(
+                hasEntry("index.analysis.analyzer.a3.tokenizer", "lowercase"),
+                hasEntry("index.analysis.analyzer.a3.char_filter", "[html_strip, a3_my_mapping]")
+            )
         );
 
+        var charFiltersSettings = FulltextAnalyzerResolver.decodeSettings(
+            request.persistentSettings().get(CHAR_FILTER.buildSettingName("a3_my_mapping")));
         assertThat(
-            createAnalyzerAnalysis.charFilters().get("a3_my_mapping"),
-            hasEntry("index.analysis.char_filter.a3_my_mapping.type", "mapping")
+            charFiltersSettings,
+            allOf(
+                hasEntry("index.analysis.char_filter.a3_my_mapping.mappings", "[ph=>f, ß=>ss, ö=>oe]"),
+                hasEntry("index.analysis.char_filter.a3_my_mapping.type", "mapping")
+            )
         );
-        assertThat(
-            createAnalyzerAnalysis.charFilters().get("a3_my_mapping")
-                .getAsList("index.analysis.char_filter.a3_my_mapping.mappings"),
-            containsInAnyOrder("ph=>f", "ß=>ss", "ö=>oe")
-        );
-
-        // be sure build succeeds
-        createAnalyzerAnalysis.buildSettings();
     }
 
     @Test
     public void testCreateAnalyzerWithTokenFilters() throws Exception {
-        AnalyzedStatement analyzedStatement = e.analyze("CREATE ANALYZER a11 (" +
-                                                      "  TOKENIZER standard," +
-                                                      "  TOKEN_FILTERS (" +
-                                                      "    lowercase," +
-                                                      "    mystop WITH (" +
-                                                      "      type='stop'," +
-                                                      "      stopword=['the', 'over']" +
-                                                      "    )" +
-                                                      "  )" +
-                                                      ")");
-        assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
-        CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
-
-        assertEquals("a11", createAnalyzerAnalysis.ident());
-        assertEquals("standard", createAnalyzerAnalysis.tokenizerDefinition().v1());
+        ClusterUpdateSettingsRequest request = analyze(
+            "CREATE ANALYZER a11 (" +
+            "  TOKENIZER standard," +
+            "  TOKEN_FILTERS (" +
+            "    lowercase," +
+            "    mystop WITH (" +
+            "      type='stop'," +
+            "      stopword=['the', 'over']" +
+            "    )" +
+            "  )" +
+            ")");
 
         assertThat(
-            createAnalyzerAnalysis.tokenFilters().keySet(),
-            containsInAnyOrder("lowercase", "a11_mystop")
+            extractAnalyzerSettings("a11", request.persistentSettings()),
+            allOf(
+                hasEntry("index.analysis.analyzer.a11.tokenizer", "standard"),
+                hasEntry("index.analysis.analyzer.a11.filter", "[lowercase, a11_mystop]")
+            )
         );
 
+        var tokenFiltersSettings = FulltextAnalyzerResolver.decodeSettings(
+            request.persistentSettings().get(TOKEN_FILTER.buildSettingName("a11_mystop")));
         assertThat(
-            createAnalyzerAnalysis.tokenFilters().get("a11_mystop"),
-            hasEntry("index.analysis.filter.a11_mystop.type", "stop")
+            tokenFiltersSettings,
+            allOf(
+                hasEntry("index.analysis.filter.a11_mystop.type", "stop"),
+                hasEntry("index.analysis.filter.a11_mystop.stopword", "[the, over]")
+            )
         );
-        assertThat(
-            createAnalyzerAnalysis.tokenFilters().get("a11_mystop")
-                .getAsList("index.analysis.filter.a11_mystop.stopword"),
-            containsInAnyOrder("the", "over")
-        );
-
-        // be sure build succeeds
-        createAnalyzerAnalysis.buildSettings();
     }
 
     @Test
     public void testCreateAnalyzerExtendingBuiltin() throws Exception {
-        AnalyzedStatement analyzedStatement = e.analyze("CREATE ANALYZER a4 EXTENDS " +
-                                                      "german WITH (" +
-                                                      "   \"stop_words\"=['der', 'die', 'das']" +
-                                                      ")");
-        assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
-        CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
-
-        assertEquals("a4", createAnalyzerAnalysis.ident());
-        assertEquals("german", createAnalyzerAnalysis.extendedAnalyzerName());
+        ClusterUpdateSettingsRequest request = analyze(
+            "CREATE ANALYZER a4 EXTENDS " +
+            "german WITH (" +
+            "   \"stop_words\"=['der', 'die', 'das']" +
+            ")");
 
         assertThat(
-            createAnalyzerAnalysis.genericAnalyzerSettings().getAsList("index.analysis.analyzer.a4.stop_words"),
-            containsInAnyOrder("der", "die", "das")
+            extractAnalyzerSettings("a4", request.persistentSettings()),
+            allOf(
+                hasEntry("index.analysis.analyzer.a4.stop_words", "[der, die, das]"),
+                hasEntry("index.analysis.analyzer.a4.type", "german")
+            )
         );
-
-        // be sure build succeeds
-        createAnalyzerAnalysis.buildSettings();
     }
 
     @Test
     public void createAnalyzerWithoutTokenizer() throws Exception {
-        CreateAnalyzerAnalyzedStatement analysis = e.analyze(
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Tokenizer missing from non-extended analyzer");
+        analyze(
             "CREATE ANALYZER a6 (" +
-            "  token_filters (" +
+            "  TOKEN_FILTERS (" +
             "    lowercase" +
             "  )" +
             ")");
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Tokenizer missing from non-extended analyzer");
-        analysis.buildSettings();
     }
 
     @Test
     public void overrideDefaultAnalyzer() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Overriding the default analyzer is forbidden");
-        e.analyze("CREATE ANALYZER \"default\" (" +
-                "  TOKENIZER whitespace" +
-                ")");
+        analyze(
+            "CREATE ANALYZER \"default\" (" +
+            "  TOKENIZER whitespace" +
+            ")");
     }
 
     @Test
     public void overrideBuiltInAnalyzer() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot override builtin analyzer 'keyword'");
-        e.analyze("CREATE ANALYZER \"keyword\" (" +
-                "  char_filters (" +
-                "    html_strip" +
-                "  )," +
-                "  tokenizer standard" +
-                ")");
+        analyze(
+            "CREATE ANALYZER \"keyword\" (" +
+            "  CHAR_FILTERS (" +
+            "    html_strip" +
+            "  )," +
+            "  TOKENIZER standard" +
+            ")");
     }
 
     @Test
     public void missingParameterInCharFilter() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("CHAR_FILTER of type 'mapping' needs additional parameters");
-        CreateAnalyzerAnalyzedStatement analysis = e.analyze(
+        analyze(
             "CREATE ANALYZER my_mapping_analyzer (" +
-            "  char_filters (" +
+            "  CHAR_FILTERS (" +
             "    \"mapping\"" +
             "  )," +
             "  TOKENIZER whitespace" +
             ")");
-        analysis.buildSettings();
+    }
+
+    private static Settings extractAnalyzerSettings(String name, Settings persistentSettings) throws IOException {
+        return FulltextAnalyzerResolver
+            .decodeSettings(persistentSettings.get(ANALYZER.buildSettingName(name)));
     }
 }

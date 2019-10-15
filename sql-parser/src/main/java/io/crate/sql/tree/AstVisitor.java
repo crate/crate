@@ -372,7 +372,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitCreateAnalyzer(CreateAnalyzer node, C context) {
+    public R visitCreateAnalyzer(CreateAnalyzer<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -380,15 +380,15 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitTokenizer(Tokenizer node, C context) {
+    public R visitTokenizer(Tokenizer<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitCharFilters(CharFilters node, C context) {
+    public R visitCharFilters(CharFilters<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitTokenFilters(TokenFilters node, C context) {
+    public R visitTokenFilters(TokenFilters<?> node, C context) {
         return visitNode(node, context);
     }
 

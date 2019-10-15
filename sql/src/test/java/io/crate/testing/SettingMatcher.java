@@ -31,7 +31,7 @@ import static org.hamcrest.Matchers.equalTo;
 public class SettingMatcher {
 
     public static Matcher<Settings> hasEntry(String key, String value) {
-        return new FeatureMatcher<Settings, String>(equalTo(value), key, "hasEntry") {
+        return new FeatureMatcher<>(equalTo(value), key, "hasEntry") {
             @Override
             protected String featureValueOf(Settings actual) {
                 return actual.get(key);
@@ -40,7 +40,7 @@ public class SettingMatcher {
     }
 
     public static Matcher<Settings> hasKey(String key) {
-        return new FeatureMatcher<Settings, Boolean>(equalTo(true), key, "hasKey") {
+        return new FeatureMatcher<>(equalTo(true), key, "hasKey") {
             @Override
             protected Boolean featureValueOf(Settings actual) {
                 return actual.keySet().contains(key);

@@ -21,43 +21,43 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import java.util.List;
+import java.util.Objects;
 
-public class CharFilters extends AnalyzerElement {
+public class CharFilters<T> extends AnalyzerElement<T> {
 
-    private final List<NamedProperties> charFilters;
+    private final List<NamedProperties<T>> charFilters;
 
-    public CharFilters(List<NamedProperties> charFilters) {
+    public CharFilters(List<NamedProperties<T>> charFilters) {
         this.charFilters = charFilters;
     }
 
-    public List<NamedProperties> charFilters() {
+    public List<NamedProperties<T>> charFilters() {
         return charFilters;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(charFilters);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CharFilters<?> that = (CharFilters<?>) o;
+        return Objects.equals(charFilters, that.charFilters);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        CharFilters that = (CharFilters) o;
-
-        if (!charFilters.equals(that.charFilters)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(charFilters);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("charFilters", charFilters).toString();
+        return "CharFilters{" +
+               "charFilters=" + charFilters +
+               '}';
     }
 
     @Override

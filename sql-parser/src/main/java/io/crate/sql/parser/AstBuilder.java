@@ -458,12 +458,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitTokenizer(SqlBaseParser.TokenizerContext context) {
-        return new Tokenizer((NamedProperties) visit(context.namedProperties()));
+        return new Tokenizer<>((NamedProperties<Expression>) visit(context.namedProperties()));
     }
 
     @Override
     public Node visitNamedProperties(SqlBaseParser.NamedPropertiesContext context) {
-        return new NamedProperties(
+        return new NamedProperties<>(
             getIdentText(context.ident()),
             extractGenericProperties(context.withProperties()));
     }
