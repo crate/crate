@@ -22,15 +22,18 @@
 
 package io.crate.metadata.upgrade;
 
+import io.crate.Constants;
 import io.crate.metadata.DefaultTemplateService;
 import io.crate.metadata.PartitionName;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.crate.metadata.DefaultTemplateService.TEMPLATE_NAME;
@@ -111,5 +114,32 @@ public class IndexTemplateUpgraderTest {
             result.get(templateName).settings().hasValue("index.recovery.initial_shards"),
             is(false)
         );
+    }
+
+    @Test
+    public void test__all_is_removed_from_template_mapping() throws Throwable {
+        String templateName = PartitionName.templateName("doc", "events");
+        var template = IndexTemplateMetaData.builder(templateName)
+            .patterns(List.of("*"))
+            .putMapping(
+                Constants.DEFAULT_MAPPING_TYPE,
+                "{" +
+                "   \"default\": {" +
+                "       \"_all\": {\"enabled\": false}," +
+                "       \"properties\": {" +
+                "           \"name\": {" +
+                "               \"type\": \"keyword\"" +
+                "           }" +
+                "       }" +
+                "   }" +
+                "}")
+            .build();
+
+        IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
+        Map<String, IndexTemplateMetaData> result = upgrader.apply(Map.of(templateName, template));
+        IndexTemplateMetaData updatedTemplate = result.get(templateName);
+
+        CompressedXContent compressedXContent = updatedTemplate.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(compressedXContent.string(), is("{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\"}}}}"));
     }
 }
