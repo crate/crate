@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -31,6 +32,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
 
     public static final FloatType INSTANCE = new FloatType();
     public static final int ID = 7;
+    private static final int FLOAT_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Float.class);
 
     private FloatType() {
     }
@@ -93,6 +95,6 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
 
     @Override
     public int fixedSize() {
-        return 16; // object overhead + float
+        return FLOAT_SIZE;
     }
 }
