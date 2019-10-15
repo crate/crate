@@ -46,6 +46,11 @@ None
 Fixes
 =====
 
+- Improved the migration logic for partitioned tables which have been created
+  in CrateDB 2.x. If all current partitions of a partitioned tables have been
+  created in CrateDB 3.x, the table won't have to be re-indexed anymore to
+  upgrade to CrateDB 4.0+. 
+
 - Changed the error message returned when a :ref:`CREATE REPOSITORY
   <ref-create-repository>` statement fails so that it includes more information
   about the cause of the failure.
