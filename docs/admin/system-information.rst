@@ -171,6 +171,8 @@ applied cluster settings.
     | settings['indices']['breaker']['request']                                         | object           |
     | settings['indices']['breaker']['request']['limit']                                | text             |
     | settings['indices']['breaker']['request']['overhead']                             | double precision |
+    | settings['indices']['breaker']['total']                                           | object           |
+    | settings['indices']['breaker']['total']['limit']                                  | text             |
     | settings['indices']['recovery']                                                   | object           |
     | settings['indices']['recovery']['internal_action_long_timeout']                   | text             |
     | settings['indices']['recovery']['internal_action_timeout']                        | text             |

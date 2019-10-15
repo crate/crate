@@ -178,6 +178,10 @@ Changes
 Fixes
 =====
 
+- Made the documented :ref:`indices.breaker.total.limit
+  <indices.breaker.total.limit>` setting public, so that it can be adjusted
+  using :ref:`SET GLOBAL <ref-set>`.
+
 - Improved the migration logic for partitioned tables which have been created
   in CrateDB 2.x. If all current partitions of a partitioned tables have been
   created in CrateDB 3.x, the table won't have to be re-indexed anymore to

@@ -1015,6 +1015,8 @@ each of them, the breaker limit can be set.
   error message and clears the :ref:`sys.operations_log <sys-logs>` table
   completely.
 
+.. _indices.breaker.total.limit:
+
 Total circuit breaker
 ---------------------
 
