@@ -93,10 +93,8 @@ public class MetaDataIndexUpgradeService {
         // we have to run this first otherwise in we try to create IndexSettings
         // with broken settings and fail in checkMappingsCompatibility
         newMetaData = archiveBrokenIndexSettings(newMetaData);
-        // only run the check with the upgraded settings!!
-        checkMappingsCompatibility(newMetaData);
-        // apply plugin checks
         newMetaData = upgraders.apply(newMetaData);
+        checkMappingsCompatibility(newMetaData);
         return markAsUpgraded(newMetaData);
     }
 

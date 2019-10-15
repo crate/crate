@@ -23,7 +23,6 @@
 package io.crate.metadata.upgrade;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,58 +47,67 @@ public class MetaDataIndexUpgrader implements UnaryOperator<IndexMetaData> {
 
     @Override
     public IndexMetaData apply(IndexMetaData indexMetaData) {
-        return purgeDynamicStringTemplate(indexMetaData);
+        return createUpdatedIndexMetaData(indexMetaData);
     }
 
     /**
      * Purges any dynamic template from the index metadata because they might be out-dated and the general default
      * template will apply any defaults for all indices.
      */
-    private IndexMetaData purgeDynamicStringTemplate(IndexMetaData indexMetaData) {
+    private IndexMetaData createUpdatedIndexMetaData(IndexMetaData indexMetaData) {
         return IndexMetaData.builder(indexMetaData)
-            .putMapping(purgeDynamicStringTemplate(
-                indexMetaData.mapping(Constants.DEFAULT_MAPPING_TYPE),
-                indexMetaData.getIndex().getName()))
+            .putMapping(
+                createUpdatedIndexMetaData(
+                    indexMetaData.mapping(Constants.DEFAULT_MAPPING_TYPE),
+                    indexMetaData.getIndex().getName()
+                ))
             .build();
     }
 
     @VisibleForTesting
-    MappingMetaData purgeDynamicStringTemplate(MappingMetaData mappingMetaData, String indexName) {
+    MappingMetaData createUpdatedIndexMetaData(MappingMetaData mappingMetaData, String indexName) {
         Map<String, Object> oldMapping = mappingMetaData.getSourceAsMap();
         LinkedHashMap<String, Object> newMapping = new LinkedHashMap<>(oldMapping.size());
         for (Map.Entry<String, Object> entry : oldMapping.entrySet()) {
             String fieldName = entry.getKey();
             Object fieldNode = entry.getValue();
-            if (fieldName.equals("dynamic_templates")) {
-                List<?> tmplNodes = (List<?>) fieldNode;
-                List<Object> templates = new ArrayList<>();
-                for (Object tmplNode : tmplNodes) {
-                    //noinspection unchecked
-                    Map<String, Object> tmpl = (Map<String, Object>) tmplNode;
-                    if (tmpl.size() != 1) {
-                        throw new MapperParsingException("A dynamic template must be defined with a name");
-                    }
-                    Map.Entry<String, Object> tmpEntry = tmpl.entrySet().iterator().next();
-                    String templateName = tmpEntry.getKey();
-                    if (templateName.equals("strings") == false) {
-                        templates.add(tmplNode);
-                    }
-                }
-                if (templates.size() > 0) {
-                    newMapping.put(fieldName, templates);
-                }
-            } else {
-                newMapping.put(fieldName, fieldNode);
+            switch (fieldName) {
+                case "dynamic_templates":
+                    handleDynamicTemplates(newMapping, fieldName, (List<?>) fieldNode);
+                    break;
+
+                case "_all":
+                    break; // `_all` is no longer supported and via CREATE TABLE we always set `_all: {enabled: false}` which is safe to remove.
+
+                default:
+                    newMapping.put(fieldName, fieldNode);
             }
         }
-
         try {
             return new MappingMetaData(
-                Constants.DEFAULT_MAPPING_TYPE,
-                ImmutableMap.of(Constants.DEFAULT_MAPPING_TYPE, newMapping));
+                Constants.DEFAULT_MAPPING_TYPE, Map.of(Constants.DEFAULT_MAPPING_TYPE, newMapping));
         } catch (IOException e) {
             logger.error("Failed to upgrade mapping for index '" + indexName + "'", e);
             return mappingMetaData;
+        }
+    }
+
+    private static void handleDynamicTemplates(LinkedHashMap<String, Object> newMapping, String fieldName, List<?> fieldNode) {
+        List<Object> templates = new ArrayList<>();
+        for (Object tmplNode : fieldNode) {
+            //noinspection unchecked
+            Map<String, Object> tmpl = (Map<String, Object>) tmplNode;
+            if (tmpl.size() != 1) {
+                throw new MapperParsingException("A dynamic template must be defined with a name");
+            }
+            Map.Entry<String, Object> tmpEntry = tmpl.entrySet().iterator().next();
+            String templateName = tmpEntry.getKey();
+            if (templateName.equals("strings") == false) {
+                templates.add(tmplNode);
+            }
+        }
+        if (templates.size() > 0) {
+            newMapping.put(fieldName, templates);
         }
     }
 }

@@ -23,12 +23,17 @@
 package io.crate.metadata.upgrade;
 
 import io.crate.Constants;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -42,13 +47,38 @@ public class MetaDataIndexUpgraderTest extends CrateUnitTest {
     public void testDynamicStringTemplateIsPurged() throws IOException {
         MetaDataIndexUpgrader metaDataIndexUpgrader = new MetaDataIndexUpgrader();
         MappingMetaData mappingMetaData = new MappingMetaData(createDynamicStringMappingTemplate());
-        MappingMetaData newMappingMetaData = metaDataIndexUpgrader.purgeDynamicStringTemplate(mappingMetaData, "dummy");
+        MappingMetaData newMappingMetaData = metaDataIndexUpgrader.createUpdatedIndexMetaData(mappingMetaData, "dummy");
 
         Object dynamicTemplates = newMappingMetaData.getSourceAsMap().get("dynamic_templates");
         assertThat(dynamicTemplates, nullValue());
 
         // Check that the new metadata still has the root "default" element
         assertThat("{\"default\":{}}", is(newMappingMetaData.source().toString()));
+    }
+
+    @Test
+    public void test__all_is_removed_from_mapping() throws Throwable {
+        IndexMetaData indexMetaData = IndexMetaData.builder(new RelationName("doc", "users").indexNameOrAlias())
+            .settings(Settings.builder().put("index.version.created", Version.ES_V_6_5_1))
+            .numberOfShards(1)
+            .numberOfReplicas(0)
+            .putMapping(
+                Constants.DEFAULT_MAPPING_TYPE,
+                "{" +
+                "   \"_all\": {\"enabled\": false}," +
+                "   \"properties\": {" +
+                "       \"name\": {" +
+                "           \"type\": \"keyword\"" +
+                "       }" +
+                "   }" +
+                "}")
+            .build();
+
+        MetaDataIndexUpgrader metaDataIndexUpgrader = new MetaDataIndexUpgrader();
+        IndexMetaData updatedMetaData = metaDataIndexUpgrader.apply(indexMetaData);
+
+        MappingMetaData mapping = updatedMetaData.mapping(Constants.DEFAULT_MAPPING_TYPE);
+        assertThat(mapping.source().string(), Matchers.is("{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\"}}}}"));
     }
 
     private static CompressedXContent createDynamicStringMappingTemplate() throws IOException {
