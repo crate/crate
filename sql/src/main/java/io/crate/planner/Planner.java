@@ -71,9 +71,9 @@ import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
 import io.crate.analyze.AnalyzedRerouteCancelShard;
 import io.crate.analyze.AnalyzedRerouteMoveShard;
 import io.crate.analyze.AnalyzedRerouteRetryFailed;
-import io.crate.analyze.ResetAnalyzedStatement;
-import io.crate.analyze.SetAnalyzedStatement;
-import io.crate.analyze.SetLicenseAnalyzedStatement;
+import io.crate.analyze.AnalyzedResetStatement;
+import io.crate.analyze.AnalyzedSetStatement;
+import io.crate.analyze.AnalyzedSetLicenseStatement;
 import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.UserManager;
@@ -109,6 +109,7 @@ import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.DropUserPlan;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.node.ddl.RefreshTablePlan;
+import io.crate.planner.node.ddl.ResetSettingsPlan;
 import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.node.dml.LegacyUpsertById;
@@ -125,7 +126,6 @@ import io.crate.planner.statement.SetLicensePlan;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
-import io.crate.sql.tree.Expression;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -136,11 +136,8 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.BooleanSupplier;
 
 @Singleton
@@ -434,17 +431,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitResetAnalyzedStatement(ResetAnalyzedStatement resetStatement, PlannerContext context) {
-        Set<String> settingsToRemove = resetStatement.settingsToRemove();
-        if (settingsToRemove.isEmpty()) {
+    public Plan visitResetAnalyzedStatement(AnalyzedResetStatement resetStatement, PlannerContext context) {
+        if (resetStatement.settingsToRemove().isEmpty()) {
             return NoopPlan.INSTANCE;
         }
-
-        Map<String, List<Expression>> nullSettings = new HashMap<>(settingsToRemove.size(), 1);
-        for (String setting : settingsToRemove) {
-            nullSettings.put(setting, null);
-        }
-        return new UpdateSettingsPlan(nullSettings, nullSettings);
+        return new ResetSettingsPlan(resetStatement);
     }
 
     @Override
@@ -453,7 +444,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitSetStatement(SetAnalyzedStatement setStatement, PlannerContext context) {
+    public Plan visitSetStatement(AnalyzedSetStatement setStatement, PlannerContext context) {
         switch (setStatement.scope()) {
             case LICENSE:
                 LOGGER.warn("SET LICENSE STATEMENT WILL BE IGNORED: {}", setStatement.settings());
@@ -472,7 +463,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                     return new UpdateSettingsPlan(setStatement.settings());
                 } else {
                     return new UpdateSettingsPlan(
-                        Collections.emptyMap(),
+                        Collections.emptyList(),
                         setStatement.settings()
                     );
                 }
@@ -480,7 +471,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitSetLicenseStatement(SetLicenseAnalyzedStatement setLicenseAnalyzedStatement, PlannerContext context) {
+    public Plan visitSetLicenseStatement(AnalyzedSetLicenseStatement setLicenseAnalyzedStatement, PlannerContext context) {
         return new SetLicensePlan(setLicenseAnalyzedStatement);
     }
 
