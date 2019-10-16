@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -31,6 +32,7 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
 
     public static final IntegerType INSTANCE = new IntegerType();
     public static final int ID = 9;
+    private static final int INTEGER_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Integer.class);
 
     private IntegerType() {
     }
@@ -94,6 +96,6 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
 
     @Override
     public int fixedSize() {
-        return 16; // object overhead + 4 byte for int + 4 byte padding
+        return INTEGER_SIZE;
     }
 }

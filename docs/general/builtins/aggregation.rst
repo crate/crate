@@ -595,9 +595,14 @@ The first argument can be a reference to a column of all
 
 The optional second argument defines the used ``precision`` for the
 `HyperLogLog++`_ algorithm. This allows to trade memory for accuracy, valid
-values are ``4`` to ``18``.
+values are ``4`` to ``18``. A precision of ``4`` uses approximately ``16``
+bytes of memory. Each increase in precision doubles the memory requirement. So
+precision ``5`` uses approximately ``32`` bytes, up to ``262144`` bytes for
+precision ``18``.
+
 The default value for the ``precision`` which is used if the second argument is
 left out is ``14``.
+
 
 Examples::
 

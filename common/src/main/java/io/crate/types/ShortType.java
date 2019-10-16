@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -31,6 +32,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
 
     public static final ShortType INSTANCE = new ShortType();
     public static final int ID = 8;
+    private static final int SHORT_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Short.class);
 
     private ShortType() {
     }
@@ -93,7 +95,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
 
     @Override
     public int fixedSize() {
-        return 16; // object overhead + 2 byte for short + 6 byte padding
+        return SHORT_SIZE;
     }
 }
 
