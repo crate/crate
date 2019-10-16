@@ -18,20 +18,22 @@
 
 package io.crate.beans;
 
+import org.elasticsearch.indices.breaker.CircuitBreakerStats;
+
 @SuppressWarnings("unused")
 public interface CircuitBreakersMXBean {
 
-    CircuitBreakers.Stats getParent();
+    CircuitBreakerStats getParent();
 
-    CircuitBreakers.Stats getFieldData();
+    CircuitBreakerStats getFieldData();
 
-    CircuitBreakers.Stats getInFlightRequests();
+    CircuitBreakerStats getInFlightRequests();
 
-    CircuitBreakers.Stats getRequest();
+    CircuitBreakerStats getRequest();
 
-    CircuitBreakers.Stats getQuery();
+    CircuitBreakerStats getQuery();
 
-    CircuitBreakers.Stats getJobsLog();
+    CircuitBreakerStats getJobsLog();
 
-    CircuitBreakers.Stats getOperationsLog();
+    CircuitBreakerStats getOperationsLog();
 }
