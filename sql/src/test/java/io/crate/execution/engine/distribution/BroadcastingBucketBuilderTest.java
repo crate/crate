@@ -23,6 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row1;
 import io.crate.types.DataTypes;
@@ -35,7 +36,7 @@ public class BroadcastingBucketBuilderTest {
 
     @Test
     public void testBucketIsReUsed() throws Exception {
-        final BroadcastingBucketBuilder builder = new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 3);
+        final BroadcastingBucketBuilder builder = new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 3, RamAccounting.NO_ACCOUNTING);
         builder.add(new Row1(10));
 
         StreamBucket[] buckets = new StreamBucket[3];

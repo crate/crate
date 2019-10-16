@@ -23,6 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
@@ -62,6 +63,7 @@ public class DistributingConsumerFactory {
     }
 
     public RowConsumer create(NodeOperation nodeOperation,
+                              RamAccounting ramAccounting,
                               DistributionInfo distributionInfo,
                               UUID jobId,
                               int pageSize) {
@@ -77,14 +79,26 @@ public class DistributingConsumerFactory {
         switch (distributionInfo.distributionType()) {
             case MODULO:
                 if (nodeOperation.downstreamNodes().size() == 1) {
-                    multiBucketBuilder = new BroadcastingBucketBuilder(streamers, nodeOperation.downstreamNodes().size());
+                    multiBucketBuilder = new BroadcastingBucketBuilder(
+                        streamers,
+                        nodeOperation.downstreamNodes().size(),
+                        ramAccounting
+                    );
                 } else {
-                    multiBucketBuilder = new ModuloBucketBuilder(streamers,
-                        nodeOperation.downstreamNodes().size(), distributionInfo.distributeByColumn());
+                    multiBucketBuilder = new ModuloBucketBuilder(
+                        streamers,
+                        nodeOperation.downstreamNodes().size(),
+                        distributionInfo.distributeByColumn(),
+                        ramAccounting
+                    );
                 }
                 break;
             case BROADCAST:
-                multiBucketBuilder = new BroadcastingBucketBuilder(streamers, nodeOperation.downstreamNodes().size());
+                multiBucketBuilder = new BroadcastingBucketBuilder(
+                    streamers,
+                    nodeOperation.downstreamNodes().size(),
+                    ramAccounting
+                );
                 break;
             default:
                 throw new UnsupportedOperationException("Can't handle distributionInfo: " + distributionInfo);

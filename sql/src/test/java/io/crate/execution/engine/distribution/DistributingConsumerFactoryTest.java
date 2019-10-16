@@ -27,6 +27,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
+import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.TreeMapBuilder;
 import io.crate.data.Paging;
 import io.crate.data.RowConsumer;
@@ -92,7 +93,7 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
             null
         );
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0);
-        return rowDownstreamFactory.create(nodeOperation, collectPhase.distributionInfo(), jobId, Paging.PAGE_SIZE);
+        return rowDownstreamFactory.create(nodeOperation, RamAccounting.NO_ACCOUNTING, collectPhase.distributionInfo(), jobId, Paging.PAGE_SIZE);
     }
 
     @Test

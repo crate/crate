@@ -23,6 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row1;
 import io.crate.test.integration.CrateUnitTest;
@@ -36,7 +37,8 @@ public class ModuloBucketBuilderTest extends CrateUnitTest {
 
     @Test
     public void testRowsAreDistributedByModulo() throws Exception {
-        final ModuloBucketBuilder builder = new ModuloBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 2, 0);
+        final ModuloBucketBuilder builder = new ModuloBucketBuilder(
+            new Streamer[]{DataTypes.INTEGER.streamer()}, 2, 0, RamAccounting.NO_ACCOUNTING);
 
         builder.add(new Row1(1));
         builder.add(new Row1(2));

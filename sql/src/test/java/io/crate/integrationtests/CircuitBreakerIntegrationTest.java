@@ -75,10 +75,10 @@ public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select text from t1 group by text");
 
+        execute("set global \"indices.breaker.query.limit\"='100b'");
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("CircuitBreakingException: [query] Data too large, data for [collect: 0] " +
                                         "would be [189/189b], which is larger than the limit of [100/100b]");
-        execute("set global \"indices.breaker.query.limit\"='100b'");
         execute("select text from t1 group by text");
     }
 }

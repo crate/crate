@@ -23,6 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
 
 /**
@@ -34,9 +35,9 @@ public class BroadcastingBucketBuilder implements MultiBucketBuilder {
     private final int numBuckets;
     private final StreamBucket.Builder bucketBuilder;
 
-    public BroadcastingBucketBuilder(Streamer<?>[] streamers, int numBuckets) {
+    public BroadcastingBucketBuilder(Streamer<?>[] streamers, int numBuckets, RamAccounting ramAccounting) {
         this.numBuckets = numBuckets;
-        this.bucketBuilder = new StreamBucket.Builder(streamers, null);
+        this.bucketBuilder = new StreamBucket.Builder(streamers, ramAccounting);
     }
 
     @Override

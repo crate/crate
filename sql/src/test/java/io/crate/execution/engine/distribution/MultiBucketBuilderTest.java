@@ -23,6 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Row1;
 import io.crate.types.DataTypes;
 import org.junit.Before;
@@ -40,8 +41,8 @@ public class MultiBucketBuilderTest {
 
     @Before
     public void setUp() throws Exception {
-        builders.add(new ModuloBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 1, 0));
-        builders.add(new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 1));
+        builders.add(new ModuloBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 1, 0, RamAccounting.NO_ACCOUNTING));
+        builders.add(new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 1, RamAccounting.NO_ACCOUNTING));
     }
 
     @Test
