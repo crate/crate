@@ -100,7 +100,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
@@ -197,15 +196,6 @@ public class Node implements Closeable {
             }
             return value;
         }, Property.NodeScope));
-    public static final Setting<String> BREAKER_TYPE_KEY = new Setting<>("indices.breaker.type", "hierarchy", (s) -> {
-        switch (s) {
-            case "hierarchy":
-            case "none":
-                return s;
-            default:
-                throw new IllegalArgumentException("indices.breaker.type must be one of [hierarchy, none] but was: " + s);
-        }
-    }, Setting.Property.NodeScope);
 
     private final Lifecycle lifecycle = new Lifecycle();
 
@@ -337,8 +327,7 @@ public class Node implements Closeable {
 
             BooleanQuery.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
 
-            CircuitBreakerService circuitBreakerService = createCircuitBreakerService(settingsModule.getSettings(),
-                                                                                      settingsModule.getClusterSettings());
+            CircuitBreakerService circuitBreakerService = new HierarchyCircuitBreakerService(settings, settingsModule.getClusterSettings());
             resourcesToClose.add(circuitBreakerService);
             modules.add(new GatewayModule());
 
@@ -905,21 +894,6 @@ public class Node implements Closeable {
      */
     protected PluginsService getPluginsService() {
         return pluginsService;
-    }
-
-    /**
-     * Creates a new {@link CircuitBreakerService} based on the settings provided.
-     * @see #BREAKER_TYPE_KEY
-     */
-    public static CircuitBreakerService createCircuitBreakerService(Settings settings, ClusterSettings clusterSettings) {
-        String type = BREAKER_TYPE_KEY.get(settings);
-        if (type.equals("hierarchy")) {
-            return new HierarchyCircuitBreakerService(settings, clusterSettings);
-        } else if (type.equals("none")) {
-            return new NoneCircuitBreakerService();
-        } else {
-            throw new IllegalArgumentException("Unknown circuit breaker type [" + type + "]");
-        }
     }
 
     /**
