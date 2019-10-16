@@ -59,7 +59,7 @@ import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DeallocateAnalyzedStatement;
-import io.crate.analyze.DropAnalyzerStatement;
+import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
@@ -91,7 +91,8 @@ import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
 import io.crate.planner.node.ddl.AlterUserPlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
-import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
+import io.crate.planner.node.ddl.CreateAnalyzerPlan;
+import io.crate.planner.node.ddl.DropAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateFunctionPlan;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
@@ -407,7 +408,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     protected Plan visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, PlannerContext context) {
-        return new CreateDropAnalyzerPlan(analysis.buildSettings());
+        return new CreateAnalyzerPlan(analysis.buildSettings());
     }
 
     @Override
@@ -428,8 +429,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    protected Plan visitDropAnalyzerStatement(DropAnalyzerStatement analysis, PlannerContext context) {
-        return new CreateDropAnalyzerPlan(analysis.settingsForRemoval());
+    protected Plan visitDropAnalyzerStatement(AnalyzedDropAnalyzer analysis, PlannerContext context) {
+        return new DropAnalyzerPlan(analysis);
     }
 
     @Override
