@@ -22,6 +22,7 @@
 package io.crate.planner.node.management;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -30,10 +31,14 @@ import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -42,36 +47,16 @@ import java.util.UUID;
 public class KillPlan implements Plan {
 
     @Nullable
-    private final UUID jobId;
+    private final Symbol jobId;
 
-    public KillPlan(@Nullable UUID jobId) {
+    public KillPlan(@Nullable Symbol jobId) {
         this.jobId = jobId;
-    }
-
-    @VisibleForTesting
-    @Nullable
-    public UUID jobId() {
-        return jobId;
-    }
-
-    @VisibleForTesting
-    void execute(TransportKillAllNodeAction killAllNodeAction,
-                 TransportKillJobsNodeAction killJobsNodeAction,
-                 RowConsumer consumer) {
-        if (jobId != null) {
-            killJobsNodeAction.broadcast(
-                new KillJobsRequest(List.of(jobId)),
-                new OneRowActionListener<>(consumer, Row1::new));
-        } else {
-            killAllNodeAction.broadcast(new KillAllRequest(), new OneRowActionListener<>(consumer, Row1::new));
-        }
     }
 
     @Override
     public StatementType type() {
         return StatementType.MANAGEMENT;
     }
-
 
     @Override
     public void executeOrFail(DependencyCarrier dependencies,
@@ -80,9 +65,57 @@ public class KillPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) {
         execute(
+            boundJobId(
+                jobId,
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                params,
+                subQueryResults),
             dependencies.transportActionProvider().transportKillAllNodeAction(),
             dependencies.transportActionProvider().transportKillJobsNodeAction(),
             consumer
         );
     }
+
+    @VisibleForTesting
+    @Nullable
+    public static UUID boundJobId(@Nullable Symbol jobId,
+                                  CoordinatorTxnCtx txnCtx,
+                                  Functions functions,
+                                  Row parameters,
+                                  SubQueryResults subQueryResults) {
+        if (jobId != null) {
+            try {
+                return UUID.fromString(
+                    DataTypes.STRING.value(
+                        SymbolEvaluator.evaluate(
+                            txnCtx,
+                            functions,
+                            jobId,
+                            parameters,
+                            subQueryResults
+                        )));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Can not parse job ID: " + jobId, e);
+            }
+        }
+        return null;
+    }
+
+    @VisibleForTesting
+    void execute(@Nullable UUID jobId,
+                 TransportKillAllNodeAction killAllNodeAction,
+                 TransportKillJobsNodeAction killJobsNodeAction,
+                 RowConsumer consumer) {
+        if (jobId != null) {
+            killJobsNodeAction.broadcast(
+                new KillJobsRequest(List.of(jobId)),
+                new OneRowActionListener<>(consumer, Row1::new));
+        } else {
+            killAllNodeAction.broadcast(
+                new KillAllRequest(),
+                new OneRowActionListener<>(consumer, Row1::new));
+        }
+    }
 }
+

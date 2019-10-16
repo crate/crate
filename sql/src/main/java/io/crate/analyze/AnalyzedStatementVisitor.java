@@ -135,7 +135,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitKillAnalyzedStatement(KillAnalyzedStatement analysis, C context) {
+    public R visitKillAnalyzedStatement(AnalyzedKill analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 

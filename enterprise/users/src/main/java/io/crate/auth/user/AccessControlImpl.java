@@ -53,7 +53,7 @@ import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
-import io.crate.analyze.KillAnalyzedStatement;
+import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
@@ -468,7 +468,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitKillAnalyzedStatement(KillAnalyzedStatement analysis, User user) {
+        public Void visitKillAnalyzedStatement(AnalyzedKill analysis, User user) {
             throwRequiresSuperUserPermission(user.name());
             return null;
         }

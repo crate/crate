@@ -21,30 +21,44 @@
 
 package io.crate.analyze;
 
-import javax.annotation.Nullable;
-import java.util.UUID;
+import io.crate.expression.symbol.Symbol;
 
-public class KillAnalyzedStatement implements AnalyzedStatement {
+import javax.annotation.Nullable;
+import java.util.function.Consumer;
+
+public class AnalyzedKill implements AnalyzedStatement {
 
     @Nullable
-    private final UUID jobId;
+    private final Symbol jobId;
 
-    KillAnalyzedStatement(@Nullable UUID jobId) {
+    AnalyzedKill(@Nullable Symbol jobId) {
         this.jobId = jobId;
     }
 
     @Nullable
-    public UUID jobId() {
+    public Symbol jobId() {
         return jobId;
     }
 
     @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitKillAnalyzedStatement(this, context);
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        if (jobId != null) {
+            consumer.accept(jobId);
+        }
+    }
+
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitKillAnalyzedStatement(this, context);
     }
 }

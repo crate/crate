@@ -21,6 +21,10 @@
 
 package io.crate.analyze;
 
+import io.crate.data.RowN;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -35,38 +39,49 @@ import static org.hamcrest.core.Is.is;
 public class KillAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private PlannerContext plannerContext;
 
     @Before
     public void prepare() {
         e = SQLExecutor.builder(clusterService).build();
+        plannerContext = e.getPlannerContext(clusterService.state());
+    }
+
+    private UUID analyze(String stmt, Object... arguments) {
+        AnalyzedKill analyzedStatement = e.analyze(stmt);
+        return KillPlan.boundJobId(
+            analyzedStatement.jobId(),
+            plannerContext.transactionContext(),
+            plannerContext.functions(),
+            new RowN(arguments),
+            SubQueryResults.EMPTY
+        );
     }
 
     @Test
-    public void testAnalyzeKillAll() throws Exception {
-        KillAnalyzedStatement stmt = e.analyze("kill all");
-        assertThat(stmt.jobId(), is(nullValue()));
+    public void testAnalyzeKillAll() {
+        assertThat(analyze("KILL ALL"), is(nullValue()));
     }
 
     @Test
-    public void testAnalyzeKillJobWithParameter() throws Exception {
+    public void testAnalyzeKillJobWithParameter() {
         UUID jobId = UUID.randomUUID();
-        KillAnalyzedStatement stmt = e.analyze("kill $2", new Object[]{2, jobId});
-        assertThat(stmt.jobId(), is(jobId));
-        stmt = e.analyze("kill $1", new Object[]{jobId});
-        assertThat(stmt.jobId(), is(jobId));
-        stmt = e.analyze("kill ?", new Object[]{jobId});
-        assertThat(stmt.jobId(), is(jobId));
+        assertThat(analyze("KILL $2", 2, jobId), is(jobId));
+        assertThat(analyze("KILL $1", jobId), is(jobId));
+        assertThat(analyze("KILL ?", jobId), is(jobId));
     }
 
     @Test
-    public void testAnalyzeKillJobWithLiteral() throws Exception {
+    public void testAnalyzeKillJobWithLiteral() {
         UUID jobId = UUID.randomUUID();
-        KillAnalyzedStatement stmt = e.analyze(String.format(Locale.ENGLISH, "kill '%s'", jobId.toString()));
-        assertThat(stmt.jobId(), is(jobId));
+        assertThat(
+            analyze(String.format(Locale.ENGLISH, "KILL '%s'", jobId.toString())),
+            is(jobId));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testAnalyzeKillJobsNotParsable() throws Exception {
-        e.analyze("kill '6a3d6401-4333-933d-b38c9322fca7'");
+    @Test
+    public void testAnalyzeKillJobsNotParsable() {
+        expectedException.expect(IllegalArgumentException.class);
+        analyze("KILL '6a3d6401-4333-933d-b38c9322fca7'");
     }
 }

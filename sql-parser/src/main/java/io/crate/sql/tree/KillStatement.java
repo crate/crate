@@ -24,17 +24,17 @@ package io.crate.sql.tree;
 import javax.annotation.Nullable;
 import java.util.Objects;
 
-public class KillStatement extends Statement {
+public class KillStatement<T> extends Statement {
 
     @Nullable
-    private final Expression jobId;
+    private final T jobId;
 
-    public KillStatement(@Nullable Expression jobId) {
+    public KillStatement(@Nullable T jobId) {
         this.jobId = jobId;
     }
 
     @Nullable
-    public Expression jobId() {
+    public T jobId() {
         return jobId;
     }
 
