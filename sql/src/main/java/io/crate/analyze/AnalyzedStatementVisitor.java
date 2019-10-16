@@ -227,7 +227,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(gcDanglingIndices, context);
     }
 
-    public R visitDecommissionNode(AnalyzedDecommissionNodeStatement decommissionNode, C context) {
+    public R visitDecommissionNode(AnalyzedDecommissionNode decommissionNode, C context) {
         return visitAnalyzedStatement(decommissionNode, context);
     }
 

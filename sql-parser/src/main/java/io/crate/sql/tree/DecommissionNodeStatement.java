@@ -22,39 +22,42 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
-public class DecommissionNodeStatement extends Statement {
+public class DecommissionNodeStatement<T> extends Statement {
 
-    private final Expression nodeIdOrNameExpression;
+    private final T nodeIdOrName;
 
-    public DecommissionNodeStatement(Expression nodeIdOrNameExpression) {
-        this.nodeIdOrNameExpression = nodeIdOrNameExpression;
+    public DecommissionNodeStatement(T nodeIdOrName) {
+        this.nodeIdOrName = nodeIdOrName;
     }
 
-    public Expression nodeIdOrName() {
-        return nodeIdOrNameExpression;
+    public T nodeIdOrName() {
+        return nodeIdOrName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        DecommissionNodeStatement<?> that = (DecommissionNodeStatement<?>) o;
+        return Objects.equals(nodeIdOrName, that.nodeIdOrName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(nodeIdOrNameExpression);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        DecommissionNodeStatement that = (DecommissionNodeStatement) obj;
-        return nodeIdOrNameExpression.equals(that.nodeIdOrNameExpression);
+        return Objects.hash(nodeIdOrName);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("nodeIdOrName", nodeIdOrNameExpression).toString();
+        return "DecommissionNodeStatement{" +
+               "nodeIdOrName=" + nodeIdOrName +
+               '}';
     }
 
     @Override

@@ -24,11 +24,13 @@ package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
 
-public final class AnalyzedDecommissionNodeStatement implements AnalyzedStatement {
+import java.util.function.Consumer;
+
+public final class AnalyzedDecommissionNode implements AnalyzedStatement {
 
     private final Symbol nodeIdOrName;
 
-    AnalyzedDecommissionNodeStatement(Symbol nodeIdOrName) {
+    AnalyzedDecommissionNode(Symbol nodeIdOrName) {
         this.nodeIdOrName = nodeIdOrName;
     }
 
@@ -47,8 +49,18 @@ public final class AnalyzedDecommissionNodeStatement implements AnalyzedStatemen
     }
 
     @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        consumer.accept(nodeIdOrName);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
+    }
+
+    @Override
     public String toString() {
-        return "AnalyzedDecommissionNodeStatement{" +
+        return "AnalyzedDecommissionNode{" +
                "nodeIdOrName=" + nodeIdOrName +
                '}';
     }

@@ -39,6 +39,7 @@ import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropFunction;
@@ -98,7 +99,8 @@ class UnboundAnalyzer {
                     RefreshTableAnalyzer refreshTableAnalyzer,
                     RestoreSnapshotAnalyzer restoreSnapshotAnalyzer,
                     CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
-                    DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer) {
+                    DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer,
+                    DecommissionNodeAnalyzer decommissionNodeAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -123,7 +125,8 @@ class UnboundAnalyzer {
             refreshTableAnalyzer,
             restoreSnapshotAnalyzer,
             createAnalyzerStatementAnalyzer,
-            dropAnalyzerStatementAnalyzer
+            dropAnalyzerStatementAnalyzer,
+            decommissionNodeAnalyzer
         );
     }
 
@@ -159,6 +162,7 @@ class UnboundAnalyzer {
         private final RestoreSnapshotAnalyzer restoreSnapshotAnalyzer;
         private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
         private final DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer;
+        private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -183,7 +187,8 @@ class UnboundAnalyzer {
                           RefreshTableAnalyzer refreshTableAnalyzer,
                           RestoreSnapshotAnalyzer restoreSnapshotAnalyzer,
                           CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
-                          DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer) {
+                          DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer,
+                          DecommissionNodeAnalyzer decommissionNodeAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -208,6 +213,7 @@ class UnboundAnalyzer {
             this.restoreSnapshotAnalyzer = restoreSnapshotAnalyzer;
             this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
             this.dropAnalyzerStatementAnalyzer = dropAnalyzerStatementAnalyzer;
+            this.decommissionNodeAnalyzer = decommissionNodeAnalyzer;
         }
 
         @Override
@@ -429,10 +435,21 @@ class UnboundAnalyzer {
             );
         }
 
+        @Override
+        public AnalyzedStatement visitAlterClusterDecommissionNode(DecommissionNodeStatement<?> node,
+                                                                   Analysis context) {
+            return decommissionNodeAnalyzer.analyze(
+                (DecommissionNodeStatement<Expression>) node,
+                context.transactionContext(),
+                context.paramTypeHints());
+        }
+
+        @Override
         public AnalyzedDropTable visitDropTable(DropTable<?> node, Analysis context) {
             return dropTableAnalyzer.analyze(node,context.sessionContext());
         }
 
+        @Override
         public AnalyzedStatement visitDropBlobTable(DropBlobTable<?> node, Analysis context) {
             return dropTableAnalyzer.analyze(node,context.sessionContext());
         }

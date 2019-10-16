@@ -22,7 +22,7 @@
 
 package io.crate.planner;
 
-import io.crate.analyze.AnalyzedDecommissionNodeStatement;
+import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
@@ -56,7 +56,7 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
         }
 
         if (analyzedStatement instanceof SetLicenseAnalyzedStatement ||
-            analyzedStatement instanceof AnalyzedDecommissionNodeStatement) {
+            analyzedStatement instanceof AnalyzedDecommissionNode) {
             return true;
         }
         if (analyzedStatement instanceof SetAnalyzedStatement) {
