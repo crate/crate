@@ -35,7 +35,7 @@ public class CircuitBreakers implements CircuitBreakersMXBean {
 
     @Override
     public CircuitBreakerStats getParent() {
-        return circuitBreakerService.stats().getStats(CircuitBreaker.PARENT);
+        return circuitBreakerService.stats(CircuitBreaker.PARENT);
     }
 
     @Override

@@ -43,11 +43,6 @@ public abstract class CircuitBreakerService extends AbstractLifecycleComponent {
     public abstract CircuitBreaker getBreaker(String name);
 
     /**
-     * @return stats about all breakers
-     */
-    public abstract AllCircuitBreakerStats stats();
-
-    /**
      * @return stats about a specific breaker
      */
     public abstract CircuitBreakerStats stats(String name);
