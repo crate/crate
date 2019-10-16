@@ -218,8 +218,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             CircuitBreaker.PARENT,
             parentSettings.getLimit(),
             parentUsed(0L),
-            1.0,
-            parentTripCount.get()
+            parentTripCount.get(), 1.0
         ));
         return new AllCircuitBreakerStats(allStats.toArray(new CircuitBreakerStats[allStats.size()]));
     }
@@ -227,7 +226,9 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     @Override
     public CircuitBreakerStats stats(String name) {
         CircuitBreaker breaker = this.breakers.get(name);
-        return new CircuitBreakerStats(breaker.getName(), breaker.getLimit(), breaker.getUsed(), breaker.getOverhead(), breaker.getTrippedCount());
+        return new CircuitBreakerStats(breaker.getName(), breaker.getLimit(), breaker.getUsed(),
+                                       breaker.getTrippedCount(),
+                                       breaker.getOverhead());
     }
 
     private long parentUsed(long newBytesReserved) {

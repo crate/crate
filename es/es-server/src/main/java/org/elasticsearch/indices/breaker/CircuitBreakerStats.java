@@ -21,6 +21,8 @@ package org.elasticsearch.indices.breaker;
 
 import org.elasticsearch.common.unit.ByteSizeValue;
 
+import java.beans.ConstructorProperties;
+
 /**
  * Class encapsulating stats about the circuit breaker
  */
@@ -28,14 +30,19 @@ public class CircuitBreakerStats {
 
     private final String name;
     private final long limit;
-    private final long estimated;
+    private final long used;
     private final long trippedCount;
     private final double overhead;
 
-    CircuitBreakerStats(String name, long limit, long estimated, double overhead, long trippedCount) {
+    @ConstructorProperties({"name", "limit", "used", "trippedCount", "overhead"})
+    public CircuitBreakerStats(String name,
+                               long limit,
+                               long used,
+                               long trippedCount,
+                               double overhead) {
         this.name = name;
         this.limit = limit;
-        this.estimated = estimated;
+        this.used = used;
         this.trippedCount = trippedCount;
         this.overhead = overhead;
     }
@@ -48,8 +55,8 @@ public class CircuitBreakerStats {
         return this.limit;
     }
 
-    public long getEstimated() {
-        return this.estimated;
+    public long getUsed() {
+        return this.used;
     }
 
     public long getTrippedCount() {
@@ -63,8 +70,8 @@ public class CircuitBreakerStats {
     @Override
     public String toString() {
         return "[" + this.name +
-                ",limit=" + this.limit + "/" + new ByteSizeValue(this.limit) +
-                ",estimated=" + this.estimated + "/" + new ByteSizeValue(this.estimated) +
-                ",overhead=" + this.overhead + ",tripped=" + this.trippedCount + "]";
+               ",limit=" + this.limit + "/" + new ByteSizeValue(this.limit) +
+               ",estimated=" + this.used + "/" + new ByteSizeValue(this.used) +
+               ",overhead=" + this.overhead + ",tripped=" + this.trippedCount + "]";
     }
 }

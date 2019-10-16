@@ -176,7 +176,6 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         assertThat(stats.length, is(8));
 
         CircuitBreakerStats queryBreakerStats = breakerService.stats(CrateCircuitBreakerService.QUERY);
-        assertThat(queryBreakerStats.getEstimated(), is(0L));
+        assertThat(queryBreakerStats.getUsed(), is(0L));
     }
-
 }
