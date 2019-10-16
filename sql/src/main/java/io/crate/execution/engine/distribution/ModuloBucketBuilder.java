@@ -23,6 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
 
 import javax.annotation.Nullable;
@@ -40,12 +41,12 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
     private final int distributedByColumnIdx;
     private int size = 0;
 
-    public ModuloBucketBuilder(Streamer<?>[] streamers, int numBuckets, int distributedByColumnIdx) {
+    public ModuloBucketBuilder(Streamer<?>[] streamers, int numBuckets, int distributedByColumnIdx, RamAccounting ramAccounting) {
         this.numBuckets = numBuckets;
         this.distributedByColumnIdx = distributedByColumnIdx;
         this.bucketBuilders = new ArrayList<>(numBuckets);
         for (int i = 0; i < numBuckets; i++) {
-            bucketBuilders.add(new StreamBucket.Builder(streamers, null));
+            bucketBuilders.add(new StreamBucket.Builder(streamers, ramAccounting));
         }
     }
 

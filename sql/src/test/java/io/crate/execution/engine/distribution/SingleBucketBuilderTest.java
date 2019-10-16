@@ -23,6 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
@@ -47,7 +48,7 @@ import static org.hamcrest.Matchers.is;
 @SuppressWarnings("ConstantConditions")
 public class SingleBucketBuilderTest extends CrateUnitTest {
 
-    private SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()});
+    private SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, RamAccounting.NO_ACCOUNTING);
     private ExecutorService executor;
 
     @Before
