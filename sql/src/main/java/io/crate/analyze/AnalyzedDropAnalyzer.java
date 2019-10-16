@@ -22,18 +22,21 @@
 
 package io.crate.analyze;
 
-import org.elasticsearch.common.settings.Settings;
+public class AnalyzedDropAnalyzer implements DDLStatement {
 
-public class DropAnalyzerStatement extends AbstractDDLAnalyzedStatement {
+    private final String name;
 
-    private final Settings settings;
-
-    DropAnalyzerStatement(Settings settings) {
-        this.settings = settings;
+    AnalyzedDropAnalyzer(String name) {
+        this.name = name;
     }
 
-    public Settings settingsForRemoval() {
-        return settings;
+    public String name() {
+        return name;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 
     @Override

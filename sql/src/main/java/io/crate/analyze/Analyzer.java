@@ -177,6 +177,9 @@ public class Analyzer {
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, functions);
+        FulltextAnalyzerResolver fulltextAnalyzerResolver =
+            new FulltextAnalyzerResolver(clusterService, analysisRegistry);
+        this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -199,12 +202,10 @@ public class Analyzer {
             dropFunctionAnalyzer,
             dropTableAnalyzer,
             refreshTableAnalyzer,
-            restoreSnapshotAnalyzer
+            restoreSnapshotAnalyzer,
+            dropAnalyzerStatementAnalyzer
         );
-        FulltextAnalyzerResolver fulltextAnalyzerResolver =
-            new FulltextAnalyzerResolver(clusterService, analysisRegistry);
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
-        this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
