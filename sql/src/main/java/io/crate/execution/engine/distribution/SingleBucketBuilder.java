@@ -23,6 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -36,10 +37,12 @@ import java.util.concurrent.CompletableFuture;
 public class SingleBucketBuilder implements RowConsumer, CompletionListenable<StreamBucket> {
 
     private final Streamer<?>[] streamers;
+    private RamAccounting ramAccounting;
     private final CompletableFuture<StreamBucket> bucketFuture = new CompletableFuture<>();
 
-    public SingleBucketBuilder(Streamer<?>[] streamers) {
+    public SingleBucketBuilder(Streamer<?>[] streamers, RamAccounting ramAccounting) {
         this.streamers = streamers;
+        this.ramAccounting = ramAccounting;
     }
 
     @Override
@@ -51,7 +54,7 @@ public class SingleBucketBuilder implements RowConsumer, CompletionListenable<St
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
             bucketFuture.whenComplete((ignored, t) -> iterator.close());
-            StreamBucketCollector streamBucketCollector = new StreamBucketCollector(streamers);
+            StreamBucketCollector streamBucketCollector = new StreamBucketCollector(streamers, ramAccounting);
             BatchIterators.collect(iterator, streamBucketCollector.supplier().get(), streamBucketCollector, bucketFuture);
         } else {
             if (iterator != null) {

@@ -29,6 +29,20 @@ package io.crate.breaker;
  */
 public interface RamAccounting {
 
+    RamAccounting NO_ACCOUNTING = new RamAccounting() {
+        @Override
+        public void addBytes(long bytes) {
+        }
+
+        @Override
+        public void release() {
+        }
+
+        @Override
+        public void close() {
+        }
+    };
+
     /**
      * Accounts for the supplied number of bytes
      * @throws CircuitBreakingException if too many bytes have been added.
