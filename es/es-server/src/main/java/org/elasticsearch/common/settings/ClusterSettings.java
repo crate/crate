@@ -378,7 +378,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         IndexingMemoryController.SHARD_MEMORY_INTERVAL_TIME_SETTING,
         SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING,
         ThreadPool.ESTIMATED_TIME_INTERVAL_SETTING,
-        Node.BREAKER_TYPE_KEY,
         IndexGraveyard.SETTING_MAX_TOMBSTONES,
         PeerFinder.DISCOVERY_FIND_PEERS_INTERVAL_SETTING,
         PeerFinder.DISCOVERY_REQUEST_PEERS_TIMEOUT_SETTING,
