@@ -228,6 +228,12 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_decommission_node_id_is_missing() {
+        expectedException.expectMessage(containsString("mismatched input"));
+        printStatement("ALTER CLUSTER DECOMMISSION'");
+    }
+
+    @Test
     public void testStmtWithSemicolonBuilder() {
         printStatement("select 1;");
     }

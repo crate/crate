@@ -181,6 +181,7 @@ public class Analyzer {
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver, functions);
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
+        this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -205,12 +206,12 @@ public class Analyzer {
             refreshTableAnalyzer,
             restoreSnapshotAnalyzer,
             createAnalyzerStatementAnalyzer,
-            dropAnalyzerStatementAnalyzer
+            dropAnalyzerStatementAnalyzer,
+            decommissionNodeAnalyzer
         );
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
-        this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
     }
 
     public Analysis boundAnalyze(Statement statement, CoordinatorTxnCtx coordinatorTxnCtx, ParameterContext parameterContext) {
@@ -551,12 +552,12 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterClusterDecommissionNode(DecommissionNodeStatement decommissionNodeStatement,
-                                                                   Analysis analysis) {
-            return decommissionNodeAnalyzer.analyze(decommissionNodeStatement,
-                analysis.transactionContext(),
-                analysis.paramTypeHints()
-            );
+        public AnalyzedStatement visitAlterClusterDecommissionNode(DecommissionNodeStatement<?> node,
+                                                                   Analysis context) {
+            return decommissionNodeAnalyzer.analyze(
+                (DecommissionNodeStatement<Expression>) node,
+                context.transactionContext(),
+                context.paramTypeHints());
         }
 
         @Override

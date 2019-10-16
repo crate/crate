@@ -326,7 +326,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitAlterClusterDecommissionNode(SqlBaseParser.AlterClusterDecommissionNodeContext ctx) {
-        return new DecommissionNodeStatement((Expression) visit(ctx.node));
+        return new DecommissionNodeStatement<>(visit(ctx.node));
     }
 
     @Override
