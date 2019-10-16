@@ -23,6 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
@@ -145,7 +146,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
             logger,
             executorService,
             UUID.randomUUID(),
-            new ModuloBucketBuilder(streamers, 1, 0),
+            new ModuloBucketBuilder(streamers, 1, 0, RamAccounting.NO_ACCOUNTING),
             1,
             (byte) 0,
             0,

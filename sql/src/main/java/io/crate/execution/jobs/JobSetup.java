@@ -37,6 +37,7 @@ import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
 import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Paging;
@@ -124,8 +125,8 @@ public class JobSetup {
 
     private final MapSideDataCollectOperation collectOperation;
     private final ClusterService clusterService;
-    private final CountOperation countOperation;
     private final CrateCircuitBreakerService circuitBreakerService;
+    private final CountOperation countOperation;
     private final DistributingConsumerFactory distributingConsumerFactory;
     private final InnerPreparer innerPreparer;
     private final InputFactory inputFactory;
@@ -152,9 +153,9 @@ public class JobSetup {
         this.nodeName = Node.NODE_NAME_SETTING.get(settings);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
+        this.circuitBreakerService = circuitBreakerService;
         this.countOperation = countOperation;
         this.pkLookupOperation = new PKLookupOperation(indicesService, shardCollectSource);
-        this.circuitBreakerService = circuitBreakerService;
         this.distributingConsumerFactory = distributingConsumerFactory;
         innerPreparer = new InnerPreparer();
         inputFactory = new InputFactory(functions);
@@ -180,6 +181,7 @@ public class JobSetup {
                                                                  RootTask.Builder contextBuilder,
                                                                  SharedShardContexts sharedShardContexts) {
         Context context = new Context(
+            breaker(),
             clusterService.localNode().getId(),
             sessionInfo,
             contextBuilder,
@@ -204,6 +206,7 @@ public class JobSetup {
                                                                   List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases,
                                                                   SharedShardContexts sharedShardContexts) {
         Context context = new Context(
+            breaker(),
             clusterService.localNode().getId(),
             sessionInfo,
             taskBuilder,
@@ -250,8 +253,7 @@ public class JobSetup {
         }
     }
 
-    private void registerContextPhases(Iterable<? extends NodeOperation> nodeOperations,
-                                       Context context) {
+    private void registerContextPhases(Iterable<? extends NodeOperation> nodeOperations, Context context) {
         for (NodeOperation nodeOperation : nodeOperations) {
             // context for nodeOperations without dependencies can be built immediately (e.g. FetchPhase)
             if (nodeOperation.downstreamExecutionPhaseId() == NodeOperation.NO_DOWNSTREAM) {
@@ -261,9 +263,11 @@ public class JobSetup {
                 }
             }
             if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
-                Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(nodeOperation.executionPhase());
-                SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
-                context.directResponseFutures.add(bucketBuilder.completionFuture());
+                var executionPhase = nodeOperation.executionPhase();
+                var ramAccounting = RamAccountingContext.forExecutionPhase(breaker(), executionPhase);
+                Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(executionPhase);
+                SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers, ramAccounting);
+                context.directResponseFutures.add(bucketBuilder.completionFuture().whenComplete((res, err) -> ramAccounting.close()));
                 context.registerBatchConsumer(nodeOperation.downstreamExecutionPhaseId(), bucketBuilder);
             }
         }
@@ -433,18 +437,21 @@ public class JobSetup {
 
         private final List<CompletableFuture<StreamBucket>> directResponseFutures = new ArrayList<>();
         private final NodeOperationCtx opCtx;
+        private final CircuitBreaker circuitBreaker;
         private final RootTask.Builder taskBuilder;
         private final Logger logger;
         private final List<ExecutionPhase> leafs = new ArrayList<>();
-        private TransactionContext transactionContext;
+        private final TransactionContext transactionContext;
 
-        Context(String localNodeId,
+        Context(CircuitBreaker circuitBreaker,
+                String localNodeId,
                 SessionSettings sessionInfo,
                 RootTask.Builder taskBuilder,
                 Logger logger,
                 DistributingConsumerFactory distributingConsumerFactory,
                 Collection<? extends NodeOperation> nodeOperations,
                 SharedShardContexts sharedShardContexts) {
+            this.circuitBreaker = circuitBreaker;
             this.taskBuilder = taskBuilder;
             this.logger = logger;
             this.opCtx = new NodeOperationCtx(localNodeId, nodeOperations);
@@ -477,28 +484,33 @@ public class JobSetup {
             switch (distributionType) {
                 case BROADCAST:
                 case MODULO:
-                    RowConsumer consumer = distributingConsumerFactory.create(
-                        nodeOperation, phase.distributionInfo(), jobId(), pageSize);
-                    traceGetBatchConsumer(phase, distributionType.toString(), nodeOperation, consumer);
+                    RamAccountingContext ramAccounting = getRamAccountingContext(phase);
+                    RowConsumer consumer;
+                    if (ramAccounting == null) {
+                        RamAccounting accounting = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+                        consumer = distributingConsumerFactory.create(
+                            nodeOperation, accounting, phase.distributionInfo(), jobId(), pageSize);
+                        consumer.completionFuture().whenComplete((res, err) -> accounting.close());
+                    } else {
+                        consumer = distributingConsumerFactory.create(
+                            nodeOperation, ramAccounting, phase.distributionInfo(), jobId(), pageSize);
+                    }
+                    if (logger.isTraceEnabled()) {
+                        logger.trace(
+                            "action=getRowReceiver, distributionType={}, phase={}, targetConsumer={}, target={}/{},",
+                            distributionType.toString(),
+                            phase.phaseId(),
+                            consumer,
+                            nodeOperation.downstreamExecutionPhaseId(),
+                            nodeOperation.downstreamExecutionPhaseInputId()
+                        );
+                    }
                     return consumer;
 
                 default:
                     throw new AssertionError(
                         "unhandled distributionType: " + distributionType);
             }
-        }
-
-        private void traceGetBatchConsumer(UpstreamPhase phase,
-                                           String distributionTypeName,
-                                           NodeOperation nodeOperation,
-                                           RowConsumer consumer) {
-            logger.trace("action=getRowReceiver, distributionType={}, phase={}, targetConsumer={}, target={}/{},",
-                distributionTypeName,
-                phase.phaseId(),
-                consumer,
-                nodeOperation.downstreamExecutionPhaseId(),
-                nodeOperation.downstreamExecutionPhaseInputId()
-            );
         }
 
         /**
@@ -920,13 +932,11 @@ public class JobSetup {
         }
     }
 
-
-    private static long toKey(int phaseId, byte inputId) {
-        long l = (long) phaseId;
-        return (l << 32) | (inputId & 0xffffffffL);
-    }
-
     private CircuitBreaker breaker() {
         return circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+    }
+
+    private static long toKey(int phaseId, byte inputId) {
+        return ((long) phaseId << 32) | (inputId & 0xffffffffL);
     }
 }
