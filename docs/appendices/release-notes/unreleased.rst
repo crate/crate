@@ -178,6 +178,10 @@ Changes
 Fixes
 =====
 
+- Closed some gaps in the memory accounting used for the circuit breaker
+  mechanism. This should help prevent memory intense queries from triggering
+  long GC pauses as they'll be rejected earlier.
+
 - Made the documented :ref:`indices.breaker.total.limit
   <indices.breaker.total.limit>` setting public, so that it can be adjusted
   using :ref:`SET GLOBAL <ref-set>`.

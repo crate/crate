@@ -98,6 +98,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -147,9 +148,9 @@ public class JobSetup {
                     TransportActionProvider transportActionProvider,
                     IndicesService indicesService,
                     Functions functions,
+                    PageCacheRecycler pageCacheRecycler,
                     SystemCollectSource systemCollectSource,
-                    ShardCollectSource shardCollectSource,
-                    BigArrays bigArrays) {
+                    ShardCollectSource shardCollectSource) {
         this.nodeName = Node.NODE_NAME_SETTING.get(settings);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
@@ -161,6 +162,7 @@ public class JobSetup {
         inputFactory = new InputFactory(functions);
         searchTp = threadPool.executor(ThreadPool.Names.SEARCH);
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
+        BigArrays bigArrays = new BigArrays(pageCacheRecycler, circuitBreakerService, CrateCircuitBreakerService.QUERY, true);
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,
