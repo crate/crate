@@ -52,6 +52,7 @@ import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.InsertFromValues;
+import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RefreshStatement;
@@ -100,7 +101,8 @@ class UnboundAnalyzer {
                     RestoreSnapshotAnalyzer restoreSnapshotAnalyzer,
                     CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
                     DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer,
-                    DecommissionNodeAnalyzer decommissionNodeAnalyzer) {
+                    DecommissionNodeAnalyzer decommissionNodeAnalyzer,
+                    KillAnalyzer killAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -126,7 +128,8 @@ class UnboundAnalyzer {
             restoreSnapshotAnalyzer,
             createAnalyzerStatementAnalyzer,
             dropAnalyzerStatementAnalyzer,
-            decommissionNodeAnalyzer
+            decommissionNodeAnalyzer,
+            killAnalyzer
         );
     }
 
@@ -163,6 +166,7 @@ class UnboundAnalyzer {
         private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
         private final DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer;
         private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
+        private final KillAnalyzer killAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -188,7 +192,8 @@ class UnboundAnalyzer {
                           RestoreSnapshotAnalyzer restoreSnapshotAnalyzer,
                           CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
                           DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer,
-                          DecommissionNodeAnalyzer decommissionNodeAnalyzer) {
+                          DecommissionNodeAnalyzer decommissionNodeAnalyzer,
+                          KillAnalyzer killAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -214,6 +219,7 @@ class UnboundAnalyzer {
             this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
             this.dropAnalyzerStatementAnalyzer = dropAnalyzerStatementAnalyzer;
             this.decommissionNodeAnalyzer = decommissionNodeAnalyzer;
+            this.killAnalyzer = killAnalyzer;
         }
 
         @Override
@@ -299,6 +305,14 @@ class UnboundAnalyzer {
         public AnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
             return createRepositoryAnalyzer.analyze(
                 (CreateRepository<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitKillStatement(KillStatement<?> node, Analysis context) {
+            return killAnalyzer.analyze(
+                (KillStatement<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }

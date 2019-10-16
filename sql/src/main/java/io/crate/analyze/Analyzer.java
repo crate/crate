@@ -137,6 +137,7 @@ public class Analyzer {
     private final Schemas schemas;
     private final SwapTableAnalyzer swapTableAnalyzer;
     private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
+    private final KillAnalyzer killAnalyzer;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -182,6 +183,7 @@ public class Analyzer {
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver, functions);
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
+        this.killAnalyzer = new KillAnalyzer(functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -207,7 +209,8 @@ public class Analyzer {
             restoreSnapshotAnalyzer,
             createAnalyzerStatementAnalyzer,
             dropAnalyzerStatementAnalyzer,
-            decommissionNodeAnalyzer
+            decommissionNodeAnalyzer,
+            killAnalyzer
         );
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
@@ -403,8 +406,11 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
-            return KillAnalyzer.analyze(node, context.parameterContext());
+        public AnalyzedStatement visitKillStatement(KillStatement<?> node, Analysis context) {
+            return killAnalyzer.analyze(
+                (KillStatement<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override

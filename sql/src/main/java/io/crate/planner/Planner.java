@@ -65,7 +65,7 @@ import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
-import io.crate.analyze.KillAnalyzedStatement;
+import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
@@ -484,7 +484,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, PlannerContext context) {
+    public Plan visitKillAnalyzedStatement(AnalyzedKill analysis, PlannerContext context) {
         return new KillPlan(analysis.jobId());
     }
 

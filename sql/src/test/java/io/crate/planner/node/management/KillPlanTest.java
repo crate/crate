@@ -42,9 +42,8 @@ import static org.mockito.Mockito.mock;
 
 public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
 
-    @SuppressWarnings("unchecked")
     @Test
-    public void testKillTaskCallsBroadcastOnTransportKillAllNodeAction() throws Exception {
+    public void testKillTaskCallsBroadcastOnTransportKillAllNodeAction() {
         AtomicInteger broadcastCalls = new AtomicInteger(0);
         AtomicInteger nodeOperationCalls = new AtomicInteger(0);
         TransportKillAllNodeAction killAllNodeAction = new TransportKillAllNodeAction(
@@ -64,9 +63,12 @@ public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
             }
         };
         KillPlan killPlan = new KillPlan(null);
-        killPlan.execute(killAllNodeAction, mock(TransportKillJobsNodeAction.class), new TestingRowConsumer());;
+        killPlan.execute(
+            null,
+            killAllNodeAction,
+            mock(TransportKillJobsNodeAction.class),
+            new TestingRowConsumer());
         assertThat(broadcastCalls.get(), is(1));
         assertThat(nodeOperationCalls.get(), is(0));
     }
-
 }

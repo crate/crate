@@ -679,8 +679,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitKill(SqlBaseParser.KillContext context) {
-        var jobId = visitIfPresent(context.jobId, Expression.class);
-        return new KillStatement(jobId.orElse(null));
+        return new KillStatement<>(
+            visitIfPresent(context.jobId, Expression.class).orElse(null));
     }
 
     @Override
