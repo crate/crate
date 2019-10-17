@@ -93,7 +93,7 @@ public class RamAccountingBatchIteratorTest extends CrateUnitTest {
 
         expectedException.expect(CircuitBreakingException.class);
         expectedException.expectMessage(
-            "Data too large, data for field [test] would be [35/35b], which is larger than the limit of [34/34b]");
+            "Data too large, data for field [test] would be [48/48b], which is larger than the limit of [34/34b]");
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);

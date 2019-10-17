@@ -80,5 +80,4 @@ public class JobContextLog implements ContextLog {
     public String errorMessage() {
         return errorMessage;
     }
-
 }
