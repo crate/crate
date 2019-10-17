@@ -59,6 +59,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
@@ -80,7 +81,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.crate.breaker.RamAccountingContext.roundUp;
 import static io.crate.execution.dsl.projection.Projections.shardProjections;
 import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.formatSource;
 import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.getCollectorContext;
@@ -102,6 +102,7 @@ final class GroupByOptimizedIterator {
      * (+ being faster, - being slower)
      */
     private static final double CARDINALITY_RATIO_THRESHOLD = 0.5;
+    private static final long HASH_MAP_ENTRY_OVERHEAD = RamUsageEstimator.shallowSizeOfInstance(HashMap.SimpleEntry.class);
 
     @Nullable
     static BatchIterator<Row> tryOptimizeSingleStringKey(IndexShard indexShard,
@@ -314,9 +315,7 @@ final class GroupByOptimizedIterator {
                     BytesRef sharedKey = values.lookupOrd(ord);
                     Object[] prevStates = statesByKey.get(sharedKey);
                     if (prevStates == null) {
-                        long hashMapEntryOverhead = 36L;
-                        ramAccounting.addBytes(roundUp(
-                            StringSizeEstimator.INSTANCE.estimateSize(sharedKey) + hashMapEntryOverhead));
+                        ramAccounting.addBytes(StringSizeEstimator.estimateSize(sharedKey) + HASH_MAP_ENTRY_OVERHEAD);
                         statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
                     } else {
                         for (int i = 0; i < aggregations.size(); i++) {

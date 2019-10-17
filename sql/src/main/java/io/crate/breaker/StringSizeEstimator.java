@@ -22,34 +22,31 @@
 package io.crate.breaker;
 
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.RamUsageEstimator;
 
 import javax.annotation.Nullable;
 
 public final class StringSizeEstimator extends SizeEstimator<String> {
 
     public static final StringSizeEstimator INSTANCE = new StringSizeEstimator();
+    private static final int BYTES_REF_INSTANCE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(BytesRef.class);
 
     private StringSizeEstimator() {
     }
 
     public static long estimate(@Nullable String value) {
-        if (value == null) {
-            return 8;
-        }
-        return value.length() + 32; // overhead
+        return RamUsageEstimator.sizeOf(value);
     }
 
     @Override
     public long estimateSize(@Nullable String value) {
-        return estimate(value);
+        return RamUsageEstimator.sizeOf(value);
     }
 
-    public long estimateSize(@Nullable BytesRef value) {
+    public static long estimateSize(@Nullable BytesRef value) {
         if (value == null) {
             return 8;
         }
-        long bytes = value.length;
-        bytes += 32; // overhead
-        return bytes;
+        return RamUsageEstimator.alignObjectSize(BYTES_REF_INSTANCE_SIZE + value.length);
     }
 }
