@@ -33,6 +33,7 @@ import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateFunction;
@@ -108,7 +109,8 @@ class UnboundAnalyzer {
                     DecommissionNodeAnalyzer decommissionNodeAnalyzer,
                     KillAnalyzer killAnalyzer,
                     AlterTableRerouteAnalyzer alterTableRerouteAnalyzer,
-                    PrivilegesAnalyzer privilegesAnalyzer) {
+                    PrivilegesAnalyzer privilegesAnalyzer,
+                    CopyAnalyzer copyAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -137,7 +139,8 @@ class UnboundAnalyzer {
             decommissionNodeAnalyzer,
             killAnalyzer,
             alterTableRerouteAnalyzer,
-            privilegesAnalyzer
+            privilegesAnalyzer,
+            copyAnalyzer
         );
     }
 
@@ -177,6 +180,7 @@ class UnboundAnalyzer {
         private final KillAnalyzer killAnalyzer;
         private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
         private final PrivilegesAnalyzer privilegesAnalyzer;
+        private final CopyAnalyzer copyAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -205,7 +209,8 @@ class UnboundAnalyzer {
                           DecommissionNodeAnalyzer decommissionNodeAnalyzer,
                           KillAnalyzer killAnalyzer,
                           AlterTableRerouteAnalyzer alterTableRerouteAnalyzer,
-                          PrivilegesAnalyzer privilegesAnalyzer) {
+                          PrivilegesAnalyzer privilegesAnalyzer,
+                          CopyAnalyzer copyAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -234,6 +239,7 @@ class UnboundAnalyzer {
             this.killAnalyzer = killAnalyzer;
             this.alterTableRerouteAnalyzer = alterTableRerouteAnalyzer;
             this.privilegesAnalyzer = privilegesAnalyzer;
+            this.copyAnalyzer = copyAnalyzer;
         }
 
         @Override
@@ -479,6 +485,14 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitUpdate(Update update, Analysis analysis) {
             return updateAnalyzer.analyze(update, analysis.paramTypeHints(), analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCopyFrom(CopyFrom<?> node, Analysis context) {
+            return copyAnalyzer.analyzeCopyFrom(
+                (CopyFrom<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override

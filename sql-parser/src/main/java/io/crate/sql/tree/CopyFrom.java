@@ -21,38 +21,35 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
 import java.util.Objects;
 
-public class CopyFrom extends Statement {
+public class CopyFrom<T> extends Statement {
 
-    private final Table table;
-    private final Expression path;
-    private final GenericProperties genericProperties;
+    private final Table<T> table;
+    private final T path;
+    private final GenericProperties<T> properties;
     private final boolean returnSummary;
 
-    public CopyFrom(Table table,
-                    Expression path,
-                    GenericProperties genericProperties,
+    public CopyFrom(Table<T> table,
+                    T path,
+                    GenericProperties<T> properties,
                     boolean returnSummary) {
-
         this.table = table;
         this.path = path;
-        this.genericProperties = genericProperties;
+        this.properties = properties;
         this.returnSummary = returnSummary;
     }
 
-    public Table table() {
+    public Table<T> table() {
         return table;
     }
 
-    public Expression path() {
+    public T path() {
         return path;
     }
 
-    public GenericProperties genericProperties() {
-        return genericProperties;
+    public GenericProperties<T> properties() {
+        return properties;
     }
 
     public boolean isReturnSummary() {
@@ -61,28 +58,32 @@ public class CopyFrom extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        CopyFrom copyFrom = (CopyFrom) o;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CopyFrom<?> copyFrom = (CopyFrom<?>) o;
         return returnSummary == copyFrom.returnSummary &&
                Objects.equals(table, copyFrom.table) &&
                Objects.equals(path, copyFrom.path) &&
-               Objects.equals(genericProperties, copyFrom.genericProperties);
+               Objects.equals(properties, copyFrom.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(table, path, genericProperties, returnSummary);
+        return Objects.hash(table, path, properties, returnSummary);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("path", path)
-            .add("properties", genericProperties)
-            .add("returnSummary", returnSummary)
-            .toString();
+        return "CopyFrom{" +
+               "table=" + table +
+               ", path=" + path +
+               ", properties=" + properties +
+               ", returnSummary=" + returnSummary +
+               '}';
     }
 
     @Override

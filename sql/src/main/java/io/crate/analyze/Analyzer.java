@@ -186,6 +186,7 @@ public class Analyzer {
         this.killAnalyzer = new KillAnalyzer(functions);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled(), schemas);
+        this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -214,9 +215,9 @@ public class Analyzer {
             decommissionNodeAnalyzer,
             killAnalyzer,
             alterTableRerouteAnalyzer,
-            privilegesAnalyzer
+            privilegesAnalyzer,
+            copyAnalyzer
         );
-        this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
     }
 
     public Analysis boundAnalyze(Statement statement, CoordinatorTxnCtx coordinatorTxnCtx, ParameterContext parameterContext) {
@@ -271,8 +272,11 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCopyFrom(CopyFrom node, Analysis context) {
-            return copyAnalyzer.convertCopyFrom(node, context);
+        public AnalyzedStatement visitCopyFrom(CopyFrom<?> node, Analysis context) {
+            return copyAnalyzer.analyzeCopyFrom(
+                (CopyFrom<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override

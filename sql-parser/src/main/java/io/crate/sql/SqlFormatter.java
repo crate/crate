@@ -171,16 +171,18 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitCopyFrom(CopyFrom node, Integer indent) {
+        public Void visitCopyFrom(CopyFrom<?> node, Integer indent) {
+            var copyFrom = (CopyFrom<Expression>) node;
+
             append(indent, "COPY ");
-            node.table().accept(this, indent);
+            copyFrom.table().accept(this, indent);
             append(indent, " FROM ");
-            node.path().accept(this, indent);
-            if (!node.genericProperties().isEmpty()) {
+            copyFrom.path().accept(this, indent);
+            if (!copyFrom.properties().isEmpty()) {
                 append(indent, " ");
-                node.genericProperties().accept(this, indent);
+                copyFrom.properties().accept(this, indent);
             }
-            if (node.isReturnSummary()) {
+            if (copyFrom.isReturnSummary()) {
                 append(indent," RETURN SUMMARY");
             }
             return null;

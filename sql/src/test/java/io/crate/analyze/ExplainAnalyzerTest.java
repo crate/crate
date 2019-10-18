@@ -77,7 +77,7 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExplainCopyFrom() throws Exception {
         ExplainAnalyzedStatement stmt = e.analyze("explain copy users from '/tmp/*' WITH (shared=True)");
-        assertThat(stmt.statement(), instanceOf(CopyFromAnalyzedStatement.class));
+        assertThat(stmt.statement(), instanceOf(AnalyzedCopyFrom.class));
         assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN")));
     }
 

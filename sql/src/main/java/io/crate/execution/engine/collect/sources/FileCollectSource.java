@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import io.crate.analyze.CopyFromAnalyzedStatement;
+import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -108,6 +108,6 @@ public class FileCollectSource implements CollectSource {
         }
 
         // this case actually never happens because the check is already done in the analyzer
-        throw CopyFromAnalyzedStatement.raiseInvalidType(targetUri.valueType());
+        throw AnalyzedCopyFrom.raiseInvalidType(targetUri.valueType());
     }
 }

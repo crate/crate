@@ -32,6 +32,7 @@ import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
+import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateFunction;
@@ -53,7 +54,6 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedSwapTable;
 import io.crate.analyze.AnalyzedUpdateStatement;
-import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
@@ -118,6 +118,7 @@ import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeletePlanner;
 import io.crate.planner.statement.SetLicensePlan;
@@ -299,8 +300,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    protected Plan visitCopyFromStatement(CopyFromAnalyzedStatement analysis, PlannerContext context) {
-        return CopyStatementPlanner.planCopyFrom(analysis);
+    protected Plan visitCopyFromStatement(AnalyzedCopyFrom analysis, PlannerContext context) {
+        return new CopyFromPlan(analysis);
     }
 
     @Override

@@ -22,18 +22,16 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.copy.NodeFilters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ExpressionToObjectVisitor;
-import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
@@ -53,19 +51,16 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.Validators;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.Table;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,10 +68,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.function.Function;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-class CopyAnalyzer {
+public class CopyAnalyzer {
 
     private static final Setting<String> COMPRESSION_SETTING =
         Setting.simpleString("compression", Validators.stringValidator("compression","gzip"), Setting.Property.Dynamic);
@@ -84,7 +79,7 @@ class CopyAnalyzer {
     private static final Setting<String> OUTPUT_FORMAT_SETTING =
         Setting.simpleString("format", Validators.stringValidator("format","json_object", "json_array"), Setting.Property.Dynamic);
 
-    private static final Setting<String> INPUT_FORMAT_SETTING =
+    public static final Setting<String> INPUT_FORMAT_SETTING =
         new Setting<>("format", "json", (s) -> s, Validators.stringValidator("format","json", "csv"), Setting.Property.Dynamic);
 
     private static final Map<String, Setting<?>> OUTPUT_SETTINGS = Map.of(
@@ -100,56 +95,45 @@ class CopyAnalyzer {
         this.functions = functions;
     }
 
-    CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
+    AnalyzedCopyFrom analyzeCopyFrom(CopyFrom<Expression> node,
+                                     Function<ParameterExpression, Symbol> convertParamFunction,
+                                     CoordinatorTxnCtx txnCtx) {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
-                node.table().getName(),
-                Operation.INSERT,
-                analysis.sessionContext().user(),
-                analysis.sessionContext().searchPath()
-        );
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+            node.table().getName(),
+            Operation.INSERT,
+            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().searchPath());
 
-        String partitionIdent = null;
-        if (!node.table().partitionProperties().isEmpty()) {
-            partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
-                tableInfo,
-                node.table().partitionProperties(),
-                analysis.parameterContext().parameters());
-        }
+        var exprCtx = new ExpressionAnalysisContext();
 
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+        var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+
+        var normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
             null,
-            tableRelation);
-        ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation, Operation.INSERT);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-        Predicate<DiscoveryNode> nodeFilters = discoveryNode -> true;
-        Settings settings = Settings.EMPTY;
-        if (!node.genericProperties().isEmpty()) {
-            // copy map as items are removed. The GenericProperties map is cached in the query cache and removing
-            // items would cause subsequent queries that hit the cache to have different genericProperties
-            Map<String, Expression> properties = new HashMap<>(node.genericProperties().properties());
-            nodeFilters = discoveryNodePredicate(analysis.parameterContext().parameters(), properties.remove(NodeFilters.NAME));
-            settings = settingsFromProperties(properties);
-        }
-        Symbol uri = expressionAnalyzer.convert(node.path(), expressionAnalysisContext);
-        uri = normalizer.normalize(uri, analysis.transactionContext());
+            new TableRelation(tableInfo));
 
-        if (!(uri.valueType() == DataTypes.STRING ||
-              uri.valueType() instanceof ArrayType &&
-              ((ArrayType) uri.valueType()).innerType() == DataTypes.STRING)) {
-            throw CopyFromAnalyzedStatement.raiseInvalidType(uri.valueType());
-        }
-
-        FileUriCollectPhase.InputFormat inputFormat =
-            settingAsEnum(FileUriCollectPhase.InputFormat.class, settings.get(INPUT_FORMAT_SETTING.getKey(), INPUT_FORMAT_SETTING.getDefault(Settings.EMPTY)));
+        Table<Symbol> table = node.table().map(t -> exprAnalyzerWithFieldsAsString.convert(t, exprCtx));
+        GenericProperties<Symbol> properties = node.properties().map(t -> exprAnalyzerWithoutFields.convert(t, exprCtx));
+        Symbol uri = exprAnalyzerWithoutFields.convert(node.path(), exprCtx);
 
         if (node.isReturnSummary()) {
-            return new CopyFromReturnSummaryAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters, inputFormat);
+            return new AnalyzedCopyFromReturnSummary(
+                tableInfo,
+                table,
+                properties,
+                normalizer.normalize(uri, txnCtx));
+        } else {
+            return new AnalyzedCopyFrom(
+                tableInfo,
+                table,
+                properties,
+                normalizer.normalize(uri, txnCtx));
         }
-
-        return new CopyFromAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters, inputFormat);
     }
 
     private ExpressionAnalyzer createExpressionAnalyzer(Analysis analysis, DocTableRelation tableRelation, Operation operation) {
@@ -160,20 +144,6 @@ class CopyAnalyzer {
             new NameFieldProvider(tableRelation),
             null,
             operation);
-    }
-
-    private static Predicate<DiscoveryNode> discoveryNodePredicate(Row parameters, @Nullable Expression nodeFiltersExpression) {
-        if (nodeFiltersExpression == null) {
-            return discoveryNode -> true;
-        }
-        Object nodeFiltersObj = ExpressionToObjectVisitor.convert(nodeFiltersExpression, parameters);
-        try {
-            return NodeFilters.fromMap((Map) nodeFiltersObj);
-        } catch (ClassCastException e) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "Invalid parameter passed to %s. Expected an object with name or id keys and string values. Got '%s'",
-                NodeFilters.NAME, nodeFiltersObj));
-        }
     }
 
     CopyToAnalyzedStatement convertCopyTo(CopyTo node, Analysis analysis) {
@@ -200,6 +170,7 @@ class CopyAnalyzer {
 
         Symbol uri = expressionAnalyzer.convert(node.targetUri(), expressionAnalysisContext);
         uri = normalizer.normalize(uri, analysis.transactionContext());
+
         List<String> partitions = resolvePartitions(
             node.table().partitionProperties(), analysis.parameterContext().parameters(), tableRelation.tableInfo());
 
@@ -312,30 +283,5 @@ class CopyAnalyzer {
         } else {
             return new WhereClause(null, partitions, Collections.emptySet());
         }
-    }
-
-    private static Settings settingsFromProperties(Map<String, Expression> properties) {
-        Settings.Builder builder = Settings.builder();
-        for (Map.Entry<String, Expression> entry : properties.entrySet()) {
-            String key = entry.getKey();
-            Expression expression = entry.getValue();
-            if (expression instanceof ArrayLiteral) {
-                throw new IllegalArgumentException("Invalid argument(s) passed to parameter");
-            }
-            if (expression instanceof QualifiedNameReference) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Can't use column reference in property assignment \"%s = %s\". Use literals instead.",
-                    key,
-                    ((QualifiedNameReference) expression).getName().toString()));
-            }
-            String value;
-            try {
-                value = ExpressionToStringVisitor.convert(expression, Row.EMPTY);
-            } catch (UnsupportedOperationException e) {
-                throw new UnsupportedFeatureException("Only literals are allowed as parameter values. Got " + expression);
-            }
-            builder.put(key, value);
-        }
-        return builder.build();
     }
 }
