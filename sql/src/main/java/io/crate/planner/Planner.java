@@ -67,6 +67,11 @@ import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.NumberOfShards;
+import io.crate.analyze.AnalyzedPromoteReplica;
+import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
+import io.crate.analyze.AnalyzedRerouteCancelShard;
+import io.crate.analyze.AnalyzedRerouteMoveShard;
+import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
@@ -109,6 +114,7 @@ import io.crate.planner.node.ddl.RefreshTablePlan;
 import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.node.dml.LegacyUpsertById;
+import io.crate.planner.node.management.AlterTableReroutePlan;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
@@ -519,6 +525,32 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitOptimizeTableStatement(AnalyzedOptimizeTable analysis, PlannerContext context) {
         return new OptimizeTablePlan(analysis);
+    }
+
+    @Override
+    protected Plan visitRerouteMoveShard(AnalyzedRerouteMoveShard analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    protected Plan visitRerouteAllocateReplicaShard(AnalyzedRerouteAllocateReplicaShard analysis,
+                                                    PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    protected Plan visitRerouteCancelShard(AnalyzedRerouteCancelShard analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    public Plan visitReroutePromoteReplica(AnalyzedPromoteReplica analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    public Plan visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
     }
 
     private static LegacyUpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis) {

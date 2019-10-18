@@ -21,50 +21,57 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
+import java.util.function.Function;
 
-public class RerouteAllocateReplicaShard extends RerouteOption {
+public class RerouteAllocateReplicaShard<T> extends RerouteOption {
 
-    private final Expression nodeIdOrName;
-    private final Expression shardId;
+    private final T shardId;
+    private final T nodeIdOrName;
 
-    public RerouteAllocateReplicaShard(Expression shardId, Expression nodeIdOrName) {
+    public RerouteAllocateReplicaShard(T shardId, T nodeIdOrName) {
         this.shardId = shardId;
         this.nodeIdOrName = nodeIdOrName;
     }
 
-    public Expression nodeIdOrName() {
+    public T nodeIdOrName() {
         return nodeIdOrName;
     }
 
-    public Expression shardId() {
+    public T shardId() {
         return shardId;
+    }
+
+    public <U> RerouteAllocateReplicaShard<U> map(Function<? super T, ? extends U> mapper) {
+        return new RerouteAllocateReplicaShard<>(
+            mapper.apply(shardId),
+            mapper.apply(nodeIdOrName));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        RerouteAllocateReplicaShard<?> that = (RerouteAllocateReplicaShard<?>) o;
+        return Objects.equals(nodeIdOrName, that.nodeIdOrName) &&
+               Objects.equals(shardId, that.shardId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(shardId, nodeIdOrName);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        RerouteAllocateReplicaShard that = (RerouteAllocateReplicaShard) obj;
-
-        if (!shardId.equals(that.shardId)) return false;
-        if (!nodeIdOrName.equals(that.nodeIdOrName)) return false;
-
-        return true;
+        return Objects.hash(nodeIdOrName, shardId);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("shardId", shardId)
-            .add("nodeId", nodeIdOrName).toString();
+        return "RerouteAllocateReplicaShard{" +
+               "shardId=" + shardId +
+               ", nodeId=" + nodeIdOrName +
+               '}';
     }
 
     @Override

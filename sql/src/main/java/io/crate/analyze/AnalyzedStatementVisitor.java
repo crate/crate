@@ -187,15 +187,15 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    protected R visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, C context) {
+    protected R visitRerouteMoveShard(AnalyzedRerouteMoveShard analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
 
-    protected R visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, C context) {
+    protected R visitRerouteAllocateReplicaShard(AnalyzedRerouteAllocateReplicaShard analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
 
-    protected R visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, C context) {
+    protected R visitRerouteCancelShard(AnalyzedRerouteCancelShard analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
 
@@ -231,7 +231,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(decommissionNode, context);
     }
 
-    public R visitReroutePromoteReplica(PromoteReplicaStatement promoteReplicaStatement, C context) {
+    public R visitReroutePromoteReplica(AnalyzedPromoteReplica promoteReplicaStatement, C context) {
         return visitDDLStatement(promoteReplicaStatement, context);
     }
 

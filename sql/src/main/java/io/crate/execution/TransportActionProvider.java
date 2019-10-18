@@ -30,6 +30,7 @@ import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
@@ -69,6 +70,7 @@ public class TransportActionProvider {
 
     private final Provider<TransportUpgradeAction> transportUpgradeActionProvider;
     private final Provider<TransportForceMergeAction> transportForceMergeActionProvider;
+    private final Provider<TransportClusterRerouteAction> transportClusterRerouteActionProvider;
 
     @Inject
     public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
@@ -88,7 +90,8 @@ public class TransportActionProvider {
                                    Provider<TransportDecommissionNodeAction> transportDecommissionNodeActionProvider,
                                    Provider<TransportRefreshAction> transportRefreshActionProvider,
                                    Provider<TransportUpgradeAction> transportUpgradeActionProvider,
-                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider) {
+                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
+                                   Provider<TransportClusterRerouteAction> transportClusterRerouteActionProvider) {
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
         this.transportShardDeleteActionProvider = transportShardDeleteActionProvider;
@@ -107,6 +110,7 @@ public class TransportActionProvider {
         this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.transportUpgradeActionProvider = transportUpgradeActionProvider;
         this.transportForceMergeActionProvider = transportForceMergeActionProvider;
+        this.transportClusterRerouteActionProvider = transportClusterRerouteActionProvider;
     }
 
     public TransportCreatePartitionsAction transportBulkCreateIndicesAction() {
@@ -179,5 +183,9 @@ public class TransportActionProvider {
 
     public TransportForceMergeAction transportForceMergeAction() {
         return transportForceMergeActionProvider.get();
+    }
+
+    public TransportClusterRerouteAction transportClusterRerouteAction() {
+        return transportClusterRerouteActionProvider.get();
     }
 }
