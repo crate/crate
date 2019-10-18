@@ -42,6 +42,7 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropRepository;
@@ -51,6 +52,7 @@ import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.KillStatement;
@@ -58,6 +60,7 @@ import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.RestoreSnapshot;
+import io.crate.sql.tree.RevokePrivilege;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.ShowSchemas;
@@ -104,7 +107,8 @@ class UnboundAnalyzer {
                     DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer,
                     DecommissionNodeAnalyzer decommissionNodeAnalyzer,
                     KillAnalyzer killAnalyzer,
-                    AlterTableRerouteAnalyzer alterTableRerouteAnalyzer) {
+                    AlterTableRerouteAnalyzer alterTableRerouteAnalyzer,
+                    PrivilegesAnalyzer privilegesAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -132,7 +136,8 @@ class UnboundAnalyzer {
             dropAnalyzerStatementAnalyzer,
             decommissionNodeAnalyzer,
             killAnalyzer,
-            alterTableRerouteAnalyzer
+            alterTableRerouteAnalyzer,
+            privilegesAnalyzer
         );
     }
 
@@ -171,6 +176,7 @@ class UnboundAnalyzer {
         private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
         private final KillAnalyzer killAnalyzer;
         private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
+        private final PrivilegesAnalyzer privilegesAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -198,7 +204,8 @@ class UnboundAnalyzer {
                           DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer,
                           DecommissionNodeAnalyzer decommissionNodeAnalyzer,
                           KillAnalyzer killAnalyzer,
-                          AlterTableRerouteAnalyzer alterTableRerouteAnalyzer) {
+                          AlterTableRerouteAnalyzer alterTableRerouteAnalyzer,
+                          PrivilegesAnalyzer privilegesAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -226,6 +233,7 @@ class UnboundAnalyzer {
             this.decommissionNodeAnalyzer = decommissionNodeAnalyzer;
             this.killAnalyzer = killAnalyzer;
             this.alterTableRerouteAnalyzer = alterTableRerouteAnalyzer;
+            this.privilegesAnalyzer = privilegesAnalyzer;
         }
 
         @Override
@@ -260,6 +268,30 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitAlterUser(AlterUser<?> node, Analysis context) {
             return userAnalyzer.analyze((AlterUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeGrant(
+                node,
+                context.sessionContext().user(),
+                context.sessionContext().searchPath());
+        }
+
+        @Override
+        public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeDeny(
+                node,
+                context.sessionContext().user(),
+                context.sessionContext().searchPath());
+        }
+
+        @Override
+        public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeRevoke(
+                node,
+                context.sessionContext().user(),
+                context.sessionContext().searchPath());
         }
 
         @Override

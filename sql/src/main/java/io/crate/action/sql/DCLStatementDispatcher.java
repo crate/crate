@@ -24,7 +24,7 @@ package io.crate.action.sql;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.PrivilegesAnalyzedStatement;
+import io.crate.analyze.AnalyzedPrivileges;
 import io.crate.auth.user.UserManager;
 import io.crate.data.Row;
 import org.elasticsearch.common.inject.Inject;
@@ -64,7 +64,7 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         }
 
         @Override
-        public CompletableFuture<Long> visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis, UserManager userManager) {
+        public CompletableFuture<Long> visitPrivilegesStatement(AnalyzedPrivileges analysis, UserManager userManager) {
             return userManager.applyPrivileges(analysis.userNames(), analysis.privileges());
         }
     }

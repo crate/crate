@@ -55,7 +55,7 @@ import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.PrivilegesAnalyzedStatement;
+import io.crate.analyze.AnalyzedPrivileges;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
@@ -591,7 +591,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitPrivilegesStatement(PrivilegesAnalyzedStatement changePrivileges, User user) {
+        public Void visitPrivilegesStatement(AnalyzedPrivileges changePrivileges, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,

@@ -50,40 +50,39 @@ import java.util.Set;
 class PrivilegesAnalyzer {
 
     private final boolean userManagementEnabled;
+    private final Schemas schemas;
     private static final String ERROR_MESSAGE = "GRANT/DENY/REVOKE Privileges on information_schema is not supported";
 
-    PrivilegesAnalyzer(boolean userManagementEnabled) {
+    PrivilegesAnalyzer(boolean userManagementEnabled, Schemas schemas) {
         this.userManagementEnabled = userManagementEnabled;
+        this.schemas = schemas;
     }
 
-    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, User user, SearchPath searchPath, Schemas schemas) {
+    AnalyzedPrivileges analyzeGrant(GrantPrivilege node, User user, SearchPath searchPath) {
         ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, searchPath, schemas);
 
-        return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT, idents,
-                clazz));
+        return new AnalyzedPrivileges(node.userNames(),
+            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT, idents, clazz));
     }
 
-    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, User user, SearchPath searchPath, Schemas schemas) {
+    AnalyzedPrivileges analyzeRevoke(RevokePrivilege node, User user, SearchPath searchPath) {
         ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), true, searchPath, schemas);
 
-        return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE, idents,
-                clazz));
+        return new AnalyzedPrivileges(node.userNames(),
+            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE, idents, clazz));
     }
 
-    PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, User user, SearchPath searchPath, Schemas schemas) {
+    AnalyzedPrivileges analyzeDeny(DenyPrivilege node, User user, SearchPath searchPath) {
         ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, searchPath, schemas);
 
-        return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY, idents,
-                clazz));
+        return new AnalyzedPrivileges(node.userNames(),
+            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY, idents, clazz));
     }
 
     private void ensureUserManagementEnabled() {

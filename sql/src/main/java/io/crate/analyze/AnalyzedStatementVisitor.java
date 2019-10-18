@@ -179,7 +179,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analyzedCommit, context);
     }
 
-    public R visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis, C context) {
+    public R visitPrivilegesStatement(AnalyzedPrivileges analysis, C context) {
         return visitDCLStatement(analysis, context);
     }
 
