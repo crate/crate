@@ -22,58 +22,66 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
+import java.util.function.Function;
 
-public class RerouteCancelShard extends RerouteOption {
+public class RerouteCancelShard<T> extends RerouteOption {
 
-    private final Expression nodeIdOrName;
-    private final Expression shardId;
-    private final GenericProperties properties;
+    private final T shardId;
+    private final T nodeIdOrName;
+    private final GenericProperties<T> properties;
 
-    public RerouteCancelShard(Expression shardId, Expression nodeIdOrName, GenericProperties properties) {
+    public RerouteCancelShard(T shardId, T nodeIdOrName, GenericProperties<T> properties) {
         this.shardId = shardId;
         this.nodeIdOrName = nodeIdOrName;
         this.properties = properties;
     }
 
-    public Expression nodeIdOrName() {
+    public T nodeIdOrName() {
         return nodeIdOrName;
     }
 
-    public Expression shardId() {
+    public T shardId() {
         return shardId;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<T> properties() {
         return properties;
+    }
+
+    public <U> RerouteCancelShard<U> map(Function<? super T, ? extends U> mapper) {
+        return new RerouteCancelShard<>(
+            mapper.apply(shardId),
+            mapper.apply(nodeIdOrName),
+            properties.map(mapper));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        RerouteCancelShard<?> that = (RerouteCancelShard<?>) o;
+        return Objects.equals(nodeIdOrName, that.nodeIdOrName) &&
+               Objects.equals(shardId, that.shardId) &&
+               Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(shardId, nodeIdOrName, properties);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        RerouteCancelShard that = (RerouteCancelShard) obj;
-
-        if (!shardId.equals(that.shardId)) return false;
-        if (!nodeIdOrName.equals(that.nodeIdOrName)) return false;
-        if (!properties.equals(that.properties)) return false;
-
-        return true;
+        return Objects.hash(nodeIdOrName, shardId, properties);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("shardId", shardId)
-            .add("nodeId", nodeIdOrName)
-            .add("properties", properties).toString();
+        return "RerouteCancelShard{" +
+               "nodeIdOrName=" + nodeIdOrName +
+               ", shardId=" + shardId +
+               ", properties=" + properties +
+               '}';
     }
 
     @Override

@@ -836,32 +836,32 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitRerouteMoveShard(SqlBaseParser.RerouteMoveShardContext context) {
-        return new RerouteMoveShard(
-            (Expression) visit(context.shardId),
-            (Expression) visit(context.fromNodeId),
-            (Expression) visit(context.toNodeId));
+        return new RerouteMoveShard<>(
+            visit(context.shardId),
+            visit(context.fromNodeId),
+            visit(context.toNodeId));
     }
 
     @Override
     public Node visitReroutePromoteReplica(SqlBaseParser.ReroutePromoteReplicaContext ctx) {
         return new PromoteReplica(
-            (Expression) visit(ctx.nodeId),
-            (Expression) visit(ctx.shardId),
+            visit(ctx.nodeId),
+            visit(ctx.shardId),
             extractGenericProperties(ctx.withProperties()));
     }
 
     @Override
     public Node visitRerouteAllocateReplicaShard(SqlBaseParser.RerouteAllocateReplicaShardContext context) {
-        return new RerouteAllocateReplicaShard(
-            (Expression) visit(context.shardId),
-            (Expression) visit(context.nodeId));
+        return new RerouteAllocateReplicaShard<>(
+            visit(context.shardId),
+            visit(context.nodeId));
     }
 
     @Override
     public Node visitRerouteCancelShard(SqlBaseParser.RerouteCancelShardContext context) {
         return new RerouteCancelShard(
-            (Expression) visit(context.shardId),
-            (Expression) visit(context.nodeId),
+            visit(context.shardId),
+            visit(context.nodeId),
             extractGenericProperties(context.withProperties()));
     }
 
@@ -944,7 +944,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitAlterTableReroute(SqlBaseParser.AlterTableRerouteContext context) {
-        return new AlterTableReroute(
+        return new AlterTableReroute<>(
             (Table) visit(context.alterTableDefinition()),
             context.BLOB() != null,
             (RerouteOption) visit(context.rerouteOption()));

@@ -24,18 +24,15 @@ package io.crate.execution.ddl;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.PromoteReplicaStatement;
-import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
-import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
-import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.data.Row;
 import io.crate.execution.support.Transports;
-import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.routing.RoutingNode;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -53,23 +50,17 @@ import static java.util.concurrent.CompletableFuture.failedFuture;
 @Singleton
 public class DDLStatementDispatcher {
 
-    private ClusterService clusterService;
-
     private final InnerVisitor innerVisitor = new InnerVisitor();
     private final TransportClusterRerouteAction rerouteAction;
-    private final Functions functions;
-
 
     @Inject
-    public DDLStatementDispatcher(ClusterService clusterService,
-                                  TransportClusterRerouteAction rerouteAction,
-                                  Functions functions) {
-        this.clusterService = clusterService;
+    public DDLStatementDispatcher(TransportClusterRerouteAction rerouteAction) {
         this.rerouteAction = rerouteAction;
-        this.functions = functions;
     }
 
-    public CompletableFuture<Long> apply(AnalyzedStatement analyzedStatement, Row parameters, TransactionContext txnCtx) {
+    public CompletableFuture<Long> apply(AnalyzedStatement analyzedStatement,
+                                         Row parameters,
+                                         TransactionContext txnCtx) {
         try {
             return analyzedStatement.accept(innerVisitor, new Ctx(txnCtx, parameters));
         } catch (Throwable t) {
@@ -91,57 +82,42 @@ public class DDLStatementDispatcher {
 
         @Override
         protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Ctx ctx) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                                                                  "Can't handle \"%s\"",
+                                                                  analyzedStatement));
         }
 
         @Override
-        public CompletableFuture<Long> visitReroutePromoteReplica(PromoteReplicaStatement promoteReplica, Ctx ctx) {
-            return Transports.execute(
-                rerouteAction,
-                RerouteActions.preparePromoteReplicaReq(
-                    promoteReplica,
-                    functions,
-                    ctx.parameters,
-                    ctx.txnCtx,
-                    clusterService.state().nodes()),
-                Transports.rowCountFromAcknowledgedResp()
-            );
-        }
-
-        @Override
-        protected CompletableFuture<Long> visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement stmt, Ctx ctx) {
-            return Transports.execute(
-                rerouteAction,
-                RerouteActions.prepareMoveShardReq(stmt, ctx.parameters, clusterService.state().nodes()),
-                Transports.rowCountFromAcknowledgedResp()
-            );
-        }
-
-        @Override
-        protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement stmt, Ctx ctx) {
-            return Transports.execute(
-                rerouteAction,
-                RerouteActions.prepareAllocateReplicaReq(stmt, ctx.parameters, clusterService.state().nodes()),
-                Transports.rowCountFromAcknowledgedResp()
-            );
-        }
-
-        @Override
-        protected CompletableFuture<Long> visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement stmt, Ctx ctx) {
-            return Transports.execute(
-                rerouteAction,
-                RerouteActions.prepareCancelShardReq(stmt, ctx.parameters, clusterService.state().nodes()),
-                Transports.rowCountFromAcknowledgedResp()
-            );
-        }
-
-        @Override
-        public CompletableFuture<Long> visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, Ctx ctx) {
+        public CompletableFuture<Long> visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis,
+                                                                        Ctx ctx) {
             return Transports.execute(
                 rerouteAction,
                 new ClusterRerouteRequest().setRetryFailed(true),
-                RerouteActions::retryFailedAffectedShardsRowCount
+                r -> {
+                    if (r.isAcknowledged()) {
+                        long rowCount = 0L;
+                        for (RoutingNode routingNode : r.getState().getRoutingNodes()) {
+                            // filter shards with failed allocation attempts
+                            // failed allocation attempts can appear for shards with state UNASSIGNED and INITIALIZING
+                            rowCount += routingNode.shardsWithState(
+                                ShardRoutingState.UNASSIGNED, ShardRoutingState.INITIALIZING)
+                                .stream()
+                                .filter(s -> {
+                                    if (s.unassignedInfo() != null) {
+                                        return s.unassignedInfo().getReason()
+                                            .equals(UnassignedInfo.Reason.ALLOCATION_FAILED);
+                                    }
+                                    return false;
+                                })
+                                .count();
+                        }
+                        return rowCount;
+                    } else {
+                        return -1L;
+                    }
+                }
             );
         }
     }
+
 }

@@ -22,44 +22,35 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.RerouteCancelShard;
 
 import java.util.List;
 
-public class RerouteCancelShardAnalyzedStatement extends RerouteAnalyzedStatement {
+public class AnalyzedRerouteCancelShard extends RerouteAnalyzedStatement {
 
-    private final Expression shardId;
-    private final Expression nodeId;
-    private final GenericProperties<Expression> properties;
+    private final RerouteCancelShard<Symbol> rerouteCancelShard;
 
-    public RerouteCancelShardAnalyzedStatement(ShardedTable tableInfo,
-                                               List<Assignment<Expression>> partitionProperties,
-                                               Expression shardId,
-                                               Expression nodeId,
-                                               GenericProperties<Expression> properties) {
+    AnalyzedRerouteCancelShard(ShardedTable tableInfo,
+                               List<Assignment<Symbol>> partitionProperties,
+                               RerouteCancelShard<Symbol> rerouteCancelShard) {
         super(tableInfo, partitionProperties);
-        this.shardId = shardId;
-        this.nodeId = nodeId;
-        this.properties = properties;
+        this.rerouteCancelShard = rerouteCancelShard;
+    }
+
+    public RerouteCancelShard<Symbol> rerouteCancelShard() {
+        return rerouteCancelShard;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitRerouteCancelShard(this, context);
-    }
-
-    public Expression shardId() {
-        return shardId;
-    }
-
-    public Expression nodeId() {
-        return nodeId;
-    }
-
-    public GenericProperties<Expression> properties() {
-        return properties;
     }
 }

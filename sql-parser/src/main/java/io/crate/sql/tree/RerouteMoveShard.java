@@ -21,58 +21,66 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
+import java.util.function.Function;
 
-public class RerouteMoveShard extends RerouteOption {
+public class RerouteMoveShard<T> extends RerouteOption {
 
-    private final Expression shardId;
-    private final Expression fromNodeIdOrName;
-    private final Expression toNodeIdOrName;
+    private final T shardId;
+    private final T fromNodeIdOrName;
+    private final T toNodeIdOrName;
 
-    public RerouteMoveShard(Expression shardId, Expression fromNodeIdOrName, Expression toNodeIdOrName) {
+    public RerouteMoveShard(T shardId, T fromNodeIdOrName, T toNodeIdOrName) {
         this.shardId = shardId;
         this.fromNodeIdOrName = fromNodeIdOrName;
         this.toNodeIdOrName = toNodeIdOrName;
     }
 
-    public Expression shardId() {
+    public T shardId() {
         return shardId;
     }
 
-    public Expression fromNodeIdOrName() {
+    public T fromNodeIdOrName() {
         return fromNodeIdOrName;
     }
 
-    public Expression toNodeIdOrName() {
+    public T toNodeIdOrName() {
         return toNodeIdOrName;
+    }
+
+    public <U> RerouteMoveShard<U> map(Function<? super T, ? extends U> mapper) {
+        return new RerouteMoveShard<>(
+            mapper.apply(shardId),
+            mapper.apply(fromNodeIdOrName),
+            mapper.apply(toNodeIdOrName));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        RerouteMoveShard<?> that = (RerouteMoveShard<?>) o;
+        return Objects.equals(shardId, that.shardId) &&
+               Objects.equals(fromNodeIdOrName, that.fromNodeIdOrName) &&
+               Objects.equals(toNodeIdOrName, that.toNodeIdOrName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(shardId, fromNodeIdOrName, toNodeIdOrName);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        RerouteMoveShard that = (RerouteMoveShard) obj;
-
-        if (!shardId.equals(that.shardId)) return false;
-        if (!fromNodeIdOrName.equals(that.fromNodeIdOrName)) return false;
-        if (!toNodeIdOrName.equals(that.toNodeIdOrName)) return false;
-
-        return true;
+        return Objects.hash(shardId, fromNodeIdOrName, toNodeIdOrName);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("shardId", shardId)
-            .add("fromNodeId", fromNodeIdOrName)
-            .add("toNodeId", toNodeIdOrName).toString();
+        return "RerouteMoveShard{" +
+               "shardId=" + shardId +
+               ", fromNodeId=" + fromNodeIdOrName +
+               ", toNodeId=" + toNodeIdOrName +
+               '}';
     }
 
     @Override

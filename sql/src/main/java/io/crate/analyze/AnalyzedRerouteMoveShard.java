@@ -22,43 +22,35 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.RerouteMoveShard;
 
 import java.util.List;
 
-public class RerouteMoveShardAnalyzedStatement extends RerouteAnalyzedStatement {
+public class AnalyzedRerouteMoveShard extends RerouteAnalyzedStatement {
 
-    private final Expression shardId;
-    private final Expression fromNodeIdOrName;
-    private final Expression toNodeIdOrName;
+    private final RerouteMoveShard<Symbol> rerouteMoveShard;
 
-    public RerouteMoveShardAnalyzedStatement(ShardedTable tableInfo,
-                                             List<Assignment<Expression>> partitionProperties,
-                                             Expression shardId,
-                                             Expression fromNodeIdOrName,
-                                             Expression toNodeIdOrName) {
+    AnalyzedRerouteMoveShard(ShardedTable tableInfo,
+                             List<Assignment<Symbol>> partitionProperties,
+                             RerouteMoveShard<Symbol> rerouteMoveShard) {
         super(tableInfo, partitionProperties);
-        this.shardId = shardId;
-        this.fromNodeIdOrName = fromNodeIdOrName;
-        this.toNodeIdOrName = toNodeIdOrName;
+        this.rerouteMoveShard = rerouteMoveShard;
+    }
+
+    public RerouteMoveShard<Symbol> rerouteMoveShard() {
+        return rerouteMoveShard;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitRerouteMoveShard(this, context);
-    }
-
-    public Expression shardId() {
-        return shardId;
-    }
-
-    public Expression fromNodeIdOrName() {
-        return fromNodeIdOrName;
-    }
-
-    public Expression toNodeIdOrName() {
-        return toNodeIdOrName;
     }
 }

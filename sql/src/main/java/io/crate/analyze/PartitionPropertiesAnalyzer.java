@@ -166,33 +166,6 @@ public class PartitionPropertiesAnalyzer {
         return toPartitionName(tableInfo, partitionProperties, parameters).ident();
     }
 
-    /**
-     * Creates and returns a PartitionName based on a list of partition properties, table info and row params from
-     * the query. Used so that the analyzer/operation can determine the partition supplied with the query.
-     *
-     * @param partitionsProperties A list of partition property assignments
-     * @param tableInfo The table info of the relevant table
-     * @param parameters The parameters supplied with the query
-     * @return An instance of PartitionName based on the supplied partition properties, table info and params.
-     */
-    @Nullable
-    public static PartitionName createPartitionName(List<Assignment<Expression>> partitionsProperties,
-                                                    DocTableInfo tableInfo,
-                                                    Row parameters) {
-        if (partitionsProperties.isEmpty()) {
-            return null;
-        }
-        PartitionName partitionName = toPartitionName(
-            tableInfo,
-            partitionsProperties,
-            parameters
-        );
-        if (tableInfo.partitions().contains(partitionName) == false) {
-            throw new IllegalArgumentException("Referenced partition \"" + partitionName + "\" does not exist.");
-        }
-        return partitionName;
-    }
-
     @Nullable
     public static PartitionName createPartitionName(List<Assignment<Object>> partitionsProperties,
                                                     DocTableInfo tableInfo) {

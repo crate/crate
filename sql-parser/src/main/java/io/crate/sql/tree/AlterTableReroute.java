@@ -22,27 +22,23 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
+import java.util.Objects;
 
-public class AlterTableReroute extends Statement {
+public class AlterTableReroute<T> extends Statement {
 
-    private final Table<Expression> table;
-    private final RerouteOption rerouteOption;
+    private final Table<T> table;
+    private final RerouteOption<T> rerouteOption;
     private final boolean blob;
 
-    public AlterTableReroute(Table<Expression> table, boolean blob, RerouteOption rerouteOption) {
+    public AlterTableReroute(Table<T> table,
+                             boolean blob,
+                             RerouteOption<T> rerouteOption) {
         this.table = table;
         this.blob = blob;
         this.rerouteOption = rerouteOption;
     }
 
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitAlterTableReroute(this, context);
-    }
-
-    public Table<Expression> table() {
+    public Table<T> table() {
         return table;
     }
 
@@ -50,37 +46,40 @@ public class AlterTableReroute extends Statement {
         return blob;
     }
 
-    public RerouteOption rerouteOption() {
+    public RerouteOption<T> rerouteOption() {
         return rerouteOption;
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("blob", blob)
-            .add("reroute option", rerouteOption).toString();
-    }
-
-    @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        AlterTableReroute that = (AlterTableReroute) o;
-
-        if (!blob == that.blob) return false;
-        if (!rerouteOption.equals(that.rerouteOption)) return false;
-        if (!table.equals(that.table)) return false;
-
-        return true;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        AlterTableReroute<?> that = (AlterTableReroute<?>) o;
+        return blob == that.blob &&
+               Objects.equals(table, that.table) &&
+               Objects.equals(rerouteOption, that.rerouteOption);
     }
 
     @Override
     public int hashCode() {
-        int result = table.hashCode();
-        result = 31 * result + (blob ? 1 : 0);
-        result = 31 * result + rerouteOption.hashCode();
-        return result;
+        return Objects.hash(table, rerouteOption, blob);
+    }
+
+    @Override
+    public String toString() {
+        return "AlterTableReroute{" +
+               "table=" + table +
+               ", blob=" + blob +
+               ", reroute option=" + rerouteOption +
+               '}';
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitAlterTableReroute(this, context);
     }
 }

@@ -184,6 +184,7 @@ public class Analyzer {
         this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
         this.killAnalyzer = new KillAnalyzer(functions);
+        this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -210,9 +211,9 @@ public class Analyzer {
             createAnalyzerStatementAnalyzer,
             dropAnalyzerStatementAnalyzer,
             decommissionNodeAnalyzer,
-            killAnalyzer
+            killAnalyzer,
+            alterTableRerouteAnalyzer
         );
-        this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
     }
@@ -391,8 +392,11 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterTableReroute(AlterTableReroute node, Analysis context) {
-            return alterTableRerouteAnalyzer.analyze(node, context);
+        public AnalyzedStatement visitAlterTableReroute(AlterTableReroute<?> node, Analysis context) {
+            return alterTableRerouteAnalyzer.analyze(
+                (AlterTableReroute<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override

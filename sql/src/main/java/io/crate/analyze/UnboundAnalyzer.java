@@ -30,6 +30,7 @@ import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
+import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CreateAnalyzer;
@@ -102,7 +103,8 @@ class UnboundAnalyzer {
                     CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
                     DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer,
                     DecommissionNodeAnalyzer decommissionNodeAnalyzer,
-                    KillAnalyzer killAnalyzer) {
+                    KillAnalyzer killAnalyzer,
+                    AlterTableRerouteAnalyzer alterTableRerouteAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -129,7 +131,8 @@ class UnboundAnalyzer {
             createAnalyzerStatementAnalyzer,
             dropAnalyzerStatementAnalyzer,
             decommissionNodeAnalyzer,
-            killAnalyzer
+            killAnalyzer,
+            alterTableRerouteAnalyzer
         );
     }
 
@@ -167,6 +170,7 @@ class UnboundAnalyzer {
         private final DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer;
         private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
         private final KillAnalyzer killAnalyzer;
+        private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -193,7 +197,8 @@ class UnboundAnalyzer {
                           CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
                           DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer,
                           DecommissionNodeAnalyzer decommissionNodeAnalyzer,
-                          KillAnalyzer killAnalyzer) {
+                          KillAnalyzer killAnalyzer,
+                          AlterTableRerouteAnalyzer alterTableRerouteAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -220,6 +225,7 @@ class UnboundAnalyzer {
             this.dropAnalyzerStatementAnalyzer = dropAnalyzerStatementAnalyzer;
             this.decommissionNodeAnalyzer = decommissionNodeAnalyzer;
             this.killAnalyzer = killAnalyzer;
+            this.alterTableRerouteAnalyzer = alterTableRerouteAnalyzer;
         }
 
         @Override
@@ -270,6 +276,14 @@ class UnboundAnalyzer {
             return alterTableAnalyzer.analyze((AlterTableOpenClose<Expression>) node,
                                               context.paramTypeHints(),
                                               context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableReroute(AlterTableReroute<?> node, Analysis context) {
+            return alterTableRerouteAnalyzer.analyze(
+                (AlterTableReroute<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override

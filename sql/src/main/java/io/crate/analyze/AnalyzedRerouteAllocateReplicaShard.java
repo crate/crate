@@ -22,36 +22,35 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.RerouteAllocateReplicaShard;
 
 import java.util.List;
 
-public class RerouteAllocateReplicaShardAnalyzedStatement extends RerouteAnalyzedStatement {
+public class AnalyzedRerouteAllocateReplicaShard extends RerouteAnalyzedStatement {
 
-    private final Expression shardId;
-    private final Expression nodeId;
+    private final RerouteAllocateReplicaShard<Symbol> rerouteAllocateReplicaShard;
 
-    public RerouteAllocateReplicaShardAnalyzedStatement(ShardedTable tableInfo,
-                                                        List<Assignment<Expression>> partitionProperties,
-                                                        Expression shardId,
-                                                        Expression nodeId) {
+    AnalyzedRerouteAllocateReplicaShard(ShardedTable tableInfo,
+                                        List<Assignment<Symbol>> partitionProperties,
+                                        RerouteAllocateReplicaShard<Symbol> rerouteAllocateReplicaShard) {
         super(tableInfo, partitionProperties);
-        this.shardId = shardId;
-        this.nodeId = nodeId;
+        this.rerouteAllocateReplicaShard = rerouteAllocateReplicaShard;
+    }
+
+    public RerouteAllocateReplicaShard<Symbol> rerouteAllocateReplicaShard() {
+        return rerouteAllocateReplicaShard;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitRerouteAllocateReplicaShard(this, context);
-    }
-
-    public Expression shardId() {
-        return shardId;
-    }
-
-    public Expression nodeId() {
-        return nodeId;
     }
 }

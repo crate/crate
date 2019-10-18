@@ -23,7 +23,6 @@
 package io.crate.planner;
 
 import io.crate.planner.node.ddl.DropTablePlan;
-import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
