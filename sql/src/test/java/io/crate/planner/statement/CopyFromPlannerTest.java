@@ -22,12 +22,16 @@
 
 package io.crate.planner.statement;
 
+import io.crate.analyze.AnalyzedCopyFrom;
+import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -41,9 +45,10 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
-public class CopyStatementPlannerTest extends CrateDummyClusterServiceUnitTest {
+public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private PlannerContext plannerContext;
 
     @Before
     public void setupExecutor() throws IOException {
@@ -51,14 +56,17 @@ public class CopyStatementPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(USER_TABLE_DEFINITION)
             .addTable("create table t1 (a string, x int, i int)")
             .build();
+        plannerContext = e.getPlannerContext(clusterService.state());
     }
 
-    Collect plan(String statement) {
-        CopyStatementPlanner.CopyFrom plan = e.plan(statement);
-        return (Collect) CopyStatementPlanner.planCopyFromExecution(
+    private Collect plan(String statement) {
+        AnalyzedCopyFrom analysis = e.analyze(statement);
+        return (Collect) CopyFromPlan.planCopyFromExecution(
+            analysis,
             clusterService.state().nodes(),
-            plan.copyFrom,
-            e.getPlannerContext(clusterService.state())
+            plannerContext,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
         );
     }
 

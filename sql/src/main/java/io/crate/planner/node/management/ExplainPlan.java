@@ -46,7 +46,7 @@ import io.crate.planner.operators.ExplainLogicalPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.planner.statement.CopyStatementPlanner;
+import io.crate.planner.statement.CopyFromPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -136,11 +136,13 @@ public class ExplainPlan implements Plan {
                 Map<String, Object> map;
                 if (subPlan instanceof LogicalPlan) {
                     map = ExplainLogicalPlan.explainMap((LogicalPlan) subPlan, plannerContext, dependencies.projectionBuilder());
-                } else if (subPlan instanceof CopyStatementPlanner.CopyFrom) {
-                    ExecutionPlan executionPlan = CopyStatementPlanner.planCopyFromExecution(
+                } else if (subPlan instanceof CopyFromPlan) {
+                    ExecutionPlan executionPlan = CopyFromPlan.planCopyFromExecution(
+                        ((CopyFromPlan) subPlan).copyFrom(),
                         dependencies.clusterService().state().nodes(),
-                        ((CopyStatementPlanner.CopyFrom) subPlan).copyFrom,
-                        plannerContext
+                        plannerContext,
+                        params,
+                        subQueryResults
                     );
                     map = PlanPrinter.objectMap(executionPlan);
                 } else {

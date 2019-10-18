@@ -22,31 +22,28 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.Table;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
 
-public class CopyFromReturnSummaryAnalyzedStatement extends CopyFromAnalyzedStatement implements AnalyzedRelation {
+public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements AnalyzedRelation {
 
-    private final List<Field> fields = ImmutableList.of(
+    private final List<Field> fields = List.of(
         new Field(this, new ColumnIdent("node"), new InputColumn(0, ObjectType.builder()
             .setInnerType("id", DataTypes.STRING)
             .setInnerType("name", DataTypes.STRING)
@@ -56,16 +53,13 @@ public class CopyFromReturnSummaryAnalyzedStatement extends CopyFromAnalyzedStat
         new Field(this, new ColumnIdent("error_count"), new InputColumn(3, DataTypes.LONG)),
         new Field(this, new ColumnIdent("errors"), new InputColumn(4, ObjectType.untyped()))
     );
-
     private final QualifiedName qualifiedName;
 
-    CopyFromReturnSummaryAnalyzedStatement(DocTableInfo tableInfo,
-                                           Settings settings,
-                                           Symbol uri,
-                                           @Nullable String partitionIdent,
-                                           Predicate<DiscoveryNode> nodePredicate,
-                                           FileUriCollectPhase.InputFormat inputFormat) {
-        super(tableInfo, settings, uri, partitionIdent, nodePredicate, inputFormat);
+    AnalyzedCopyFromReturnSummary(DocTableInfo tableInfo,
+                                  Table<Symbol> table,
+                                  GenericProperties<Symbol> properties,
+                                  Symbol uri) {
+        super(tableInfo, table, properties, uri);
         qualifiedName = new QualifiedName(Arrays.asList(tableInfo.ident().schema(), tableInfo.ident().name()));
     }
 
@@ -76,7 +70,8 @@ public class CopyFromReturnSummaryAnalyzedStatement extends CopyFromAnalyzedStat
     }
 
     @Override
-    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+    public Field getField(ColumnIdent path, Operation operation)
+        throws UnsupportedOperationException, ColumnUnknownException {
         throw new UnsupportedOperationException("getField is unsupported on internal relation for copy from return");
     }
 

@@ -24,64 +24,59 @@ package io.crate.analyze;
 
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.symbol.Symbol;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.types.DataType;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.function.Predicate;
 
-public class CopyFromAnalyzedStatement extends AbstractCopyAnalyzedStatement {
+public class BoundedCopyFrom {
 
-    private final DocTableInfo table;
+    private final DocTableInfo tableInfo;
     @Nullable
     private final String partitionIdent;
-    private final Predicate<DiscoveryNode> nodePredicate;
-    @Nullable
+    private final Settings settings;
+    private final Symbol uri;
     private final FileUriCollectPhase.InputFormat inputFormat;
+    private final Predicate<DiscoveryNode> nodeFilters;
 
-    public CopyFromAnalyzedStatement(DocTableInfo table,
-                                     Settings settings,
-                                     Symbol uri,
-                                     @Nullable String partitionIdent,
-                                     Predicate<DiscoveryNode> nodePredicate,
-                                     FileUriCollectPhase.InputFormat inputFormat) {
-        super(settings, uri);
-        this.table = table;
+    public BoundedCopyFrom(DocTableInfo tableInfo,
+                           @Nullable String partitionIdent,
+                           Settings settings,
+                           Symbol uri,
+                           FileUriCollectPhase.InputFormat inputFormat,
+                           Predicate<DiscoveryNode> nodeFilters) {
+        this.tableInfo = tableInfo;
         this.partitionIdent = partitionIdent;
-        this.nodePredicate = nodePredicate;
+        this.settings = settings;
+        this.uri = uri;
         this.inputFormat = inputFormat;
+        this.nodeFilters = nodeFilters;
+    }
+
+    public DocTableInfo tableInfo() {
+        return tableInfo;
+    }
+
+    @Nullable
+    public String partitionIdent() {
+        return partitionIdent;
+    }
+
+    public Settings settings() {
+        return settings;
     }
 
     public FileUriCollectPhase.InputFormat inputFormat() {
         return inputFormat;
     }
 
-    public DocTableInfo table() {
-        return table;
-    }
-
-    @Nullable
-    public String partitionIdent() {
-        return this.partitionIdent;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitCopyFromStatement(this, context);
-    }
-
-    public static IllegalArgumentException raiseInvalidType(DataType dataType) {
-        throw new IllegalArgumentException("fileUri must be of type STRING or STRING ARRAY. Got " + dataType);
+    public Symbol uri() {
+        return uri;
     }
 
     public Predicate<DiscoveryNode> nodePredicate() {
-        return nodePredicate;
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return true;
+        return nodeFilters;
     }
 }

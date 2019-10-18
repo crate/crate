@@ -27,6 +27,7 @@ import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
+import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -37,7 +38,6 @@ import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedUpdateStatement;
-import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateFunction;
@@ -258,11 +258,11 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCopyFromStatement(CopyFromAnalyzedStatement analysis, User user) {
+        protected Void visitCopyFromStatement(AnalyzedCopyFrom analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DML,
                 Privilege.Clazz.TABLE,
-                analysis.table().ident().toString(),
+                analysis.tableInfo().ident().toString(),
                 user,
                 defaultSchema);
             return null;

@@ -160,12 +160,6 @@ public class PartitionPropertiesAnalyzer {
         return new PartitionName(relationName, Arrays.asList(values));
     }
 
-    public static String toPartitionIdent(DocTableInfo tableInfo,
-                                          List<Assignment<Expression>> partitionProperties,
-                                          Row parameters) {
-        return toPartitionName(tableInfo, partitionProperties, parameters).ident();
-    }
-
     @Nullable
     public static PartitionName createPartitionName(List<Assignment<Object>> partitionsProperties,
                                                     DocTableInfo tableInfo) {

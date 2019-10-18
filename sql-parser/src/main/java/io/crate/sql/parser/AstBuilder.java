@@ -524,7 +524,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         boolean returnSummary = context.SUMMARY() != null;
         return new CopyFrom(
             (Table) visit(context.tableWithPartition()),
-            (Expression) visit(context.path),
+            visit(context.path),
             extractGenericProperties(context.withProperties()),
             returnSummary);
     }
