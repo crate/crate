@@ -57,7 +57,6 @@ import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
-import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.analyze.AnalyzedDropTable;
@@ -108,7 +107,6 @@ import io.crate.planner.node.ddl.DropRepositoryPlan;
 import io.crate.planner.node.ddl.DropSnapshotPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.DropUserPlan;
-import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.node.ddl.RefreshTablePlan;
 import io.crate.planner.node.ddl.RestoreSnapshotPlan;
@@ -117,6 +115,7 @@ import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.management.AlterTableReroutePlan;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyStatementPlanner;
@@ -340,11 +339,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    protected Plan visitDDLStatement(DDLStatement statement, PlannerContext context) {
-        return new GenericDDLPlan(statement);
-    }
-
-    @Override
     public Plan visitDCLStatement(DCLStatement statement, PlannerContext context) {
         return new GenericDCLPlan(statement);
     }
@@ -550,7 +544,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, PlannerContext context) {
-        return new AlterTableReroutePlan(analysis);
+        return new RerouteRetryFailedPlan();
     }
 
     private static LegacyUpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis) {

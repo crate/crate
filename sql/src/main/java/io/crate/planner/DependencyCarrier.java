@@ -25,7 +25,6 @@ package io.crate.planner;
 import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.TransportActionProvider;
-import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.AlterTableOperation;
@@ -61,7 +60,6 @@ public class DependencyCarrier {
     private final ThreadPool threadPool;
     private final Schemas schemas;
     private final Functions functions;
-    private final DDLStatementDispatcher ddlAnalysisDispatcherProvider;
     private final ClusterService clusterService;
     private final DCLStatementDispatcher dclStatementDispatcher;
     private final TransportDropTableAction transportDropTableAction;
@@ -85,7 +83,6 @@ public class DependencyCarrier {
                              ThreadPool threadPool,
                              Schemas schemas,
                              Functions functions,
-                             DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ClusterService clusterService,
                              LicenseService licenseService,
                              DCLStatementDispatcher dclStatementDispatcher,
@@ -106,7 +103,6 @@ public class DependencyCarrier {
         this.threadPool = threadPool;
         this.schemas = schemas;
         this.functions = functions;
-        this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.clusterService = clusterService;
         this.licenseService = licenseService;
         this.dclStatementDispatcher = dclStatementDispatcher;
@@ -130,10 +126,6 @@ public class DependencyCarrier {
 
     public TransportSwapRelationsAction swapRelationsAction() {
         return swapRelationsAction;
-    }
-
-    public DDLStatementDispatcher ddlAction() {
-        return ddlAnalysisDispatcherProvider;
     }
 
     public DCLStatementDispatcher dclAction() {
