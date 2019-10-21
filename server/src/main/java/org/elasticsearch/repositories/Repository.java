@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.apache.lucene.index.IndexCommit;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -224,13 +223,11 @@ public interface Repository extends LifecycleComponent {
      * The index can be renamed on restore, hence different {@code shardId} and {@code snapshotShardId} are supplied.
      * @param store           the store to restore the index into
      * @param snapshotId      snapshot id
-     * @param version         version of elasticsearch that created this snapshot
      * @param indexId         id of the index in the repository from which the restore is occurring
      * @param snapshotShardId shard id (in the snapshot)
      * @param recoveryState   recovery state
      */
-    void restoreShard(Store store, SnapshotId snapshotId, Version version, IndexId indexId, ShardId snapshotShardId,
-                             RecoveryState recoveryState);
+    void restoreShard(Store store, SnapshotId snapshotId, IndexId indexId, ShardId snapshotShardId, RecoveryState recoveryState);
 
     /**
      * Retrieve shard snapshot status for the stored snapshot
@@ -241,5 +238,4 @@ public interface Repository extends LifecycleComponent {
      * @return snapshot status
      */
     IndexShardSnapshotStatus getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId);
-
 }

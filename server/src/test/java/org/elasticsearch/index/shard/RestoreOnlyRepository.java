@@ -149,7 +149,6 @@ public abstract class RestoreOnlyRepository implements Repository {
     @Override
     public void restoreShard(Store store,
                              SnapshotId snapshotId,
-                             Version version,
                              IndexId indexId,
                              ShardId snapshotShardId,
                              RecoveryState recoveryState) {

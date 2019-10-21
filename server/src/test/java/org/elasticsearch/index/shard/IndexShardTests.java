@@ -3482,7 +3482,6 @@ public class IndexShardTests extends IndexShardTestCase {
                 @Override
                 public void restoreShard(Store store,
                                          SnapshotId snapshotId,
-                                         Version version,
                                          IndexId indexId,
                                          ShardId snapshotShardId,
                                          RecoveryState recoveryState) {
