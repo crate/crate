@@ -319,7 +319,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     }
 
     @Override
-    public R visitCopyTo(CopyTo node, C context) {
+    public R visitCopyTo(CopyTo<?> node, C context) {
         node.table().accept(this, context);
         return null;
     }

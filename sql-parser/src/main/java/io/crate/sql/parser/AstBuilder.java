@@ -536,7 +536,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             context.columns() == null ? emptyList() : visitCollection(context.columns().primaryExpression(), Expression.class),
             visitIfPresent(context.where(), Expression.class),
             context.DIRECTORY() != null,
-            (Expression) visit(context.path),
+            visit(context.path),
             extractGenericProperties(context.withProperties()));
     }
 
