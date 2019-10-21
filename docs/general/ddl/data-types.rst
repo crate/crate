@@ -95,7 +95,7 @@ characters are allowed. Example::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
+Columns of type text can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
 
 .. NOTE::
 
@@ -181,7 +181,7 @@ filtering, and aggregation.
 Example::
 
     cr> create table my_table_ips (
-    ...   fqdn string,
+    ...   fqdn text,
     ...   ip_addr ip
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -869,9 +869,9 @@ Boolean type::
 
   { my_bool_column = true }
 
-String type::
+Text type::
 
-  { my_str_col = 'this is a string value' }
+  { my_str_col = 'this is a text value' }
 
 Number types::
 
@@ -883,11 +883,11 @@ Array type::
 
 Camel case keys must be quoted::
 
-  { "CamelCaseColumn" = 'this is a string value' }
+  { "CamelCaseColumn" = 'this is a text value' }
 
 Nested object::
 
-  { nested_obj_colmn = { int_col = 1234, str_col = 'string value' } }
+  { nested_obj_colmn = { int_col = 1234, str_col = 'text value' } }
 
 You can even specify a placeholder parameter for a value::
 
@@ -925,7 +925,7 @@ Array types are defined as follows::
 
 .. NOTE::
 
-    Currently arrays cannot be nested. Something like array(array(string))
+    Currently arrays cannot be nested. Something like array(array(text))
     won't work.
 
 .. _data-type-array-literals:

@@ -1045,8 +1045,8 @@ This is useful if used in conjunction with aggregation functions::
    subquery using :ref:`unnest`, it is then possible to use GROUP BY on the
    subquery.
 
-   GROUP BY doesn't work on columns of type :ref:`STRING <data-type-text>` if
-   the column is indexed using a fulltext analyzer. By default STRING columns
+   GROUP BY doesn't work on columns of type :ref:`TEXT <data-type-text>` if
+   the column is indexed using a fulltext analyzer. By default TEXT columns
    are indexed using a plain analyzer which allows GROUP BY operations.
 
 .. _sql_dql_having:
