@@ -185,6 +185,7 @@ public class Analyzer {
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
         this.killAnalyzer = new KillAnalyzer(functions);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
+        this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled(), schemas);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -212,10 +213,10 @@ public class Analyzer {
             dropAnalyzerStatementAnalyzer,
             decommissionNodeAnalyzer,
             killAnalyzer,
-            alterTableRerouteAnalyzer
+            alterTableRerouteAnalyzer,
+            privilegesAnalyzer
         );
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
-        this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
     }
 
     public Analysis boundAnalyze(Statement statement, CoordinatorTxnCtx coordinatorTxnCtx, ParameterContext parameterContext) {
@@ -471,26 +472,26 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeGrant(node,
+            return privilegesAnalyzer.analyzeGrant(
+                node,
                 context.sessionContext().user(),
-                context.sessionContext().searchPath(),
-                schemas);
+                context.sessionContext().searchPath());
         }
 
         @Override
         public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeDeny(node,
+            return privilegesAnalyzer.analyzeDeny(
+                node,
                 context.sessionContext().user(),
-                context.sessionContext().searchPath(),
-                schemas);
+                context.sessionContext().searchPath());
         }
 
         @Override
         public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeRevoke(node,
+            return privilegesAnalyzer.analyzeRevoke(
+                node,
                 context.sessionContext().user(),
-                context.sessionContext().searchPath(),
-                schemas);
+                context.sessionContext().searchPath());
         }
 
         @Override

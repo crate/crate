@@ -78,7 +78,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantPrivilegesToUsersOnCluster() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT DQL, DML TO user1, user2");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT DQL, DML TO user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, CLUSTER, null),
@@ -88,7 +88,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testDenyPrivilegesToUsers() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("DENY DQL, DML TO user1, user2");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("DENY DQL, DML TO user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(DENY, DQL, CLUSTER, null),
@@ -97,7 +97,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     public void testGrantPrivilegesToUsersOnSchemas() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT DQL, DML on schema doc, sys TO user1, user2");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT DQL, DML on schema doc, sys TO user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, SCHEMA, "doc"),
@@ -110,7 +110,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantPrivilegesToUsersOnTables() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT DQL, DML on table t2, locations TO user1, user2");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT DQL, DML on table t2, locations TO user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, TABLE, "doc.t2"),
@@ -122,7 +122,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantPrivilegesToUsersOnViews() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT DQL, DML on table t2, locations TO user1, user2");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT DQL, DML on table t2, locations TO user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, TABLE, "doc.t2"),
@@ -134,7 +134,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testRevokePrivilegesFromUsersOnCluster() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("REVOKE DQL, DML FROM user1, user2");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("REVOKE DQL, DML FROM user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(REVOKE, DQL, CLUSTER, null),
@@ -144,7 +144,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testRevokePrivilegesFromUsersOnSchemas() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("REVOKE DQL, DML On schema doc, sys FROM user1, user2");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("REVOKE DQL, DML On schema doc, sys FROM user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(REVOKE, DQL, SCHEMA, "doc"),
@@ -156,7 +156,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testRevokePrivilegesFromUsersOnTables() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("REVOKE DQL, DML On table doc.t2, locations FROM user1, user2");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("REVOKE DQL, DML On table doc.t2, locations FROM user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(REVOKE, DQL, TABLE, "doc.t2"),
@@ -168,7 +168,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testRevokePrivilegesFromUsersOnViews() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("REVOKE DQL, DML On view doc.t2, locations FROM user1, user2");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("REVOKE DQL, DML On view doc.t2, locations FROM user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(REVOKE, DQL, VIEW, "doc.t2"),
@@ -180,7 +180,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantDenyRevokeAllPrivileges() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES TO user1");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES TO user1");
         assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, CLUSTER, null),
@@ -210,7 +210,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantRevokeAllPrivilegesOnSchema() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES ON Schema doc TO user1");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES ON Schema doc TO user1");
         assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, SCHEMA, "doc"),
@@ -231,7 +231,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantRevokeAllPrivilegesOnTable() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES On table my_schema.locations TO user1");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES On table my_schema.locations TO user1");
         assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, TABLE, "my_schema.locations"),
@@ -253,7 +253,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantRevokeAllPrivilegesOnViews() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES On view my_schema.locations_view TO user1");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES On view my_schema.locations_view TO user1");
         assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, VIEW, "my_schema.locations_view"),
@@ -273,8 +273,8 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     }
 
-    private PrivilegesAnalyzedStatement analyzePrivilegesStatement(String statement) {
-        return (PrivilegesAnalyzedStatement) e.analyzer.boundAnalyze(
+    private AnalyzedPrivileges analyzePrivilegesStatement(String statement) {
+        return (AnalyzedPrivileges) e.analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
             new CoordinatorTxnCtx(new SessionContext(Option.NONE, GRANTOR_TEST_USER)),
             ParameterContext.EMPTY
@@ -299,7 +299,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testRevokeFromUnknownTableDoNotThrowException() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("Revoke DQL on table doc.hoichi FROM user1");
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("Revoke DQL on table doc.hoichi FROM user1");
         assertThat(analysis.privileges().size(), is(1));
         assertThat(analysis.privileges(), contains(
             privilegeOf(REVOKE, DQL, TABLE, "doc.hoichi"))

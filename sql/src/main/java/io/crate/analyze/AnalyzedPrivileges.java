@@ -27,12 +27,12 @@ import io.crate.analyze.user.Privilege;
 import java.util.List;
 import java.util.Set;
 
-public class PrivilegesAnalyzedStatement implements DCLStatement {
+public class AnalyzedPrivileges implements DCLStatement {
 
     private final List<String> userNames;
     private final Set<Privilege> privileges;
 
-    public PrivilegesAnalyzedStatement(List<String> userNames, Set<Privilege> privileges) {
+    AnalyzedPrivileges(List<String> userNames, Set<Privilege> privileges) {
         this.userNames = userNames;
         this.privileges = privileges;
     }
