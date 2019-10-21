@@ -23,20 +23,19 @@
 package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
+public class BoundedCopyTo {
 
     private final QueriedSelectRelation<? extends AbstractTableRelation<?>> relation;
+    private final Symbol uri;
     private final boolean columnsDefined;
     @Nullable
     private final WriterProjection.CompressionType compressionType;
@@ -44,32 +43,34 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
     private final WriterProjection.OutputFormat outputFormat;
     @Nullable
     private final List<String> outputNames;
-
     /*
      * add values that should be added or overwritten
      * all symbols must normalize to literals on the shard level.
      */
     private final Map<ColumnIdent, Symbol> overwrites;
 
-    public CopyToAnalyzedStatement(QueriedSelectRelation<? extends AbstractTableRelation<?>> relation,
-                                   Settings settings,
-                                   Symbol uri,
-                                   @Nullable WriterProjection.CompressionType compressionType,
-                                   @Nullable WriterProjection.OutputFormat outputFormat,
-                                   @Nullable List<String> outputNames,
-                                   boolean columnsDefined,
-                                   @Nullable Map<ColumnIdent, Symbol> overwrites) {
-        super(settings, uri);
+    public BoundedCopyTo(QueriedSelectRelation<? extends AbstractTableRelation<?>> relation,
+                         Symbol uri,
+                         @Nullable WriterProjection.CompressionType compressionType,
+                         @Nullable WriterProjection.OutputFormat outputFormat,
+                         @Nullable List<String> outputNames,
+                         boolean columnsDefined,
+                         @Nullable Map<ColumnIdent, Symbol> overwrites) {
         this.relation = relation;
+        this.uri = uri;
         this.columnsDefined = columnsDefined;
         this.compressionType = compressionType;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
-        this.overwrites = MoreObjects.firstNonNull(overwrites, ImmutableMap.<ColumnIdent, Symbol>of());
+        this.overwrites = MoreObjects.firstNonNull(overwrites, Map.of());
     }
 
     public QueriedSelectRelation<? extends AbstractTableRelation<?>> relation() {
         return relation;
+    }
+
+    public Symbol uri() {
+        return uri;
     }
 
     public boolean columnsDefined() {
@@ -92,16 +93,6 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
     }
 
     public Map<ColumnIdent, Symbol> overwrites() {
-        return this.overwrites;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitCopyToStatement(this, context);
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return false;
+        return overwrites;
     }
 }

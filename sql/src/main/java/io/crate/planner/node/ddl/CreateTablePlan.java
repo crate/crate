@@ -137,7 +137,7 @@ public class CreateTablePlan implements Plan {
         stmt.table(relationName, table.ifNotExists(), schemas);
         TableParameter tableParameter = stmt.tableParameter();
 
-        // apply default in case it is not specified in the genericProperties,
+        // apply default in case it is not specified in the properties,
         // if it is it will get overwritten afterwards.
         TablePropertiesAnalyzer.analyzeWithBoundValues(
             tableParameter,

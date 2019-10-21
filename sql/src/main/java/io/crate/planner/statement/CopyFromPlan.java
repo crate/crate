@@ -82,7 +82,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static io.crate.analyze.CopyAnalyzer.INPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
 public final class CopyFromPlan implements Plan {
@@ -393,13 +394,6 @@ public final class CopyFromPlan implements Plan {
             }
         }
         return nodes;
-    }
-
-    private static <E extends Enum<E>> E settingAsEnum(Class<E> settingsEnum, String settingValue) {
-        if (settingValue == null || settingValue.isEmpty()) {
-            return null;
-        }
-        return Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
     }
 
     private static Symbol validateAndConvertToLiteral(Object uri) {

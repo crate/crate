@@ -36,6 +36,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.statement.CopyFromPlan;
+import io.crate.planner.statement.CopyToPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -78,9 +79,16 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 new RowN(arguments),
                 SubQueryResults.EMPTY
             );
-        } else {
-            return (S) analyzedStatement;
+        } else if (analyzedStatement instanceof AnalyzedCopyTo) {
+            return (S) CopyToPlan.createStatement(
+                (AnalyzedCopyTo) analyzedStatement,
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                new RowN(arguments),
+                SubQueryResults.EMPTY
+            );
         }
+        throw new UnsupportedOperationException("");
     }
 
     @Test
@@ -166,12 +174,12 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToFile() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Using COPY TO without specifying a DIRECTORY is not supported");
-        analyze("copy users to '/blah.txt'");
+        analyze("COPY users TO '/blah.txt'");
     }
 
     @Test
     public void testCopyToDirectory() throws Exception {
-        CopyToAnalyzedStatement analysis = analyze("copy users to directory '/foo'");
+        BoundedCopyTo analysis = analyze("COPY users TO DIRECTORY '/foo'");
         TableInfo tableInfo = analysis.relation().subRelation().tableInfo();
         assertThat(tableInfo.ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.uri(), isLiteral("/foo"));
@@ -182,12 +190,12 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow COPY TO " +
                                         "operations, as it is read-only.");
-        analyze("copy sys.nodes to directory '/foo'");
+        analyze("COPY sys.nodes TO DIRECTORY '/foo'");
     }
 
     @Test
     public void testCopyToWithColumnList() throws Exception {
-        CopyToAnalyzedStatement analysis = analyze("copy users (id, name) to DIRECTORY '/tmp'");
+        BoundedCopyTo analysis = analyze("COPY users (id, name) TO DIRECTORY '/tmp'");
         List<Symbol> outputs = analysis.relation().outputs();
         assertThat(outputs.size(), is(2));
         assertThat(outputs.get(0), isReference("_doc['id']"));
@@ -196,7 +204,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyToFileWithCompressionParams() throws Exception {
-        CopyToAnalyzedStatement analysis = analyze("copy users to directory '/blah' with (compression='gzip')");
+        BoundedCopyTo analysis = analyze(
+            "COPY users TO DIRECTORY '/blah' WITH (compression='gzip')");
         TableInfo tableInfo = analysis.relation().subRelation().tableInfo();
         assertThat(tableInfo.ident(), is(USER_TABLE_IDENT));
 
@@ -208,12 +217,12 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToFileWithUnknownParams() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("setting 'foo' not supported");
-        analyze("copy users to directory '/blah' with (foo='gzip')");
+        analyze("COPY users TO DIRECTORY '/blah' WITH (foo='gzip')");
     }
 
     @Test
     public void testCopyToFileWithPartitionedTable() throws Exception {
-        CopyToAnalyzedStatement analysis = analyze("copy parted to directory '/blah'");
+        BoundedCopyTo analysis = analyze("COPY parted TO DIRECTORY '/blah'");
         TableInfo tableInfo = analysis.relation().subRelation().tableInfo();
         assertThat(tableInfo.ident(), is(TEST_PARTITIONED_TABLE_IDENT));
         assertThat(analysis.overwrites().size(), is(1));
@@ -221,7 +230,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyToFileWithPartitionClause() throws Exception {
-        CopyToAnalyzedStatement analysis = analyze("copy parted partition (date=1395874800000) to directory '/blah'");
+        BoundedCopyTo analysis = analyze(
+            "COPY parted PARTITION (date=1395874800000) TO DIRECTORY '/blah'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
         assertThat(analysis.relation().where().partitions(), contains(parted));
@@ -229,7 +239,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyToDirectoryWithPartitionClause() throws Exception {
-        CopyToAnalyzedStatement analysis = analyze("copy parted partition (date=1395874800000) to directory '/tmp'");
+        BoundedCopyTo analysis = analyze(
+            "COPY parted PARTITION (date=1395874800000) TO DIRECTORY '/tmp'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
         assertThat(analysis.relation().where().partitions(), contains(parted));
@@ -240,29 +251,29 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToDirectoryWithNotExistingPartitionClause() throws Exception {
         expectedException.expect(PartitionUnknownException.class);
         expectedException.expectMessage("No partition for table 'doc.parted' with ident '04130' exists");
-        analyze("copy parted partition (date=0) to directory '/tmp/'");
+        analyze("COPY parted PARTITION (date=0) TO DIRECTORY '/tmp/'");
     }
 
     @Test
     public void testCopyToWithWhereClause() throws Exception {
-        CopyToAnalyzedStatement analysis = analyze("copy parted where id = 1 to directory '/tmp/foo'");
+        BoundedCopyTo analysis = analyze(
+            "COPY parted WHERE id = 1 TO DIRECTORY '/tmp/foo'");
         assertThat(analysis.relation().where().query(), isFunction("op_="));
     }
 
     @Test
     public void testCopyToWithPartitionIdentAndPartitionInWhereClause() throws Exception {
-        CopyToAnalyzedStatement analysis = analyze(
-            "copy parted partition (date=1395874800000) where date = 1395874800000 to directory '/tmp/foo'");
+        BoundedCopyTo analysis = analyze(
+            "COPY parted PARTITION (date=1395874800000) WHERE date = 1395874800000 TO DIRECTORY '/tmp/foo'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
         assertThat(analysis.relation().where().partitions(), contains(parted));
     }
 
-
     @Test
     public void testCopyToWithPartitionIdentAndWhereClause() throws Exception {
-        CopyToAnalyzedStatement analysis = analyze(
-            "copy parted partition (date=1395874800000) where id = 1 to directory '/tmp/foo'");
+        BoundedCopyTo analysis = analyze(
+            "COPY parted PARTITION (date=1395874800000) WHERE id = 1 TO DIRECTORY '/tmp/foo'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
         WhereClause where = analysis.relation().where();
@@ -274,12 +285,13 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToWithNotExistingPartitionClause() throws Exception {
         expectedException.expect(PartitionUnknownException.class);
         expectedException.expectMessage("No partition for table 'doc.parted' with ident '04130' exists");
-        analyze("copy parted partition (date=0) to directory '/tmp/blah'");
+        analyze("COPY parted PARTITION (date=0) TO DIRECTORY '/tmp/blah'");
     }
 
     @Test
     public void testCopyToFileWithSelectedColumnsAndOutputFormatParam() throws Exception {
-        CopyToAnalyzedStatement analysis = analyze("copy users (id, name) to directory '/blah' with (format='json_object')");
+        BoundedCopyTo analysis = analyze(
+            "COPY users (id, name) TO DIRECTORY '/blah' WITH (format='json_object')");
         TableInfo tableInfo = analysis.relation().subRelation().tableInfo();
         assertThat(tableInfo.ident(), is(USER_TABLE_IDENT));
 
@@ -292,7 +304,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToFileWithUnsupportedOutputFormatParam() throws Exception {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("Output format not supported without specifying columns.");
-        analyze("copy users to directory '/blah' with (format='json_array')");
+        analyze("COPY users TO DIRECTORY '/blah' WITH (format='json_array')");
     }
 
     @Test

@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
@@ -29,63 +28,25 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.common.collections.Lists2;
-import io.crate.data.Row;
-import io.crate.exceptions.PartitionUnknownException;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.format.SymbolPrinter;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.Validators;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
-@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-public class CopyAnalyzer {
-
-    private static final Setting<String> COMPRESSION_SETTING =
-        Setting.simpleString("compression", Validators.stringValidator("compression","gzip"), Setting.Property.Dynamic);
-
-    private static final Setting<String> OUTPUT_FORMAT_SETTING =
-        Setting.simpleString("format", Validators.stringValidator("format","json_object", "json_array"), Setting.Property.Dynamic);
-
-    public static final Setting<String> INPUT_FORMAT_SETTING =
-        new Setting<>("format", "json", (s) -> s, Validators.stringValidator("format","json", "csv"), Setting.Property.Dynamic);
-
-    private static final Map<String, Setting<?>> OUTPUT_SETTINGS = Map.of(
-        COMPRESSION_SETTING.getKey(), COMPRESSION_SETTING,
-        OUTPUT_FORMAT_SETTING.getKey(), OUTPUT_FORMAT_SETTING
-    );
+class CopyAnalyzer {
 
     private final Schemas schemas;
     private final Functions functions;
@@ -118,7 +79,8 @@ public class CopyAnalyzer {
             new TableRelation(tableInfo));
 
         Table<Symbol> table = node.table().map(t -> exprAnalyzerWithFieldsAsString.convert(t, exprCtx));
-        GenericProperties<Symbol> properties = node.properties().map(t -> exprAnalyzerWithoutFields.convert(t, exprCtx));
+        GenericProperties<Symbol> properties = node.properties().map(t -> exprAnalyzerWithoutFields.convert(t,
+                                                                                                            exprCtx));
         Symbol uri = exprAnalyzerWithoutFields.convert(node.path(), exprCtx);
 
         if (node.isReturnSummary()) {
@@ -136,17 +98,9 @@ public class CopyAnalyzer {
         }
     }
 
-    private ExpressionAnalyzer createExpressionAnalyzer(Analysis analysis, DocTableRelation tableRelation, Operation operation) {
-        return new ExpressionAnalyzer(
-            functions,
-            analysis.transactionContext(),
-            analysis.parameterContext(),
-            new NameFieldProvider(tableRelation),
-            null,
-            operation);
-    }
-
-    CopyToAnalyzedStatement convertCopyTo(CopyTo node, Analysis analysis) {
+    AnalyzedCopyTo analyzeCopyTo(CopyTo<Expression> node,
+                                 Function<ParameterExpression, Symbol> convertParamFunction,
+                                 CoordinatorTxnCtx txnCtx) {
         if (!node.directoryUri()) {
             throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is not supported");
         }
@@ -154,9 +108,8 @@ public class CopyAnalyzer {
         TableInfo tableInfo = schemas.resolveTableInfo(
             node.table().getName(),
             Operation.COPY_TO,
-            analysis.sessionContext().user(),
-            analysis.sessionContext().searchPath()
-        );
+            txnCtx.sessionContext().user(),
+            txnCtx.sessionContext().searchPath());
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
@@ -165,123 +118,36 @@ public class CopyAnalyzer {
             RowGranularity.CLUSTER,
             null,
             tableRelation);
-        ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation, Operation.READ);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
-        Symbol uri = expressionAnalyzer.convert(node.targetUri(), expressionAnalysisContext);
-        uri = normalizer.normalize(uri, analysis.transactionContext());
+        var exprCtx = new ExpressionAnalysisContext();
+        var expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            txnCtx,
+            convertParamFunction,
+            new NameFieldProvider(tableRelation),
+            null);
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            functions,
+            txnCtx,
+            convertParamFunction,
+            FieldProvider.FIELDS_AS_LITERAL,
+            null);
 
-        List<String> partitions = resolvePartitions(
-            node.table().partitionProperties(), analysis.parameterContext().parameters(), tableRelation.tableInfo());
+        var uri = expressionAnalyzer.convert(node.targetUri(), exprCtx);
+        var table = node.table().map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
+        var properties = node.properties().map(x -> expressionAnalyzer.convert(x, exprCtx));
+        var columns = Lists2.map(
+            node.columns(),
+            c -> normalizer.normalize(expressionAnalyzer.convert(c, exprCtx), txnCtx));
+        var whereClause = node.whereClause().map(
+            w -> normalizer.normalize(expressionAnalyzer.convert(w, exprCtx), txnCtx)).orElse(null);
 
-        List<Symbol> outputs = new ArrayList<>();
-        Map<ColumnIdent, Symbol> overwrites = null;
-        boolean columnsDefined = false;
-        List<String> outputNames = null;
-        if (!node.columns().isEmpty()) {
-            outputNames = new ArrayList<>(node.columns().size());
-            for (Expression expression : node.columns()) {
-                Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-                symbol = normalizer.normalize(symbol, analysis.transactionContext());
-                outputNames.add(SymbolPrinter.INSTANCE.printUnqualified(symbol));
-                outputs.add(DocReferences.toSourceLookup(symbol));
-            }
-            columnsDefined = true;
-        } else {
-            Reference sourceRef;
-            if (tableRelation.tableInfo().isPartitioned() && partitions.isEmpty()) {
-                // table is partitioned, insert partitioned columns into the output
-                overwrites = new HashMap<>();
-                for (Reference reference : tableRelation.tableInfo().partitionedByColumns()) {
-                    if (!(reference instanceof GeneratedReference)) {
-                        overwrites.put(reference.column(), reference);
-                    }
-                }
-                if (overwrites.size() > 0) {
-                    sourceRef = tableRelation.tableInfo().getReference(DocSysColumns.DOC);
-                } else {
-                    sourceRef = tableRelation.tableInfo().getReference(DocSysColumns.RAW);
-                }
-            } else {
-                sourceRef = tableRelation.tableInfo().getReference(DocSysColumns.RAW);
-            }
-            outputs = ImmutableList.of(sourceRef);
-        }
-
-        Settings settings = GenericPropertiesConverter.settingsFromProperties(
-            node.genericProperties(), analysis.parameterContext().parameters(), OUTPUT_SETTINGS).build();
-
-        WriterProjection.CompressionType compressionType =
-            settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));
-        WriterProjection.OutputFormat outputFormat =
-            settingAsEnum(WriterProjection.OutputFormat.class, OUTPUT_FORMAT_SETTING.get(settings));
-
-        if (!columnsDefined && outputFormat == WriterProjection.OutputFormat.JSON_ARRAY) {
-            throw new UnsupportedFeatureException("Output format not supported without specifying columns.");
-        }
-
-        QuerySpec querySpec = new QuerySpec(
-            outputs,
-            createWhereClause(
-                node.whereClause(),
-                partitions,
-                normalizer,
-                expressionAnalyzer,
-                expressionAnalysisContext,
-                analysis.transactionContext()
-            ),
-            List.of(),
-            null,
-            null,
-            null,
-            null,
-            false
-        );
-        QueriedSelectRelation<DocTableRelation> subRelation = new QueriedSelectRelation<>(
-            false,
-            tableRelation,
-            outputNames == null ? Lists2.map(outputs, Symbols::pathFromSymbol) : Lists2.map(outputNames, ColumnIdent::new),
-            querySpec
-        );
-        return new CopyToAnalyzedStatement(
-            subRelation, settings, uri, compressionType, outputFormat, outputNames, columnsDefined, overwrites);
-    }
-
-    private static <E extends Enum<E>> E settingAsEnum(Class<E> settingsEnum, String settingValue) {
-        if (settingValue == null || settingValue.isEmpty()) {
-            return null;
-        }
-        return Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
-    }
-
-    private static List<String> resolvePartitions(List<Assignment<Expression>> partitionProperties, Row parameters, DocTableInfo table) {
-        if (partitionProperties.isEmpty()) {
-            return Collections.emptyList();
-        }
-        PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+        return new AnalyzedCopyTo(
+            tableInfo,
             table,
-            partitionProperties,
-            parameters);
-        if (!table.partitions().contains(partitionName)) {
-            throw new PartitionUnknownException(partitionName);
-        }
-        return Collections.singletonList(partitionName.asIndexName());
-    }
-
-    private static WhereClause createWhereClause(Optional<Expression> where,
-                                                 List<String> partitions,
-                                                 EvaluatingNormalizer normalizer,
-                                                 ExpressionAnalyzer expressionAnalyzer,
-                                                 ExpressionAnalysisContext expressionAnalysisContext,
-                                                 CoordinatorTxnCtx coordinatorTxnCtx) {
-        // primary key optimization and partition selection from query happens later
-        // based on the queriedRelation in the LogicalPlanner
-        if (where.isPresent()) {
-            Symbol query = normalizer.normalize(
-                expressionAnalyzer.convert(where.get(), expressionAnalysisContext), coordinatorTxnCtx);
-            return new WhereClause(query, partitions, Collections.emptySet());
-        } else {
-            return new WhereClause(null, partitions, Collections.emptySet());
-        }
+            normalizer.normalize(uri, txnCtx),
+            properties,
+            columns,
+            whereClause);
     }
 }

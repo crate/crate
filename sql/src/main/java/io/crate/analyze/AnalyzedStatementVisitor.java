@@ -39,7 +39,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    protected R visitCopyToStatement(CopyToAnalyzedStatement analysis, C context) {
+    protected R visitCopyToStatement(AnalyzedCopyTo analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 

@@ -108,7 +108,7 @@ public class CreateBlobTablePlan implements Plan {
         CreateBlobTable<Object> blobTable = createBlobTable.map(eval);
         GenericProperties<Object> properties = blobTable.genericProperties();
 
-        // apply default in case it is not specified in the genericProperties,
+        // apply default in case it is not specified in the properties,
         // if it is it will get overwritten afterwards.
         TableParameter tableParameter = new TableParameter();
         TablePropertiesAnalyzer.analyzeWithBoundValues(

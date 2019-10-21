@@ -21,37 +21,35 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
-public class CopyTo extends Statement {
+public class CopyTo<T> extends Statement {
 
-    private final Table<Expression> table;
+    private final Table<T> table;
+    private final List<T> columns;
+    private final Optional<T> whereClause;
     private final boolean directoryUri;
-    private final Expression targetUri;
+    private final T targetUri;
+    private final GenericProperties<T> properties;
 
-    private final GenericProperties<Expression> genericProperties;
-    private final List<Expression> columns;
-    private final Optional<Expression> whereClause;
-
-    public CopyTo(Table<Expression> table,
-                  List<Expression> columns,
-                  Optional<Expression> whereClause,
+    public CopyTo(Table<T> table,
+                  List<T> columns,
+                  Optional<T> whereClause,
                   boolean directoryUri,
-                  Expression targetUri,
-                  GenericProperties<Expression> genericProperties) {
+                  T targetUri,
+                  GenericProperties<T> properties) {
 
         this.table = table;
         this.directoryUri = directoryUri;
         this.targetUri = targetUri;
-        this.genericProperties = genericProperties;
+        this.properties = properties;
         this.columns = columns;
         this.whereClause = whereClause;
     }
 
-    public Table<Expression> table() {
+    public Table<T> table() {
         return table;
     }
 
@@ -59,60 +57,54 @@ public class CopyTo extends Statement {
         return directoryUri;
     }
 
-    public Expression targetUri() {
+    public T targetUri() {
         return targetUri;
     }
 
-    public List<Expression> columns() {
+    public List<T> columns() {
         return columns;
     }
 
-    public GenericProperties<Expression> genericProperties() {
-        return genericProperties;
+    public GenericProperties<T> properties() {
+        return properties;
     }
 
-    public Optional<Expression> whereClause() {
+    public Optional<T> whereClause() {
         return whereClause;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        CopyTo copyTo = (CopyTo) o;
-
-        if (directoryUri != copyTo.directoryUri) return false;
-        if (!columns.equals(copyTo.columns)) return false;
-        if (!genericProperties.equals(copyTo.genericProperties)) return false;
-        if (!table.equals(copyTo.table)) return false;
-        if (!targetUri.equals(copyTo.targetUri)) return false;
-        if (!whereClause.equals(copyTo.whereClause)) return false;
-
-        return true;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CopyTo<?> copyTo = (CopyTo<?>) o;
+        return directoryUri == copyTo.directoryUri &&
+               Objects.equals(table, copyTo.table) &&
+               Objects.equals(targetUri, copyTo.targetUri) &&
+               Objects.equals(properties, copyTo.properties) &&
+               Objects.equals(columns, copyTo.columns) &&
+               Objects.equals(whereClause, copyTo.whereClause);
     }
 
     @Override
     public int hashCode() {
-        int result = table.hashCode();
-        result = 31 * result + (directoryUri ? 1 : 0);
-        result = 31 * result + targetUri.hashCode();
-        result = 31 * result + genericProperties.hashCode();
-        result = 31 * result + columns.hashCode();
-        result = 31 * result + whereClause.hashCode();
-        return result;
+        return Objects.hash(table, directoryUri, targetUri, properties, columns, whereClause);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("columns", columns)
-            .add("whereClause", whereClause)
-            .add("directoryUri", directoryUri)
-            .add("targetUri", targetUri)
-            .add("genericProperties", genericProperties)
-            .toString();
+        return "CopyTo{" +
+               "table=" + table +
+               ", directoryUri=" + directoryUri +
+               ", targetUri=" + targetUri +
+               ", properties=" + properties +
+               ", columns=" + columns +
+               ", whereClause=" + whereClause +
+               '}';
     }
 
     @Override

@@ -280,8 +280,11 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCopyTo(CopyTo node, Analysis context) {
-            return copyAnalyzer.convertCopyTo(node, context);
+        public AnalyzedStatement visitCopyTo(CopyTo<?> node, Analysis context) {
+            return copyAnalyzer.analyzeCopyTo(
+                (CopyTo<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override

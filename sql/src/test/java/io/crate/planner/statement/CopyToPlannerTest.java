@@ -34,13 +34,14 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
@@ -71,21 +72,22 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   ts timestamp with time zone," +
                 "   day as date_trunc('day', ts)" +
                 ") partitioned by (day) ",
-                new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList("1395961200000")).asIndexName()
+                new PartitionName(new RelationName("doc", "parted_generated"), List.of("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_generated"), List.of("1395961200000")).asIndexName()
             ).build();
     }
 
     private <T> T plan(String stmt) {
-        CopyStatementPlanner.CopyTo plan = e.plan(stmt);
-        return (T) CopyStatementPlanner.planCopyToExecution(
-            plan.copyTo,
+        CopyToPlan plan = e.plan(stmt);
+        //noinspection unchecked
+        return (T) CopyToPlan.planCopyToExecution(
+            plan.copyTo(),
             e.getPlannerContext(clusterService.state()),
-            plan.logicalPlanner,
-            plan.subqueryPlanner,
+            plan.logicalPlanner(),
+            plan.subqueryPlanner(),
             new ProjectionBuilder(e.functions()),
-            Row.EMPTY
-        );
+            Row.EMPTY,
+            SubQueryResults.EMPTY);
     }
 
     @Test
