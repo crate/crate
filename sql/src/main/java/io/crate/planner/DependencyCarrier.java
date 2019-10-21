@@ -25,7 +25,6 @@ package io.crate.planner;
 import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.TransportActionProvider;
-import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.AlterTableOperation;
@@ -34,10 +33,13 @@ import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
+import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
+import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.license.LicenseService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -58,7 +60,6 @@ public class DependencyCarrier {
     private final ThreadPool threadPool;
     private final Schemas schemas;
     private final Functions functions;
-    private final DDLStatementDispatcher ddlAnalysisDispatcherProvider;
     private final ClusterService clusterService;
     private final DCLStatementDispatcher dclStatementDispatcher;
     private final TransportDropTableAction transportDropTableAction;
@@ -66,6 +67,9 @@ public class DependencyCarrier {
     private final TransportCreateViewAction createViewAction;
     private final TransportDropViewAction dropViewAction;
     private final TransportSwapRelationsAction swapRelationsAction;
+    private final TransportCreateIndexAction createIndexAction;
+    private final TransportCreateUserDefinedFunctionAction createFunctionAction;
+    private final TransportDropUserDefinedFunctionAction dropFunctionAction;
     private final LicenseService licenseService;
     private final AlterTableOperation alterTableOperation;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -79,7 +83,6 @@ public class DependencyCarrier {
                              ThreadPool threadPool,
                              Schemas schemas,
                              Functions functions,
-                             DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ClusterService clusterService,
                              LicenseService licenseService,
                              DCLStatementDispatcher dclStatementDispatcher,
@@ -87,6 +90,9 @@ public class DependencyCarrier {
                              TransportCreateViewAction createViewAction,
                              TransportDropViewAction dropViewAction,
                              TransportSwapRelationsAction swapRelationsAction,
+                             TransportCreateIndexAction createIndexAction,
+                             TransportCreateUserDefinedFunctionAction createFunctionAction,
+                             TransportDropUserDefinedFunctionAction dropFunctionAction,
                              AlterTableOperation alterTableOperation,
                              FulltextAnalyzerResolver fulltextAnalyzerResolver,
                              RepositoryService repositoryService,
@@ -97,7 +103,6 @@ public class DependencyCarrier {
         this.threadPool = threadPool;
         this.schemas = schemas;
         this.functions = functions;
-        this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.clusterService = clusterService;
         this.licenseService = licenseService;
         this.dclStatementDispatcher = dclStatementDispatcher;
@@ -106,6 +111,9 @@ public class DependencyCarrier {
         this.createViewAction = createViewAction;
         this.dropViewAction = dropViewAction;
         this.swapRelationsAction = swapRelationsAction;
+        this.createIndexAction = createIndexAction;
+        this.createFunctionAction = createFunctionAction;
+        this.dropFunctionAction = dropFunctionAction;
         this.alterTableOperation = alterTableOperation;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.repositoryService = repositoryService;
@@ -118,10 +126,6 @@ public class DependencyCarrier {
 
     public TransportSwapRelationsAction swapRelationsAction() {
         return swapRelationsAction;
-    }
-
-    public DDLStatementDispatcher ddlAction() {
-        return ddlAnalysisDispatcherProvider;
     }
 
     public DCLStatementDispatcher dclAction() {
@@ -178,6 +182,18 @@ public class DependencyCarrier {
 
     public TransportDropViewAction dropViewAction() {
         return dropViewAction;
+    }
+
+    public TransportCreateIndexAction createIndexAction() {
+        return createIndexAction;
+    }
+
+    public TransportCreateUserDefinedFunctionAction createFunctionAction() {
+        return createFunctionAction;
+    }
+
+    public TransportDropUserDefinedFunctionAction dropFunctionAction() {
+        return dropFunctionAction;
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {

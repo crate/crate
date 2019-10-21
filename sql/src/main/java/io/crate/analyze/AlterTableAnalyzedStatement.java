@@ -22,29 +22,33 @@
 package io.crate.analyze;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 
+import javax.annotation.Nullable;
 import java.util.Optional;
 
-public class AlterTableAnalyzedStatement implements DDLStatement {
+public class AlterTableAnalyzedStatement {
 
 
-    private final DocTableInfo tableInfo;
+    private final TableInfo tableInfo;
     private final PartitionName partitionName;
     private final TableParameter tableParameter;
     private final boolean excludePartitions;
+    private final boolean partitioned;
 
-    public AlterTableAnalyzedStatement(DocTableInfo tableInfo,
-                                       PartitionName partitionName,
+    public AlterTableAnalyzedStatement(TableInfo tableInfo,
+                                       @Nullable PartitionName partitionName,
                                        TableParameter tableParameter,
-                                       boolean excludePartitions) {
+                                       boolean excludePartitions,
+                                       boolean partitioned) {
         this.tableInfo = tableInfo;
         this.partitionName = partitionName;
         this.tableParameter = tableParameter;
         this.excludePartitions = excludePartitions;
+        this.partitioned = partitioned;
     }
 
-    public DocTableInfo table() {
+    public TableInfo table() {
         return tableInfo;
     }
 
@@ -60,8 +64,7 @@ public class AlterTableAnalyzedStatement implements DDLStatement {
         return tableParameter;
     }
 
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitAlterTableStatement(this, context);
+    public boolean isPartitioned() {
+        return partitioned;
     }
 }

@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -31,6 +32,7 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
 
     public static final LongType INSTANCE = new LongType();
     public static final int ID = 10;
+    public static final int LONG_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Long.class);
 
     @Override
     public int id() {
@@ -86,7 +88,7 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
 
     @Override
     public int fixedSize() {
-        return 16; // 8 object overhead, 8 long
+        return LONG_SIZE;
     }
 }
 

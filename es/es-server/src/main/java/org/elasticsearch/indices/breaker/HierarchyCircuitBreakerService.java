@@ -33,12 +33,12 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * CircuitBreakerService that attempts to redistribute space between breakers
@@ -206,28 +206,22 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     }
 
     @Override
-    public AllCircuitBreakerStats stats() {
-        List<CircuitBreakerStats> allStats = new ArrayList<>(this.breakers.size());
-        // Gather the "estimated" count for the parent breaker by adding the
-        // estimations for each individual breaker
-        for (CircuitBreaker breaker : this.breakers.values()) {
-            allStats.add(stats(breaker.getName()));
-        }
-        // Manually add the parent breaker settings since they aren't part of the breaker map
-        allStats.add(new CircuitBreakerStats(
-            CircuitBreaker.PARENT,
-            parentSettings.getLimit(),
-            parentUsed(0L),
-            1.0,
-            parentTripCount.get()
-        ));
-        return new AllCircuitBreakerStats(allStats.toArray(new CircuitBreakerStats[allStats.size()]));
-    }
-
-    @Override
     public CircuitBreakerStats stats(String name) {
-        CircuitBreaker breaker = this.breakers.get(name);
-        return new CircuitBreakerStats(breaker.getName(), breaker.getLimit(), breaker.getUsed(), breaker.getOverhead(), breaker.getTrippedCount());
+        if (CircuitBreaker.PARENT.equals(name)) {
+            return new CircuitBreakerStats(
+                CircuitBreaker.PARENT,
+                parentSettings.getLimit(),
+                parentUsed(0L),
+                parentTripCount.get(), 1.0
+            );
+        }
+        CircuitBreaker breaker = requireNonNull(this.breakers.get(name), "Unknown circuit breaker: " + name);
+        return new CircuitBreakerStats(
+            breaker.getName(),
+            breaker.getLimit(),
+            breaker.getUsed(),
+            breaker.getTrippedCount(),
+            breaker.getOverhead());
     }
 
     private long parentUsed(long newBytesReserved) {

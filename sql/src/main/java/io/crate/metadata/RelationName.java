@@ -30,6 +30,7 @@ import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.Table;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -52,6 +53,21 @@ public final class RelationName implements Writeable {
             return new RelationName(parts.get(0), parts.get(1));
         }
         return new RelationName(defaultSchema, parts.get(0));
+    }
+
+    public static RelationName fromBlobTable(Table<?> table) {
+        List<String> tableNameParts = table.getName().getParts();
+        Preconditions.checkArgument(tableNameParts.size() < 3, "Invalid tableName \"%s\"", table.getName());
+
+        if (tableNameParts.size() == 2) {
+            Preconditions.checkArgument(tableNameParts.get(0).equalsIgnoreCase(BlobSchemaInfo.NAME),
+                                        "The Schema \"%s\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause",
+                                        tableNameParts.get(0));
+
+            return new RelationName(tableNameParts.get(0), tableNameParts.get(1));
+        }
+        assert tableNameParts.size() == 1 : "tableNameParts.size() must be 1";
+        return new RelationName(BlobSchemaInfo.NAME, tableNameParts.get(0));
     }
 
     public static RelationName fromIndexName(String indexName) {

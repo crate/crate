@@ -124,7 +124,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             UpsertResultContext.forRowCount());
 
         RowN rowN = new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null});
-        BatchIterator<Row> batchIterator = InMemoryBatchIterator.of(Collections.singletonList(rowN), SENTINEL);
+        BatchIterator<Row> batchIterator = InMemoryBatchIterator.of(Collections.singletonList(rowN), SENTINEL, true);
         batchIterator = indexWriter.apply(batchIterator);
 
         TestingRowConsumer testingBatchConsumer = new TestingRowConsumer();

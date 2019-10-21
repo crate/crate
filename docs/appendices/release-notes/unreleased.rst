@@ -62,12 +62,15 @@ Deprecations
 Changes
 =======
 
+- Added the ``ltrim`` and ``rtrim`` scalar functions.
+
 - Improved the error messages that were returned if a relation or schema is not
   found. They now may include suggestions for similarly named tables. This
   should make typos more apparent and can help users figure out that they were
   missing double quotes in case the table names contain upper case letters.
 
-- Added a ``seq_no_stats`` column to the :ref:`sys.shards <sys-shards>` table.
+- Added a ``seq_no_stats`` and a ``translog_stats`` column to the
+  :ref:`sys.shards <sys-shards>` table.
 
 - Added new system table :ref:`sys.segments <sys-segments>` which contains
   information about the Lucene segments of a shard.
@@ -175,4 +178,19 @@ Changes
 Fixes
 =====
 
-None
+- Closed some gaps in the memory accounting used for the circuit breaker
+  mechanism. This should help prevent memory intense queries from triggering
+  long GC pauses as they'll be rejected earlier.
+
+- Made the documented :ref:`indices.breaker.total.limit
+  <indices.breaker.total.limit>` setting public, so that it can be adjusted
+  using :ref:`SET GLOBAL <ref-set>`.
+
+- Improved the migration logic for partitioned tables which have been created
+  in CrateDB 2.x. If all current partitions of a partitioned tables have been
+  created in CrateDB 3.x, the table won't have to be re-indexed anymore to
+  upgrade to CrateDB 4.0+. 
+
+- Changed the error message returned when a :ref:`CREATE REPOSITORY
+  <ref-create-repository>` statement fails so that it includes more information
+  about the cause of the failure.

@@ -26,6 +26,7 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.SearchPath;
 import io.crate.sql.tree.DropFunction;
 
 import java.util.List;
@@ -34,11 +35,11 @@ import static java.util.stream.Collectors.toList;
 
 class DropFunctionAnalyzer {
 
-    public DropFunctionAnalyzedStatement analyze(DropFunction node, Analysis context) {
+    public AnalyzedDropFunction analyze(DropFunction node, SearchPath searchPath) {
         List<String> parts = node.name().getParts();
 
-        return new DropFunctionAnalyzedStatement(
-            CreateFunctionAnalyzer.resolveSchemaName(parts, context.sessionContext().searchPath().currentSchema()),
+        return new AnalyzedDropFunction(
+            CreateFunctionAnalyzer.resolveSchemaName(parts, searchPath.currentSchema()),
             CreateFunctionAnalyzer.resolveFunctionName(parts),
             node.exists(),
             node.arguments().stream().map(i -> DataTypeAnalyzer.convert(i.type())).collect(toList())

@@ -134,7 +134,7 @@ public class CollectTaskTest extends RandomizedTest {
 
     @Test
     public void testThreadPoolNameForDocTables() throws Exception {
-        String threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
+        String threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
     }
 
@@ -147,29 +147,29 @@ public class CollectTaskTest extends RandomizedTest {
 
         // sys.cluster (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.CLUSTER);
-        String threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
+        String threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
 
         // partition values only of a partitioned doc table (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.PARTITION);
-        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
+        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
 
         // sys.nodes (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.NODE);
-        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
+        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.GET));
 
         // sys.shards
         when(routing.containsShards(localNodeId)).thenReturn(true);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.SHARD);
-        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
+        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, true);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.GET));
         when(routing.containsShards(localNodeId)).thenReturn(false);
 
         // information_schema.*
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
-        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
+        threadPoolExecutorName = CollectTask.threadPoolName(collectPhase, false);
+        assertThat(threadPoolExecutorName, is(ThreadPool.Names.SAME));
     }
 }

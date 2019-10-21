@@ -23,7 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -36,8 +36,11 @@ import org.elasticsearch.common.io.stream.Writeable;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Iterator;
+
+import static java.util.Objects.requireNonNull;
 
 public class StreamBucket implements Bucket, Writeable {
 
@@ -47,17 +50,16 @@ public class StreamBucket implements Bucket, Writeable {
 
     public static class Builder {
 
-
         private static final int INITIAL_PAGE_SIZE = 1024;
-        private final RamAccountingContext ramAccountingContext;
+        private final RamAccounting ramAccounting;
+        private final Streamer<?>[] streamers;
 
         private int size = 0;
-        private final Streamer<?>[] streamers;
         private BytesStreamOutput out;
         private int prevOutSize = 0;
 
-        public Builder(Streamer<?>[] streamers, RamAccountingContext ramAccountingContext) {
-            this.ramAccountingContext = ramAccountingContext;
+        public Builder(Streamer<?>[] streamers, RamAccounting ramAccounting) {
+            this.ramAccounting = requireNonNull(ramAccounting, "RamAccounting must not be null");
             assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
             this.streamers = streamers;
             out = new BytesStreamOutput(INITIAL_PAGE_SIZE);
@@ -75,10 +77,8 @@ public class StreamBucket implements Bucket, Writeable {
                     throw new RuntimeException(e);
                 }
             }
-            if (ramAccountingContext != null) {
-                ramAccountingContext.addBytes(out.size() - prevOutSize);
-                prevOutSize = out.size();
-            }
+            ramAccounting.addBytes(out.size() - prevOutSize);
+            prevOutSize = out.size();
         }
 
         public StreamBucket build() {
@@ -153,7 +153,7 @@ public class StreamBucket implements Bucket, Writeable {
                 try {
                     current[c] = streamers[c].readValueFrom(input);
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw new UncheckedIOException(e);
                 }
             }
             pos++;
@@ -175,7 +175,7 @@ public class StreamBucket implements Bucket, Writeable {
         try {
             return new RowIterator(bytes.streamInput(), streamers, size);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

@@ -42,14 +42,17 @@ import io.crate.types.DataTypes;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.function.BiFunction;
 
 
 public final class TrimFunctions {
 
-    private static final String NAME = "trim";
+    private static final String TRIM_NAME = "trim";
+    private static final String LTRIM_NAME = "ltrim";
+    private static final String RTRIM_NAME = "rtrim";
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new BaseFunctionResolver(FuncParams
+        module.register(TRIM_NAME, new BaseFunctionResolver(FuncParams
             .builder(Param.STRING)
             .withVarArgs(Param.STRING).limitVarArgOccurrences(2)
             .build()) {
@@ -59,17 +62,19 @@ public final class TrimFunctions {
                 if (datatypes.size() == 1) {
                     return new OneCharTrimFunction(
                         new FunctionInfo(
-                            new FunctionIdent(NAME, ImmutableList.of(datatypes.get(0))),
+                            new FunctionIdent(TRIM_NAME, ImmutableList.of(datatypes.get(0))),
                             datatypes.get(0)),
-                        ' '
-                    );
+                        ' ');
                 } else {
                     return new TrimFunction(
-                        new FunctionInfo(new FunctionIdent(NAME, datatypes), datatypes.get(0))
+                        new FunctionInfo(new FunctionIdent(TRIM_NAME, datatypes), datatypes.get(0))
                     );
                 }
             }
         });
+
+        module.register(LTRIM_NAME, new SingleSideTrimFunctionResolver((i, c) -> trimChars(i, c, TrimMode.LEADING)));
+        module.register(RTRIM_NAME, new SingleSideTrimFunctionResolver((i, c) -> trimChars(i, c, TrimMode.TRAILING)));
     }
 
     private static class TrimFunction extends Scalar<String, String> {
@@ -124,14 +129,7 @@ public final class TrimFunctions {
             }
 
             TrimMode mode = TrimMode.of(args[2].value());
-
-            HashSet<Character> charsToTrim =
-                new HashSet<>(Chars.asList(charsToTrimArg.toCharArray()));
-
-            int start = mode.getStartIdx(target, charsToTrim);
-            int len = mode.getTrimmedLength(target, charsToTrim);
-
-            return start < len ? target.substring(start, len) : "";
+            return trimChars(target, charsToTrimArg, mode);
         }
     }
 
@@ -170,5 +168,76 @@ public final class TrimFunctions {
 
             return target.substring(start, len);
         }
+    }
+
+    private static class SingleSideTrimFunction extends Scalar<String, String> {
+
+        private final FunctionInfo info;
+        private final BiFunction<String, String, String> trimFunction;
+
+        SingleSideTrimFunction(FunctionInfo info,
+                               BiFunction<String, String, String> function) {
+            this.info = info;
+            this.trimFunction = function;
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return info;
+        }
+
+        @Override
+        public String evaluate(TransactionContext txnCtx, Input<String>[] args) {
+            assert args.length == 1 || args.length == 2 : "number of args must be 1 or 2";
+
+            String target = args[0].value();
+            if (target == null) {
+                return null;
+            }
+
+            if (args.length == 2) {
+                String passedTrimmingText = args[1].value();
+                if (passedTrimmingText != null) {
+                    return trimFunction.apply(target, passedTrimmingText);
+                }
+            }
+
+            return trimFunction.apply(target, " ");
+        }
+    }
+
+    private static class SingleSideTrimFunctionResolver extends BaseFunctionResolver {
+        private final BiFunction<String, String, String> trimFunction;
+
+        SingleSideTrimFunctionResolver(BiFunction<String, String, String> trimFunction) {
+            super(
+                FuncParams
+                    .builder(Param.STRING)
+                    .withVarArgs(Param.STRING)
+                    .limitVarArgOccurrences(1)
+                    .build()
+            );
+            this.trimFunction = trimFunction;
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            return new SingleSideTrimFunction(
+                new FunctionInfo(
+                    new FunctionIdent(LTRIM_NAME, dataTypes), DataTypes.STRING
+                ),
+                trimFunction
+            );
+        }
+    }
+
+    private static String trimChars(String target, String charsToTrimArg, TrimMode mode) {
+        HashSet<Character> charsToTrim =
+            new HashSet<>(Chars.asList(charsToTrimArg.toCharArray()));
+
+        int start = mode.getStartIdx(target, charsToTrim);
+        int len = mode.getTrimmedLength(target, charsToTrim);
+
+        return start < len ? target.substring(start, len) : "";
     }
 }

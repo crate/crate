@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -31,6 +32,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
 
     public static final DoubleType INSTANCE = new DoubleType();
     public static final int ID = 6;
+    private static final int DOUBLE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Double.class);
 
     private DoubleType() {
     }
@@ -89,6 +91,6 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
 
     @Override
     public int fixedSize() {
-        return 16; // 8 object overhead + 8 for double
+        return DOUBLE_SIZE;
     }
 }

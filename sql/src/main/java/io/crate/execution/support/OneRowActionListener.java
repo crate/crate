@@ -48,8 +48,8 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
         final Row row;
         try {
             row = toRowFunction.apply(response);
-        } catch (Exception e) {
-            consumer.accept(null, e);
+        } catch (Throwable t) {
+            consumer.accept(null, t);
             return;
         }
         consumer.accept(InMemoryBatchIterator.of(row, SENTINEL), null);

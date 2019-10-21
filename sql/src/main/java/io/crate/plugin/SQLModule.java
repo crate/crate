@@ -22,7 +22,6 @@
 package io.crate.plugin;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -38,7 +37,6 @@ public class SQLModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(DDLStatementDispatcher.class).asEagerSingleton();
         bind(FulltextAnalyzerResolver.class).asEagerSingleton();
         bind(PostgresNetty.class).asEagerSingleton();
         bind(SQLOperations.class).asEagerSingleton();

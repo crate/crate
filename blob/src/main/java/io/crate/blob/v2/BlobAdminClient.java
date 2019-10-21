@@ -28,8 +28,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -46,29 +44,14 @@ import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
 @Singleton
 public class BlobAdminClient {
 
-    private final TransportUpdateSettingsAction updateSettingsAction;
     private final TransportCreateIndexAction createIndexAction;
     private final TransportDeleteIndexAction deleteIndexAction;
 
     @Inject
-    public BlobAdminClient(TransportUpdateSettingsAction updateSettingsAction,
-                           TransportCreateIndexAction createIndexAction,
+    public BlobAdminClient(TransportCreateIndexAction createIndexAction,
                            TransportDeleteIndexAction deleteIndexAction) {
-        this.updateSettingsAction = updateSettingsAction;
         this.createIndexAction = createIndexAction;
         this.deleteIndexAction = deleteIndexAction;
-    }
-
-    /**
-     * can be used to alter the number of replicas.
-     *
-     * @param tableName     name of the blob table
-     * @param indexSettings updated index settings
-     */
-    public CompletableFuture<Long> alterBlobTable(String tableName, Settings indexSettings) {
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 1L);
-        updateSettingsAction.execute(new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)), listener);
-        return listener;
     }
 
     public CompletableFuture<Long> createBlobTable(String tableName, Settings indexSettings) {

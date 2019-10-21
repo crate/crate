@@ -33,7 +33,6 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.indices.breaker.AllCircuitBreakerStats;
 import org.elasticsearch.indices.breaker.BreakerSettings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.CircuitBreakerStats;
@@ -118,11 +117,6 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
     @Override
     public CircuitBreaker getBreaker(String name) {
         return esCircuitBreakerService.getBreaker(name);
-    }
-
-    @Override
-    public AllCircuitBreakerStats stats() {
-        return esCircuitBreakerService.stats();
     }
 
     @Override

@@ -89,6 +89,6 @@ public class TableFunctionCollectSource implements CollectSource {
         if (orderBy != null) {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
         }
-        return InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL);
+        return InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false);
     }
 }

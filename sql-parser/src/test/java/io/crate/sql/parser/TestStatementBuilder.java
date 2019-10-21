@@ -228,6 +228,12 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_decommission_node_id_is_missing() {
+        expectedException.expectMessage(containsString("mismatched input"));
+        printStatement("ALTER CLUSTER DECOMMISSION'");
+    }
+
+    @Test
     public void testStmtWithSemicolonBuilder() {
         printStatement("select 1;");
     }
@@ -1078,12 +1084,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSnapshotStmtBuilder() {
+    public void testCreateSnapshotStmtBuilder() {
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot ALL");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books with (wait_for_completion=True)");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot ALL with (wait_for_completion=True)");
-        Statement statement = SqlParser.createStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
+        Statement statement = SqlParser.createStatement(
+            "CREATE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
         assertThat(statement.toString(), is("CreateSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={}, " +
@@ -1091,29 +1098,38 @@ public class TestStatementBuilder {
                                             "Assignment{column=\"year\", expressions=[2015]}, " +
                                             "Assignment{column=\"year\", expressions=[2014]}]}, " +
                                             "Table{only=false, books, partitionProperties=[]}]}"));
+    }
 
-        statement = SqlParser.createStatement("DROP SNAPSHOT my_repo.my_snapshot");
+    @Test
+    public void testDropSnapshotStmtBuilder() {
+        Statement statement = SqlParser.createStatement("DROP SNAPSHOT my_repo.my_snapshot");
         assertThat(statement.toString(), is("DropSnapshot{name=my_repo.my_snapshot}"));
+    }
 
+    @Test
+    public void testRestoreSnapshotStmtBuilder() {
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL");
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors, books");
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors, books with (wait_for_completion=True)");
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL with (wait_for_completion=True)");
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
-        statement = SqlParser.createStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books with (wait_for_completion=True)");
+        Statement statement = SqlParser.createStatement(
+            "RESTORE SNAPSHOT my_repo.my_snapshot " +
+            "TABLE authors PARTITION (year=2015, year=2014), books " +
+            "WITH (wait_for_completion=True)");
         assertThat(statement.toString(), is("RestoreSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={wait_for_completion=true}, " +
-                                            "tableList=Optional[" +
-                                            "[Table{only=false, authors, partitionProperties=[" + "" +
+                                            "tables=[" +
+                                            "Table{only=false, authors, partitionProperties=[" + "" +
                                             "Assignment{column=\"year\", expressions=[2015]}, " +
                                             "Assignment{column=\"year\", expressions=[2014]}]}, " +
-                                            "Table{only=false, books, partitionProperties=[]}]]}"));
+                                            "Table{only=false, books, partitionProperties=[]}]}"));
         statement = SqlParser.createStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL");
         assertThat(statement.toString(), is("RestoreSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={}, " +
-                                            "tableList=Optional.empty}"));
+                                            "tables=[]}"));
     }
 
     @Test

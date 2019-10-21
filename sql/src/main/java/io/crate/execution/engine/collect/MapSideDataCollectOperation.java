@@ -33,7 +33,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
@@ -60,10 +59,6 @@ public class MapSideDataCollectOperation {
 
     public void launch(Runnable runnable, String threadPoolName) throws RejectedExecutionException {
         Executor executor = threadPool.executor(threadPoolName);
-        if (executor instanceof ThreadPoolExecutor) {
-            executor.execute(runnable);
-        } else {
-            runnable.run();
-        }
+        executor.execute(runnable);
     }
 }

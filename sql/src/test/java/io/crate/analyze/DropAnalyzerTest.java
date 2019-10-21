@@ -22,8 +22,10 @@
 
 package io.crate.analyze;
 
+import io.crate.planner.node.ddl.DropAnalyzerPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.Settings;
@@ -43,7 +45,7 @@ public class DropAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void setUpExecutor() throws Exception {
+    public void setUpExecutor() {
         Settings settings = Settings.builder()
             .put(ANALYZER.buildSettingName("a1"),
                 Settings.builder()
@@ -94,6 +96,13 @@ public class DropAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         e = SQLExecutor.builder(clusterService).build();
     }
 
+    private ClusterUpdateSettingsRequest analyze(String stmt) {
+        AnalyzedDropAnalyzer analyzedStatement = e.analyze(stmt);
+        return DropAnalyzerPlan.createRequest(
+            analyzedStatement.name(),
+            e.fulltextAnalyzerResolver());
+    }
+
     private void assertIsMarkedToBeRemove(Settings settings, String settingName) {
         assertThat(settings.keySet(), hasItem(settingName));
         assertThat(settings.get(settingName), nullValue());
@@ -101,28 +110,28 @@ public class DropAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropAnalyzer() {
-        DropAnalyzerStatement analyzedStatement = e.analyze("drop analyzer a1");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), ANALYZER.buildSettingName("a1"));
+        ClusterUpdateSettingsRequest request = analyze("DROP ANALYZER a1");
+        assertIsMarkedToBeRemove(request.persistentSettings(), ANALYZER.buildSettingName("a1"));
     }
 
     @Test
     public void testDropAnalyzerWithCustomTokenizer() {
-        DropAnalyzerStatement analyzedStatement = e.analyze("drop analyzer a2");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), ANALYZER.buildSettingName("a2"));
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), TOKENIZER.buildSettingName("a2_mypattern"));
+        ClusterUpdateSettingsRequest request = analyze("DROP ANALYZER a2");
+        assertIsMarkedToBeRemove(request.persistentSettings(), ANALYZER.buildSettingName("a2"));
+        assertIsMarkedToBeRemove(request.persistentSettings(), TOKENIZER.buildSettingName("a2_mypattern"));
     }
 
     @Test
     public void testDropAnalyzerWithCustomTokenFilter() {
-        DropAnalyzerStatement analyzedStatement = e.analyze("drop analyzer a3");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), ANALYZER.buildSettingName("a3"));
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), TOKEN_FILTER.buildSettingName("a3_lowercase_german"));
+        ClusterUpdateSettingsRequest request = analyze("DROP ANALYZER a3");
+        assertIsMarkedToBeRemove(request.persistentSettings(), ANALYZER.buildSettingName("a3"));
+        assertIsMarkedToBeRemove(request.persistentSettings(), TOKEN_FILTER.buildSettingName("a3_lowercase_german"));
     }
 
     @Test
     public void testDropAnalyzerWithCustomCharFilter() {
-        DropAnalyzerStatement analyzedStatement = e.analyze("drop analyzer a4");
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), ANALYZER.buildSettingName("a4"));
-        assertIsMarkedToBeRemove(analyzedStatement.settingsForRemoval(), CHAR_FILTER.buildSettingName("a4_mymapping"));
+        ClusterUpdateSettingsRequest request = analyze("DROP ANALYZER a4");
+        assertIsMarkedToBeRemove(request.persistentSettings(), ANALYZER.buildSettingName("a4"));
+        assertIsMarkedToBeRemove(request.persistentSettings(), CHAR_FILTER.buildSettingName("a4_mymapping"));
     }
 }

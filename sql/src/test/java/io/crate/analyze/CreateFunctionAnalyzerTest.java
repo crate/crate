@@ -30,9 +30,9 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.user.User;
 import io.crate.data.Row;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Literal;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
@@ -59,30 +59,30 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void testCreateFunctionSimple() {
         AnalyzedStatement analyzedStatement = e.analyze("CREATE FUNCTION bar(long, long)" +
             " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'");
-        assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
+        assertThat(analyzedStatement, instanceOf(AnalyzedCreateFunction.class));
 
-        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
+        AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) analyzedStatement;
         assertThat(analysis.schema(), is("doc"));
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.replace(), is(false));
         assertThat(analysis.returnType(), is(DataTypes.LONG));
         assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of(DataTypes.LONG)));
         assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of(DataTypes.LONG)));
-        assertThat(analysis.language(), is(Literal.fromObject("dummy_lang")));
-        assertThat(analysis.definition(), is(Literal.fromObject("function(a, b) { return a + b; }")));
+        assertThat(analysis.language(), is(Literal.of("dummy_lang")));
+        assertThat(analysis.definition(), is(Literal.of("function(a, b) { return a + b; }")));
     }
 
     @Test
     public void testCreateFunctionWithSchemaName() {
-        CreateFunctionAnalyzedStatement analyzedStatement = e.analyze("CREATE FUNCTION foo.bar(long, long)" +
-            " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'");
+        AnalyzedCreateFunction analyzedStatement = e.analyze("CREATE FUNCTION foo.bar(long, long)" +
+                                                             " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'");
         assertThat(analyzedStatement.schema(), is("foo"));
         assertThat(analyzedStatement.name(), is("bar"));
     }
 
     @Test
     public void testCreateFunctionWithSessionSetSchema() throws Exception {
-        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
+        AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) e.analyzer.boundAnalyze(
             SqlParser.createStatement("CREATE FUNCTION bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
             new CoordinatorTxnCtx(new SessionContext(Option.NONE, User.CRATE_USER, "my_schema")),
@@ -94,7 +94,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testCreateFunctionExplicitSchemaSupersedesSessionSchema() throws Exception {
-        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
+        AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) e.analyzer.boundAnalyze(
             SqlParser.createStatement("CREATE FUNCTION my_other_schema.bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
             new CoordinatorTxnCtx(new SessionContext(Option.NONE, User.CRATE_USER, "my_schema")),
@@ -108,29 +108,29 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void testCreateFunctionOrReplace() {
         AnalyzedStatement analyzedStatement = e.analyze("CREATE OR REPLACE FUNCTION bar()" +
             " RETURNS long LANGUAGE dummy_lang AS 'function() { return 1; }'");
-        assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
+        assertThat(analyzedStatement, instanceOf(AnalyzedCreateFunction.class));
 
-        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
+        AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) analyzedStatement;
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.replace(), is(true));
         assertThat(analysis.returnType(), is(DataTypes.LONG));
-        assertThat(analysis.language(), is(Literal.fromObject("dummy_lang")));
-        assertThat(analysis.definition(), is(Literal.fromObject("function() { return 1; }")));
+        assertThat(analysis.language(), is(Literal.of("dummy_lang")));
+        assertThat(analysis.definition(), is(Literal.of("function() { return 1; }")));
     }
 
     @Test
     public void testCreateFunctionWithComplexGeoDataTypes() {
         AnalyzedStatement analyzedStatement = e.analyze("CREATE FUNCTION bar(geo_point, geo_shape)" +
             " RETURNS geo_point LANGUAGE dummy_lang AS 'function() { return 1; }'");
-        assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
+        assertThat(analyzedStatement, instanceOf(AnalyzedCreateFunction.class));
 
-        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
+        AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) analyzedStatement;
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.replace(), is(false));
         assertThat(analysis.returnType(), is(DataTypes.GEO_POINT));
         assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of(DataTypes.GEO_POINT)));
         assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of(DataTypes.GEO_SHAPE)));
-        assertThat(analysis.language(), is(Literal.fromObject("dummy_lang")));
+        assertThat(analysis.language(), is(Literal.of("dummy_lang")));
     }
 
     @Test
@@ -141,9 +141,9 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
             "   object, ip," +
             "   timestamp with time zone" +
             ") RETURNS array(geo_point) LANGUAGE dummy_lang AS 'function() { return 1; }'");
-        assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
+        assertThat(analyzedStatement, instanceOf(AnalyzedCreateFunction.class));
 
-        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
+        AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) analyzedStatement;
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.replace(), is(false));
         assertThat(analysis.returnType(), is(new ArrayType(DataTypes.GEO_POINT)));
@@ -151,6 +151,6 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
         assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of(ObjectType.untyped())));
         assertThat(analysis.arguments().get(2), is(FunctionArgumentDefinition.of(DataTypes.IP)));
         assertThat(analysis.arguments().get(3), is(FunctionArgumentDefinition.of(DataTypes.TIMESTAMPZ)));
-        assertThat(analysis.language(), is(Literal.fromObject("dummy_lang")));
+        assertThat(analysis.language(), is(Literal.of("dummy_lang")));
     }
 }

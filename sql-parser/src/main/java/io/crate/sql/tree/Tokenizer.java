@@ -21,18 +21,17 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
-public class Tokenizer extends AnalyzerElement {
+public class Tokenizer<T> extends AnalyzerElement<T> {
 
-    private final NamedProperties namedProperties;
+    private final NamedProperties<T> namedProperties;
 
-    public Tokenizer(NamedProperties namedProperties) {
+    public Tokenizer(NamedProperties<T> namedProperties) {
         this.namedProperties = namedProperties;
     }
 
-    public GenericProperties<Expression> properties() {
+    public GenericProperties<T> properties() {
         return namedProperties.properties();
     }
 
@@ -41,25 +40,27 @@ public class Tokenizer extends AnalyzerElement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(namedProperties);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Tokenizer<?> tokenizer = (Tokenizer<?>) o;
+        return Objects.equals(namedProperties, tokenizer.namedProperties);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Tokenizer tokenizer = (Tokenizer) o;
-
-        if (!namedProperties.equals(tokenizer.namedProperties)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(namedProperties);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("namedProperties", namedProperties).toString();
+        return "Tokenizer{" +
+               "namedProperties=" + namedProperties +
+               '}';
     }
 
     @Override

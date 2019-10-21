@@ -39,7 +39,6 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.hash.MurmurHash3;
@@ -51,6 +50,7 @@ import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlus
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -306,8 +306,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
             @Override
             long hash(Object val) {
-                final BytesRef bytes = new BytesRef(DataTypes.STRING.value(val));
-                MurmurHash3.hash128(bytes.bytes, bytes.offset, bytes.length, 0, hash);
+                byte[] bytes = DataTypes.STRING.value(val).getBytes(StandardCharsets.UTF_8);
+                MurmurHash3.hash128(bytes, 0, bytes.length, 0, hash);
                 return hash.h1;
             }
         }

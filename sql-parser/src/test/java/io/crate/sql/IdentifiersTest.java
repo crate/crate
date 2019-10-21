@@ -31,6 +31,13 @@ import static org.hamcrest.core.Is.is;
 public class IdentifiersTest {
 
     @Test
+    public void test_number_of_keywords() {
+        // If this test is failing you are introducing a new reserved keyword which is a breaking change.
+        // Either add the new term to `nonReserved` in `SqlBase.4g` or add a breaking changes entry and adapt this test.
+        assertThat(Identifiers.KEYWORDS.size(), is(95));
+    }
+
+    @Test
     public void testEscape() {
         assertThat(Identifiers.escape(""), is(""));
         assertThat(Identifiers.escape("\""), is("\"\""));

@@ -38,32 +38,35 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
 
     private final Iterable<? extends T> items;
     private final T sentinel;
+    private final boolean involvesIO;
 
     private Iterator<? extends T> it;
     private T current;
 
     public static <T> BatchIterator<T> empty(@Nullable T sentinel) {
-        return of(Collections.emptyList(), sentinel);
+        return of(Collections.emptyList(), sentinel, false);
     }
 
     public static <T> BatchIterator<T> of(T item, @Nullable T sentinel) {
-        return of(Collections.singletonList(item), sentinel);
+        return of(Collections.singletonList(item), sentinel, false);
     }
 
     /**
      * @param items An iterable over the items. It has to be repeatable if {@code moveToStart()} is used.
      * @param sentinel the value for {@link #currentElement()} if un-positioned
+     * @param involvesIO true if consuming the items or properties of the items can involve disk or network IO
      */
-    public static <T> BatchIterator<T> of(Iterable<? extends T> items, @Nullable T sentinel) {
-        return new CloseAssertingBatchIterator<>(new InMemoryBatchIterator<>(items, sentinel));
+    public static <T> BatchIterator<T> of(Iterable<? extends T> items, @Nullable T sentinel, boolean involvesIO) {
+        return new CloseAssertingBatchIterator<>(new InMemoryBatchIterator<>(items, sentinel, involvesIO));
     }
 
     @VisibleForTesting
-    public InMemoryBatchIterator(Iterable<? extends T> items, T sentinel) {
+    public InMemoryBatchIterator(Iterable<? extends T> items, T sentinel, boolean involvesIO) {
         this.items = items;
         this.it = items.iterator();
         this.current = sentinel;
         this.sentinel = sentinel;
+        this.involvesIO = involvesIO;
     }
 
     @Override
@@ -108,6 +111,6 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
 
     @Override
     public boolean involvesIO() {
-        return false;
+        return involvesIO;
     }
 }

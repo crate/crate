@@ -92,14 +92,14 @@ public class SortingTopNCollectorBenchmark {
 
     @Benchmark
     public Object measureBoundedSortingCollector() {
-        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
+        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL, false);
         BatchIterator<Row> sortingBatchIterator = CollectingBatchIterator.newInstance(it, boundedSortingCollector);
         return sortingBatchIterator.loadNextBatch().toCompletableFuture().join();
     }
 
     @Benchmark
     public Object measureUnboundedSortingCollector() {
-        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
+        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL, false);
         BatchIterator<Row> sortingBatchIterator = CollectingBatchIterator.newInstance(it, unboundedSortingCollector);
         return sortingBatchIterator.loadNextBatch().toCompletableFuture().join();
     }

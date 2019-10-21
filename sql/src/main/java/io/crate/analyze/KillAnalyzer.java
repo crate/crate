@@ -21,31 +21,39 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.KillStatement;
+import io.crate.sql.tree.ParameterExpression;
 
-import java.util.UUID;
+import java.util.function.Function;
 
 public class KillAnalyzer {
 
-    private KillAnalyzer() {
+    private final Functions functions;
+
+    KillAnalyzer(Functions functions) {
+        this.functions = functions;
     }
 
-    public static KillAnalyzedStatement analyze(KillStatement killStatement, ParameterContext parameterContext) {
-        var jobIdExpression = killStatement.jobId();
-
-        UUID jobId;
-        if (jobIdExpression != null) {
-            try {
-                jobId = UUID.fromString(ExpressionToStringVisitor
-                    .convert(jobIdExpression, parameterContext.parameters()));
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Can not parse job ID", e);
-            }
+    public AnalyzedKill analyze(KillStatement<Expression> killStatement,
+                                Function<ParameterExpression, Symbol> convertParamFunction,
+                                CoordinatorTxnCtx txnCtx) {
+        Symbol jobId;
+        if (killStatement.jobId() != null) {
+            var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
+                functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+            jobId = exprAnalyzerWithoutFields.convert(
+                killStatement.jobId(),
+                new ExpressionAnalysisContext());
         } else {
             jobId = null;
         }
-
-        return new KillAnalyzedStatement(jobId);
+        return new AnalyzedKill(jobId);
     }
 }

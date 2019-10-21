@@ -104,6 +104,7 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
         static final ColumnIdent MIN_LUCENE_VERSION = new ColumnIdent("min_lucene_version");
         static final ColumnIdent NODE = new ColumnIdent("node");
         static final ColumnIdent SEQ_NO_STATS = new ColumnIdent("seq_no_stats");
+        static final ColumnIdent TRANSLOG_STATS = new ColumnIdent("translog_stats");
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<ShardRowContext>> expressions() {
@@ -129,6 +130,7 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
             .put(Columns.MIN_LUCENE_VERSION, () -> constant(null))
             .put(Columns.NODE, NestedNullObjectExpression::new)
             .put(Columns.SEQ_NO_STATS, NestedNullObjectExpression::new)
+            .put(Columns.TRANSLOG_STATS, NestedNullObjectExpression::new)
             .build();
     }
 
@@ -183,19 +185,28 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
             .register(
                 Columns.SEQ_NO_STATS.name(),
                 ColumnRegistrar.object(
-                    entry(SeqNoStats.MAX_SEQ_NO, LONG, or0IfClosed(r -> r.indexShard().seqNoStats().getMaxSeqNo())),
-                    entry(SeqNoStats.LOCAL_CHECKPOINT, LONG, or0IfClosed(r -> r.indexShard().seqNoStats().getLocalCheckpoint())),
-                    entry(SeqNoStats.GLOBAL_CHECKPOINT, LONG, or0IfClosed(r -> r.indexShard().seqNoStats().getGlobalCheckpoint()))
+                    entry(SeqNoStats.MAX_SEQ_NO, LONG, orDefaultIfClosed(r -> r.indexShard().seqNoStats().getMaxSeqNo(), 0L)),
+                    entry(SeqNoStats.LOCAL_CHECKPOINT, LONG, orDefaultIfClosed(r -> r.indexShard().seqNoStats().getLocalCheckpoint(), 0L)),
+                    entry(SeqNoStats.GLOBAL_CHECKPOINT, LONG, orDefaultIfClosed(r -> r.indexShard().seqNoStats().getGlobalCheckpoint(), 0L))
+                )
+            )
+            .register(
+                Columns.TRANSLOG_STATS.name(),
+                ColumnRegistrar.object(
+                    entry("size", LONG, orDefaultIfClosed(r -> r.indexShard().translogStats().getTranslogSizeInBytes(), 0L)),
+                    entry("uncommitted_size", LONG, orDefaultIfClosed(r -> r.indexShard().translogStats().getUncommittedSizeInBytes(), 0L)),
+                    entry("number_of_operations", INTEGER, orDefaultIfClosed(r -> r.indexShard().translogStats().estimatedNumberOfOperations(), 0)),
+                    entry("uncommitted_operations", INTEGER, orDefaultIfClosed(r -> r.indexShard().translogStats().getUncommittedOperations(), 0))
                 )
             );
     }
 
-    private static <T> Function<T, Long> or0IfClosed(Function<T, Long> getProperty) {
+    private static <T, U> Function<T, U> orDefaultIfClosed(Function<T, U> getProperty, U defaultVal) {
         return x -> {
             try {
                 return getProperty.apply(x);
             } catch (AlreadyClosedException e) {
-                return 0L;
+                return defaultVal;
             }
         };
     }

@@ -22,93 +22,57 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import io.crate.exceptions.PartitionAlreadyExistsException;
-import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.common.collections.Lists2;
 import io.crate.execution.ddl.RepositoryService;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.common.settings.Settings;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
-import static io.crate.analyze.SnapshotSettings.SETTINGS;
+import java.util.function.Function;
 
 class RestoreSnapshotAnalyzer {
 
     private final RepositoryService repositoryService;
-    private final Schemas schemas;
+    private final Functions functions;
 
-    RestoreSnapshotAnalyzer(RepositoryService repositoryService, Schemas schemas) {
+    RestoreSnapshotAnalyzer(RepositoryService repositoryService, Functions functions) {
         this.repositoryService = repositoryService;
-        this.schemas = schemas;
+        this.functions = functions;
     }
 
-    public RestoreSnapshotAnalyzedStatement analyze(RestoreSnapshot node, Analysis analysis) {
-        List<String> nameParts = node.name().getParts();
-        Preconditions.checkArgument(
-            nameParts.size() == 2, "Snapshot name not supported, only <repository>.<snapshot> works.");
-        String repositoryName = nameParts.get(0);
+    public AnalyzedRestoreSnapshot analyze(RestoreSnapshot<Expression> restoreSnapshot,
+                                           Function<ParameterExpression, Symbol> convertParamFunction,
+                                           CoordinatorTxnCtx txnCtx) {
+        List<String> nameParts = restoreSnapshot.name().getParts();
+        if (nameParts.size() != 2) {
+            throw new IllegalArgumentException(
+                "Snapshot name not supported, only <repository>.<snapshot> works.)");
+        }
+        var repositoryName = nameParts.get(0);
+        var snapshotName = nameParts.get(1);
         repositoryService.failIfRepositoryDoesNotExist(repositoryName);
 
-        // validate and extract settings
-        Settings settings = GenericPropertiesConverter.settingsFromProperties(
-            node.properties(), analysis.parameterContext().parameters(), SETTINGS).build();
+        var exprCtx = new ExpressionAnalysisContext();
+        var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
 
-        if (node.tableList().isPresent()) {
-            List<Table> tableList = node.tableList().get();
-            Set<RestoreSnapshotAnalyzedStatement.RestoreTableInfo> restoreTables = new HashSet<>(tableList.size());
-            for (Table table : tableList) {
-                RelationName relationName = RelationName.of(table.getName(),
-                    analysis.sessionContext().searchPath().currentSchema());
+        List<Table<Symbol>> tables = Lists2.map(
+            restoreSnapshot.tables(),
+            (table) -> table.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx)));
+        GenericProperties<Symbol> properties = restoreSnapshot.properties()
+            .map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx));
 
-                boolean tableExists = schemas.tableExists(relationName);
-
-                if (tableExists) {
-                    if (table.partitionProperties().isEmpty()) {
-                        throw new RelationAlreadyExists(relationName);
-                    }
-
-                    DocTableInfo docTableInfo = schemas.getTableInfo(relationName, Operation.RESTORE_SNAPSHOT);
-                    PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                        relationName,
-                        docTableInfo,
-                        table.partitionProperties(),
-                        analysis.parameterContext().parameters());
-                    if (docTableInfo.partitions().contains(partitionName)) {
-                        throw new PartitionAlreadyExistsException(partitionName);
-                    }
-                    restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(relationName, partitionName));
-                } else {
-                    if (table.partitionProperties().isEmpty()) {
-                        restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(relationName, null));
-                    } else {
-                        PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                            relationName,
-                            null,
-                            table.partitionProperties(),
-                            analysis.parameterContext().parameters());
-                        restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(
-                            relationName, partitionName));
-                    }
-                }
-            }
-
-            return RestoreSnapshotAnalyzedStatement.forTables(
-                nameParts.get(1),
-                repositoryName,
-                settings,
-                ImmutableList.copyOf(restoreTables));
-        } else {
-            return RestoreSnapshotAnalyzedStatement.all(nameParts.get(1), repositoryName, settings);
-        }
+        return new AnalyzedRestoreSnapshot(repositoryName, snapshotName, tables, properties);
     }
 }

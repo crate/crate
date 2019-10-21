@@ -29,8 +29,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -88,7 +92,22 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
                 .settings(settings);
             try {
                 for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.getMappings()) {
-                    builder.putMapping(cursor.key, cursor.value);
+                    var mappingSource = XContentHelper.convertToMap(
+                        cursor.value.compressedReference(), false, XContentType.JSON).v2();
+
+                    Object defaultMapping = mappingSource.get("default");
+                    if (defaultMapping instanceof Map && ((Map) defaultMapping).containsKey("_all")) {
+                        Map mapping = (Map) defaultMapping;
+
+                        // Support for `_all` was removed (in favour of `copy_to`.
+                        // We never utilized this but always set `_all: {enabled: false}` if you created a table using SQL in earlier version, so we can safely drop it.
+                        mapping.remove("_all");
+                        builder.putMapping(
+                            cursor.key,
+                            new CompressedXContent(BytesReference.bytes(XContentFactory.jsonBuilder().value(mappingSource))));
+                    } else {
+                        builder.putMapping(cursor.key, cursor.value);
+                    }
                 }
             } catch (IOException e) {
                 logger.error("Error while trying to upgrade template '" + templateName + "'", e);

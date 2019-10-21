@@ -22,37 +22,42 @@
 
 package io.crate.sql.tree;
 
-public class PromoteReplica extends RerouteOption {
+import java.util.Objects;
+import java.util.function.Function;
 
-    private Expression node;
-    private final Expression shardId;
-    private final GenericProperties properties;
+public class PromoteReplica<T> extends RerouteOption {
+
+    private T node;
+    private final T shardId;
+    private final GenericProperties<T> properties;
 
     public static class Properties {
         public static final String ACCEPT_DATA_LOSS = "accept_data_loss";
     }
 
-    public PromoteReplica(Expression node, Expression shardId, GenericProperties properties) {
+    public PromoteReplica(T node, T shardId, GenericProperties<T> properties) {
         this.node = node;
         this.shardId = shardId;
         this.properties = properties;
     }
 
-    public Expression node() {
+    public T node() {
         return node;
     }
 
-    public Expression shardId() {
+    public T shardId() {
         return shardId;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<T> properties() {
         return properties;
     }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitReroutePromoteReplica(this, context);
+    public <U> PromoteReplica<U> map(Function<? super T, ? extends U> mapper) {
+        return new PromoteReplica<>(
+            mapper.apply(node),
+            mapper.apply(shardId),
+            properties.map(mapper));
     }
 
     @Override
@@ -63,24 +68,15 @@ public class PromoteReplica extends RerouteOption {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
-        PromoteReplica that = (PromoteReplica) o;
-
-        if (!node.equals(that.node)) {
-            return false;
-        }
-        if (!shardId.equals(that.shardId)) {
-            return false;
-        }
-        return properties.equals(that.properties);
+        PromoteReplica<?> that = (PromoteReplica<?>) o;
+        return Objects.equals(node, that.node) &&
+               Objects.equals(shardId, that.shardId) &&
+               Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        int result = node.hashCode();
-        result = 31 * result + shardId.hashCode();
-        result = 31 * result + properties.hashCode();
-        return result;
+        return Objects.hash(node, shardId, properties);
     }
 
     @Override
@@ -90,5 +86,10 @@ public class PromoteReplica extends RerouteOption {
                ", shardId=" + shardId +
                ", properties=" + properties +
                '}';
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitReroutePromoteReplica(this, context);
     }
 }

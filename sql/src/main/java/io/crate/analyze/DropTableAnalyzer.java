@@ -44,11 +44,11 @@ class DropTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public DropTableAnalyzedStatement<DocTableInfo> analyze(DropTable node, SessionContext sessionContext) {
+    public AnalyzedDropTable<DocTableInfo> analyze(DropTable<?> node, SessionContext sessionContext) {
         return analyze(node.table().getName(), node.dropIfExists(), sessionContext);
     }
 
-    public DropTableAnalyzedStatement<BlobTableInfo> analyze(DropBlobTable node, SessionContext sessionContext) {
+    public AnalyzedDropTable<BlobTableInfo> analyze(DropBlobTable<?> node, SessionContext sessionContext) {
         List<String> parts = node.table().getName().getParts();
         if (parts.size() != 1 && !parts.get(0).equals(BlobSchemaInfo.NAME)) {
             throw new IllegalArgumentException("No blob tables in schema `" + parts.get(0) + "`");
@@ -59,9 +59,9 @@ class DropTableAnalyzer {
         }
     }
 
-    private <T extends TableInfo> DropTableAnalyzedStatement<T> analyze(QualifiedName name,
-                                                                        boolean dropIfExists,
-                                                                        SessionContext sessionContext) {
+    private <T extends TableInfo> AnalyzedDropTable<T> analyze(QualifiedName name,
+                                                               boolean dropIfExists,
+                                                               SessionContext sessionContext) {
         T tableInfo;
         try {
             //noinspection unchecked
@@ -73,6 +73,6 @@ class DropTableAnalyzer {
                 throw e;
             }
         }
-        return new DropTableAnalyzedStatement<>(tableInfo, dropIfExists);
+        return new AnalyzedDropTable<>(tableInfo, dropIfExists);
     }
 }

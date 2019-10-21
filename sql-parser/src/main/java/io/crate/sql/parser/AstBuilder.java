@@ -326,7 +326,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitAlterClusterDecommissionNode(SqlBaseParser.AlterClusterDecommissionNodeContext ctx) {
-        return new DecommissionNodeStatement((Expression) visit(ctx.node));
+        return new DecommissionNodeStatement<>(visit(ctx.node));
     }
 
     @Override
@@ -458,12 +458,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitTokenizer(SqlBaseParser.TokenizerContext context) {
-        return new Tokenizer((NamedProperties) visit(context.namedProperties()));
+        return new Tokenizer<>((NamedProperties<Expression>) visit(context.namedProperties()));
     }
 
     @Override
     public Node visitNamedProperties(SqlBaseParser.NamedPropertiesContext context) {
-        return new NamedProperties(
+        return new NamedProperties<>(
             getIdentText(context.ident()),
             extractGenericProperties(context.withProperties()));
     }
@@ -679,8 +679,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitKill(SqlBaseParser.KillContext context) {
-        var jobId = visitIfPresent(context.jobId, Expression.class);
-        return new KillStatement(jobId.orElse(null));
+        return new KillStatement<>(
+            visitIfPresent(context.jobId, Expression.class).orElse(null));
     }
 
     @Override
@@ -826,7 +826,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitBlobClusteredInto(SqlBaseParser.BlobClusteredIntoContext ctx) {
-        return new ClusteredBy<>(null, visitIfPresent(ctx.numShards, Expression.class));
+        return new ClusteredBy<>(Optional.empty(), visitIfPresent(ctx.numShards, Expression.class));
     }
 
     @Override
@@ -836,32 +836,32 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitRerouteMoveShard(SqlBaseParser.RerouteMoveShardContext context) {
-        return new RerouteMoveShard(
-            (Expression) visit(context.shardId),
-            (Expression) visit(context.fromNodeId),
-            (Expression) visit(context.toNodeId));
+        return new RerouteMoveShard<>(
+            visit(context.shardId),
+            visit(context.fromNodeId),
+            visit(context.toNodeId));
     }
 
     @Override
     public Node visitReroutePromoteReplica(SqlBaseParser.ReroutePromoteReplicaContext ctx) {
         return new PromoteReplica(
-            (Expression) visit(ctx.nodeId),
-            (Expression) visit(ctx.shardId),
+            visit(ctx.nodeId),
+            visit(ctx.shardId),
             extractGenericProperties(ctx.withProperties()));
     }
 
     @Override
     public Node visitRerouteAllocateReplicaShard(SqlBaseParser.RerouteAllocateReplicaShardContext context) {
-        return new RerouteAllocateReplicaShard(
-            (Expression) visit(context.shardId),
-            (Expression) visit(context.nodeId));
+        return new RerouteAllocateReplicaShard<>(
+            visit(context.shardId),
+            visit(context.nodeId));
     }
 
     @Override
     public Node visitRerouteCancelShard(SqlBaseParser.RerouteCancelShardContext context) {
         return new RerouteCancelShard(
-            (Expression) visit(context.shardId),
-            (Expression) visit(context.nodeId),
+            visit(context.shardId),
+            visit(context.nodeId),
             extractGenericProperties(context.withProperties()));
     }
 
@@ -944,7 +944,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitAlterTableReroute(SqlBaseParser.AlterTableRerouteContext context) {
-        return new AlterTableReroute(
+        return new AlterTableReroute<>(
             (Table) visit(context.alterTableDefinition()),
             context.BLOB() != null,
             (RerouteOption) visit(context.rerouteOption()));

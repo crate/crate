@@ -24,12 +24,6 @@ package io.crate.analyze;
 
 import io.crate.exceptions.AnalyzerUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import org.elasticsearch.common.settings.Settings;
-
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 
 public class DropAnalyzerStatementAnalyzer {
 
@@ -39,36 +33,13 @@ public class DropAnalyzerStatementAnalyzer {
         this.ftResolver = ftResolver;
     }
 
-    public DropAnalyzerStatement analyze(String analyzerName) {
+    public AnalyzedDropAnalyzer analyze(String analyzerName) {
         if (ftResolver.hasBuiltInAnalyzer(analyzerName)) {
             throw new IllegalArgumentException("Cannot drop a built-in analyzer");
         }
         if (ftResolver.hasCustomAnalyzer(analyzerName) == false) {
             throw new AnalyzerUnknownException(analyzerName);
         }
-        Settings.Builder builder = Settings.builder();
-        builder.putNull(ANALYZER.buildSettingName(analyzerName));
-
-        Settings settings = ftResolver.getCustomAnalyzer(analyzerName);
-
-        String tokenizerName = settings.get(ANALYZER.buildSettingChildName(analyzerName, TOKENIZER.getName()));
-        if (tokenizerName != null
-            && ftResolver.hasCustomThingy(tokenizerName, FulltextAnalyzerResolver.CustomType.TOKENIZER)) {
-            builder.putNull(TOKENIZER.buildSettingName(tokenizerName));
-        }
-
-        for (String tokenFilterName : settings.getAsList(ANALYZER.buildSettingChildName(analyzerName, TOKEN_FILTER.getName()))) {
-            if (ftResolver.hasCustomThingy(tokenFilterName, FulltextAnalyzerResolver.CustomType.TOKEN_FILTER)) {
-                builder.putNull(TOKEN_FILTER.buildSettingName(tokenFilterName));
-            }
-        }
-
-        for (String charFilterName : settings.getAsList(ANALYZER.buildSettingChildName(analyzerName, CHAR_FILTER.getName()))) {
-            if (ftResolver.hasCustomThingy(charFilterName, FulltextAnalyzerResolver.CustomType.CHAR_FILTER)) {
-                builder.putNull(CHAR_FILTER.buildSettingName(charFilterName));
-            }
-        }
-
-        return new DropAnalyzerStatement(builder.build());
+        return new AnalyzedDropAnalyzer(analyzerName);
     }
 }

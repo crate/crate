@@ -22,42 +22,52 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.data.RowN;
+import io.crate.planner.DecommissionNodePlan;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isInputColumn;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class DecommissionNodeAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private PlannerContext plannerContext;
 
     @Before
-    public void setUpExecutorWithT1AndT2() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .build();
+    public void setup() {
+        e = SQLExecutor.builder(clusterService).build();
+        plannerContext = e.getPlannerContext(clusterService.state());
+    }
+
+    private String analyze(String stmt, Object... arguments) {
+        AnalyzedDecommissionNode analyzedStatement = e.analyze(stmt);
+        return DecommissionNodePlan.boundNodeIdOrName(
+            analyzedStatement,
+            plannerContext.transactionContext(),
+            plannerContext.functions(),
+            new RowN(arguments),
+            SubQueryResults.EMPTY
+        );
     }
 
     @Test
-    public void testDecommissionNodeUsingStringLiteral() throws Exception {
-        AnalyzedDecommissionNodeStatement statement = e.analyze("alter cluster decommission 'aNodeIdOrName'");
-        assertThat(statement.nodeIdOrName(), isLiteral("aNodeIdOrName"));
+    public void testDecommissionNodeUsingStringLiteral() {
+        assertThat(
+            analyze("ALTER CLUSTER DECOMMISSION 'aNodeIdOrName'"),
+            is("aNodeIdOrName")
+        );
     }
 
     @Test
-    public void testDecommissionNodeUsingParameter() throws Exception {
-        AnalyzedDecommissionNodeStatement statement = e.analyze("alter cluster decommission ?");
-        assertThat(statement.nodeIdOrName(), instanceOf(ParameterSymbol.class));
-    }
-
-    @Test
-    public void testDecommissionNodeFailsIfNodeIsMissing() {
-        expectedException.expectMessage("mismatched input '<EOF>'");
-        e.analyze("alter cluster decommission");
+    public void testDecommissionNodeUsingParameter() {
+        assertThat(
+            analyze("ALTER CLUSTER DECOMMISSION ?", "node_name"),
+            is("node_name")
+        );
     }
 }

@@ -116,7 +116,6 @@ public class Analyzer {
     private final RefreshTableAnalyzer refreshTableAnalyzer;
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
     private final AlterTableAnalyzer alterTableAnalyzer;
-    private final AlterBlobTableAnalyzer alterBlobTableAnalyzer;
     private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
     private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
     private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
@@ -133,12 +132,12 @@ public class Analyzer {
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final PrivilegesAnalyzer privilegesAnalyzer;
     private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
-    private final CreateUserAnalyzer createUserAnalyzer;
-    private final AlterUserAnalyzer alterUserAnalyzer;
+    private final UserAnalyzer userAnalyzer;
     private final CreateViewAnalyzer createViewAnalyzer;
     private final Schemas schemas;
     private final SwapTableAnalyzer swapTableAnalyzer;
     private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
+    private final KillAnalyzer killAnalyzer;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -159,6 +158,7 @@ public class Analyzer {
         this.userManager = userManager;
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(functions);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, functions);
+        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
         this.swapTableAnalyzer = new SwapTableAnalyzer(functions, schemas);
         this.createViewAnalyzer = new CreateViewAnalyzer(relationAnalyzer);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
@@ -172,6 +172,19 @@ public class Analyzer {
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
         this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, functions);
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
+        this.userAnalyzer = new UserAnalyzer(functions);
+        this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, functions);
+        this.createFunctionAnalyzer = new CreateFunctionAnalyzer(functions);
+        this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
+        this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
+        this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, functions);
+        FulltextAnalyzerResolver fulltextAnalyzerResolver =
+            new FulltextAnalyzerResolver(clusterService, analysisRegistry);
+        this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver, functions);
+        this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
+        this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
+        this.killAnalyzer = new KillAnalyzer(functions);
+        this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -182,30 +195,27 @@ public class Analyzer {
             explainStatementAnalyzer,
             createTableStatementAnalyzer,
             alterTableAnalyzer,
+            alterTableAddColumnAnalyzer,
             optimizeTableAnalyzer,
             createRepositoryAnalyzer,
             dropRepositoryAnalyzer,
             createSnapshotAnalyzer,
-            dropSnapshotAnalyzer
+            dropSnapshotAnalyzer,
+            userAnalyzer,
+            createBlobTableAnalyzer,
+            createFunctionAnalyzer,
+            dropFunctionAnalyzer,
+            dropTableAnalyzer,
+            refreshTableAnalyzer,
+            restoreSnapshotAnalyzer,
+            createAnalyzerStatementAnalyzer,
+            dropAnalyzerStatementAnalyzer,
+            decommissionNodeAnalyzer,
+            killAnalyzer,
+            alterTableRerouteAnalyzer
         );
-        FulltextAnalyzerResolver fulltextAnalyzerResolver =
-            new FulltextAnalyzerResolver(clusterService, analysisRegistry);
-        NumberOfShards numberOfShards = new NumberOfShards(clusterService);
-        this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, numberOfShards);
-        this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
-        this.dropAnalyzerStatementAnalyzer = new DropAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
-        this.refreshTableAnalyzer = new RefreshTableAnalyzer(functions, schemas);
-        this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
-        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
-        this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
-        this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
-        this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
-        this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
-        this.createUserAnalyzer = new CreateUserAnalyzer(functions);
-        this.alterUserAnalyzer = new AlterUserAnalyzer(functions);
-        this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);
     }
 
     public Analysis boundAnalyze(Statement statement, CoordinatorTxnCtx coordinatorTxnCtx, ParameterContext parameterContext) {
@@ -270,7 +280,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitDropTable(DropTable node, Analysis context) {
+        public AnalyzedStatement visitDropTable(DropTable<?> node, Analysis context) {
             return dropTableAnalyzer.analyze(node, context.sessionContext());
         }
 
@@ -310,8 +320,11 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, Analysis context) {
-            return createAnalyzerStatementAnalyzer.analyze(node, context);
+        public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer<?> node, Analysis context) {
+            return createAnalyzerStatementAnalyzer.analyze(
+                (CreateAnalyzer<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override
@@ -320,18 +333,22 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateBlobTable(CreateBlobTable node, Analysis context) {
-            return createBlobTableAnalyzer.analyze(node, context.parameterContext());
+        public AnalyzedStatement visitCreateBlobTable(CreateBlobTable<?> node, Analysis context) {
+            return createBlobTableAnalyzer.analyze(
+                (CreateBlobTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override
-        public AnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis context) {
+        public AnalyzedStatement visitDropBlobTable(DropBlobTable<?> node, Analysis context) {
             return dropTableAnalyzer.analyze(node, context.sessionContext());
         }
 
         @Override
-        public AnalyzedStatement visitAlterBlobTable(AlterBlobTable node, Analysis context) {
-            return alterBlobTableAnalyzer.analyze(node, context.parameterContext().parameters());
+        public AnalyzedStatement visitAlterBlobTable(AlterBlobTable<?> node, Analysis context) {
+            return alterTableAnalyzer.analyze(
+                (AlterBlobTable<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override
@@ -360,7 +377,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis analysis) {
+        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn<?> node, Analysis analysis) {
             return alterTableAddColumnAnalyzer.analyze(
                 (AlterTableAddColumn<Expression>) node,
                 analysis.paramTypeHints(),
@@ -375,8 +392,11 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterTableReroute(AlterTableReroute node, Analysis context) {
-            return alterTableRerouteAnalyzer.analyze(node, context);
+        public AnalyzedStatement visitAlterTableReroute(AlterTableReroute<?> node, Analysis context) {
+            return alterTableRerouteAnalyzer.analyze(
+                (AlterTableReroute<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override
@@ -390,8 +410,11 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
-            return KillAnalyzer.analyze(node, context.parameterContext());
+        public AnalyzedStatement visitKillStatement(KillStatement<?> node, Analysis context) {
+            return killAnalyzer.analyze(
+                (KillStatement<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override
@@ -413,31 +436,37 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateFunction(CreateFunction node, Analysis context) {
-            return createFunctionAnalyzer.analyze(node, context);
+        public AnalyzedStatement visitCreateFunction(CreateFunction<?> node, Analysis context) {
+            return createFunctionAnalyzer.analyze(
+                (CreateFunction<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext(),
+                context.sessionContext().searchPath());
         }
 
         @Override
         public AnalyzedStatement visitDropFunction(DropFunction node, Analysis context) {
-            return dropFunctionAnalyzer.analyze(node, context);
+            return dropFunctionAnalyzer.analyze(node, context.sessionContext().searchPath());
         }
 
         @Override
-        public AnalyzedStatement visitCreateUser(CreateUser node, Analysis context) {
-            return createUserAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
+        public AnalyzedStatement visitCreateUser(CreateUser<?> node, Analysis context) {
+            return userAnalyzer.analyze(
+                (CreateUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override
         public AnalyzedStatement visitDropUser(DropUser node, Analysis context) {
-            return new DropUserAnalyzedStatement(
+            return new AnalyzedDropUser(
                 node.name(),
                 node.ifExists()
             );
         }
 
         @Override
-        public AnalyzedStatement visitAlterUser(AlterUser node, Analysis context) {
-            return alterUserAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
+        public AnalyzedStatement visitAlterUser(AlterUser<?> node, Analysis context) {
+            return userAnalyzer.analyze(
+                (AlterUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override
@@ -487,7 +516,10 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitRestoreSnapshot(RestoreSnapshot node, Analysis context) {
-            return restoreSnapshotAnalyzer.analyze(node, context);
+            return restoreSnapshotAnalyzer.analyze(
+                (RestoreSnapshot<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override
@@ -530,12 +562,12 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterClusterDecommissionNode(DecommissionNodeStatement decommissionNodeStatement,
-                                                                   Analysis analysis) {
-            return decommissionNodeAnalyzer.analyze(decommissionNodeStatement,
-                analysis.transactionContext(),
-                analysis.paramTypeHints()
-            );
+        public AnalyzedStatement visitAlterClusterDecommissionNode(DecommissionNodeStatement<?> node,
+                                                                   Analysis context) {
+            return decommissionNodeAnalyzer.analyze(
+                (DecommissionNodeStatement<Expression>) node,
+                context.transactionContext(),
+                context.paramTypeHints());
         }
 
         @Override

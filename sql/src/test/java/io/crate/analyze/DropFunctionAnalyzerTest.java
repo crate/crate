@@ -56,9 +56,9 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropFunctionSimple() throws Exception {
         AnalyzedStatement analyzedStatement = e.analyze("DROP FUNCTION bar(long, object)");
-        assertThat(analyzedStatement, instanceOf(DropFunctionAnalyzedStatement.class));
+        assertThat(analyzedStatement, instanceOf(AnalyzedDropFunction.class));
 
-        DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) analyzedStatement;
+        AnalyzedDropFunction analysis = (AnalyzedDropFunction) analyzedStatement;
         assertThat(analysis.schema(), is("doc"));
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.ifExists(), is(false));
@@ -68,7 +68,7 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropFunctionWithSessionSetSchema() throws Exception {
-        DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
+        AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.boundAnalyze(
             SqlParser.createStatement("DROP FUNCTION bar(long, object)"),
             new CoordinatorTxnCtx(new SessionContext(Option.NONE, User.CRATE_USER, "my_schema")),
             new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
@@ -79,7 +79,7 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropFunctionExplicitSchemaSupersedesSessionSchema() throws Exception {
-        DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
+        AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.boundAnalyze(
             SqlParser.createStatement("DROP FUNCTION my_other_schema.bar(long, object)"),
             new CoordinatorTxnCtx(new SessionContext(Option.NONE, User.CRATE_USER, "my_schema")),
             new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
@@ -91,9 +91,9 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropFunctionIfExists() throws Exception {
         AnalyzedStatement analyzedStatement = e.analyze("DROP FUNCTION IF EXISTS bar(arg_long long, arg_obj object)");
-        assertThat(analyzedStatement, instanceOf(DropFunctionAnalyzedStatement.class));
+        assertThat(analyzedStatement, instanceOf(AnalyzedDropFunction.class));
 
-        DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) analyzedStatement;
+        AnalyzedDropFunction analysis = (AnalyzedDropFunction) analyzedStatement;
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.ifExists(), is(true));
         assertThat(analysis.argumentTypes().get(0), is(DataTypes.LONG));

@@ -34,6 +34,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTablePlan;
+import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
@@ -121,7 +122,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 SubQueryResults.EMPTY
             );
         } else {
-            throw new AssertionError("Statement of type " + analyzedStatement.getClass() + " not supported");
+            return (S) analyzedStatement;
         }
     }
 
@@ -671,10 +672,20 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 ") clustered into 0 shards");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testBlobTableClusteredIntoZeroShards() {
-        analyze("create blob table my_table " +
-                  "clustered into 0 shards");
+        AnalyzedCreateBlobTable blobTable = analyze("create blob table my_table clustered into 0 shards");
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("num_shards in CLUSTERED clause must be greater than 0");
+        CreateBlobTablePlan.buildSettings(
+            blobTable.createBlobTable(),
+            plannerContext.transactionContext(),
+            plannerContext.functions(),
+            new RowN(new Object[0]),
+            SubQueryResults.EMPTY,
+            new NumberOfShards(clusterService));
+
     }
 
     @Test

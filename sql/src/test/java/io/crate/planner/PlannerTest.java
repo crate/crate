@@ -4,7 +4,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
-import io.crate.planner.node.management.KillPlan;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -17,7 +16,6 @@ import java.util.Collections;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class PlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -62,19 +60,6 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));
         assertThat(plannerContext.nextExecutionPhaseId(), is(1));
-    }
-
-    @Test
-    public void testKillPlanAll() throws Exception {
-        KillPlan killPlan = e.plan("kill all");
-        assertThat(killPlan, instanceOf(KillPlan.class));
-        assertThat(killPlan.jobId(), is(nullValue()));
-    }
-
-    @Test
-    public void testKillPlanJobs() throws Exception {
-        KillPlan killJobsPlan = e.plan("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
-        assertThat(killJobsPlan.jobId().toString(), is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
     }
 
     @Test

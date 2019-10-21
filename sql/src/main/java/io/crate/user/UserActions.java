@@ -29,6 +29,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.SecureString;
 
@@ -36,6 +37,7 @@ import javax.annotation.Nullable;
 import java.security.GeneralSecurityException;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
 public final class UserActions {
 
@@ -43,7 +45,7 @@ public final class UserActions {
     }
 
     @Nullable
-    public static SecureHash generateSecureHash(Map<String, Symbol> userStmtProperties,
+    public static SecureHash generateSecureHash(GenericProperties<Symbol> userStmtProperties,
                                                 Row parameters,
                                                 TransactionContext txnCtx,
                                                 Functions functions) throws GeneralSecurityException, IllegalArgumentException {
@@ -60,15 +62,22 @@ public final class UserActions {
 
     @VisibleForTesting
     @Nullable
-    static SecureString getUserPasswordProperty(Map<String, Symbol> userStmtProperties,
+    static SecureString getUserPasswordProperty(GenericProperties<Symbol> userStmtProperties,
                                                 Row parameters,
                                                 TransactionContext txnCtx,
                                                 Functions functions) throws IllegalArgumentException {
+        Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
+            txnCtx,
+            functions,
+            x,
+            parameters,
+            SubQueryResults.EMPTY
+        );
+        Map<String, Object> properties = userStmtProperties.map(eval).properties();
         final String PASSWORD_PROPERTY = "password";
-        for (String key : userStmtProperties.keySet()) {
+        for (String key : properties.keySet()) {
             if (PASSWORD_PROPERTY.equals(key)) {
-                String value = DataTypes.STRING.value(
-                    SymbolEvaluator.evaluate(txnCtx, functions, userStmtProperties.get(key), parameters, SubQueryResults.EMPTY));
+                String value = DataTypes.STRING.value(properties.get(key));
                 if (value != null) {
                     return new SecureString(value.toCharArray());
                 }

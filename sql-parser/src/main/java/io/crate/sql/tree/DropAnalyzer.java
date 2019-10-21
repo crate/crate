@@ -46,7 +46,6 @@ public class DropAnalyzer extends Statement {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(name);
     }
 

@@ -232,8 +232,10 @@ public class BigArrays {
         this(recycler, breakerService, breakerName, false);
     }
 
-    protected BigArrays(PageCacheRecycler recycler, @Nullable final CircuitBreakerService breakerService, String breakerName,
-                        boolean checkBreaker) {
+    public BigArrays(PageCacheRecycler recycler,
+                     @Nullable final CircuitBreakerService breakerService,
+                     String breakerName,
+                     boolean checkBreaker) {
         this.checkBreaker = checkBreaker;
         this.recycler = recycler;
         this.breakerService = breakerService;

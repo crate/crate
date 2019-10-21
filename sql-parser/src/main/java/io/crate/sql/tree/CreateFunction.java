@@ -28,22 +28,23 @@ package io.crate.sql.tree;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
-public class CreateFunction extends Statement {
+public class CreateFunction<T> extends Statement {
 
     private final QualifiedName name;
     private final boolean replace;
     private final List<FunctionArgument> arguments;
-    private final ColumnType returnType;
-    private final Expression language;
-    private final Expression definition;
+    private final ColumnType<T> returnType;
+    private final T language;
+    private final T definition;
 
     public CreateFunction(QualifiedName name,
                           boolean replace,
                           List<FunctionArgument> arguments,
-                          ColumnType returnType,
-                          Expression language,
-                          Expression definition) {
+                          ColumnType<T> returnType,
+                          T language,
+                          T definition) {
         this.name = name;
         this.replace = replace;
         this.arguments = arguments;
@@ -64,17 +65,29 @@ public class CreateFunction extends Statement {
         return arguments;
     }
 
-    public ColumnType returnType() {
+    public ColumnType<T> returnType() {
         return returnType;
     }
 
-    public Expression language() {
+    public T language() {
         return language;
     }
 
-    public Expression definition() {
+    public T definition() {
         return definition;
     }
+
+    public <U> CreateFunction<U> map(Function<? super T, ? extends U> mapper) {
+        return new CreateFunction<>(
+            name,
+            replace,
+            arguments,
+            returnType.map(mapper),
+            mapper.apply(language),
+            mapper.apply(definition)
+        );
+    }
+
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

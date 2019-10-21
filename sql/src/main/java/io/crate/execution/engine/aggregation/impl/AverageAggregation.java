@@ -31,6 +31,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -102,6 +103,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
         public static final int ID = 1024;
         private static final AverageStateType INSTANCE = new AverageStateType();
+        private static final int AVERAGE_STATE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(AverageState.class);
 
         @Override
         public int id() {
@@ -150,7 +152,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
         @Override
         public int fixedSize() {
-            return DataTypes.LONG.fixedSize() + DataTypes.DOUBLE.fixedSize();
+            return AVERAGE_STATE_SIZE;
         }
     }
 

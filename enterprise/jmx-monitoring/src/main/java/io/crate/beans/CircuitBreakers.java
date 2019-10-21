@@ -23,55 +23,9 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.CircuitBreakerStats;
 
-import java.beans.ConstructorProperties;
-
 public class CircuitBreakers implements CircuitBreakersMXBean {
 
     public static final String NAME = "io.crate.monitoring:type=CircuitBreakers";
-
-    public static class Stats {
-
-        private final String name;
-        private final long limit;
-        private final long used;
-        private final long trippedCount;
-        private final double overhead;
-
-        @SuppressWarnings("WeakerAccess")
-        @ConstructorProperties({"name", "limit", "used", "trippedCount", "overhead"})
-        public Stats(String name, long limit, long used, long trippedCount, double overhead) {
-            this.name = name;
-            this.limit = limit;
-            this.used = used;
-            this.trippedCount = trippedCount;
-            this.overhead = overhead;
-        }
-
-        @SuppressWarnings("unused")
-        public String getName() {
-            return name;
-        }
-
-        @SuppressWarnings("unused")
-        public long getLimit() {
-            return limit;
-        }
-
-        @SuppressWarnings("unused")
-        public long getUsed() {
-            return used;
-        }
-
-        @SuppressWarnings("unused")
-        public long getTrippedCount() {
-            return trippedCount;
-        }
-
-        @SuppressWarnings("unused")
-        public double getOverhead() {
-            return overhead;
-        }
-    }
 
     private final CircuitBreakerService circuitBreakerService;
 
@@ -79,46 +33,38 @@ public class CircuitBreakers implements CircuitBreakersMXBean {
         this.circuitBreakerService = circuitBreakerService;
     }
 
-    private Stats getStats(String name) {
-        CircuitBreakerStats stats = circuitBreakerService.stats(name);
-        return new Stats(
-            stats.getName(), stats.getLimit(), stats.getEstimated(), stats.getTrippedCount(), stats.getOverhead());
+    @Override
+    public CircuitBreakerStats getParent() {
+        return circuitBreakerService.stats(CircuitBreaker.PARENT);
     }
 
     @Override
-    public Stats getParent() {
-        CircuitBreakerStats stats = circuitBreakerService.stats().getStats(CircuitBreaker.PARENT);
-        return new Stats(
-            stats.getName(), stats.getLimit(), stats.getEstimated(), stats.getTrippedCount(), stats.getOverhead());
+    public CircuitBreakerStats getFieldData() {
+        return circuitBreakerService.stats(CircuitBreaker.FIELDDATA);
     }
 
     @Override
-    public Stats getFieldData() {
-        return getStats(CircuitBreaker.FIELDDATA);
+    public CircuitBreakerStats getInFlightRequests() {
+        return circuitBreakerService.stats(CircuitBreaker.IN_FLIGHT_REQUESTS);
     }
 
     @Override
-    public Stats getInFlightRequests() {
-        return getStats(CircuitBreaker.IN_FLIGHT_REQUESTS);
+    public CircuitBreakerStats getRequest() {
+        return circuitBreakerService.stats(CircuitBreaker.REQUEST);
     }
 
     @Override
-    public Stats getRequest() {
-        return getStats(CircuitBreaker.REQUEST);
+    public CircuitBreakerStats getQuery() {
+        return circuitBreakerService.stats(CrateCircuitBreakerService.QUERY);
     }
 
     @Override
-    public Stats getQuery() {
-        return getStats(CrateCircuitBreakerService.QUERY);
+    public CircuitBreakerStats getJobsLog() {
+        return circuitBreakerService.stats(CrateCircuitBreakerService.JOBS_LOG);
     }
 
     @Override
-    public Stats getJobsLog() {
-        return getStats(CrateCircuitBreakerService.JOBS_LOG);
-    }
-
-    @Override
-    public Stats getOperationsLog() {
-        return getStats(CrateCircuitBreakerService.OPERATIONS_LOG);
+    public CircuitBreakerStats getOperationsLog() {
+        return circuitBreakerService.stats(CrateCircuitBreakerService.OPERATIONS_LOG);
     }
 }

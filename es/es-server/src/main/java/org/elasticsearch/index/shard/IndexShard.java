@@ -99,6 +99,7 @@ import org.elasticsearch.index.store.StoreFileMetaData;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
+import org.elasticsearch.index.translog.TranslogStats;
 import org.elasticsearch.indices.IndexingMemoryController;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -895,6 +896,10 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      */
     public SeqNoStats seqNoStats() {
         return getEngine().getSeqNoStats(replicationTracker.getGlobalCheckpoint());
+    }
+
+    public TranslogStats translogStats() {
+        return getEngine().getTranslogStats();
     }
 
     public StoreStats storeStats() {

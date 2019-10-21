@@ -162,10 +162,11 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitAlterClusterDecommissionNode(DecommissionNodeStatement decommissionNodeStatement,
+        public Void visitAlterClusterDecommissionNode(DecommissionNodeStatement<?> decommissionNode,
                                                       Integer indent) {
             append(indent, "ALTER CLUSTER DECOMMISSION ");
-            decommissionNodeStatement.nodeIdOrName().accept(this, indent);
+            ((DecommissionNodeStatement<Expression>) decommissionNode)
+                .nodeIdOrName().accept(this, indent);
             return null;
         }
 
@@ -786,7 +787,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitDropTable(DropTable node, Integer indent) {
+        public Void visitDropTable(DropTable<?> node, Integer indent) {
             builder.append("DROP TABLE ");
             if (node.dropIfExists()) {
                 builder.append("IF EXISTS ");
@@ -796,7 +797,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitDropBlobTable(DropBlobTable node, Integer indent) {
+        public Void visitDropBlobTable(DropBlobTable<?> node, Integer indent) {
             builder.append("DROP BLOB TABLE ");
             if (node.ignoreNonExistentTable()) {
                 builder.append("IF EXISTS ");

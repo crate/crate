@@ -45,6 +45,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -162,7 +164,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
         assertEquals(26L, response.rowCount());
-        assertEquals(17, response.cols().length);
+        assertEquals(18, response.cols().length);
         assertThat(response.cols(), arrayContaining(
             "blob_path",
             "id",
@@ -180,7 +182,8 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
             "seq_no_stats",
             "size",
             "state",
-            "table_name"));
+            "table_name",
+            "translog_stats"));
     }
 
     @Test
@@ -202,7 +205,18 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name in ('characters')");
         assertEquals(8L, response.rowCount());
-        assertEquals(17, response.cols().length);
+    }
+
+    @Test
+    public void test_translog_stats_can_be_retrieved() {
+        execute("SELECT translog_stats, translog_stats['size'] FROM sys.shards " +
+                "WHERE id = 0 AND \"primary\" = true AND table_name = 'characters'");
+        Object[] resultRow = response.rows()[0];
+        Map<String, Object> translogStats = (Map<String, Object>) resultRow[0];
+        assertThat(((Number) translogStats.get("size")).longValue(), is(resultRow[1]));
+        assertThat(((Number) translogStats.get("uncommitted_size")).longValue(), greaterThanOrEqualTo(0L));
+        assertThat(((Number) translogStats.get("number_of_operations")).longValue(), greaterThanOrEqualTo(0L));
+        assertThat(((Number) translogStats.get("uncommitted_operations")).longValue(), greaterThanOrEqualTo(0L));
     }
 
     @Test

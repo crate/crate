@@ -49,8 +49,8 @@ public class PgCatalogTableDefinitions {
 
         tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(PGTypes.pgTypes()),
-            PgTypeTable.expressions()
-        ));
+            PgTypeTable.expressions(),
+            false));
         tableDefinitions.put(PgClassTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::relations,
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn())
@@ -60,8 +60,8 @@ public class PgCatalogTableDefinitions {
         ));
         tableDefinitions.put(PgDatabaseTable.NAME, new StaticTableDefinition<>(
             () -> completedFuture(singletonList(null)),
-            PgDatabaseTable.expressions()
-        ));
+            PgDatabaseTable.expressions(),
+            false));
         tableDefinitions.put(PgNamespaceTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
             (user, s) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name()),
@@ -69,8 +69,8 @@ public class PgCatalogTableDefinitions {
         ));
         tableDefinitions.put(PgAttrDefTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(Collections.emptyList()),
-            PgAttrDefTable.expressions()
-        ));
+            PgAttrDefTable.expressions(),
+            false));
         tableDefinitions.put(PgAttributeTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::columns,
             (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn())
@@ -79,8 +79,8 @@ public class PgCatalogTableDefinitions {
         ));
         tableDefinitions.put(PgIndexTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(Collections.emptyList()),
-            PgIndexTable.expressions()
-        ));
+            PgIndexTable.expressions(),
+            false));
         tableDefinitions.put(PgConstraintTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::constraints,
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relationName().fqn()),
@@ -88,7 +88,8 @@ public class PgCatalogTableDefinitions {
         ));
         tableDefinitions.put(PgDescriptionTable.NAME, new StaticTableDefinition<>(
             () -> completedFuture(emptyList()),
-            PgDescriptionTable.expressions())
+            PgDescriptionTable.expressions(),
+            false)
         );
 
         Iterable<NamedSessionSetting> sessionSettings =

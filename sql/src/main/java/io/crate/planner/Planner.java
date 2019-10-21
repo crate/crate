@@ -24,46 +24,59 @@ package io.crate.planner;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
+import io.crate.analyze.AnalyzedAlterUser;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
+import io.crate.analyze.AnalyzedCreateAnalyzer;
+import io.crate.analyze.AnalyzedCreateBlobTable;
+import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
-import io.crate.analyze.AnalyzedDecommissionNodeStatement;
+import io.crate.analyze.AnalyzedCreateUser;
+import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
+import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.AnalyzedOptimizeTable;
+import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedSwapTable;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
-import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
-import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DeallocateAnalyzedStatement;
-import io.crate.analyze.DropAnalyzerStatement;
-import io.crate.analyze.DropTableAnalyzedStatement;
+import io.crate.analyze.AnalyzedDropAnalyzer;
+import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
-import io.crate.analyze.KillAnalyzedStatement;
+import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.NumberOfShards;
+import io.crate.analyze.AnalyzedPromoteReplica;
+import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
+import io.crate.analyze.AnalyzedRerouteCancelShard;
+import io.crate.analyze.AnalyzedRerouteMoveShard;
+import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.auth.user.UserManager;
 import io.crate.exceptions.LicenseViolationException;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.expression.symbol.Symbol;
@@ -75,24 +88,34 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
+import io.crate.planner.node.ddl.AlterBlobTablePlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
-import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
+import io.crate.planner.node.ddl.AlterUserPlan;
+import io.crate.planner.node.ddl.CreateAnalyzerPlan;
+import io.crate.planner.node.ddl.CreateBlobTablePlan;
+import io.crate.planner.node.ddl.DropAnalyzerPlan;
+import io.crate.planner.node.ddl.CreateFunctionPlan;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
+import io.crate.planner.node.ddl.CreateUserPlan;
+import io.crate.planner.node.ddl.DropFunctionPlan;
 import io.crate.planner.node.ddl.DropRepositoryPlan;
 import io.crate.planner.node.ddl.DropSnapshotPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
-import io.crate.planner.node.ddl.GenericDDLPlan;
+import io.crate.planner.node.ddl.DropUserPlan;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.node.ddl.RefreshTablePlan;
+import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.node.dml.LegacyUpsertById;
+import io.crate.planner.node.management.AlterTableReroutePlan;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyStatementPlanner;
@@ -131,6 +154,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final NumberOfShards numberOfShards;
     private final TableCreator tableCreator;
     private final Schemas schemas;
+    private final UserManager userManager;
 
     private List<String> awarenessAttributes;
 
@@ -142,7 +166,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    LicenseService licenseService,
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
-                   Schemas schemas) {
+                   Schemas schemas,
+                   UserManager userManager) {
         this(
             settings,
             clusterService,
@@ -151,6 +176,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             numberOfShards,
             tableCreator,
             schemas,
+            userManager,
             () -> licenseService.getLicenseState() == LicenseService.LicenseState.VALID
         );
     }
@@ -163,6 +189,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
                    Schemas schemas,
+                   UserManager userManager,
                    BooleanSupplier hasValidLicense) {
         this.clusterService = clusterService;
         this.functions = functions;
@@ -171,6 +198,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
         this.schemas = schemas;
+        this.userManager = userManager;
         initAwarenessAttributes(settings);
     }
 
@@ -239,7 +267,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitDecommissionNode(AnalyzedDecommissionNodeStatement decommissionNode, PlannerContext context) {
+    public Plan visitDecommissionNode(AnalyzedDecommissionNode decommissionNode, PlannerContext context) {
         return new DecommissionNodePlan(decommissionNode);
     }
 
@@ -311,17 +339,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    protected Plan visitDDLStatement(DDLStatement statement, PlannerContext context) {
-        return new GenericDDLPlan(statement);
-    }
-
-    @Override
     public Plan visitDCLStatement(DCLStatement statement, PlannerContext context) {
         return new GenericDCLPlan(statement);
     }
 
     @Override
-    public Plan visitDropTable(DropTableAnalyzedStatement<?> dropTable, PlannerContext context) {
+    public Plan visitDropTable(AnalyzedDropTable<?> dropTable, PlannerContext context) {
         TableInfo table = dropTable.table();
         if (table == null) {
             return NoopPlan.INSTANCE;
@@ -339,10 +362,22 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         return new AlterTablePlan(alterTable);
     }
 
+    @Override
+    public Plan visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis,
+                                            PlannerContext context) {
+        return new AlterBlobTablePlan(analysis);
+    }
+
+    @Override
+    public Plan visitAnalyzedCreateBlobTable(AnalyzedCreateBlobTable analysis,
+                                             PlannerContext context) {
+        return new CreateBlobTablePlan(analysis, numberOfShards);
+    }
+
     public Plan visitRefreshTableStatement(AnalyzedRefreshTable analysis, PlannerContext context) {
         return new RefreshTablePlan(analysis);
     }
-    
+
     @Override
     public Plan visitAnalyzedAlterTableRename(AnalyzedAlterTableRename analysis,
                                               PlannerContext context) {
@@ -356,8 +391,23 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    protected Plan visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, PlannerContext context) {
-        return new CreateDropAnalyzerPlan(analysis.buildSettings());
+    protected Plan visitAnalyzedCreateUser(AnalyzedCreateUser analysis,
+                                           PlannerContext context) {
+        return new CreateUserPlan(analysis, userManager);
+    }
+
+    @Override
+    public Plan visitAnalyzedAlterUser(AnalyzedAlterUser analysis, PlannerContext context) {
+        return new AlterUserPlan(analysis, userManager);
+    }
+
+    @Override
+    protected Plan visitDropUser(AnalyzedDropUser analysis, PlannerContext context) {
+        return new DropUserPlan(analysis, userManager);
+    }
+
+    protected Plan visitCreateAnalyzerStatement(AnalyzedCreateAnalyzer analysis, PlannerContext context) {
+        return new CreateAnalyzerPlan(analysis);
     }
 
     @Override
@@ -367,8 +417,19 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    protected Plan visitDropAnalyzerStatement(DropAnalyzerStatement analysis, PlannerContext context) {
-        return new CreateDropAnalyzerPlan(analysis.settingsForRemoval());
+    protected Plan visitCreateFunction(AnalyzedCreateFunction analysis,
+                                       PlannerContext context) {
+        return new CreateFunctionPlan(analysis);
+    }
+
+    @Override
+    public Plan visitDropFunction(AnalyzedDropFunction analysis, PlannerContext context) {
+        return new DropFunctionPlan(analysis);
+    }
+
+    @Override
+    protected Plan visitDropAnalyzerStatement(AnalyzedDropAnalyzer analysis, PlannerContext context) {
+        return new DropAnalyzerPlan(analysis);
     }
 
     @Override
@@ -383,6 +444,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             nullSettings.put(setting, null);
         }
         return new UpdateSettingsPlan(nullSettings, nullSettings);
+    }
+
+    @Override
+    public Plan visitRestoreSnapshotAnalyzedStatement(AnalyzedRestoreSnapshot analysis, PlannerContext context) {
+        return new RestoreSnapshotPlan(analysis);
     }
 
     @Override
@@ -418,7 +484,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, PlannerContext context) {
+    public Plan visitKillAnalyzedStatement(AnalyzedKill analysis, PlannerContext context) {
         return new KillPlan(analysis.jobId());
     }
 
@@ -453,6 +519,32 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitOptimizeTableStatement(AnalyzedOptimizeTable analysis, PlannerContext context) {
         return new OptimizeTablePlan(analysis);
+    }
+
+    @Override
+    protected Plan visitRerouteMoveShard(AnalyzedRerouteMoveShard analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    protected Plan visitRerouteAllocateReplicaShard(AnalyzedRerouteAllocateReplicaShard analysis,
+                                                    PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    protected Plan visitRerouteCancelShard(AnalyzedRerouteCancelShard analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    public Plan visitReroutePromoteReplica(AnalyzedPromoteReplica analysis, PlannerContext context) {
+        return new AlterTableReroutePlan(analysis);
+    }
+
+    @Override
+    public Plan visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, PlannerContext context) {
+        return new RerouteRetryFailedPlan();
     }
 
     private static LegacyUpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis) {

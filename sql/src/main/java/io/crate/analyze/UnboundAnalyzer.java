@@ -25,21 +25,39 @@ package io.crate.analyze;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
+import io.crate.sql.tree.AlterTableReroute;
+import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.CreateAnalyzer;
+import io.crate.sql.tree.CreateBlobTable;
+import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.DropAnalyzer;
+import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
+import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.InsertFromValues;
+import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Query;
+import io.crate.sql.tree.RefreshStatement;
+import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.ShowSchemas;
@@ -69,11 +87,24 @@ class UnboundAnalyzer {
                     ExplainStatementAnalyzer explainStatementAnalyzer,
                     CreateTableStatementAnalyzer createTableAnalyzer,
                     AlterTableAnalyzer alterTableAnalyzer,
+                    AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
                     OptimizeTableAnalyzer optimizeTableAnalyzer,
                     CreateRepositoryAnalyzer createRepositoryAnalyzer,
                     DropRepositoryAnalyzer dropRepositoryAnalyzer,
                     CreateSnapshotAnalyzer createSnapshotAnalyzer,
-                    DropSnapshotAnalyzer dropSnapshotAnalyzer) {
+                    DropSnapshotAnalyzer dropSnapshotAnalyzer,
+                    UserAnalyzer userAnalyzer,
+                    CreateBlobTableAnalyzer createBlobTableAnalyzer,
+                    CreateFunctionAnalyzer createFunctionAnalyzer,
+                    DropFunctionAnalyzer dropFunctionAnalyzer,
+                    DropTableAnalyzer dropTableAnalyzer,
+                    RefreshTableAnalyzer refreshTableAnalyzer,
+                    RestoreSnapshotAnalyzer restoreSnapshotAnalyzer,
+                    CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
+                    DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer,
+                    DecommissionNodeAnalyzer decommissionNodeAnalyzer,
+                    KillAnalyzer killAnalyzer,
+                    AlterTableRerouteAnalyzer alterTableRerouteAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -84,11 +115,24 @@ class UnboundAnalyzer {
             explainStatementAnalyzer,
             createTableAnalyzer,
             alterTableAnalyzer,
+            alterTableAddColumnAnalyzer,
             optimizeTableAnalyzer,
             createRepositoryAnalyzer,
             dropRepositoryAnalyzer,
             createSnapshotAnalyzer,
-            dropSnapshotAnalyzer
+            dropSnapshotAnalyzer,
+            userAnalyzer,
+            createBlobTableAnalyzer,
+            createFunctionAnalyzer,
+            dropFunctionAnalyzer,
+            dropTableAnalyzer,
+            refreshTableAnalyzer,
+            restoreSnapshotAnalyzer,
+            createAnalyzerStatementAnalyzer,
+            dropAnalyzerStatementAnalyzer,
+            decommissionNodeAnalyzer,
+            killAnalyzer,
+            alterTableRerouteAnalyzer
         );
     }
 
@@ -109,11 +153,24 @@ class UnboundAnalyzer {
         private final ExplainStatementAnalyzer explainStatementAnalyzer;
         private final CreateTableStatementAnalyzer createTableAnalyzer;
         private final AlterTableAnalyzer alterTableAnalyzer;
+        private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
         private final OptimizeTableAnalyzer optimizeTableAnalyzer;
         private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
         private final DropRepositoryAnalyzer dropRepositoryAnalyzer;
         private final CreateSnapshotAnalyzer createSnapshotAnalyzer;
         private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
+        private final UserAnalyzer userAnalyzer;
+        private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
+        private final CreateFunctionAnalyzer createFunctionAnalyzer;
+        private final DropFunctionAnalyzer dropFunctionAnalyzer;
+        private final DropTableAnalyzer dropTableAnalyzer;
+        private final RefreshTableAnalyzer refreshTableAnalyzer;
+        private final RestoreSnapshotAnalyzer restoreSnapshotAnalyzer;
+        private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
+        private final DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer;
+        private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
+        private final KillAnalyzer killAnalyzer;
+        private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -124,11 +181,24 @@ class UnboundAnalyzer {
                           ExplainStatementAnalyzer explainStatementAnalyzer,
                           CreateTableStatementAnalyzer createTableAnalyzer,
                           AlterTableAnalyzer alterTableAnalyzer,
+                          AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
                           OptimizeTableAnalyzer optimizeTableAnalyzer,
                           CreateRepositoryAnalyzer createRepositoryAnalyzer,
                           DropRepositoryAnalyzer dropRepositoryAnalyzer,
                           CreateSnapshotAnalyzer createSnapshotAnalyzer,
-                          DropSnapshotAnalyzer dropSnapshotAnalyzer) {
+                          DropSnapshotAnalyzer dropSnapshotAnalyzer,
+                          UserAnalyzer userAnalyzer,
+                          CreateBlobTableAnalyzer createBlobTableAnalyzer,
+                          CreateFunctionAnalyzer createFunctionAnalyzer,
+                          DropFunctionAnalyzer dropFunctionAnalyzer,
+                          DropTableAnalyzer dropTableAnalyzer,
+                          RefreshTableAnalyzer refreshTableAnalyzer,
+                          RestoreSnapshotAnalyzer restoreSnapshotAnalyzer,
+                          CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
+                          DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer,
+                          DecommissionNodeAnalyzer decommissionNodeAnalyzer,
+                          KillAnalyzer killAnalyzer,
+                          AlterTableRerouteAnalyzer alterTableRerouteAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -138,11 +208,24 @@ class UnboundAnalyzer {
             this.explainStatementAnalyzer = explainStatementAnalyzer;
             this.createTableAnalyzer = createTableAnalyzer;
             this.alterTableAnalyzer = alterTableAnalyzer;
+            this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
             this.optimizeTableAnalyzer = optimizeTableAnalyzer;
             this.createRepositoryAnalyzer = createRepositoryAnalyzer;
             this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
             this.createSnapshotAnalyzer = createSnapshotAnalyzer;
             this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;
+            this.userAnalyzer = userAnalyzer;
+            this.createBlobTableAnalyzer = createBlobTableAnalyzer;
+            this.createFunctionAnalyzer = createFunctionAnalyzer;
+            this.dropFunctionAnalyzer = dropFunctionAnalyzer;
+            this.dropTableAnalyzer = dropTableAnalyzer;
+            this.refreshTableAnalyzer = refreshTableAnalyzer;
+            this.restoreSnapshotAnalyzer = restoreSnapshotAnalyzer;
+            this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
+            this.dropAnalyzerStatementAnalyzer = dropAnalyzerStatementAnalyzer;
+            this.decommissionNodeAnalyzer = decommissionNodeAnalyzer;
+            this.killAnalyzer = killAnalyzer;
+            this.alterTableRerouteAnalyzer = alterTableRerouteAnalyzer;
         }
 
         @Override
@@ -163,9 +246,87 @@ class UnboundAnalyzer {
         }
 
         @Override
+        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn<?> node,
+                                                                   Analysis context) {
+            return alterTableAddColumnAnalyzer.analyze(
+                (AlterTableAddColumn<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateUser(CreateUser<?> node, Analysis context) {
+            return userAnalyzer.analyze((CreateUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterUser(AlterUser<?> node, Analysis context) {
+            return userAnalyzer.analyze((AlterUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropUser(DropUser node, Analysis context) {
+            return new AnalyzedDropUser(
+                node.name(),
+                node.ifExists()
+            );
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableOpenClose(AlterTableOpenClose<?> node,
+                                                          Analysis context) {
+            return alterTableAnalyzer.analyze((AlterTableOpenClose<Expression>) node,
+                                              context.paramTypeHints(),
+                                              context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableReroute(AlterTableReroute<?> node, Analysis context) {
+            return alterTableRerouteAnalyzer.analyze(
+                (AlterTableReroute<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateBlobTable(CreateBlobTable<?> node,
+                                                      Analysis context) {
+            return createBlobTableAnalyzer.analyze(
+                (CreateBlobTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterBlobTable(AlterBlobTable<?> node,
+                                                     Analysis context) {
+            return alterTableAnalyzer.analyze(
+                (AlterBlobTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateFunction(CreateFunction<?> node,
+                                                     Analysis context) {
+            return createFunctionAnalyzer.analyze(
+                (CreateFunction<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext(),
+                context.sessionContext().searchPath());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropFunction(DropFunction node, Analysis context) {
+            return dropFunctionAnalyzer.analyze(node, context.sessionContext().searchPath());
+        }
+
+        @Override
         public AnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
             return createRepositoryAnalyzer.analyze(
                 (CreateRepository<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitKillStatement(KillStatement<?> node, Analysis context) {
+            return killAnalyzer.analyze(
+                (KillStatement<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }
@@ -179,6 +340,14 @@ class UnboundAnalyzer {
         public AnalyzedStatement visitCreateSnapshot(CreateSnapshot<?> node, Analysis context) {
             return createSnapshotAnalyzer.analyze(
                 (CreateSnapshot<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitRestoreSnapshot(RestoreSnapshot<?> node, Analysis context) {
+            return restoreSnapshotAnalyzer.analyze(
+                (RestoreSnapshot<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }
@@ -202,6 +371,15 @@ class UnboundAnalyzer {
         protected AnalyzedStatement visitQuery(Query node, Analysis context) {
             return relationAnalyzer.analyzeUnbound(
                 node, context.transactionContext(), context.paramTypeHints());
+        }
+
+        @Override
+        public AnalyzedStatement visitRefreshStatement(RefreshStatement<?> node, Analysis context) {
+            return refreshTableAnalyzer.analyze(
+                (RefreshStatement<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext()
+            );
         }
 
         @Override
@@ -249,6 +427,19 @@ class UnboundAnalyzer {
         }
 
         @Override
+        public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer<?> node, Analysis context) {
+            return createAnalyzerStatementAnalyzer.analyze(
+                (CreateAnalyzer<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropAnalyzer(DropAnalyzer node, Analysis context) {
+            return dropAnalyzerStatementAnalyzer.analyze(node.name());
+        }
+
+        @Override
         public AnalyzedStatement visitDelete(Delete node, Analysis analysis) {
             return deleteAnalyzer.analyze(node, analysis.paramTypeHints(), analysis.transactionContext());
         }
@@ -271,5 +462,25 @@ class UnboundAnalyzer {
                 context.transactionContext()
             );
         }
+
+        @Override
+        public AnalyzedStatement visitAlterClusterDecommissionNode(DecommissionNodeStatement<?> node,
+                                                                   Analysis context) {
+            return decommissionNodeAnalyzer.analyze(
+                (DecommissionNodeStatement<Expression>) node,
+                context.transactionContext(),
+                context.paramTypeHints());
+        }
+
+        @Override
+        public AnalyzedDropTable visitDropTable(DropTable<?> node, Analysis context) {
+            return dropTableAnalyzer.analyze(node,context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropBlobTable(DropBlobTable<?> node, Analysis context) {
+            return dropTableAnalyzer.analyze(node,context.sessionContext());
+        }
     }
 }
+

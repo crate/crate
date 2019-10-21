@@ -62,6 +62,7 @@ import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.index.translog.TranslogStats;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -659,6 +660,8 @@ public abstract class Engine implements Closeable {
      * Checks if this engine has every operations since  {@code startingSeqNo}(inclusive) in its history (either Lucene or translog)
      */
     public abstract boolean hasCompleteOperationHistory(String source, MapperService mapperService, long startingSeqNo) throws IOException;
+
+    public abstract TranslogStats getTranslogStats();
 
     /**
      * Returns the last location that the translog of this engine has written into.

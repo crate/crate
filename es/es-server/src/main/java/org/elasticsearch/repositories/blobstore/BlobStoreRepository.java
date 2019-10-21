@@ -341,7 +341,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     } catch (RepositoryException e) {
                         throw e;
                     } catch (Exception e) {
-                        throw new RepositoryException(metadata.name(), "cannot create blob store" , e);
+                        throw new RepositoryException(metadata.name(), "cannot create blob store: " + e.getMessage() , e);
                     }
                     blobStore.set(store);
                 }

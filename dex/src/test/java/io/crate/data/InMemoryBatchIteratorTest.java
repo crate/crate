@@ -38,7 +38,7 @@ public class InMemoryBatchIteratorTest {
     @Test
     public void testCollectRows() throws Exception {
         List<Row> rows = Arrays.asList(new Row1(10), new Row1(20));
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL);
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false);
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         List<Object[]> expectedResult = Arrays.asList(new Object[]{10}, new Object[]{20});
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
@@ -49,7 +49,7 @@ public class InMemoryBatchIteratorTest {
         Iterable<Row> rows = RowGenerator.range(0, 50);
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new CloseAssertingBatchIterator<>(
             new BatchSimulatingIterator<>(
-                InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL),
+                InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false),
                 10,
                 5,
                 null

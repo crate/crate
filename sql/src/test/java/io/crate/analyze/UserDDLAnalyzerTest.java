@@ -42,7 +42,7 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCreateUserSimple() {
-        CreateUserAnalyzedStatement analysis = e.analyze("CREATE USER ROOT");
+        AnalyzedCreateUser analysis = e.analyze("CREATE USER ROOT");
         assertThat(analysis.userName(), is("root"));
         analysis = e.analyze("CREATE USER \"ROOT\"");
         assertThat(analysis.userName(), is("ROOT"));
@@ -50,7 +50,7 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropUserSimple() {
-        DropUserAnalyzedStatement analysis = e.analyze("DROP USER ROOT");
+        AnalyzedDropUser analysis = e.analyze("DROP USER ROOT");
         assertThat(analysis.userName(), is("root"));
         analysis = e.analyze("DROP USER \"ROOT\"");
         assertThat(analysis.userName(), is("ROOT"));
@@ -58,14 +58,14 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropUserIfExists() {
-        DropUserAnalyzedStatement analysis = e.analyze("DROP USER IF EXISTS ROOT");
+        AnalyzedDropUser analysis = e.analyze("DROP USER IF EXISTS ROOT");
         assertThat(analysis.userName(), is("root"));
         assertThat(analysis.ifExists(), is(true));
     }
 
     @Test
     public void testCreateUserWithPassword() throws Exception {
-        CreateUserAnalyzedStatement analysis = e.analyze("CREATE USER ROOT WITH (PASSWORD = 'ROOT')");
+        AnalyzedCreateUser analysis = e.analyze("CREATE USER ROOT WITH (PASSWORD = 'ROOT')");
         assertThat(analysis.userName(), is("root"));
         assertThat(analysis.properties().get("password"), is(Literal.of("ROOT")));
     }
@@ -81,14 +81,14 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAlterUserWithPassword() throws Exception {
-        AlterUserAnalyzedStatement analysis = e.analyze("ALTER USER ROOT SET (PASSWORD = 'ROOT')");
+        AnalyzedAlterUser analysis = e.analyze("ALTER USER ROOT SET (PASSWORD = 'ROOT')");
         assertThat(analysis.userName(), is("root"));
         assertThat(analysis.properties().get("password"), is(Literal.of("ROOT")));
     }
 
     @Test
     public void testAlterUserResetPassword() throws Exception {
-        AlterUserAnalyzedStatement analysis = e.analyze("ALTER USER ROOT SET (PASSWORD = NULL)");
+        AnalyzedAlterUser analysis = e.analyze("ALTER USER ROOT SET (PASSWORD = NULL)");
         assertThat(analysis.userName(), is("root"));
         assertThat(analysis.properties().get("password"), is(Literal.of(DataTypes.UNDEFINED, null)));
     }

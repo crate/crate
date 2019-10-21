@@ -302,7 +302,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         AlterTableAnalyzedStatement analysis = analyze(
             "alter table parted set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(false));
-        assertThat(analysis.table().isPartitioned(), is(true));
+        assertThat(analysis.isPartitioned(), is(true));
         assertEquals("0-all", analysis.tableParameter().settings().get(AutoExpandReplicas.SETTING.getKey()));
     }
 
@@ -341,7 +341,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         AlterTableAnalyzedStatement analysis = analyze(
             "alter table parted set (number_of_shards=10)");
         assertThat(analysis.partitionName().isPresent(), is(false));
-        assertThat(analysis.table().isPartitioned(), is(true));
+        assertThat(analysis.isPartitioned(), is(true));
         assertEquals("10", analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()));
     }
 
@@ -350,7 +350,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         AlterTableAnalyzedStatement analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_shards=1)");
         assertThat(analysis.partitionName().isPresent(), is(true));
-        assertThat(analysis.table().isPartitioned(), is(true));
+        assertThat(analysis.isPartitioned(), is(true));
         assertEquals("1", analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()));
     }
 
@@ -359,7 +359,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         AlterTableAnalyzedStatement analysis = analyze(
             "alter table parted partition (date=1395874800000) reset (number_of_shards)");
         assertThat(analysis.partitionName().isPresent(), is(true));
-        assertThat(analysis.table().isPartitioned(), is(true));
+        assertThat(analysis.isPartitioned(), is(true));
         assertEquals("5", analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()));
     }
 

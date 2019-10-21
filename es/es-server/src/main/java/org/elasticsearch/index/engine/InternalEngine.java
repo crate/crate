@@ -80,6 +80,7 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
 import org.elasticsearch.index.translog.TranslogCorruptedException;
 import org.elasticsearch.index.translog.TranslogDeletionPolicy;
+import org.elasticsearch.index.translog.TranslogStats;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.Closeable;
@@ -2559,6 +2560,11 @@ public class InternalEngine extends Engine {
             }
             return tracker.getCheckpoint() >= currentLocalCheckpoint;
         }
+    }
+
+    @Override
+    public TranslogStats getTranslogStats() {
+        return getTranslog().stats();
     }
 
     /**

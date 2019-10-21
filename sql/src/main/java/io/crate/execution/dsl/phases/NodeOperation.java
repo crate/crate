@@ -43,7 +43,7 @@ public class NodeOperation implements Writeable {
 
     private ExecutionPhase executionPhase;
     private Collection<String> downstreamNodes;
-    private int downstreamExecutionPhaseId = NO_DOWNSTREAM;
+    private int downstreamExecutionPhaseId;
     private byte downstreamExecutionPhaseInputId;
 
     public NodeOperation(ExecutionPhase executionPhase,

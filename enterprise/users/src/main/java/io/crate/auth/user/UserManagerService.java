@@ -86,13 +86,19 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         this.transportAlterUserAction = transportAlterUserAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
         clusterService.addListener(this);
-        sysTableRegistry.registerSysTable(new SysUsersTableInfo(),
+        sysTableRegistry.registerSysTable(
+            new SysUsersTableInfo(),
             () -> CompletableFuture.completedFuture(users()),
-            SysUsersTableInfo.expressions());
+            SysUsersTableInfo.expressions(),
+            false
+        );
 
-        sysTableRegistry.registerSysTable(new SysPrivilegesTableInfo(),
+        sysTableRegistry.registerSysTable(
+            new SysPrivilegesTableInfo(),
             () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(users())),
-            SysPrivilegesTableInfo.expressions());
+            SysPrivilegesTableInfo.expressions(),
+            false
+        );
 
         ddlClusterStateService.addModifier(DDL_MODIFIER);
     }

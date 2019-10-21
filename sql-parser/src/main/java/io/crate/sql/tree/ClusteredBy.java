@@ -46,7 +46,8 @@ public final class ClusteredBy<T> extends Node {
     }
 
     public <U> ClusteredBy<U> map(Function<? super T, ? extends U> mapper) {
-        return new ClusteredBy<>(column.map(mapper), numberOfShards.map(mapper));
+        return new ClusteredBy<>(
+            column.map(mapper), numberOfShards.map(mapper));
     }
 
     @Override

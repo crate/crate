@@ -140,7 +140,7 @@ public class GroupingLongCollectorBenchmark {
 
     @Benchmark
     public void measureGroupBySumLong(Blackhole blackhole) throws Exception {
-        var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL);
+        var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL, true);
         blackhole.consume(BatchIterators.collect(rowsIterator, groupBySumCollector).get());
     }
 

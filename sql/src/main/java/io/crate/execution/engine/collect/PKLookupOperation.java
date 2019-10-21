@@ -109,7 +109,7 @@ public final class PKLookupOperation {
         } else {
             getResultIterable = getResultStream::iterator;
         }
-        return InMemoryBatchIterator.of(getResultIterable, null);
+        return InMemoryBatchIterator.of(getResultIterable, null, true);
     }
 
     @Nullable
@@ -207,7 +207,7 @@ public final class PKLookupOperation {
             } else {
                 rowIterable = rowStream::iterator;
             }
-            iterators.add(projectors.wrap(InMemoryBatchIterator.of(rowIterable, SentinelRow.SENTINEL)));
+            iterators.add(projectors.wrap(InMemoryBatchIterator.of(rowIterable, SentinelRow.SENTINEL, true)));
         }
         @SuppressWarnings("unchecked")
         BatchIterator<Row> batchIterator = CompositeBatchIterator.seqComposite(iterators.toArray(new BatchIterator[0]));

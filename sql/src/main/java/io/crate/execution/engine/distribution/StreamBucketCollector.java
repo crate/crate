@@ -23,6 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
 
 import java.util.Collections;
@@ -39,14 +40,16 @@ import java.util.stream.Collector;
 public class StreamBucketCollector implements Collector<Row, StreamBucket.Builder, StreamBucket> {
 
     private final Streamer<?>[] streamers;
+    private final RamAccounting ramAccounting;
 
-    public StreamBucketCollector(Streamer<?>[] streamers) {
+    public StreamBucketCollector(Streamer<?>[] streamers, RamAccounting ramAccounting) {
         this.streamers = streamers;
+        this.ramAccounting = ramAccounting;
     }
 
     @Override
     public Supplier<StreamBucket.Builder> supplier() {
-        return () -> new StreamBucket.Builder(streamers, null);
+        return () -> new StreamBucket.Builder(streamers, ramAccounting);
     }
 
     @Override

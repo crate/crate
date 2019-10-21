@@ -36,7 +36,7 @@ import java.util.List;
 
 public class SqlFeaturesIterable implements Iterable<SqlFeatureContext> {
 
-    private static List<SqlFeatureContext> featuresList;
+    private final List<SqlFeatureContext> featuresList;
     private static final Splitter TAB_SPLITTER = Splitter.on("\t");
 
     public SqlFeaturesIterable() throws IOException {

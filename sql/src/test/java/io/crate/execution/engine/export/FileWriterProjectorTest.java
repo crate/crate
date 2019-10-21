@@ -57,7 +57,7 @@ public class FileWriterProjectorTest extends CrateUnitTest {
     private Supplier<BatchIterator> sourceSupplier = () -> InMemoryBatchIterator.of(RowGenerator.fromSingleColValues(
         IntStream.range(0, 5)
             .mapToObj(i -> String.format(Locale.ENGLISH, "input line %02d", i))
-            .collect(Collectors.toList())), SENTINEL);
+            .collect(Collectors.toList())), SENTINEL, true);
 
     @Test
     public void testWriteRawToFile() throws Exception {

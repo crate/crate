@@ -276,7 +276,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitCreateFunction(CreateFunction node, C context) {
+    public R visitCreateFunction(CreateFunction<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -368,11 +368,11 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
-    public R visitDropTable(DropTable node, C context) {
+    public R visitDropTable(DropTable<?> node, C context) {
         return visitStatement(node, context);
     }
 
-    public R visitCreateAnalyzer(CreateAnalyzer node, C context) {
+    public R visitCreateAnalyzer(CreateAnalyzer<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -380,23 +380,23 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitTokenizer(Tokenizer node, C context) {
+    public R visitTokenizer(Tokenizer<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitCharFilters(CharFilters node, C context) {
+    public R visitCharFilters(CharFilters<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitTokenFilters(TokenFilters node, C context) {
+    public R visitTokenFilters(TokenFilters<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitCreateBlobTable(CreateBlobTable node, C context) {
+    public R visitCreateBlobTable(CreateBlobTable<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitDropBlobTable(DropBlobTable node, C context) {
+    public R visitDropBlobTable(DropBlobTable<?> node, C context) {
         return visitNode(node, context);
     }
 
@@ -420,11 +420,11 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitAlterTableReroute(AlterTableReroute node, C context) {
+    public R visitAlterTableReroute(AlterTableReroute<?> node, C context) {
         return visitStatement(node, context);
     }
 
-    public R visitAlterBlobTable(AlterBlobTable node, C context) {
+    public R visitAlterBlobTable(AlterBlobTable<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -432,7 +432,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitAlterUser(AlterUser node, C context) {
+    public R visitAlterUser(AlterUser<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -472,19 +472,19 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitAlterTableAddColumnStatement(AlterTableAddColumn node, C context) {
+    public R visitAlterTableAddColumnStatement(AlterTableAddColumn<?> node, C context) {
         return visitStatement(node, context);
     }
 
-    public R visitRerouteMoveShard(RerouteMoveShard node, C context) {
+    public R visitRerouteMoveShard(RerouteMoveShard<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShard node, C context) {
+    public R visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShard<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitRerouteCancelShard(RerouteCancelShard node, C context) {
+    public R visitRerouteCancelShard(RerouteCancelShard<?> node, C context) {
         return visitNode(node, context);
     }
 
@@ -512,7 +512,7 @@ public abstract class AstVisitor<R, C> {
         return visitExpression(node, context);
     }
 
-    public R visitKillStatement(KillStatement node, C context) {
+    public R visitKillStatement(KillStatement<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -536,7 +536,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitRestoreSnapshot(RestoreSnapshot node, C context) {
+    public R visitRestoreSnapshot(RestoreSnapshot<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -560,7 +560,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitCreateUser(CreateUser node, C context) {
+    public R visitCreateUser(CreateUser<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -592,11 +592,11 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(gcDanglingArtifacts, context);
     }
 
-    public R visitAlterClusterDecommissionNode(DecommissionNodeStatement decommissionNodeStatement, C context) {
+    public R visitAlterClusterDecommissionNode(DecommissionNodeStatement<?> decommissionNodeStatement, C context) {
         return visitStatement(decommissionNodeStatement, context);
     }
 
-    public R visitReroutePromoteReplica(PromoteReplica promoteReplica, C context) {
+    public R visitReroutePromoteReplica(PromoteReplica<?> promoteReplica, C context) {
         return visitNode(promoteReplica, context);
     }
 

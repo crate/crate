@@ -58,7 +58,7 @@ public class StaticTableDefinitionTest {
         StaticTableDefinition<JobContext> tableDef = new StaticTableDefinition<>(
             () -> completedFuture(actual),
             Map.of(),
-            (user, ctx) -> user.isSuperUser() || ctx.username().equals(user.name()));
+            (user, ctx) -> user.isSuperUser() || ctx.username().equals(user.name()), true);
 
         Iterable<JobContext> expected = tableDef.retrieveRecords(dummyTxnCtx, CRATE_USER).get();
         assertThat(Iterables.size(expected), is(3));
@@ -73,7 +73,7 @@ public class StaticTableDefinitionTest {
         StaticTableDefinition<JobContext> tableDef = new StaticTableDefinition<>(
             () -> completedFuture(emptyList()),
             Map.of(),
-            (user, ctx) -> user.isSuperUser() || ctx.username().equals(user.name()));
+            (user, ctx) -> user.isSuperUser() || ctx.username().equals(user.name()), true);
 
         Iterable<JobContext> expected = tableDef.retrieveRecords(dummyTxnCtx, CRATE_USER).get();
         assertThat(Iterables.size(expected), is(0));

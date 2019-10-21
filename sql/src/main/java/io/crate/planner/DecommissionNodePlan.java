@@ -22,23 +22,25 @@
 
 package io.crate.planner;
 
-import io.crate.analyze.AnalyzedDecommissionNodeStatement;
+import com.google.common.annotations.VisibleForTesting;
+import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.cluster.decommission.DecommissionNodeRequest;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
 public final class DecommissionNodePlan implements Plan {
 
-    private final AnalyzedDecommissionNodeStatement analyzedDecommissionNodeStatement;
+    private final AnalyzedDecommissionNode analyzedDecommissionNode;
 
-    DecommissionNodePlan(AnalyzedDecommissionNodeStatement analyzedDecommissionNodeStatement) {
-        this.analyzedDecommissionNodeStatement = analyzedDecommissionNodeStatement;
+    DecommissionNodePlan(AnalyzedDecommissionNode analyzedDecommissionNode) {
+        this.analyzedDecommissionNode = analyzedDecommissionNode;
     }
 
     @Override
@@ -52,24 +54,43 @@ public final class DecommissionNodePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        final String targetNodeIdOrName = DataTypes.STRING.value(
-            SymbolEvaluator.evaluate(plannerContext.transactionContext(),
-                dependencies.functions(),
-                analyzedDecommissionNodeStatement.nodeIdOrName(),
-                params,
-                subQueryResults)
+        var boundedNodeIdOrName = boundNodeIdOrName(
+            analyzedDecommissionNode,
+            plannerContext.transactionContext(),
+            plannerContext.functions(),
+            params,
+            subQueryResults);
+
+        String targetNodeId = NodeSelection.resolveNodeId(
+            dependencies.clusterService().state().nodes(),
+            boundedNodeIdOrName
         );
 
-        final String targetNodeId = NodeSelection.resolveNodeId(
-            dependencies.clusterService().state().nodes(), targetNodeIdOrName);
+        dependencies
+            .transportActionProvider()
+            .transportDecommissionNodeAction()
+            .execute(
+                targetNodeId,
+                DecommissionNodeRequest.INSTANCE,
+                new OneRowActionListener<>(
+                    consumer,
+                    r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L))
+            );
+    }
 
-        OneRowActionListener<AcknowledgedResponse> listener =
-            new OneRowActionListener<>(consumer, r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L));
-
-        dependencies.transportActionProvider().transportDecommissionNodeAction().execute(
-            targetNodeId,
-            DecommissionNodeRequest.INSTANCE,
-            listener
+    @VisibleForTesting
+    public static String boundNodeIdOrName(AnalyzedDecommissionNode decommissionNode,
+                                           CoordinatorTxnCtx txnCtx,
+                                           Functions functions,
+                                           Row parameters,
+                                           SubQueryResults subQueryResults) {
+        var boundedNodeIdOrName = SymbolEvaluator.evaluate(
+            txnCtx,
+            functions,
+            decommissionNode.nodeIdOrName(),
+            parameters,
+            subQueryResults
         );
+        return DataTypes.STRING.value(boundedNodeIdOrName);
     }
 }

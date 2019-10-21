@@ -19,45 +19,45 @@
 package io.crate.auth.user;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AlterBlobTableAnalyzedStatement;
+import io.crate.analyze.AnalyzedAlterUser;
+import io.crate.analyze.AnalyzedAlterBlobTable;
+import io.crate.analyze.AnalyzedAlterTable;
+import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
-import io.crate.analyze.AlterUserAnalyzedStatement;
-import io.crate.analyze.AnalyzedAlterTableAddColumn;
-import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
+import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedDropTable;
+import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
-import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
-import io.crate.analyze.CreateBlobTableAnalyzedStatement;
-import io.crate.analyze.CreateFunctionAnalyzedStatement;
+import io.crate.analyze.AnalyzedCreateBlobTable;
+import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
-import io.crate.analyze.CreateUserAnalyzedStatement;
+import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DeallocateAnalyzedStatement;
-import io.crate.analyze.DropFunctionAnalyzedStatement;
+import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
-import io.crate.analyze.DropTableAnalyzedStatement;
-import io.crate.analyze.DropUserAnalyzedStatement;
+import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
-import io.crate.analyze.KillAnalyzedStatement;
+import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.ResetAnalyzedStatement;
-import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -237,7 +237,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAlterUserStatement(AlterUserAnalyzedStatement analysis, User user) {
+        public Void visitAnalyzedAlterUser(AnalyzedAlterUser analysis, User user) {
             // user is allowed to change it's own properties
             if (!analysis.userName().equals(user.name())) {
                 throw new UnauthorizedException("A regular user can use ALTER USER only on himself. " +
@@ -338,7 +338,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCreateFunctionStatement(CreateFunctionAnalyzedStatement analysis, User user) {
+        protected Void visitCreateFunction(AnalyzedCreateFunction analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
@@ -349,7 +349,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, User user) {
+        public Void visitDropFunction(AnalyzedDropFunction analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
@@ -360,7 +360,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDropTable(DropTableAnalyzedStatement<?> dropTable, User user) {
+        public Void visitDropTable(AnalyzedDropTable<?> dropTable, User user) {
             TableInfo table = dropTable.table();
             if (table != null) {
                 Privileges.ensureUserHasPrivilege(
@@ -374,7 +374,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, User user) {
+        protected Void visitCreateAnalyzerStatement(AnalyzedCreateAnalyzer analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
@@ -385,11 +385,11 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis, User user) {
+        public Void visitAnalyzedCreateBlobTable(AnalyzedCreateBlobTable analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
-                analysis.tableIdent().schema(),
+                analysis.relationName().schema(),
                 user,
                 defaultSchema);
             return null;
@@ -420,11 +420,11 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, User user) {
+        public Void visitAnalyzedAlterBlobTable(AnalyzedAlterBlobTable analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
-                analysis.table().ident().toString(),
+                analysis.tableInfo().ident().toString(),
                 user,
                 defaultSchema);
             return null;
@@ -468,7 +468,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitKillAnalyzedStatement(KillAnalyzedStatement analysis, User user) {
+        public Void visitKillAnalyzedStatement(AnalyzedKill analysis, User user) {
             throwRequiresSuperUserPermission(user.name());
             return null;
         }
@@ -523,7 +523,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis, User user) {
+        public Void visitRestoreSnapshotAnalyzedStatement(AnalyzedRestoreSnapshot analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.CLUSTER,
@@ -567,7 +567,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCreateUserStatement(CreateUserAnalyzedStatement createUser, User user) {
+        protected Void visitAnalyzedCreateUser(AnalyzedCreateUser createUser, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
@@ -579,7 +579,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitDropUserStatement(DropUserAnalyzedStatement dropUser, User user) {
+        protected Void visitDropUser(AnalyzedDropUser dropUser, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.AL,
                 Privilege.Clazz.CLUSTER,
