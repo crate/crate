@@ -51,6 +51,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     private static final String CHILD_LOGGER_PREFIX = "org.elasticsearch.indices.breaker.";
 
     private static final MemoryMXBean MEMORY_MX_BEAN = ManagementFactory.getMemoryMXBean();
+    private static final double PARENT_BREAKER_ESCAPE_HATCH_PERCENTAGE = 0.30;
 
     private final ConcurrentMap<String, CircuitBreaker> breakers = new ConcurrentHashMap<>();
 
@@ -255,6 +256,14 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
         long totalUsed = parentUsed(newBytesReserved);
         long parentLimit = this.parentSettings.getLimit();
         if (totalUsed > parentLimit) {
+            long breakersTotalUsed = breakers.values().stream()
+                .mapToLong(x -> (long) (x.getUsed() * x.getOverhead()))
+                .sum();
+            // if the individual breakers hardly use any memory we assume that there is a lot of heap usage by objects which can be GCd.
+            // We want to allow the query so that it triggers GCs
+            if ((breakersTotalUsed + newBytesReserved) < (parentLimit * PARENT_BREAKER_ESCAPE_HATCH_PERCENTAGE)) {
+                return;
+            }
             this.parentTripCount.incrementAndGet();
             final StringBuilder message = new StringBuilder("[parent] Data too large, data for [" + label + "]" +
                     " would be [" + totalUsed + "/" + new ByteSizeValue(totalUsed) + "]" +
