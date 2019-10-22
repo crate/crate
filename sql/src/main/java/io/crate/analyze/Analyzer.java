@@ -216,7 +216,8 @@ public class Analyzer {
             killAnalyzer,
             alterTableRerouteAnalyzer,
             privilegesAnalyzer,
-            copyAnalyzer
+            copyAnalyzer,
+            createViewAnalyzer
         );
     }
 
@@ -551,8 +552,10 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateView(CreateView createView, Analysis analysis) {
-            return createViewAnalyzer.analyze(createView, analysis.transactionContext());
+        public AnalyzedStatement visitCreateView(CreateView createView, Analysis context) {
+            return createViewAnalyzer.analyze(
+                createView,
+                context.transactionContext());
         }
 
         @Override
