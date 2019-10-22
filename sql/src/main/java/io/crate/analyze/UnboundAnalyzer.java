@@ -57,6 +57,7 @@ import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.InsertFromValues;
@@ -557,6 +558,12 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitCommit(CommitStatement node, Analysis context) {
             return new AnalyzedCommit();
+        }
+
+        @Override
+        public AnalyzedStatement visitGCDanglingArtifacts(GCDanglingArtifacts gcDanglingArtifacts,
+                                                          Analysis context) {
+            return AnalyzedGCDanglingArtifacts.INSTANCE;
         }
     }
 }
