@@ -139,7 +139,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    public R visitDeallocateAnalyzedStatement(DeallocateAnalyzedStatement analysis, C context) {
+    public R visitDeallocateAnalyzedStatement(AnalyzedDeallocate analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 

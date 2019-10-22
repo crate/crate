@@ -27,7 +27,7 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.DeallocateAnalyzedStatement;
+import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.Relations;
@@ -377,8 +377,8 @@ public class Session implements AutoCloseable {
         }
         if (analyzedStmt instanceof AnalyzedBegin) {
             resultReceiver.allFinished(false);
-        } else if (analyzedStmt instanceof DeallocateAnalyzedStatement) {
-            String stmtToDeallocate = ((DeallocateAnalyzedStatement) analyzedStmt).preparedStmtName();
+        } else if (analyzedStmt instanceof AnalyzedDeallocate) {
+            String stmtToDeallocate = ((AnalyzedDeallocate) analyzedStmt).preparedStmtName();
             if (stmtToDeallocate != null) {
                 close((byte) 'S', stmtToDeallocate);
             } else {

@@ -44,7 +44,7 @@ import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.CreateViewStmt;
-import io.crate.analyze.DeallocateAnalyzedStatement;
+import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
@@ -479,7 +479,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitDeallocateAnalyzedStatement(DeallocateAnalyzedStatement analysis, User user) {
+        public Void visitDeallocateAnalyzedStatement(AnalyzedDeallocate analysis, User user) {
             return null;
         }
 

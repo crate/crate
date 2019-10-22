@@ -57,7 +57,7 @@ import io.crate.analyze.AnalyzedSwapTable;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
-import io.crate.analyze.DeallocateAnalyzedStatement;
+import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropView;
@@ -490,7 +490,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitDeallocateAnalyzedStatement(DeallocateAnalyzedStatement analysis, PlannerContext context) {
+    public Plan visitDeallocateAnalyzedStatement(AnalyzedDeallocate analysis, PlannerContext context) {
         return NoopPlan.INSTANCE;
     }
 

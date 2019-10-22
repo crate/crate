@@ -32,7 +32,7 @@ public final class DeallocateAnalyzer {
     private DeallocateAnalyzer() {
     }
 
-    public static DeallocateAnalyzedStatement analyze(DeallocateStatement deallocateStatement) {
+    public static AnalyzedDeallocate analyze(DeallocateStatement deallocateStatement) {
         Expression preparedStmtExpression = deallocateStatement.preparedStmt();
         String preparedStmt = null;
         if (preparedStmtExpression != null) {
@@ -45,6 +45,6 @@ public final class DeallocateAnalyzer {
                                          "preparedStmt expression for DEALLOCATE");
             }
         }
-        return new DeallocateAnalyzedStatement(preparedStmt);
+        return new AnalyzedDeallocate(preparedStmt);
     }
 }
