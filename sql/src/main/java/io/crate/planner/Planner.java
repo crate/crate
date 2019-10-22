@@ -70,7 +70,7 @@ import io.crate.analyze.AnalyzedPromoteReplica;
 import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
 import io.crate.analyze.AnalyzedRerouteCancelShard;
 import io.crate.analyze.AnalyzedRerouteMoveShard;
-import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
+import io.crate.analyze.AnalyzedRerouteRetryFailed;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
@@ -544,7 +544,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, PlannerContext context) {
+    public Plan visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed analysis, PlannerContext context) {
         return new RerouteRetryFailedPlan();
     }
 
