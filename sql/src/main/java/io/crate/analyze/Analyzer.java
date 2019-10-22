@@ -552,9 +552,9 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitSwapTable(SwapTable swapTable, Analysis analysis) {
+        public AnalyzedStatement visitSwapTable(SwapTable<?> swapTable, Analysis analysis) {
             return swapTableAnalyzer.analyze(
-                swapTable,
+                (SwapTable<Expression>) swapTable,
                 analysis.transactionContext(),
                 analysis.paramTypeHints()
             );

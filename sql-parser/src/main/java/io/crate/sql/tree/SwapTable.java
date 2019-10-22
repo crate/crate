@@ -22,13 +22,15 @@
 
 package io.crate.sql.tree;
 
-public final class SwapTable extends Statement {
+import java.util.Objects;
+
+public final class SwapTable<T> extends Statement {
 
     private final QualifiedName source;
     private final QualifiedName target;
-    private final GenericProperties properties;
+    private final GenericProperties<T> properties;
 
-    public SwapTable(QualifiedName source, QualifiedName target, GenericProperties properties) {
+    public SwapTable(QualifiedName source, QualifiedName target, GenericProperties<T> properties) {
         this.source = source;
         this.target = target;
         this.properties = properties;
@@ -42,7 +44,7 @@ public final class SwapTable extends Statement {
         return target;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<T> properties() {
         return properties;
     }
 
@@ -53,22 +55,21 @@ public final class SwapTable extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        SwapTable swapTable = (SwapTable) o;
-
-        if (!source.equals(swapTable.source)) return false;
-        if (!target.equals(swapTable.target)) return false;
-        return properties.equals(swapTable.properties);
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        SwapTable<?> swapTable = (SwapTable<?>) o;
+        return Objects.equals(source, swapTable.source) &&
+               Objects.equals(target, swapTable.target) &&
+               Objects.equals(properties, swapTable.properties);
     }
 
     @Override
     public int hashCode() {
-        int result = source.hashCode();
-        result = 31 * result + target.hashCode();
-        result = 31 * result + properties.hashCode();
-        return result;
+        return Objects.hash(source, target, properties);
     }
 
     @Override
