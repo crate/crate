@@ -25,13 +25,10 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.auth.user.UserManager;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.RelationsUnknown;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
@@ -75,7 +72,6 @@ import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.OptimizeStatement;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.ResetStatement;
@@ -96,7 +92,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
-import java.util.ArrayList;
 import java.util.Locale;
 
 @Singleton
@@ -133,7 +128,7 @@ public class Analyzer {
     private final PrivilegesAnalyzer privilegesAnalyzer;
     private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
     private final UserAnalyzer userAnalyzer;
-    private final CreateViewAnalyzer createViewAnalyzer;
+    private final ViewAnalyzer viewAnalyzer;
     private final Schemas schemas;
     private final SwapTableAnalyzer swapTableAnalyzer;
     private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
@@ -160,7 +155,7 @@ public class Analyzer {
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, functions);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
         this.swapTableAnalyzer = new SwapTableAnalyzer(functions, schemas);
-        this.createViewAnalyzer = new CreateViewAnalyzer(relationAnalyzer);
+        this.viewAnalyzer = new ViewAnalyzer(relationAnalyzer, schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this, schemas);
         this.updateAnalyzer = new UpdateAnalyzer(functions, relationAnalyzer);
@@ -217,7 +212,7 @@ public class Analyzer {
             alterTableRerouteAnalyzer,
             privilegesAnalyzer,
             copyAnalyzer,
-            createViewAnalyzer
+            viewAnalyzer
         );
     }
 
@@ -552,10 +547,8 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitCreateView(CreateView createView, Analysis context) {
-            return createViewAnalyzer.analyze(
-                createView,
-                context.transactionContext());
+        public AnalyzedStatement visitCreateView(CreateView node, Analysis context) {
+            return viewAnalyzer.analyze(node, context.transactionContext());
         }
 
         @Override
@@ -582,25 +575,8 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitDropView(DropView dropView, Analysis analysis) {
-            // No exists check to avoid stale clusterState race conditions
-            ArrayList<RelationName> views = new ArrayList<>(dropView.names().size());
-            ArrayList<RelationName> missing = new ArrayList<>();
-            for (QualifiedName qualifiedName : dropView.names()) {
-                try {
-                    views.add(schemas.resolveView(qualifiedName, analysis.sessionContext().searchPath()).v2());
-                } catch (RelationUnknown e) {
-                    if (!dropView.ifExists()) {
-                        missing.add(RelationName.of(qualifiedName, analysis.sessionContext().searchPath().currentSchema()));
-                    }
-                }
-            }
-
-            if (!missing.isEmpty()) {
-                throw new RelationsUnknown(missing);
-            }
-
-            return new DropViewStmt(views, dropView.ifExists());
+        public AnalyzedStatement visitDropView(DropView node, Analysis context) {
+            return viewAnalyzer.analyze(node, context.transactionContext());
         }
     }
 }

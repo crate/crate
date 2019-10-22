@@ -215,8 +215,8 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(createViewStmt, context);
     }
 
-    public R visitDropView(DropViewStmt dropViewStmt, C context) {
-        return visitAnalyzedStatement(dropViewStmt, context);
+    public R visitDropView(AnalyzedDropView dropView, C context) {
+        return visitAnalyzedStatement(dropView, context);
     }
 
     public R visitSwapTable(AnalyzedSwapTable swapTable, C context) {
