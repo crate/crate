@@ -76,6 +76,7 @@ import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
 
 /**
@@ -118,7 +119,8 @@ class UnboundAnalyzer {
                     AlterTableRerouteAnalyzer alterTableRerouteAnalyzer,
                     PrivilegesAnalyzer privilegesAnalyzer,
                     CopyAnalyzer copyAnalyzer,
-                    ViewAnalyzer viewAnalyzer) {
+                    ViewAnalyzer viewAnalyzer,
+                    SwapTableAnalyzer swapTableAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -149,7 +151,8 @@ class UnboundAnalyzer {
             alterTableRerouteAnalyzer,
             privilegesAnalyzer,
             copyAnalyzer,
-            viewAnalyzer
+            viewAnalyzer,
+            swapTableAnalyzer
         );
     }
 
@@ -191,6 +194,7 @@ class UnboundAnalyzer {
         private final PrivilegesAnalyzer privilegesAnalyzer;
         private final CopyAnalyzer copyAnalyzer;
         private final ViewAnalyzer viewAnalyzer;
+        private final SwapTableAnalyzer swapTableAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -221,7 +225,8 @@ class UnboundAnalyzer {
                           AlterTableRerouteAnalyzer alterTableRerouteAnalyzer,
                           PrivilegesAnalyzer privilegesAnalyzer,
                           CopyAnalyzer copyAnalyzer,
-                          ViewAnalyzer viewAnalyzer) {
+                          ViewAnalyzer viewAnalyzer,
+                          SwapTableAnalyzer swapTableAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -252,6 +257,7 @@ class UnboundAnalyzer {
             this.privilegesAnalyzer = privilegesAnalyzer;
             this.copyAnalyzer = copyAnalyzer;
             this.viewAnalyzer = viewAnalyzer;
+            this.swapTableAnalyzer = swapTableAnalyzer;
         }
 
         @Override
@@ -286,6 +292,15 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitAlterUser(AlterUser<?> node, Analysis context) {
             return userAnalyzer.analyze((AlterUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitSwapTable(SwapTable<?> swapTable, Analysis analysis) {
+            return swapTableAnalyzer.analyze(
+                (SwapTable<Expression>) swapTable,
+                analysis.transactionContext(),
+                analysis.paramTypeHints()
+            );
         }
 
         @Override

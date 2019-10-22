@@ -212,7 +212,8 @@ public class Analyzer {
             alterTableRerouteAnalyzer,
             privilegesAnalyzer,
             copyAnalyzer,
-            viewAnalyzer
+            viewAnalyzer,
+            swapTableAnalyzer
         );
     }
 
