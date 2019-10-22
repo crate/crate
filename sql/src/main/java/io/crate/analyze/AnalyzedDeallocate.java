@@ -25,12 +25,12 @@ package io.crate.analyze;
 
 import javax.annotation.Nullable;
 
-public class DeallocateAnalyzedStatement implements AnalyzedStatement {
+public class AnalyzedDeallocate implements AnalyzedStatement {
 
     @Nullable
     private final String preparedStmtName;
 
-    DeallocateAnalyzedStatement(String preparedStmtName) {
+    AnalyzedDeallocate(String preparedStmtName) {
         this.preparedStmtName = preparedStmtName;
     }
 
@@ -42,6 +42,11 @@ public class DeallocateAnalyzedStatement implements AnalyzedStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitDeallocateAnalyzedStatement(this, context);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 
     @Override

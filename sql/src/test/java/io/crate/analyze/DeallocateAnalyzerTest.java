@@ -43,25 +43,25 @@ public class DeallocateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAnalyzeDeallocateAll() {
-        DeallocateAnalyzedStatement stmt = e.analyze("deallocate all");
+        AnalyzedDeallocate stmt = e.analyze("deallocate all");
         assertThat(stmt.preparedStmtName(), nullValue());
     }
 
     @Test
     public void testAnalyzeDeallocateWithLiteral() {
-        DeallocateAnalyzedStatement stmt = e.analyze("deallocate 'test_prep_stmt'");
+        AnalyzedDeallocate stmt = e.analyze("deallocate 'test_prep_stmt'");
         assertThat(stmt.preparedStmtName(), is("test_prep_stmt"));
     }
 
     @Test
     public void testAnalyzeDeallocateWithUnquotedLiteral() {
-        DeallocateAnalyzedStatement stmt = e.analyze("deallocate test_prep_stmt");
+        AnalyzedDeallocate stmt = e.analyze("deallocate test_prep_stmt");
         assertThat(stmt.preparedStmtName(), is("test_prep_stmt"));
     }
 
     @Test
     public void testAnalyzeDeallocateWithLiteralLikeQualifiedName() {
-        DeallocateAnalyzedStatement stmt = e.analyze("deallocate test.prep.stmt");
+        AnalyzedDeallocate stmt = e.analyze("deallocate test.prep.stmt");
         assertThat(stmt.preparedStmtName(), is("test.prep.stmt"));
     }
 
