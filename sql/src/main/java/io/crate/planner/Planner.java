@@ -60,7 +60,7 @@ import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.analyze.AnalyzedDropTable;
-import io.crate.analyze.DropViewStmt;
+import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
@@ -513,8 +513,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitDropView(DropViewStmt dropViewStmt, PlannerContext context) {
-        return new DropViewPlan(dropViewStmt);
+    public Plan visitDropView(AnalyzedDropView dropView, PlannerContext context) {
+        return new DropViewPlan(dropView);
     }
 
     @Override

@@ -23,7 +23,6 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.RelationsUnknown;
-import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Test;
@@ -38,7 +37,7 @@ public class DropViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testDropViewContainsIfExistsAndEmptyViews() {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
 
-        DropViewStmt dropView = e.analyze("drop view if exists v1, v2, x.v3");
+        AnalyzedDropView dropView = e.analyze("drop view if exists v1, v2, x.v3");
 
         assertThat(dropView.ifExists(), is(true));
         assertThat(dropView.views(), is(empty()));

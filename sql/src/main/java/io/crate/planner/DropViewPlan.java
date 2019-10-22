@@ -22,7 +22,7 @@
 
 package io.crate.planner;
 
-import io.crate.analyze.DropViewStmt;
+import io.crate.analyze.AnalyzedDropView;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -36,10 +36,10 @@ import java.util.function.Function;
 
 public class DropViewPlan implements Plan {
 
-    private final DropViewStmt dropViewStmt;
+    private final AnalyzedDropView dropView;
 
-    DropViewPlan(DropViewStmt dropViewStmt) {
-        this.dropViewStmt = dropViewStmt;
+    DropViewPlan(AnalyzedDropView dropView) {
+        this.dropView = dropView;
     }
 
     @Override
@@ -53,10 +53,10 @@ public class DropViewPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        DropViewRequest request = new DropViewRequest(dropViewStmt.views(), dropViewStmt.ifExists());
+        DropViewRequest request = new DropViewRequest(dropView.views(), dropView.ifExists());
         Function<DropViewResponse, Row> responseToRow = resp -> {
-            if (dropViewStmt.ifExists() || resp.missing().isEmpty()) {
-                return new Row1((long) dropViewStmt.views().size() - resp.missing().size());
+            if (dropView.ifExists() || resp.missing().isEmpty()) {
+                return new Row1((long) dropView.views().size() - resp.missing().size());
             }
             throw new RelationsUnknown(resp.missing());
         };

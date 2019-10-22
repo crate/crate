@@ -24,23 +24,32 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.RelationsUnknown;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateView;
+import io.crate.sql.tree.DropView;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
 
-public final class CreateViewAnalyzer {
+import java.util.ArrayList;
+
+public final class ViewAnalyzer {
 
     private final RelationAnalyzer relationAnalyzer;
+    private final Schemas schemas;
 
-    CreateViewAnalyzer(RelationAnalyzer relationAnalyzer) {
+    ViewAnalyzer(RelationAnalyzer relationAnalyzer, Schemas schemas) {
         this.relationAnalyzer = relationAnalyzer;
+        this.schemas = schemas;
     }
 
-    public AnalyzedStatement analyze(CreateView createView, CoordinatorTxnCtx txnCtx) {
+    public CreateViewStmt analyze(CreateView createView, CoordinatorTxnCtx txnCtx) {
         RelationName name = RelationName.of(createView.name(), txnCtx.sessionContext().searchPath().currentSchema());
         name.ensureValidForRelationCreation();
         if (BlobSchemaInfo.NAME.equals(name.schema())) {
@@ -69,5 +78,26 @@ public final class CreateViewAnalyzer {
             createView.replaceExisting(),
             txnCtx.sessionContext().user()
         );
+    }
+
+    public AnalyzedDropView analyze(DropView dropView, CoordinatorTxnCtx txnCtx) {
+        // No exists check to avoid stale clusterState race conditions
+        ArrayList<RelationName> views = new ArrayList<>(dropView.names().size());
+        ArrayList<RelationName> missing = new ArrayList<>();
+        for (QualifiedName qualifiedName : dropView.names()) {
+            try {
+                views.add(schemas.resolveView(qualifiedName, txnCtx.sessionContext().searchPath()).v2());
+            } catch (RelationUnknown e) {
+                if (!dropView.ifExists()) {
+                    missing.add(RelationName.of(qualifiedName, txnCtx.sessionContext().searchPath().currentSchema()));
+                }
+            }
+        }
+
+        if (!missing.isEmpty()) {
+            throw new RelationsUnknown(missing);
+        }
+
+        return new AnalyzedDropView(views, dropView.ifExists());
     }
 }

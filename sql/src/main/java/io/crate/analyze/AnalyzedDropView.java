@@ -26,12 +26,12 @@ import io.crate.metadata.RelationName;
 
 import java.util.List;
 
-public final class DropViewStmt implements AnalyzedStatement {
+public final class AnalyzedDropView implements AnalyzedStatement {
 
     private final List<RelationName> views;
     private final boolean ifExists;
 
-    DropViewStmt(List<RelationName> views, boolean ifExists) {
+    AnalyzedDropView(List<RelationName> views, boolean ifExists) {
         this.views = views;
         this.ifExists = ifExists;
     }
@@ -47,6 +47,11 @@ public final class DropViewStmt implements AnalyzedStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitDropView(this, context);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 
     @Override

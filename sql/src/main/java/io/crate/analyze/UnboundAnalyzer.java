@@ -52,6 +52,7 @@ import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GrantPrivilege;
@@ -112,7 +113,7 @@ class UnboundAnalyzer {
                     AlterTableRerouteAnalyzer alterTableRerouteAnalyzer,
                     PrivilegesAnalyzer privilegesAnalyzer,
                     CopyAnalyzer copyAnalyzer,
-                    CreateViewAnalyzer createViewAnalyzer) {
+                    ViewAnalyzer viewAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -143,7 +144,7 @@ class UnboundAnalyzer {
             alterTableRerouteAnalyzer,
             privilegesAnalyzer,
             copyAnalyzer,
-            createViewAnalyzer
+            viewAnalyzer
         );
     }
 
@@ -184,7 +185,7 @@ class UnboundAnalyzer {
         private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
         private final PrivilegesAnalyzer privilegesAnalyzer;
         private final CopyAnalyzer copyAnalyzer;
-        private final CreateViewAnalyzer createViewAnalyzer;
+        private final ViewAnalyzer viewAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -215,7 +216,7 @@ class UnboundAnalyzer {
                           AlterTableRerouteAnalyzer alterTableRerouteAnalyzer,
                           PrivilegesAnalyzer privilegesAnalyzer,
                           CopyAnalyzer copyAnalyzer,
-                          CreateViewAnalyzer createViewAnalyzer) {
+                          ViewAnalyzer viewAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -245,7 +246,7 @@ class UnboundAnalyzer {
             this.alterTableRerouteAnalyzer = alterTableRerouteAnalyzer;
             this.privilegesAnalyzer = privilegesAnalyzer;
             this.copyAnalyzer = copyAnalyzer;
-            this.createViewAnalyzer = createViewAnalyzer;
+            this.viewAnalyzer = viewAnalyzer;
         }
 
         @Override
@@ -316,9 +317,14 @@ class UnboundAnalyzer {
 
         @Override
         public AnalyzedStatement visitCreateView(CreateView createView, Analysis context) {
-            return createViewAnalyzer.analyze(
+            return viewAnalyzer.analyze(
                 createView,
                 context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropView(DropView node, Analysis context) {
+            return viewAnalyzer.analyze(node, context.transactionContext());
         }
 
         @Override
