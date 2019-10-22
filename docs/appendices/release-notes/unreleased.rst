@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Tuned the circuit breaker mechanism to reduce the change of it rejecting
+  queries under low cluster load.
+
 - Closed some gaps in the memory accounting used for the circuit breaker
   mechanism. This should help prevent memory intense queries from triggering
   long GC pauses as they'll be rejected earlier.
