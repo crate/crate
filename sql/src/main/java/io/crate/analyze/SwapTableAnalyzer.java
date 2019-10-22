@@ -50,7 +50,7 @@ public final class SwapTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public AnalyzedSwapTable analyze(SwapTable swapTable,
+    public AnalyzedSwapTable analyze(SwapTable<Expression> swapTable,
                                      CoordinatorTxnCtx txnCtx,
                                      ParamTypeHints typeHints) {
         HashMap<String, Expression> properties = new HashMap<>(swapTable.properties().properties());

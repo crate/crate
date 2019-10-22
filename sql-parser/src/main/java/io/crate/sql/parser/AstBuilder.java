@@ -312,7 +312,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitAlterClusterSwapTable(SqlBaseParser.AlterClusterSwapTableContext ctx) {
-        return new SwapTable(
+        return new SwapTable<>(
             getQualifiedName(ctx.source),
             getQualifiedName(ctx.target),
             extractGenericProperties(ctx.withProperties())

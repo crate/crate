@@ -572,7 +572,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(dropView, context);
     }
 
-    public R visitSwapTable(SwapTable swapTable, C context) {
+    public R visitSwapTable(SwapTable<?> swapTable, C context) {
         return visitStatement(swapTable, context);
     }
 
