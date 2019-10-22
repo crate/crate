@@ -30,6 +30,11 @@ public class AnalyzedCommit implements AnalyzedStatement {
     }
 
     @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
+    }
+
+    @Override
     public boolean isWriteOperation() {
         return false;
     }

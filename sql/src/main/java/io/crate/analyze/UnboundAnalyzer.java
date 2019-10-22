@@ -33,6 +33,8 @@ import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.BeginStatement;
+import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
@@ -545,6 +547,16 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitDropBlobTable(DropBlobTable<?> node, Analysis context) {
             return dropTableAnalyzer.analyze(node,context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitBegin(BeginStatement node, Analysis context) {
+            return new AnalyzedBegin();
+        }
+
+        @Override
+        public AnalyzedStatement visitCommit(CommitStatement node, Analysis context) {
+            return new AnalyzedCommit();
         }
     }
 }
