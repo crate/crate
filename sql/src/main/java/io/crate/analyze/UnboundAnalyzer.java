@@ -26,6 +26,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.tree.AlterBlobTable;
+import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
@@ -564,6 +565,12 @@ class UnboundAnalyzer {
         public AnalyzedStatement visitGCDanglingArtifacts(GCDanglingArtifacts gcDanglingArtifacts,
                                                           Analysis context) {
             return AnalyzedGCDanglingArtifacts.INSTANCE;
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterClusterRerouteRetryFailed(AlterClusterRerouteRetryFailed node,
+                                                                     Analysis context) {
+            return new AnalyzedRerouteRetryFailed();
         }
     }
 }

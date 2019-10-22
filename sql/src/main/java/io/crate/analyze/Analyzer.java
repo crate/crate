@@ -372,7 +372,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitAlterClusterRerouteRetryFailed(AlterClusterRerouteRetryFailed node, Analysis context) {
-            return new RerouteRetryFailedAnalyzedStatement();
+            return new AnalyzedRerouteRetryFailed();
         }
 
         @Override

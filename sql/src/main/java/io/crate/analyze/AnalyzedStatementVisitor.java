@@ -107,7 +107,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, C context) {
+    public R visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
 
