@@ -178,6 +178,8 @@ Changes
 Fixes
 =====
 
+- Fixed the handling of array values when used in the ``SET GLOBAL`` statement.
+
 - Fixed evaluation of generated columns when they are based on columns
   with default constraints and no user given values. Default
   contraints where not taken into account before.

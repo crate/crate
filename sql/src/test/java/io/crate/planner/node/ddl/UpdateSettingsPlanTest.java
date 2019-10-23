@@ -25,6 +25,7 @@ package io.crate.planner.node.ddl;
 import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.NullLiteral;
 import io.crate.sql.tree.ParameterExpression;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.planner.node.ddl.UpdateSettingsPlan.buildSettingsFrom;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 public class UpdateSettingsPlanTest extends CrateUnitTest {
@@ -109,5 +111,14 @@ public class UpdateSettingsPlanTest extends CrateUnitTest {
         expectedException.expectMessage("Cannot set \"cluster.routing.allocation.exclude._id\" to `null`. Use `RESET [GLOBAL] \"cluster.routing.allocation.exclude._id\"` to reset a setting to its default value");
         Map<String, List<Expression>> settings = Map.of("cluster.routing.allocation.exclude._id", List.of(NullLiteral.INSTANCE));
         buildSettingsFrom(settings, Row.EMPTY);
+    }
+
+    @Test
+    public void test_array_is_implicitly_converted_to_comma_separated_string() {
+        var idsArray = new ArrayLiteral(List.of(new StringLiteral("id1"), new StringLiteral("id2")));
+        Map<String, List<Expression>> expressionsBySettingKey = Map.of("cluster.routing.allocation.exclude._id", List.of(idsArray));
+        Settings settings = buildSettingsFrom(expressionsBySettingKey, Row.EMPTY);
+        assertThat(settings.get("cluster.routing.allocation.exclude._id"), is("id1,id2"));
+        assertThat(settings.getAsList("cluster.routing.allocation.exclude._id"), contains("id1", "id2"));
     }
 }
