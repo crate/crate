@@ -46,6 +46,11 @@ None
 Fixes
 =====
 
+
+- Improved the handling of ``NULL`` values in ``SET GLOBAL`` statement. They
+  now no longer cause a ``NullPointerException`` but instead advice users to
+  use ``RESET GLOBAL`` to reset settings to their default value.
+
 - Fixed evaluation of generated columns when they are based on columns
   with default constraints and no user given values. Default
   contraints where not taken into account before.
@@ -53,7 +58,6 @@ Fixes
 - Fixed an issue when using ``try_cast('invalid-ts' as timestamp)``
   which resulted in a parsing exception instead of an expected
   ``NULL`` value.
-
 - Tuned the circuit breaker mechanism to reduce the change of it rejecting
   queries under low cluster load.
 
