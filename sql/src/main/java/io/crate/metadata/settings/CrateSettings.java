@@ -222,6 +222,10 @@ public final class CrateSettings implements ClusterStateListener {
             for (Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()) {
                 flattenSettings(settingsBuilder, DOT_JOINER.join(key, setting.getKey()), setting.getValue());
             }
+        } else if (value == null) {
+            throw new IllegalArgumentException(
+                "Cannot set \"" + key + "\" to `null`. Use `RESET [GLOBAL] \"" + key +
+                "\"` to reset a setting to its default value");
         } else {
             settingsBuilder.put(key, value.toString());
         }

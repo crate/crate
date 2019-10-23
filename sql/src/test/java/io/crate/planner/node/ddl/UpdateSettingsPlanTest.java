@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.NullLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
@@ -100,6 +101,13 @@ public class UpdateSettingsPlanTest extends CrateUnitTest {
         Map<String, List<Expression>> settings = new HashMap<String, List<Expression>>() {{
             put("unsupported_setting", ImmutableList.of(new StringLiteral("foo")));
         }};
+        buildSettingsFrom(settings, Row.EMPTY);
+    }
+
+    @Test
+    public void test_build_settings_with_null_value() {
+        expectedException.expectMessage("Cannot set \"cluster.routing.allocation.exclude._id\" to `null`. Use `RESET [GLOBAL] \"cluster.routing.allocation.exclude._id\"` to reset a setting to its default value");
+        Map<String, List<Expression>> settings = Map.of("cluster.routing.allocation.exclude._id", List.of(NullLiteral.INSTANCE));
         buildSettingsFrom(settings, Row.EMPTY);
     }
 }

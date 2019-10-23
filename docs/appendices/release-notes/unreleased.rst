@@ -178,6 +178,10 @@ Changes
 Fixes
 =====
 
+- Improved the handling of ``NULL`` values in ``SET GLOBAL`` statement. They
+  now no longer cause a ``NullPointerException`` but instead advice users to
+  use ``RESET GLOBAL`` to reset settings to their default value.
+
 - Tuned the circuit breaker mechanism to reduce the change of it rejecting
   queries under low cluster load.
 
