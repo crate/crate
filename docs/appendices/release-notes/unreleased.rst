@@ -46,6 +46,7 @@ None
 Fixes
 =====
 
+- Fixed the handling of array values when used in the ``SET GLOBAL`` statement.
 
 - Improved the handling of ``NULL`` values in ``SET GLOBAL`` statement. They
   now no longer cause a ``NullPointerException`` but instead advice users to

@@ -63,6 +63,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -228,6 +229,13 @@ public final class CrateSettings implements ClusterStateListener {
             throw new IllegalArgumentException(
                 "Cannot set \"" + key + "\" to `null`. Use `RESET [GLOBAL] \"" + key +
                 "\"` to reset a setting to its default value");
+        } else if (value.getClass().isArray()) {
+            Object[] values = (Object[]) value;
+            StringJoiner joinOnComma = new StringJoiner(",");
+            for (Object val : values) {
+                joinOnComma.add(DataTypes.STRING.value(val));
+            }
+            settingsBuilder.put(key, joinOnComma.toString());
         } else {
             settingsBuilder.put(key, value.toString());
         }
