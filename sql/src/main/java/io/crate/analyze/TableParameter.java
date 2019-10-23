@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.List;
 import java.util.Map;
 
 public class TableParameter {
@@ -37,16 +36,6 @@ public class TableParameter {
     public TableParameter() {
         settingsBuilder = Settings.builder();
         mappingsBuilder = Settings.builder();
-    }
-
-    public TableParameter(Settings settings, List<String> settingsFilter) {
-        this();
-        for (String settingName : settingsFilter) {
-            String setting = settings.get(settingName);
-            if (setting != null) {
-                settingsBuilder().put(settingName, setting);
-            }
-        }
     }
 
     public Settings.Builder settingsBuilder() {

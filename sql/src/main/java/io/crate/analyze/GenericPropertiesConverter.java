@@ -21,16 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.data.Row;
-import io.crate.sql.tree.ArrayLiteral;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -42,25 +37,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_SETTING_PRE
 public class GenericPropertiesConverter {
 
     private static final String INVALID_SETTING_MESSAGE = "setting '%s' not supported";
-
-    /**
-     * Put a genericProperty into a settings-structure
-     */
-    static void genericPropertyToSetting(Settings.Builder builder,
-                                         String name,
-                                         Expression value,
-                                         Row parameters) {
-        if (value instanceof ArrayLiteral) {
-            ArrayLiteral array = (ArrayLiteral) value;
-            List<String> values = new ArrayList<>(array.values().size());
-            for (Expression expression : array.values()) {
-                values.add(ExpressionToStringVisitor.convert(expression, parameters));
-            }
-            builder.putList(name, values.toArray(new String[0]));
-        } else {
-            builder.put(name, ExpressionToStringVisitor.convert(value, parameters));
-        }
-    }
 
     public static void genericPropertyToSetting(Settings.Builder builder,
                                                 String name,
@@ -102,50 +78,6 @@ public class GenericPropertiesConverter {
         for (Map.Entry<String, Object> entry : genericProperties.properties().entrySet()) {
             settingKeyValidator.accept(entry.getKey());
             builder.put(entry.getKey(), entry.getValue().toString());
-        }
-    }
-
-    static Settings.Builder settingsFromProperties(GenericProperties<Expression> properties,
-                                                   Row parameters,
-                                                   Map<String, Setting<?>> supportedSettings) {
-
-        return settingsFromProperties(properties, parameters, supportedSettings, true);
-    }
-
-    public static Settings.Builder settingsFromProperties(GenericProperties<Expression> properties,
-                                                          Row parameters,
-                                                          Map<String, Setting<?>> supportedSettings,
-                                                          boolean setDefaults) {
-
-        Settings.Builder builder = Settings.builder();
-        settingsFromProperties(builder, properties, parameters, supportedSettings, setDefaults, (s) -> false, INVALID_SETTING_MESSAGE);
-        return builder;
-    }
-
-    static void settingsFromProperties(Settings.Builder builder,
-                                       GenericProperties<Expression> properties,
-                                       Row parameters,
-                                       Map<String, Setting<?>> supportedSettings,
-                                       boolean setDefaults,
-                                       Predicate<String> ignoreProperty,
-                                       String invalidMessage) {
-        if (setDefaults) {
-            setDefaults(builder, supportedSettings);
-        }
-        for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
-            String settingName = entry.getKey();
-            if (ignoreProperty.test(settingName)) {
-                continue;
-            }
-            String groupName = getPossibleGroup(settingName);
-            if (groupName != null && ignoreProperty.test(groupName)) {
-                continue;
-            }
-            SettingHolder settingHolder = getSupportedSetting(supportedSettings, settingName);
-            if (settingHolder == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
-            }
-            settingHolder.apply(builder, entry.getValue(), parameters);
         }
     }
 
@@ -265,23 +197,6 @@ public class GenericPropertiesConverter {
             } else {
                 builder.put(setting.getKey(), value.toString());
             }
-        }
-
-        void apply(Settings.Builder builder, Expression valueExpression, Row parameters) {
-            if (isAffixSetting) {
-                // only concrete affix settings are supported otherwise it's not possible to parse values
-                throw new IllegalArgumentException(
-                    "Cannot change a dynamic group setting, only concrete settings allowed.");
-            }
-            Settings.Builder singleSettingBuilder = Settings.builder();
-            genericPropertyToSetting(singleSettingBuilder, setting.getKey(), valueExpression, parameters);
-            Object value = setting.get(singleSettingBuilder.build());
-            if (value instanceof Settings) {
-                builder.put((Settings) value);
-            } else {
-                builder.put(setting.getKey(), value.toString());
-            }
-
         }
 
         void apply(Settings.Builder builder, Object valueSymbol) {

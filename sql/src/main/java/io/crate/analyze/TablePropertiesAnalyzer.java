@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.data.Row;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.Setting;
 
@@ -33,40 +32,6 @@ public final class TablePropertiesAnalyzer {
     private static final String INVALID_MESSAGE = "Invalid property \"%s\" passed to [ALTER | CREATE] TABLE statement";
 
     private TablePropertiesAnalyzer() {
-    }
-
-    public static void analyze(TableParameter tableParameter,
-                               TableParameters tableParameters,
-                               GenericProperties properties,
-                               Row parameters) {
-        analyze(tableParameter, tableParameters, properties, parameters, false);
-    }
-
-    public static void analyze(TableParameter tableParameter,
-                               TableParameters tableParameters,
-                               GenericProperties properties,
-                               Row parameters,
-                               boolean withDefaults) {
-        Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
-        Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
-
-        GenericPropertiesConverter.settingsFromProperties(
-            tableParameter.settingsBuilder(),
-            properties,
-            parameters,
-            settingMap,
-            withDefaults,
-            mappingsMap::containsKey,
-            INVALID_MESSAGE);
-
-        GenericPropertiesConverter.settingsFromProperties(
-            tableParameter.mappingsBuilder(),
-            properties,
-            parameters,
-            mappingsMap,
-            withDefaults,
-            settingMap::containsKey,
-            INVALID_MESSAGE);
     }
 
     public static void analyzeWithBoundValues(TableParameter tableParameter,
