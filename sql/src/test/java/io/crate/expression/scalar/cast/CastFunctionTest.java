@@ -133,4 +133,14 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
                        978310861000L,
                        Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2001-01-01T01:01:01Z")));
     }
+
+    /**
+     * Only {@link io.crate.exceptions.ConversionException} are caught on try_cast, cast will only convert
+     * {@link ClassCastException} and {@link IllegalArgumentException}.
+     * This test ensures that parsing exceptions at {@link io.crate.types.TimestampType} will be converted into these.
+     */
+    @Test
+    public void test_try_cast_invalid_timestamp_returns_null() {
+        assertEvaluate("try_cast('0000:00:00' as timestamp)", null);
+    }
 }

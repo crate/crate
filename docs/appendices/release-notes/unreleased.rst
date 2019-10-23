@@ -178,6 +178,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue when using ``try_cast('invalid-ts' as timestamp)``
+  which resulted in a parsing exception instead of an expected
+  ``NULL`` value.
+
 - Improved the handling of ``NULL`` values in ``SET GLOBAL`` statement. They
   now no longer cause a ``NullPointerException`` but instead advice users to
   use ``RESET GLOBAL`` to reset settings to their default value.
