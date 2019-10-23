@@ -153,7 +153,13 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
                 "  color text," +
                 "  routing_col int generated always as o['serial_number'] + 1" +
                 ")" +
-                " clustered by (routing_col)");
+                " clustered by (routing_col)")
+            .addTable(
+                "create table generated_based_on_default (" +
+                " id int," +
+                " x int default 1," +
+                " y as x + 1" +
+                ")");
 
         e = executorBuilder.build();
     }
@@ -1475,5 +1481,18 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
         Object[] values = stmt.sourceMaps().get(0);
         assertThat(values[0], is(Map.of("x", 5, "y", 2)));
+    }
+
+    @Test
+    public void test_generated_based_on_default() {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into generated_based_on_default (id) values (1)");
+        assertThat(analysis.sourceMaps(), hasSize(1));
+
+        var res = analysis.sourceMaps().get(0);
+        assertThat(res.length, is(3));
+        assertThat(res[0], is(1));
+        assertThat(res[1], is(1));
+        assertThat(res[2], is(2));
     }
 }

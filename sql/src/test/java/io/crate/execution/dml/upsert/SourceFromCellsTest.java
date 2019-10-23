@@ -62,7 +62,6 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     private Reference z;
     private DocTableInfo t2;
     private Reference obj;
-    private Reference b;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
@@ -73,6 +72,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             .addPartitionedTable("create table t3 (p int not null) partitioned by (p)")
             .addTable("create table t4 (x int, y text default 'crate')")
             .addTable("create table t5 (obj object as (x int default 0, y int))")
+            .addTable("create table t6 (x int default 1, y as x + 1)")
             .build();
         AnalyzedRelation relation = e.normalize("select x, y, z from t1");
         t1 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
@@ -83,7 +83,6 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         relation = e.normalize("select obj, b from t2");
         t2 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
         obj = (Reference) relation.outputs().get(0);
-        b = (Reference) relation.outputs().get(1);
     }
 
     @Test
@@ -237,7 +236,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(obj, Matchers.notNullValue());
         List<Reference> targets = List.of(obj);
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
-            txnCtx, e.functions(), t5, "t4", GeneratedColumns.Validation.VALUE_MATCH, targets);
+            txnCtx, e.functions(), t5, "t5", GeneratedColumns.Validation.VALUE_MATCH, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
         providedValueForObj.put("x", 2);
         BytesReference source = sourceFromCells.generateSource(new Object[]{providedValueForObj});
@@ -245,5 +244,17 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> map = JsonXContent.jsonXContent.createParser(
             NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
         assertThat(Maps.getByPath(map, "obj.x"), is(2));
+    }
+
+    @Test
+    public void test_generated_based_on_default() throws Exception {
+        DocTableInfo t6 = e.resolveTableInfo("t6");
+        InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
+            txnCtx, e.functions(), t6, "t6", GeneratedColumns.Validation.VALUE_MATCH, List.of());
+        BytesReference source = sourceFromCells.generateSource(new Object[0]);
+        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
+        assertThat(Maps.getByPath(map, "x"), is(1));
+        assertThat(Maps.getByPath(map, "y"), is(2));
     }
 }

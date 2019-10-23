@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed evaluation of generated columns when they are based on columns
+  with default constraints and no user given values. Default
+  contraints where not taken into account before.
+
 - Fixed an issue when using ``try_cast('invalid-ts' as timestamp)``
   which resulted in a parsing exception instead of an expected
   ``NULL`` value.
