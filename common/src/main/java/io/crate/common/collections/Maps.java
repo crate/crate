@@ -22,6 +22,7 @@
 package io.crate.common.collections;
 
 import io.crate.common.StringUtils;
+import io.crate.common.TriConsumer;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -93,9 +94,23 @@ public final class Maps {
     /**
      * Inserts a value into source under the given key+path
      */
-    public static void mergeInto(Map<String, Object> source, String key, List<String> path, Object value) {
+    public static void mergeInto(Map<String, Object> source,
+                                 String key,
+                                 List<String> path,
+                                 Object value) {
+        mergeInto(source, key, path, value, Map::put);
+    }
+
+    /**
+     * Inserts a value into source under the given key+path
+     */
+    public static void mergeInto(Map<String, Object> source,
+                                 String key,
+                                 List<String> path,
+                                 Object value,
+                                 TriConsumer<Map<String, Object>, String, Object> writer) {
         if (path.isEmpty()) {
-            source.put(key, value);
+            writer.accept(source, key, value);
         } else {
             if (source.containsKey(key)) {
                 Map<String, Object> contents = (Map<String, Object>) source.get(key);
@@ -105,9 +120,9 @@ public final class Maps {
 
                 }
                 String nextKey = path.get(0);
-                mergeInto(contents, nextKey, path.subList(1, path.size()), value);
+                mergeInto(contents, nextKey, path.subList(1, path.size()), value, writer);
             } else {
-                source.put(key, nestedMaps(path, value));
+                writer.accept(source, key, nestedMaps(path, value));
             }
         }
     }

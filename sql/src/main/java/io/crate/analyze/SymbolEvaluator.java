@@ -55,6 +55,10 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
         this.subQueryResults = subQueryResults;
     }
 
+    public static Object evaluateWithoutParams(TransactionContext txn, Functions functions, Symbol symbol) {
+        return evaluate(txn, functions, symbol, Row.EMPTY, SubQueryResults.EMPTY);
+    }
+
     public static Object evaluate(TransactionContext txnCtx,
                                   Functions functions,
                                   Symbol symbol,

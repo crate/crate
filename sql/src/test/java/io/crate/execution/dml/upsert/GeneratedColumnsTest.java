@@ -59,8 +59,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             GeneratedColumns.Validation.NONE,
             new DocRefResolver(Collections.emptyList()),
             Collections.emptyList(),
-            table.generatedColumns(),
-            table.defaultExpressionColumns()
+            table.generatedColumns()
         );
 
         BytesReference bytes = BytesReference.bytes(XContentFactory.jsonBuilder()

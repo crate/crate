@@ -37,12 +37,20 @@ import java.util.function.Function;
 
 public class ReferenceToLiteralConverter implements Function<Reference, Symbol> {
 
+    private final List<Reference> insertColumns;
+    private final Collection<Reference> allReferencedReferences;
     private final Map<Reference, InputColumn> referenceInputColumnMap;
-    private final BitSet inputIsMap;
+    private BitSet inputIsMap;
     private Object[] values;
 
     public ReferenceToLiteralConverter(List<Reference> insertColumns, Collection<Reference> allReferencedReferences) {
+        this.insertColumns = insertColumns;
+        this.allReferencedReferences = allReferencedReferences;
         referenceInputColumnMap = new HashMap<>(allReferencedReferences.size());
+        rebuildReferenceMap();
+    }
+
+    public void rebuildReferenceMap() {
         inputIsMap = new BitSet(insertColumns.size());
         for (Reference reference : allReferencedReferences) {
             int idx = 0;

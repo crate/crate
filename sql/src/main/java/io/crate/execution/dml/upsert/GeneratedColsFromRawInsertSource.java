@@ -22,14 +22,16 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -45,20 +47,19 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
 
     private final Map<ColumnIdent, Input<?>> generatedCols;
     private final List<CollectExpression<Map<String, Object>, ?>> expressions;
+    private final Map<Reference, Object> defaults;
 
-    GeneratedColsFromRawInsertSource(
-        TransactionContext txnCtx,
-        Functions functions,
-        List<GeneratedReference> generatedColumns,
-        List<Reference> defaultExpressionColumns) {
-
+    GeneratedColsFromRawInsertSource(TransactionContext txnCtx,
+                                     Functions functions,
+                                     List<GeneratedReference> generatedColumns,
+                                     List<Reference> defaultExpressionColumns) {
         InputFactory inputFactory = new InputFactory(functions);
         InputFactory.Context<CollectExpression<Map<String, Object>, ?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FromSourceRefResolver.INSTANCE);
-        this.generatedCols = new HashMap<>(generatedColumns.size() + defaultExpressionColumns.size());
-        defaultExpressionColumns.forEach(r -> generatedCols.put(r.column(), ctx.add(r.defaultExpression())));
+        this.generatedCols = new HashMap<>(generatedColumns.size());
         generatedColumns.forEach(r -> generatedCols.put(r.column(), ctx.add(r.generatedExpression())));
         expressions = ctx.expressions();
+        defaults = buildDefaults(defaultExpressionColumns, txnCtx, functions);
     }
 
     @Override
@@ -69,6 +70,7 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
     public BytesReference generateSource(Object[] values) throws IOException {
         String rawSource = (String) values[0];
         Map<String, Object> source = XContentHelper.convertToMap(new BytesArray(rawSource), false, XContentType.JSON).v2();
+        mixinDefaults(source, defaults);
         for (int i = 0; i < expressions.size(); i++) {
             expressions.get(i).setNextRow(source);
         }
@@ -78,4 +80,21 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
         return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
     }
 
+    private Map<Reference, Object> buildDefaults(List<Reference> defaults,
+                                                 TransactionContext txnCtx,
+                                                 Functions functions) {
+        HashMap<Reference, Object> m = new HashMap<>();
+        for (Reference ref : defaults) {
+            Object val = SymbolEvaluator.evaluateWithoutParams(txnCtx, functions, ref.defaultExpression());
+            m.put(ref, val);
+        }
+        return m;
+    }
+
+    private static void mixinDefaults(Map<String, Object> source, Map<Reference, Object> defaults) {
+        for (var entry : defaults.entrySet()) {
+            ColumnIdent column = entry.getKey().column();
+            Maps.mergeInto(source, column.name(), column.path(), entry.getValue(), Map::putIfAbsent);
+        }
+    }
 }
