@@ -32,8 +32,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -349,32 +347,6 @@ public class Strings {
     }
 
     /**
-     * Copy the given Collection into a String array.
-     * The Collection must contain String elements only.
-     *
-     * @param collection the Collection to copy
-     * @return the String array (<code>null</code> if the passed-in
-     *         Collection was <code>null</code>)
-     */
-    public static String[] toStringArray(Collection<String> collection) {
-        if (collection == null) {
-            return null;
-        }
-        return collection.toArray(new String[collection.size()]);
-    }
-
-    /**
-     * Tokenize the specified string by commas to a set, trimming whitespace and ignoring empty tokens.
-     *
-     * @param s the string to tokenize
-     * @return the set of tokens
-     */
-    public static Set<String> tokenizeByCommaToSet(final String s) {
-        if (s == null) return Collections.emptySet();
-        return tokenizeToCollection(s, ",", HashSet::new);
-    }
-
-    /**
      * Split the specified string by commas to an array.
      *
      * @param s the string to split
@@ -429,7 +401,7 @@ public class Strings {
         if (s == null) {
             return EMPTY_ARRAY;
         }
-        return toStringArray(tokenizeToCollection(s, delimiters, ArrayList::new));
+        return tokenizeToCollection(s, delimiters, ArrayList::new).toArray(new String[0]);
     }
 
     /**
@@ -513,7 +485,7 @@ public class Strings {
                 result.add(deleteAny(str.substring(pos), charsToDelete));
             }
         }
-        return toStringArray(result);
+        return result.toArray(new String[0]);
     }
 
     /**
