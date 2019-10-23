@@ -561,6 +561,11 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             this.alreadyProcessedColumns = alreadyProcessedColumns;
             refToLiteral.values(insertValues);
         }
+
+        private void insertValues(Object[] insertValues) {
+            this.insertValues = insertValues;
+            refToLiteral.values(insertValues);
+        }
     }
 
     private void processColumnsWithExpression(ColumnExpressionContext context) {
@@ -571,6 +576,9 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         columnsWithExpessionToProcess.removeAll(context.alreadyProcessedColumns);
         columnsWithExpessionToProcess
             .forEach(r -> processExpressionForReference(r, r::defaultExpression, context, primaryKey));
+        // Insert columns and values may have changed as columns with default constraints are mixed in now.
+        // Rebuilding the internal maps of the refToLiteral converter make them visible for generated expressions.
+        context.refToLiteral.rebuildReferenceMap();
         context.tableRelation.tableInfo().generatedColumns()
             .forEach(r -> processExpressionForReference(r, r::generatedExpression, context, primaryKey));
     }
@@ -597,11 +605,11 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                                    value,
                                                    context.analyzedStatement.currentPartitionMap());
             } else {
-                context.insertValues = addExtraColumnValue(context.analyzedStatement,
-                                                           reference,
-                                                           value,
-                                                           context.insertValues,
-                                                           reference instanceof GeneratedReference);
+                context.insertValues(addExtraColumnValue(context.analyzedStatement,
+                                                         reference,
+                                                         value,
+                                                         context.insertValues,
+                                                         reference instanceof GeneratedReference));
             }
         }
 

@@ -44,39 +44,30 @@ public final class GeneratedColumns<T> {
         VALUE_MATCH
     }
 
-    private static final GeneratedColumns EMPTY = new GeneratedColumns();
+    private static final GeneratedColumns EMPTY = new GeneratedColumns<>();
 
+    @SuppressWarnings("unchecked")
     public static <T> GeneratedColumns<T> empty() {
-        //noinspection unchecked
-        return EMPTY;
+        return (GeneratedColumns<T>) EMPTY;
     }
 
     private final Map<Reference, Input<?>> toValidate;
     private final Map<Reference, Input<?>> generatedToInject;
-    private final Map<Reference, Input<?>> defaultsToInject;
     private final List<CollectExpression<T, ?>> expressions;
 
     private GeneratedColumns() {
         toValidate = Collections.emptyMap();
         generatedToInject = Collections.emptyMap();
-        defaultsToInject = Collections.emptyMap();
         expressions = Collections.emptyList();
     }
 
-    public GeneratedColumns(InputFactory inputFactory,
-                            TransactionContext txnCtx,
-                            Validation validation,
-                            ReferenceResolver<CollectExpression<T, ?>> refResolver,
-                            Collection<Reference> presentColumns,
-                            List<GeneratedReference> allGeneratedColumns,
-                            List<Reference> allDefaultExpressionColumns) {
+    GeneratedColumns(InputFactory inputFactory,
+                     TransactionContext txnCtx,
+                     Validation validation,
+                     ReferenceResolver<CollectExpression<T, ?>> refResolver,
+                     Collection<Reference> presentColumns,
+                     List<GeneratedReference> allGeneratedColumns) {
         InputFactory.Context<CollectExpression<T, ?>> ctx = inputFactory.ctxForRefs(txnCtx, refResolver);
-        defaultsToInject = new HashMap<>();
-        for (Reference colWithDefault : allDefaultExpressionColumns) {
-            if (!presentColumns.contains(colWithDefault)) {
-                defaultsToInject.put(colWithDefault, ctx.add(colWithDefault.defaultExpression()));
-            }
-        }
         generatedToInject = new HashMap<>();
         for (GeneratedReference generatedCol : allGeneratedColumns) {
             if (!presentColumns.contains(generatedCol)) {
@@ -107,7 +98,7 @@ public final class GeneratedColumns<T> {
         }
     }
 
-    public void validateValues(HashMap<String, Object> source) {
+    void validateValues(HashMap<String, Object> source) {
         for (var entry : toValidate.entrySet()) {
             Reference ref = entry.getKey();
             Object providedValue = ValueExtractors.fromMap(source, ref.column());
@@ -132,11 +123,7 @@ public final class GeneratedColumns<T> {
         }
     }
 
-    public Iterable<? extends Map.Entry<Reference, Input<?>>> generatedToInject() {
+    Iterable<? extends Map.Entry<Reference, Input<?>>> generatedToInject() {
         return generatedToInject.entrySet();
-    }
-
-    public Iterable<? extends Map.Entry<Reference, Input<?>>> defaultsToInject() {
-        return defaultsToInject.entrySet();
     }
 }
