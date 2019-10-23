@@ -24,6 +24,8 @@ package io.crate.expression.scalar.cast;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -33,7 +35,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.DataTypeTesting.getDataGenerator;
+import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.SymbolMatchers.isFunction;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 // cast is just a wrapper around  DataType.value(val) which is why here are just a few tests
 public class CastFunctionTest extends AbstractScalarFunctionsTest {
@@ -137,10 +144,16 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     /**
      * Only {@link io.crate.exceptions.ConversionException} are caught on try_cast, cast will only convert
      * {@link ClassCastException} and {@link IllegalArgumentException}.
-     * This test ensures that parsing exceptions at {@link io.crate.types.TimestampType} will be converted into these.
+     * Ensure that this works as expected by try_cast random values for all primitive types.
      */
     @Test
-    public void test_try_cast_invalid_timestamp_returns_null() {
-        assertEvaluate("try_cast('0000:00:00' as timestamp)", null);
+    public void test_try_cast_for_all_data_types() {
+        for (DataType dataType : DataTypes.PRIMITIVE_TYPES) {
+            DataType<?> randomType = randomType();
+            Literal val = Literal.of(randomType, getDataGenerator(randomType).get());
+            assertEvaluate(
+                "try_cast(" + SymbolPrinter.INSTANCE.printQualified(val) + " as " + dataType.getName() + ")",
+                anyOf(notNullValue(), nullValue()));
+        }
     }
 }
