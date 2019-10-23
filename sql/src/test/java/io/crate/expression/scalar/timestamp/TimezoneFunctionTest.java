@@ -69,9 +69,9 @@ public class TimezoneFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateInvalidTimestamp() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "Text 'not_a_timestamp' could not be parsed at index 0");
+            "Cannot cast 'not_a_timestamp' to type timestamp with time zone");
         assertEvaluate("timezone('Europe/Madrid', 'not_a_timestamp')", null);
     }
 

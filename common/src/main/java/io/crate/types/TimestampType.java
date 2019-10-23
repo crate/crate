@@ -31,6 +31,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.time.temporal.TemporalAccessor;
 import java.util.Locale;
@@ -135,8 +136,13 @@ public final class TimestampType extends DataType<Long>
         try {
             return Long.parseLong(timestamp);
         } catch (NumberFormatException e) {
-            TemporalAccessor dt = TIMESTAMP_PARSER.parseBest(
-                timestamp, OffsetDateTime::from, LocalDateTime::from, LocalDate::from);
+            TemporalAccessor dt;
+            try {
+                dt = TIMESTAMP_PARSER.parseBest(
+                    timestamp, OffsetDateTime::from, LocalDateTime::from, LocalDate::from);
+            } catch (DateTimeParseException e1) {
+                throw new IllegalArgumentException(e1.getMessage());
+            }
 
             if (dt instanceof LocalDateTime) {
                 LocalDateTime localDateTime = LocalDateTime.from(dt);
@@ -155,8 +161,13 @@ public final class TimestampType extends DataType<Long>
         try {
             return Long.parseLong(timestamp);
         } catch (NumberFormatException e) {
-            TemporalAccessor dt = TIMESTAMP_PARSER.parseBest(
-                timestamp, LocalDateTime::from, LocalDate::from);
+            TemporalAccessor dt;
+            try {
+                dt = TIMESTAMP_PARSER.parseBest(
+                    timestamp, LocalDateTime::from, LocalDate::from);
+            } catch (DateTimeParseException e1) {
+                throw new IllegalArgumentException(e1.getMessage());
+            }
 
             if (dt instanceof LocalDate) {
                 LocalDate localDate = LocalDate.from(dt);

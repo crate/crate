@@ -4,8 +4,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.time.format.DateTimeParseException;
-
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -81,56 +79,56 @@ public class TimestampTypesTest {
 
     @Test
     public void testTimestampWithZoneUsingDoubleSpaceBetweenDateAndTimeDoesNotParse() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("could not be parsed, unparsed text found at index 10");
         TimestampType.parseTimestamp("1999-01-08  04:00:00");
     }
 
     @Test
     public void testTimestampWithoutZoneUsingDoubleSpaceBetweenDateAndTimeDoesNotParse() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("could not be parsed, unparsed text found at index 10");
         TimestampType.parseTimestampIgnoreTimeZone("1999-01-08  04:00:00");
     }
 
     @Test
     public void testTimestampWithZoneNothingBetweenDateAndTimeDoesNotParse() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("could not be parsed, unparsed text found at index 10");
         TimestampType.parseTimestamp("1999-01-0804:00:00");
     }
 
     @Test
     public void testTimestampWithoutZoneNothingBetweenDateAndTimeDoesNotParse() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("could not be parsed, unparsed text found at index 10");
         TimestampType.parseTimestampIgnoreTimeZone("1999-01-0804:00:00");
     }
 
     @Test
     public void testTimestampWithZoneUsingSpaceAndTBetweenDateAndTimeDoesNotParse() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("could not be parsed, unparsed text found at index 10");
         TimestampType.parseTimestamp("1999-01-08 T04:00:00");
     }
 
     @Test
     public void testTimestampWithoutZoneUsingSpaceAndTBetweenDateAndTimeDoesNotParse() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("could not be parsed, unparsed text found at index 10");
         TimestampType.parseTimestampIgnoreTimeZone("1999-01-08 T04:00:00");
     }
 
     @Test
     public void testTimestampWithZoneUsingTAndSpaceBetweenDateAndTimeDoesNotParse() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("could not be parsed, unparsed text found at index 10");
         TimestampType.parseTimestamp("1999-01-08T 04:00:00");
     }
 
     @Test
     public void testTimestampWithoutZoneUsingTAndSpaceBetweenDateAndTimeDoesNotParse() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("could not be parsed, unparsed text found at index 10");
         TimestampType.parseTimestampIgnoreTimeZone("1999-01-08T 04:00:00");
     }
