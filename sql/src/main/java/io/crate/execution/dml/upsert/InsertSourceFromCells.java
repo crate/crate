@@ -22,9 +22,10 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
-import io.crate.data.ArrayRow;
+import io.crate.data.BiArrayRow;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
@@ -40,19 +41,23 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class InsertSourceFromCells implements InsertSourceGen {
 
     private final List<Reference> targets;
-    private final ArrayRow row = new ArrayRow();
+    private final BiArrayRow row = new BiArrayRow();
     private final CheckConstraints<Row, CollectExpression<Row, ?>> checks;
     private final GeneratedColumns<Row> generatedColumns;
+    private final Object[] defaultValues;
 
     InsertSourceFromCells(TransactionContext txnCtx,
                           Functions functions,
@@ -60,10 +65,13 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                           String indexName,
                           GeneratedColumns.Validation validation,
                           List<Reference> targets) {
-        this.targets = targets;
-        ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(targets, table.partitionedByColumns(), indexName);
+        Tuple<List<Reference>, Object[]> allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, functions);
+        this.targets = allTargetColumnsAndDefaults.v1();
+        this.defaultValues = allTargetColumnsAndDefaults.v2();
+
+        ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(this.targets, table.partitionedByColumns(), indexName);
         InputFactory inputFactory = new InputFactory(functions);
-        if (table.generatedColumns().isEmpty() && table.defaultExpressionColumns().isEmpty()) {
+        if (table.generatedColumns().isEmpty()) {
             generatedColumns = GeneratedColumns.empty();
         } else {
             generatedColumns = new GeneratedColumns<>(
@@ -71,47 +79,69 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                 txnCtx,
                 validation,
                 referenceResolver,
-                targets,
-                table.generatedColumns(),
-                table.defaultExpressionColumns()
+                this.targets,
+                table.generatedColumns()
             );
         }
         checks = new CheckConstraints<>(txnCtx, inputFactory, referenceResolver, table);
     }
 
+    @Override
     public void checkConstraints(Object[] values) {
-        row.cells(values);
+        row.firstCells(values);
+        row.secondCells(defaultValues);
         checks.validate(row);
     }
 
+    @Override
     public BytesReference generateSource(Object[] values) throws IOException {
         HashMap<String, Object> source = new HashMap<>();
 
-        row.cells(values);
-        generatedColumns.setNextRow(row);
+        row.firstCells(values);
+        row.secondCells(defaultValues);
+
         for (int i = 0; i < targets.size(); i++) {
             Reference target = targets.get(i);
-            Object value = values[i];
+            Object value = row.get(i);
 
             // partitioned columns must not be included in the source
             if (target.granularity() == RowGranularity.DOC) {
                 ColumnIdent column = target.column();
-                Maps.mergeInto(source, column.name(), column.path(), value);
+                Maps.mergeInto(source, column.name(), column.path(), value, Map::putIfAbsent);
             }
         }
+
+        generatedColumns.setNextRow(row);
+
         generatedColumns.validateValues(source);
         for (var entry : generatedColumns.generatedToInject()) {
             ColumnIdent column = entry.getKey().column();
             Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
         }
-        for (var entry : generatedColumns.defaultsToInject()) {
-            ColumnIdent column = entry.getKey().column();
-            if (column.isTopLevel() || ValueExtractors.fromMap(source, column) == null) {
-                Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
-            }
-        }
 
         return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
+    }
+
+    private Tuple<List<Reference>, Object[]> addDefaults(List<Reference> targets,
+                                                         DocTableInfo table,
+                                                         TransactionContext txnCtx,
+                                                         Functions functions) {
+        ArrayList<Reference> defaultColumns = new ArrayList<>(table.defaultExpressionColumns().size());
+        ArrayList<Object> defaultValues = new ArrayList<>();
+        for (Reference ref : table.defaultExpressionColumns()) {
+            if (targets.contains(ref) == false) {
+                defaultColumns.add(ref);
+                Object val = SymbolEvaluator.evaluateWithoutParams(txnCtx, functions, ref.defaultExpression());
+                defaultValues.add(val);
+            }
+        }
+        List<Reference> allColumns;
+        if (defaultColumns.isEmpty()) {
+            allColumns = targets;
+        } else {
+            allColumns = Lists2.concat(targets, defaultColumns);
+        }
+        return new Tuple<>(allColumns, defaultValues.toArray(new Object[0]));
     }
 
     private static class ReferencesFromInputRow implements ReferenceResolver<CollectExpression<Row, ?>> {
