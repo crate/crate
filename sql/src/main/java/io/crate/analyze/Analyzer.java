@@ -129,7 +129,6 @@ public class Analyzer {
     private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
     private final UserAnalyzer userAnalyzer;
     private final ViewAnalyzer viewAnalyzer;
-    private final Schemas schemas;
     private final SwapTableAnalyzer swapTableAnalyzer;
     private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
     private final KillAnalyzer killAnalyzer;
@@ -148,7 +147,6 @@ public class Analyzer {
                     RepositoryService repositoryService,
                     UserManager userManager) {
         this.relationAnalyzer = relationAnalyzer;
-        this.schemas = schemas;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.userManager = userManager;
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(functions);
