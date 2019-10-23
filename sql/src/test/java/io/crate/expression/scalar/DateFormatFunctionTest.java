@@ -122,7 +122,7 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testInvalidTimestamp() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Text 'NO TIMESTAMP' could not be parsed");
         assertEvaluate("date_format('%d.%m.%Y', 'NO TIMESTAMP')", null);
     }
