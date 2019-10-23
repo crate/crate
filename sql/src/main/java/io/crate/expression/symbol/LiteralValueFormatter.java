@@ -24,6 +24,8 @@ package io.crate.expression.symbol;
 
 import io.crate.common.collections.Sorted;
 import io.crate.sql.Literals;
+import org.joda.time.Period;
+import org.locationtech.spatial4j.shape.Point;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
@@ -49,12 +51,13 @@ public class LiteralValueFormatter {
             formatIterable(Arrays.asList((Object[]) value), builder);
         } else if (value.getClass().isArray()) {
             formatArray(value, builder);
-        } else if (value instanceof String) {
-            builder.append(Literals.quoteStringLiteral((String) value));
+        } else if (value instanceof String
+                   || value instanceof Point
+                   || value instanceof Period) {
+            builder.append(Literals.quoteStringLiteral(value.toString()));
         } else {
             builder.append(value.toString());
         }
-
     }
 
     private void formatIterable(Iterable<?> iterable, StringBuilder builder) {
