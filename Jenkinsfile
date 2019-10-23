@@ -39,24 +39,6 @@ pipeline {
             }
           }
         }
-        stage('test jdk12') {
-          agent { label 'large' }
-          environment {
-            CODECOV_TOKEN = credentials('cratedb-codecov-token')
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'jabba install $JDK_12'
-            sh 'JAVA_HOME=$(jabba which --home $JDK_12) ./gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
-            sh 'curl -s https://codecov.io/bash | bash'
-          }
-          post {
-            always {
-              junit '*/build/test-results/test/*.xml'
-            }
-          }
-        }
         stage('test jdk13') {
           agent { label 'large' }
           environment {
