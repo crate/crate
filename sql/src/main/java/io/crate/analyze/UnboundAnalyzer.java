@@ -37,6 +37,7 @@ import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateFunction;
@@ -534,6 +535,14 @@ class UnboundAnalyzer {
                 context.transactionContext());
         }
 
+        @Override
+        public AnalyzedStatement visitCopyTo(CopyTo<?> node, Analysis context) {
+            return copyAnalyzer.analyzeCopyTo(
+                (CopyTo<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+        
         @Override
         protected AnalyzedStatement visitExplain(Explain node, Analysis context) {
             return explainStatementAnalyzer.analyze(node, context);
