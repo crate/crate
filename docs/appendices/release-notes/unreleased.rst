@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed an issue when using ``try_cast('invalid-ts' as timestamp)``
+  which resulted in a parsing exception instead of an expected
+  ``NULL`` value.
+
 - Tuned the circuit breaker mechanism to reduce the change of it rejecting
   queries under low cluster load.
 
