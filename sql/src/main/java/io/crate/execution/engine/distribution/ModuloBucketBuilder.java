@@ -90,4 +90,13 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
         }
         return value.hashCode();
     }
+
+    @Override
+    public long ramBytesUsed() {
+        long sum = 0;
+        for (int i = 0; i < bucketBuilders.size(); i++) {
+            sum += bucketBuilders.get(i).ramBytesUsed();
+        }
+        return sum;
+    }
 }

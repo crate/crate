@@ -70,11 +70,9 @@ public class OrderedLuceneBatchIteratorFactory {
         private final PagingIterator<ShardId, Row> pagingIterator;
         private final Map<ShardId, OrderedDocCollector> collectorsByShardId;
 
-        private BatchPagingIterator<ShardId> batchPagingIterator;
-
         Factory(List<OrderedDocCollector> orderedDocCollectors,
                 Comparator<Row> rowComparator,
-                RowAccounting rowAccounting,
+                RowAccounting<Row> rowAccounting,
                 Executor executor,
                 IntSupplier availableThreads,
                 boolean requiresScroll) {
@@ -96,13 +94,12 @@ public class OrderedLuceneBatchIteratorFactory {
         }
 
         BatchIterator<Row> create() {
-            batchPagingIterator = new BatchPagingIterator<>(
+            return new BatchPagingIterator<>(
                 pagingIterator,
                 this::tryFetchMore,
                 this::allExhausted,
                 throwable -> close()
             );
-            return batchPagingIterator;
         }
 
         private CompletableFuture<List<KeyIterable<ShardId, Row>>> tryFetchMore(ShardId shardId) {

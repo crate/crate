@@ -27,6 +27,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -48,7 +49,7 @@ public class StreamBucket implements Bucket, Writeable {
     private int size = -1;
     private BytesReference bytes;
 
-    public static class Builder {
+    public static class Builder implements Accountable {
 
         private static final int INITIAL_PAGE_SIZE = 1024;
         private final RamAccounting ramAccounting;
@@ -95,6 +96,11 @@ public class StreamBucket implements Bucket, Writeable {
 
         public int size() {
             return size;
+        }
+
+        @Override
+        public long ramBytesUsed() {
+            return ramAccounting.totalBytes();
         }
     }
 
