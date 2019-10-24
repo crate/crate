@@ -23,11 +23,12 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.data.Row;
+import org.apache.lucene.util.Accountable;
 
 /**
  * Builder used to build one or more buckets
  */
-public interface MultiBucketBuilder {
+public interface MultiBucketBuilder extends Accountable {
 
     /**
      * add a row to the page

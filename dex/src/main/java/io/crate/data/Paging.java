@@ -23,6 +23,7 @@
 package io.crate.data;
 
 import javax.annotation.Nullable;
+import java.lang.management.ManagementFactory;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
@@ -30,6 +31,7 @@ public class Paging {
 
     // this must not be final so tests could adjust it
     public static int PAGE_SIZE = 500_000;
+    public static final long MAX_PAGE_BYTES = (long) (ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax() * 0.10);
     private static final double OVERHEAD_FACTOR = 1.5;
 
     public static int getWeightedPageSize(@Nullable Integer limit, double weight) {

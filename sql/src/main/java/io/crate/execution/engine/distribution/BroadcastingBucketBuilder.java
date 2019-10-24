@@ -51,6 +51,11 @@ public class BroadcastingBucketBuilder implements MultiBucketBuilder {
     }
 
     @Override
+    public long ramBytesUsed() {
+        return bucketBuilder.ramBytesUsed();
+    }
+
+    @Override
     public void build(StreamBucket[] buckets) {
         assert buckets.length == numBuckets : "length of the provided array must match numBuckets";
         StreamBucket bucket = bucketBuilder.build();

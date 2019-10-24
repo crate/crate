@@ -24,6 +24,7 @@ package io.crate.execution.engine.distribution;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
+import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
@@ -116,7 +117,7 @@ public class DistributingConsumer implements RowConsumer {
         try {
             while (it.moveNext()) {
                 multiBucketBuilder.add(it.currentElement());
-                if (multiBucketBuilder.size() >= pageSize) {
+                if (multiBucketBuilder.size() >= pageSize || multiBucketBuilder.ramBytesUsed() >= Paging.MAX_PAGE_BYTES) {
                     forwardResults(it, false);
                     return;
                 }
