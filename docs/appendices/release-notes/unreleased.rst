@@ -46,35 +46,4 @@ None
 Fixes
 =====
 
-- Fixed the handling of array values when used in the ``SET GLOBAL`` statement.
-
-- Improved the handling of ``NULL`` values in ``SET GLOBAL`` statement. They
-  now no longer cause a ``NullPointerException`` but instead advice users to
-  use ``RESET GLOBAL`` to reset settings to their default value.
-
-- Fixed evaluation of generated columns when they are based on columns
-  with default constraints and no user given values. Default
-  contraints where not taken into account before.
-
-- Fixed an issue when using ``try_cast('invalid-ts' as timestamp)``
-  which resulted in a parsing exception instead of an expected
-  ``NULL`` value.
-- Tuned the circuit breaker mechanism to reduce the change of it rejecting
-  queries under low cluster load.
-
-- Closed some gaps in the memory accounting used for the circuit breaker
-  mechanism. This should help prevent memory intense queries from triggering
-  long GC pauses as they'll be rejected earlier.
-
-- Made the documented :ref:`indices.breaker.total.limit
-  <indices.breaker.total.limit>` setting public, so that it can be adjusted
-  using :ref:`SET GLOBAL <ref-set>`.
-
-- Improved the migration logic for partitioned tables which have been created
-  in CrateDB 2.x. If all current partitions of a partitioned tables have been
-  created in CrateDB 3.x, the table won't have to be re-indexed anymore to
-  upgrade to CrateDB 4.0+. 
-
-- Changed the error message returned when a :ref:`CREATE REPOSITORY
-  <ref-create-repository>` statement fails so that it includes more information
-  about the cause of the failure.
+None
