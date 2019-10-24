@@ -35,6 +35,11 @@ public interface RamAccounting {
         }
 
         @Override
+        public long totalBytes() {
+            return 0;
+        }
+
+        @Override
         public void release() {
         }
 
@@ -48,6 +53,8 @@ public interface RamAccounting {
      * @throws CircuitBreakingException if too many bytes have been added.
      */
     void addBytes(long bytes);
+
+    long totalBytes();
 
     /**
      * Stops accounting for previously accounted rows.
