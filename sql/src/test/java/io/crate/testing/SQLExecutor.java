@@ -33,7 +33,7 @@ import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.CreateBlobTableAnalyzer;
-import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
@@ -447,7 +447,7 @@ public class SQLExecutor {
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
                 stmt, ParameterContext.EMPTY, txnCtx);
 
-            CreateTableAnalyzedStatement analyzedStmt = CreateTablePlan.createStatement(
+            BoundCreateTable analyzedStmt = CreateTablePlan.bind(
                 analyzedCreateTable,
                 txnCtx,
                 functions,
@@ -505,7 +505,7 @@ public class SQLExecutor {
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
                 stmt, ParameterContext.EMPTY, txnCtx);
-            CreateTableAnalyzedStatement analyzedStmt = CreateTablePlan.createStatement(
+            BoundCreateTable analyzedStmt = CreateTablePlan.bind(
                 analyzedCreateTable,
                 txnCtx,
                 functions,

@@ -23,7 +23,7 @@
 package io.crate.execution.ddl.tables;
 
 import io.crate.Constants;
-import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.BoundCreateTable;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.Transports;
@@ -52,7 +52,7 @@ public class TableCreator {
         this.transportCreateTableAction = transportCreateIndexAction;
     }
 
-    public CompletableFuture<Long> create(CreateTableAnalyzedStatement createTable) {
+    public CompletableFuture<Long> create(BoundCreateTable createTable) {
         var templateName = createTable.templateName();
         var relationName = createTable.tableIdent();
         var createTableRequest = templateName == null
