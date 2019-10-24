@@ -125,11 +125,11 @@ public final class CopyFromPlan implements Plan {
     }
 
     @VisibleForTesting
-    public static BoundCopyFrom createStatement(AnalyzedCopyFrom copyFrom,
-                                                CoordinatorTxnCtx txnCtx,
-                                                Functions functions,
-                                                Row parameters,
-                                                SubQueryResults subQueryResults) {
+    public static BoundCopyFrom bind(AnalyzedCopyFrom copyFrom,
+                                     CoordinatorTxnCtx txnCtx,
+                                     Functions functions,
+                                     Row parameters,
+                                     SubQueryResults subQueryResults) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             functions,
@@ -174,7 +174,7 @@ public final class CopyFromPlan implements Plan {
                                                       PlannerContext context,
                                                       Row params,
                                                       SubQueryResults subQueryResults) {
-        var boundedCopyFrom = createStatement(
+        var boundedCopyFrom = bind(
             copyFrom,
             context.transactionContext(),
             context.functions(),

@@ -92,7 +92,7 @@ public class RestoreSnapshotPlan implements Plan {
                               RowConsumer consumer,
                               Row parameters,
                               SubQueryResults subQueryResults) {
-        BoundRestoreSnapshot stmt = createStatement(
+        BoundRestoreSnapshot stmt = bind(
             restoreSnapshot,
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -141,12 +141,12 @@ public class RestoreSnapshotPlan implements Plan {
     }
 
     @VisibleForTesting
-    public static BoundRestoreSnapshot createStatement(AnalyzedRestoreSnapshot restoreSnapshot,
-                                                       CoordinatorTxnCtx txnCtx,
-                                                       Functions functions,
-                                                       Row parameters,
-                                                       SubQueryResults subQueryResults,
-                                                       Schemas schemas) {
+    public static BoundRestoreSnapshot bind(AnalyzedRestoreSnapshot restoreSnapshot,
+                                            CoordinatorTxnCtx txnCtx,
+                                            Functions functions,
+                                            Row parameters,
+                                            SubQueryResults subQueryResults,
+                                            Schemas schemas) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             functions,
