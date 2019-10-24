@@ -32,19 +32,22 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class BoundCreateTable {
 
-    private AnalyzedTableElements<Object> analyzedTableElements;
+    private final RelationName relationName;
+    private final AnalyzedTableElements<Object> analyzedTableElements;
+    private final TableParameter tableParameter;
+    private final ColumnIdent routingColumn;
+    private final boolean noOp;
+    private final boolean ifNotExists;
     private Map<String, Object> mapping;
-    private ColumnIdent routingColumn;
-    private RelationName relationName;
-    private boolean noOp = false;
-    private boolean ifNotExists = false;
 
-    public CreateTableAnalyzedStatement() {
-    }
-
-    public void table(RelationName relationName, boolean ifNotExists, Schemas schemas) {
+    public BoundCreateTable(RelationName relationName,
+                            AnalyzedTableElements<Object> tableElements,
+                            TableParameter tableParameter,
+                            @Nullable ColumnIdent routingColumn,
+                            boolean ifNotExists,
+                            Schemas schemas) {
         relationName.ensureValidForRelationCreation();
         boolean tableExists = schemas.tableExists(relationName);
         boolean viewExists = schemas.viewExists(relationName);
@@ -52,9 +55,19 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
             noOp = tableExists;
         } else if (tableExists || viewExists) {
             throw new RelationAlreadyExists(relationName);
+        } else {
+            noOp = false;
         }
         this.ifNotExists = ifNotExists;
         this.relationName = relationName;
+        this.analyzedTableElements = tableElements;
+        this.tableParameter = tableParameter;
+
+        if (routingColumn != null && routingColumn.name().equalsIgnoreCase("_id") == false) {
+            this.routingColumn = routingColumn;
+        } else {
+            this.routingColumn = null;
+        }
     }
 
     public boolean noOp() {
@@ -63,11 +76,6 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     public boolean ifNotExists() {
         return ifNotExists;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitCreateTableStatement(this, context);
     }
 
     public List<List<String>> partitionedBy() {
@@ -116,6 +124,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     public Map<String, Object> mapping() {
         if (mapping == null) {
             mapping = AnalyzedTableElements.toMapping(analyzedTableElements);
+            //noinspection unchecked
             Map<String, Object> metaMap = (Map<String, Object>) mapping.get("_meta");
             if (routingColumn != null) {
                 metaMap.put("routing", routingColumn.fqn());
@@ -130,18 +139,6 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         return relationName;
     }
 
-    public void routing(ColumnIdent routingColumn) {
-        if (routingColumn.name().equalsIgnoreCase("_id")) {
-            return;
-        }
-        this.routingColumn = routingColumn;
-    }
-
-    @Nullable
-    public ColumnIdent routing() {
-        return routingColumn;
-    }
-
     /**
      * return true if a columnDefinition with name <code>columnIdent</code> exists
      */
@@ -150,12 +147,11 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
                 columnIdent.name().equalsIgnoreCase("_id"));
     }
 
-    public void analyzedTableElements(AnalyzedTableElements<Object> analyze) {
-        this.analyzedTableElements = analyze;
-    }
-
     AnalyzedTableElements<Object> analyzedTableElements() {
         return analyzedTableElements;
     }
 
+    public TableParameter tableParameter() {
+        return tableParameter;
+    }
 }

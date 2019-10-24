@@ -7,7 +7,7 @@ import io.crate.Constants;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateTable;
-import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
@@ -1069,7 +1069,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
         AnalyzedCreateTable analyzedCreateTable = analyzer.analyze(
             (CreateTable<Expression>) statement, analysis.parameterContext(), analysis.transactionContext());
-        CreateTableAnalyzedStatement analyzedStatement = CreateTablePlan.createStatement(
+        BoundCreateTable analyzedStatement = CreateTablePlan.bind(
             analyzedCreateTable,
             txnCtx,
             functions,

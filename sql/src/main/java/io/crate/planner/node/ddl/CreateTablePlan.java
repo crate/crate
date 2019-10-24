@@ -26,7 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedTableElements;
-import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
@@ -94,7 +94,7 @@ public class CreateTablePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        CreateTableAnalyzedStatement stmt = createStatement(
+        BoundCreateTable boundCreateTable = bind(
             createTable,
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -104,24 +104,24 @@ public class CreateTablePlan implements Plan {
             schemas,
             dependencies.fulltextAnalyzerResolver());
 
-        if (stmt.noOp()) {
+        if (boundCreateTable.noOp()) {
             consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
             return;
         }
 
-        tableCreator.create(stmt)
+        tableCreator.create(boundCreateTable)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 
     @VisibleForTesting
-    public static CreateTableAnalyzedStatement createStatement(AnalyzedCreateTable createTable,
-                                                               CoordinatorTxnCtx txnCtx,
-                                                               Functions functions,
-                                                               Row params,
-                                                               SubQueryResults subQueryResults,
-                                                               NumberOfShards numberOfShards,
-                                                               Schemas schemas,
-                                                               FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+    public static BoundCreateTable bind(AnalyzedCreateTable createTable,
+                                        CoordinatorTxnCtx txnCtx,
+                                        Functions functions,
+                                        Row params,
+                                        SubQueryResults subQueryResults,
+                                        NumberOfShards numberOfShards,
+                                        Schemas schemas,
+                                        FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             functions,
@@ -132,10 +132,7 @@ public class CreateTablePlan implements Plan {
         CreateTable<Symbol> table = createTable.createTable();
         RelationName relationName = createTable.relationName();
         GenericProperties<Object> properties = table.properties().map(eval);
-
-        CreateTableAnalyzedStatement stmt = new CreateTableAnalyzedStatement();
-        stmt.table(relationName, table.ifNotExists(), schemas);
-        TableParameter tableParameter = stmt.tableParameter();
+        TableParameter tableParameter = new TableParameter();
 
         // apply default in case it is not specified in the properties,
         // if it is it will get overwritten afterwards.
@@ -156,8 +153,6 @@ public class CreateTablePlan implements Plan {
             tableElements,
             functions);
 
-        stmt.analyzedTableElements(tableElements);
-
         // update table settings
         Settings tableSettings = AnalyzedTableElements.validateAndBuildSettings(
             tableElements, fulltextAnalyzerResolver);
@@ -170,9 +165,6 @@ public class CreateTablePlan implements Plan {
             Optional<ClusteredBy<Object>> clusteredByOptional = table.clusteredBy().map(x -> x.map(eval));
             ClusteredBy<Object> clusteredBy = clusteredByOptional.get();
             routingColumn = resolveRoutingFromClusteredBy(clusteredBy, tableElements);
-            if (routingColumn != null) {
-                stmt.routing(routingColumn);
-            }
             if (clusteredBy.numberOfShards().isPresent()) {
                 tableParameter.settingsBuilder().put(
                     IndexMetaData.SETTING_NUMBER_OF_SHARDS,
@@ -188,7 +180,13 @@ public class CreateTablePlan implements Plan {
                                                                               relationName,
                                                                               finalRouting));
 
-        return stmt;
+        return new BoundCreateTable(
+            relationName,
+            tableElements,
+            tableParameter,
+            routingColumn,
+            table.ifNotExists(),
+            schemas);
     }
 
     private static ColumnIdent resolveRoutingFromClusteredBy(ClusteredBy<Object> clusteredBy,
