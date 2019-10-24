@@ -145,7 +145,7 @@ public final class CopyToPlan implements Plan {
                                              ProjectionBuilder projectionBuilder,
                                              Row params,
                                              SubQueryResults subQueryResults) {
-        var boundedCopyTo = createStatement(
+        var boundedCopyTo = bind(
             copyTo,
             context.transactionContext(),
             context.functions(),
@@ -186,11 +186,11 @@ public final class CopyToPlan implements Plan {
     }
 
     @VisibleForTesting
-    public static BoundCopyTo createStatement(AnalyzedCopyTo copyTo,
-                                              CoordinatorTxnCtx txnCtx,
-                                              Functions functions,
-                                              Row parameters,
-                                              SubQueryResults subQueryResults) {
+    public static BoundCopyTo bind(AnalyzedCopyTo copyTo,
+                                   CoordinatorTxnCtx txnCtx,
+                                   Functions functions,
+                                   Row parameters,
+                                   SubQueryResults subQueryResults) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             functions,

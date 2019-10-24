@@ -72,7 +72,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private <S> S analyze(String stmt, Object... arguments) {
         AnalyzedStatement analyzedStatement = e.analyze(stmt);
         if (analyzedStatement instanceof AnalyzedCopyFrom) {
-            return (S) CopyFromPlan.createStatement(
+            return (S) CopyFromPlan.bind(
                 (AnalyzedCopyFrom) analyzedStatement,
                 plannerContext.transactionContext(),
                 plannerContext.functions(),
@@ -80,7 +80,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 SubQueryResults.EMPTY
             );
         } else if (analyzedStatement instanceof AnalyzedCopyTo) {
-            return (S) CopyToPlan.createStatement(
+            return (S) CopyToPlan.bind(
                 (AnalyzedCopyTo) analyzedStatement,
                 plannerContext.transactionContext(),
                 plannerContext.functions(),
