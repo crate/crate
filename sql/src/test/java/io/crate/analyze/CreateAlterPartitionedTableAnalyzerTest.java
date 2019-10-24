@@ -107,7 +107,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                 e.fulltextAnalyzerResolver()
             );
         } else if (analyzedStatement instanceof AnalyzedAlterTable) {
-            return (S) AlterTablePlan.createStatement(
+            return (S) AlterTablePlan.bind(
                 (AnalyzedAlterTable) analyzedStatement,
                 plannerContext.transactionContext(),
                 plannerContext.functions(),
@@ -299,7 +299,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterPartitionedTable() {
-        AlterTableAnalyzedStatement analysis = analyze(
+        BoundAlterTable analysis = analyze(
             "alter table parted set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.isPartitioned(), is(true));
@@ -308,7 +308,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterPartitionedTablePartition() {
-        AlterTableAnalyzedStatement analysis = analyze(
+        BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.partitionName().get(), is(new PartitionName(
@@ -338,7 +338,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterPartitionedTableShards() {
-        AlterTableAnalyzedStatement analysis = analyze(
+        BoundAlterTable analysis = analyze(
             "alter table parted set (number_of_shards=10)");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.isPartitioned(), is(true));
@@ -347,7 +347,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterTablePartitionWithNumberOfShards() {
-        AlterTableAnalyzedStatement analysis = analyze(
+        BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_shards=1)");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.isPartitioned(), is(true));
@@ -356,7 +356,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterTablePartitionResetShards() {
-        AlterTableAnalyzedStatement analysis = analyze(
+        BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) reset (number_of_shards)");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.isPartitioned(), is(true));
@@ -385,7 +385,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterTableWithWaitForActiveShards() {
-        AlterTableAnalyzedStatement analyzedStatement = analyze(
+        BoundAlterTable analyzedStatement = analyze(
             "ALTER TABLE parted SET (\"write.wait_for_active_shards\"= 'ALL')");
         assertThat(analyzedStatement.tableParameter().settings().get(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
                    is("ALL"));

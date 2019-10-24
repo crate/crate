@@ -28,7 +28,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.analyze.AddColumnAnalyzedStatement;
-import io.crate.analyze.AlterTableAnalyzedStatement;
+import io.crate.analyze.BoundAlterTable;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
@@ -142,7 +142,7 @@ public class AlterTableOperation {
         return listener;
     }
 
-    public CompletableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {
+    public CompletableFuture<Long> executeAlterTable(BoundAlterTable analysis) {
         final Settings settings = analysis.tableParameter().settings();
         final boolean includesNumberOfShardsSetting = settings.hasValue(SETTING_NUMBER_OF_SHARDS);
         final boolean isResizeOperationRequired = includesNumberOfShardsSetting &&
@@ -157,7 +157,7 @@ public class AlterTableOperation {
         return executeAlterTableSetOrReset(analysis);
     }
 
-    private CompletableFuture<Long> executeAlterTableSetOrReset(AlterTableAnalyzedStatement analysis) {
+    private CompletableFuture<Long> executeAlterTableSetOrReset(BoundAlterTable analysis) {
         try {
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
@@ -175,7 +175,7 @@ public class AlterTableOperation {
         }
     }
 
-    private CompletableFuture<Long> executeAlterTableChangeNumberOfShards(AlterTableAnalyzedStatement analysis) {
+    private CompletableFuture<Long> executeAlterTableChangeNumberOfShards(BoundAlterTable analysis) {
         final TableInfo table = analysis.table();
         final boolean isPartitioned = analysis.isPartitioned();
         String sourceIndexName;

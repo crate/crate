@@ -22,7 +22,7 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.analyze.AlterTableAnalyzedStatement;
+import io.crate.analyze.BoundAlterTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
@@ -71,7 +71,7 @@ public class AlterTablePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        AlterTableAnalyzedStatement stmt = createStatement(
+        BoundAlterTable stmt = bind(
             alterTable,
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -83,11 +83,11 @@ public class AlterTablePlan implements Plan {
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 
-    public static AlterTableAnalyzedStatement createStatement(AnalyzedAlterTable analyzedAlterTable,
-                                                              CoordinatorTxnCtx txnCtx,
-                                                              Functions functions,
-                                                              Row params,
-                                                              SubQueryResults subQueryResults) {
+    public static BoundAlterTable bind(AnalyzedAlterTable analyzedAlterTable,
+                                       CoordinatorTxnCtx txnCtx,
+                                       Functions functions,
+                                       Row params,
+                                       SubQueryResults subQueryResults) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             functions,
@@ -103,7 +103,7 @@ public class AlterTablePlan implements Plan {
         TableParameters tableParameters = getTableParameterInfo(table, partitionName);
         TableParameter tableParameter = getTableParameter(alterTable, tableParameters);
         maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
-        return new AlterTableAnalyzedStatement(
+        return new BoundAlterTable(
             docTableInfo,
             partitionName,
             tableParameter,
