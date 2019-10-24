@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public class BoundedCopyTo {
+public class BoundCopyTo {
 
     private final QueriedSelectRelation<? extends AbstractTableRelation<?>> relation;
     private final Symbol uri;
@@ -49,13 +49,13 @@ public class BoundedCopyTo {
      */
     private final Map<ColumnIdent, Symbol> overwrites;
 
-    public BoundedCopyTo(QueriedSelectRelation<? extends AbstractTableRelation<?>> relation,
-                         Symbol uri,
-                         @Nullable WriterProjection.CompressionType compressionType,
-                         @Nullable WriterProjection.OutputFormat outputFormat,
-                         @Nullable List<String> outputNames,
-                         boolean columnsDefined,
-                         @Nullable Map<ColumnIdent, Symbol> overwrites) {
+    public BoundCopyTo(QueriedSelectRelation<? extends AbstractTableRelation<?>> relation,
+                       Symbol uri,
+                       @Nullable WriterProjection.CompressionType compressionType,
+                       @Nullable WriterProjection.OutputFormat outputFormat,
+                       @Nullable List<String> outputNames,
+                       boolean columnsDefined,
+                       @Nullable Map<ColumnIdent, Symbol> overwrites) {
         this.relation = relation;
         this.uri = uri;
         this.columnsDefined = columnsDefined;

@@ -30,17 +30,17 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.HashSet;
 import java.util.Set;
 
-public class BoundedRestoreSnapshot {
+public class BoundRestoreSnapshot {
 
     private final String repository;
     private final String snapshot;
     private final HashSet<RestoreTableInfo> restoreTables;
     private final Settings settings;
 
-    public BoundedRestoreSnapshot(String repository,
-                           String snapshot,
-                           HashSet<RestoreTableInfo> restoreTables,
-                           Settings settings) {
+    public BoundRestoreSnapshot(String repository,
+                                String snapshot,
+                                HashSet<RestoreTableInfo> restoreTables,
+                                Settings settings) {
         this.repository = repository;
         this.snapshot = snapshot;
         this.restoreTables = restoreTables;
