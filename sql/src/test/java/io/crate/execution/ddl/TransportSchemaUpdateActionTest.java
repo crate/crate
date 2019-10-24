@@ -23,7 +23,7 @@
 package io.crate.execution.ddl;
 
 import io.crate.Constants;
-import io.crate.analyze.AddColumnAnalyzedStatement;
+import io.crate.analyze.BoundAddColumn;
 import io.crate.data.Row;
 import io.crate.metadata.IndexMappings;
 import io.crate.planner.PlannerContext;
@@ -58,7 +58,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
 
         ClusterState currentState = clusterService.state();
         PlannerContext plannerContext = e.getPlannerContext(currentState);
-        AddColumnAnalyzedStatement addXLong = AlterTableAddColumnPlan.createStatement(
+        BoundAddColumn addXLong = AlterTableAddColumnPlan.bind(
             e.analyze("alter table t add column x long"),
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -66,7 +66,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
             SubQueryResults.EMPTY,
             null
         );
-        AddColumnAnalyzedStatement addXString = AlterTableAddColumnPlan.createStatement(
+        BoundAddColumn addXString = AlterTableAddColumnPlan.bind(
             e.analyze("alter table t add column x string"),
             plannerContext.transactionContext(),
             plannerContext.functions(),

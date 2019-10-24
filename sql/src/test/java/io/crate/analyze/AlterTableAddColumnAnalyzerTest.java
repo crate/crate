@@ -61,8 +61,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     }
 
 
-    private AddColumnAnalyzedStatement analyze(String stmt) {
-        return AlterTableAddColumnPlan.createStatement(
+    private BoundAddColumn analyze(String stmt) {
+        return AlterTableAddColumnPlan.bind(
             e.analyze(stmt),
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -110,7 +110,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnToATableWithoutPrimaryKey() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table users_clustered_by_only add column foobar string");
         Map<String, Object> mapping = analysis.mapping();
 
@@ -121,7 +121,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testAddColumnAsPrimaryKey() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table users add column additional_pk string primary key");
 
         assertThat(AnalyzedTableElements.primaryKeys(analysis.analyzedTableElements()), Matchers.contains(
@@ -155,8 +155,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnToATableWithNotNull() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze("alter table users_clustered_by_only " +
-                                                      "add column notnullcol string not null");
+        BoundAddColumn analysis = analyze("alter table users_clustered_by_only " +
+                                          "add column notnullcol string not null");
         Map<String, Object> mapping = analysis.mapping();
 
         assertThat((String) ((Set) ((Map) ((Map) mapping.get("_meta")).get("constraints")).get("not_null"))
@@ -165,7 +165,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddArrayColumn() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze("alter table users add newtags array(string)");
+        BoundAddColumn analysis = analyze("alter table users add newtags array(string)");
         AnalyzedColumnDefinition<Object> columnDefinition = analysis.analyzedTableElements().columns().get(0);
         assertThat(columnDefinition.name(), Matchers.equalTo("newtags"));
         assertThat(columnDefinition.dataType(), Matchers.equalTo(DataTypes.STRING));
@@ -180,7 +180,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     }
 
     public void testAddObjectColumnWithUnderscore() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze("alter table users add column foo['_x'] int");
+        BoundAddColumn analysis = analyze("alter table users add column foo['_x'] int");
 
         assertThat(analysis.analyzedTableElements().columns().size(), is(2)); // id pk column is also added
         AnalyzedColumnDefinition<Object> column = analysis.analyzedTableElements().columns().get(0);
@@ -192,7 +192,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedObjectColumn() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table users add column foo['x']['y'] string");
 
         assertThat(analysis.analyzedTableElements().columns().size(), is(2)); // id pk column is also added
@@ -219,7 +219,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedColumnToObjectArray() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze("alter table users add friends['is_nice'] BOOLEAN");
+        BoundAddColumn analysis = analyze("alter table users add friends['is_nice'] BOOLEAN");
 
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2)); // second one is primary key
@@ -236,7 +236,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnToObjectTypeMaintainsObjectPolicy() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table users add column address['street'] string");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2));
@@ -247,7 +247,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnToStrictObject() {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table users add column address['street'] string");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2));
@@ -261,7 +261,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedColumnToObjectColumn() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table users add column details['foo'] object as (score float, name string)");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2)); // second one is primary key
@@ -296,7 +296,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedColumnWithArrayToRoot() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table users add column new_obj_col object as (a array(long))");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2)); // second one is primary key
@@ -307,7 +307,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedColumnWithArrayToObjectColumn() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table users add column new_obj_col object as (o object as (b array(long)))");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(2)); // second one is primary key
@@ -318,7 +318,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddNewNestedColumnToNestedObjectColumn() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table deeply_nested add column details['stuff']['foo'] object as (score float, price string)");
         List<AnalyzedColumnDefinition<Object>> columns = analysis.analyzedTableElements().columns();
         assertThat(columns.size(), is(1));
@@ -356,7 +356,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddGeneratedColumn() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table users add column name_generated as concat(name, 'foo')");
 
         assertThat(analysis.hasNewGeneratedColumns(), is(true));
@@ -377,7 +377,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnWithColumnStoreDisabled() throws Exception {
-        AddColumnAnalyzedStatement analysis = analyze(
+        BoundAddColumn analysis = analyze(
             "alter table users add column string_no_docvalues string STORAGE WITH (columnstore = false)");
         Map<String, Object> mapping = analysis.mapping();
         assertThat(mapToSortedString(mapping),

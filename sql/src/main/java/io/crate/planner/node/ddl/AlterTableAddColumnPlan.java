@@ -23,7 +23,7 @@
 package io.crate.planner.node.ddl;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.AddColumnAnalyzedStatement;
+import io.crate.analyze.BoundAddColumn;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.AnalyzedTableElements;
@@ -72,7 +72,7 @@ public class AlterTableAddColumnPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        AddColumnAnalyzedStatement stmt = createStatement(
+        BoundAddColumn stmt = bind(
             alterTable,
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -85,12 +85,12 @@ public class AlterTableAddColumnPlan implements Plan {
     }
 
     @VisibleForTesting
-    public static AddColumnAnalyzedStatement createStatement(AnalyzedAlterTableAddColumn alterTable,
-                                                             CoordinatorTxnCtx txnCtx,
-                                                             Functions functions,
-                                                             Row params,
-                                                             SubQueryResults subQueryResults,
-                                                             FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+    public static BoundAddColumn bind(AnalyzedAlterTableAddColumn alterTable,
+                                      CoordinatorTxnCtx txnCtx,
+                                      Functions functions,
+                                      Row params,
+                                      SubQueryResults subQueryResults,
+                                      FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             functions,
@@ -127,7 +127,7 @@ public class AlterTableAddColumnPlan implements Plan {
 
         boolean hasNewPrimaryKeys = AnalyzedTableElements.primaryKeys(tableElementsBound).size() > numCurrentPks;
         boolean hasGeneratedColumns = tableElementsUnboundWithExpressions.hasGeneratedColumns();
-        return new AddColumnAnalyzedStatement(
+        return new BoundAddColumn(
             tableInfo,
             tableElementsBound,
             tableSettings,
