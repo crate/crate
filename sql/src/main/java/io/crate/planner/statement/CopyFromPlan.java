@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
-import io.crate.analyze.BoundedCopyFrom;
+import io.crate.analyze.BoundCopyFrom;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
@@ -125,11 +125,11 @@ public final class CopyFromPlan implements Plan {
     }
 
     @VisibleForTesting
-    public static BoundedCopyFrom createStatement(AnalyzedCopyFrom copyFrom,
-                                                  CoordinatorTxnCtx txnCtx,
-                                                  Functions functions,
-                                                  Row parameters,
-                                                  SubQueryResults subQueryResults) {
+    public static BoundCopyFrom bind(AnalyzedCopyFrom copyFrom,
+                                     CoordinatorTxnCtx txnCtx,
+                                     Functions functions,
+                                     Row parameters,
+                                     SubQueryResults subQueryResults) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             functions,
@@ -160,7 +160,7 @@ public final class CopyFromPlan implements Plan {
         // to the required type already at this stage, but not later on in FileCollectSource.
         var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()));
 
-        return new BoundedCopyFrom(
+        return new BoundCopyFrom(
             copyFrom.tableInfo(),
             partitionIdent,
             settings,
@@ -174,7 +174,7 @@ public final class CopyFromPlan implements Plan {
                                                       PlannerContext context,
                                                       Row params,
                                                       SubQueryResults subQueryResults) {
-        var boundedCopyFrom = createStatement(
+        var boundedCopyFrom = bind(
             copyFrom,
             context.transactionContext(),
             context.functions(),

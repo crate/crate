@@ -23,35 +23,20 @@
 package io.crate.execution.ddl;
 
 import io.crate.Constants;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AddColumnAnalyzedStatement;
-import io.crate.analyze.Analysis;
-import io.crate.analyze.AnalyzedCreateTable;
-import io.crate.analyze.CreateTableAnalyzedStatement;
-import io.crate.analyze.NumberOfShards;
-import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.ParameterContext;
+import io.crate.analyze.BoundAddColumn;
 import io.crate.data.Row;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexMappings;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
-import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.Expression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -59,7 +44,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import static io.crate.metadata.PartitionName.templateName;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.core.Is.is;
 
@@ -74,7 +58,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
 
         ClusterState currentState = clusterService.state();
         PlannerContext plannerContext = e.getPlannerContext(currentState);
-        AddColumnAnalyzedStatement addXLong = AlterTableAddColumnPlan.createStatement(
+        BoundAddColumn addXLong = AlterTableAddColumnPlan.bind(
             e.analyze("alter table t add column x long"),
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -82,7 +66,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
             SubQueryResults.EMPTY,
             null
         );
-        AddColumnAnalyzedStatement addXString = AlterTableAddColumnPlan.createStatement(
+        BoundAddColumn addXString = AlterTableAddColumnPlan.bind(
             e.analyze("alter table t add column x string"),
             plannerContext.transactionContext(),
             plannerContext.functions(),

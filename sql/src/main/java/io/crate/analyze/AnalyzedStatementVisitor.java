@@ -43,10 +43,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    protected R visitCreateTableStatement(CreateTableAnalyzedStatement analysis, C context) {
-        return visitDDLStatement(analysis, context);
-    }
-
     protected R visitCreateRepositoryAnalyzedStatement(AnalyzedCreateRepository analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
@@ -125,10 +121,6 @@ public class AnalyzedStatementVisitor<C, R> {
 
     public R visitSetLicenseStatement(SetLicenseAnalyzedStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
-    }
-
-    public R visitAddColumnStatement(AddColumnAnalyzedStatement analysis, C context) {
-        return visitDDLStatement(analysis, context);
     }
 
     public R visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis, C context) {

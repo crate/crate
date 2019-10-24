@@ -31,7 +31,7 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.function.Predicate;
 
-public class BoundedCopyFrom {
+public class BoundCopyFrom {
 
     private final DocTableInfo tableInfo;
     @Nullable
@@ -41,12 +41,12 @@ public class BoundedCopyFrom {
     private final FileUriCollectPhase.InputFormat inputFormat;
     private final Predicate<DiscoveryNode> nodeFilters;
 
-    public BoundedCopyFrom(DocTableInfo tableInfo,
-                           @Nullable String partitionIdent,
-                           Settings settings,
-                           Symbol uri,
-                           FileUriCollectPhase.InputFormat inputFormat,
-                           Predicate<DiscoveryNode> nodeFilters) {
+    public BoundCopyFrom(DocTableInfo tableInfo,
+                         @Nullable String partitionIdent,
+                         Settings settings,
+                         Symbol uri,
+                         FileUriCollectPhase.InputFormat inputFormat,
+                         Predicate<DiscoveryNode> nodeFilters) {
         this.tableInfo = tableInfo;
         this.partitionIdent = partitionIdent;
         this.settings = settings;

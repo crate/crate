@@ -26,7 +26,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.Map;
 
-public class AddColumnAnalyzedStatement implements DDLStatement {
+public class BoundAddColumn {
 
     private final DocTableInfo tableInfo;
     private final AnalyzedTableElements<Object> analyzedTableElements;
@@ -35,12 +35,12 @@ public class AddColumnAnalyzedStatement implements DDLStatement {
     private final boolean newPrimaryKeys;
     private final boolean hasNewGeneratedColumns;
 
-    public AddColumnAnalyzedStatement(DocTableInfo tableInfo,
-                                      AnalyzedTableElements<Object> analyzedTableElements,
-                                      Settings settings,
-                                      Map<String, Object> mapping,
-                                      boolean newPrimaryKeys,
-                                      boolean hasNewGeneratedColumns) {
+    public BoundAddColumn(DocTableInfo tableInfo,
+                          AnalyzedTableElements<Object> analyzedTableElements,
+                          Settings settings,
+                          Map<String, Object> mapping,
+                          boolean newPrimaryKeys,
+                          boolean hasNewGeneratedColumns) {
         this.tableInfo = tableInfo;
         this.analyzedTableElements = analyzedTableElements;
         this.settings = settings;
@@ -51,11 +51,6 @@ public class AddColumnAnalyzedStatement implements DDLStatement {
 
     public DocTableInfo table() {
         return this.tableInfo;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitAddColumnStatement(this, context);
     }
 
     public AnalyzedTableElements<Object> analyzedTableElements() {

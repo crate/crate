@@ -57,9 +57,9 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
-    private OptimizeTablePlan.BoundedOptimizeTable analyze(String stmt, Object... arguments) {
+    private OptimizeTablePlan.BoundOptimizeTable analyze(String stmt, Object... arguments) {
         AnalyzedOptimizeTable analyzedStatement = e.analyze(stmt);
-        return OptimizeTablePlan.createStatement(
+        return OptimizeTablePlan.bind(
             analyzedStatement,
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -78,19 +78,19 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testOptimizeTable() throws Exception {
-        OptimizeTablePlan.BoundedOptimizeTable analysis = analyze("OPTIMIZE TABLE users");
+        OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE users");
         assertThat(analysis.indexNames(), contains("users"));
     }
 
     @Test
     public void testOptimizeBlobTable() throws Exception {
-        OptimizeTablePlan.BoundedOptimizeTable analysis = analyze("OPTIMIZE TABLE blob.blobs");
+        OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE blob.blobs");
         assertThat(analysis.indexNames(), contains(".blob_blobs"));
     }
 
     @Test
     public void testOptimizeTableWithParams() throws Exception {
-        OptimizeTablePlan.BoundedOptimizeTable analysis = analyze(
+        OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE users WITH (max_num_segments=2)");
         assertThat(analysis.indexNames(), contains("users"));
         assertThat(MAX_NUM_SEGMENTS.get(analysis.settings()), is(2));
@@ -124,21 +124,21 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testOptimizePartition() throws Exception {
-        OptimizeTablePlan.BoundedOptimizeTable analysis = analyze(
+        OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000)");
         assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
     }
 
     @Test
     public void testOptimizePartitionedTableNullPartition() throws Exception {
-        OptimizeTablePlan.BoundedOptimizeTable analysis = analyze(
+        OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=null)");
         assertThat(analysis.indexNames(), contains(".partitioned.parted.0400"));
     }
 
     @Test
     public void testOptimizePartitionWithParams() throws Exception {
-        OptimizeTablePlan.BoundedOptimizeTable analysis = analyze(
+        OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000) " +
             "WITH (only_expunge_deletes=true)");
         assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
@@ -146,7 +146,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testOptimizeMultipleTables() throws Exception {
-        OptimizeTablePlan.BoundedOptimizeTable analysis = analyze("OPTIMIZE TABLE parted, users");
+        OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE parted, users");
         assertThat(analysis.indexNames().size(), is(4));
         assertThat(
             analysis.indexNames(),

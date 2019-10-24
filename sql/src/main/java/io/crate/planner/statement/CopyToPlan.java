@@ -24,7 +24,7 @@ package io.crate.planner.statement;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedCopyTo;
-import io.crate.analyze.BoundedCopyTo;
+import io.crate.analyze.BoundCopyTo;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QuerySpec;
@@ -145,7 +145,7 @@ public final class CopyToPlan implements Plan {
                                              ProjectionBuilder projectionBuilder,
                                              Row params,
                                              SubQueryResults subQueryResults) {
-        var boundedCopyTo = createStatement(
+        var boundedCopyTo = bind(
             copyTo,
             context.transactionContext(),
             context.functions(),
@@ -186,11 +186,11 @@ public final class CopyToPlan implements Plan {
     }
 
     @VisibleForTesting
-    public static BoundedCopyTo createStatement(AnalyzedCopyTo copyTo,
-                                                CoordinatorTxnCtx txnCtx,
-                                                Functions functions,
-                                                Row parameters,
-                                                SubQueryResults subQueryResults) {
+    public static BoundCopyTo bind(AnalyzedCopyTo copyTo,
+                                   CoordinatorTxnCtx txnCtx,
+                                   Functions functions,
+                                   Row parameters,
+                                   SubQueryResults subQueryResults) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             functions,
@@ -276,7 +276,7 @@ public final class CopyToPlan implements Plan {
             querySpec
         );
 
-        return new BoundedCopyTo(
+        return new BoundCopyTo(
             subRelation,
             Literal.of(DataTypes.STRING, eval.apply(copyTo.uri())),
             compressionType,

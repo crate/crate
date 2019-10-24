@@ -25,7 +25,7 @@ package io.crate.planner.node.ddl;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.AnalyzedRestoreSnapshot;
-import io.crate.analyze.BoundedRestoreSnapshot;
+import io.crate.analyze.BoundRestoreSnapshot;
 import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.analyze.SnapshotSettings;
 import io.crate.analyze.SymbolEvaluator;
@@ -92,7 +92,7 @@ public class RestoreSnapshotPlan implements Plan {
                               RowConsumer consumer,
                               Row parameters,
                               SubQueryResults subQueryResults) {
-        BoundedRestoreSnapshot stmt = createStatement(
+        BoundRestoreSnapshot stmt = bind(
             restoreSnapshot,
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -141,12 +141,12 @@ public class RestoreSnapshotPlan implements Plan {
     }
 
     @VisibleForTesting
-    public static BoundedRestoreSnapshot createStatement(AnalyzedRestoreSnapshot restoreSnapshot,
-                                                         CoordinatorTxnCtx txnCtx,
-                                                         Functions functions,
-                                                         Row parameters,
-                                                         SubQueryResults subQueryResults,
-                                                         Schemas schemas) {
+    public static BoundRestoreSnapshot bind(AnalyzedRestoreSnapshot restoreSnapshot,
+                                            CoordinatorTxnCtx txnCtx,
+                                            Functions functions,
+                                            Row parameters,
+                                            SubQueryResults subQueryResults,
+                                            Schemas schemas) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             functions,
@@ -160,7 +160,7 @@ public class RestoreSnapshotPlan implements Plan {
             SnapshotSettings.SETTINGS
         );
 
-        HashSet<BoundedRestoreSnapshot.RestoreTableInfo> restoreTables = new HashSet<>(restoreSnapshot.tables().size());
+        HashSet<BoundRestoreSnapshot.RestoreTableInfo> restoreTables = new HashSet<>(restoreSnapshot.tables().size());
         for (Table<Symbol> table : restoreSnapshot.tables()) {
             var relationName = RelationName.of(
                 table.getName(),
@@ -178,22 +178,22 @@ public class RestoreSnapshotPlan implements Plan {
                 if (docTableInfo.partitions().contains(partitionName)) {
                     throw new PartitionAlreadyExistsException(partitionName);
                 }
-                restoreTables.add(new BoundedRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
+                restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
             } catch (RelationUnknown | SchemaUnknownException e) {
                 if (table.partitionProperties().isEmpty()) {
-                    restoreTables.add(new BoundedRestoreSnapshot.RestoreTableInfo(relationName, null));
+                    restoreTables.add(new BoundRestoreSnapshot.RestoreTableInfo(relationName, null));
                 } else {
                     var partitionName = toPartitionName(
                         relationName,
                         null,
                         Lists2.map(table.partitionProperties(), x -> x.map(eval)));
                     restoreTables.add(
-                        new BoundedRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
+                        new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));
                 }
             }
         }
 
-        return new BoundedRestoreSnapshot(
+        return new BoundRestoreSnapshot(
             restoreSnapshot.repository(),
             restoreSnapshot.snapshot(),
             restoreTables,
@@ -202,11 +202,11 @@ public class RestoreSnapshotPlan implements Plan {
 
     @VisibleForTesting
     static CompletableFuture<ResolveIndicesAndTemplatesContext> resolveIndexNames(String repositoryName,
-                                                                                  Set<BoundedRestoreSnapshot.RestoreTableInfo> restoreTables,
+                                                                                  Set<BoundRestoreSnapshot.RestoreTableInfo> restoreTables,
                                                                                   boolean ignoreUnavailable,
                                                                                   TransportGetSnapshotsAction transportGetSnapshotsAction) {
         ResolveIndicesAndTemplatesContext context = new ResolveIndicesAndTemplatesContext();
-        ArrayList<BoundedRestoreSnapshot.RestoreTableInfo> toResolveFromSnapshot = new ArrayList<>();
+        ArrayList<BoundRestoreSnapshot.RestoreTableInfo> toResolveFromSnapshot = new ArrayList<>();
         for (var table : restoreTables) {
             if (table.hasPartitionInfo()) {
                 context.addIndex(table.partitionName().asIndexName());
@@ -242,16 +242,16 @@ public class RestoreSnapshotPlan implements Plan {
     }
 
     @VisibleForTesting
-    static void resolveTablesFromSnapshots(List<BoundedRestoreSnapshot.RestoreTableInfo> toResolveFromSnapshot,
+    static void resolveTablesFromSnapshots(List<BoundRestoreSnapshot.RestoreTableInfo> toResolveFromSnapshot,
                                            List<SnapshotInfo> snapshots,
                                            ResolveIndicesAndTemplatesContext context) throws RelationUnknown {
-        for (BoundedRestoreSnapshot.RestoreTableInfo table : toResolveFromSnapshot) {
+        for (BoundRestoreSnapshot.RestoreTableInfo table : toResolveFromSnapshot) {
             resolveTableFromSnapshots(table, snapshots, context);
         }
     }
 
     @VisibleForTesting
-    static void resolveTableFromSnapshots(BoundedRestoreSnapshot.RestoreTableInfo table,
+    static void resolveTableFromSnapshots(BoundRestoreSnapshot.RestoreTableInfo table,
                                           List<SnapshotInfo> snapshots,
                                           ResolveIndicesAndTemplatesContext context) throws RelationUnknown {
         String name = table.tableIdent().indexNameOrAlias();

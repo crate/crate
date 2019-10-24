@@ -27,8 +27,8 @@ import io.crate.action.FutureActionListener;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.analyze.AddColumnAnalyzedStatement;
-import io.crate.analyze.AlterTableAnalyzedStatement;
+import io.crate.analyze.BoundAddColumn;
+import io.crate.analyze.BoundAlterTable;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
@@ -103,7 +103,7 @@ public class AlterTableOperation {
         this.sqlOperations = sqlOperations;
     }
 
-    public CompletableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
+    public CompletableFuture<Long> executeAlterTableAddColumn(final BoundAddColumn analysis) {
         FutureActionListener<AcknowledgedResponse, Long> result = new FutureActionListener<>(r -> -1L);
         if (analysis.newPrimaryKeys() || analysis.hasNewGeneratedColumns()) {
             RelationName ident = analysis.table().ident();
@@ -142,7 +142,7 @@ public class AlterTableOperation {
         return listener;
     }
 
-    public CompletableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {
+    public CompletableFuture<Long> executeAlterTable(BoundAlterTable analysis) {
         final Settings settings = analysis.tableParameter().settings();
         final boolean includesNumberOfShardsSetting = settings.hasValue(SETTING_NUMBER_OF_SHARDS);
         final boolean isResizeOperationRequired = includesNumberOfShardsSetting &&
@@ -157,7 +157,7 @@ public class AlterTableOperation {
         return executeAlterTableSetOrReset(analysis);
     }
 
-    private CompletableFuture<Long> executeAlterTableSetOrReset(AlterTableAnalyzedStatement analysis) {
+    private CompletableFuture<Long> executeAlterTableSetOrReset(BoundAlterTable analysis) {
         try {
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
@@ -175,7 +175,7 @@ public class AlterTableOperation {
         }
     }
 
-    private CompletableFuture<Long> executeAlterTableChangeNumberOfShards(AlterTableAnalyzedStatement analysis) {
+    private CompletableFuture<Long> executeAlterTableChangeNumberOfShards(BoundAlterTable analysis) {
         final TableInfo table = analysis.table();
         final boolean isPartitioned = analysis.isPartitioned();
         String sourceIndexName;
@@ -339,7 +339,7 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private CompletableFuture<Long> addColumnToTable(AddColumnAnalyzedStatement analysis, final FutureActionListener<AcknowledgedResponse, Long> result) {
+    private CompletableFuture<Long> addColumnToTable(BoundAddColumn analysis, final FutureActionListener<AcknowledgedResponse, Long> result) {
         try {
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
@@ -358,12 +358,12 @@ public class AlterTableOperation {
 
     private class ResultSetReceiver implements ResultReceiver {
 
-        private final AddColumnAnalyzedStatement analysis;
+        private final BoundAddColumn analysis;
         private final FutureActionListener<AcknowledgedResponse, Long> result;
 
         private long count;
 
-        ResultSetReceiver(AddColumnAnalyzedStatement analysis, FutureActionListener<AcknowledgedResponse, Long> result) {
+        ResultSetReceiver(BoundAddColumn analysis, FutureActionListener<AcknowledgedResponse, Long> result) {
             this.analysis = analysis;
             this.result = result;
         }

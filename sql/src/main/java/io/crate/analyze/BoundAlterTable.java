@@ -27,8 +27,7 @@ import io.crate.metadata.table.TableInfo;
 import javax.annotation.Nullable;
 import java.util.Optional;
 
-public class AlterTableAnalyzedStatement {
-
+public class BoundAlterTable {
 
     private final TableInfo tableInfo;
     private final PartitionName partitionName;
@@ -36,11 +35,11 @@ public class AlterTableAnalyzedStatement {
     private final boolean excludePartitions;
     private final boolean partitioned;
 
-    public AlterTableAnalyzedStatement(TableInfo tableInfo,
-                                       @Nullable PartitionName partitionName,
-                                       TableParameter tableParameter,
-                                       boolean excludePartitions,
-                                       boolean partitioned) {
+    public BoundAlterTable(TableInfo tableInfo,
+                           @Nullable PartitionName partitionName,
+                           TableParameter tableParameter,
+                           boolean excludePartitions,
+                           boolean partitioned) {
         this.tableInfo = tableInfo;
         this.partitionName = partitionName;
         this.tableParameter = tableParameter;

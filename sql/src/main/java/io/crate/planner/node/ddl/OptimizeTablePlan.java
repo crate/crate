@@ -88,7 +88,7 @@ public class OptimizeTablePlan implements Plan {
             return;
         }
 
-        BoundedOptimizeTable stmt = createStatement(
+        BoundOptimizeTable stmt = bind(
             optimizeTable,
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -123,11 +123,11 @@ public class OptimizeTablePlan implements Plan {
     }
 
     @VisibleForTesting
-    public static BoundedOptimizeTable createStatement(AnalyzedOptimizeTable optimizeTable,
-                                                       CoordinatorTxnCtx txnCtx,
-                                                       Functions functions,
-                                                       Row parameters,
-                                                       SubQueryResults subQueryResults) {
+    public static BoundOptimizeTable bind(AnalyzedOptimizeTable optimizeTable,
+                                          CoordinatorTxnCtx txnCtx,
+                                          Functions functions,
+                                          Row parameters,
+                                          SubQueryResults subQueryResults) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             functions,
@@ -162,7 +162,7 @@ public class OptimizeTablePlan implements Plan {
             }
         }
 
-        return new BoundedOptimizeTable(toOptimize, settings);
+        return new BoundOptimizeTable(toOptimize, settings);
     }
 
     private static void validateSettings(Settings settings, GenericProperties properties) {
@@ -172,12 +172,12 @@ public class OptimizeTablePlan implements Plan {
         }
     }
 
-    public static class BoundedOptimizeTable {
+    public static class BoundOptimizeTable {
 
         private final List<String> indexNames;
         private final Settings settings;
 
-        BoundedOptimizeTable(List<String> indexNames, Settings settings) {
+        BoundOptimizeTable(List<String> indexNames, Settings settings) {
             this.indexNames = indexNames;
             this.settings = settings;
         }

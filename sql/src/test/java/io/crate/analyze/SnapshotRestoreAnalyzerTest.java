@@ -104,7 +104,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 SubQueryResults.EMPTY,
                 e.schemas());
         } else if (analyzedStatement instanceof AnalyzedRestoreSnapshot) {
-            return (T) RestoreSnapshotPlan.createStatement(
+            return (T) RestoreSnapshotPlan.bind(
                 (AnalyzedRestoreSnapshot) analyzedStatement,
                 plannerContext.transactionContext(),
                 plannerContext.functions(),
@@ -272,7 +272,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testRestoreSnapshotAll() throws Exception {
-        BoundedRestoreSnapshot statement =
+        BoundRestoreSnapshot statement =
             analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot ALL");
         assertThat(statement.repository(), is("my_repo"));
         assertThat(statement.snapshot(), is("my_snapshot"));
@@ -281,7 +281,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testRestoreSnapshotSingleTable() throws Exception {
-        BoundedRestoreSnapshot statement =
+        BoundRestoreSnapshot statement =
             analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
         assertThat(statement.restoreTables().size(), is(1));
         var table = getOnlyElement(statement.restoreTables());
@@ -305,7 +305,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testRestoreSinglePartition() throws Exception {
-        BoundedRestoreSnapshot  statement = analyze(
+        BoundRestoreSnapshot statement = analyze(
             e,
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=123)");
         PartitionName partition = new PartitionName(
@@ -318,7 +318,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testRestoreSinglePartitionToUnknownTable() throws Exception {
-        BoundedRestoreSnapshot statement = analyze(
+        BoundRestoreSnapshot statement = analyze(
             e,
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE unknown_parted PARTITION (date=123)");
         PartitionName partitionName = new PartitionName(

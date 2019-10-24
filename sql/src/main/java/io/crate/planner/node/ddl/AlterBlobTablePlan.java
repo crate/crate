@@ -22,7 +22,7 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.analyze.AlterTableAnalyzedStatement;
+import io.crate.analyze.BoundAlterTable;
 import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
@@ -76,7 +76,7 @@ public class AlterBlobTablePlan implements Plan {
         TableParameter tableParameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
         maybeRaiseBlockedException(tableInfo, tableParameter.settings());
 
-        AlterTableAnalyzedStatement stmt = new AlterTableAnalyzedStatement(
+        BoundAlterTable stmt = new BoundAlterTable(
             tableInfo,
             null,
             tableParameter,

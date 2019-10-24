@@ -96,7 +96,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     private <S> S analyze(String stmt, Object... arguments) {
         AnalyzedStatement analyzedStatement = e.analyze(stmt);
         if (analyzedStatement instanceof AnalyzedCreateTable) {
-            return (S) CreateTablePlan.createStatement(
+            return (S) CreateTablePlan.bind(
                 (AnalyzedCreateTable) analyzedStatement,
                 plannerContext.transactionContext(),
                 plannerContext.functions(),
@@ -107,7 +107,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                 e.fulltextAnalyzerResolver()
             );
         } else if (analyzedStatement instanceof AnalyzedAlterTable) {
-            return (S) AlterTablePlan.createStatement(
+            return (S) AlterTablePlan.bind(
                 (AnalyzedAlterTable) analyzedStatement,
                 plannerContext.transactionContext(),
                 plannerContext.functions(),
@@ -121,12 +121,12 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testPartitionedBy() {
-        CreateTableAnalyzedStatement analysis = analyze("create table my_table (" +
-                                                        "  id integer," +
-                                                        "  no_index string index off," +
-                                                        "  name string," +
-                                                        "  date timestamp with time zone" +
-                                                        ") partitioned by (name)");
+        BoundCreateTable analysis = analyze("create table my_table (" +
+                                            "  id integer," +
+                                            "  no_index string index off," +
+                                            "  name string," +
+                                            "  date timestamp with time zone" +
+                                            ") partitioned by (name)");
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("name", "keyword"));
 
@@ -145,10 +145,10 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testPartitionedByMultipleColumns() {
-        CreateTableAnalyzedStatement analysis = analyze("create table my_table (" +
-                                                        "  name string," +
-                                                        "  date timestamp with time zone" +
-                                                        ") partitioned by (name, date)");
+        BoundCreateTable analysis = analyze("create table my_table (" +
+                                            "  name string," +
+                                            "  date timestamp with time zone" +
+                                            ") partitioned by (name, date)");
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> properties = analysis.mappingProperties();
         assertThat(mapToSortedString(properties),
@@ -165,14 +165,14 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testPartitionedByNestedColumns() {
-        CreateTableAnalyzedStatement analysis = analyze("create table my_table (" +
-                                                        "  id integer," +
-                                                        "  no_index string index off," +
-                                                        "  o object as (" +
-                                                        "    name string" +
-                                                        "  )," +
-                                                        "  date timestamp with time zone" +
-                                                        ") partitioned by (date, o['name'])");
+        BoundCreateTable analysis = analyze("create table my_table (" +
+                                            "  id integer," +
+                                            "  no_index string index off," +
+                                            "  o object as (" +
+                                            "    name string" +
+                                            "  )," +
+                                            "  date timestamp with time zone" +
+                                            ") partitioned by (date, o['name'])");
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("o");
         assertThat(mapToSortedString(oMapping), is(
@@ -245,12 +245,12 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testPartitionedByPartOfPrimaryKey() {
-        CreateTableAnalyzedStatement analysis = analyze("create table my_table (" +
-                                                        "  id1 integer," +
-                                                        "  id2 integer," +
-                                                        "  date timestamp with time zone," +
-                                                        "  primary key (id1, id2)" +
-                                                        ") partitioned by (id1)");
+        BoundCreateTable analysis = analyze("create table my_table (" +
+                                            "  id1 integer," +
+                                            "  id2 integer," +
+                                            "  date timestamp with time zone," +
+                                            "  primary key (id1, id2)" +
+                                            ") partitioned by (id1)");
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
 
@@ -299,7 +299,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterPartitionedTable() {
-        AlterTableAnalyzedStatement analysis = analyze(
+        BoundAlterTable analysis = analyze(
             "alter table parted set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.isPartitioned(), is(true));
@@ -308,7 +308,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterPartitionedTablePartition() {
-        AlterTableAnalyzedStatement analysis = analyze(
+        BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.partitionName().get(), is(new PartitionName(
@@ -338,7 +338,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterPartitionedTableShards() {
-        AlterTableAnalyzedStatement analysis = analyze(
+        BoundAlterTable analysis = analyze(
             "alter table parted set (number_of_shards=10)");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.isPartitioned(), is(true));
@@ -347,7 +347,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterTablePartitionWithNumberOfShards() {
-        AlterTableAnalyzedStatement analysis = analyze(
+        BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) set (number_of_shards=1)");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.isPartitioned(), is(true));
@@ -356,7 +356,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterTablePartitionResetShards() {
-        AlterTableAnalyzedStatement analysis = analyze(
+        BoundAlterTable analysis = analyze(
             "alter table parted partition (date=1395874800000) reset (number_of_shards)");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.isPartitioned(), is(true));
@@ -385,7 +385,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterTableWithWaitForActiveShards() {
-        AlterTableAnalyzedStatement analyzedStatement = analyze(
+        BoundAlterTable analyzedStatement = analyze(
             "ALTER TABLE parted SET (\"write.wait_for_active_shards\"= 'ALL')");
         assertThat(analyzedStatement.tableParameter().settings().get(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
                    is("ALL"));
