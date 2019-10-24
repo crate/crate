@@ -40,6 +40,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.GroupByConsumer;
 import org.elasticsearch.common.util.set.Sets;
 
@@ -122,22 +123,13 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 return executionPlan;
             }
         }
-
-        GroupProjection toPartial = projectionBuilder.groupProjection(
+        int firstGroupKeyIdx = sourceOutputs.indexOf(groupKeys.get(0));
+        executionPlan.setDistributionInfo(new DistributionInfo(DistributionType.MODULO, firstGroupKeyIdx));
+        GroupProjection toFinal = projectionBuilder.groupProjection(
             sourceOutputs,
             groupKeys,
             aggregates,
-            AggregateMode.ITER_PARTIAL,
-            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
-        );
-        executionPlan.addProjection(toPartial);
-        executionPlan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
-
-        GroupProjection toFinal = projectionBuilder.groupProjection(
-            this.outputs,
-            groupKeys,
-            aggregates,
-            AggregateMode.PARTIAL_FINAL,
+            AggregateMode.ITER_FINAL,
             RowGranularity.CLUSTER
         );
         return createMerge(
