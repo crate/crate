@@ -709,31 +709,35 @@ to forced awareness or allocation filtering.
 Cluster-wide allocation filtering
 .................................
 
-Allow to control the allocation of all shards based on include/exclude filters.
+Control which shards are allocated to which nodes.
 
-E.g. this could be used to allocate all the new shards on the nodes with
-specific IP addresses or custom attributes.
+Filter definitions are retroactively enforced. If a filter prevents matching
+shards from being newly allocated to a node, existing matching shards will also
+be moved away.
+
+E.g., this could be used to only allocate shards on nodes with specific IP
+addresses.
 
 .. _cluster.routing.allocation.include.*:
 
 **cluster.routing.allocation.include.***
-  | *Runtime:*  ``no``
+  | *Runtime:*  ``yes``
 
-  Place new shards only on nodes where one of the specified values matches the
+  Place shards only on nodes where one of the specified values matches the
   attribute. e.g.: cluster.routing.allocation.include.zone: "zone1,zone2"
 
 .. _cluster.routing.allocation.exclude.*:
 
 **cluster.routing.allocation.exclude.***
-  | *Runtime:*  ``no``
+  | *Runtime:*  ``yes``
 
-  Place new shards only on nodes where none of the specified values matches the
+  Place shards only on nodes where none of the specified values matches the
   attribute. e.g.: cluster.routing.allocation.exclude.zone: "zone1"
 
 .. _cluster.routing.allocation.require.*:
 
 **cluster.routing.allocation.require.***
-  | *Runtime:*  ``no``
+  | *Runtime:*  ``yes``
 
   Used to specify a number of rules, which all MUST match for a node in order
   to allocate a shard on it. This is in contrast to include which will include
