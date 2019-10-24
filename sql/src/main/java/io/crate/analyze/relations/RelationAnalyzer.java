@@ -112,6 +112,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+import static io.crate.expression.tablefunctions.TableFunctionFactory.VALUES_TABLE_FUNCTION_NAME;
+
 @Singleton
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
@@ -784,7 +786,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         TableFunctionImplementation tableFunc = TableFunctionFactory.from(implementation);
         TableInfo tableInfo = tableFunc.createTableInfo();
         Operation.blockedRaiseException(tableInfo, context.currentOperation());
-        QualifiedName qualifiedName = new QualifiedName(UnnestFunction.NAME);
+        QualifiedName qualifiedName = new QualifiedName(VALUES_TABLE_FUNCTION_NAME);
         TableFunctionRelation relation = new TableFunctionRelation(
             tableInfo,
             tableFunc,

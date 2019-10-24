@@ -30,7 +30,9 @@ import org.junit.Test;
 
 import java.io.IOException;
 
+import static io.crate.expression.tablefunctions.TableFunctionFactory.VALUES_TABLE_FUNCTION_NAME;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -54,4 +56,14 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                      "from information_schema.tables");
         assertThat(relation.fields().get(0).path().sqlFqn(), is("'foo' = ANY(partitioned_by)"));
     }
+
+    @Test
+    public void test_process_values_result_in_table_function_with_values_name() {
+        AnalyzedRelation relation = executor.analyze("VALUES (1, 'a')");
+        assertThat(relation, instanceOf(TableFunctionRelation.class));
+
+        TableFunctionRelation tableFuncRelation = (TableFunctionRelation) relation;
+        assertThat(tableFuncRelation.getQualifiedName().toString(), is(VALUES_TABLE_FUNCTION_NAME));
+    }
+
 }

@@ -50,6 +50,8 @@ import java.util.Map;
 
 public class TableFunctionFactory {
 
+    public static final String VALUES_TABLE_FUNCTION_NAME = "values";
+
     public static TableFunctionImplementation from(FunctionImplementation functionImplementation) {
 
         TableFunctionImplementation tableFunction;
