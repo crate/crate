@@ -446,13 +446,15 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitSetStatement(AnalyzedSetStatement setStatement, PlannerContext context) {
         switch (setStatement.scope()) {
             case LICENSE:
-                LOGGER.warn("SET LICENSE STATEMENT WILL BE IGNORED: {}", setStatement.settings());
-                return NoopPlan.INSTANCE;
+                throw new AssertionError(
+                    "`AnalyzedSetStatement` with scope `LICENSE` should have been converted to `AnalyzedSetLicenseStatement` by the analyzer");
             case LOCAL:
-                LOGGER.warn("SET LOCAL STATEMENT WILL BE IGNORED: {}", setStatement.settings());
+                LOGGER.info(
+                    "SET LOCAL `{}` statement will be ignored. " +
+                    "CrateDB has no transactions, so any `SET LOCAL` change would be dropped in the next statement.", setStatement.settings());
                 return NoopPlan.INSTANCE;
             case SESSION_TRANSACTION_MODE:
-                LOGGER.warn("'SET SESSION CHARACTERISTICS AS TRANSACTION' STATEMENT WILL BE IGNORED");
+                LOGGER.info("'SET SESSION CHARACTERISTICS AS TRANSACTION' statement will be ignored.");
                 return NoopPlan.INSTANCE;
             case SESSION:
                 return new SetSessionPlan(setStatement.settings());
