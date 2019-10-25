@@ -34,12 +34,10 @@ import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
 
 import java.util.List;
 
@@ -101,7 +99,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         List<Assignment<Symbol>> persistentSettings = List.of(
             new Assignment<>(Literal.of(persistentSetting), List.of(Literal.of(false))));
 
-        UpdateSettingsPlan node = new UpdateSettingsPlan(persistentSettings);
+        UpdateSettingsPlan node = new UpdateSettingsPlan(persistentSettings, true);
         PlannerContext plannerContext = mock(PlannerContext.class);
         Bucket objects = executePlan(node, plannerContext);
 
@@ -114,29 +112,13 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
         List<Assignment<Symbol>> transientSettings = List.of(
             new Assignment<>(Literal.of(transientSetting), List.of(Literal.of("123s"))));
 
-        node = new UpdateSettingsPlan(List.of(), transientSettings);
+        node = new UpdateSettingsPlan(transientSettings, false);
         objects = executePlan(node, plannerContext);
 
         assertThat(objects, contains(isRow(1L)));
         assertEquals("123s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
             .transientSettings().get(transientSetting)
         );
-
-        // Update persistent & transient
-        persistentSettings = List.of(
-            new Assignment<>(Literal.of(persistentSetting), List.of(Literal.of(false))));
-
-
-        transientSettings = List.of(
-            new Assignment<>(Literal.of(transientSetting), List.of(Literal.of("243s"))));
-
-        node = new UpdateSettingsPlan(persistentSettings, transientSettings);
-        objects = executePlan(node, plannerContext);
-
-        MetaData md = client().admin().cluster().prepareState().execute().actionGet().getState().metaData();
-        assertThat(objects, contains(isRow(1L)));
-        assertEquals("false", md.persistentSettings().get(persistentSetting));
-        assertEquals("243s", md.transientSettings().get(transientSetting));
     }
 
     private Bucket executePlan(Plan plan, PlannerContext plannerContext, Row params) throws Exception {

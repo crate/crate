@@ -40,30 +40,26 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResp
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
 import java.util.function.Function;
 
 public final class UpdateSettingsPlan implements Plan {
 
-    private final Collection<Assignment<Symbol>> persistentSettings;
-    private final Collection<Assignment<Symbol>> transientSettings;
+    private final Collection<Assignment<Symbol>> settings;
+    private final boolean isPersistent;
 
-    public UpdateSettingsPlan(Collection<Assignment<Symbol>> persistentSettings, Collection<Assignment<Symbol>> transientSettings) {
-        this.persistentSettings = persistentSettings;
-        this.transientSettings = buildTransientSettings(persistentSettings, transientSettings);
+    public UpdateSettingsPlan(Collection<Assignment<Symbol>> settings, boolean isPersistent) {
+        this.settings = settings;
+        this.isPersistent = isPersistent;
     }
 
-    public UpdateSettingsPlan(List<Assignment<Symbol>> persistentSettings) {
-        this(persistentSettings, persistentSettings); // override stale transient settings too in that case
+    @VisibleForTesting
+    public Collection<Assignment<Symbol>> settings() {
+        return settings;
     }
 
-    public Collection<Assignment<Symbol>> persistentSettings() {
-        return persistentSettings;
-    }
-
-    public Collection<Assignment<Symbol>> transientSettings() {
-        return transientSettings;
+    @VisibleForTesting
+    public boolean isPersistent() {
+        return isPersistent;
     }
 
     @Override
@@ -83,9 +79,9 @@ public final class UpdateSettingsPlan implements Plan {
                                                                               x,
                                                                               params,
                                                                               subQueryResults);
-        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest()
-            .persistentSettings(buildSettingsFrom(persistentSettings, eval))
-            .transientSettings(buildSettingsFrom(transientSettings, eval));
+        ClusterUpdateSettingsRequest request = isPersistent
+            ? new ClusterUpdateSettingsRequest().persistentSettings(buildSettingsFrom(settings, eval))
+            : new ClusterUpdateSettingsRequest().transientSettings(buildSettingsFrom(settings, eval));
 
         OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(
             consumer,
@@ -113,20 +109,5 @@ public final class UpdateSettingsPlan implements Plan {
             CrateSettings.checkIfRuntimeSetting(checkForRuntime);
         }
         return settings;
-    }
-
-    private static Collection<Assignment<Symbol>> buildTransientSettings(Collection<Assignment<Symbol>> persistentSettings,
-                                                                         Collection<Assignment<Symbol>> transientSettings) {
-        // always override persistent settings with transient ones, so they won't get overridden
-        // on cluster settings merge, which prefers the persistent ones over the transient ones
-        // which we don't
-        HashMap<Symbol,Assignment<Symbol>> result = new HashMap<>();
-        for (Assignment<Symbol> persistentSetting : persistentSettings) {
-            result.put(persistentSetting.columnName(), persistentSetting);
-        }
-        for (Assignment<Symbol> transientSetting : transientSettings) {
-            result.put(transientSetting.columnName(), transientSetting);
-        }
-        return result.values();
     }
 }
