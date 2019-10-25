@@ -64,7 +64,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -196,7 +196,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      *
      * @return the executor service
      */
-    private ExecutorService getExecutorService() {
+    private Executor getExecutorService() {
         return threadPool.generic();
     }
 

@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -75,7 +75,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
     private final RowWriter rowWriter;
 
-    FileWriterCountCollector(ExecutorService executorService,
+    FileWriterCountCollector(Executor executor,
                              String uri,
                              @Nullable WriterProjection.CompressionType compressionType,
                              @Nullable List<Input<?>> inputs,
@@ -97,7 +97,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         if (uri1.getScheme() == null || uri1.getScheme().equals("file")) {
             this.output = new OutputFile(uri1, compressionType);
         } else if (uri1.getScheme().equalsIgnoreCase("s3")) {
-            this.output = new OutputS3(executorService, uri1, compressionType);
+            this.output = new OutputS3(executor, uri1, compressionType);
         } else {
             throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", uri1.getScheme()));
         }

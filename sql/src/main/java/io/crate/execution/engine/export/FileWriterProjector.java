@@ -34,7 +34,7 @@ import io.crate.metadata.ColumnIdent;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 public class FileWriterProjector implements Projector {
 
@@ -46,7 +46,7 @@ public class FileWriterProjector implements Projector {
     private final List<String> outputNames;
     private final WriterProjection.OutputFormat outputFormat;
     private final WriterProjection.CompressionType compressionType;
-    private final ExecutorService executorService;
+    private final Executor executor;
 
     /**
      * @param inputs a list of {@link Input}.
@@ -56,7 +56,7 @@ public class FileWriterProjector implements Projector {
      *               <p/>
      *               If inputs is not null the inputs are consumed to write a JSON array to the output.
      */
-    public FileWriterProjector(ExecutorService executorService,
+    public FileWriterProjector(Executor executor,
                                String uri,
                                @Nullable WriterProjection.CompressionType compressionType,
                                @Nullable List<Input<?>> inputs,
@@ -65,7 +65,7 @@ public class FileWriterProjector implements Projector {
                                @Nullable List<String> outputNames,
                                WriterProjection.OutputFormat outputFormat) {
         this.collectExpressions = collectExpressions;
-        this.executorService = executorService;
+        this.executor = executor;
         this.inputs = inputs;
         this.overwrites = overwrites;
         this.outputNames = outputNames;
@@ -79,7 +79,7 @@ public class FileWriterProjector implements Projector {
         return CollectingBatchIterator.newInstance(
             batchIterator,
             new FileWriterCountCollector(
-                executorService,
+                executor,
                 uri,
                 compressionType,
                 inputs,
