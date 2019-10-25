@@ -21,138 +21,43 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
-import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.data.Row;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.AstVisitor;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Literal;
-import io.crate.sql.tree.Node;
-import io.crate.sql.tree.ObjectLiteral;
-import io.crate.sql.tree.ParameterExpression;
-import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.SetStatement;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 
 class SetStatementAnalyzer {
 
-    private static final Logger LOGGER = LogManager.getLogger(SetStatementAnalyzer.class);
+    private final Functions functions;
 
-    public static AnalyzedStatement analyze(SetStatement node) {
+    SetStatementAnalyzer(Functions functions) {
+        this.functions = functions;
+    }
 
+    public AnalyzedStatement analyze(SetStatement<Expression> node,
+                                     ParamTypeHints typeHints,
+                                     CoordinatorTxnCtx txnCtx) {
         boolean isPersistent = node.settingType().equals(SetStatement.SettingType.PERSISTENT);
-        Map<String, List<Expression>> settings = new HashMap<>();
-        Assignment<Expression> assignment;
+        var exprAnalyzer = new ExpressionAnalyzer(
+            functions,
+            txnCtx,
+            typeHints,
+            FieldProvider.FIELDS_AS_LITERAL,
+            null
+        );
+        SetStatement<Symbol> statement = node.map(x -> exprAnalyzer.convert(x, new ExpressionAnalysisContext()));
 
-        switch (node.scope()) {
-            case LICENSE:
-                if (node.assignments().size() != SetLicenseAnalyzedStatement.LICENSE_TOKEN_NUM) {
-                    throw new IllegalArgumentException("Invalid number of arguments for SET LICENSE. " +
-                                                       "Please provide only the license key");
-                }
-                assignment = node.assignments().get(0);
-                String licenseKey = ExpressionToStringVisitor.convert(assignment.expression(), Row.EMPTY);
-
-                return new SetLicenseAnalyzedStatement(licenseKey);
-            case GLOBAL:
-                for (Assignment<Expression> anAssignment : node.assignments()) {
-                    for (String setting : ExpressionToSettingNameListVisitor.convert(anAssignment)) {
-                        CrateSettings.checkIfRuntimeSetting(setting);
-                    }
-                    String settingName = ExpressionToStringVisitor.convert(anAssignment.columnName(), Row.EMPTY);
-                    settings.put(settingName, ImmutableList.of(anAssignment.expression()));
-                }
-                break;
-            default:
-                assignment = node.assignments().get(0);
-                // parser does not allow using the parameter expressions as setting names in the SET statements,
-                // therefore it is fine to convert the expression to string here.
-                String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
-                List<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
-                if (nameParts.size() != 0) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL", settingName));
-                }
-                settings.put(settingName, assignment.expressions());
-                break;
-
-        }
-        return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
-    }
-
-    public static ResetAnalyzedStatement analyze(ResetStatement node) {
-        Set<String> settingsToRemove = Sets.newHashSet();
-        for (Expression expression : node.columns()) {
-            String settingsName = ExpressionToStringVisitor.convert(expression, Row.EMPTY);
-            if (!settingsToRemove.contains(settingsName)) {
-                List<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
-                if (settingNames.size() == 0) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Setting '%s' not supported", settingsName));
-                }
-                for (String setting : settingNames) {
-                    CrateSettings.checkIfRuntimeSetting(setting);
-                }
-                settingsToRemove.addAll(settingNames);
-                LOGGER.info("resetting [{}]", settingNames);
+        if (node.scope() == SetStatement.Scope.LICENSE) {
+            if (node.assignments().size() != AnalyzedSetLicenseStatement.LICENSE_TOKEN_NUM) {
+                throw new IllegalArgumentException("Invalid number of arguments for SET LICENSE. " +
+                                                   "Please provide only the license key");
             }
+            return new AnalyzedSetLicenseStatement(statement.assignments().get(0).expression());
         }
-        return new ResetAnalyzedStatement(settingsToRemove);
-    }
-
-    private static class ExpressionToSettingNameListVisitor extends AstVisitor<Collection<String>, String> {
-
-        private static final ExpressionToSettingNameListVisitor INSTANCE = new ExpressionToSettingNameListVisitor();
-
-        public static Collection<String> convert(Node node) {
-            return node.accept(INSTANCE, null);
-        }
-
-        @Override
-        public Collection<String> visitAssignment(Assignment<?> node, String context) {
-            Assignment<Expression> assignment = (Assignment<Expression>) node;
-            String left = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
-            return assignment.expression().accept(this, left);
-        }
-
-        @Override
-        public Collection<String> visitObjectLiteral(ObjectLiteral node, String context) {
-            Collection<String> settingNames = new ArrayList<>();
-            for (Map.Entry<String, Expression> entry : node.values().entries()) {
-                String s = String.format(Locale.ENGLISH, "%s.%s", context, entry.getKey());
-                if (entry.getValue() instanceof ObjectLiteral) {
-                    settingNames.addAll(entry.getValue().accept(this, s));
-                } else {
-                    settingNames.add(s);
-                }
-            }
-            return settingNames;
-        }
-
-        @Override
-        protected Collection<String> visitLiteral(Literal node, String context) {
-            return ImmutableList.of(context);
-        }
-
-        @Override
-        public Collection<String> visitParameterExpression(ParameterExpression node, String context) {
-            return ImmutableList.of(context);
-        }
-
-        @Override
-        protected Collection<String> visitNode(Node node, String context) {
-            return ImmutableList.of(context);
-        }
+        return new AnalyzedSetStatement(node.scope(), statement.assignments(), isPersistent);
     }
 }

@@ -25,6 +25,7 @@ package io.crate.metadata.settings.session;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.data.Row;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.Expression;
 
@@ -59,6 +60,17 @@ public class SessionSetting<T> {
         this.defaultValue = defaultValue;
         this.description = description;
         this.type = type;
+    }
+
+    public void apply(SessionContext sessionContext, List<Symbol> symbols, Function<? super Symbol, Object> eval) {
+        Object[] values = new Object[symbols.size()];
+        for (int i = 0; i < symbols.size(); i++) {
+            Symbol symbol = symbols.get(i);
+            values[i] = eval.apply(symbol);
+        }
+        validator.accept(values);
+        T converted = converter.apply(values);
+        setter.accept(sessionContext, converted);
     }
 
     public void apply(Row parameters, List<Expression> expressions, SessionContext sessionContext) {

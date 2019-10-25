@@ -25,8 +25,8 @@ package io.crate.planner;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedAlterBlobTable;
-import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTable;
+import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
@@ -41,40 +41,40 @@ import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateUser;
+import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
+import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropUser;
+import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
-import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.AnalyzedOptimizeTable;
+import io.crate.analyze.AnalyzedPromoteReplica;
+import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
+import io.crate.analyze.AnalyzedRerouteCancelShard;
+import io.crate.analyze.AnalyzedRerouteMoveShard;
+import io.crate.analyze.AnalyzedRerouteRetryFailed;
+import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.AnalyzedRestoreSnapshot;
+import io.crate.analyze.AnalyzedSetLicenseStatement;
+import io.crate.analyze.AnalyzedSetStatement;
+import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedSwapTable;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
-import io.crate.analyze.AnalyzedDeallocate;
-import io.crate.analyze.AnalyzedDropAnalyzer;
-import io.crate.analyze.AnalyzedDropTable;
-import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
-import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.NumberOfShards;
-import io.crate.analyze.AnalyzedPromoteReplica;
-import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
-import io.crate.analyze.AnalyzedRerouteCancelShard;
-import io.crate.analyze.AnalyzedRerouteMoveShard;
-import io.crate.analyze.AnalyzedRerouteRetryFailed;
-import io.crate.analyze.ResetAnalyzedStatement;
-import io.crate.analyze.SetAnalyzedStatement;
-import io.crate.analyze.SetLicenseAnalyzedStatement;
-import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.UserManager;
 import io.crate.exceptions.LicenseViolationException;
@@ -96,12 +96,12 @@ import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
 import io.crate.planner.node.ddl.AlterUserPlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
-import io.crate.planner.node.ddl.DropAnalyzerPlan;
 import io.crate.planner.node.ddl.CreateFunctionPlan;
 import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.node.ddl.CreateUserPlan;
+import io.crate.planner.node.ddl.DropAnalyzerPlan;
 import io.crate.planner.node.ddl.DropFunctionPlan;
 import io.crate.planner.node.ddl.DropRepositoryPlan;
 import io.crate.planner.node.ddl.DropSnapshotPlan;
@@ -109,6 +109,7 @@ import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.DropUserPlan;
 import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.node.ddl.RefreshTablePlan;
+import io.crate.planner.node.ddl.ResetSettingsPlan;
 import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.node.dml.LegacyUpsertById;
@@ -125,7 +126,6 @@ import io.crate.planner.statement.SetLicensePlan;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
-import io.crate.sql.tree.Expression;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -135,12 +135,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.BooleanSupplier;
 
 @Singleton
@@ -434,17 +430,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitResetAnalyzedStatement(ResetAnalyzedStatement resetStatement, PlannerContext context) {
-        Set<String> settingsToRemove = resetStatement.settingsToRemove();
-        if (settingsToRemove.isEmpty()) {
+    public Plan visitResetAnalyzedStatement(AnalyzedResetStatement resetStatement, PlannerContext context) {
+        if (resetStatement.settingsToRemove().isEmpty()) {
             return NoopPlan.INSTANCE;
         }
-
-        Map<String, List<Expression>> nullSettings = new HashMap<>(settingsToRemove.size(), 1);
-        for (String setting : settingsToRemove) {
-            nullSettings.put(setting, null);
-        }
-        return new UpdateSettingsPlan(nullSettings, nullSettings);
+        return new ResetSettingsPlan(resetStatement);
     }
 
     @Override
@@ -453,34 +443,29 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitSetStatement(SetAnalyzedStatement setStatement, PlannerContext context) {
+    public Plan visitSetStatement(AnalyzedSetStatement setStatement, PlannerContext context) {
         switch (setStatement.scope()) {
             case LICENSE:
-                LOGGER.warn("SET LICENSE STATEMENT WILL BE IGNORED: {}", setStatement.settings());
-                return NoopPlan.INSTANCE;
+                throw new AssertionError(
+                    "`AnalyzedSetStatement` with scope `LICENSE` should have been converted to `AnalyzedSetLicenseStatement` by the analyzer");
             case LOCAL:
-                LOGGER.warn("SET LOCAL STATEMENT WILL BE IGNORED: {}", setStatement.settings());
+                LOGGER.info(
+                    "SET LOCAL `{}` statement will be ignored. " +
+                    "CrateDB has no transactions, so any `SET LOCAL` change would be dropped in the next statement.", setStatement.settings());
                 return NoopPlan.INSTANCE;
             case SESSION_TRANSACTION_MODE:
-                LOGGER.warn("'SET SESSION CHARACTERISTICS AS TRANSACTION' STATEMENT WILL BE IGNORED");
+                LOGGER.info("'SET SESSION CHARACTERISTICS AS TRANSACTION' statement will be ignored.");
                 return NoopPlan.INSTANCE;
             case SESSION:
                 return new SetSessionPlan(setStatement.settings());
             case GLOBAL:
             default:
-                if (setStatement.isPersistent()) {
-                    return new UpdateSettingsPlan(setStatement.settings());
-                } else {
-                    return new UpdateSettingsPlan(
-                        Collections.emptyMap(),
-                        setStatement.settings()
-                    );
-                }
+                return new UpdateSettingsPlan(setStatement.settings(), setStatement.isPersistent());
         }
     }
 
     @Override
-    public Plan visitSetLicenseStatement(SetLicenseAnalyzedStatement setLicenseAnalyzedStatement, PlannerContext context) {
+    public Plan visitSetLicenseStatement(AnalyzedSetLicenseStatement setLicenseAnalyzedStatement, PlannerContext context) {
         return new SetLicensePlan(setLicenseAnalyzedStatement);
     }
 

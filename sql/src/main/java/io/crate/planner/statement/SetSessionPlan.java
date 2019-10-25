@@ -22,22 +22,27 @@
 
 package io.crate.planner.statement;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Assignment;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
+import java.util.function.Function;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
@@ -45,9 +50,9 @@ public class SetSessionPlan implements Plan {
 
     private static final Logger LOGGER = LogManager.getLogger(SetSessionPlan.class);
 
-    private final Map<String, List<Expression>> settings;
+    private final List<Assignment<Symbol>> settings;
 
-    public SetSessionPlan(Map<String, List<Expression>> settings) {
+    public SetSessionPlan(List<Assignment<Symbol>> settings) {
         this.settings = settings;
     }
 
@@ -62,15 +67,33 @@ public class SetSessionPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
+
+        Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(plannerContext.transactionContext(),
+                                                                              plannerContext.functions(),
+                                                                              x,
+                                                                              params,
+                                                                              subQueryResults);
+
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
-        for (Map.Entry<String, List<Expression>> entry : settings.entrySet()) {
-            SessionSetting<?> sessionSetting = SessionSettingRegistry.SETTINGS.get(entry.getKey());
-            if (sessionSetting == null) {
-                LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", entry.getKey());
-            } else {
-                sessionSetting.apply(params, entry.getValue(), sessionContext);
-            }
+        Assignment<Symbol> assignment = settings.get(0);
+        String settingName = eval.apply(assignment.columnName()).toString();
+        validateSetting(settingName);
+        SessionSetting<?> sessionSetting = SessionSettingRegistry.SETTINGS.get(settingName);
+        if (sessionSetting == null) {
+            LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", settingName);
+        } else {
+            sessionSetting.apply(sessionContext, assignment.expressions(), eval);
         }
         consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
+    }
+
+    @VisibleForTesting
+    static void validateSetting(String settingName) {
+        List<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
+        if (nameParts.size() != 0) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                             "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL",
+                                                             settingName));
+        }
     }
 }

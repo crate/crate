@@ -26,8 +26,8 @@ import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.SetAnalyzedStatement;
-import io.crate.analyze.SetLicenseAnalyzedStatement;
+import io.crate.analyze.AnalyzedSetStatement;
+import io.crate.analyze.AnalyzedSetLicenseStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
@@ -55,12 +55,12 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
             return true;
         }
 
-        if (analyzedStatement instanceof SetLicenseAnalyzedStatement ||
+        if (analyzedStatement instanceof AnalyzedSetLicenseStatement ||
             analyzedStatement instanceof AnalyzedDecommissionNode) {
             return true;
         }
-        if (analyzedStatement instanceof SetAnalyzedStatement) {
-            switch (((SetAnalyzedStatement) analyzedStatement).scope()) {
+        if (analyzedStatement instanceof AnalyzedSetStatement) {
+            switch (((AnalyzedSetStatement) analyzedStatement).scope()) {
                 case SESSION_TRANSACTION_MODE:
                 case SESSION:
                 case LOCAL:
