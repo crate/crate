@@ -247,8 +247,14 @@ session setting :ref:`enable_hashjoin <conf-session-enable-hashjoin>`::
 Limitations
 -----------
 
-Joining more than 2 tables can result in execution plans which
-perform poorly as there is no query optimizer in place yet.
+Joining more than 2 tables can result in poor execution plans.
+
+Internally the relations are joined in pairs. So for example in a 3 table join,
+we'd join `(r1 ⋈ r2) ⋈ r3` (r1 with r2 first, then with r3). The poor execution
+plan could happen as there is no optimization in place which improves the join
+ordering. Ideally we'd join those relations first which narrow the intermediate
+result set to a large degree, so that later joins have less work to do. In the
+example before, joining `r1 ⋈ (r2 ⋈ r3)` might be the better order.
 
 
 .. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/
