@@ -138,7 +138,7 @@ public class ThreadPool implements Scheduler, Closeable {
 
     private final CachedTimeThread cachedTimeThread;
 
-    static final ExecutorService DIRECT_EXECUTOR = EsExecutors.newDirectExecutorService();
+    static final Executor DIRECT_EXECUTOR = EsExecutors.directExecutor();
 
     private final ThreadContext threadContext;
 
@@ -270,7 +270,7 @@ public class ThreadPool implements Scheduler, Closeable {
      * Warning: this {@linkplain ExecutorService} will not throw {@link RejectedExecutionException}
      * if you submit a task while it shutdown. It will instead silently queue it and not run it.
      */
-    public ExecutorService generic() {
+    public Executor generic() {
         return executor(Names.GENERIC);
     }
 
@@ -285,7 +285,7 @@ public class ThreadPool implements Scheduler, Closeable {
      * @param name the name of the executor service to obtain
      * @throws IllegalArgumentException if no executor service with the specified name exists
      */
-    public ExecutorService executor(String name) {
+    public Executor executor(String name) {
         final ExecutorHolder holder = executors.get(name);
         if (holder == null) {
             throw new IllegalArgumentException("no executor service found for [" + name + "]");
@@ -355,9 +355,10 @@ public class ThreadPool implements Scheduler, Closeable {
     public void shutdown() {
         stopCachedTimeThread();
         scheduler.shutdown();
-        for (ExecutorHolder executor : executors.values()) {
-            if (executor.executor() instanceof ThreadPoolExecutor) {
-                executor.executor().shutdown();
+        for (ExecutorHolder executorHolder : executors.values()) {
+            Executor executor = executorHolder.executor();
+            if (executor instanceof ThreadPoolExecutor) {
+                ((ThreadPoolExecutor) executor).shutdown();
             }
         }
     }
@@ -365,18 +366,20 @@ public class ThreadPool implements Scheduler, Closeable {
     public void shutdownNow() {
         stopCachedTimeThread();
         scheduler.shutdownNow();
-        for (ExecutorHolder executor : executors.values()) {
-            if (executor.executor() instanceof ThreadPoolExecutor) {
-                executor.executor().shutdownNow();
+        for (ExecutorHolder executorHolder : executors.values()) {
+            Executor executor = executorHolder.executor();
+            if (executor instanceof ThreadPoolExecutor) {
+                ((ThreadPoolExecutor) executor).shutdownNow();
             }
         }
     }
 
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         boolean result = scheduler.awaitTermination(timeout, unit);
-        for (ExecutorHolder executor : executors.values()) {
-            if (executor.executor() instanceof ThreadPoolExecutor) {
-                result &= executor.executor().awaitTermination(timeout, unit);
+        for (ExecutorHolder executorHolder : executors.values()) {
+            Executor executor = executorHolder.executor();
+            if (executor instanceof ThreadPoolExecutor) {
+                result &= ((ThreadPoolExecutor) executor).awaitTermination(timeout, unit);
             }
         }
         cachedTimeThread.join(unit.toMillis(timeout));
@@ -525,16 +528,17 @@ public class ThreadPool implements Scheduler, Closeable {
     }
 
     static class ExecutorHolder {
-        private final ExecutorService executor;
+        private final Executor executor;
         public final Info info;
 
-        ExecutorHolder(ExecutorService executor, Info info) {
-            assert executor instanceof EsThreadPoolExecutor || executor == DIRECT_EXECUTOR;
+        ExecutorHolder(Executor executor, Info info) {
+            assert executor instanceof EsThreadPoolExecutor || executor == DIRECT_EXECUTOR
+                : "Executor must either be the DIRECT_EXECUTOR or an instance of EsThreadPoolExecutor";
             this.executor = executor;
             this.info = info;
         }
 
-        ExecutorService executor() {
+        Executor executor() {
             return executor;
         }
     }
