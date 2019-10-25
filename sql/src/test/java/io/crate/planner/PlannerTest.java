@@ -16,8 +16,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 public class PlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -33,14 +33,13 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSetPlan() throws Exception {
         UpdateSettingsPlan plan = e.plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
 
-        // set transient settings too when setting persistent ones
-        assertThat(plan.transientSettings(), contains(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(1024L)))));
-        assertThat(plan.persistentSettings(), contains(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(1024L)))));
+        assertThat(plan.settings(), contains(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(1024L)))));
+        assertThat(plan.isPersistent(), is(true));
 
         plan = e.plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");
 
-        assertThat(plan.persistentSettings().size(), is(0));
-        assertThat(plan.transientSettings().size(), is(2));
+        assertThat(plan.settings().size(), is(2));
+        assertThat(plan.isPersistent(), is(false));
     }
 
     @Test
