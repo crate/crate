@@ -32,8 +32,8 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_ipv4_cidr_operator() throws Throwable {
-        test("ip_addr",
-             new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
+        test(
+            new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
              "ip_addr << '192.168.1.1/24'",
              "192.168.1.1", "192.168.1.7", "192.168.1.255");
     }
@@ -42,8 +42,8 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
     public void test_ipv4_cidr_operator_right_operand_is_ip() throws Throwable {
         // operand [192.168.1.0] must conform with CIDR notation
         expectedException.expect(IllegalArgumentException.class);
-        test("ip_addr",
-             new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
+        test(
+            new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
              "ip_addr << '192.168.1.0'::ip",
              "192.168.1.1", "192.168.1.7");
     }
@@ -52,27 +52,23 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
     public void test_ipv4_cidr_operator_right_operand_is_text() throws Throwable {
         // operand [random text] must conform with CIDR notation
         expectedException.expect(IllegalArgumentException.class);
-        test("ip_addr",
-             new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
+        test(
+            new String[]{"192.168.0.1", "192.168.1.1", "192.168.1.7", "192.168.1.255", "192.168.2.0", "10.0.0.1"},
              "ip_addr << 'random text'",
              "192.168.1.1", "192.168.1.7");
     }
 
-    private void test(String colName, String [] valuesToIndex, String queryStr, String ... expectedResults) throws Throwable {
-        try (QueryTester tester = createQueryTester(colName, valuesToIndex)) {
-            assertThat(tester.runQuery(colName, queryStr), Matchers.contains(expectedResults));
-        }
-    }
-
-    private QueryTester createQueryTester(String colname, Object ... toIndex) throws Throwable {
+    private void test(Object[] valuesToIndex, String queryStr, String... expectedResults) throws Throwable {
         QueryTester.Builder builder = new QueryTester.Builder(
             createTempDir(),
             THREAD_POOL,
             clusterService,
-            Version.CURRENT.CURRENT,
+            Version.CURRENT,
             "create table t (ip_addr ip)"
         );
-        builder.indexValues(colname, toIndex);
-        return builder.build();
+        builder.indexValues("ip_addr", valuesToIndex);
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("ip_addr", queryStr), Matchers.contains(expectedResults));
+        }
     }
 }
