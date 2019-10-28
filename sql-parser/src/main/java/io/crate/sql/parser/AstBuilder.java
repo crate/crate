@@ -629,14 +629,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSet(SqlBaseParser.SetContext context) {
-        Assignment setAssignment = prepareSetAssignment(context);
+        Assignment<?> setAssignment = prepareSetAssignment(context);
         if (context.LOCAL() != null) {
-            return new SetStatement(SetStatement.Scope.LOCAL, setAssignment);
+            return new SetStatement<>(SetStatement.Scope.LOCAL, setAssignment);
         }
-        return new SetStatement(SetStatement.Scope.SESSION, setAssignment);
+        return new SetStatement<>(SetStatement.Scope.SESSION, setAssignment);
     }
 
-    private Assignment prepareSetAssignment(SqlBaseParser.SetContext context) {
+    private Assignment<?> prepareSetAssignment(SqlBaseParser.SetContext context) {
         Expression settingName = new QualifiedNameReference(getQualifiedName(context.qname()));
         if (context.DEFAULT() != null) {
             return new Assignment<>(settingName, ImmutableList.of());
@@ -648,11 +648,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitSetGlobal(SqlBaseParser.SetGlobalContext context) {
         var assignments = Lists2.map(context.setGlobalAssignment(), x -> (Assignment<Expression>) visit(x));
         if (context.PERSISTENT() != null) {
-            return new SetStatement(SetStatement.Scope.GLOBAL,
+            return new SetStatement<>(SetStatement.Scope.GLOBAL,
                 SetStatement.SettingType.PERSISTENT,
                 assignments);
         }
-        return new SetStatement(SetStatement.Scope.GLOBAL, assignments);
+        return new SetStatement<>(SetStatement.Scope.GLOBAL, assignments);
     }
 
     @Override
@@ -660,7 +660,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         Assignment<Expression> assignment = new Assignment<>(
             new StringLiteral("license"), (Expression) visit(ctx.stringLiteral()));
 
-        return new SetStatement(SetStatement.Scope.LICENSE,
+        return new SetStatement<>(SetStatement.Scope.LICENSE,
             SetStatement.SettingType.PERSISTENT, Collections.singletonList(assignment));
     }
 
@@ -669,12 +669,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         Assignment<Expression> assignment = new Assignment<>(
             new StringLiteral("transaction_mode"),
             visitCollection(ctx.setExpr(), Expression.class));
-        return new SetStatement(SetStatement.Scope.SESSION_TRANSACTION_MODE, assignment);
+        return new SetStatement<>(SetStatement.Scope.SESSION_TRANSACTION_MODE, assignment);
     }
 
     @Override
     public Node visitResetGlobal(SqlBaseParser.ResetGlobalContext context) {
-        return new ResetStatement(visitCollection(context.primaryExpression(), Expression.class));
+        return new ResetStatement<>(visitCollection(context.primaryExpression(), Expression.class));
     }
 
     @Override

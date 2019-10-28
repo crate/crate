@@ -1,20 +1,22 @@
 package io.crate.planner;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
-import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.Assignment;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.Randomness;
-import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
@@ -31,14 +33,13 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSetPlan() throws Exception {
         UpdateSettingsPlan plan = e.plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
 
-        // set transient settings too when setting persistent ones
-        assertThat(plan.transientSettings().get("stats.jobs_log_size").get(0), Is.is(new LongLiteral("1024")));
-        assertThat(plan.persistentSettings().get("stats.jobs_log_size").get(0), Is.is(new LongLiteral("1024")));
+        assertThat(plan.settings(), contains(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(1024L)))));
+        assertThat(plan.isPersistent(), is(true));
 
         plan = e.plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");
 
-        assertThat(plan.persistentSettings().size(), is(0));
-        assertThat(plan.transientSettings().size(), is(2));
+        assertThat(plan.settings().size(), is(2));
+        assertThat(plan.isPersistent(), is(false));
     }
 
     @Test

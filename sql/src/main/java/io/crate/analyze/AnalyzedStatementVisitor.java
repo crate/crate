@@ -115,11 +115,11 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    public R visitSetStatement(SetAnalyzedStatement analysis, C context) {
+    public R visitSetStatement(AnalyzedSetStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    public R visitSetLicenseStatement(SetLicenseAnalyzedStatement analysis, C context) {
+    public R visitSetLicenseStatement(AnalyzedSetLicenseStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 
@@ -155,7 +155,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    public R visitResetAnalyzedStatement(ResetAnalyzedStatement resetAnalyzedStatement, C context) {
+    public R visitResetAnalyzedStatement(AnalyzedResetStatement resetAnalyzedStatement, C context) {
         return visitAnalyzedStatement(resetAnalyzedStatement, context);
     }
 

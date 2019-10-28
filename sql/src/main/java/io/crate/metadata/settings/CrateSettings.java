@@ -227,7 +227,7 @@ public final class CrateSettings implements ClusterStateListener {
             throw new IllegalArgumentException(
                 "Cannot set \"" + key + "\" to `null`. Use `RESET [GLOBAL] \"" + key +
                 "\"` to reset a setting to its default value");
-        } else if (value.getClass().isArray()) {
+        } else if (value instanceof List) {
             ArrayType<String> strArray = new ArrayType<>(DataTypes.STRING);
             List<String> values = strArray.value(value);
             settingsBuilder.put(key, String.join(",", values));

@@ -68,8 +68,10 @@ import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RefreshStatement;
+import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.ShowSchemas;
@@ -121,7 +123,9 @@ class UnboundAnalyzer {
                     PrivilegesAnalyzer privilegesAnalyzer,
                     CopyAnalyzer copyAnalyzer,
                     ViewAnalyzer viewAnalyzer,
-                    SwapTableAnalyzer swapTableAnalyzer) {
+                    SwapTableAnalyzer swapTableAnalyzer,
+                    SetStatementAnalyzer setStatementAnalyzer,
+                    ResetStatementAnalyzer resetStatementAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -153,7 +157,9 @@ class UnboundAnalyzer {
             privilegesAnalyzer,
             copyAnalyzer,
             viewAnalyzer,
-            swapTableAnalyzer
+            swapTableAnalyzer,
+            setStatementAnalyzer,
+            resetStatementAnalyzer
         );
     }
 
@@ -196,6 +202,8 @@ class UnboundAnalyzer {
         private final CopyAnalyzer copyAnalyzer;
         private final ViewAnalyzer viewAnalyzer;
         private final SwapTableAnalyzer swapTableAnalyzer;
+        private final SetStatementAnalyzer setStatementAnalyzer;
+        private final ResetStatementAnalyzer resetStatementAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
@@ -227,7 +235,9 @@ class UnboundAnalyzer {
                           PrivilegesAnalyzer privilegesAnalyzer,
                           CopyAnalyzer copyAnalyzer,
                           ViewAnalyzer viewAnalyzer,
-                          SwapTableAnalyzer swapTableAnalyzer) {
+                          SwapTableAnalyzer swapTableAnalyzer,
+                          SetStatementAnalyzer setStatementAnalyzer,
+                          ResetStatementAnalyzer resetStatementAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
@@ -259,6 +269,8 @@ class UnboundAnalyzer {
             this.copyAnalyzer = copyAnalyzer;
             this.viewAnalyzer = viewAnalyzer;
             this.swapTableAnalyzer = swapTableAnalyzer;
+            this.setStatementAnalyzer = setStatementAnalyzer;
+            this.resetStatementAnalyzer = resetStatementAnalyzer;
         }
 
         @Override
@@ -426,6 +438,13 @@ class UnboundAnalyzer {
         public AnalyzedStatement visitRestoreSnapshot(RestoreSnapshot<?> node, Analysis context) {
             return restoreSnapshotAnalyzer.analyze(
                 (RestoreSnapshot<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        public AnalyzedStatement visitResetStatement(ResetStatement<?> node, Analysis context) {
+            return resetStatementAnalyzer.analyze(
+                (ResetStatement<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }
@@ -601,6 +620,10 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitDeallocateStatement(DeallocateStatement node, Analysis context) {
             return DeallocateAnalyzer.analyze(node);
+        }
+
+        public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
+            return setStatementAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
         }
     }
 }

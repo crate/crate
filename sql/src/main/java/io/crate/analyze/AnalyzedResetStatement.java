@@ -22,25 +22,30 @@
 
 package io.crate.analyze;
 
-import javax.annotation.Nonnull;
+import io.crate.expression.symbol.Symbol;
 
-public class SetLicenseAnalyzedStatement implements AnalyzedStatement {
+import java.util.Set;
 
-    static final int LICENSE_TOKEN_NUM = 1;
+public class AnalyzedResetStatement implements AnalyzedStatement {
 
-    private final String licenseKey;
+    private final Set<Symbol> settingsToRemove;
 
-    SetLicenseAnalyzedStatement(@Nonnull final String licenseKey) {
-        this.licenseKey = licenseKey;
-    }
-
-    public String licenseKey() {
-        return licenseKey;
+    public AnalyzedResetStatement(Set<Symbol> settingsToRemove) {
+        this.settingsToRemove = settingsToRemove;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitSetLicenseStatement(this, context);
+        return analyzedStatementVisitor.visitResetAnalyzedStatement(this, context);
+    }
+
+    public Set<Symbol> settingsToRemove() {
+        return settingsToRemove;
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
     }
 
     @Override

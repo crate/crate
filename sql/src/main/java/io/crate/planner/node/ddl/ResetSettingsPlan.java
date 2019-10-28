@@ -1,4 +1,28 @@
 /*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.planner.node.ddl;
+
+/*
  * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
  * additional information regarding copyright ownership.  Crate licenses
@@ -19,11 +43,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.ddl;
-
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -34,32 +56,21 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.sql.tree.Assignment;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.function.Function;
 
-public final class UpdateSettingsPlan implements Plan {
+public final class ResetSettingsPlan implements Plan {
 
-    private final Collection<Assignment<Symbol>> settings;
-    private final boolean isPersistent;
+    private final AnalyzedResetStatement resetAnalyzedStatement;
 
-    public UpdateSettingsPlan(Collection<Assignment<Symbol>> settings, boolean isPersistent) {
-        this.settings = settings;
-        this.isPersistent = isPersistent;
-    }
-
-    @VisibleForTesting
-    public Collection<Assignment<Symbol>> settings() {
-        return settings;
-    }
-
-    @VisibleForTesting
-    public boolean isPersistent() {
-        return isPersistent;
+    public ResetSettingsPlan(AnalyzedResetStatement resetAnalyzedStatement) {
+        this.resetAnalyzedStatement = resetAnalyzedStatement;
     }
 
     @Override
@@ -79,10 +90,12 @@ public final class UpdateSettingsPlan implements Plan {
                                                                               x,
                                                                               params,
                                                                               subQueryResults);
-        ClusterUpdateSettingsRequest request = isPersistent
-            ? new ClusterUpdateSettingsRequest().persistentSettings(buildSettingsFrom(settings, eval))
-            : new ClusterUpdateSettingsRequest().transientSettings(buildSettingsFrom(settings, eval));
 
+        Settings settings = buildSettingsFrom(resetAnalyzedStatement.settingsToRemove(), eval);
+
+        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest()
+            .persistentSettings(settings)
+            .transientSettings(settings);
         OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(
             consumer,
             r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L));
@@ -90,24 +103,25 @@ public final class UpdateSettingsPlan implements Plan {
     }
 
     @VisibleForTesting
-    static Settings buildSettingsFrom(Collection<Assignment<Symbol>> assignments,
-                                      Function<? super Symbol, Object> eval) {
+    static Settings buildSettingsFrom(Set<Symbol> settings, Function<? super Symbol, Object> eval) {
         Settings.Builder settingsBuilder = Settings.builder();
-        for (Assignment<Symbol> entry : assignments) {
-            String settingsName = eval.apply(entry.columnName()).toString();
-
-            if (CrateSettings.isValidSetting(settingsName) == false) {
-                throw new IllegalArgumentException("Setting '" + settingsName + "' is not supported");
+        for (Symbol symbol : settings) {
+            String settingsName = eval.apply(symbol).toString();
+            List<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
+            if (settingNames.size() == 0) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                                 "Setting '%s' is not supported",
+                                                                 settingsName));
             }
-            Symbol expression = Lists2.getOnlyElement(entry.expressions());
-            Object value = eval.apply(expression);
-            CrateSettings.flattenSettings(settingsBuilder, settingsName, value);
+            for (String name : settingNames) {
+                CrateSettings.checkIfRuntimeSetting(name);
+                if (CrateSettings.isValidSetting(name) == false) {
+                    throw new IllegalArgumentException("Setting '" + settingNames + "' is not supported");
+                }
+                settingsBuilder.put(name, (String) null);
+            }
         }
-
-        Settings settings = settingsBuilder.build();
-        for (String checkForRuntime : settings.keySet()) {
-            CrateSettings.checkIfRuntimeSetting(checkForRuntime);
-        }
-        return settings;
+        return settingsBuilder.build();
     }
 }
+

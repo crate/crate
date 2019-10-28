@@ -24,11 +24,13 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import io.crate.common.collections.Lists2;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
-public class SetStatement extends Statement {
+public class SetStatement<T> extends Statement {
 
     public enum Scope {
         GLOBAL, SESSION, LOCAL, SESSION_TRANSACTION_MODE, LICENSE
@@ -40,20 +42,20 @@ public class SetStatement extends Statement {
 
     private final Scope scope;
     private final SettingType settingType;
-    private final List<Assignment<Expression>> assignments;
+    private final List<Assignment<T>> assignments;
 
-    public SetStatement(Scope scope, List<Assignment<Expression>> assignments) {
+    public SetStatement(Scope scope, List<Assignment<T>> assignments) {
         this(scope, SettingType.TRANSIENT, assignments);
     }
 
-    public SetStatement(Scope scope, SettingType settingType, List<Assignment<Expression>> assignments) {
+    public SetStatement(Scope scope, SettingType settingType, List<Assignment<T>> assignments) {
         Preconditions.checkNotNull(assignments, "assignments are null");
         this.scope = scope;
         this.settingType = settingType;
         this.assignments = assignments;
     }
 
-    public SetStatement(Scope scope, Assignment<Expression> assignment) {
+    public SetStatement(Scope scope, Assignment<T> assignment) {
         Preconditions.checkNotNull(assignment, "assignment is null");
         this.scope = scope;
         this.settingType = SettingType.TRANSIENT;
@@ -64,7 +66,7 @@ public class SetStatement extends Statement {
         return scope;
     }
 
-    public List<Assignment<Expression>> assignments() {
+    public List<Assignment<T>> assignments() {
         return assignments;
     }
 
@@ -72,9 +74,18 @@ public class SetStatement extends Statement {
         return settingType;
     }
 
+
     @Override
     public int hashCode() {
         return Objects.hashCode(scope, assignments, settingType);
+    }
+
+    public <U> SetStatement<U> map(Function<? super T, ? extends U> mapper) {
+        return new SetStatement<>(
+            scope,
+            settingType,
+            Lists2.map(assignments, x -> x.map(mapper))
+        );
     }
 
     @Override

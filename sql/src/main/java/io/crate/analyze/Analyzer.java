@@ -132,6 +132,8 @@ public class Analyzer {
     private final SwapTableAnalyzer swapTableAnalyzer;
     private final DecommissionNodeAnalyzer decommissionNodeAnalyzer;
     private final KillAnalyzer killAnalyzer;
+    private final SetStatementAnalyzer setStatementAnalyzer;
+    private final ResetStatementAnalyzer resetStatementAnalyzer;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -180,6 +182,8 @@ public class Analyzer {
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled(), schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
+        this.setStatementAnalyzer = new SetStatementAnalyzer(functions);
+        this.resetStatementAnalyzer = new ResetStatementAnalyzer(functions);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showStatementAnalyzer,
@@ -211,7 +215,9 @@ public class Analyzer {
             privilegesAnalyzer,
             copyAnalyzer,
             viewAnalyzer,
-            swapTableAnalyzer
+            swapTableAnalyzer,
+            setStatementAnalyzer,
+            resetStatementAnalyzer
         );
     }
 
@@ -403,13 +409,17 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
-            return SetStatementAnalyzer.analyze(node);
+        public AnalyzedStatement visitSetStatement(SetStatement<?> node, Analysis context) {
+            return setStatementAnalyzer.analyze((SetStatement<Expression>)node,
+                                                context.paramTypeHints(),
+                                                context.transactionContext());
         }
 
         @Override
-        public AnalyzedStatement visitResetStatement(ResetStatement node, Analysis context) {
-            return SetStatementAnalyzer.analyze(node);
+        public AnalyzedStatement visitResetStatement(ResetStatement<?> node, Analysis context) {
+            return resetStatementAnalyzer.analyze((ResetStatement<Expression>) node,
+                                                context.paramTypeHints(),
+                                                context.transactionContext());
         }
 
         @Override
