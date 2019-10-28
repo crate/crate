@@ -449,7 +449,7 @@ public class LogicalPlanner {
         protected LogicalPlan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
             return InsertFromSubQueryPlanner.plan(
-                relationNormalizer, statement, context, LogicalPlanner.this, subqueryPlanner);
+                statement, context, LogicalPlanner.this, subqueryPlanner);
         }
     }
 }

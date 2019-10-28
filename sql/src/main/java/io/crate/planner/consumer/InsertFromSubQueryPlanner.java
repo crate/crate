@@ -23,8 +23,6 @@ package io.crate.planner.consumer;
 
 
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.expression.symbol.InputColumn;
@@ -51,8 +49,7 @@ public final class InsertFromSubQueryPlanner {
     private InsertFromSubQueryPlanner() {
     }
 
-    public static LogicalPlan plan(RelationNormalizer relationNormalizer,
-                                   InsertFromSubQueryAnalyzedStatement statement,
+    public static LogicalPlan plan(InsertFromSubQueryAnalyzedStatement statement,
                                    PlannerContext plannerContext,
                                    LogicalPlanner logicalPlanner,
                                    SubqueryPlanner subqueryPlanner) {
@@ -72,11 +69,8 @@ public final class InsertFromSubQueryPlanner {
             statement.tableInfo().isPartitioned()
         );
 
-        AnalyzedRelation subRelation = relationNormalizer.normalize(
-            statement.subQueryRelation(), plannerContext.transactionContext());
-
         LogicalPlan plannedSubQuery = logicalPlanner.normalizeAndPlan(
-            subRelation, plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP));
+            statement.subQueryRelation(), plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP));
         EvalProjection castOutputs = createCastProjection(statement.columns(), plannedSubQuery.outputs());
         return new Insert(plannedSubQuery, indexWriterProjection, castOutputs);
     }
