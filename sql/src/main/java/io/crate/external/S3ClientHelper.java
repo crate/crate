@@ -27,6 +27,7 @@ import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSCredentialsProviderChain;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
@@ -34,7 +35,7 @@ import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.retry.PredefinedRetryPolicies;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 
@@ -50,7 +51,7 @@ public class S3ClientHelper {
         new AWSCredentialsProviderChain(
             new EnvironmentVariableCredentialsProvider(),
             new SystemPropertiesCredentialsProvider(),
-            new InstanceProfileCredentialsProvider()) {
+            InstanceProfileCredentialsProvider.getInstance()) {
 
             private AWSCredentials ANONYMOUS_CREDENTIALS = new AnonymousAWSCredentials();
 
@@ -77,12 +78,16 @@ public class S3ClientHelper {
 
     protected AmazonS3 initClient(@Nullable String accessKey, @Nullable String secretKey) throws IOException {
         if (accessKey == null || secretKey == null) {
-            return new AmazonS3Client(DEFAULT_CREDENTIALS_PROVIDER_CHAIN, CLIENT_CONFIGURATION);
+            return AmazonS3ClientBuilder.standard()
+                .withCredentials(DEFAULT_CREDENTIALS_PROVIDER_CHAIN)
+                .withClientConfiguration(CLIENT_CONFIGURATION)
+                .build();
+        } else {
+            return AmazonS3ClientBuilder.standard()
+                .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
+                .withClientConfiguration(CLIENT_CONFIGURATION)
+                .build();
         }
-        return new AmazonS3Client(
-            new BasicAWSCredentials(accessKey, secretKey),
-            CLIENT_CONFIGURATION
-        );
     }
 
     public AmazonS3 client(URI uri) throws IOException {
