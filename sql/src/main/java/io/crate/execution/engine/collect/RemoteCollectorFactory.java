@@ -54,7 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -73,7 +73,7 @@ public class RemoteCollectorFactory {
     private final TransportActionProvider transportActionProvider;
     private final ThreadPool threadPool;
     private final IndicesService indicesService;
-    private final ExecutorService searchTp;
+    private final Executor searchTp;
 
     @Inject
     public RemoteCollectorFactory(ClusterService clusterService,

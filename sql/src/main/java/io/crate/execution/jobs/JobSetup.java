@@ -112,7 +112,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 
@@ -133,7 +133,7 @@ public class JobSetup {
     private final InputFactory inputFactory;
     private final ProjectorFactory projectorFactory;
     private final PKLookupOperation pkLookupOperation;
-    private final ExecutorService searchTp;
+    private final Executor searchTp;
     private final String nodeName;
 
     @Inject

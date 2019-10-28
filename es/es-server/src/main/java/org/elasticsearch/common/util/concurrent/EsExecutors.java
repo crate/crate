@@ -27,13 +27,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -131,55 +129,28 @@ public class EsExecutors {
         return null;
     }
 
-    private static final class DirectExecutorService extends AbstractExecutorService {
+    private static final class DirectExecutor implements Executor {
 
         @SuppressForbidden(reason = "properly rethrowing errors, see EsExecutors.rethrowErrors")
-        DirectExecutorService() {
+        DirectExecutor() {
             super();
-        }
-
-        @Override
-        public void shutdown() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public List<Runnable> shutdownNow() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isShutdown() {
-            return false;
-        }
-
-        @Override
-        public boolean isTerminated() {
-            return false;
-        }
-
-        @Override
-        public boolean awaitTermination(long timeout, TimeUnit unit) {
-            throw new UnsupportedOperationException();
         }
 
         @Override
         public void execute(Runnable command) {
             command.run();
+            //noinspection ThrowableNotThrown
             rethrowErrors(command);
         }
     }
 
-    private static final ExecutorService DIRECT_EXECUTOR_SERVICE = new DirectExecutorService();
+    private static final Executor DIRECT_EXECUTOR = new DirectExecutor();
 
     /**
-     * Returns an {@link ExecutorService} that executes submitted tasks on the current thread. This executor service does not support being
-     * shutdown.
-     *
-     * @return an {@link ExecutorService} that executes submitted tasks on the current thread
+     * @return an {@link Executor} that executes submitted tasks on the current thread
      */
-    public static ExecutorService newDirectExecutorService() {
-        return DIRECT_EXECUTOR_SERVICE;
+    public static Executor directExecutor() {
+        return DIRECT_EXECUTOR;
     }
 
     public static String threadName(Settings settings, String ... names) {

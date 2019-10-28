@@ -25,6 +25,7 @@ import org.elasticsearch.common.collect.Tuple;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -40,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 public final class ListenableFuture<V> extends BaseFuture<V> implements ActionListener<V> {
 
     private volatile boolean done = false;
-    private final List<Tuple<ActionListener<V>, ExecutorService>> listeners = new ArrayList<>();
+    private final List<Tuple<ActionListener<V>, Executor>> listeners = new ArrayList<>();
 
     /**
      * Adds a listener to this future. If the future has not yet completed, the listener will be
@@ -48,10 +49,10 @@ public final class ListenableFuture<V> extends BaseFuture<V> implements ActionLi
      * If the future has completed, the listener will be notified immediately without forking to
      * a different thread.
      */
-    public void addListener(ActionListener<V> listener, ExecutorService executor, ThreadContext threadContext) {
+    public void addListener(ActionListener<V> listener, Executor executor, ThreadContext threadContext) {
         if (done) {
             // run the callback directly, we don't hold the lock and don't need to fork!
-            notifyListener(listener, EsExecutors.newDirectExecutorService());
+            notifyListener(listener, EsExecutors.directExecutor());
         } else {
             final boolean run;
             // check done under lock since it could have been modified and protect modifications
@@ -73,7 +74,7 @@ public final class ListenableFuture<V> extends BaseFuture<V> implements ActionLi
 
             if (run) {
                 // run the callback directly, we don't hold the lock and don't need to fork!
-                notifyListener(listener, EsExecutors.newDirectExecutorService());
+                notifyListener(listener, EsExecutors.directExecutor());
             }
         }
     }
@@ -87,9 +88,9 @@ public final class ListenableFuture<V> extends BaseFuture<V> implements ActionLi
         listeners.clear();
     }
 
-    private void notifyListener(ActionListener<V> listener, ExecutorService executorService) {
+    private void notifyListener(ActionListener<V> listener, Executor executor) {
         try {
-            executorService.execute(new Runnable() {
+            executor.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
