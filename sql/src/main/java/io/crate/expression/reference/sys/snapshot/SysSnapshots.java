@@ -22,6 +22,7 @@
 package io.crate.expression.reference.sys.snapshot;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -32,10 +33,12 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.snapshots.SnapshotException;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
 @Singleton
@@ -76,7 +79,8 @@ public class SysSnapshots {
                 null,
                 null,
                 null,
-                SnapshotState.FAILED.name()
+                SnapshotState.FAILED.name(),
+                List.of()
             );
         }
         Version version = snapshotInfo.version();
@@ -87,7 +91,8 @@ public class SysSnapshots {
             snapshotInfo.startTime(),
             snapshotInfo.endTime(),
             version == null ? null : version.toString(),
-            snapshotInfo.state().name()
+            snapshotInfo.state().name(),
+            Lists2.map(snapshotInfo.shardFailures(), SnapshotShardFailure::toString)
         );
     }
 }

@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
 import org.elasticsearch.Version;
@@ -45,6 +45,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
@@ -57,7 +58,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
     @ClassRule
     public static TemporaryFolder TEMP_FOLDER = new TemporaryFolder();
 
-    private static String REPOSITORY_NAME = "test_snapshots_repo";
+    private final static String REPOSITORY_NAME = "test_snapshots_repo";
 
     private List<String> snapshots = new ArrayList<>();
     private long createdTime;
@@ -119,7 +120,6 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
     }
 
     private void createSnapshot(String snapshotName, String table) {
-        String defaultSchema = sqlExecutor.getCurrentSchema();
         CreateSnapshotResponse createSnapshotResponse = client().admin().cluster()
             .prepareCreateSnapshot(REPOSITORY_NAME, snapshotName)
             .setWaitForCompletion(true).setIndices(getFqn(table)).get();
@@ -139,25 +139,26 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
     public void testQueryAllColumns() {
         execute("select * from sys.snapshots");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols().length, is(7));
-        assertThat(response.cols(), is(new String[]{"concrete_indices", "finished", "name", "repository", "started", "state", "version"}));
-        assertThat(response.columnTypes(), is(
-            new DataType[]{
-                new ArrayType<>(StringType.INSTANCE),
-                TimestampType.INSTANCE_WITH_TZ,
-                StringType.INSTANCE,
-                StringType.INSTANCE,
-                TimestampType.INSTANCE_WITH_TZ,
-                StringType.INSTANCE,
-                StringType.INSTANCE
-            }));
-        assertThat((List<Object>) response.rows()[0][0], Matchers.contains(getFqn("test_table")));
-        assertThat((Long) response.rows()[0][1], lessThanOrEqualTo(finishedTime));
-        assertThat(response.rows()[0][2], is("test_snap_1"));
-        assertThat(response.rows()[0][3], is(REPOSITORY_NAME));
-        assertThat((Long) response.rows()[0][4], greaterThanOrEqualTo(createdTime));
-        assertThat(response.rows()[0][5], is(SnapshotState.SUCCESS.name()));
-        assertThat(response.rows()[0][6], is(Version.CURRENT.toString()));
+        assertThat(response.cols(), arrayContaining("concrete_indices", "failures", "finished", "name", "repository", "started", "state", "version"));
+        assertThat(response.columnTypes(), arrayContaining(
+            new ArrayType<>(DataTypes.STRING),
+            new ArrayType<>(DataTypes.STRING),
+            TimestampType.INSTANCE_WITH_TZ,
+            StringType.INSTANCE,
+            StringType.INSTANCE,
+            TimestampType.INSTANCE_WITH_TZ,
+            StringType.INSTANCE,
+            StringType.INSTANCE
+        ));
+        Object[] firstRow = response.rows()[0];
+        assertThat((List<Object>) firstRow[0], Matchers.contains(getFqn("test_table")));
+        assertThat((List<Object>) firstRow[1], Matchers.empty());
+        assertThat((Long) firstRow[2], lessThanOrEqualTo(finishedTime));
+        assertThat(firstRow[3], is("test_snap_1"));
+        assertThat(firstRow[4], is(REPOSITORY_NAME));
+        assertThat((Long) firstRow[5], greaterThanOrEqualTo(createdTime));
+        assertThat(firstRow[6], is(SnapshotState.SUCCESS.name()));
+        assertThat(firstRow[7], is(Version.CURRENT.toString()));
 
     }
 }

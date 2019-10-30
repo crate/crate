@@ -1764,7 +1764,7 @@ repositories (see :ref:`snapshot-restore`).
 | ``repository``       | The name of the repository that  | ``TEXT``                     |
 |                      | contains this snapshot.          |                              |
 +----------------------+----------------------------------+------------------------------+
-| ``concrete_indices`` | Contains the names of all        | ``ARRAY``                    |
+| ``concrete_indices`` | Contains the names of all        | ``ARRAY(TEXT)``              |
 |                      | tables and partitions that are   |                              |
 |                      | contained in this snapshot       |                              |
 |                      | how they are represented         |                              |
@@ -1786,6 +1786,11 @@ repositories (see :ref:`snapshot-restore`).
 +----------------------+----------------------------------+------------------------------+
 | ``version``          | An internal version this         | ``TEXT``                     |
 |                      | snapshot was created with.       |                              |
++----------------------+----------------------------------+------------------------------+
+| ``failures``         | A list of failures that occurred | ``ARRAY(TEXT)``              |
+|                      | while taking the snapshot.       |                              |
+|                      | If taking the snapshot was       |                              |
+|                      | successful this is empty.        |                              |
 +----------------------+----------------------------------+------------------------------+
 
 Snapshot/Restore operates on a per-shard basis. Hence, the ``state`` column

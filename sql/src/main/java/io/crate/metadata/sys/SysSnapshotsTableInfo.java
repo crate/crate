@@ -62,7 +62,8 @@ public class SysSnapshotsTableInfo extends StaticTableInfo<SysSnapshot> {
           .register("started", TIMESTAMPZ, () -> forFunction(SysSnapshot::started))
           .register("finished", TIMESTAMPZ, () -> forFunction(SysSnapshot::finished))
           .register("version", STRING, () -> forFunction(SysSnapshot::version))
-          .register("state", STRING, () -> forFunction(SysSnapshot::state));
+          .register("state", STRING, () -> forFunction(SysSnapshot::state))
+          .register("failures", STRING_ARRAY, () -> forFunction(SysSnapshot::failures));
     }
 
     SysSnapshotsTableInfo() {
