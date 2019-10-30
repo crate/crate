@@ -82,7 +82,7 @@ public class TasksService extends AbstractLifecycleComponent {
     @Override
     protected void doStop() throws ElasticsearchException {
         for (RootTask rootTask : activeTasks.values()) {
-            rootTask.kill();
+            rootTask.kill("TasksService stopped");
         }
     }
 
@@ -167,17 +167,17 @@ public class TasksService extends AbstractLifecycleComponent {
             try {
                 killAllListener.killAllJobs();
             } catch (Throwable t) {
-                LOGGER.error("Failed to call killAllJobs on listener {}", t, killAllListener);
+                LOGGER.error("Failed to call killAllJobs on listener={} error={}", killAllListener, t);
             }
         }
         Collection<UUID> toKill = ImmutableList.copyOf(activeTasks.keySet());
         if (toKill.isEmpty()) {
             return CompletableFuture.completedFuture(0);
         }
-        return killTasks(toKill);
+        return killTasks(toKill, null);
     }
 
-    private CompletableFuture<Integer> killTasks(Collection<UUID> toKill) {
+    private CompletableFuture<Integer> killTasks(Collection<UUID> toKill, @Nullable String reason) {
         assert !toKill.isEmpty() : "toKill must not be empty";
         int numKilled = 0;
         CountdownFutureCallback countDownFuture = new CountdownFutureCallback(toKill.size());
@@ -186,7 +186,7 @@ public class TasksService extends AbstractLifecycleComponent {
             if (ctx != null) {
                 recentlyFailed.put(jobId, failedSentinel);
                 ctx.completionFuture().whenComplete(countDownFuture);
-                ctx.kill();
+                ctx.kill(reason);
                 numKilled++;
             } else {
                 // no kill but we need to count down
@@ -197,17 +197,17 @@ public class TasksService extends AbstractLifecycleComponent {
         return countDownFuture.handle((r, f) -> finalNumKilled);
     }
 
-    public CompletableFuture<Integer> killJobs(Collection<UUID> toKill) {
+    public CompletableFuture<Integer> killJobs(Collection<UUID> toKill, @Nullable String reason) {
         for (KillAllListener killAllListener : killAllListeners) {
             for (UUID job : toKill) {
                 try {
                     killAllListener.killJob(job);
                 } catch (Throwable t) {
-                    LOGGER.error("Failed to call killJob on listener {}", t, killAllListener);
+                    LOGGER.error("Failed to call killJob on listener={}, err={}", killAllListener, t);
                 }
             }
         }
-        return killTasks(toKill);
+        return killTasks(toKill, reason);
     }
 
     /**

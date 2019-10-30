@@ -125,7 +125,7 @@ public class CollectTaskTest extends RandomizedTest {
             .thenReturn(batchIterator);
         jobCtx.prepare();
         jobCtx.start();
-        jobCtx.kill(new JobKilledException());
+        jobCtx.kill(JobKilledException.of("because reasons"));
 
         verify(batchIterator, times(1)).kill(any(JobKilledException.class));
         verify(mock1, times(1)).close();

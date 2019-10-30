@@ -471,8 +471,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testKillExceptionSendsReadyForQuery() {
-        submitQueriesThroughSimpleQueryMode("some statement;", new JobKilledException());
-        readErrorResponse(channel, (byte) 104);
+        submitQueriesThroughSimpleQueryMode("some statement;", JobKilledException.of("with fire"));
+        readErrorResponse(channel, (byte) 75);
         readReadyForQueryMessage(channel);
     }
 
