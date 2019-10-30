@@ -29,8 +29,8 @@ import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Routing;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
@@ -43,7 +43,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -99,7 +98,7 @@ public class CountTaskTest extends CrateUnitTest {
 
         countTask.prepare();
         countTask.start();
-        countTask.kill(new JobKilledException());
+        countTask.kill(JobKilledException.of("dummy"));
 
         verify(future, times(1)).cancel(true);
         assertTrue(countTask.isClosed());

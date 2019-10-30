@@ -21,10 +21,12 @@
 
 package io.crate.execution.jobs.kill;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,8 +36,12 @@ public class KillJobsRequest extends TransportRequest {
 
     private final Collection<UUID> toKill;
 
-    public KillJobsRequest(Collection<UUID> jobsToKill) {
-        toKill = jobsToKill;
+    @Nullable
+    private final String reason;
+
+    public KillJobsRequest(Collection<UUID> jobsToKill, @Nullable String reason) {
+        this.toKill = jobsToKill;
+        this.reason = reason;
     }
 
     Collection<UUID> toKill() {
@@ -50,6 +56,11 @@ public class KillJobsRequest extends TransportRequest {
             UUID job = new UUID(in.readLong(), in.readLong());
             toKill.add(job);
         }
+        if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
+            reason = in.readOptionalString();
+        } else {
+            reason = null;
+        }
     }
 
     @Override
@@ -61,10 +72,18 @@ public class KillJobsRequest extends TransportRequest {
             out.writeLong(job.getMostSignificantBits());
             out.writeLong(job.getLeastSignificantBits());
         }
+        if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+            out.writeOptionalString(reason);
+        }
     }
 
     @Override
     public String toString() {
         return "KillJobsRequest{" + toKill + '}';
+    }
+
+    @Nullable
+    public String reason() {
+        return reason;
     }
 }

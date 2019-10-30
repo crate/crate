@@ -21,11 +21,21 @@
 
 package io.crate.exceptions;
 
+import javax.annotation.Nullable;
+
 public class JobKilledException extends RuntimeException implements UnscopedException {
 
     public static final String MESSAGE = "Job killed";
 
-    public JobKilledException() {
+    public static JobKilledException of(@Nullable String reason) {
+        return reason == null ? new JobKilledException() : new JobKilledException(reason);
+    }
+
+    private JobKilledException(String reason) {
+        super("Job killed. " + reason);
+    }
+
+    private JobKilledException() {
         super(MESSAGE);
     }
 

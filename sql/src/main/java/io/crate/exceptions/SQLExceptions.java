@@ -214,7 +214,7 @@ public class SQLExceptions {
         } else if (unwrappedError instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(unwrappedError.getMessage());
         } else if (unwrappedError instanceof InterruptedException) {
-            return new JobKilledException();
+            return JobKilledException.of(unwrappedError.getMessage());
         } else if (unwrappedError instanceof RepositoryMissingException) {
             return new RepositoryUnknownException(((RepositoryMissingException) unwrappedError).repository());
         } else if (unwrappedError instanceof InvalidSnapshotNameException) {

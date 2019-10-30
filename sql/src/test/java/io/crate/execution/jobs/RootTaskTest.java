@@ -88,8 +88,8 @@ public class RootTaskTest extends CrateUnitTest {
         builder.addTask(ctx2);
         RootTask rootTask = builder.build();
 
-        assertThat(rootTask.kill(), is(2L));
-        assertThat(rootTask.kill(), is(0L)); // second call is ignored, only killed once
+        assertThat(rootTask.kill(null), is(2L));
+        assertThat(rootTask.kill(null), is(0L)); // second call is ignored, only killed once
 
         assertThat(ctx1.numKill.get(), is(1));
         assertThat(ctx2.numKill.get(), is(1));
@@ -188,7 +188,7 @@ public class RootTaskTest extends CrateUnitTest {
         // fake execution time so we can sure the measurement is > 0
         Thread.sleep(5L);
         // kill because the testing subcontexts would run infinitely
-        rootTask.kill();
+        rootTask.kill(null);
         assertThat(rootTask.executionTimes(), hasKey("1-TestingTask"));
         assertThat(
             ((double) rootTask.executionTimes().get("1-TestingTask")),

@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -166,7 +167,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
         assertThat(activeTasks.size(), is(2));
-        assertThat(tasksService.killJobs(ImmutableList.of(jobId)).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(List.of(jobId), null).get(5L, TimeUnit.SECONDS), is(1));
 
         assertThat(killCalled.get(), is(true));
         assertThat(kill2Called.get(), is(false));
@@ -223,6 +224,6 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder = tasksService.newBuilder(UUID.randomUUID());
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
-        assertThat(tasksService.killJobs(jobsToKill).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(jobsToKill, null).get(5L, TimeUnit.SECONDS), is(1));
     }
 }

@@ -118,7 +118,8 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
                 deadNode.getId());
         }
         List<String> excludedNodeIds = Collections.singletonList(deadNode.getId());
-        killJobsNodeAction.broadcast(new KillJobsRequest(affectedJobs), new ActionListener<Long>() {
+        KillJobsRequest killRequest = new KillJobsRequest(affectedJobs, "Participating node=" + deadNode.getName() + " disconnected.");
+        killJobsNodeAction.broadcast(killRequest, new ActionListener<>() {
             @Override
             public void onResponse(Long numKilled) {
             }
@@ -150,7 +151,7 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
         if (jobsStartedByDeadNode.isEmpty()) {
             return;
         }
-        tasksService.killJobs(jobsStartedByDeadNode);
+        tasksService.killJobs(jobsStartedByDeadNode, "Participating node=" + deadNode.getName() + " disconnected.");
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Killed {} jobs started by disconnected node={}", jobsStartedByDeadNode.size(), deadNode.getId());
         }

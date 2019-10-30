@@ -37,11 +37,11 @@ public class FailureOnlyResponseListenerTest extends CrateUnitTest {
         InitializationTracker tracker = new InitializationTracker(1);
         FailureOnlyResponseListener listener = new FailureOnlyResponseListener(Collections.emptyList(), tracker);
 
-        listener.onFailure(new JobKilledException());
+        listener.onFailure(JobKilledException.of("because reasons"));
 
         assertThat(tracker.future.isCompletedExceptionally(), Matchers.is(true));
 
-        expectedException.expectMessage("Job killed");
+        expectedException.expectMessage("Job killed. because reasons");
         tracker.future.get(1, TimeUnit.SECONDS);
     }
 }

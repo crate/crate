@@ -23,7 +23,6 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -40,6 +39,7 @@ import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobRequest;
 import io.crate.execution.jobs.transport.JobResponse;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,6 +47,7 @@ import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 
@@ -127,7 +128,7 @@ public class RemoteCollector {
             if (context == null) {
                 consumer.accept(null, t);
             } else {
-                context.kill();
+                context.kill(t.getMessage());
             }
             return false;
         }
@@ -140,7 +141,7 @@ public class RemoteCollector {
 
         synchronized (killLock) {
             if (collectorKilled) {
-                context.kill();
+                context.kill(null);
                 return;
             }
             transportJobAction.execute(
@@ -152,7 +153,7 @@ public class RemoteCollector {
                     Collections.singletonList(nodeOperation),
                     enableProfiling
                 ),
-                new ActionListener<JobResponse>() {
+                new ActionListener<>() {
                     @Override
                     public void onResponse(JobResponse jobResponse) {
                         LOGGER.trace("RemoteCollector jobAction=onResponse");
@@ -164,7 +165,7 @@ public class RemoteCollector {
                     @Override
                     public void onFailure(Exception e) {
                         LOGGER.error("RemoteCollector jobAction=onFailure", e);
-                        context.kill();
+                        context.kill(e.getMessage());
                     }
                 }
             );
@@ -200,17 +201,17 @@ public class RemoteCollector {
     }
 
     private void killRemoteContext() {
-        transportKillJobsNodeAction.broadcast(new KillJobsRequest(Collections.singletonList(jobId)),
-            new ActionListener<Long>() {
+        KillJobsRequest killRequest = new KillJobsRequest(List.of(jobId), null);
+        transportKillJobsNodeAction.broadcast(killRequest, new ActionListener<>() {
 
                 @Override
                 public void onResponse(Long numKilled) {
-                    context.kill();
+                    context.kill(null);
                 }
 
                 @Override
                 public void onFailure(Exception e) {
-                    context.kill();
+                    context.kill(e.getMessage());
                 }
             });
     }
