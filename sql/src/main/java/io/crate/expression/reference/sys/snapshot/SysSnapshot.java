@@ -33,7 +33,16 @@ public class SysSnapshot {
     private final String version;
     private final String state;
 
-    public SysSnapshot(String name, String repository, List<String> concreteIndices, Long started, Long finished, String version, String state) {
+    private final List<String> snapshotShardFailures;
+
+    public SysSnapshot(String name,
+                       String repository,
+                       List<String> concreteIndices,
+                       Long started,
+                       Long finished,
+                       String version,
+                       String state,
+                       List<String> snapshotShardFailures) {
         this.name = name;
         this.repository = repository;
         this.concreteIndices = concreteIndices;
@@ -41,6 +50,7 @@ public class SysSnapshot {
         this.finished = finished;
         this.version = version;
         this.state = state;
+        this.snapshotShardFailures = snapshotShardFailures;
     }
 
     public String name() {
@@ -69,5 +79,9 @@ public class SysSnapshot {
 
     public String state() {
         return state;
+    }
+
+    public List<String> failures() {
+        return snapshotShardFailures;
     }
 }

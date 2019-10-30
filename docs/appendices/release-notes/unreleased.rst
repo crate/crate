@@ -62,6 +62,9 @@ Deprecations
 Changes
 =======
 
+- Added a ``failures`` column to the :ref:`sys.snapshots <sys-snapshots>`
+  table.
+
 - Changed the default garbage collector that is being used from Concurrent Mark
   Sweep to G1GC.
 
