@@ -198,6 +198,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 0,
                 UNSET_AUTO_GENERATED_TIMESTAMP,
                 false);
+            shard.sync(); // advance local checkpoint
             if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                 updateMappings(shard, IndexMetaData.builder(shard.indexSettings().getIndexMetaData())
                     .putMapping("default", result.getRequiredMappingUpdate().toString()).build());
@@ -209,6 +210,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                     0,
                     UNSET_AUTO_GENERATED_TIMESTAMP,
                     false);
+                shard.sync(); // advance local checkpoint
             }
             shard.updateLocalCheckpointForShard(
                 shard.routingEntry().allocationId().getId(),
@@ -217,6 +219,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             final long seqNo = shard.seqNoStats().getMaxSeqNo() + 1;
             shard.advanceMaxSeqNoOfUpdatesOrDeletes(seqNo); // manually replicate max_seq_no_of_updates
             result = shard.applyIndexOperationOnReplica(seqNo, 0, UNSET_AUTO_GENERATED_TIMESTAMP, false, sourceToParse);
+            shard.sync(); // advance local checkpoint
             if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                 throw new TransportReplicationAction.RetryOnReplicaException(
                     shard.shardId,

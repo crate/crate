@@ -624,7 +624,7 @@ public class RecoverySourceHandler {
                     ops.add(operation);
                     batchSizeInBytes += operation.estimateSize();
                     totalSentOps.incrementAndGet();
-                    requiredOpsTracker.markSeqNoAsCompleted(seqNo);
+                    requiredOpsTracker.markSeqNoAsProcessed(seqNo);
 
                     // check if this request is past bytes threshold, and if so, send it off
                     if (batchSizeInBytes >= chunkSizeInBytes) {
@@ -642,10 +642,10 @@ public class RecoverySourceHandler {
                 assert snapshot.totalOperations() == snapshot.skippedOperations() + skippedOps.get() + totalSentOps.get()
                     : String.format(Locale.ROOT, "expected total [%d], overridden [%d], skipped [%d], total sent [%d]",
                                     snapshot.totalOperations(), snapshot.skippedOperations(), skippedOps.get(), totalSentOps.get());
-                if (requiredOpsTracker.getCheckpoint() < endingSeqNo) {
+                if (requiredOpsTracker.getPersistedCheckpoint() < endingSeqNo) {
                     throw new IllegalStateException("translog replay failed to cover required sequence numbers" +
                                                     " (required range [" + requiredSeqNoRangeStart + ":" + endingSeqNo + "). first missing op is ["
-                                                    + (requiredOpsTracker.getCheckpoint() + 1) + "]");
+                                                    + (requiredOpsTracker.getPersistedCheckpoint() + 1) + "]");
                 }
                 stopWatch.stop();
                 final TimeValue tookTime = stopWatch.totalTime();
@@ -706,8 +706,8 @@ public class RecoverySourceHandler {
          * the permit then the state of the shard will be relocated and this recovery will fail.
          */
         runUnderPrimaryPermit(() -> shard.markAllocationIdAsInSync(request.targetAllocationId(), targetLocalCheckpoint),
-                              shardId + " marking " + request.targetAllocationId() + " as in sync", shard, cancellableThreads, logger);
-        final long globalCheckpoint = shard.getGlobalCheckpoint();
+            shardId + " marking " + request.targetAllocationId() + " as in sync", shard, cancellableThreads, logger);
+        final long globalCheckpoint = shard.getLastKnownGlobalCheckpoint(); // this global checkpoint is persisted in finalizeRecovery
         final StepListener<Void> finalizeListener = new StepListener<>();
         cancellableThreads.executeIO(() -> recoveryTarget.finalizeRecovery(globalCheckpoint, finalizeListener));
         finalizeListener.whenComplete(r -> {
@@ -774,26 +774,22 @@ public class RecoverySourceHandler {
                     final BytesArray content = new BytesArray(buffer, 0, bytesRead);
                     final boolean lastChunk = position + content.length() == md.length();
                     final long requestSeqId = requestSeqIdTracker.generateSeqNo();
-                    cancellableThreads
-                        .execute(() -> requestSeqIdTracker.waitForOpsToComplete(requestSeqId - maxConcurrentFileChunks));
+                    cancellableThreads.execute(
+                        () -> requestSeqIdTracker.waitForProcessedOpsToComplete(requestSeqId - maxConcurrentFileChunks));
                     cancellableThreads.checkForCancel();
                     if (error.get() != null) {
                         break;
                     }
                     final long requestFilePosition = position;
-                    cancellableThreads.executeIO(() -> recoveryTarget.writeFileChunk(
-                        md,
-                        requestFilePosition,
-                        content,
-                        lastChunk,
-                        translogOps.get(),
-                        ActionListener.wrap(
-                            r -> requestSeqIdTracker.markSeqNoAsCompleted(requestSeqId),
-                            e -> {
-                                error.compareAndSet(null, Tuple.tuple(md, e));
-                                requestSeqIdTracker.markSeqNoAsCompleted(requestSeqId);
-                            }))
-                    );
+                    cancellableThreads.executeIO(() ->
+                        recoveryTarget.writeFileChunk(md, requestFilePosition, content, lastChunk, translogOps.get(),
+                            ActionListener.wrap(
+                                r -> requestSeqIdTracker.markSeqNoAsProcessed(requestSeqId),
+                                e -> {
+                                    error.compareAndSet(null, Tuple.tuple(md, e));
+                                    requestSeqIdTracker.markSeqNoAsProcessed(requestSeqId);
+                                }
+                            )));
                     position += content.length();
                 }
             } catch (Exception e) {
@@ -804,8 +800,7 @@ public class RecoverySourceHandler {
         // When we terminate exceptionally, we don't wait for the outstanding requests as we don't use their results anyway.
         // This allows us to end quickly and eliminate the complexity of handling requestSeqIds in case of error.
         if (error.get() == null) {
-            cancellableThreads.execute(
-                () -> requestSeqIdTracker.waitForOpsToComplete(requestSeqIdTracker.getMaxSeqNo()));
+            cancellableThreads.execute(() -> requestSeqIdTracker.waitForProcessedOpsToComplete(requestSeqIdTracker.getMaxSeqNo()));
         }
         if (error.get() != null) {
             handleErrorOnSendFiles(store, error.get().v1(), error.get().v2());

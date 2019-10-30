@@ -688,9 +688,9 @@ public abstract class Engine implements Closeable {
     }
 
     /**
-     * @return the local checkpoint for this Engine
+     * @return the persisted local checkpoint for this Engine
      */
-    public abstract long getLocalCheckpoint();
+    public abstract long getPersistedLocalCheckpoint();
 
     /**
      * Waits for all operations up to the provided sequence number to complete.

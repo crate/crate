@@ -566,7 +566,7 @@ public abstract class TransportReplicationAction<
                 final ReplicaResult replicaResult = shardOperationOnReplica(request, replica);
                 releasable.close(); // release shard operation lock before responding to caller
                 final TransportReplicationAction.ReplicaResponse response =
-                        new ReplicaResponse(replica.getLocalCheckpoint(), replica.getGlobalCheckpoint());
+                    new ReplicaResponse(replica.getLocalCheckpoint(), replica.getLastSyncedGlobalCheckpoint());
                 replicaResult.respond(new ResponseListener(response));
             } catch (final Exception e) {
                 Releasables.closeWhileHandlingException(releasable); // release shard operation lock before responding to caller
@@ -984,10 +984,6 @@ public abstract class TransportReplicationAction<
             operationLock.close();
         }
 
-        public long getLocalCheckpoint() {
-            return indexShard.getLocalCheckpoint();
-        }
-
         public ShardRouting routingEntry() {
             return indexShard.routingEntry();
         }
@@ -1039,7 +1035,12 @@ public abstract class TransportReplicationAction<
 
         @Override
         public long globalCheckpoint() {
-            return indexShard.getGlobalCheckpoint();
+            return indexShard.getLastSyncedGlobalCheckpoint();
+        }
+
+        @Override
+        public long computedGlobalCheckpoint() {
+            return indexShard.getLastKnownGlobalCheckpoint();
         }
 
         @Override
