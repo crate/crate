@@ -30,7 +30,6 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.RateLimiter;
 import org.apache.lucene.util.ArrayUtil;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -507,7 +506,7 @@ public class RecoverySourceHandler {
          */
         runUnderPrimaryPermit(() -> shard.markAllocationIdAsInSync(request.targetAllocationId(), targetLocalCheckpoint),
             shardId + " marking " + request.targetAllocationId() + " as in sync", shard, cancellableThreads, logger);
-        final long globalCheckpoint = shard.getGlobalCheckpoint();
+        final long globalCheckpoint = shard.getLastKnownGlobalCheckpoint();
         cancellableThreads.executeIO(() -> recoveryTarget.finalizeRecovery(globalCheckpoint));
         runUnderPrimaryPermit(() -> shard.updateGlobalCheckpointForShard(request.targetAllocationId(), globalCheckpoint),
             shardId + " updating " + request.targetAllocationId() + "'s global checkpoint", shard, cancellableThreads, logger);
@@ -595,7 +594,7 @@ public class RecoverySourceHandler {
             ops++;
             size += operation.estimateSize();
             totalSentOps++;
-            requiredOpsTracker.markSeqNoAsCompleted(seqNo);
+            requiredOpsTracker.markSeqNoAsPersisted(seqNo);
 
             // check if this request is past bytes threshold, and if so, send it off
             if (size >= chunkSizeInBytes) {
@@ -616,10 +615,10 @@ public class RecoverySourceHandler {
             : String.format(Locale.ROOT, "expected total [%d], overridden [%d], skipped [%d], total sent [%d]",
             expectedTotalOps, snapshot.skippedOperations(), skippedOps, totalSentOps);
 
-        if (requiredOpsTracker.getCheckpoint() < endingSeqNo) {
+        if (requiredOpsTracker.getPersistedCheckpoint() < endingSeqNo) {
             throw new IllegalStateException("translog replay failed to cover required sequence numbers" +
                 " (required range [" + requiredSeqNoRangeStart + ":" + endingSeqNo + "). first missing op is ["
-                + (requiredOpsTracker.getCheckpoint() + 1) + "]");
+                + (requiredOpsTracker.getPersistedCheckpoint() + 1) + "]");
         }
 
         logger.trace("sent final batch of [{}][{}] (total: [{}]) translog operations", ops, new ByteSizeValue(size), expectedTotalOps);
@@ -642,7 +641,6 @@ public class RecoverySourceHandler {
                 ", targetNode=" + request.targetNode() +
                 '}';
     }
-
 
     final class RecoveryOutputStream extends OutputStream {
         private final StoreFileMetaData md;
