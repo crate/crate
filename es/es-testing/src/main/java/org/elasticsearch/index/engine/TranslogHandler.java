@@ -100,6 +100,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
             applyOperation(engine, convertToEngineOp(operation, Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY));
             opsRecovered++;
         }
+        engine.syncTranslog();
         return opsRecovered;
     }
 

@@ -542,7 +542,7 @@ public abstract class Engine implements Closeable {
         if (docIdAndVersion != null) {
             // don't release the searcher on this path, it is the
             // responsibility of the caller to call GetResult.release
-            return new GetResult(searcher, docIdAndVersion);
+            return new GetResult(docIdAndVersion, searcher);
         } else {
             Releasables.close(searcher);
             return GetResult.NOT_EXISTS;
@@ -688,9 +688,9 @@ public abstract class Engine implements Closeable {
     }
 
     /**
-     * @return the local checkpoint for this Engine
+     * @return the persisted local checkpoint for this Engine
      */
-    public abstract long getLocalCheckpoint();
+    public abstract long getPersistedLocalCheckpoint();
 
     /**
      * Waits for all operations up to the provided sequence number to complete.
@@ -709,6 +709,11 @@ public abstract class Engine implements Closeable {
      * Returns the latest global checkpoint value that has been persisted in the underlying storage (i.e. translog's checkpoint)
      */
     public abstract long getLastSyncedGlobalCheckpoint();
+
+    /**
+     * Returns the latest local checkpoint value that has been processed
+     */
+    public abstract long getProcessedLocalCheckpoint();
 
     /** How much heap is used that would be freed by a refresh.  Note that this may throw {@link AlreadyClosedException}. */
     public abstract long getIndexBufferRAMBytesUsed();
@@ -1368,19 +1373,19 @@ public abstract class Engine implements Closeable {
     }
 
     public static class GetResult implements Releasable {
-
         @Nullable
         private final DocIdAndVersion docIdAndVersion;
-        private final Searcher searcher;
+        private final Engine.Searcher searcher;
 
-        static final GetResult NOT_EXISTS = new GetResult(null, null);
+        public static final GetResult NOT_EXISTS = new GetResult(null, null);
 
-        /**
-         * Build a non-realtime get result from the searcher.
-         */
-        GetResult(Searcher searcher, DocIdAndVersion docIdAndVersion) {
-            this.searcher = searcher;
+        public GetResult(DocIdAndVersion docIdAndVersion, Engine.Searcher searcher) {
             this.docIdAndVersion = docIdAndVersion;
+            this.searcher = searcher;
+        }
+
+        public Engine.Searcher searcher() {
+            return this.searcher;
         }
 
         @Nullable
