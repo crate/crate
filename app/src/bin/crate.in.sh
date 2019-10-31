@@ -53,9 +53,7 @@ if [ "x$CRATE_USE_IPV4" != "x" ]; then
 fi
 
 ## GC configuration
-JAVA_OPTS="$JAVA_OPTS -XX:+UseConcMarkSweepGC"
-JAVA_OPTS="$JAVA_OPTS -XX:CMSInitiatingOccupancyFraction=75"
-JAVA_OPTS="$JAVA_OPTS -XX:+UseCMSInitiatingOccupancyOnly"
+JAVA_OPTS="$JAVA_OPTS -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30"
 
 # GC logging options
 # Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging

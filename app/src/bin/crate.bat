@@ -38,10 +38,7 @@ REM Enable aggressive optimizations in the JVM
 REM    - Disabled by default as it might cause the JVM to crash
 REM set JAVA_OPTS=%JAVA_OPTS% -XX:+AggressiveOpts
 
-set JAVA_OPTS=%JAVA_OPTS% -XX:+UseConcMarkSweepGC
-
-set JAVA_OPTS=%JAVA_OPTS% -XX:CMSInitiatingOccupancyFraction=75
-set JAVA_OPTS=%JAVA_OPTS% -XX:+UseCMSInitiatingOccupancyOnly
+set JAVA_OPTS=%JAVA_OPTS% -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30
 
 REM GC logging default values
 SET GC_LOG_DIR=%CRATE_HOME%\logs
