@@ -1725,7 +1725,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     /**
-     * Update the local knowledge of the global checkpoint for the specified allocation ID.
+     * Update the local knowledge of the persisted global checkpoint for the specified allocation ID.
      *
      * @param allocationId     the allocation ID to update the global checkpoint for
      * @param globalCheckpoint the global checkpoint
@@ -1788,12 +1788,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     /**
-     * Returns the local checkpoint for the shard.
+     * Returns the persisted local checkpoint for the shard.
      *
      * @return the local checkpoint
      */
     public long getLocalCheckpoint() {
-        return getEngine().getLocalCheckpoint();
+        return getEngine().getPersistedLocalCheckpoint();
     }
 
     /**
@@ -1801,7 +1801,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      *
      * @return the global checkpoint
      */
-    public long getGlobalCheckpoint() {
+    public long getLastKnownGlobalCheckpoint() {
         return replicationTracker.getGlobalCheckpoint();
     }
 
@@ -1834,19 +1834,25 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             return;
         }
         assert assertPrimaryMode();
-        // only sync if there are not operations in flight
+        // only sync if there are no operations in flight, or when using async durability
         final SeqNoStats stats = getEngine().getSeqNoStats(replicationTracker.getGlobalCheckpoint());
-        if (stats.getMaxSeqNo() == stats.getGlobalCheckpoint()) {
+        final boolean asyncDurability = indexSettings().getTranslogDurability() == Translog.Durability.ASYNC;
+        if (stats.getMaxSeqNo() == stats.getGlobalCheckpoint() || asyncDurability) {
             final ObjectLongMap<String> globalCheckpoints = getInSyncGlobalCheckpoints();
-            final String allocationId = routingEntry().allocationId().getId();
-            assert globalCheckpoints.containsKey(allocationId);
-            final long globalCheckpoint = globalCheckpoints.get(allocationId);
+            final long globalCheckpoint = replicationTracker.getGlobalCheckpoint();
+            // async durability means that the local checkpoint might lag (as it is only advanced on fsync)
+            // periodically ask for the newest local checkpoint by syncing the global checkpoint, so that ultimately the global
+            // checkpoint can be synced. Also take into account that a shard might be pending sync, which means that it isn't
+            // in the in-sync set just yet but might be blocked on waiting for its persisted local checkpoint to catch up to
+            // the global checkpoint.
             final boolean syncNeeded =
-                    StreamSupport
+                (asyncDurability && (stats.getGlobalCheckpoint() < stats.getMaxSeqNo()))
+                    // check if the persisted global checkpoint
+                    || StreamSupport
                             .stream(globalCheckpoints.values().spliterator(), false)
                             .anyMatch(v -> v.value < globalCheckpoint);
-            // only sync if there is a shard lagging the primary
-            if (syncNeeded) {
+            // only sync if index is not closed and there is a shard lagging the primary
+            if (syncNeeded && indexSettings.getIndexMetaData().getState() == IndexMetaData.State.OPEN) {
                 logger.trace("syncing global checkpoint for [{}]", reason);
                 globalCheckpointSyncer.run();
             }
@@ -1898,9 +1904,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      * @param primaryContext the sequence number context
      */
     public void activateWithPrimaryContext(final ReplicationTracker.PrimaryContext primaryContext) {
-        assert shardRouting.primary() && shardRouting.isRelocationTarget() : "only primary relocation target can update allocation IDs from primary context: " + shardRouting;
-        assert primaryContext.getCheckpointStates().containsKey(routingEntry().allocationId().getId()) &&
-            getLocalCheckpoint() == primaryContext.getCheckpointStates().get(routingEntry().allocationId().getId()).getLocalCheckpoint();
+        assert shardRouting.primary() && shardRouting.isRelocationTarget() :
+            "only primary relocation target can update allocation IDs from primary context: " + shardRouting;
+        assert primaryContext.getCheckpointStates().containsKey(routingEntry().allocationId().getId()) :
+            "primary context [" + primaryContext + "] does not contain relocation target [" + routingEntry() + "]";
+        assert getLocalCheckpoint() == primaryContext.getCheckpointStates().get(routingEntry().allocationId().getId())
+            .getLocalCheckpoint() || indexSettings().getTranslogDurability() == Translog.Durability.ASYNC :
+            "local checkpoint [" + getLocalCheckpoint() + "] does not match checkpoint from primary context [" + primaryContext + "]";
         synchronized (mutex) {
             replicationTracker.activateWithPrimaryContext(primaryContext); // make changes to primaryMode flag only under mutex
         }
@@ -2282,7 +2292,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     if (opPrimaryTerm > pendingPrimaryTerm) {
                         bumpPrimaryTerm(opPrimaryTerm, () -> {
                                 updateGlobalCheckpointOnReplica(globalCheckpoint, "primary term transition");
-                                final long currentGlobalCheckpoint = getGlobalCheckpoint();
+                                final long currentGlobalCheckpoint = getLastKnownGlobalCheckpoint();
                                 final long maxSeqNo = seqNoStats().getMaxSeqNo();
                                 logger.info("detected new primary with primary term [{}], global checkpoint [{}], max_seq_no [{}]",
                                              opPrimaryTerm, currentGlobalCheckpoint, maxSeqNo);
@@ -2594,7 +2604,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     void resetEngineToGlobalCheckpoint() throws IOException {
         assert getActiveOperationsCount() == 0 : "Ongoing writes [" + getActiveOperations() + "]";
         sync(); // persist the global checkpoint to disk
-        final long globalCheckpoint = getGlobalCheckpoint();
+        final long globalCheckpoint = getLastKnownGlobalCheckpoint();
+        assert globalCheckpoint == getLastSyncedGlobalCheckpoint();
         final Engine newEngine;
         synchronized (mutex) {
             verifyNotClosed();
