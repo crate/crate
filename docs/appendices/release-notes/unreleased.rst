@@ -62,6 +62,9 @@ Deprecations
 Changes
 =======
 
+- Changed the default garbage collector that is being used from Concurrent Mark
+  Sweep to G1GC.
+
 - Added support for CIDR notation comparisons through special purpose
   operator ``<<`` associated with type ip.
   Statements like ``192.168.0.0 << 192.168.0.1/24`` are true,

@@ -118,19 +118,22 @@ General
 
       Make sure there is enough disk space available for heap dumps.
 
+.. _garbage-collection:
+
 Garbage collection
 ------------------
 
 Collector
 ~~~~~~~~~
 
-CrateDB uses the `Concurrent Mark Sweep`_ garbage collector by default.
-When running CrateBD with a **JVM >= 10**, using the `G1`_ garbage collector may result
-in better latency.
+CrateDB uses the `G1`_ garbage collector by default.
 
-Example of using :ref:`CRATE_JAVA_OPTS <conf-env-java-opts>` to enable the `G1`_::
+Before CrateDB 4.1 it defaulted to use the `Concurrent Mark Sweep` garbage
+collector. If you'd like to continue using CMS, you can switch setting the
+following :ref:`CRATE_JAVA_OPTS <conf-env-java-opts>`::
 
-  export CRATE_JAVA_OPTS="-XX:-UseConcMarkSweepGC -XX:-UseCMSInitiatingOccupancyOnly -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30"
+
+  export CRATE_JAVA_OPTS="-XX:-UseG1GC -XX:+UseCMSInitiatingOccupancyOnly -XX:+UseConcMarkSweepGC"
 
 
 Logging
