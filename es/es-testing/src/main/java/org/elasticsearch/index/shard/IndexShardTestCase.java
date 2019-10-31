@@ -37,7 +37,6 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -72,9 +71,6 @@ import org.elasticsearch.indices.recovery.RecoverySourceHandler;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.indices.recovery.RecoveryTarget;
 import org.elasticsearch.indices.recovery.StartRecoveryRequest;
-import org.elasticsearch.repositories.IndexId;
-import org.elasticsearch.repositories.Repository;
-import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -210,13 +206,14 @@ public abstract class IndexShardTestCase extends ESTestCase {
                     UNSET_AUTO_GENERATED_TIMESTAMP,
                     false);
             }
-            shard.updateLocalCheckpointForShard(
-                shard.routingEntry().allocationId().getId(),
-                shard.getLocalCheckpoint());
+            shard.sync(); // advance local checkpoint
+            shard.updateLocalCheckpointForShard(shard.routingEntry().allocationId().getId(),
+                                                shard.getLocalCheckpoint());
         } else {
             final long seqNo = shard.seqNoStats().getMaxSeqNo() + 1;
             shard.advanceMaxSeqNoOfUpdatesOrDeletes(seqNo); // manually replicate max_seq_no_of_updates
             result = shard.applyIndexOperationOnReplica(seqNo, 0, UNSET_AUTO_GENERATED_TIMESTAMP, false, sourceToParse);
+            shard.sync(); // advance local checkpoint
             if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                 throw new TransportReplicationAction.RetryOnReplicaException(
                     shard.shardId,
