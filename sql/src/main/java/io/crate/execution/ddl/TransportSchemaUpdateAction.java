@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Lists2;
-import io.crate.execution.support.ActionListeners;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -122,11 +121,11 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                 request.masterNodeTimeout()
             ).thenCompose(r -> updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource()))
                 .thenApply(r -> new AcknowledgedResponse(r.isAcknowledged()))
-                .whenComplete(ActionListeners.asBiConsumer(listener));
+                .whenComplete(ActionListener.toBiConsumer(listener));
         } else {
             updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource())
                 .thenApply(r -> new AcknowledgedResponse(r.isAcknowledged()))
-                .whenComplete(ActionListeners.asBiConsumer(listener));
+                .whenComplete(ActionListener.toBiConsumer(listener));
         }
     }
 

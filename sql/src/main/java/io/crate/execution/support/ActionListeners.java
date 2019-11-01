@@ -28,27 +28,11 @@ import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.unit.TimeValue;
 
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 public final class ActionListeners {
 
     private ActionListeners() {
-    }
-
-
-    public static <T> BiConsumer<? super T, ? super Throwable> asBiConsumer(ActionListener<T> listener) {
-        return (r, f) -> {
-            if (f == null) {
-                listener.onResponse(r);
-            } else {
-                if (f instanceof Exception) {
-                    listener.onFailure(((Exception) f));
-                } else {
-                    listener.onFailure(new RuntimeException(f));
-                }
-            }
-        };
     }
 
     public static <T extends AcknowledgedResponse> ActionListener<T> waitForShards(ActionListener<T> delegate,

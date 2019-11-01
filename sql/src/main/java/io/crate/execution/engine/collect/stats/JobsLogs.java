@@ -38,8 +38,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.StampedLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
@@ -72,8 +71,8 @@ public class JobsLogs {
     private LogSink<JobContextLog> jobsLog = NoopLogSink.instance();
     private LogSink<OperationContextLog> operationsLog = NoopLogSink.instance();
 
-    private final ReadWriteLock jobsLogRWLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock operationsLogRWLock = new ReentrantReadWriteLock();
+    private final StampedLock jobsLogLock = new StampedLock();
+    private final StampedLock operationsLogRWLock = new StampedLock();
 
     private final LongAdder activeRequests = new LongAdder();
     private final BooleanSupplier enabled;
@@ -125,11 +124,11 @@ public class JobsLogs {
         }
         JobContextLog jobContextLog = new JobContextLog(jobContext, errorMessage);
         recordMetrics(jobContextLog);
-        jobsLogRWLock.readLock().lock();
+        long stamp = jobsLogLock.readLock();
         try {
             jobsLog.add(jobContextLog);
         } finally {
-            jobsLogRWLock.readLock().unlock();
+            jobsLogLock.unlockRead(stamp);
         }
     }
 
@@ -153,11 +152,11 @@ public class JobsLogs {
     public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, User user) {
         JobContextLog jobContextLog = new JobContextLog(
             new JobContext(jobId, stmt, System.currentTimeMillis(), user, new StatementClassifier.Classification(UNDEFINED)), errorMessage);
-        jobsLogRWLock.readLock().lock();
+        long stamp = jobsLogLock.readLock();
         try {
             jobsLog.add(jobContextLog);
         } finally {
-            jobsLogRWLock.readLock().unlock();
+            jobsLogLock.unlockRead(stamp);
         }
         recordMetrics(jobContextLog);
     }
@@ -185,11 +184,11 @@ public class JobsLogs {
             return;
         }
         OperationContextLog operationContextLog = new OperationContextLog(operationContext, errorMessage);
-        operationsLogRWLock.readLock().lock();
+        long stamp = operationsLogRWLock.readLock();
         try {
             operationsLog.add(operationContextLog);
         } finally {
-            operationsLogRWLock.readLock().unlock();
+            operationsLogRWLock.unlockRead(stamp);
         }
     }
 
@@ -198,11 +197,11 @@ public class JobsLogs {
     }
 
     public Iterable<JobContextLog> jobsLog() {
-        jobsLogRWLock.readLock().lock();
+        long stamp = jobsLogLock.readLock();
         try {
             return jobsLog;
         } finally {
-            jobsLogRWLock.readLock().unlock();
+            jobsLogLock.unlockRead(stamp);
         }
     }
 
@@ -211,11 +210,11 @@ public class JobsLogs {
     }
 
     public Iterable<OperationContextLog> operationsLog() {
-        operationsLogRWLock.readLock().lock();
+        long stamp = operationsLogRWLock.readLock();
         try {
             return operationsLog;
         } finally {
-            operationsLogRWLock.readLock().unlock();
+            operationsLogRWLock.unlockRead(stamp);
         }
     }
 
@@ -224,24 +223,24 @@ public class JobsLogs {
     }
 
     void updateOperationsLog(LogSink<OperationContextLog> sink) {
-        operationsLogRWLock.writeLock().lock();
+        long stamp = operationsLogRWLock.writeLock();
         try {
             sink.addAll(operationsLog);
             operationsLog.close();
             operationsLog = sink;
         } finally {
-            operationsLogRWLock.writeLock().unlock();
+            operationsLogRWLock.unlockWrite(stamp);
         }
     }
 
     void updateJobsLog(LogSink<JobContextLog> sink) {
-        jobsLogRWLock.writeLock().lock();
+        long stamp = jobsLogLock.writeLock();
         try {
             sink.addAll(jobsLog);
             jobsLog.close();
             jobsLog = sink;
         } finally {
-            jobsLogRWLock.writeLock().unlock();
+            jobsLogLock.unlockWrite(stamp);
         }
     }
 
