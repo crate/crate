@@ -23,6 +23,7 @@
 package io.crate.expression.symbol.format;
 
 import io.crate.expression.symbol.Function;
+import io.crate.sql.Identifiers;
 
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
@@ -50,7 +51,8 @@ public interface FunctionFormatSpec {
     FunctionFormatSpec NAME_PARENTHESISED_ARGS = new FunctionFormatSpec() {
         @Override
         public String beforeArgs(Function function) {
-            return function.info().ident().name() + PAREN_OPEN;
+            String funcName = function.info().ident().name();
+            return Identifiers.quoteIfNeeded(funcName) + PAREN_OPEN;
         }
 
         @Override
