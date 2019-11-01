@@ -522,7 +522,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testSelectDistinctWithFunction() {
         AnalyzedRelation relation = analyze("select distinct id + 1 from users");
         assertThat(relation.isDistinct(), is(true));
-        assertThat(relation.outputs(), isSQL("add(doc.users.id, 1)"));
+        assertThat(relation.outputs(), isSQL("\"add\"(doc.users.id, 1)"));
     }
 
     @Test
