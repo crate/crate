@@ -46,4 +46,6 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue resulting in a parsing exception on ``SHOW TABLE`` statements
+  when a default expression is implicitly cast to the related column type and
+  the column type contains a ``SPACE`` character (like e.g. ``double precision``).
