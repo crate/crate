@@ -402,14 +402,14 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             }
 
             // Write Global MetaData
-            globalMetaDataFormat.write(clusterMetaData, blobContainer(), snapshotId.getUUID());
+            globalMetaDataFormat.write(clusterMetaData, blobContainer(), snapshotId.getUUID(), true);
 
             // write the index metadata for each index in the snapshot
             for (IndexId index : indices) {
                 final IndexMetaData indexMetaData = clusterMetaData.index(index.getName());
                 final BlobPath indexPath = basePath().add("indices").add(index.getId());
                 final BlobContainer indexMetaDataBlobContainer = blobStore().blobContainer(indexPath);
-                indexMetaDataFormat.write(indexMetaData, indexMetaDataBlobContainer, snapshotId.getUUID());
+                indexMetaDataFormat.write(indexMetaData, indexMetaDataBlobContainer, snapshotId.getUUID(), true);
             }
         } catch (IOException ex) {
             throw new SnapshotCreationException(metadata.name(), snapshotId, ex);
@@ -550,7 +550,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             startTime, failure, System.currentTimeMillis(), totalShards, shardFailures,
             includeGlobalState);
         try {
-            snapshotFormat.write(blobStoreSnapshot, blobContainer(), snapshotId.getUUID());
+            snapshotFormat.write(blobStoreSnapshot, blobContainer(), snapshotId.getUUID(), true);
             final RepositoryData repositoryData = getRepositoryData();
             writeIndexGen(repositoryData.addSnapshot(snapshotId, blobStoreSnapshot.state(), indices), repositoryStateId);
         } catch (FileAlreadyExistsException ex) {
@@ -928,7 +928,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             ']';
     }
 
-    BlobStoreFormat<BlobStoreIndexShardSnapshot> indexShardSnapshotFormat(Version version) {
+    ChecksumBlobStoreFormat<BlobStoreIndexShardSnapshot> indexShardSnapshotFormat(Version version) {
         return indexShardSnapshotFormat;
     }
 
@@ -1299,7 +1299,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             //TODO: The time stored in snapshot doesn't include cleanup time.
             LOGGER.trace("[{}] [{}] writing shard snapshot file", shardId, snapshotId);
             try {
-                indexShardSnapshotFormat.write(snapshot, blobContainer, snapshotId.getUUID());
+                indexShardSnapshotFormat.write(snapshot, blobContainer, snapshotId.getUUID(), true);
             } catch (IOException e) {
                 throw new IndexShardSnapshotFailedException(shardId, "Failed to write commit point", e);
             }
