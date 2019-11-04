@@ -1340,9 +1340,9 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         inputStream = new AbortableInputStream(inputStream, fileInfo.physicalName());
                         blobContainer.writeBlob(fileInfo.partName(i), inputStream, partBytes, true);
                     }
-                    Store.verify(indexInput);
-                    snapshotStatus.addProcessedFile(fileInfo.length());
                 }
+                Store.verify(indexInput);
+                snapshotStatus.addProcessedFile(fileInfo.length());
             } catch (Exception t) {
                 failStoreIfCorrupted(t);
                 snapshotStatus.addProcessedFile(0);
