@@ -22,19 +22,14 @@
 package io.crate.expression.reference.sys.check.cluster;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ClusterReferenceResolver;
+import io.crate.expression.reference.sys.check.SysCheck.Severity;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.expression.reference.sys.check.SysCheck.Severity;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.gateway.GatewayService;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -47,8 +42,6 @@ import static org.mockito.Mockito.when;
 
 public class SysChecksTest extends CrateUnitTest {
 
-    private final ClusterService clusterService = mock(ClusterService.class);
-    private final ClusterReferenceResolver referenceResolver = mock(ClusterReferenceResolver.class);
     private final SchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
     private final DocTableInfo docTableInfo = mock(DocTableInfo.class);
 

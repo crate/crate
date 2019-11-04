@@ -30,6 +30,10 @@ import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+
+
 public class ClusterLicenseExpression extends NestedObjectExpression {
 
     public static final String NAME = "license";
@@ -53,19 +57,19 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
 
     private void fillChildImplementations(LicenseData licenseData) {
         if (licenseData != null) {
-            childImplementations.put(EXPIRY_DATE, () -> {
+            childImplementations.put(EXPIRY_DATE, forFunction(ignored -> {
                 if (licenseData.expiryDateInMs() == Long.MAX_VALUE) {
                     return null;
                 } else {
                     return licenseData.expiryDateInMs();
                 }
-            });
-            childImplementations.put(ISSUED_TO, licenseData::issuedTo);
-            childImplementations.put(MAX_NODES, licenseData::maxNumberOfNodes);
+            }));
+            childImplementations.put(ISSUED_TO, forFunction(ignored -> licenseData.issuedTo()));
+            childImplementations.put(MAX_NODES, forFunction(ignored -> licenseData.maxNumberOfNodes()));
         } else {
-            childImplementations.put(EXPIRY_DATE, () -> null);
-            childImplementations.put(ISSUED_TO, () -> null);
-            childImplementations.put(MAX_NODES, () -> null);
+            childImplementations.put(EXPIRY_DATE, constant(null));
+            childImplementations.put(ISSUED_TO, constant(null));
+            childImplementations.put(MAX_NODES, constant(null));
         }
     }
 
@@ -78,5 +82,9 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
 
         fillChildImplementations(licenseData);
         return super.value();
+    }
+
+    @Override
+    public void setNextRow(Void aVoid) {
     }
 }

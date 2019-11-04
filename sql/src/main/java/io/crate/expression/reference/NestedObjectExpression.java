@@ -21,13 +21,14 @@
 
 package io.crate.expression.reference;
 
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class NestedObjectExpression implements NestableInput<Map<String, Object>> {
+public abstract class NestedObjectExpression implements NestableCollectExpression<Void, Map<String, Object>> {
 
     protected Map<String, NestableInput> childImplementations = new HashMap<>();
 
@@ -48,5 +49,9 @@ public abstract class NestedObjectExpression implements NestableInput<Map<String
             map.put(e.getKey(), value);
         }
         return Collections.unmodifiableMap(map);
+    }
+
+    @Override
+    public void setNextRow(Void aVoid) {
     }
 }

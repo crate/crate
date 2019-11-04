@@ -40,13 +40,12 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -65,7 +64,7 @@ import java.util.Set;
 public class CollectSourceResolver {
 
     private final CollectSource emptyCollectSource;
-    private final Map<String, CollectSource> nodeDocCollectSources = new HashMap<>();
+    private final Map<String, CollectSource> systemTableSource = new HashMap<>();
     private final ShardCollectSource shardCollectSource;
     private final CollectSource fileCollectSource;
     private final ClusterService clusterService;
@@ -85,7 +84,6 @@ public class CollectSourceResolver {
                                  ShardCollectSource shardCollectSource,
                                  FileCollectSource fileCollectSource,
                                  TableFunctionCollectSource tableFunctionCollectSource,
-                                 SingleRowSource singleRowSource,
                                  SystemCollectSource systemCollectSource,
                                  NodeStatsCollectSource nodeStatsCollectSource,
                                  BigArrays bigArrays) {
@@ -110,21 +108,17 @@ public class CollectSourceResolver {
         this.tableFunctionSource = new ProjectorSetupCollectSource(tableFunctionCollectSource, projectorFactory);
         this.emptyCollectSource = new ProjectorSetupCollectSource(new VoidCollectSource(), projectorFactory);
 
-        nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), new ProjectorSetupCollectSource(singleRowSource, projectorFactory));
-
         ProjectorSetupCollectSource sysSource = new ProjectorSetupCollectSource(systemCollectSource, projectorFactory);
         for (TableInfo tableInfo : sysSchemaInfo.getTables()) {
-            if (tableInfo.rowGranularity().equals(RowGranularity.DOC)) {
-                nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
-            }
+            systemTableSource.put(tableInfo.ident().fqn(), sysSource);
         }
-        nodeDocCollectSources.put(SysNodesTableInfo.IDENT.fqn(), new ProjectorSetupCollectSource(nodeStatsCollectSource, projectorFactory));
+        systemTableSource.put(SysNodesTableInfo.IDENT.fqn(), new ProjectorSetupCollectSource(nodeStatsCollectSource, projectorFactory));
 
         for (TableInfo tableInfo : pgCatalogSchemaInfo.getTables()) {
-            nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
+            systemTableSource.put(tableInfo.ident().fqn(), sysSource);
         }
         for (TableInfo tableInfo : informationSchemaInfo.getTables()) {
-            nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
+            systemTableSource.put(tableInfo.ident().fqn(), sysSource);
         }
 
         visitor = new CollectPhaseVisitor();
@@ -172,7 +166,7 @@ public class CollectSourceResolver {
             }
             assert indexShards.size() ==
                    1 : "routing without shards that operates on non user-tables may only contain 1 index/table";
-            CollectSource collectSource = nodeDocCollectSources.get(indexName);
+            CollectSource collectSource = systemTableSource.get(indexName);
             if (collectSource == null) {
                 throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
             }

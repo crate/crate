@@ -8,15 +8,16 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
+import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -39,7 +40,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class EvaluatingNormalizerTest extends CrateUnitTest {
 
-    private ClusterReferenceResolver referenceResolver;
+    private ReferenceResolver referenceResolver;
     private Functions functions;
     private Reference dummyLoadInfo;
 
@@ -54,7 +55,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
         referenceImplementationMap.put(dummyLoadIdent.columnIdent(), constant(0.08d));
         functions = getFunctions();
-        referenceResolver = new ClusterReferenceResolver(referenceImplementationMap);
+        referenceResolver = new MapBackedRefResolver(referenceImplementationMap);
     }
 
     /**
