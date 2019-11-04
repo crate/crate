@@ -23,12 +23,16 @@ package io.crate.metadata.sys;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.expression.reference.sys.cluster.ClusterLicenseExpression;
 import io.crate.expression.reference.sys.cluster.ClusterLoggingOverridesExpression;
 import io.crate.expression.reference.sys.cluster.ClusterSettingsExpression;
+import io.crate.license.LicenseService;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
@@ -36,7 +40,9 @@ import io.crate.settings.CrateSetting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
@@ -46,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.EXPIRY_DATE;
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.ISSUED_TO;
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.MAX_NODES;
@@ -54,8 +61,22 @@ public class SysClusterTableInfo extends StaticTableInfo<Void> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "cluster");
 
-    SysClusterTableInfo() {
-        super(IDENT, buildColumnRegistrar(), Collections.emptyList());
+    private final Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions;
+
+    public static SysClusterTableInfo of(ClusterService clusterService,
+                                         CrateSettings crateSettings,
+                                         LicenseService licenseService) {
+        ColumnRegistrar<Void> columnRegistrar = buildColumnRegistrar(clusterService, crateSettings, licenseService);
+        return new SysClusterTableInfo(columnRegistrar);
+    }
+
+    private SysClusterTableInfo(ColumnRegistrar<Void> columnRegistrar) {
+        super(IDENT, columnRegistrar, Collections.emptyList());
+        this.expressions = columnRegistrar.expressions();
+    }
+
+    public Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
+        return expressions;
     }
 
     @Override
@@ -72,18 +93,28 @@ public class SysClusterTableInfo extends StaticTableInfo<Void> {
         return RowGranularity.CLUSTER;
     }
 
-    private static ColumnRegistrar<Void> buildColumnRegistrar() {
+    private static ColumnRegistrar<Void> buildColumnRegistrar(ClusterService clusterService,
+                                                              CrateSettings crateSettings,
+                                                              LicenseService licenseService) {
+        Settings settings = clusterService.getSettings();
         return new ColumnRegistrar<Void>(IDENT, RowGranularity.CLUSTER)
-            .register("id", DataTypes.STRING)
-            .register("name", DataTypes.STRING)
-            .register("master_node", DataTypes.STRING)
-            .register("license",
+            .register("id", DataTypes.STRING, () -> forFunction(nothing -> clusterService.state().metaData().clusterUUID()))
+            .register("name", DataTypes.STRING, () -> forFunction(nothing -> ClusterName.CLUSTER_NAME_SETTING.get(settings).value()))
+            .register("master_node", DataTypes.STRING, () -> forFunction(nothing -> clusterService.state().nodes().getMasterNodeId()))
+            .register(
+                "license",
                 ObjectType.builder()
                     .setInnerType(EXPIRY_DATE, DataTypes.TIMESTAMPZ)
                     .setInnerType(ISSUED_TO, DataTypes.STRING)
                     .setInnerType(MAX_NODES, DataTypes.INTEGER)
-                    .build())
-            .register(ClusterSettingsExpression.NAME, buildSettingsObjectType());
+                    .build(),
+                () -> new ClusterLicenseExpression(licenseService)
+            )
+            .register(
+                ClusterSettingsExpression.NAME,
+                buildSettingsObjectType(),
+                () -> new ClusterSettingsExpression(clusterService, crateSettings)
+            );
     }
 
     private static ObjectType buildSettingsObjectType() {

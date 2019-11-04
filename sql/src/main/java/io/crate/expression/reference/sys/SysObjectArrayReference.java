@@ -22,6 +22,7 @@
 package io.crate.expression.reference.sys;
 
 import com.google.common.collect.Maps;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 
@@ -46,7 +47,7 @@ public abstract class SysObjectArrayReference implements NestableInput<List<Obje
                 values.add(null);
             }
         }
-        return () -> values;
+        return NestableCollectExpression.constant(values);
     }
 
     @Override

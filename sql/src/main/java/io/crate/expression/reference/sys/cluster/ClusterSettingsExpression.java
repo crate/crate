@@ -21,17 +21,17 @@
 
 package io.crate.expression.reference.sys.cluster;
 
-import io.crate.metadata.settings.CrateSettings;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.NestedObjectExpression;
+import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 
+import java.util.Map;
 
-public class ClusterSettingsExpression extends NestedObjectExpression {
+public class ClusterSettingsExpression extends NestedObjectExpression implements NestableCollectExpression<Void, Map<String, Object>> {
 
     public static final String NAME = "settings";
 
-    @Inject
     public ClusterSettingsExpression(ClusterService clusterService, CrateSettings crateSettings) {
         // use all exposed crate and elasticsearch settings
         childImplementations = crateSettings.referenceImplementationTree();
@@ -40,5 +40,9 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
         childImplementations.put(
             ClusterLoggingOverridesExpression.NAME,
             new ClusterLoggingOverridesExpression(clusterService));
+    }
+
+    @Override
+    public void setNextRow(Void aVoid) {
     }
 }

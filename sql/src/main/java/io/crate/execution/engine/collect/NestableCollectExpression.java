@@ -23,6 +23,7 @@
 package io.crate.execution.engine.collect;
 
 import io.crate.expression.NestableInput;
+
 import java.util.function.Function;
 
 /**
@@ -43,7 +44,7 @@ public interface NestableCollectExpression<T, R> extends CollectExpression<T, R>
 
     static <T, I> NestableCollectExpression<T, Object> withNullableProperty(Function<T, I> getProperty,
                                                                             Function<I, ?> extractValue) {
-        return new NestableCollectExpression<T, Object>() {
+        return new NestableCollectExpression<>() {
 
             private Object value;
 

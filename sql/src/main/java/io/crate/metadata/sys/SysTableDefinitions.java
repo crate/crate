@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.repositories.RepositoriesService;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -52,6 +53,7 @@ public class SysTableDefinitions {
     @Inject
     public SysTableDefinitions(JobsLogs jobsLogs,
                                ClusterService clusterService,
+                               SysSchemaInfo sysSchemaInfo,
                                Set<SysCheck> sysChecks,
                                SysNodeChecks sysNodeChecks,
                                RepositoriesService repositoriesService,
@@ -60,6 +62,13 @@ public class SysTableDefinitions {
                                ShardSegments shardSegmentInfos,
                                TableHealthService tableHealthService) {
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
+        SysClusterTableInfo sysClusterTableInfo = (SysClusterTableInfo) sysSchemaInfo.getTableInfo(SysClusterTableInfo.IDENT.name());
+        assert sysClusterTableInfo != null : "sys.cluster table must exist in sys schema";
+        tableDefinitions.put(SysClusterTableInfo.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(Collections.singletonList(null)),
+            sysClusterTableInfo.expressions(),
+            false
+        ));
         tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeJobs()),
             SysJobsTableInfo.expressions(localNode),

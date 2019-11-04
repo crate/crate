@@ -22,6 +22,7 @@
 
 package io.crate.expression.reference.sys.cluster;
 
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.sys.SysObjectArrayReference;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -30,10 +31,11 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
-public class ClusterLoggingOverridesExpression extends SysObjectArrayReference {
+public class ClusterLoggingOverridesExpression extends SysObjectArrayReference implements NestableCollectExpression<Void, List<Object>> {
 
     public static final String NAME = "logger";
     private final ClusterService clusterService;
@@ -54,7 +56,11 @@ public class ClusterLoggingOverridesExpression extends SysObjectArrayReference {
         return loggerExpressions;
     }
 
-    public static class ClusterLoggingOverridesChildExpression extends NestedObjectExpression {
+    @Override
+    public void setNextRow(Void aVoid) {
+    }
+
+    public static class ClusterLoggingOverridesChildExpression extends NestedObjectExpression implements NestableCollectExpression<Void, Map<String, Object>> {
 
         public static final String NAME = "name";
         public static final String LEVEL = "level";
@@ -62,6 +68,10 @@ public class ClusterLoggingOverridesExpression extends SysObjectArrayReference {
         ClusterLoggingOverridesChildExpression(String loggerName, String level) {
             childImplementations.put(NAME, constant(loggerName));
             childImplementations.put(LEVEL, constant(level.toUpperCase(Locale.ENGLISH)));
+        }
+
+        @Override
+        public void setNextRow(Void aVoid) {
         }
     }
 }

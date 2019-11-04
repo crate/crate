@@ -32,7 +32,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.operator.EqOperator;
-import io.crate.expression.reference.sys.cluster.ClusterNameExpression;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -117,7 +116,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
         Reference clusterNameRef = new Reference(
-            new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)),
+            new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent("name")),
             RowGranularity.CLUSTER,
             DataTypes.STRING,
             null,

@@ -26,6 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.NestableInput;
@@ -362,7 +363,7 @@ public final class CrateSettings implements ClusterStateListener {
         }
     }
 
-    static class SettingExpression implements NestableInput<Object> {
+    static class SettingExpression implements NestableCollectExpression<Void, Object> {
         private final CrateSettings crateSettings;
         private final CrateSetting<?> crateSetting;
         private final String name;
@@ -381,10 +382,14 @@ public final class CrateSettings implements ClusterStateListener {
         public Object value() {
             return crateSetting.dataType().value(crateSetting.setting().get(crateSettings.settings()));
         }
+
+        @Override
+        public void setNextRow(Void aVoid) {
+        }
     }
 
     @VisibleForTesting
-    static class NestedSettingExpression extends NestedObjectExpression {
+    static class NestedSettingExpression extends NestedObjectExpression implements NestableCollectExpression<Void, Map<String, Object>> {
 
         void putChildImplementation(String name, NestableInput settingExpression) {
             childImplementations.put(name, settingExpression);
@@ -392,6 +397,10 @@ public final class CrateSettings implements ClusterStateListener {
 
         public Map<String, NestableInput> childImplementations() {
             return childImplementations;
+        }
+
+        @Override
+        public void setNextRow(Void aVoid) {
         }
     }
 }

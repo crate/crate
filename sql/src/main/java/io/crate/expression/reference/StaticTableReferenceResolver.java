@@ -22,10 +22,10 @@
 
 package io.crate.expression.reference;
 
+import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.expression.NestableInput;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 
 import java.util.Map;
@@ -67,7 +67,10 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<Nestab
             return null;
         }
         NestableInput<?> refImpl = factory.create();
+        NestableInput<?> childByPath = NestableInput.getChildByPath(refImpl, columnIdent.path());
+        assert childByPath instanceof NestableCollectExpression
+            : "Child " + columnIdent.path() + " of " + refImpl + " must be a NestableCollectExpression";
         //noinspection unchecked
-        return (NestableCollectExpression<R, ?>) NestableInput.getChildByPath(refImpl, columnIdent.path());
+        return (NestableCollectExpression<R, ?>) childByPath;
     }
 }

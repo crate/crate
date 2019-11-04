@@ -27,6 +27,7 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRecoveryStateExpression;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.license.CeLicenseService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
@@ -35,6 +36,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
@@ -91,9 +93,10 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void prepare()  {
         indexShard = mockIndexShard();
         Functions functions = getFunctions();
+        CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         schemas = new Schemas(
-            ImmutableMap.of("sys", new SysSchemaInfo(this.clusterService)),
+            ImmutableMap.of("sys", new SysSchemaInfo(this.clusterService, crateSettings, new CeLicenseService())),
             clusterService,
             new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), (ident, state) -> null , functions, udfService)
         );
