@@ -187,6 +187,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could prevent ``CREATE SNAPSHOT`` from succeeding,
+  resulting in a partial snapshot which contained failure messages incorrectly
+  indicating that the index is corrupt.
+
 - Fixed an issue resulting in a parsing exception on ``SHOW TABLE`` statements
   when a default expression is implicitly cast to the related column type and
   the column type contains a ``SPACE`` character (like e.g. ``double precision``).
