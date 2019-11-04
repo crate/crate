@@ -62,6 +62,10 @@ task hdfsTest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar', project(':es
     commandLine "$projectDir/bin/test-hdfs"
 }
 
+task s3Test(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
+    commandLine "$projectDir/bin/test-s3"
+}
+
 task monitoringTest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
     commandLine "$projectDir/bin/test-jmx"
 }

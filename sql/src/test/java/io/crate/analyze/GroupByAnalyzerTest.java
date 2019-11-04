@@ -431,7 +431,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             relation.having().query(),
             isSQL("(sum(power(" +
-                "power(to_double precision(doc.users.id), to_double precision(doc.users.id)), " +
-                "to_double precision(doc.users.id))) > 0.0)"));
+                "power(\"to_double precision\"(doc.users.id), \"to_double precision\"(doc.users.id)), " +
+                "\"to_double precision\"(doc.users.id))) > 0.0)"));
     }
 }
