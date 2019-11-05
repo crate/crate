@@ -30,10 +30,11 @@ import java.util.Collections;
 import java.util.function.Supplier;
 
 public abstract class OrderedDocCollector implements Supplier<KeyIterable<ShardId, Row>>, AutoCloseable {
+
     private final ShardId shardId;
     private final KeyIterable<ShardId, Row> empty;
 
-    volatile boolean exhausted = false;
+    boolean exhausted = false;
 
     OrderedDocCollector(ShardId shardId) {
         this.shardId = shardId;

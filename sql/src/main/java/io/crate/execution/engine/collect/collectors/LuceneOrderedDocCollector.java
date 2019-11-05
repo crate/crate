@@ -28,6 +28,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -38,7 +39,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopFieldCollector;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -65,9 +65,8 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private final DummyScorer scorer;
     private final IndexSearcher searcher;
 
-
     @Nullable
-    private volatile FieldDoc lastDoc = null;
+    private FieldDoc lastDoc = null;
 
     public LuceneOrderedDocCollector(ShardId shardId,
                                      IndexSearcher searcher,
