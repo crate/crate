@@ -36,6 +36,7 @@ import org.apache.lucene.search.ScoreDoc;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -44,24 +45,19 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
 
     private final List<OrderByCollectorExpression> orderByCollectorExpressions = new ArrayList<>();
     private final IndexReader indexReader;
-    private final Collection<? extends LuceneCollectorExpression<?>> expressions;
+    private final LuceneCollectorExpression[] expressions;
     private final DummyScorer scorer;
     private final InputRow inputRow;
 
-
-    public ScoreDocRowFunction(IndexReader indexReader,
-                               List<? extends Input<?>> inputs,
-                               Collection<? extends LuceneCollectorExpression<?>> expressions,
-                               DummyScorer scorer) {
+    ScoreDocRowFunction(IndexReader indexReader,
+                        List<? extends Input<?>> inputs,
+                        Collection<? extends LuceneCollectorExpression<?>> expressions,
+                        DummyScorer scorer) {
         this.indexReader = indexReader;
-        this.expressions = expressions;
+        this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         this.scorer = scorer;
         this.inputRow = new InputRow(inputs);
-        addOrderByExpressions(expressions);
-    }
-
-    private void addOrderByExpressions(Collection<? extends LuceneCollectorExpression<?>> expressions) {
-        for (LuceneCollectorExpression<?> expression : expressions) {
+        for (LuceneCollectorExpression<?> expression : this.expressions) {
             if (expression instanceof OrderByCollectorExpression) {
                 orderByCollectorExpressions.add((OrderByCollectorExpression) expression);
             }
@@ -76,8 +72,8 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
         }
         FieldDoc fieldDoc = (FieldDoc) input;
         scorer.score(fieldDoc.score);
-        for (OrderByCollectorExpression orderByCollectorExpression : orderByCollectorExpressions) {
-            orderByCollectorExpression.setNextFieldDoc(fieldDoc);
+        for (int i = 0; i < orderByCollectorExpressions.size(); i++) {
+            orderByCollectorExpressions.get(i).setNextFieldDoc(fieldDoc);
         }
         List<LeafReaderContext> leaves = indexReader.leaves();
         int readerIndex = ReaderUtil.subIndex(fieldDoc.doc, leaves);
@@ -88,7 +84,7 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
                 expression.setNextReader(subReaderContext);
                 expression.setNextDocId(subDoc);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
         }
         return inputRow;
