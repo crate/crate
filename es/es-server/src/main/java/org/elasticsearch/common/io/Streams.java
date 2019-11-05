@@ -150,6 +150,10 @@ public abstract class Streams {
         return read;
     }
 
+    public static int readFully(InputStream reader, byte[] dest) throws IOException {
+        return readFully(reader, dest, 0, dest.length);
+    }
+
     /**
      * Reads all bytes from the given {@link InputStream} and closes it afterwards.
      */
