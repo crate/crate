@@ -109,7 +109,7 @@ public class KillPlan implements Plan {
                  RowConsumer consumer) {
         if (jobId != null) {
             killJobsNodeAction.broadcast(
-                new KillJobsRequest(List.of(jobId)),
+                new KillJobsRequest(List.of(jobId), "KILL invoked by user"),
                 new OneRowActionListener<>(consumer, Row1::new));
         } else {
             killAllNodeAction.broadcast(

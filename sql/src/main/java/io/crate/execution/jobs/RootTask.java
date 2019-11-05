@@ -224,7 +224,7 @@ public class RootTask implements CompletionListenable<Void> {
      *
      * @return the number of tasks on which kill was called
      */
-    public long kill() {
+    public long kill(@Nullable String reason) {
         int numKilled = 0;
         if (!closed.getAndSet(true)) {
             logger.trace("kill called on Task {}", jobId);
@@ -237,7 +237,7 @@ public class RootTask implements CompletionListenable<Void> {
                     if (traceEnabled) {
                         logger.trace("Task kill id={} ctx={}", task.id(), task);
                     }
-                    task.kill(new JobKilledException());
+                    task.kill(JobKilledException.of(reason));
                     numKilled++;
                 }
             }

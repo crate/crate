@@ -122,7 +122,8 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
         RootTask rootTask = tasksService.getTaskOrNull(request.jobId());
         if (rootTask == null) {
             if (tasksService.recentlyFailed(request.jobId())) {
-                return CompletableFuture.failedFuture(new JobKilledException());
+                return CompletableFuture.failedFuture(JobKilledException.of(
+                    "Received result for job=" + request.jobId() + " but there is no context for this job due to a failure during the setup."));
             } else {
                 return retryOrFailureResponse(request, retryDelay);
             }
@@ -183,7 +184,12 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
              * The handler local-merge would get stuck if not all its upstreams send their requests, so we need to invoke
              * a kill to make sure that doesn't happen.
              */
-            killJobsAction.broadcast(new KillJobsRequest(Collections.singletonList(request.jobId())), new ActionListener<Long>() {
+            KillJobsRequest killRequest = new KillJobsRequest(
+                List.of(request.jobId()),
+                "Received data for job=" + request.jobId() + " but there is no job context present. " +
+                "This can happen due to bad network latency or if individual nodes are unresponsive due to high load"
+            );
+            killJobsAction.broadcast(killRequest, new ActionListener<>() {
                 @Override
                 public void onResponse(Long numKilled) {
                 }
@@ -197,7 +203,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
         }
     }
 
-    private class SendResponsePageResultListener implements PageResultListener {
+    private static class SendResponsePageResultListener implements PageResultListener {
         private final CompletableFuture<DistributedResultResponse> future = new CompletableFuture<>();
 
         @Override

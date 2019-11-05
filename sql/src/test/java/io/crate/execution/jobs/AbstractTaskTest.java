@@ -43,7 +43,7 @@ public class AbstractTaskTest extends CrateUnitTest {
     private Runnable killRunnable = new Runnable() {
         @Override
         public void run() {
-            testingTask.kill(new JobKilledException());
+            testingTask.kill(JobKilledException.of("dummy"));
         }
     };
 

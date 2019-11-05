@@ -34,7 +34,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -91,8 +91,12 @@ class InterceptingRowConsumer implements RowConsumer {
             assert iterator != null : "iterator must be present";
             ThreadPools.forceExecute(executor, () -> consumer.accept(iterator, null));
         } else {
+            KillJobsRequest killRequest = new KillJobsRequest(
+                List.of(jobId),
+                "An error was encountered: " + failure
+            );
             transportKillJobsNodeAction.broadcast(
-                new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<Long>() {
+                killRequest, new ActionListener<>() {
                     @Override
                     public void onResponse(Long numKilled) {
                         if (LOGGER.isTraceEnabled()) {
