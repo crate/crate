@@ -98,7 +98,8 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
 
         @Override
         public void setNextRow(PartitionInfo row) {
-            value = row.tableParameters().get(paramName).toString();
+            Object value = row.tableParameters().get(paramName);
+            this.value = value == null ? null : value.toString();
         }
 
         @Override
