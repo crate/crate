@@ -194,4 +194,5 @@ Changes
 Fixes
 =====
 
-None
+- Fixed an resiliency issue on snapshot creation while dynamic columns are
+  created concurrently which may result in incompatibility problems on restore.
