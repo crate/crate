@@ -25,6 +25,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -198,6 +199,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
             null,
             false,
             5, // batchSize < 10 to have at least one searchMore call.
+            RamAccounting.NO_ACCOUNTING,
             collectorContext,
             f -> null,
             new Sort(new SortedNumericSortField(columnName, SortField.Type.LONG, reverseFlags[0])),

@@ -190,6 +190,9 @@ Changes
 Fixes
 =====
 
+- Improved the handling of sorted queries with a large limit, to reduce the
+  chance of them causing a out of memory error.
+
 - Fixed a ``NullPointerException`` that could occur when querying the
   ``settings`` column of ``information_schema.table_partitions``.
 
