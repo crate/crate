@@ -26,6 +26,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -390,6 +391,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             minScore,
             doDocScores,
             2,
+            RamAccounting.NO_ACCOUNTING,
             new CollectorContext(mappedFieldType -> null),
             f -> null,
             new Sort(SortField.FIELD_SCORE),
