@@ -23,11 +23,13 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.collect.Iterables;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -38,7 +40,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopFieldCollector;
-import org.apache.logging.log4j.LogManager;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -52,11 +54,13 @@ import java.util.function.Function;
 public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     private static final Logger LOGGER = LogManager.getLogger(LuceneOrderedDocCollector.class);
+    private static final int OPTIMIZE_BATCH_SIZE_THRESHOLD = 1000;
+    private static final int FIELD_DOC_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(FieldDoc.class);
 
     private final Query query;
     private final Float minScore;
     private final boolean doDocsScores;
-    private final int batchSize;
+    private RamAccounting ramAccounting;
     private final CollectorContext collectorContext;
     private final Function<FieldDoc, Query> searchAfterQueryOptimize;
     private final Sort sort;
@@ -65,6 +69,8 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private final DummyScorer scorer;
     private final IndexSearcher searcher;
 
+    private int batchSize;
+    private boolean batchSizeReduced = false;
 
     @Nullable
     private volatile FieldDoc lastDoc = null;
@@ -75,6 +81,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                                      Float minScore,
                                      boolean doDocsScores,
                                      int batchSize,
+                                     RamAccounting ramAccounting,
                                      CollectorContext collectorContext,
                                      Function<FieldDoc, Query> searchAfterQueryOptimize,
                                      Sort sort,
@@ -85,6 +92,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         this.query = query;
         this.minScore = minScore;
         this.doDocsScores = doDocsScores;
+        this.ramAccounting = ramAccounting;
         // We don't want to pre-allocate for more records than what can possible be returned
         // (+1) to make sure `exhausted` is set to `true` if all records match on the first `collect` call.
         this.batchSize = Math.min(batchSize, searcher.getIndexReader().numDocs() + 1);
@@ -127,10 +135,15 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     }
 
     private KeyIterable<ShardId, Row> initialSearch() throws IOException {
+        if (batchSize > OPTIMIZE_BATCH_SIZE_THRESHOLD && !batchSizeReduced) {
+            batchSizeReduced = true;
+            batchSize = Math.min(batchSize, searcher.count(query));
+        }
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
             expression.setScorer(scorer);
         }
+        ramAccounting.addBytes(batchSize * FIELD_DOC_SIZE);
         TopFieldCollector topFieldCollector = TopFieldCollector.create(
             sort,
             batchSize,
@@ -147,13 +160,13 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("searchMore from [{}]", lastDoc);
         }
+        ramAccounting.addBytes(batchSize * FIELD_DOC_SIZE);
         TopFieldCollector topFieldCollector = TopFieldCollector.create(
             sort,
             batchSize,
             lastDoc,
             0 // do not process any hits
         );
-
         return doSearch(topFieldCollector, minScore, query(lastDoc));
     }
 
