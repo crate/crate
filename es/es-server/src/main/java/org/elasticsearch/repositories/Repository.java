@@ -114,7 +114,11 @@ public interface Repository extends LifecycleComponent {
      * @param snapshotId snapshot id
      * @param indices    list of indices to be snapshotted
      * @param metaData   cluster metadata
+     *
+     * @deprecated this method is only used when taking snapshots in a mixed version cluster where a master node older than
+     *             {@link org.elasticsearch.snapshots.SnapshotsService#NO_REPO_INITIALIZE_VERSION} is present.
      */
+    @Deprecated
     void initializeSnapshot(SnapshotId snapshotId, List<IndexId> indices, MetaData metaData);
 
     /**
@@ -132,8 +136,15 @@ public interface Repository extends LifecycleComponent {
      * @param includeGlobalState include cluster global state
      * @return snapshot description
      */
-    SnapshotInfo finalizeSnapshot(SnapshotId snapshotId, List<IndexId> indices, long startTime, String failure, int totalShards,
-                                  List<SnapshotShardFailure> shardFailures, long repositoryStateId, boolean includeGlobalState);
+    SnapshotInfo finalizeSnapshot(SnapshotId snapshotId,
+                                  List<IndexId> indices,
+                                  long startTime,
+                                  String failure,
+                                  int totalShards,
+                                  List<SnapshotShardFailure> shardFailures,
+                                  long repositoryStateId,
+                                  final MetaData clusterMetaData,
+                                  boolean includeGlobalState);
 
     /**
      * Deletes snapshot

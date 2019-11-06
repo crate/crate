@@ -24,9 +24,13 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.snapshots.Snapshot;
@@ -40,9 +44,11 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -265,6 +271,58 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
             "bar| 1.4\n" +
             "baz| 1.2\n" +
             "foo| 1.2\n"));
+    }
+
+    @Test
+    public void testSnapshotWithMetadataConcurrentlyModified() throws Exception {
+        int shards = randomFrom(1, 3, 5);
+        int replicas = randomIntBetween(2, 10);
+        long documents = randomLongBetween(2, 100);
+
+        execute("CREATE TABLE test (" +
+                "  id long primary key)" +
+                "clustered into " + shards + " shards with " +
+                "(column_policy = 'dynamic', number_of_replicas=" + replicas +
+                ", \"write.wait_for_active_shards\" = 1)");
+
+        ensureYellow();
+
+        ActionFuture<SQLResponse> createSnapshot = null;
+        // Insert data with dynamic column creation so we trigger a dynamic mapping update for each of them
+        for (var i = 0; i < documents; i++) {
+            execute("INSERT INTO test (id, field_" + i + ") VALUES (?, ?)", new Object[][]{{i, "value_" + i},});
+            execute("REFRESH TABLE test");
+            if (createSnapshot == null) {
+                createSnapshot = sqlExecutor.execute(
+                    "CREATE SNAPSHOT " + snapshotName() + " TABLE test with (wait_for_completion=true)", null);
+            }
+        }
+
+        if (createSnapshot != null) {
+            createSnapshot.actionGet();
+        }
+
+        execute("DROP table test");
+
+        execute("select state from sys.snapshots where name=?", new Object[]{SNAPSHOT_NAME});
+        assertThat(response.rows()[0][0], is("SUCCESS"));
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " ALL with (wait_for_completion=true)");
+
+        waitNoPendingTasksOnAll();
+
+        SnapshotsInProgress finalSnapshotsInProgress = clusterService().state().custom(SnapshotsInProgress.TYPE);
+        assertFalse(finalSnapshotsInProgress.entries().stream().anyMatch(entry -> entry.state().completed() == false));
+
+        ImmutableOpenMap<String, IndexMetaData> state = clusterService().state().metaData().indices();
+        IndexMetaData indexMetaData = state.values().iterator().next().value;
+        int sizeOfProperties = ((Map<?, ?>) indexMetaData.getMappings().values().iterator().next().value.sourceAsMap().get("properties")).size();
+
+        execute("select count(*) from test");
+
+        assertThat(
+            "Documents were restored but the restored index mapping was older than some documents and misses some of their fields",
+            (Long)response.rows()[0][0], lessThanOrEqualTo((long) sizeOfProperties));
     }
 
     @Test
