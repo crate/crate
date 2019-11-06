@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Fixed a ``NullPointerException`` that could occur when querying the
+  ``settings`` column of ``information_schema.table_partitions``.
+
 - Fixed an issue in the Admin interface that caused the pagination ``Previous``
   button to not display the whole list of results for that page in the console
   view.
