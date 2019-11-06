@@ -85,7 +85,9 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         this.query = query;
         this.minScore = minScore;
         this.doDocsScores = doDocsScores;
-        this.batchSize = batchSize;
+        // We don't want to pre-allocate for more records than what can possible be returned
+        // (+1) to make sure `exhausted` is set to `true` if all records match on the first `collect` call.
+        this.batchSize = Math.min(batchSize, searcher.getIndexReader().numDocs() + 1);
         this.collectorContext = collectorContext;
         this.searchAfterQueryOptimize = searchAfterQueryOptimize;
         this.sort = sort;
