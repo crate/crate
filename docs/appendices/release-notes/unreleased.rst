@@ -190,6 +190,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue in the Admin interface that caused the pagination ``Previous``
+  button to not display the whole list of results for that page in the console
+  view.
+
 - Fixed an issue that could prevent ``CREATE SNAPSHOT`` from succeeding,
   resulting in a partial snapshot which contained failure messages incorrectly
   indicating that the index is corrupt.
