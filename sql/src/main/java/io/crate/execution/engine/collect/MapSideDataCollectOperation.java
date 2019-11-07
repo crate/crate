@@ -36,11 +36,13 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
@@ -50,30 +52,36 @@ public class MapSideDataCollectOperation {
 
     private static final Logger LOGGER = LogManager.getLogger(MapSideDataCollectOperation.class);
 
+    private static final MemoryMXBean MEMORY_MX_BEAN = ManagementFactory.getMemoryMXBean();
     private final CollectSourceResolver collectSourceResolver;
     private final ThreadPool threadPool;
-    private final Queue<Runnable> pendingMemoryIntenseExecutions = new ArrayBlockingQueue<>(30);
-    private final Semaphore memoryIntense = new Semaphore(1, false);
+    private final Queue<DeferredRunnable> pendingMemoryIntenseExecutions = new ArrayBlockingQueue<>(100);
+    private final AtomicLong unclaimedMemory = new AtomicLong((long) (MEMORY_MX_BEAN.getHeapMemoryUsage().getMax() * 0.60));
 
     @Inject
     public MapSideDataCollectOperation(CollectSourceResolver collectSourceResolver, ThreadPool threadPool) {
         this.collectSourceResolver = collectSourceResolver;
         this.threadPool = threadPool;
+        // TODO: need to stop thread when node stops
         threadPool.generic().execute(() -> {
             //noinspection InfiniteLoopStatement
             while (true) {
                 try {
-                    Runnable runnable = pendingMemoryIntenseExecutions.poll();
+                    DeferredRunnable runnable = pendingMemoryIntenseExecutions.poll();
                     if (runnable == null) {
                         Thread.sleep(20);
                     } else {
-                        memoryIntense.acquire();
+                        // we don't care if we have not enough unclaimed memory left,
+                        // we always want to at least try to execute 1 memory intensive query. We may overestimate the usage
+                        // and it could work; Otherwise the circuit breaker should kick-in
+                        unclaimedMemory.updateAndGet(
+                            currentlyUnclaimed -> currentlyUnclaimed - runnable.estimatedRequiredMemoryInBytes);
                         try {
-                            runnable.run();
+                            runnable.runnable.run();
                         } catch (Throwable t) {
                             LOGGER.error(t);
                         } finally {
-                            memoryIntense.release();
+                            unclaimedMemory.updateAndGet(currentlyUnclaimed -> currentlyUnclaimed + runnable.estimatedRequiredMemoryInBytes);
                         }
                     }
                 } catch (InterruptedException ignored) {
@@ -95,21 +103,21 @@ public class MapSideDataCollectOperation {
         Executor executor = threadPool.executor(threadPoolName);
 
         if (collectPhase instanceof RoutedCollectPhase && largeMemoryUsageExpected(((RoutedCollectPhase) collectPhase))) {
-            if (memoryIntense.tryAcquire()) {
-                try {
-                    executor.execute(() -> {
-                        try {
-                            runnable.run();
-                        } finally {
-                            memoryIntense.release();
-                        }
-                    });
-                } catch (RejectedExecutionException e) {
-                    memoryIntense.release();
-                    throw e;
-                }
+            // TODO: need real estimates
+            long estimatedRequiredMemory = 10L * 1024 * 1024 * 1024;
+            long newUnclaimedMemory = unclaimedMemory.updateAndGet(currentlyUnclaimed -> currentlyUnclaimed - estimatedRequiredMemory);
+            if (newUnclaimedMemory > 0L) {
+                executor.execute(() -> {
+                    try {
+                        runnable.run();
+                    } finally {
+                        unclaimedMemory.updateAndGet(currentlyUnclaimed -> currentlyUnclaimed +
+                                                                           estimatedRequiredMemory);
+                    }
+                });
             } else {
-                if (!pendingMemoryIntenseExecutions.offer(runnable)) {
+                // TODO: should we also memorize the threadPool and do another context switch into that executor when processing the deferred runnable
+                if (!pendingMemoryIntenseExecutions.offer(new DeferredRunnable(runnable, estimatedRequiredMemory))) {
                     throw new RejectedExecutionException(
                         "No capacity left to run queries which are expected to require a lot of memory");
                 }
@@ -137,5 +145,16 @@ public class MapSideDataCollectOperation {
         // If there is no IO involved it is a in-memory system tables. These are usually fast and the overhead
         // of a context switch would be bigger than running this directly.
         return involvedIO ? ThreadPool.Names.SEARCH : ThreadPool.Names.SAME;
+    }
+
+    static class DeferredRunnable {
+
+        private final Runnable runnable;
+        private final long estimatedRequiredMemoryInBytes;
+
+        public DeferredRunnable(Runnable runnable, long estimatedRequiredMemoryInBytes) {
+            this.runnable = runnable;
+            this.estimatedRequiredMemoryInBytes = estimatedRequiredMemoryInBytes;
+        }
     }
 }
