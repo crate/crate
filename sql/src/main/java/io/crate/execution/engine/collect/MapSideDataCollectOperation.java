@@ -21,16 +21,23 @@
 
 package io.crate.execution.engine.collect;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.sources.CollectSource;
 import io.crate.execution.engine.collect.sources.CollectSourceResolver;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -40,13 +47,30 @@ import java.util.concurrent.RejectedExecutionException;
 @Singleton
 public class MapSideDataCollectOperation {
 
+    private static final Logger LOGGER = LogManager.getLogger(MapSideDataCollectOperation.class);
+
     private final CollectSourceResolver collectSourceResolver;
     private final ThreadPool threadPool;
+    private final Queue<Runnable> pendingMemoryIntenseExecutions = new ArrayBlockingQueue<>(30);
 
     @Inject
     public MapSideDataCollectOperation(CollectSourceResolver collectSourceResolver, ThreadPool threadPool) {
         this.collectSourceResolver = collectSourceResolver;
         this.threadPool = threadPool;
+        threadPool.generic().execute(() -> {
+            while (true) {
+                Runnable runnable = pendingMemoryIntenseExecutions.poll();
+                if (runnable == null) {
+                    Thread.sleep(20);
+                } else {
+                    try {
+                        runnable.run();
+                    } catch (Throwable t) {
+                        LOGG
+                    }
+                }
+            }
+        });
     }
 
     public BatchIterator<Row> createIterator(TransactionContext txnCtx,
@@ -57,8 +81,36 @@ public class MapSideDataCollectOperation {
         return service.getIterator(txnCtx, collectPhase, collectTask, requiresScroll);
     }
 
-    public void launch(Runnable runnable, String threadPoolName) throws RejectedExecutionException {
+    public void launch(Runnable runnable, CollectPhase collectPhase, boolean involvesIO) {
+        if (collectPhase instanceof RoutedCollectPhase) {
+            if (largeMemoryUsageExpected((RoutedCollectPhase) collectPhase)) {
+                if (!pendingMemoryIntenseExecutions.offer(runnable)) {
+                    throw new RejectedExecutionException("No capacity left to run queries which are expected to require a lot of memory");
+                }
+            }
+        }
+        String threadPoolName = threadPoolName(collectPhase, involvesIO);
         Executor executor = threadPool.executor(threadPoolName);
         executor.execute(runnable);
+    }
+
+    private static boolean largeMemoryUsageExpected(RoutedCollectPhase routedCollectPhase) {
+        Integer nodePageSizeHint = routedCollectPhase.nodePageSizeHint();
+        return nodePageSizeHint != null && nodePageSizeHint > 5000 && routedCollectPhase.orderBy() != null;
+    }
+
+    @VisibleForTesting
+    static String threadPoolName(CollectPhase phase, boolean involvedIO) {
+        if (phase instanceof RoutedCollectPhase) {
+            RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+            if (collectPhase.maxRowGranularity() == RowGranularity.NODE
+                || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
+                // Node or Shard system table collector
+                return ThreadPool.Names.GET;
+            }
+        }
+        // If there is no IO involved it is a in-memory system tables. These are usually fast and the overhead
+        // of a context switch would be bigger than running this directly.
+        return involvedIO ? ThreadPool.Names.SEARCH : ThreadPool.Names.SAME;
     }
 }

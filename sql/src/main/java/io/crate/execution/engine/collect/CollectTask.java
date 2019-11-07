@@ -146,8 +146,7 @@ public class CollectTask extends AbstractTask {
 
     @Override
     protected void innerStart() {
-        String threadPoolName = threadPoolName(collectPhase, batchIterator.involvesIO());
-        collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
+        collectOperation.launch(() -> consumer.accept(batchIterator, null), collectPhase, batchIterator.involvesIO());
     }
 
     public TransactionContext txnCtx() {
@@ -162,18 +161,4 @@ public class CollectTask extends AbstractTask {
         return sharedShardContexts;
     }
 
-    @VisibleForTesting
-    static String threadPoolName(CollectPhase phase, boolean involvedIO) {
-        if (phase instanceof RoutedCollectPhase) {
-            RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-            if (collectPhase.maxRowGranularity() == RowGranularity.NODE
-                       || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
-                // Node or Shard system table collector
-                return ThreadPool.Names.GET;
-            }
-        }
-        // If there is no IO involved it is a in-memory system tables. These are usually fast and the overhead
-        // of a context switch would be bigger than running this directly.
-        return involvedIO ? ThreadPool.Names.SEARCH : ThreadPool.Names.SAME;
-    }
 }
