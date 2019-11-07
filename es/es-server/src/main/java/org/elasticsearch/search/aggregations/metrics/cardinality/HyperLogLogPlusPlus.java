@@ -21,6 +21,7 @@ package org.elasticsearch.search.aggregations.metrics.cardinality;
 
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LongBitSet;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.lucene.util.packed.PackedInts;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -56,6 +57,15 @@ import java.util.Set;
  */
 public final class HyperLogLogPlusPlus implements Releasable {
 
+    private static final long BASE_RAM_BYTES = RamUsageEstimator.shallowSizeOf(HyperLogLogPlusPlus.class);
+    private static final long HASHSET_RAM_BYTES = RamUsageEstimator.shallowSizeOf(Hashset.class)
+                                                  + RamUsageEstimator.shallowSizeOf(IntArray.class)
+                                                  + RamUsageEstimator.shallowSizeOf(BytesRef.class)
+                                                  + RamUsageEstimator.sizeOf(BytesRef.EMPTY_BYTES)
+                                                  + RamUsageEstimator.shallowSizeOf(ByteBuffer.class)
+                                                  + 4; // ByteBuffer is allocated with 4 bytes
+
+
     public static final int MIN_PRECISION = 4;
     public static final int DEFAULT_PRECISION = 14;
     public static final int MAX_PRECISION = 18;
@@ -81,7 +91,8 @@ public final class HyperLogLogPlusPlus implements Releasable {
      * Return the expected per-bucket memory usage for the given precision.
      */
     public static long memoryUsage(int precision) {
-        return 1L << precision;
+        return (1L << precision) + OpenBitSet.RAM_BYTES + HASHSET_RAM_BYTES + BASE_RAM_BYTES;
+        //return (1L << precision);
     }
 
     // these static tables come from the appendix of the paper
@@ -591,9 +602,15 @@ public final class HyperLogLogPlusPlus implements Releasable {
         }
         return counts;
     }
-    
+
     /** looks and smells like the old openbitset. */
     static class OpenBitSet {
+
+        // uses a LongBitSet with initial 64 bits (1 word, long[1])
+        private static final long RAM_BYTES = RamUsageEstimator.shallowSizeOf(OpenBitSet.class)
+                                              + RamUsageEstimator.shallowSizeOf(LongBitSet.class)
+                                              + RamUsageEstimator.sizeOf(new long[1]);
+
         LongBitSet impl = new LongBitSet(64);
 
         boolean get(long bit) {
@@ -603,16 +620,16 @@ public final class HyperLogLogPlusPlus implements Releasable {
                 return false;
             }
         }
-        
+
         void ensureCapacity(long bit) {
             impl = LongBitSet.ensureCapacity(impl, bit);
         }
-        
+
         void set(long bit) {
             ensureCapacity(bit);
             impl.set(bit);
         }
-        
+
         void clear(long bit) {
             ensureCapacity(bit);
             impl.clear(bit);

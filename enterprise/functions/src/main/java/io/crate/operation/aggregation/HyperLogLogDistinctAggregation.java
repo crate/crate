@@ -39,6 +39,7 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.hash.MurmurHash3;
@@ -86,6 +87,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @Nullable
     @Override
     public HllState newState(RamAccountingContext ramAccountingContext, Version indexVersionCreated) {
+        ramAccountingContext.addBytes(HllState.BASE_RAM_BYTES);
         return new HllState(dataType);
     }
 
@@ -136,6 +138,10 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     }
 
     public static class HllState implements Comparable<HllState>, Writeable {
+
+        private static final long BASE_RAM_BYTES = RamUsageEstimator.shallowSizeOf(HllState.class)
+                                                   + RamUsageEstimator.shallowSizeOf(Murmur3Hash.class)
+                                                   + RamUsageEstimator.shallowSizeOf(DataType.class);
 
         private final DataType dataType;
         private final Murmur3Hash murmur3Hash;
