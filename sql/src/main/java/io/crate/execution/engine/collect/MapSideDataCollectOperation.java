@@ -40,6 +40,7 @@ import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.Semaphore;
 
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
@@ -52,22 +53,30 @@ public class MapSideDataCollectOperation {
     private final CollectSourceResolver collectSourceResolver;
     private final ThreadPool threadPool;
     private final Queue<Runnable> pendingMemoryIntenseExecutions = new ArrayBlockingQueue<>(30);
+    private final Semaphore memoryIntense = new Semaphore(1, false);
 
     @Inject
     public MapSideDataCollectOperation(CollectSourceResolver collectSourceResolver, ThreadPool threadPool) {
         this.collectSourceResolver = collectSourceResolver;
         this.threadPool = threadPool;
         threadPool.generic().execute(() -> {
+            //noinspection InfiniteLoopStatement
             while (true) {
-                Runnable runnable = pendingMemoryIntenseExecutions.poll();
-                if (runnable == null) {
-                    Thread.sleep(20);
-                } else {
-                    try {
-                        runnable.run();
-                    } catch (Throwable t) {
-                        LOGG
+                try {
+                    Runnable runnable = pendingMemoryIntenseExecutions.poll();
+                    if (runnable == null) {
+                        Thread.sleep(20);
+                    } else {
+                        memoryIntense.acquire();
+                        try {
+                            runnable.run();
+                        } catch (Throwable t) {
+                            LOGGER.error(t);
+                        } finally {
+                            memoryIntense.release();
+                        }
                     }
+                } catch (InterruptedException ignored) {
                 }
             }
         });
@@ -82,16 +91,32 @@ public class MapSideDataCollectOperation {
     }
 
     public void launch(Runnable runnable, CollectPhase collectPhase, boolean involvesIO) {
-        if (collectPhase instanceof RoutedCollectPhase) {
-            if (largeMemoryUsageExpected((RoutedCollectPhase) collectPhase)) {
-                if (!pendingMemoryIntenseExecutions.offer(runnable)) {
-                    throw new RejectedExecutionException("No capacity left to run queries which are expected to require a lot of memory");
-                }
-            }
-        }
         String threadPoolName = threadPoolName(collectPhase, involvesIO);
         Executor executor = threadPool.executor(threadPoolName);
-        executor.execute(runnable);
+
+        if (collectPhase instanceof RoutedCollectPhase && largeMemoryUsageExpected(((RoutedCollectPhase) collectPhase))) {
+            if (memoryIntense.tryAcquire()) {
+                try {
+                    executor.execute(() -> {
+                        try {
+                            runnable.run();
+                        } finally {
+                            memoryIntense.release();
+                        }
+                    });
+                } catch (RejectedExecutionException e) {
+                    memoryIntense.release();
+                    throw e;
+                }
+            } else {
+                if (!pendingMemoryIntenseExecutions.offer(runnable)) {
+                    throw new RejectedExecutionException(
+                        "No capacity left to run queries which are expected to require a lot of memory");
+                }
+            }
+        } else {
+            executor.execute(runnable);
+        }
     }
 
     private static boolean largeMemoryUsageExpected(RoutedCollectPhase routedCollectPhase) {
