@@ -146,7 +146,12 @@ public class CollectTask extends AbstractTask {
 
     @Override
     protected void innerStart() {
-        collectOperation.launch(() -> consumer.accept(batchIterator, null), collectPhase, batchIterator.involvesIO());
+        collectOperation.launch(
+            () -> consumer.accept(batchIterator, null),
+            collectPhase,
+            batchIterator.involvesIO(),
+            consumer.completionFuture()
+        );
     }
 
     public TransactionContext txnCtx() {

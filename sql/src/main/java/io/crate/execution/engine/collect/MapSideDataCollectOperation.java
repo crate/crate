@@ -40,9 +40,11 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.StampedLock;
 
 /**
  * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
@@ -55,8 +57,9 @@ public class MapSideDataCollectOperation {
     private static final MemoryMXBean MEMORY_MX_BEAN = ManagementFactory.getMemoryMXBean();
     private final CollectSourceResolver collectSourceResolver;
     private final ThreadPool threadPool;
-    private final Queue<DeferredRunnable> pendingMemoryIntenseExecutions = new ArrayBlockingQueue<>(100);
+    private final Queue<DeferredAction> deferredMemoryIntensiveExecutions = new ArrayBlockingQueue<>(100);
     private final AtomicLong unclaimedMemory = new AtomicLong((long) (MEMORY_MX_BEAN.getHeapMemoryUsage().getMax() * 0.60));
+    private final StampedLock lock = new StampedLock();
 
     @Inject
     public MapSideDataCollectOperation(CollectSourceResolver collectSourceResolver, ThreadPool threadPool) {
@@ -67,21 +70,22 @@ public class MapSideDataCollectOperation {
             //noinspection InfiniteLoopStatement
             while (true) {
                 try {
-                    DeferredRunnable runnable = pendingMemoryIntenseExecutions.poll();
+                    DeferredAction runnable = deferredMemoryIntensiveExecutions.poll();
                     if (runnable == null) {
                         Thread.sleep(20);
                     } else {
-                        // we don't care if we have not enough unclaimed memory left,
-                        // we always want to at least try to execute 1 memory intensive query. We may overestimate the usage
-                        // and it could work; Otherwise the circuit breaker should kick-in
-                        unclaimedMemory.updateAndGet(
-                            currentlyUnclaimed -> currentlyUnclaimed - runnable.estimatedRequiredMemoryInBytes);
+                        System.out.println("waiting for lock");
+                        // TODO: could allow some concurrency depending on the available unclaimedMemory
+                        long stamp = lock.writeLock();
+                        System.out.println("lock claimed");
+                        runnable.completionFuture.whenComplete((res, err) -> {
+                            lock.unlockWrite(stamp);
+                            System.out.println("lock released");
+                        });
                         try {
-                            runnable.runnable.run();
+                            runnable.run();
                         } catch (Throwable t) {
                             LOGGER.error(t);
-                        } finally {
-                            unclaimedMemory.updateAndGet(currentlyUnclaimed -> currentlyUnclaimed + runnable.estimatedRequiredMemoryInBytes);
                         }
                     }
                 } catch (InterruptedException ignored) {
@@ -98,26 +102,22 @@ public class MapSideDataCollectOperation {
         return service.getIterator(txnCtx, collectPhase, collectTask, requiresScroll);
     }
 
-    public void launch(Runnable runnable, CollectPhase collectPhase, boolean involvesIO) {
+    public void launch(Runnable runnable, CollectPhase collectPhase, boolean involvesIO, CompletableFuture<?> completionFuture) {
         String threadPoolName = threadPoolName(collectPhase, involvesIO);
         Executor executor = threadPool.executor(threadPoolName);
 
         if (collectPhase instanceof RoutedCollectPhase && largeMemoryUsageExpected(((RoutedCollectPhase) collectPhase))) {
             // TODO: need real estimates
             long estimatedRequiredMemory = 10L * 1024 * 1024 * 1024;
+
             long newUnclaimedMemory = unclaimedMemory.updateAndGet(currentlyUnclaimed -> currentlyUnclaimed - estimatedRequiredMemory);
+            completionFuture.whenComplete(
+                (result, err) -> unclaimedMemory.updateAndGet(currentlyUnclaimed -> currentlyUnclaimed + estimatedRequiredMemory));
             if (newUnclaimedMemory > 0L) {
-                executor.execute(() -> {
-                    try {
-                        runnable.run();
-                    } finally {
-                        unclaimedMemory.updateAndGet(currentlyUnclaimed -> currentlyUnclaimed +
-                                                                           estimatedRequiredMemory);
-                    }
-                });
+                executor.execute(runnable);
             } else {
                 // TODO: should we also memorize the threadPool and do another context switch into that executor when processing the deferred runnable
-                if (!pendingMemoryIntenseExecutions.offer(new DeferredRunnable(runnable, estimatedRequiredMemory))) {
+                if (!deferredMemoryIntensiveExecutions.offer(new DeferredAction(runnable, completionFuture))) {
                     throw new RejectedExecutionException(
                         "No capacity left to run queries which are expected to require a lot of memory");
                 }
@@ -147,14 +147,20 @@ public class MapSideDataCollectOperation {
         return involvedIO ? ThreadPool.Names.SEARCH : ThreadPool.Names.SAME;
     }
 
-    static class DeferredRunnable {
+
+    static class DeferredAction implements Runnable {
 
         private final Runnable runnable;
-        private final long estimatedRequiredMemoryInBytes;
+        private final CompletableFuture<?> completionFuture;
 
-        public DeferredRunnable(Runnable runnable, long estimatedRequiredMemoryInBytes) {
+        public DeferredAction(Runnable runnable, CompletableFuture<?> completionFuture) {
             this.runnable = runnable;
-            this.estimatedRequiredMemoryInBytes = estimatedRequiredMemoryInBytes;
+            this.completionFuture = completionFuture;
+        }
+
+        @Override
+        public void run() {
+            runnable.run();
         }
     }
 }
