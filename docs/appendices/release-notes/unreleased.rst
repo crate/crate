@@ -62,6 +62,10 @@ Deprecations
 Changes
 =======
 
+- Added support for casting to :ref:`geo_point_data_type`,
+  :ref:`geo_shape_data_type` and :ref:`object_data_type` array data types.
+  For example: ``cast(['POINT(2 3)','POINT(1 3)'] AS array(geo_point))``
+
 - Added a ``failures`` column to the :ref:`sys.snapshots <sys-snapshots>`
   table.
 

@@ -1547,16 +1547,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testInvalidTryCastExpression() {
-        expectedException.expect(Exception.class);
-        expectedException.expectMessage("No cast function found for return type object");
-        analyze("select try_cast(name as array(object)) from users");
-    }
-
-    @Test
     public void testInvalidCastExpression() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("No cast function found for return type object");
+        expectedException.expectMessage("Cannot cast text to type object_array");
         analyze("select cast(name as array(object)) from users");
     }
 

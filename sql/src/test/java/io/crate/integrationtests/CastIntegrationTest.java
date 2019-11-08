@@ -74,7 +74,7 @@ public class CastIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidCastExpression() throws Exception {
         expectedException.expect(Exception.class);
-        expectedException.expectMessage("No cast function found for return type object");
-        execute("select try_cast(name as array(object)) from sys.cluster");
+        expectedException.expectMessage("Cannot cast text to type object_array");
+        execute("select cast(name as array(object)) from sys.cluster");
     }
 }

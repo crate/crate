@@ -24,7 +24,10 @@ package io.crate.expression.scalar.cast;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.geo.GeoJSONUtils;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.AfterClass;
@@ -38,7 +41,10 @@ import java.util.Map;
 import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.types.DataTypes.GEO_POINT;
+import static io.crate.types.DataTypes.GEO_SHAPE;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -139,6 +145,35 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("timestamp::timestamp with time zone",
                        978310861000L,
                        Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2001-01-01T01:01:01Z")));
+    }
+
+    @Test
+    public void test_cast_geo_shape_array_to_object_array() {
+        Map<String, Object> shape = Map.of(
+            "type", "Point",
+            "coordinates", new Double[]{0d, 0d});
+        assertEvaluate("[geoshape]::array(object)", List.of(shape), Literal.of(shape));
+    }
+
+    @Test
+    public void test_cast_wkt_point_string_array_to_geo_point_array() {
+        assertEvaluate("['POINT(2 3)','POINT(1 3)']::array(geo_point)",
+            List.of(GEO_POINT.value("POINT(2 3)"), GEO_POINT.value("POINT(1 3)")));
+    }
+
+    @Test
+    public void test_cast_wkt_point_string_array_to_geo_shape_array() {
+        Symbol funcSymbol = sqlExpressions.asSymbol("['POINT(2 3)']::array(geo_shape)");
+        assertThat(funcSymbol.valueType(), is(new ArrayType<>(GEO_SHAPE)));
+        //noinspection unchecked
+        var geoShapes = (List<Map<String, Object>>) ((Literal) funcSymbol).value();
+        assertThat(
+            GEO_SHAPE.compareValueTo(
+                geoShapes.get(0),
+                Map.of(
+                    GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
+                    GeoJSONUtils.COORDINATES_FIELD, new Double[]{2.0, 3.0})
+            ), is(0));
     }
 
     /**
