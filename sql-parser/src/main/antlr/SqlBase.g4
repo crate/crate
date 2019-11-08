@@ -91,6 +91,7 @@ statement
         (ON clazz qnames)? FROM users=idents                                         #revokePrivilege
     | createStmt                                                                     #create
     | DEALLOCATE (PREPARE)? (ALL | prepStmt=stringLiteralOrIdentifierOrQname)        #deallocate
+    | ANALYZE                                                                        #analyze
     ;
 
 query:

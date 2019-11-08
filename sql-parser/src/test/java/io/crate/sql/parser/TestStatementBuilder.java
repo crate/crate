@@ -108,6 +108,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_analyze_statement_can_be_parsed() {
+        printStatement("ANALYZE");
+    }
+
+    @Test
     public void testEmptyOverClauseAfterFunction() {
         printStatement("SELECT avg(x) OVER () FROM t");
     }

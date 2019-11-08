@@ -242,4 +242,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitAlterTable(AnalyzedAlterTable alterTable, C context) {
         return visitDDLStatement(alterTable, context);
     }
+
+    public R visitAnalyze(AnalyzedAnalyze analyzedAnalyze, C context) {
+        return visitDDLStatement(analyzedAnalyze, context);
+    }
 }
