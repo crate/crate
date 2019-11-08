@@ -45,6 +45,10 @@ import java.util.Map;
 
 public class Insert implements LogicalPlan {
 
+    public ColumnIndexWriterProjection columnIndexWriterProjection() {
+        return writeToTable;
+    }
+
     private final ColumnIndexWriterProjection writeToTable;
 
     @Nullable

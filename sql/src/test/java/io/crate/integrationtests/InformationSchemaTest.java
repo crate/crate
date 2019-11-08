@@ -1062,8 +1062,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rowCount());
 
         assertThat(printedTable(response.rows()),
-            is("my_table| 04130| {metadata['date']=0}\n" +
-               "my_table| 04732d1g64p36d9i60o30c1g| {metadata['date']=1401235200000}\n"));
+            is("my_table| 045j2e9n60mj0c9d60og| {metadata['date']=0}\n" +
+               "my_table| 045j4c1h6gmj0d9d68s0| {metadata['date']=1401235200000}\n"));
     }
 
     @Test

@@ -29,8 +29,10 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -161,11 +163,14 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     @Test
     public void testInsertDynamicNullArrayInBulk() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0, column_policy = 'dynamic')");
+        var listWithNull = new ArrayList<>(1);
+        listWithNull.add(null);
         long[] rowCounts = execute("insert into foo (bar) values (?)",
             new Object[][]{
-                new Object[]{new Object[]{null}},
-                new Object[]{new Object[]{1, 2}},
+                new Object[]{listWithNull},
+                new Object[]{List.of(1, 2)},
             });
+        refresh();
         assertThat(rowCounts[0], is(1L));
         assertThat(rowCounts[1], is(1L));
 

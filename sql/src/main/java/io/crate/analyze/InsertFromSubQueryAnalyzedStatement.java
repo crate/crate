@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static java.util.Objects.requireNonNull;
 
@@ -53,7 +54,6 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
     private final DocTableInfo targetTable;
     private final AnalyzedRelation subQueryRelation;
     private final boolean ignoreDuplicateKeys;
-    @Nullable
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
     private final List<Reference> targetColumns;
     private final List<Symbol> primaryKeySymbols;
@@ -65,7 +65,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
                                                DocTableInfo tableInfo,
                                                List<Reference> targetColumns,
                                                boolean ignoreDuplicateKeys,
-                                               @Nullable Map<Reference, Symbol> onDuplicateKeyAssignments) {
+                                               Map<Reference, Symbol> onDuplicateKeyAssignments) {
         this.targetTable = tableInfo;
         this.subQueryRelation = subQueryRelation;
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;
@@ -185,6 +185,18 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
     }
 
     @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        Relations.traverseDeepSymbols(subQueryRelation, consumer);
+        targetColumns.forEach(consumer);
+        onDuplicateKeyAssignments.values().forEach(consumer);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
+    }
+
+    @Override
     public boolean isWriteOperation() {
         return true;
     }
@@ -193,7 +205,6 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
         return ignoreDuplicateKeys;
     }
 
-    @Nullable
     public Map<Reference, Symbol> onDuplicateKeyAssignments() {
         return onDuplicateKeyAssignments;
     }

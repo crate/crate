@@ -793,7 +793,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateNotNullTargetGeneratedColumn() {
         execute("create table generated_column (" +
-                " id int primary key," +
+                " id int primary key,"  +
                 " ts timestamp with time zone," +
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");

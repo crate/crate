@@ -47,7 +47,7 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     /**
      * @param requestFactory function to create a request
      */
-    ShardedRequests(Function<ShardId, TReq> requestFactory) {
+    public ShardedRequests(Function<ShardId, TReq> requestFactory) {
         this.requestFactory = requestFactory;
     }
 
@@ -87,7 +87,15 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         return usedMemoryEstimate;
     }
 
-    static class ItemAndRoutingAndSourceInfo<TItem> {
+    public Map<String, List<ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingIndex() {
+        return itemsByMissingIndex;
+    }
+
+    public Map<ShardLocation, TReq> itemsByShard() {
+        return itemsByShard;
+    }
+
+    public static class ItemAndRoutingAndSourceInfo<TItem> {
         final TItem item;
         final String routing;
         final RowSourceInfo rowSourceInfo;
@@ -96,6 +104,14 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
             this.item = item;
             this.routing = routing;
             this.rowSourceInfo = rowSourceInfo;
+        }
+
+        public String routing() {
+            return routing;
+        }
+
+        public TItem item() {
+            return item;
         }
     }
 

@@ -80,7 +80,7 @@ import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 public class DocIndexMetaData {
 
-    private static final String ID = "_id";
+    public static final String ID = "_id";
 
     private static final String SETTING_CLOSED = "closed";
 

@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -45,11 +46,11 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     private final List<Symbol> columnSymbols;
     private final List<Reference> targetColsExclPartitionCols;
     private final boolean ignoreDuplicateKeys;
-    @Nullable
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
+    private final List<Reference> allTargetReferences;
 
     /**
-     * @param relationName                identifying the table to write to
+     * @param relationName              identifying the table to write to
      * @param columns                   the columnReferences of all the columns to be written in order of appearance
      * @param onDuplicateKeyAssignments reference to symbol map used for update on duplicate key
      */
@@ -58,7 +59,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<ColumnIdent> primaryKeys,
                                        List<Reference> columns,
                                        boolean ignoreDuplicateKeys,
-                                       @Nullable Map<Reference, Symbol> onDuplicateKeyAssignments,
+                                       Map<Reference, Symbol> onDuplicateKeyAssignments,
                                        List<Symbol> primaryKeySymbols,
                                        List<ColumnIdent> partitionedByColumns,
                                        List<Symbol> partitionedBySymbols,
@@ -69,6 +70,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
         assert partitionedBySymbols.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
             : "All references and fields in partitionedBySymbols must be resolved to inputColumns, got: " + partitionedBySymbols;
+        this.allTargetReferences = columns;
         this.partitionedBySymbols = partitionedBySymbols;
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
@@ -111,6 +113,20 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         } else {
             onDuplicateKeyAssignments = Collections.emptyMap();
         }
+
+        if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
+            int mapSize = in.readVInt();
+            allTargetReferences = new ArrayList<>();
+            for (int i = 0; i < mapSize; i++) {
+                allTargetReferences.add(Reference.fromStream(in));
+            }
+        } else {
+            allTargetReferences = List.of();
+        }
+    }
+
+    public List<Reference> allTargetReferences() {
+        return allTargetReferences;
     }
 
     public List<Symbol> columnSymbols() {
@@ -196,5 +212,11 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             }
         }
 
+        if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+            out.write(allTargetReferences.size());
+            for (var ref : allTargetReferences) {
+                Symbols.toStream(ref, out);
+            }
+        }
     }
 }

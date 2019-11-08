@@ -510,7 +510,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             } catch (BatchUpdateException e) {
                 assertThat(e.getUpdateCounts(), is(new int[]{-3, -3, -3}));
                 SQLException nextException = e.getNextException();
-                assertThat(nextException.getMessage(), Matchers.containsString("Cannot cast 'foobar' to type integer"));
+                assertThat(nextException.getMessage(), Matchers.containsString("Invalid value 'foobar' for type 'integer'"));
             }
 
             conn.createStatement().executeUpdate("refresh table t");

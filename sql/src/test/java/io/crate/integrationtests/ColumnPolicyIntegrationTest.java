@@ -49,6 +49,7 @@ import java.util.Map;
 
 import static io.crate.metadata.table.ColumnPolicies.decodeMappingValue;
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -269,8 +270,9 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             });
         execute("refresh table books");
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column author['name']['middle_name'] unknown");
-        authorMap = new HashMap<String, Object>() {{
+        expectedException.expectMessage(
+            containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"));
+        authorMap = new HashMap<>() {{
             put("name", new HashMap<String, Object>() {{
                 put("first_name", "Douglas");
                 put("middle_name", "Noel");

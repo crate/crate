@@ -41,6 +41,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -59,16 +60,19 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     private final CheckConstraints<Map<String, Object>, CollectExpression<Map<String, Object>, ?>> checks;
     private final GeneratedColumns<Row> generatedColumns;
     private final Object[] defaultValues;
+    private final boolean dryRun;
 
-    InsertSourceFromCells(TransactionContext txnCtx,
-                          Functions functions,
-                          DocTableInfo table,
-                          String indexName,
-                          GeneratedColumns.Validation validation,
-                          List<Reference> targets) {
+    public InsertSourceFromCells(TransactionContext txnCtx,
+                                 Functions functions,
+                                 DocTableInfo table,
+                                 String indexName,
+                                 GeneratedColumns.Validation validation,
+                                 List<Reference> targets,
+                                 boolean dryRun) {
         Tuple<List<Reference>, Object[]> allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, functions);
         this.targets = allTargetColumnsAndDefaults.v1();
         this.defaultValues = allTargetColumnsAndDefaults.v2();
+        this.dryRun = dryRun;
 
         ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(this.targets, table.partitionedByColumns(), indexName);
         InputFactory inputFactory = new InputFactory(functions);
@@ -89,6 +93,15 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             inputFactory,
             new FromSourceRefResolver(table.partitionedByColumns(), indexName),
             table);
+    }
+
+    InsertSourceFromCells(TransactionContext txnCtx,
+                          Functions functions,
+                          DocTableInfo table,
+                          String indexName,
+                          GeneratedColumns.Validation validation,
+                          List<Reference> targets) {
+        this(txnCtx, functions, table, indexName, validation, targets, false);
     }
 
     @Override
@@ -115,15 +128,19 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         }
 
         generatedColumns.setNextRow(row);
-
         generatedColumns.validateValues(source);
+
         for (var entry : generatedColumns.generatedToInject()) {
             ColumnIdent column = entry.getKey().column();
             Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
         }
         checks.validate(source);
 
-        return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
+        if (dryRun) {
+            return BytesArray.EMPTY;
+        } else {
+            return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
+        }
     }
 
     private Tuple<List<Reference>, Object[]> addDefaults(List<Reference> targets,

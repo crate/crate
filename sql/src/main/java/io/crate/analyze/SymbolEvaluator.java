@@ -50,7 +50,7 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
 
     private final SubQueryResults subQueryResults;
 
-    private SymbolEvaluator(TransactionContext txnCtx, Functions functions, SubQueryResults subQueryResults) {
+    public SymbolEvaluator(TransactionContext txnCtx, Functions functions, SubQueryResults subQueryResults) {
         super(txnCtx, functions);
         this.subQueryResults = subQueryResults;
     }

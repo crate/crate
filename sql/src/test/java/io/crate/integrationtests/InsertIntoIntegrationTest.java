@@ -85,6 +85,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals("Zoon", response.rows()[0][1]);
     }
 
+
     @Test
     public void testInsertAllCoreDatatypes() throws Exception {
         execute("create table test (" +
@@ -189,7 +190,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureYellow();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast '192.168.1.500' to type ip");
+        expectedException.expectMessage("Invalid value '192.168.1.500' for type 'ip'");
         execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')");
     }
 
@@ -417,7 +418,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         };
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Primary key is required but is missing from the insert statement");
+        expectedException.expectMessage("Column \"pk_col\" is required but is missing from the insert statement");
 
         execute("insert into test (message) values (?)", args);
     }
@@ -748,8 +749,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         // copy all over from 'characters' table
         execute("insert into t (id, name, female) (select id, name, female from characters)");
-        assertThat(response.rowCount(), is(4L));
         refresh();
+        assertThat(response.rowCount(), is(4L));
 
         execute("select female, count(*) from t group by female order by female");
         assertThat(response.rowCount(), is(2L));
@@ -759,8 +760,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (id, name, female) (select id, name, female from characters) " +
                 "on conflict (id) do update set female = ?",
             new Object[]{true});
-        assertThat(response.rowCount(), is(4L));
         refresh();
+        assertThat(response.rowCount(), is(4L));
 
         execute("select female, count(*) from t group by female");
         assertThat(response.rowCount(), is(1L));
@@ -769,8 +770,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         // set all 'female' values back to their original values
         execute("insert into t (id, name, female) (select id, name, female from characters) " +
                 "on conflict (id) do update set female = excluded.female");
-        assertThat(response.rowCount(), is(4L));
         refresh();
+        assertThat(response.rowCount(), is(4L));
 
         execute("select female, count(*) from t group by female order by female");
         assertThat(response.rowCount(), is(2L));
@@ -985,8 +986,11 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertIntoLongPartitionedBy() throws Exception {
         execute("create table import (col1 int, col2 long primary key) partitioned by (col2)");
-        ensureYellow();
         execute("insert into import (col1, col2) values (1, 1)");
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+        execute("select * from import");
+        assertThat(printedTable(response.rows()), is("1| 1\n"));
     }
 
     @Test
@@ -1041,12 +1045,12 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into test_generated_column (id, ts) values (?, ?)", new Object[]{
-            1, "2015-11-18T11:11:00"});
+            1, "2015-11-18T11:11:00Z"});
         refresh();
 
         execute("insert into test_generated_column (id, ts) values (?, ?)" +
                 "on conflict (id) do update set ts = ?",
-            new Object[]{1, "2015-11-18T11:11:00", "2015-11-23T14:43:00"});
+            new Object[]{1, "2015-11-18T11:11:00Z", "2015-11-23T14:43:00Z"});
         refresh();
 
         execute("select ts, day from test_generated_column");
@@ -1234,7 +1238,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         // wrong value
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Given value 0 for generated column does not match defined generated expression value 4");
+        expectedException.expectMessage("Given value 0 for generated column col2 does not match calculation (col1 + 3) = 4");
         execute("insert into test(col1, col2) values (1, 0)");
     }
 
@@ -1306,18 +1310,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGeneratedColumnAsPrimaryKeyValueEvaluateToNull() throws Exception {
-        // test that correct exception message is thrown
-        execute("create table generated_test (" +
-                " a double," +
-                " b double," +
-                " c double," +
-                " sum as (a+b/c) PRIMARY KEY" +
-                ")");
-        ensureYellow();
-
+        execute("CREATE TABLE test (col1 TEXT, col2 AS try_cast(col1 AS INT) PRIMARY KEY)");
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Primary key value must not be NULL");
-        execute("insert into generated_test (a, c) values (1.0, 3.0)");
+        execute("insert into test (col1) values ('a')");
     }
 
     @Test

@@ -87,6 +87,7 @@ public class SwapTableITest extends SQLTransportIntegrationTest {
         execute("create table t2 (p int) partitioned by (p) clustered into 1 shards with (number_of_replicas = 0)");
 
         execute("insert into t1 (p) values (1), (2)");
+        execute("refresh table t1, t2");
 
         execute("alter cluster swap table t1 to t2");
         execute("select * from t1");

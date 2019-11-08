@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -180,11 +181,11 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInvalidInsertIntoObject() throws Exception {
+        setUpObjectTable();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Validation failed for object_field['created']: Invalid timestamp");
-
-        setUpObjectTable();
+        expectedException.expectMessage(
+            "Validation failed for object_field: Invalid value '{size=127, created=true}'");
         execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
             new HashMap<String, Object>() {{
                 put("created", true);
@@ -303,7 +304,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("t1", "o.a");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Validation failed for o['a']: Invalid text");
+        expectedException.expectMessage("Invalid value '{a=[123, 456]}' for type 'object'");
         execute("insert into t1 values ({a=['123', '456']})");
     }
 
@@ -361,7 +362,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInsertNewColumnToStrictObject() throws Exception {
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column strict_field['another_new_col'] unknown");
+        expectedException.expectMessage(
+            containsString("dynamic introduction of [another_new_col] within [strict_field] is not allowed"));
 
         setUpObjectTable();
         Map<String, Object> strictContent = new HashMap<String, Object>() {{

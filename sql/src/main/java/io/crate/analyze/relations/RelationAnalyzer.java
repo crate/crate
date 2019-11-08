@@ -97,6 +97,7 @@ import io.crate.sql.tree.Union;
 import io.crate.sql.tree.Values;
 import io.crate.sql.tree.ValuesList;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.common.collect.Tuple;
@@ -731,42 +732,51 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             new SubqueryAnalyzer(this, context)
         );
         var expressionAnalysisContext = new ExpressionAnalysisContext();
-        java.util.function.Function<Expression, Symbol> expressionToSymbol = e -> expressionAnalyzer.convert(e, expressionAnalysisContext);
+        java.util.function.Function<Expression, Symbol> expressionToSymbol =
+            e -> expressionAnalyzer.convert(e, expressionAnalysisContext);
 
-        ArrayList<List<Symbol>> rows = new ArrayList<>(values.rows().size());
-        List<Symbol> firstRow = null;
-        for (ValuesList row : values.rows()) {
-            List<Symbol> columns = Lists2.map(row.values(), expressionToSymbol);
-            rows.add(columns);
-            if (firstRow == null) {
-                firstRow = columns;
-            } else {
-                if (firstRow.size() != columns.size()) {
+        // We re-write VALUES to a _VALUES table function, so that we can re-use the execution layer logic.
+        // There is a first pass to convert expressions from row oriented format:
+        // `[[1, a], [2, b]]` to columns `[[1, 2], [a, b]]`
+        //
+        // At the same time we determine the column type with the highest precedence,
+        // so that we don't fail with slight type miss-matches (long vs. int)
+        List<ValuesList> rows = values.rows();
+        assert rows.size() > 0 : "Parser grammar enforces at least 1 row";
+        ValuesList firstRow = rows.get(0);
+        int numColumns = firstRow.values().size();
+
+        ArrayList<List<Symbol>> columns = new ArrayList<>();
+        ArrayList<DataType<?>> targetTypes = new ArrayList<>(numColumns);
+        for (int c = 0; c < numColumns; c++) {
+            ArrayList<Symbol> columnValues = new ArrayList<>();
+            DataType<?> targetType = DataTypes.UNDEFINED;
+            for (int r = 0; r < rows.size(); r++) {
+                List<Expression> row = rows.get(r).values();
+                if (row.size() != numColumns) {
                     throw new IllegalArgumentException(
                         "VALUES lists must all be the same length. " +
-                        "Found row with " + firstRow.size() + " items and another with " + columns.size() + " items");
+                        "Found row with " + numColumns + " items and another with " + columns.size() + " items");
                 }
-                for (int i = 0; i < firstRow.size(); i++) {
-                    var typeOfFirstRowAtPos = firstRow.get(i).valueType();
-                    var typeOfCurrentRowAtPos = columns.get(i).valueType();
-                    if (!typeOfCurrentRowAtPos.equals(typeOfFirstRowAtPos)) {
-                        throw new IllegalArgumentException(
-                            "The types of the columns within VALUES lists must match. " +
-                            "Found `" + typeOfFirstRowAtPos + "` and `" + typeOfCurrentRowAtPos + "` at position: " + i);
-                    }
+                Symbol cell = expressionToSymbol.apply(row.get(c));
+                columnValues.add(cell);
+                if (cell.valueType().precedes(targetType)) {
+                    targetType = cell.valueType();
+                } else if (!cell.valueType().isConvertableTo(targetType)) {
+                    throw new IllegalArgumentException(
+                        "The types of the columns within VALUES lists must match. " +
+                        "Found `" + targetType + "` and `" + cell.valueType() + "` at position: " + c);
                 }
             }
+            targetTypes.add(targetType);
+            columns.add(columnValues);
         }
-        assert firstRow != null : "Parser grammar enforces at least 1 row, so firstRow can't be null";
 
-        // We re-write VALUES to a UNNEST table function, so that we can re-use the execution layer logic
-
-        List<List<Symbol>> columns = Lists2.toColumnOrientation(rows);
         ArrayList<Symbol> arrays = new ArrayList<>(columns.size());
-        for (int i = 0; i < firstRow.size(); i++) {
-            Symbol column = firstRow.get(i);
-            ArrayType<?> arrayType = new ArrayType<>(column.valueType());
-            List<Symbol> columnValues = columns.get(i);
+        for (int c = 0; c < numColumns; c++) {
+            DataType<?> targetType = targetTypes.get(c);
+            ArrayType<?> arrayType = new ArrayType<>(targetType);
+            List<Symbol> columnValues = Lists2.map(columns.get(c), s -> s.cast(targetType));
             arrays.add(new Function(
                 new FunctionInfo(new FunctionIdent(ArrayFunction.NAME, Symbols.typeView(columnValues)), arrayType),
                 columnValues
@@ -780,6 +790,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ),
             arrays
         );
+
         FunctionImplementation implementation = functions.getQualified(function.info().ident());
         TableFunctionImplementation tableFunc = TableFunctionFactory.from(implementation);
         TableInfo tableInfo = tableFunc.createTableInfo();

@@ -41,9 +41,11 @@ import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
@@ -119,6 +121,7 @@ class InsertFromSubQueryAnalyzer {
 
         List<Reference> targetColumns =
             new ArrayList<>(resolveTargetColumns(insert.columns(), targetTable, subQueryRelation.fields().size()));
+        validateClusterByColumn(targetColumns, targetTable);
         validateColumnsAndAddCastsIfNecessary(targetColumns, subQueryRelation.outputs());
 
         Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
@@ -149,17 +152,18 @@ class InsertFromSubQueryAnalyzer {
             analysis.sessionContext().searchPath()
         );
 
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-        FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
-
         AnalyzedRelation source = relationAnalyzer.analyze(
             node.subQuery(), analysis.transactionContext(), analysis.parameterContext());
 
+
         List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));
+        validateClusterByColumn(targetColumns, tableInfo);
         validateColumnsAndAddCastsIfNecessary(targetColumns, source.outputs());
 
         verifyOnConflictTargets(node.getDuplicateKeyContext(), tableInfo);
 
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+        FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
             tableRelation,
             targetColumns,
@@ -244,6 +248,39 @@ class InsertFromSubQueryAnalyzer {
             idx++;
         }
         return columns;
+    }
+
+    private static void validateClusterByColumn(List<Reference> targetColumns, DocTableInfo tableInfo) {
+        ColumnIdent clusteredBy = tableInfo.clusteredBy();
+        if (clusteredBy != null &&
+            !clusteredBy.name().equalsIgnoreCase(DocIndexMetaData.ID) &&
+            !targetColumns.contains(tableInfo.getReference(clusteredBy)) &&
+            !tableInfo.primaryKey().contains(clusteredBy)) {
+
+            var clusterByRef = tableInfo.getReference(clusteredBy);
+            if (clusterByRef != null
+                && clusterByRef.defaultExpression() == null
+                && !checkReferencesForGeneratedColumn(clusteredBy, tableInfo)) {
+                throw new IllegalArgumentException(
+                    "Clustered by value is required but is missing from the insert statement");
+            }
+        }
+    }
+
+    private static boolean checkReferencesForGeneratedColumn(ColumnIdent columnIdent,
+                                                             DocTableInfo tableInfo) {
+        Reference reference = tableInfo.getReference(columnIdent);
+        if (reference instanceof GeneratedReference) {
+            for (Reference referencedReference : ((GeneratedReference) reference).referencedReferences()) {
+                for (Reference columnRef : tableInfo.columns()) {
+                    if (columnRef.equals(referencedReference) ||
+                        referencedReference.column().isChildOf(columnRef.column())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**

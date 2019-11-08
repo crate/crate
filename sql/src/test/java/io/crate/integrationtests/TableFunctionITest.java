@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
