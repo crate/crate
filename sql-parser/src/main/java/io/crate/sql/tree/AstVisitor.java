@@ -603,4 +603,8 @@ public abstract class AstVisitor<R, C> {
     public R visitValues(Values values, C context) {
         return visitRelation(values, context);
     }
+
+    public R visitAnalyze(AnalyzeStatement analyzeStatement, C context) {
+        return visitStatement(analyzeStatement, context);
+    }
 }

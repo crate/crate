@@ -30,6 +30,7 @@ import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
+import io.crate.analyze.AnalyzedAnalyze;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedCopyFrom;
@@ -236,6 +237,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     protected Plan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, PlannerContext context) {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                                                               "Cannot create Plan from AnalyzedStatement \"%s\"  - not supported.", analyzedStatement));
+    }
+
+    @Override
+    public Plan visitAnalyze(AnalyzedAnalyze analyzedAnalyze, PlannerContext context) {
+        return new AnalyzePlan();
     }
 
     @Override
