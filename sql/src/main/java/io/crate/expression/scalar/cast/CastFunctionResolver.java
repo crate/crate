@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.cast;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
@@ -47,16 +47,17 @@ public class CastFunctionResolver {
     static final Map<DataType, String> CAST_SIGNATURES; // data type -> name
 
     static {
-        CAST_SIGNATURES = new HashMap<>((PRIMITIVE_TYPES.size()) * 3 + 3);
-        for (var type : PRIMITIVE_TYPES) {
+        List<DataType> CAST_FUNC_TYPES = Lists2.concat(
+            PRIMITIVE_TYPES,
+            List.of(GEO_SHAPE, GEO_POINT, ObjectType.untyped()));
+
+        CAST_SIGNATURES = new HashMap<>((CAST_FUNC_TYPES.size()) * 2);
+        for (var type : CAST_FUNC_TYPES) {
             CAST_SIGNATURES.put(type, castFuncName(type));
 
-            var arrayType = new ArrayType(type);
+            var arrayType = new ArrayType<>(type);
             CAST_SIGNATURES.put(arrayType, castFuncName(arrayType));
         }
-        CAST_SIGNATURES.put(ObjectType.untyped(), castFuncName(ObjectType.untyped()));
-        CAST_SIGNATURES.put(GEO_POINT, castFuncName(GEO_POINT));
-        CAST_SIGNATURES.put(GEO_SHAPE, castFuncName(GEO_SHAPE));
     }
 
     private static String castFuncName(DataType type) {
@@ -72,8 +73,7 @@ public class CastFunctionResolver {
     /**
      * resolve the needed conversion function info based on the wanted return data type
      */
-    @VisibleForTesting
-    static FunctionInfo functionInfo(DataType dataType, DataType returnType, boolean tryCast) {
+    private static FunctionInfo functionInfo(DataType dataType, DataType returnType, boolean tryCast) {
         String functionName = CAST_SIGNATURES.get(returnType);
         if (functionName == null) {
             throw new IllegalArgumentException(
