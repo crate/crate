@@ -47,6 +47,7 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -97,20 +98,22 @@ public class TableStatsService implements Runnable {
         updateStats();
     }
 
-    private void updateStats() {
+    public CompletableFuture<Void> updateStats() {
         if (clusterService.localNode() == null) {
             /*
               During a long startup (e.g. during an upgrade process) the localNode() may be null
               and this would lead to NullPointerException in the TransportExecutor.
              */
             LOGGER.debug("Could not retrieve table stats. localNode is not fully available yet.");
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         try {
             session.quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
+            return resultReceiver.completionFuture();
         } catch (Throwable t) {
             LOGGER.error("error retrieving table stats", t);
+            return CompletableFuture.failedFuture(t);
         }
     }
 

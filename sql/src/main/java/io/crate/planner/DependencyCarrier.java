@@ -26,6 +26,7 @@ import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.RepositoryService;
+import io.crate.execution.ddl.TransportAnalyzeAction;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
@@ -42,6 +43,7 @@ import io.crate.metadata.Schemas;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -71,6 +73,7 @@ public class DependencyCarrier {
     private final TransportCreateUserDefinedFunctionAction createFunctionAction;
     private final TransportDropUserDefinedFunctionAction dropFunctionAction;
     private final LicenseService licenseService;
+    private final Provider<TransportAnalyzeAction> analyzeAction;
     private final AlterTableOperation alterTableOperation;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final RepositoryService repositoryService;
@@ -93,6 +96,7 @@ public class DependencyCarrier {
                              TransportCreateIndexAction createIndexAction,
                              TransportCreateUserDefinedFunctionAction createFunctionAction,
                              TransportDropUserDefinedFunctionAction dropFunctionAction,
+                             Provider<TransportAnalyzeAction> analyzeAction,
                              AlterTableOperation alterTableOperation,
                              FulltextAnalyzerResolver fulltextAnalyzerResolver,
                              RepositoryService repositoryService,
@@ -114,6 +118,7 @@ public class DependencyCarrier {
         this.createIndexAction = createIndexAction;
         this.createFunctionAction = createFunctionAction;
         this.dropFunctionAction = dropFunctionAction;
+        this.analyzeAction = analyzeAction;
         this.alterTableOperation = alterTableOperation;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.repositoryService = repositoryService;
@@ -210,5 +215,9 @@ public class DependencyCarrier {
 
     public RepositoryService repositoryService() {
         return repositoryService;
+    }
+
+    public TransportAnalyzeAction analyzeAction() {
+        return analyzeAction.get();
     }
 }

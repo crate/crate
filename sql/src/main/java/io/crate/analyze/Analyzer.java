@@ -38,6 +38,7 @@ import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AlterUser;
+import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.CommitStatement;
@@ -250,6 +251,11 @@ public class Analyzer {
                 analysis.parameterContext());
             analysis.rootRelation(relation);
             return relation;
+        }
+
+        @Override
+        public AnalyzedStatement visitAnalyze(AnalyzeStatement analyzeStatement, Analysis context) {
+            return new AnalyzedAnalyze();
         }
 
         @Override

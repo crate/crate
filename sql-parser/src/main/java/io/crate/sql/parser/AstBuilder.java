@@ -40,6 +40,7 @@ import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AlterUser;
+import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AnalyzerElement;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparisonExpression;
@@ -223,6 +224,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitBegin(SqlBaseParser.BeginContext context) {
         return new BeginStatement();
+    }
+
+    @Override
+    public Node visitAnalyze(SqlBaseParser.AnalyzeContext ctx) {
+        return new AnalyzeStatement();
     }
 
     @Override
