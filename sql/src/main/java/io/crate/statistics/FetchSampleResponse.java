@@ -20,35 +20,39 @@
  * agreement.
  */
 
-package io.crate.planner;
+package io.crate.statistics;
 
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.data.RowConsumer;
-import io.crate.execution.support.OneRowActionListener;
-import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import io.crate.Streamer;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportResponse;
 
-public final class AnalyzePlan implements Plan {
+import java.io.IOException;
+import java.util.List;
 
-    AnalyzePlan() {
+public final class FetchSampleResponse extends TransportResponse {
+
+    private final Samples samples;
+
+    public FetchSampleResponse(Samples samples) {
+        this.samples = samples;
+    }
+
+    public FetchSampleResponse(List<Streamer> streamers, StreamInput in) throws IOException {
+        this.samples = new Samples(streamers, in);
+    }
+
+    public Samples samples() {
+        return samples;
     }
 
     @Override
-    public StatementType type() {
-        return StatementType.MANAGEMENT;
+    public void writeTo(StreamOutput out) throws IOException {
+        samples.writeTo(out);
     }
 
-    @Override
-    public void executeOrFail(DependencyCarrier dependencies,
-                              PlannerContext plannerContext,
-                              RowConsumer consumer,
-                              Row params,
-                              SubQueryResults subQueryResults) throws Exception {
-
-        OneRowActionListener<AcknowledgedResponse> listener = new OneRowActionListener<>(
-            consumer,
-            req -> req.isAcknowledged() ? new Row1(1L) : new Row1(0L));
-        dependencies.analyzeAction().fetchSamplesThenGenerateAndPublishStats().whenComplete(listener);
+    public static FetchSampleResponse merge(int maxSampleSize, FetchSampleResponse s1, FetchSampleResponse s2) {
+        return new FetchSampleResponse(Samples.merge(maxSampleSize, s1.samples(), s2.samples(), Randomness.get()));
     }
 }
