@@ -5102,20 +5102,13 @@ public class InternalEngineTests extends EngineTestCase {
         List<List<Engine.Operation>> commits = new ArrayList<>();
         commits.add(new ArrayList<>());
         try (Store store = createStore()) {
-            EngineConfig config = config(indexSettings, store, translogPath,
-                                         newMergePolicy(), null, null, globalCheckpoint::get);
+            EngineConfig config = config(indexSettings, store, translogPath, NoMergePolicy.INSTANCE, null, null, globalCheckpoint::get);
             final List<DocIdSeqNoAndTerm> docs;
             try (InternalEngine engine = createEngine(config)) {
                 List<Engine.Operation> flushedOperations = new ArrayList<>();
                 for (Engine.Operation op : operations) {
                     flushedOperations.add(op);
-                    if (op instanceof Engine.Index) {
-                        engine.index((Engine.Index) op);
-                    } else if (op instanceof Engine.Delete) {
-                        engine.delete((Engine.Delete) op);
-                    } else {
-                        engine.noOp((Engine.NoOp) op);
-                    }
+                    applyOperation(engine, op);
                     if (randomBoolean()) {
                         engine.syncTranslog();
                         globalCheckpoint.set(randomLongBetween(globalCheckpoint.get(), engine.getPersistedLocalCheckpoint()));
@@ -5141,10 +5134,11 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(safeCommit, notNullValue());
             try (InternalEngine engine = new InternalEngine(config)) { // do not recover from translog
                 final LocalCheckpointTracker tracker = engine.getLocalCheckpointTracker();
+                final Set<Long> seqNosInSafeCommit = safeCommit.stream().map(op -> op.seqNo()).collect(Collectors.toSet());
                 for (Engine.Operation op : operations) {
                     assertThat("seq_no=" + op.seqNo() + " max_seq_no=" + tracker.getMaxSeqNo() + " checkpoint=" + tracker.getProcessedCheckpoint(),
                                tracker.hasProcessed(op.seqNo()),
-                               equalTo(safeCommit.contains(op.seqNo())));
+                               equalTo(seqNosInSafeCommit.contains(op.seqNo())));
                 }
                 engine.initializeMaxSeqNoOfUpdatesOrDeletes();
                 engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);

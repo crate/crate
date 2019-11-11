@@ -840,6 +840,36 @@ public abstract class EngineTestCase extends ESTestCase {
         }
     }
 
+    public static void applyOperations(Engine engine, List<Engine.Operation> operations) throws IOException {
+        for (Engine.Operation operation : operations) {
+            applyOperation(engine, operation);
+            if (randomInt(100) < 10) {
+                engine.refresh("test");
+            }
+            if (rarely()) {
+                engine.flush();
+            }
+        }
+    }
+
+    public static Engine.Result applyOperation(Engine engine, Engine.Operation operation) throws IOException {
+        final Engine.Result result;
+        switch (operation.operationType()) {
+            case INDEX:
+                result = engine.index((Engine.Index) operation);
+                break;
+            case DELETE:
+                result = engine.delete((Engine.Delete) operation);
+                break;
+            case NO_OP:
+                result = engine.noOp((Engine.NoOp) operation);
+                break;
+            default:
+                throw new IllegalStateException("No operation defined for [" + operation + "]");
+        }
+        return result;
+    }
+
     /**
      * Gets a collection of tuples of docId, sequence number, and primary term of all live documents in the provided engine.
      */
