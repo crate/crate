@@ -23,7 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;

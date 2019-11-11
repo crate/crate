@@ -31,7 +31,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Get;

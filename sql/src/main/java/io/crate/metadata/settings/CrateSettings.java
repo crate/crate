@@ -31,7 +31,7 @@ import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.planner.TableStatsService;
+import io.crate.statistics.TableStatsService;
 import io.crate.settings.CrateSetting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;

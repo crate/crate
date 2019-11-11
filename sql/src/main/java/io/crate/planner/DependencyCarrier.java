@@ -26,7 +26,7 @@ import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.RepositoryService;
-import io.crate.execution.ddl.TransportAnalyzeAction;
+import io.crate.statistics.TransportAnalyzeAction;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.TransportDropTableAction;

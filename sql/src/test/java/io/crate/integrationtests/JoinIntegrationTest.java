@@ -28,7 +28,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import org.elasticsearch.common.breaker.CircuitBreaker;

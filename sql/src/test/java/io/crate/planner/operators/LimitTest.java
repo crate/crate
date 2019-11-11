@@ -32,7 +32,7 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.ProjectionMatchers;
 import io.crate.testing.SQLExecutor;
