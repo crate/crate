@@ -22,19 +22,15 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
-import org.apache.lucene.index.FieldInfo;
+import org.elasticsearch.index.fieldvisitor.IDVisitor;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.index.mapper.Uid;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
-    public static final String COLUMN_NAME = DocSysColumns.ID.name();
-    private final IDVisitor visitor = new IDVisitor();
+    private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.name());
     private LeafReader reader;
 
     public IdCollectorExpression() {
@@ -42,49 +38,17 @@ public final class IdCollectorExpression extends LuceneCollectorExpression<Strin
 
     @Override
     public void setNextDocId(int docId) throws IOException {
-        visitor.canStop = false;
+        visitor.setCanStop(false);
         reader.document(docId, visitor);
     }
 
     @Override
     public String value() {
-        return visitor.id;
+        return visitor.getId();
     }
 
     @Override
     public void setNextReader(LeafReaderContext context) {
         reader = context.reader();
-    }
-
-
-    private static class IDVisitor extends StoredFieldVisitor {
-
-        private boolean canStop = false;
-        private String id;
-
-        @Override
-        public Status needsField(FieldInfo fieldInfo) {
-            if (canStop) {
-                return Status.STOP;
-            }
-            if (COLUMN_NAME.equals(fieldInfo.name)) {
-                canStop = true;
-                return Status.YES;
-            }
-            return Status.NO;
-        }
-
-        @Override
-        public void binaryField(FieldInfo fieldInfo, byte[] value) {
-            assert COLUMN_NAME.equals(fieldInfo.name) : "binaryField must only be called for id";
-            id = Uid.decodeId(value);
-        }
-
-        @Override
-        public void stringField(FieldInfo fieldInfo, byte[] value) {
-            assert COLUMN_NAME.equals(fieldInfo.name) : "stringField must only be called for id";
-            // Indices prior to CrateDB 3.0 have id stored as string
-            id = new String(value, StandardCharsets.UTF_8);
-        }
     }
 }

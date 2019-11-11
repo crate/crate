@@ -753,7 +753,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     public Engine.IndexResult getFailedIndexResult(Exception e, long version) {
-        return new Engine.IndexResult(e, version, operationPrimaryTerm);
+        return new Engine.IndexResult(e, version);
     }
 
     public Engine.DeleteResult applyDeleteOperationOnPrimary(long version,
@@ -1287,7 +1287,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         };
         innerOpenEngineAndTranslog();
         final Engine engine = getEngine();
-        engine.initializeMaxSeqNoOfUpdatesOrDeletes();
         engine.recoverFromTranslog(translogRecoveryRunner, Long.MAX_VALUE);
     }
 
@@ -2623,6 +2622,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     void resetEngineToGlobalCheckpoint() throws IOException {
         assert getActiveOperationsCount() == 0 : "Ongoing writes [" + getActiveOperations() + "]";
         sync(); // persist the global checkpoint to disk
+        // flush to make sure the latest commit includes all operations.
+        flush(new FlushRequest().waitIfOngoing(true));
         final long globalCheckpoint = getLastKnownGlobalCheckpoint();
         assert globalCheckpoint == getLastSyncedGlobalCheckpoint();
         final Engine newEngine;
@@ -2633,12 +2634,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             newEngine = createNewEngine(newEngineConfig());
             active.set(true);
         }
-        newEngine.advanceMaxSeqNoOfUpdatesOrDeletes(globalCheckpoint);
         final Engine.TranslogRecoveryRunner translogRunner = (engine, snapshot) -> runTranslogRecovery(
             engine, snapshot, Engine.Operation.Origin.LOCAL_RESET, () -> {
                 // TODO: add a dedicate recovery stats for the reset translog
             });
         newEngine.recoverFromTranslog(translogRunner, globalCheckpoint);
+        newEngine.refresh("reset_engine");
+
     }
 
     /**

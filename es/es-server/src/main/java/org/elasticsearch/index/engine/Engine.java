@@ -423,8 +423,8 @@ public abstract class Engine implements Closeable {
         /**
          * use in case of the index operation failed before getting to internal engine
          **/
-        public IndexResult(Exception failure, long version, long term) {
-            this(failure, version, term, SequenceNumbers.UNASSIGNED_SEQ_NO);
+        public IndexResult(Exception failure, long version) {
+            this(failure, version, UNASSIGNED_PRIMARY_TERM, UNASSIGNED_SEQ_NO);
         }
 
         public IndexResult(Exception failure, long version, long term, long seqNo) {
@@ -456,7 +456,7 @@ public abstract class Engine implements Closeable {
          * use in case of the delete operation failed before getting to internal engine
          **/
         public DeleteResult(Exception failure, long version, long term) {
-            this(failure, version, term, SequenceNumbers.UNASSIGNED_SEQ_NO, false);
+            this(failure, version, term, UNASSIGNED_SEQ_NO, false);
         }
 
         public DeleteResult(Exception failure, long version, long term, long seqNo, boolean found) {
@@ -1222,6 +1222,11 @@ public abstract class Engine implements Closeable {
             this.ifPrimaryTerm = ifPrimaryTerm;
         }
 
+        public Delete(String type, String id, Term uid, long primaryTerm) {
+            this(type, id, uid, UNASSIGNED_SEQ_NO, primaryTerm, Versions.MATCH_ANY, VersionType.INTERNAL,
+                 Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0);
+        }
+
         @Override
         public String type() {
             return this.type;
@@ -1662,25 +1667,13 @@ public abstract class Engine implements Closeable {
      * Moreover, operations that are optimized using the MSU optimization must not be processed twice as this will create duplicates
      * in Lucene. To avoid this we check the local checkpoint tracker to see if an operation was already processed.
      *
-     * @see #initializeMaxSeqNoOfUpdatesOrDeletes()
      * @see #advanceMaxSeqNoOfUpdatesOrDeletes(long)
      */
-    public final long getMaxSeqNoOfUpdatesOrDeletes() {
-        return maxSeqNoOfUpdatesOrDeletes.get();
-    }
-
-    /**
-     * A primary shard calls this method once to initialize the max_seq_no_of_updates marker using the
-     * max_seq_no from Lucene index and translog before replaying the local translog in its local recovery.
-     */
-    public abstract void initializeMaxSeqNoOfUpdatesOrDeletes();
+    public abstract long getMaxSeqNoOfUpdatesOrDeletes();
 
     /**
      * A replica shard receives a new max_seq_no_of_updates from its primary shard, then calls this method
      * to advance this marker to at least the given sequence number.
      */
-    public final void advanceMaxSeqNoOfUpdatesOrDeletes(long seqNo) {
-        maxSeqNoOfUpdatesOrDeletes.updateAndGet(curr -> Math.max(curr, seqNo));
-        assert maxSeqNoOfUpdatesOrDeletes.get() >= seqNo : maxSeqNoOfUpdatesOrDeletes.get() + " < " + seqNo;
-    }
+    public abstract void advanceMaxSeqNoOfUpdatesOrDeletes(long maxSeqNoOfUpdatesOnPrimary);
 }

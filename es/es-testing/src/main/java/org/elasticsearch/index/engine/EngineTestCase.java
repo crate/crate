@@ -21,12 +21,15 @@ package org.elasticsearch.index.engine;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
+import org.elasticsearch.index.fieldvisitor.IDVisitor;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReader;
@@ -35,11 +38,13 @@ import org.apache.lucene.index.LiveIndexWriterConfig;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TotalHitCountCollector;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -48,6 +53,7 @@ import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.Lucene;
@@ -95,8 +101,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -113,6 +121,7 @@ import static org.elasticsearch.index.engine.Engine.Operation.Origin.REPLICA;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 
 public abstract class EngineTestCase extends ESTestCase {
@@ -225,18 +234,24 @@ public abstract class EngineTestCase extends ESTestCase {
     @After
     public void tearDown() throws Exception {
         super.tearDown();
-        if (engine != null && engine.isClosed.get() == false) {
-            engine.getTranslog().getDeletionPolicy().assertNoOpenTranslogRefs();
-            assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, createMapperService("test"));
+        try {
+            if (engine != null && engine.isClosed.get() == false) {
+                engine.getTranslog().getDeletionPolicy().assertNoOpenTranslogRefs();
+                assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, createMapperService("test"));
+                assertMaxSeqNoInCommitUserData(engine);
+                assertAtMostOneLuceneDocumentPerSequenceNumber(engine);
+            }
+            if (replicaEngine != null && replicaEngine.isClosed.get() == false) {
+                replicaEngine.getTranslog().getDeletionPolicy().assertNoOpenTranslogRefs();
+                assertConsistentHistoryBetweenTranslogAndLuceneIndex(replicaEngine, createMapperService("test"));
+                assertMaxSeqNoInCommitUserData(replicaEngine);
+                assertAtMostOneLuceneDocumentPerSequenceNumber(replicaEngine);
+            }
+            assertThat(engine.config().getCircuitBreakerService().getBreaker(CircuitBreaker.ACCOUNTING).getUsed(), equalTo(0L));
+            assertThat(replicaEngine.config().getCircuitBreakerService().getBreaker(CircuitBreaker.ACCOUNTING).getUsed(), equalTo(0L));
+        } finally {
+            IOUtils.close(replicaEngine, storeReplica, engine, store, () -> terminate(threadPool));
         }
-        if (replicaEngine != null && replicaEngine.isClosed.get() == false) {
-            replicaEngine.getTranslog().getDeletionPolicy().assertNoOpenTranslogRefs();
-            assertConsistentHistoryBetweenTranslogAndLuceneIndex(replicaEngine, createMapperService("test"));
-        }
-        IOUtils.close(
-            replicaEngine, storeReplica,
-            engine, store);
-        terminate(threadPool);
     }
 
 
@@ -458,7 +473,6 @@ public abstract class EngineTestCase extends ESTestCase {
 
         }
         InternalEngine internalEngine = createInternalEngine(indexWriterFactory, localCheckpointTrackerSupplier, seqNoForOperation, config);
-        internalEngine.initializeMaxSeqNoOfUpdatesOrDeletes();
         internalEngine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
         return internalEngine;
     }
@@ -975,6 +989,55 @@ public abstract class EngineTestCase extends ESTestCase {
         }
     }
 
+    /**
+     * Asserts that the max_seq_no stored in the commit's user_data is never smaller than seq_no of any document in the commit.
+     */
+    public static void assertMaxSeqNoInCommitUserData(Engine engine) throws Exception {
+        List<IndexCommit> commits = DirectoryReader.listCommits(engine.store.directory());
+        for (IndexCommit commit : commits) {
+            try (DirectoryReader reader = DirectoryReader.open(commit)) {
+                assertThat(Long.parseLong(commit.getUserData().get(SequenceNumbers.MAX_SEQ_NO)),
+                    greaterThanOrEqualTo(maxSeqNosInReader(reader)));
+            }
+        }
+    }
+
+    public static void assertAtMostOneLuceneDocumentPerSequenceNumber(Engine engine) throws IOException {
+        if (engine instanceof InternalEngine) {
+            try {
+                engine.refresh("test");
+                try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
+                    assertAtMostOneLuceneDocumentPerSequenceNumber(engine.config().getIndexSettings(), searcher.getDirectoryReader());
+                }
+            } catch (AlreadyClosedException ignored) {
+                // engine was closed
+            }
+        }
+    }
+
+    public static void assertAtMostOneLuceneDocumentPerSequenceNumber(IndexSettings indexSettings,
+                                                                      DirectoryReader reader) throws IOException {
+        Set<Long> seqNos = new HashSet<>();
+        final DirectoryReader wrappedReader = indexSettings.isSoftDeleteEnabled() ? Lucene.wrapAllDocsLive(reader) : reader;
+        for (LeafReaderContext leaf : wrappedReader.leaves()) {
+            NumericDocValues primaryTermDocValues = leaf.reader().getNumericDocValues(SeqNoFieldMapper.PRIMARY_TERM_NAME);
+            NumericDocValues seqNoDocValues = leaf.reader().getNumericDocValues(SeqNoFieldMapper.NAME);
+            int docId;
+            while ((docId = seqNoDocValues.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
+                assertTrue(seqNoDocValues.advanceExact(docId));
+                long seqNo = seqNoDocValues.longValue();
+                assertThat(seqNo, greaterThanOrEqualTo(0L));
+                if (primaryTermDocValues.advanceExact(docId)) {
+                    if (seqNos.add(seqNo) == false) {
+                        final IDVisitor idFieldVisitor = new IDVisitor(IdFieldMapper.NAME);
+                        leaf.reader().document(docId, idFieldVisitor);
+                        throw new AssertionError("found multiple documents for seq=" + seqNo + " id=" + idFieldVisitor.getId());
+                    }
+                }
+            }
+        }
+    }
+
     public static MapperService createMapperService(String type) throws IOException {
         IndexMetaData indexMetaData = IndexMetaData.builder("test")
             .settings(Settings.builder()
@@ -1016,5 +1079,23 @@ public abstract class EngineTestCase extends ESTestCase {
         public long getAsLong() {
             return get();
         }
+    }
+
+    static long maxSeqNosInReader(DirectoryReader reader) throws IOException {
+        long maxSeqNo = SequenceNumbers.NO_OPS_PERFORMED;
+        for (LeafReaderContext leaf : reader.leaves()) {
+            final NumericDocValues seqNoDocValues = leaf.reader().getNumericDocValues(SeqNoFieldMapper.NAME);
+            while (seqNoDocValues.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                maxSeqNo = SequenceNumbers.max(maxSeqNo, seqNoDocValues.longValue());
+            }
+        }
+        return maxSeqNo;
+    }
+
+    /**
+     * Returns the number of times a version was looked up either from version map or from the index.
+     */
+    public static long getNumVersionLookups(Engine engine) {
+        return ((InternalEngine) engine).getNumVersionLookups();
     }
 }
