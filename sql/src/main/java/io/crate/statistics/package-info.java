@@ -20,26 +20,39 @@
  * agreement.
  */
 
-package io.crate.integrationtests;
-
-import io.crate.metadata.RelationName;
-import io.crate.statistics.TableStats;
-import org.junit.Test;
-
-import static org.hamcrest.CoreMatchers.is;
-
-public class AnalyzeITest extends SQLTransportIntegrationTest{
-
-    @Test
-    public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class() {
-        execute("create table doc.tbl (x int)");
-        execute("insert into doc.tbl (x) values (1), (2), (3), (null), (3), (3)");
-        execute("refresh table doc.tbl");
-        execute("analyze");
-        for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
-            assertThat(tableStats.numDocs(new RelationName("doc", "tbl")), is(6L));
-        }
-        execute("select reltuples from pg_class where relname = 'tbl'");
-        assertThat(response.rows()[0][0], is(6.0f));
-    }
-}
+/**
+ * <p>
+ *     Contains to generate and expose statistics over the data contained in tables.
+ * </p>
+ *
+ * <p>
+ *     The interaction of the components looks as follows
+ * </p>
+ *
+ * <pre>
+ * {@code
+ *      SQL: ANALYZE command (invoked by user)
+ *          AnalyzePlan -> invokes TransportAnalyzeAction
+ *
+ *      TransportAnalyzeAction
+ *          - fetches samples of table from all data nodes
+ *          - merges samples
+ *          - creates statistics based on the samples
+ *          - publishes the statistics to all nodes
+ *
+ *          - receives statistics and calls TableStats.updateStats
+ *
+ *
+ *       ReservoirSampler
+ *          - Contains logic to get sample rows of a table
+ *
+ *
+ *       TableStats
+ *          - Singleton providing access to the currently available statistics
+ *
+ *       TableStatsService
+ *          - Periodically invokes a ANALYZE
+ * }
+ * </pre>
+ */
+package io.crate.statistics;

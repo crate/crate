@@ -21,13 +21,13 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.hppc.ObjectObjectHashMap;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.data.CollectionBucket;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
@@ -39,7 +39,9 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import static io.crate.testing.TestingHelpers.printRows;
@@ -850,7 +852,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
     private void resetTableStats() {
         for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
-            tableStats.updateTableStats(new ObjectObjectHashMap<>());
+            tableStats.updateTableStats(new HashMap<>());
         }
     }
 
@@ -865,9 +867,9 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
         for (TableStats tableStats : tableStatsOnAllNodes) {
-            ObjectObjectHashMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new TableStats.Stats(4L, 16L));
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new TableStats.Stats(6L, 24L));
+            Map<RelationName, Stats> newStats = new HashMap<>();
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(4L, 16L, Map.of()));
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new Stats(6L, 24L, Map.of()));
             tableStats.updateTableStats(newStats);
         }
 
@@ -894,10 +896,10 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
         for (TableStats tableStats : tableStatsOnAllNodes) {
-            ObjectObjectHashMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new TableStats.Stats(2L, 8L));
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new TableStats.Stats(3L, 12L));
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t3"), new TableStats.Stats(10L, 40L));
+            Map<RelationName, Stats> newStats = new HashMap<>();
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(2L, 8L, Map.of()));
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new Stats(3L, 12L, Map.of()));
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t3"), new Stats(10L, 40L, Map.of()));
             tableStats.updateTableStats(newStats);
         }
 
@@ -955,8 +957,8 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         long rowSizeBytes = tableSizeInBytes / rowsCount;
 
         for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
-            ObjectObjectHashMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), relationName), new TableStats.Stats(rowsCount, tableSizeInBytes));
+            Map<RelationName, Stats> newStats = new HashMap<>();
+            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), relationName), new Stats(rowsCount, tableSizeInBytes, Map.of()));
             tableStats.updateTableStats(newStats);
         }
 

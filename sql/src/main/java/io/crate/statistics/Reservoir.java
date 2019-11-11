@@ -20,26 +20,40 @@
  * agreement.
  */
 
-package io.crate.integrationtests;
+package io.crate.statistics;
 
-import io.crate.metadata.RelationName;
-import io.crate.statistics.TableStats;
-import org.junit.Test;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
-import static org.hamcrest.CoreMatchers.is;
+/**
+ * Reservoir sampling as described in http://rosettacode.org/wiki/Knuth%27s_algorithm_S
+ */
+public final class Reservoir<T> {
 
-public class AnalyzeITest extends SQLTransportIntegrationTest{
+    private final ArrayList<T> samples;
+    private final int maxSamples;
+    private final Random random;
 
-    @Test
-    public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class() {
-        execute("create table doc.tbl (x int)");
-        execute("insert into doc.tbl (x) values (1), (2), (3), (null), (3), (3)");
-        execute("refresh table doc.tbl");
-        execute("analyze");
-        for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
-            assertThat(tableStats.numDocs(new RelationName("doc", "tbl")), is(6L));
+    private int itemsSeen = 0;
+
+    public Reservoir(int maxSamples, Random random) {
+        this.samples = new ArrayList<>(maxSamples);
+        this.maxSamples = maxSamples;
+        this.random = random;
+    }
+
+    public void update(T item) {
+        itemsSeen++;
+        if (itemsSeen <= maxSamples) {
+            samples.add(item);
+        } else if (random.nextInt(itemsSeen) < maxSamples) {
+            samples.set(random.nextInt(maxSamples), item);
         }
-        execute("select reltuples from pg_class where relname = 'tbl'");
-        assertThat(response.rows()[0][0], is(6.0f));
+    }
+
+    public List<T> samples() {
+        return Collections.unmodifiableList(samples);
     }
 }
