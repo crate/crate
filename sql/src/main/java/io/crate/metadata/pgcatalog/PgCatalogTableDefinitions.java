@@ -44,7 +44,8 @@ public class PgCatalogTableDefinitions {
     private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions;
 
     @Inject
-    public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables) {
+    public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables,
+                                     PgCatalogSchemaInfo pgCatalogSchemaInfo) {
         tableDefinitions = new HashMap<>(8);
 
         tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
@@ -56,7 +57,7 @@ public class PgCatalogTableDefinitions {
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn())
                          // we also need to check for views which have privileges set
                          || user.hasAnyPrivilege(Privilege.Clazz.VIEW, t.ident().fqn()),
-            PgClassTable.expressions()
+            pgCatalogSchemaInfo.pgClassTable().expressions()
         ));
         tableDefinitions.put(PgDatabaseTable.NAME, new StaticTableDefinition<>(
             () -> completedFuture(singletonList(null)),
