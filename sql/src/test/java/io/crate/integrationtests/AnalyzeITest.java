@@ -31,7 +31,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class AnalyzeITest extends SQLTransportIntegrationTest{
 
     @Test
-    public void test_analyze_statement_refreshes_table_stats() {
+    public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class() {
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl (x) values (1), (2), (3)");
         execute("refresh table doc.tbl");
@@ -39,5 +39,7 @@ public class AnalyzeITest extends SQLTransportIntegrationTest{
         for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
             assertThat(tableStats.numDocs(new RelationName("doc", "tbl")), is(3L));
         }
+        execute("select reltuples from pg_class where relname = 'tbl'");
+        assertThat(response.rows()[0][0], is(3.0f));
     }
 }

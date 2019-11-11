@@ -33,6 +33,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.planner.TableStats;
 import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
@@ -42,11 +43,11 @@ import java.util.Map;
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.FLOAT;
 import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.FLOAT;
+import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
 public class PgClassTable extends StaticTableInfo<RelationInfo> {
@@ -57,12 +58,14 @@ public class PgClassTable extends StaticTableInfo<RelationInfo> {
 
     private static final String PERSISTENCE_PERMANENT = "p";
 
-    static Map<ColumnIdent, RowCollectExpressionFactory<RelationInfo>> expressions() {
-        return columnRegistrar().expressions();
+    private final ColumnRegistrar<RelationInfo> columnRegistrar;
+
+    Map<ColumnIdent, RowCollectExpressionFactory<RelationInfo>> expressions() {
+        return columnRegistrar.expressions();
     }
 
     @SuppressWarnings({"unchecked"})
-    private static ColumnRegistrar<RelationInfo> columnRegistrar() {
+    private static ColumnRegistrar<RelationInfo> columnRegistrar(TableStats tableStats) {
         return new ColumnRegistrar<RelationInfo>(IDENT, RowGranularity.DOC)
             .register("oid", INTEGER, () -> forFunction(OidHash::relationOid))
             .register("relname", STRING, () -> forFunction(r -> r.ident().name()))
@@ -74,7 +77,7 @@ public class PgClassTable extends StaticTableInfo<RelationInfo> {
             .register("relfilenode", INTEGER, () -> constant(0))
             .register("reltablespace", INTEGER, () -> constant(0))
             .register("relpages", INTEGER, () -> constant(0))
-            .register("reltuples", FLOAT, () -> constant(0.0f))
+            .register("reltuples", FLOAT, () -> forFunction(r -> (float) tableStats.numDocs(r.ident())))
             .register("relallvisible", INTEGER, () -> constant(0))
             .register("reltoastrelid", INTEGER, () -> constant(0))
             .register("relhasindex", BOOLEAN, () -> constant(false))
@@ -100,8 +103,14 @@ public class PgClassTable extends StaticTableInfo<RelationInfo> {
             .register("relpartbound", ObjectType.untyped(), () -> constant(null));
     }
 
-    PgClassTable() {
-        super(IDENT, columnRegistrar());
+    static PgClassTable create(TableStats tableStats) {
+        ColumnRegistrar<RelationInfo> columnRegistrar = columnRegistrar(tableStats);
+        return new PgClassTable(columnRegistrar);
+    }
+
+    private PgClassTable(ColumnRegistrar<RelationInfo> columnRegistrar) {
+        super(IDENT, columnRegistrar);
+        this.columnRegistrar = columnRegistrar;
     }
 
     @Override
