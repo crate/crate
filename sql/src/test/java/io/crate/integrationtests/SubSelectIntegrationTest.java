@@ -22,10 +22,10 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.hppc.ObjectObjectHashMap;
 import io.crate.data.Paging;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -34,7 +34,9 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
@@ -327,10 +329,10 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
-            ObjectObjectHashMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
+            Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(
                 new RelationName(sqlExecutor.getCurrentSchema(), "t"),
-                new TableStats.Stats(100, 64));
+                new Stats(100, 64, Map.of()));
             tableStats.updateTableStats(newStats);
         }
 

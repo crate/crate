@@ -23,8 +23,6 @@
 package io.crate.statistics;
 
 
-import com.carrotsearch.hppc.ObjectObjectHashMap;
-import com.carrotsearch.hppc.ObjectObjectMap;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.SQLOperations;
@@ -47,6 +45,8 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -121,23 +121,23 @@ public class TableStatsService implements Runnable {
 
         private static final Logger LOGGER = LogManager.getLogger(TableStatsResultReceiver.class);
 
-        private final Consumer<ObjectObjectMap<RelationName, TableStats.Stats>> tableStatsConsumer;
-        private ObjectObjectMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
+        private final Consumer<Map<RelationName, Stats>> tableStatsConsumer;
+        private Map<RelationName, Stats> newStats = new HashMap<>();
 
-        TableStatsResultReceiver(Consumer<ObjectObjectMap<RelationName, TableStats.Stats>> tableStatsConsumer) {
+        TableStatsResultReceiver(Consumer<Map<RelationName, Stats>> tableStatsConsumer) {
             this.tableStatsConsumer = tableStatsConsumer;
         }
 
         @Override
         public void setNextRow(Row row) {
             RelationName relationName = new RelationName(BytesRefs.toString(row.get(2)), BytesRefs.toString(row.get(3)));
-            newStats.put(relationName, new TableStats.Stats((long) row.get(0), (long) row.get(1)));
+            newStats.put(relationName, new Stats((long) row.get(0), (long) row.get(1), Map.of()));
         }
 
         @Override
         public void allFinished(boolean interrupted) {
             tableStatsConsumer.accept(newStats);
-            newStats = new ObjectObjectHashMap<>();
+            newStats = new HashMap<>();
             super.allFinished(interrupted);
         }
 

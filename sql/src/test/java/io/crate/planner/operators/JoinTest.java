@@ -22,7 +22,6 @@
 
 package io.crate.planner.operators;
 
-import com.carrotsearch.hppc.ObjectObjectHashMap;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
@@ -38,11 +37,12 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.statistics.TableStats;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -54,6 +54,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
@@ -120,16 +122,16 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         MultiSourceSelect mss = e.normalize("select * from users, locations where users.id = locations.id");
 
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(10, 0));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_000, 0));
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_000, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
         Join nl = plan(mss, tableStats);
         assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("locations"));
 
-        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(10_000, 0));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(10_000, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
         nl = plan(mss, tableStats);
@@ -149,17 +151,17 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         MultiSourceSelect mss = e.normalize("select * from j.left_table as l left join j.right_table as r on l.id = r.id");
 
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(leftName, new TableStats.Stats(10, 0));
-        rowCountByTable.put(rightName, new TableStats.Stats(10_000, 0));
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(leftName, new Stats(10, 0, Map.of()));
+        rowCountByTable.put(rightName, new Stats(10_000, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
         Join nl = plan(mss, tableStats);
         assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is(leftName.name()));
         assertThat(nl.joinPhase().joinType(), is(JoinType.LEFT));
 
-        rowCountByTable.put(leftName, new TableStats.Stats(10_000, 0));
-        rowCountByTable.put(rightName, new TableStats.Stats(10, 0));
+        rowCountByTable.put(leftName, new Stats(10_000, 0, Map.of()));
+        rowCountByTable.put(rightName, new Stats(10, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
         nl = plan(mss, tableStats);
@@ -175,9 +177,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                             "locations where users.id = locations.id");
 
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(10, 0));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_0000, 0));
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_0000, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
@@ -195,9 +197,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNestedLoop_TablesAreNotSwitchedAfterOrderByPushDown() {
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(10, 0));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_0000, 0));
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10_0000, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
@@ -220,9 +222,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                             "join locations on users.id = locations.id");
 
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(100, 0));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(100, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(10, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
@@ -243,9 +245,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                             "join locations on users.id = locations.id");
 
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(10, 0));
-        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(100, 0));
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(10, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(100, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
@@ -318,9 +320,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testBlockNestedLoopWhenLeftSideIsSmallerAndOneExecutionNode() throws IOException {
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<RelationName, TableStats.Stats> stats = new ObjectObjectHashMap<>();
-        stats.put(T3.T1_RN, new TableStats.Stats(23, 64));
-        stats.put(T3.T4_RN, new TableStats.Stats(42, 64));
+        Map<RelationName, Stats> stats = new HashMap<>();
+        stats.put(T3.T1_RN, new Stats(23, 64, Map.of()));
+        stats.put(T3.T4_RN, new Stats(42, 64, Map.of()));
         tableStats.updateTableStats(stats);
 
         // rebuild executor + cluster state with 1 node
@@ -351,9 +353,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testBlockNestedLoopWhenRightSideIsSmallerAndOneExecutionNode() throws IOException {
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<RelationName, TableStats.Stats> stats = new ObjectObjectHashMap<>();
-        stats.put(T3.T1_RN, new TableStats.Stats(23, 64));
-        stats.put(T3.T4_RN, new TableStats.Stats(42, 64));
+        Map<RelationName, Stats> stats = new HashMap<>();
+        stats.put(T3.T1_RN, new Stats(23, 64, Map.of()));
+        stats.put(T3.T4_RN, new Stats(42, 64, Map.of()));
         tableStats.updateTableStats(stats);
 
         // rebuild executor + cluster state with 1 node
@@ -384,9 +386,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNoBlockNestedLoopWithOrderBy() throws IOException {
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<RelationName, TableStats.Stats> stats = new ObjectObjectHashMap<>();
-        stats.put(T3.T1_RN, new TableStats.Stats(23, 64));
-        stats.put(T3.T4_RN, new TableStats.Stats(42, 64));
+        Map<RelationName, Stats> stats = new HashMap<>();
+        stats.put(T3.T1_RN, new Stats(23, 64, Map.of()));
+        stats.put(T3.T4_RN, new Stats(42, 64, Map.of()));
         tableStats.updateTableStats(stats);
 
         // rebuild executor + cluster state with 1 node

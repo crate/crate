@@ -22,7 +22,6 @@
 
 package io.crate.statistics;
 
-import com.carrotsearch.hppc.ObjectObjectMap;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.data.RowN;
@@ -43,6 +42,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -109,7 +109,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRowsToTableStatConversion() throws InterruptedException, ExecutionException, TimeoutException {
-        CompletableFuture<ObjectObjectMap<RelationName, TableStats.Stats>> statsFuture = new CompletableFuture<>();
+        CompletableFuture<Map<RelationName, Stats>> statsFuture = new CompletableFuture<>();
         TableStatsService.TableStatsResultReceiver receiver =
             new TableStatsService.TableStatsResultReceiver(statsFuture::complete);
 
@@ -119,9 +119,9 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         receiver.setNextRow(new RowN(new Object[]{3L, 30L, "bar", "foo"}));
         receiver.allFinished(false);
 
-        ObjectObjectMap<RelationName, TableStats.Stats> stats = statsFuture.get(10, TimeUnit.SECONDS);
+        Map<RelationName, Stats> stats = statsFuture.get(10, TimeUnit.SECONDS);
         Assert.assertThat(stats.size(), Matchers.is(4));
-        TableStats.Stats statValues = stats.get(new RelationName("bar", "foo"));
+        Stats statValues = stats.get(new RelationName("bar", "foo"));
         Assert.assertThat(statValues.numDocs, Matchers.is(3L));
         Assert.assertThat(statValues.sizeInBytes, Matchers.is(30L));
 

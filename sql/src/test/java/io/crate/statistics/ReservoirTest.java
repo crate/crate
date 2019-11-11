@@ -20,26 +20,24 @@
  * agreement.
  */
 
-package io.crate.integrationtests;
+package io.crate.statistics;
 
-import io.crate.metadata.RelationName;
-import io.crate.statistics.TableStats;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.is;
+import java.util.Random;
 
-public class AnalyzeITest extends SQLTransportIntegrationTest{
+import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
+
+public class ReservoirTest {
 
     @Test
-    public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class() {
-        execute("create table doc.tbl (x int)");
-        execute("insert into doc.tbl (x) values (1), (2), (3), (null), (3), (3)");
-        execute("refresh table doc.tbl");
-        execute("analyze");
-        for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
-            assertThat(tableStats.numDocs(new RelationName("doc", "tbl")), is(6L));
+    public void test_sampling() {
+        Random random = new Random(42);
+        Reservoir<Integer> samples = new Reservoir<>(5, random);
+        for (int i = 0; i < 100; i++) {
+            samples.update(i);
         }
-        execute("select reltuples from pg_class where relname = 'tbl'");
-        assertThat(response.rows()[0][0], is(6.0f));
+        assertThat(samples.samples(), contains(83, 50, 13, 18, 38));
     }
 }

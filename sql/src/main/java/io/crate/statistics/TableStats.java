@@ -22,10 +22,10 @@
 
 package io.crate.statistics;
 
-import com.carrotsearch.hppc.ObjectObjectHashMap;
-import com.carrotsearch.hppc.ObjectObjectMap;
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.RelationName;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Holds table statistics that are updated periodically by {@link TableStatsService}.
@@ -34,9 +34,9 @@ public class TableStats {
 
     private static final Stats EMPTY_STATS = new Stats();
 
-    private volatile ObjectObjectMap<RelationName, Stats> tableStats = new ObjectObjectHashMap<>(0);
+    private volatile Map<RelationName, Stats> tableStats = new HashMap<>();
 
-    public void updateTableStats(ObjectObjectMap<RelationName, Stats> tableStats) {
+    public void updateTableStats(Map<RelationName, Stats> tableStats) {
         this.tableStats = tableStats;
     }
 
@@ -80,23 +80,4 @@ public class TableStats {
         return sizeInBytes(relationName) / numDocs(relationName);
     }
 
-    @VisibleForTesting
-    public static class Stats {
-
-        @VisibleForTesting
-        final long numDocs;
-        @VisibleForTesting
-        final long sizeInBytes;
-
-        private Stats() {
-            numDocs = -1;
-            sizeInBytes = -1;
-        }
-
-        @VisibleForTesting
-        public Stats(long numDocs, long sizeInBytes) {
-            this.numDocs = numDocs;
-            this.sizeInBytes = sizeInBytes;
-        }
-    }
 }
