@@ -23,7 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.metadata.RelationName;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;

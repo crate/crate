@@ -23,7 +23,7 @@
 package io.crate.execution;
 
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
-import io.crate.execution.ddl.TransportAnalyzeAction;
+import io.crate.statistics.TransportAnalyzeAction;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;

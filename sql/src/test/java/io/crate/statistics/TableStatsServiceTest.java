@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.planner;
+package io.crate.statistics;
 
 import com.carrotsearch.hppc.ObjectObjectMap;
 import io.crate.action.sql.SQLOperations;
@@ -34,25 +34,19 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.hamcrest.Matchers;
+import org.hamcrest.core.IsNull;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.IsNull.notNullValue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -69,11 +63,11 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             clusterService,
             new TableStats(),
-            mock(SQLOperations.class, Answers.RETURNS_MOCKS));
+            Mockito.mock(SQLOperations.class, Answers.RETURNS_MOCKS));
 
-        assertThat(statsService.refreshInterval,
-            is(TimeValue.timeValueMinutes(0)));
-        assertThat(statsService.refreshScheduledTask, is(nullValue()));
+        Assert.assertThat(statsService.refreshInterval,
+                          Matchers.is(TimeValue.timeValueMinutes(0)));
+        Assert.assertThat(statsService.refreshScheduledTask, Matchers.is(Matchers.nullValue()));
 
         // Default setting
         statsService = new TableStatsService(
@@ -81,11 +75,11 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             clusterService,
             new TableStats(),
-            mock(SQLOperations.class, Answers.RETURNS_MOCKS));
+            Mockito.mock(SQLOperations.class, Answers.RETURNS_MOCKS));
 
-        assertThat(statsService.refreshInterval,
-            is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault()));
-        assertThat(statsService.refreshScheduledTask, is(notNullValue()));
+        Assert.assertThat(statsService.refreshInterval,
+                          Matchers.is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault()));
+        Assert.assertThat(statsService.refreshScheduledTask, Matchers.is(IsNull.notNullValue()));
 
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
 
@@ -93,24 +87,24 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         clusterSettings.applySettings(Settings.builder()
             .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), "10m").build());
 
-        assertThat(statsService.refreshInterval, is(TimeValue.timeValueMinutes(10)));
-        assertThat(statsService.refreshScheduledTask,
-            is(notNullValue()));
+        Assert.assertThat(statsService.refreshInterval, Matchers.is(TimeValue.timeValueMinutes(10)));
+        Assert.assertThat(statsService.refreshScheduledTask,
+                          Matchers.is(IsNull.notNullValue()));
 
         // Disable
         clusterSettings.applySettings(Settings.builder()
             .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build());
 
-        assertThat(statsService.refreshInterval, is(TimeValue.timeValueMillis(0)));
-        assertThat(statsService.refreshScheduledTask,
-            is(nullValue()));
+        Assert.assertThat(statsService.refreshInterval, Matchers.is(TimeValue.timeValueMillis(0)));
+        Assert.assertThat(statsService.refreshScheduledTask,
+                          Matchers.is(Matchers.nullValue()));
 
         // Reset setting
         clusterSettings.applySettings(Settings.builder().build());
 
-        assertThat(statsService.refreshInterval,
-            is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault()));
-        assertThat(statsService.refreshScheduledTask, is(notNullValue()));
+        Assert.assertThat(statsService.refreshInterval,
+                          Matchers.is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault()));
+        Assert.assertThat(statsService.refreshScheduledTask, Matchers.is(IsNull.notNullValue()));
     }
 
     @Test
@@ -126,23 +120,23 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         receiver.allFinished(false);
 
         ObjectObjectMap<RelationName, TableStats.Stats> stats = statsFuture.get(10, TimeUnit.SECONDS);
-        assertThat(stats.size(), is(4));
+        Assert.assertThat(stats.size(), Matchers.is(4));
         TableStats.Stats statValues = stats.get(new RelationName("bar", "foo"));
-        assertThat(statValues.numDocs, is(3L));
-        assertThat(statValues.sizeInBytes, is(30L));
+        Assert.assertThat(statValues.numDocs, Matchers.is(3L));
+        Assert.assertThat(statValues.sizeInBytes, Matchers.is(30L));
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(stats);
-        assertThat(tableStats.estimatedSizePerRow(new RelationName("bar", "foo")), is(10L));
-        assertThat(tableStats.estimatedSizePerRow(new RelationName("empty", "foo")), is(0L));
-        assertThat(tableStats.estimatedSizePerRow(new RelationName("notInCache", "foo")), is(-1L));
+        Assert.assertThat(tableStats.estimatedSizePerRow(new RelationName("bar", "foo")), Matchers.is(10L));
+        Assert.assertThat(tableStats.estimatedSizePerRow(new RelationName("empty", "foo")), Matchers.is(0L));
+        Assert.assertThat(tableStats.estimatedSizePerRow(new RelationName("notInCache", "foo")), Matchers.is(-1L));
     }
 
     @Test
     public void testStatsQueriesCorrectly() {
-        SQLOperations sqlOperations = mock(SQLOperations.class);
-        Session session = mock(Session.class);
-        when(sqlOperations.newSystemSession()).thenReturn(session);
+        SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
+        Session session = Mockito.mock(Session.class);
+        Mockito.when(sqlOperations.newSystemSession()).thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
@@ -153,17 +147,17 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         );
         statsService.run();
 
-        verify(session, times(1)).quickExec(eq(TableStatsService.STMT), any(), any(), any());
+        Mockito.verify(session, Mockito.times(1)).quickExec(ArgumentMatchers.eq(TableStatsService.STMT), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void testNoUpdateIfLocalNodeNotAvailable() {
-        final ClusterService clusterService = mock(ClusterService.class);
-        when(clusterService.localNode()).thenReturn(null);
-        when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
-        SQLOperations sqlOperations = mock(SQLOperations.class);
-        Session session = mock(Session.class);
-        when(sqlOperations.createSession(anyString(), any(), any())).thenReturn(session);
+        final ClusterService clusterService = Mockito.mock(ClusterService.class);
+        Mockito.when(clusterService.localNode()).thenReturn(null);
+        Mockito.when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
+        SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
+        Session session = Mockito.mock(Session.class);
+        Mockito.when(sqlOperations.createSession(ArgumentMatchers.anyString(), ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
@@ -174,6 +168,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         );
 
         statsService.run();
-        verify(session, times(0)).sync();
+        Mockito.verify(session, Mockito.times(0)).sync();
     }
 }

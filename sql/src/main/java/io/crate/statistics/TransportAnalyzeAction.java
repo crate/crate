@@ -20,13 +20,13 @@
  * agreement.
  */
 
-package io.crate.execution.ddl;
+package io.crate.statistics;
 
+import io.crate.execution.ddl.AnalyzeRequest;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.planner.TableStatsService;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
