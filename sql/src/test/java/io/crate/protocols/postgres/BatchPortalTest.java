@@ -35,7 +35,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

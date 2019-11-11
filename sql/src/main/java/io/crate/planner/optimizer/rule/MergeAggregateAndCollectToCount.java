@@ -26,7 +26,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
 import io.crate.planner.operators.HashAggregate;

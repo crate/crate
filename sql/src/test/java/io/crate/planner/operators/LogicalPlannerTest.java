@@ -33,7 +33,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

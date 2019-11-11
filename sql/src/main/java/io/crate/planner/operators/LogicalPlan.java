@@ -34,7 +34,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;

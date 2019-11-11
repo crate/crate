@@ -25,7 +25,7 @@ package io.crate.planner.optimizer.rule;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Union;

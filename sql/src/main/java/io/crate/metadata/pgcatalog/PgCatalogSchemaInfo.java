@@ -28,7 +28,7 @@ import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.Inject;

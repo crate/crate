@@ -24,7 +24,7 @@ package io.crate.planner.optimizer;
 
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;

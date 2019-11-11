@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.planner;
+package io.crate.statistics;
 
 
 import com.carrotsearch.hppc.ObjectObjectHashMap;

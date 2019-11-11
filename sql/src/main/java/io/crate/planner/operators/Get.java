@@ -39,7 +39,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.planner.node.dql.Collect;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.lucene.uid.Versions;

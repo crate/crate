@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.ObjectObjectHashMap;
 import io.crate.data.Paging;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Ignore;

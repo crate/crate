@@ -60,7 +60,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;

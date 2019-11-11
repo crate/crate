@@ -33,7 +33,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.planner.TableStats;
+import io.crate.statistics.TableStats;
 import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
