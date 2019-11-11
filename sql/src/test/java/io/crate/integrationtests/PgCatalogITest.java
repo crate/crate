@@ -49,10 +49,10 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
     public void testPgClassTable() {
         execute("select * from pg_catalog.pg_class where relname in ('t1', 'v1', 'tables', 'nodes') order by relname");
         assertThat(printedTable(response.rows()), is(
-            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| nodes| -458336339| 17| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| 0.0| 0\n" +
-            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| t1| -2048275947| 2| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| 0.0| 0\n" +
-            "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| 0.0| 0\n" +
-            "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| 0.0| 0\n"));
+            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| nodes| -458336339| 17| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n" +
+            "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| t1| -2048275947| 2| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n" +
+            "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| true| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n" +
+            "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| false| 0| 0| -1.0| 0\n"));
     }
 
     @Test

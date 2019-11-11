@@ -250,7 +250,7 @@ public class SQLExecutor {
             CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, crateSettings, new CeLicenseService()));
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
-            schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService));
+            schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService, tableStats));
             IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
             schemaInfoByName.put(
                 BlobSchemaInfo.NAME,
