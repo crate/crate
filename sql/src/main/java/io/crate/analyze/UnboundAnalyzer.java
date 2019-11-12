@@ -33,6 +33,7 @@ import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AlterUser;
+import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.CommitStatement;
@@ -276,6 +277,11 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitCreateTable(CreateTable node, Analysis analysis) {
             return createTableAnalyzer.analyze((CreateTable<Expression>) node, analysis.paramTypeHints(), analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAnalyze(AnalyzeStatement analyzeStatement, Analysis analysis) {
+            return new AnalyzedAnalyze();
         }
 
         @Override
@@ -561,7 +567,7 @@ class UnboundAnalyzer {
                 context.paramTypeHints(),
                 context.transactionContext());
         }
-        
+
         @Override
         protected AnalyzedStatement visitExplain(Explain node, Analysis context) {
             return explainStatementAnalyzer.analyze(node, context);
