@@ -28,7 +28,6 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.data.Row;
-import io.crate.metadata.RelationName;
 import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -38,17 +37,10 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nonnull;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 /**
  * Periodically refresh {@link TableStats} based on {@link #refreshInterval}.
@@ -62,13 +54,11 @@ public class TableStatsService implements Runnable {
         "stats.service.interval", TimeValue.timeValueHours(1), Setting.Property.NodeScope, Setting.Property.Dynamic),
         DataTypes.STRING);
 
-    static final String STMT = "select cast(sum(num_docs) as long), cast(sum(size) as long), schema_name, table_name " +
-                               "from sys.shards where primary=true group by 3, 4";
+    static final String STMT = "ANALYZE";
     private static final Statement PARSED_STMT = SqlParser.createStatement(STMT);
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
-    private final TableStatsResultReceiver resultReceiver;
     private final Session session;
 
     @VisibleForTesting
@@ -80,11 +70,9 @@ public class TableStatsService implements Runnable {
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             TableStats tableStats,
                              SQLOperations sqlOperations) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-        resultReceiver = new TableStatsResultReceiver(tableStats::updateTableStats);
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting().get(settings);
         refreshScheduledTask = scheduleRefresh(refreshInterval);
         session = sqlOperations.newSystemSession();
@@ -98,53 +86,28 @@ public class TableStatsService implements Runnable {
         updateStats();
     }
 
-    public CompletableFuture<Void> updateStats() {
+    public void updateStats() {
         if (clusterService.localNode() == null) {
             /*
               During a long startup (e.g. during an upgrade process) the localNode() may be null
               and this would lead to NullPointerException in the TransportExecutor.
              */
             LOGGER.debug("Could not retrieve table stats. localNode is not fully available yet.");
-            return CompletableFuture.completedFuture(null);
+            return;
         }
-
+        if (!clusterService.state().nodes().isLocalNodeElectedMaster()) {
+            // `ANALYZE` will publish the new stats to all nodes, so we need only a single node running it.
+            return;
+        }
         try {
+            BaseResultReceiver resultReceiver = new BaseResultReceiver();
+            resultReceiver.completionFuture().exceptionally(err -> {
+                LOGGER.error("Error running periodic " + STMT + "", err);
+                return null;
+            });
             session.quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
-            return resultReceiver.completionFuture();
         } catch (Throwable t) {
             LOGGER.error("error retrieving table stats", t);
-            return CompletableFuture.failedFuture(t);
-        }
-    }
-
-    static class TableStatsResultReceiver extends BaseResultReceiver {
-
-        private static final Logger LOGGER = LogManager.getLogger(TableStatsResultReceiver.class);
-
-        private final Consumer<Map<RelationName, Stats>> tableStatsConsumer;
-        private Map<RelationName, Stats> newStats = new HashMap<>();
-
-        TableStatsResultReceiver(Consumer<Map<RelationName, Stats>> tableStatsConsumer) {
-            this.tableStatsConsumer = tableStatsConsumer;
-        }
-
-        @Override
-        public void setNextRow(Row row) {
-            RelationName relationName = new RelationName(BytesRefs.toString(row.get(2)), BytesRefs.toString(row.get(3)));
-            newStats.put(relationName, new Stats((long) row.get(0), (long) row.get(1), Map.of()));
-        }
-
-        @Override
-        public void allFinished(boolean interrupted) {
-            tableStatsConsumer.accept(newStats);
-            newStats = new HashMap<>();
-            super.allFinished(interrupted);
-        }
-
-        @Override
-        public void fail(@Nonnull Throwable t) {
-            LOGGER.error("error retrieving table stats", t);
-            super.fail(t);
         }
     }
 
