@@ -21,6 +21,13 @@ package org.elasticsearch.index.engine;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
+import org.elasticsearch.common.CheckedBiFunction;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.document.Document;
@@ -68,6 +75,7 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
+import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
@@ -75,6 +83,7 @@ import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
+import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.VersionFieldMapper;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
@@ -303,6 +312,16 @@ public abstract class EngineTestCase extends ESTestCase {
             document.add(new StoredField(SourceFieldMapper.NAME, ref.bytes, ref.offset, ref.length));
         }
         return new ParsedDocument(versionField, seqID, id, routing, Arrays.asList(document), source, mappingUpdate);
+    }
+
+    public static CheckedBiFunction<String, Integer, ParsedDocument, IOException> nestedParsedDocFactory() throws Exception {
+        final MapperService mapperService = createMapperService("type");
+        final DocumentMapper nestedMapper = mapperService.documentMapperParser().parse("default", null);
+        return (docId, nestedFieldValues) -> {
+            final XContentBuilder source = XContentFactory.jsonBuilder().startObject().field("field", "value");
+            source.endObject();
+            return nestedMapper.parse(new SourceToParse("test", docId, BytesReference.bytes(source), XContentType.JSON));
+        };
     }
 
     /**
@@ -744,6 +763,47 @@ public abstract class EngineTestCase extends ESTestCase {
         return ops;
     }
 
+    public List<Engine.Operation> generateHistoryOnReplica(int numOps, boolean allowGapInSeqNo, boolean allowDuplicate,
+                                                           boolean includeNestedDocs) throws Exception {
+        long seqNo = 0;
+        final int maxIdValue = randomInt(numOps * 2);
+        final List<Engine.Operation> operations = new ArrayList<>(numOps);
+        CheckedBiFunction<String, Integer, ParsedDocument, IOException> nestedParsedDocFactory = nestedParsedDocFactory();
+        for (int i = 0; i < numOps; i++) {
+            final String id = Integer.toString(randomInt(maxIdValue));
+            final Engine.Operation.TYPE opType = randomFrom(Engine.Operation.TYPE.values());
+            final boolean isNestedDoc = includeNestedDocs && opType == Engine.Operation.TYPE.INDEX && randomBoolean();
+            final int nestedValues = between(0, 3);
+            final long startTime = threadPool.relativeTimeInMillis();
+            final int copies = allowDuplicate && rarely() ? between(2, 4) : 1;
+            for (int copy = 0; copy < copies; copy++) {
+                final ParsedDocument doc = isNestedDoc ? nestedParsedDocFactory.apply(id, nestedValues) : createParsedDoc(id, null);
+                switch (opType) {
+                    case INDEX:
+                        operations.add(new Engine.Index(EngineTestCase.newUid(doc), doc, seqNo, primaryTerm.get(),
+                                                        i, null, randomFrom(REPLICA, Engine.Operation.Origin.PEER_RECOVERY), startTime, -1, true, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
+                        break;
+                    case DELETE:
+                        operations.add(new Engine.Delete("test", doc.id(), EngineTestCase.newUid(doc), seqNo, primaryTerm.get(),
+                                                         i, null, randomFrom(REPLICA, Engine.Operation.Origin.PEER_RECOVERY), startTime, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
+                        break;
+                    case NO_OP:
+                        operations.add(new Engine.NoOp(seqNo, primaryTerm.get(),
+                                                       randomFrom(REPLICA, Engine.Operation.Origin.PEER_RECOVERY), startTime, "test-" + i));
+                        break;
+                    default:
+                        throw new IllegalStateException("Unknown operation type [" + opType + "]");
+                }
+            }
+            seqNo++;
+            if (allowGapInSeqNo && rarely()) {
+                seqNo++;
+            }
+        }
+        Randomness.shuffle(operations);
+        return operations;
+    }
+
     public static void assertOpsOnReplica(
         final List<Engine.Operation> ops,
         final InternalEngine replicaEngine,
@@ -887,16 +947,17 @@ public abstract class EngineTestCase extends ESTestCase {
     /**
      * Gets a collection of tuples of docId, sequence number, and primary term of all live documents in the provided engine.
      */
-    public static List<DocIdSeqNoAndTerm> getDocIds(Engine engine, boolean refresh) throws IOException {
+    public static List<DocIdSeqNoAndSource> getDocIds(Engine engine, boolean refresh) throws IOException {
         if (refresh) {
             engine.refresh("test_get_doc_ids");
         }
         try (Engine.Searcher searcher = engine.acquireSearcher("test_get_doc_ids")) {
-            List<DocIdSeqNoAndTerm> docs = new ArrayList<>();
+            List<DocIdSeqNoAndSource> docs = new ArrayList<>();
             for (LeafReaderContext leafContext : searcher.reader().leaves()) {
                 LeafReader reader = leafContext.reader();
                 NumericDocValues seqNoDocValues = reader.getNumericDocValues(SeqNoFieldMapper.NAME);
                 NumericDocValues primaryTermDocValues = reader.getNumericDocValues(SeqNoFieldMapper.PRIMARY_TERM_NAME);
+                NumericDocValues versionDocValues = reader.getNumericDocValues(VersionFieldMapper.NAME);
                 Bits liveDocs = reader.getLiveDocs();
                 for (int i = 0; i < reader.maxDoc(); i++) {
                     if (liveDocs == null || liveDocs.get(i)) {
@@ -905,20 +966,25 @@ public abstract class EngineTestCase extends ESTestCase {
                             continue;
                         }
                         final long primaryTerm = primaryTermDocValues.longValue();
-                        Document uuid = reader.document(i, Collections.singleton(IdFieldMapper.NAME));
-                        BytesRef binaryID = uuid.getBinaryValue(IdFieldMapper.NAME);
-                        String id = Uid.decodeId(Arrays.copyOfRange(binaryID.bytes, binaryID.offset,
-                            binaryID.offset + binaryID.length));
+                        Document doc = reader.document(i, Set.of(IdFieldMapper.NAME, SourceFieldMapper.NAME));
+                        BytesRef binaryID = doc.getBinaryValue(IdFieldMapper.NAME);
+                        String id = Uid.decodeId(Arrays.copyOfRange(binaryID.bytes, binaryID.offset, binaryID.offset + binaryID.length));
+                        final BytesRef source = doc.getBinaryValue(SourceFieldMapper.NAME);
                         if (seqNoDocValues.advanceExact(i) == false) {
                             throw new AssertionError("seqNoDocValues not found for doc[" + i + "] id[" + id + "]");
                         }
                         final long seqNo = seqNoDocValues.longValue();
-                        docs.add(new DocIdSeqNoAndTerm(id, seqNo, primaryTerm));
+                        if (versionDocValues.advanceExact(i) == false) {
+                            throw new AssertionError("versionDocValues not found for doc[" + i + "] id[" + id + "]");
+                        }
+                        final long version = versionDocValues.longValue();
+                        docs.add(new DocIdSeqNoAndSource(id, source, seqNo, primaryTerm, version));
                     }
                 }
             }
-            docs.sort(Comparator.comparing(DocIdSeqNoAndTerm::getId)
-                .thenComparingLong(DocIdSeqNoAndTerm::getSeqNo).thenComparingLong(DocIdSeqNoAndTerm::getPrimaryTerm));
+            docs.sort(Comparator.comparingLong(DocIdSeqNoAndSource::getSeqNo)
+                .thenComparingLong(DocIdSeqNoAndSource::getPrimaryTerm)
+                .thenComparing((DocIdSeqNoAndSource::getId)));
             return docs;
         }
     }

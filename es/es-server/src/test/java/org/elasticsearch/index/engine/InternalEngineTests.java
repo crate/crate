@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index.engine;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -102,6 +101,7 @@ import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
+import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.SeqNoStats;
@@ -4028,7 +4028,7 @@ public class InternalEngineTests extends EngineTestCase {
             Randomness.shuffle(seqNos);
             final EngineConfig engineConfig;
             final SeqNoStats prevSeqNoStats;
-            final List<DocIdSeqNoAndTerm> prevDocs;
+            final List<DocIdSeqNoAndSource> prevDocs;
             final int totalTranslogOps;
             try (InternalEngine engine = createEngine(store, createTempDir(), globalCheckpoint::get)) {
                 engineConfig = engine.config();
@@ -4979,34 +4979,18 @@ public class InternalEngineTests extends EngineTestCase {
     public void testRebuildLocalCheckpointTracker() throws Exception {
         Settings.Builder settings = Settings.builder()
             .put(defaultSettings.getSettings())
+            .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), 10000)
             .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true);
         final IndexMetaData indexMetaData = IndexMetaData.builder(defaultSettings.getIndexMetaData()).settings(settings).build();
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetaData);
         final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
         Path translogPath = createTempDir();
-        int numOps = scaledRandomIntBetween(1, 500);
-        List<Engine.Operation> operations = new ArrayList<>();
-        for (int i = 0; i < numOps; i++) {
-            long seqNo = i;
-            final ParsedDocument doc = EngineTestCase.createParsedDoc(Integer.toString(between(1, 100)), null);
-            if (randomBoolean()) {
-                operations.add(new Engine.Index(EngineTestCase.newUid(doc), doc, seqNo, primaryTerm.get(),
-                                                i, null, Engine.Operation.Origin.REPLICA, threadPool.relativeTimeInMillis(), -1, true, UNASSIGNED_SEQ_NO, 0L));
-            } else if (randomBoolean()) {
-                operations.add(new Engine.Delete("default", doc.id(), EngineTestCase.newUid(doc), seqNo, primaryTerm.get(),
-                                                 i, null, Engine.Operation.Origin.REPLICA, threadPool.relativeTimeInMillis(),
-                                                 UNASSIGNED_SEQ_NO, 0L));
-            } else {
-                operations.add(new Engine.NoOp(seqNo, primaryTerm.get(), Engine.Operation.Origin.REPLICA,
-                                               threadPool.relativeTimeInMillis(), "test-" + i));
-            }
-        }
-        Randomness.shuffle(operations);
+        List<Engine.Operation> operations = generateHistoryOnReplica(between(1, 500), randomBoolean(), randomBoolean(), randomBoolean());
         List<List<Engine.Operation>> commits = new ArrayList<>();
         commits.add(new ArrayList<>());
         try (Store store = createStore()) {
             EngineConfig config = config(indexSettings, store, translogPath, NoMergePolicy.INSTANCE, null, null, globalCheckpoint::get);
-            final List<DocIdSeqNoAndTerm> docs;
+            final List<DocIdSeqNoAndSource> docs;
             try (InternalEngine engine = createEngine(config)) {
                 List<Engine.Operation> flushedOperations = new ArrayList<>();
                 for (Engine.Operation op : operations) {
@@ -5027,17 +5011,36 @@ public class InternalEngineTests extends EngineTestCase {
                 }
                 docs = getDocIds(engine, true);
             }
-            List<Engine.Operation> safeCommit = null;
+            List<Engine.Operation> operationsInSafeCommit = null;
             for (int i = commits.size() - 1; i >= 0; i--) {
                 if (commits.get(i).stream().allMatch(op -> op.seqNo() <= globalCheckpoint.get())) {
-                    safeCommit = commits.get(i);
+                    operationsInSafeCommit = commits.get(i);
                     break;
                 }
             }
-            assertThat(safeCommit, notNullValue());
+            assertThat(operationsInSafeCommit, notNullValue());
             try (InternalEngine engine = new InternalEngine(config)) { // do not recover from translog
+                final Map<BytesRef, Engine.Operation> deletesAfterCheckpoint = new HashMap<>();
+                for (Engine.Operation op : operationsInSafeCommit) {
+                    if (op instanceof Engine.NoOp == false && op.seqNo() > engine.getPersistedLocalCheckpoint()) {
+                        deletesAfterCheckpoint.put(new Term(IdFieldMapper.NAME, Uid.encodeId(op.id())).bytes(), op);
+                    }
+                }
+                deletesAfterCheckpoint.values().removeIf(o -> o instanceof Engine.Delete == false);
+                final Map<BytesRef, VersionValue> versionMap = engine.getVersionMap();
+                for (BytesRef uid : deletesAfterCheckpoint.keySet()) {
+                    final VersionValue versionValue = versionMap.get(uid);
+                    final Engine.Operation op = deletesAfterCheckpoint.get(uid);
+                    final String msg = versionValue + " vs " +
+                        "op[" + op.operationType() + "id=" + op.id() + " seqno=" + op.seqNo() + " term=" + op.primaryTerm() + "]";
+                    assertThat(versionValue, instanceOf(DeleteVersionValue.class));
+                    assertThat(msg, versionValue.seqNo, equalTo(op.seqNo()));
+                    assertThat(msg, versionValue.term, equalTo(op.primaryTerm()));
+                    assertThat(msg, versionValue.version, equalTo(op.version()));
+                }
+                assertThat(versionMap.keySet(), equalTo(deletesAfterCheckpoint.keySet()));
                 final LocalCheckpointTracker tracker = engine.getLocalCheckpointTracker();
-                final Set<Long> seqNosInSafeCommit = safeCommit.stream().map(op -> op.seqNo()).collect(Collectors.toSet());
+                final Set<Long> seqNosInSafeCommit = operationsInSafeCommit.stream().map(op -> op.seqNo()).collect(Collectors.toSet());
                 for (Engine.Operation op : operations) {
                     assertThat("seq_no=" + op.seqNo() + " max_seq_no=" + tracker.getMaxSeqNo() + " checkpoint=" + tracker.getProcessedCheckpoint(),
                                tracker.hasProcessed(op.seqNo()),
