@@ -21,6 +21,7 @@ package org.elasticsearch.index.engine;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexCommit;
@@ -29,17 +30,23 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.LiveIndexWriterConfig;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SoftDeletesRetentionMergePolicy;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ReferenceManager;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SearcherFactory;
 import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.LockObtainFailedException;
@@ -63,12 +70,14 @@ import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.fieldvisitor.IDVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
+import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.merge.OnGoingMerge;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.SeqNoStats;
@@ -242,6 +251,15 @@ public class InternalEngine extends Engine {
             this.lastRefreshedCheckpointListener = new LastRefreshedCheckpointListener(localCheckpointTracker.getProcessedCheckpoint());
             this.internalSearcherManager.addListener(lastRefreshedCheckpointListener);
             maxSeqNoOfUpdatesOrDeletes = new AtomicLong(SequenceNumbers.max(localCheckpointTracker.getMaxSeqNo(), translog.getMaxSeqNo()));
+            if (softDeleteEnabled && localCheckpointTracker.getPersistedCheckpoint() < localCheckpointTracker.getMaxSeqNo()) {
+                try (Searcher searcher =
+                         acquireSearcher("restore_version_map_and_checkpoint_tracker", SearcherScope.INTERNAL)) {
+                    restoreVersionMapAndCheckpointTracker(Lucene.wrapAllDocsLive(searcher.getDirectoryReader()));
+                } catch (IOException e) {
+                    throw new EngineCreationFailureException(config().getShardId(),
+                        "failed to restore version map and local checkpoint tracker", e);
+                }
+            }
             success = true;
         } finally {
             if (success == false) {
@@ -688,6 +706,19 @@ public class InternalEngine extends Engine {
         OP_STALE_OR_EQUAL,
         /** no doc was found in lucene */
         LUCENE_DOC_NOT_FOUND
+    }
+
+    private static OpVsLuceneDocStatus compareOpToVersionMapOnSeqNo(String id, long seqNo, long primaryTerm, VersionValue versionValue) {
+        Objects.requireNonNull(versionValue);
+        if (seqNo > versionValue.seqNo) {
+            return OpVsLuceneDocStatus.OP_NEWER;
+        } else if (seqNo == versionValue.seqNo) {
+            assert versionValue.term == primaryTerm : "primary term not matched; id=" + id + " seq_no=" + seqNo
+                + " op_term=" + primaryTerm + " existing_term=" + versionValue.term;
+            return OpVsLuceneDocStatus.OP_STALE_OR_EQUAL;
+        } else {
+            return OpVsLuceneDocStatus.OP_STALE_OR_EQUAL;
+        }
     }
 
     private OpVsLuceneDocStatus compareOpToLuceneDocBasedOnSeqNo(final Operation op) throws IOException {
@@ -2809,4 +2840,59 @@ public class InternalEngine extends Engine {
         assert seqNo <= maxSeqNoOfUpdates : "id=" + id + " seq_no=" + seqNo + " msu=" + maxSeqNoOfUpdates;
         return true;
     }
+
+    /**
+     * Restores the live version map and local checkpoint of this engine using documents (including soft-deleted)
+     * after the local checkpoint in the safe commit. This step ensures the live version map and checkpoint tracker
+     * are in sync with the Lucene commit.
+     */
+    private void restoreVersionMapAndCheckpointTracker(DirectoryReader directoryReader) throws IOException {
+        final IndexSearcher searcher = new IndexSearcher(directoryReader);
+        searcher.setQueryCache(null);
+        final Query query = LongPoint.newRangeQuery(SeqNoFieldMapper.NAME, getPersistedLocalCheckpoint() + 1, Long.MAX_VALUE);
+        final Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 1.0f);
+        for (LeafReaderContext leaf : directoryReader.leaves()) {
+            final Scorer scorer = weight.scorer(leaf);
+            if (scorer == null) {
+                continue;
+            }
+            final CombinedDocValues dv = new CombinedDocValues(leaf.reader());
+            final IDVisitor idFieldVisitor = new IDVisitor(IdFieldMapper.NAME);
+            final DocIdSetIterator iterator = scorer.iterator();
+            int docId;
+            while ((docId = iterator.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
+                final long primaryTerm = dv.docPrimaryTerm(docId);
+                if (primaryTerm == -1L) {
+                    continue; // skip children docs which do not have primary term
+                }
+                final long seqNo = dv.docSeqNo(docId);
+                localCheckpointTracker.markSeqNoAsProcessed(seqNo);
+                localCheckpointTracker.markSeqNoAsPersisted(seqNo);
+                idFieldVisitor.reset();
+                leaf.reader().document(docId, idFieldVisitor);
+                if (idFieldVisitor.getId() == null) {
+                    assert dv.isTombstone(docId);
+                    continue;
+                }
+                final BytesRef uid = new Term(IdFieldMapper.NAME, Uid.encodeId(idFieldVisitor.getId())).bytes();
+                try (Releasable ignored = versionMap.acquireLock(uid)) {
+                    final VersionValue curr = versionMap.getUnderLock(uid);
+                    if (curr == null ||
+                        compareOpToVersionMapOnSeqNo(idFieldVisitor.getId(), seqNo, primaryTerm, curr) == OpVsLuceneDocStatus.OP_NEWER) {
+                        if (dv.isTombstone(docId)) {
+                            // use 0L for the start time so we can prune this delete tombstone quickly
+                            // when the local checkpoint advances (i.e., after a recovery completed).
+                            final long startTime = 0L;
+                            versionMap.putDeleteUnderLock(uid, new DeleteVersionValue(dv.docVersion(docId), seqNo, primaryTerm, startTime));
+                        } else {
+                            versionMap.putIndexUnderLock(uid, new IndexVersionValue(null, dv.docVersion(docId), seqNo, primaryTerm));
+                        }
+                    }
+                }
+            }
+        }
+        // remove live entries in the version map
+        refresh("restore_version_map_and_checkpoint_tracker", SearcherScope.INTERNAL);
+    }
+
 }
