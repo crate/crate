@@ -24,8 +24,6 @@ package io.crate.statistics;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.data.RowN;
-import io.crate.metadata.RelationName;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -42,11 +40,6 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -62,7 +55,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             Settings.builder().put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build(),
             THREAD_POOL,
             clusterService,
-            new TableStats(),
             Mockito.mock(SQLOperations.class, Answers.RETURNS_MOCKS));
 
         Assert.assertThat(statsService.refreshInterval,
@@ -74,7 +66,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
-            new TableStats(),
             Mockito.mock(SQLOperations.class, Answers.RETURNS_MOCKS));
 
         Assert.assertThat(statsService.refreshInterval,
@@ -108,31 +99,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testRowsToTableStatConversion() throws InterruptedException, ExecutionException, TimeoutException {
-        CompletableFuture<Map<RelationName, Stats>> statsFuture = new CompletableFuture<>();
-        TableStatsService.TableStatsResultReceiver receiver =
-            new TableStatsService.TableStatsResultReceiver(statsFuture::complete);
-
-        receiver.setNextRow(new RowN(new Object[]{0L, 10L, "empty", "foo"}));
-        receiver.setNextRow(new RowN(new Object[]{1L, 10L, "custom", "foo"}));
-        receiver.setNextRow(new RowN(new Object[]{2L, 20L, "doc", "foo"}));
-        receiver.setNextRow(new RowN(new Object[]{3L, 30L, "bar", "foo"}));
-        receiver.allFinished(false);
-
-        Map<RelationName, Stats> stats = statsFuture.get(10, TimeUnit.SECONDS);
-        Assert.assertThat(stats.size(), Matchers.is(4));
-        Stats statValues = stats.get(new RelationName("bar", "foo"));
-        Assert.assertThat(statValues.numDocs, Matchers.is(3L));
-        Assert.assertThat(statValues.sizeInBytes, Matchers.is(30L));
-
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(stats);
-        Assert.assertThat(tableStats.estimatedSizePerRow(new RelationName("bar", "foo")), Matchers.is(10L));
-        Assert.assertThat(tableStats.estimatedSizePerRow(new RelationName("empty", "foo")), Matchers.is(0L));
-        Assert.assertThat(tableStats.estimatedSizePerRow(new RelationName("notInCache", "foo")), Matchers.is(-1L));
-    }
-
-    @Test
     public void testStatsQueriesCorrectly() {
         SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
         Session session = Mockito.mock(Session.class);
@@ -142,7 +108,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
-            new TableStats(),
             sqlOperations
         );
         statsService.run();
@@ -163,7 +128,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
-            new TableStats(),
             sqlOperations
         );
 
