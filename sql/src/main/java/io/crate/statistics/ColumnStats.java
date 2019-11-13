@@ -22,6 +22,7 @@
 
 package io.crate.statistics;
 
+import io.crate.Streamer;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.types.DataType;
@@ -32,34 +33,49 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
-public final class ColumnStats implements Writeable {
+public final class ColumnStats<T> implements Writeable {
 
     private final double nullFraction;
     private final double averageSizeInBytes;
     private final double approxDistinct;
-    private final DataType<?> type;
+    private final DataType<T> type;
     private final MostCommonValues mostCommonValues;
+    private final List<T> histogram;
 
     public ColumnStats(double nullFraction,
                        double averageSizeInBytes,
                        double approxDistinct,
-                       DataType<?> type,
-                       MostCommonValues mostCommonValues) {
+                       DataType<T> type,
+                       MostCommonValues mostCommonValues,
+                       List<T> histogram) {
         this.nullFraction = nullFraction;
         this.averageSizeInBytes = averageSizeInBytes;
         this.approxDistinct = approxDistinct;
         this.type = type;
         this.mostCommonValues = mostCommonValues;
+        this.histogram = histogram;
     }
 
     public ColumnStats(StreamInput in) throws IOException {
+        //noinspection unchecked
         this.type = DataTypes.fromStream(in);
+
         this.nullFraction = in.readDouble();
         this.averageSizeInBytes = in.readDouble();
         this.approxDistinct = in.readDouble();
-        this.mostCommonValues = new MostCommonValues(type.streamer(), in);
+        Streamer<T> streamer = type.streamer();
+        this.mostCommonValues = new MostCommonValues(streamer, in);
+        int numHistogramValues = in.readVInt();
+        ArrayList<T> histogram = new ArrayList<>(numHistogramValues);
+        for (int i = 0; i < numHistogramValues; i++) {
+            histogram.add(streamer.readValueFrom(in));
+        }
+        this.histogram = histogram;
     }
 
     @Override
@@ -69,6 +85,11 @@ public final class ColumnStats implements Writeable {
         out.writeDouble(averageSizeInBytes);
         out.writeDouble(approxDistinct);
         mostCommonValues.writeTo(type.streamer(), out);
+        out.writeVInt(histogram.size());
+        Streamer<T> streamer = type.streamer();
+        for (T o : histogram) {
+            streamer.writeValueTo(out, o);
+        }
     }
 
     public double averageSizeInBytes() {
@@ -85,6 +106,10 @@ public final class ColumnStats implements Writeable {
 
     public MostCommonValues mostCommonValues() {
         return mostCommonValues;
+    }
+
+    public List<T> histogram() {
+        return histogram;
     }
 
     @Override
@@ -110,7 +135,10 @@ public final class ColumnStats implements Writeable {
         if (!type.equals(that.type)) {
             return false;
         }
-        return mostCommonValues.equals(that.mostCommonValues);
+        if (!mostCommonValues.equals(that.mostCommonValues)) {
+            return false;
+        }
+        return histogram.equals(that.histogram);
     }
 
     @Override
@@ -125,6 +153,7 @@ public final class ColumnStats implements Writeable {
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         result = 31 * result + type.hashCode();
         result = 31 * result + mostCommonValues.hashCode();
+        result = 31 * result + histogram.hashCode();
         return result;
     }
 
@@ -132,10 +161,10 @@ public final class ColumnStats implements Writeable {
      * @param samples sorted sample values (must exclude any null values that might have been sampled)
      * @param nullCount Number of null values that have been excluded from the samples
      */
-    public static <T> ColumnStats fromSortedValues(List<T> samples,
-                                                   DataType<T> type,
-                                                   int nullCount,
-                                                   long numTotalRows) {
+    public static <T> ColumnStats<T> fromSortedValues(List<T> samples,
+                                                      DataType<T> type,
+                                                      int nullCount,
+                                                      long numTotalRows) {
         // This is heavily inspired by the logic in PostgreSQL (src/backend/command/analyze.c -> compute_scalar_stats)
 
         int notNullCount = samples.size();
@@ -144,7 +173,7 @@ public final class ColumnStats implements Writeable {
             double nullFraction = 1.0;
             int averageWidth = type instanceof FixedWidthType ? ((FixedWidthType) type).fixedSize() : 0;
             long approxDistinct = 1;
-            return new ColumnStats(nullFraction, averageWidth, approxDistinct, type, MostCommonValues.EMPTY);
+            return new ColumnStats<>(nullFraction, averageWidth, approxDistinct, type, MostCommonValues.EMPTY, List.of());
         }
         boolean isVariableLength = !(type instanceof FixedWidthType);
         SizeEstimator<T> sizeEstimator = SizeEstimatorFactory.create(type);
@@ -202,14 +231,50 @@ public final class ColumnStats implements Writeable {
             numTotalRows,
             mostCommonValueCandidates
         );
-        // TODO: Generate histogram
-        return new ColumnStats(
+        return new ColumnStats<>(
             nullFraction,
             averageSizeInBytes,
             approxDistinct,
             type,
-            mostCommonValues
+            mostCommonValues,
+            generateHistogram(MostCommonValues.MCV_TARGET, removeMCVs(samples, mostCommonValueCandidates))
         );
+    }
+
+    private static <T> List<T> removeMCVs(List<T> samples, MostCommonValues.MVCCandidate[] mostCommonValueCandidates) {
+        Arrays.sort(mostCommonValueCandidates, Comparator.comparingInt(x -> x.first));
+        // The candidates are now sorted by the start indices of the most common values, e.g.
+        // [0, 28, 40]
+        // Together with the count we've the boundaries:
+        // [0-17, 28-35, 40-48]
+        // We want to have a list of samples that contain everything outside the boundaries.
+        ArrayList<T> prunedSamples = new ArrayList<>();
+        int i = 0;
+        for (MostCommonValues.MVCCandidate mostCommonValueCandidate : mostCommonValueCandidates) {
+            if (mostCommonValueCandidate.count == 0) {
+                continue;
+            }
+            for (int j = i; j < mostCommonValueCandidate.first; j++) {
+                prunedSamples.add(samples.get(j));
+            }
+            i = mostCommonValueCandidate.first + mostCommonValueCandidate.count;
+        }
+        for (int j = i; j < samples.size(); j++) {
+            prunedSamples.add(samples.get(j));
+        }
+        return prunedSamples;
+    }
+
+    static <T> List<T> generateHistogram(int numBins, List<T> sortedValues) {
+        int numHist = Math.min(numBins, sortedValues.size());
+        ArrayList<T> histogram = new ArrayList<>(numHist);
+        int delta = (sortedValues.size() - 1) / (numHist - 1);
+        int position = 0;
+        for (int i = 0; i < numHist; i++) {
+            histogram.add(sortedValues.get(position));
+            position += delta;
+        }
+        return histogram;
     }
 
     private static double approximateNumDistinct(double nullFraction,
