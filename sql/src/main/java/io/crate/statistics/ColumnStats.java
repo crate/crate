@@ -25,6 +25,7 @@ package io.crate.statistics;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,29 +36,39 @@ import java.util.List;
 
 public final class ColumnStats implements Writeable {
 
-    static final int MCV_TARGET = 100;
-
     private final double nullFraction;
     private final double averageSizeInBytes;
     private final double approxDistinct;
+    private final DataType<?> type;
+    private final MostCommonValues mostCommonValues;
 
-    public ColumnStats(double nullFraction, double averageSizeInBytes, double approxDistinct) {
+    public ColumnStats(double nullFraction,
+                       double averageSizeInBytes,
+                       double approxDistinct,
+                       DataType<?> type,
+                       MostCommonValues mostCommonValues) {
         this.nullFraction = nullFraction;
         this.averageSizeInBytes = averageSizeInBytes;
         this.approxDistinct = approxDistinct;
+        this.type = type;
+        this.mostCommonValues = mostCommonValues;
     }
 
     public ColumnStats(StreamInput in) throws IOException {
+        this.type = DataTypes.fromStream(in);
         this.nullFraction = in.readDouble();
         this.averageSizeInBytes = in.readDouble();
         this.approxDistinct = in.readDouble();
+        this.mostCommonValues = new MostCommonValues(type.streamer(), in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        DataTypes.toStream(type, out);
         out.writeDouble(nullFraction);
         out.writeDouble(averageSizeInBytes);
         out.writeDouble(approxDistinct);
+        mostCommonValues.writeTo(type.streamer(), out);
     }
 
     public double averageSizeInBytes() {
@@ -70,6 +81,51 @@ public final class ColumnStats implements Writeable {
 
     public double approxDistinct() {
         return approxDistinct;
+    }
+
+    public MostCommonValues mostCommonValues() {
+        return mostCommonValues;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        ColumnStats that = (ColumnStats) o;
+
+        if (Double.compare(that.nullFraction, nullFraction) != 0) {
+            return false;
+        }
+        if (Double.compare(that.averageSizeInBytes, averageSizeInBytes) != 0) {
+            return false;
+        }
+        if (Double.compare(that.approxDistinct, approxDistinct) != 0) {
+            return false;
+        }
+        if (!type.equals(that.type)) {
+            return false;
+        }
+        return mostCommonValues.equals(that.mostCommonValues);
+    }
+
+    @Override
+    public int hashCode() {
+        int result;
+        long temp;
+        temp = Double.doubleToLongBits(nullFraction);
+        result = (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(averageSizeInBytes);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(approxDistinct);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        result = 31 * result + type.hashCode();
+        result = 31 * result + mostCommonValues.hashCode();
+        return result;
     }
 
     /**
@@ -88,12 +144,12 @@ public final class ColumnStats implements Writeable {
             double nullFraction = 1.0;
             int averageWidth = type instanceof FixedWidthType ? ((FixedWidthType) type).fixedSize() : 0;
             long approxDistinct = 1;
-            return new ColumnStats(nullFraction, averageWidth, approxDistinct);
+            return new ColumnStats(nullFraction, averageWidth, approxDistinct, type, MostCommonValues.EMPTY);
         }
         boolean isVariableLength = !(type instanceof FixedWidthType);
         SizeEstimator<T> sizeEstimator = SizeEstimatorFactory.create(type);
-        int mcvTarget = Math.min(MCV_TARGET, samples.size());
-        MVCItem[] mostCommonValueCandidates = initMCVItems(mcvTarget);
+        int mcvTarget = Math.min(MostCommonValues.MCV_TARGET, samples.size());
+        MostCommonValues.MVCCandidate[] mostCommonValueCandidates = initMCVItems(mcvTarget);
         long totalSampleValueSizeInBytes = 0;
         int numTracked = 0;
         int duplicates = 0;
@@ -137,9 +193,23 @@ public final class ColumnStats implements Writeable {
             samples.size(),
             numTotalRows
         );
-        // TODO: Decide which most-common-values to keep and keep them
+        MostCommonValues mostCommonValues = MostCommonValues.fromCandidates(
+            nullFraction,
+            numTracked,
+            distinctValues,
+            approxDistinct,
+            samples,
+            numTotalRows,
+            mostCommonValueCandidates
+        );
         // TODO: Generate histogram
-        return new ColumnStats(nullFraction, averageSizeInBytes, approxDistinct);
+        return new ColumnStats(
+            nullFraction,
+            averageSizeInBytes,
+            approxDistinct,
+            type,
+            mostCommonValues
+        );
     }
 
     private static double approximateNumDistinct(double nullFraction,
@@ -156,7 +226,8 @@ public final class ColumnStats implements Writeable {
             // This should address cases like boolean or enum columns, where there is a small fixed set of possible values.
             return distinctSamples;
         }
-        /*
+        /* From PostgreSQL:
+         *
          * Estimate the number of distinct values using the estimator
          * proposed by Haas and Stokes in IBM Research Report RJ 10025:
          *    n*d / (n - f1 + f1*n/N)
@@ -188,7 +259,7 @@ public final class ColumnStats implements Writeable {
         return Math.floor(approxDistinct + 0.5);
     }
 
-    private static void updateMostCommonValues(MVCItem[] mostCommonValueCandidates,
+    private static void updateMostCommonValues(MostCommonValues.MVCCandidate[] mostCommonValueCandidates,
                                                int numTracked,
                                                int duplicates,
                                                int i) {
@@ -196,7 +267,7 @@ public final class ColumnStats implements Writeable {
         int j;
         for (j = numTracked - 1; j > 0; j--) {
             if (duplicates <= mostCommonValueCandidates[j - 1].count) {
-                continue;
+                break;
             }
             mostCommonValueCandidates[j].count = mostCommonValueCandidates[j - 1].count;
             mostCommonValueCandidates[j].first = mostCommonValueCandidates[j - 1].first;
@@ -205,25 +276,12 @@ public final class ColumnStats implements Writeable {
         mostCommonValueCandidates[j].first = i - duplicates;
     }
 
-    private static MVCItem[] initMCVItems(int mcvTarget) {
-        MVCItem[] trackedValues = new MVCItem[mcvTarget];
+    private static MostCommonValues.MVCCandidate[] initMCVItems(int mcvTarget) {
+        MostCommonValues.MVCCandidate[] trackedValues = new MostCommonValues.MVCCandidate[mcvTarget];
         for (int i = 0; i < trackedValues.length; i++) {
-            trackedValues[i] = new MVCItem();
+            trackedValues[i] = new MostCommonValues.MVCCandidate();
         }
         return trackedValues;
     }
 
-    static class MVCItem {
-
-        int first = 0;
-        int count = 0;
-
-        @Override
-        public String toString() {
-            return "MVCItem{" +
-                   "first=" + first +
-                   ", count=" + count +
-                   '}';
-        }
-    }
 }
