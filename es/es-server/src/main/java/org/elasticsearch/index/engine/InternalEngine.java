@@ -54,6 +54,7 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.InfoStream;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.lease.Releasable;
@@ -2824,6 +2825,11 @@ public class InternalEngine extends Engine {
 
     private boolean assertMaxSeqNoOfUpdatesIsAdvanced(Term id, long seqNo, boolean allowDeleted, boolean relaxIfGapInSeqNo) {
         final long maxSeqNoOfUpdates = getMaxSeqNoOfUpdatesOrDeletes();
+        // If the primary is on an old version which does not replicate msu, we need to relax this assertion for that.
+        if (maxSeqNoOfUpdates == SequenceNumbers.UNASSIGNED_SEQ_NO) {
+            assert config().getIndexSettings().getIndexVersionCreated().before(Version.ES_V_6_5_1);
+            return true;
+        }
         // We treat a delete on the tombstones on replicas as a regular document, then use updateDocument (not addDocument).
         if (allowDeleted) {
             final VersionValue versionValue = versionMap.getVersionForAssert(id.bytes());
