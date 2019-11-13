@@ -1989,5 +1989,83 @@ their own job logs entries, while a user with superuser privileges has access
 to all.
 
 
+.. _pg_stats:
+
+pg_stats
+========
+
+The ``pg_stats`` table in the ``pg_catalog`` system schema contains statistical
+data about the contents of the CrateDB cluster.
+
+Entries are periodically created or updated in the interval configured with the
+:ref:`stats.service.interval <stats.service.interval>` setting.
+
+Alternatively the statistics can also be updated using the :ref:`ANALYZE
+<analyze>` command.
+
+
+The table contains 1 entry per column for each table in the cluster which has
+been analyzed.
+
+.. list-table:: pg_stats schema
+    :header-rows: 1
+
+    * - Name
+      - Type
+      - Description
+    * - schemaname
+      - text
+      - Name of the schema containing the table.
+    * - tablename
+      - text
+      - Name of the table.
+    * - attname
+      - text
+      - Name of the column.
+    * - inherited
+      - bool
+      - Always false in CrateDB; For compatibility with PostgreSQL.
+    * - null_frac
+      - real
+      - Fraction of column entries that are null.
+    * - avg_width
+      - integer
+      - Average size in bytes of column's entries.
+    * - n_distinct
+      - real
+      - An approximation of the number of distinct values in a column.
+    * - most_common_vals
+      - string[]
+      - A list of the most common values in the column. null if no values seem.
+        more common than others.
+    * - most_common_freqs
+      - real[]
+      - A list of the frequencies of the most common values. The size of the
+        array always matches most_common_vals. If most_common_vals is null this
+        is null as well.
+    * - histogram_bounds
+      - string[]
+      - A list of values that divide the column's values into groups of
+        approximately equal population. The values in most_common_vals, if
+        present, are omitted from this histogram calculation.
+    * - correlation
+      - real
+      - Always 0.0. This column exists for PostgreSQL compatibility.
+    * - most_common_elems
+      - string[]
+      - Always null. Exists for PostgreSQL compatibility.
+    * - most_common_elem_freqs
+      - real[]
+      - Always null. Exists for PostgreSQL compatibility.
+    * - elem_count_histogram
+      - real[]
+      - Always null. Exists for PostgreSQL compatibility.
+
+
+.. note:: 
+
+    Not all data types support creating statistics. So some columns may not
+    show up in the table.
+
 .. _configuration: ../configuration.html
 .. _Enterprise Edition: https://crate.io/enterprise/

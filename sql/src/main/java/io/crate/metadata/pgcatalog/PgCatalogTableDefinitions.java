@@ -29,6 +29,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.session.NamedSessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.statistics.TableStats;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Collections;
@@ -45,9 +46,17 @@ public class PgCatalogTableDefinitions {
 
     @Inject
     public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables,
+                                     TableStats tableStats,
                                      PgCatalogSchemaInfo pgCatalogSchemaInfo) {
-        tableDefinitions = new HashMap<>(8);
-
+        tableDefinitions = new HashMap<>(9);
+        tableDefinitions.put(
+            PgStatsTable.NAME,
+            new StaticTableDefinition<>(
+                tableStats::statsEntries,
+                (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relation().fqn()),
+                PgStatsTable.expressions()
+            )
+        );
         tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(PGTypes.pgTypes()),
             PgTypeTable.expressions(),

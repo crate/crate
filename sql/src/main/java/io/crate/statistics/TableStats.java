@@ -26,6 +26,7 @@ import io.crate.metadata.RelationName;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Holds table statistics that are updated periodically by {@link TableStatsService}.
@@ -80,4 +81,14 @@ public class TableStats {
         return sizeInBytes(relationName) / numDocs(relationName);
     }
 
+    public Iterable<ColumnStatsEntry> statsEntries() {
+        Set<Map.Entry<RelationName, Stats>> entries = tableStats.entrySet();
+        return () -> entries.stream()
+            .flatMap(tableEntry -> {
+                Stats stats = tableEntry.getValue();
+                return stats.statsByColumn().entrySet().stream()
+                    .map(columnEntry ->
+                        new ColumnStatsEntry(tableEntry.getKey(), columnEntry.getKey(), columnEntry.getValue()));
+            }).iterator();
+    }
 }

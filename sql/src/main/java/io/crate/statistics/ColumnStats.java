@@ -267,6 +267,9 @@ public final class ColumnStats<T> implements Writeable {
 
     static <T> List<T> generateHistogram(int numBins, List<T> sortedValues) {
         int numHist = Math.min(numBins, sortedValues.size());
+        if (numHist < 2) {
+            return List.of();
+        }
         ArrayList<T> histogram = new ArrayList<>(numHist);
         int delta = (sortedValues.size() - 1) / (numHist - 1);
         int position = 0;
