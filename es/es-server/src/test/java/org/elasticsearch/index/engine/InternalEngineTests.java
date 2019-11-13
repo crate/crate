@@ -125,6 +125,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -4038,7 +4039,7 @@ public class InternalEngineTests extends EngineTestCase {
                         engine.flush();
                     }
                 }
-                globalCheckpoint.set(randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, engine.getProcessedLocalCheckpoint()));
+                globalCheckpoint.set(randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, engine.getPersistedLocalCheckpoint()));
                 engine.syncTranslog();
                 prevSeqNoStats = engine.getSeqNoStats(globalCheckpoint.get());
                 prevDocs = getDocIds(engine, true);
@@ -5212,6 +5213,44 @@ public class InternalEngineTests extends EngineTestCase {
             assertTrue(engine.isClosed.get());
             assertNotNull(engine.failedEngine.get());
         }
+    }
+
+    public void testMaxSeqNoInCommitUserData() throws Exception {
+        AtomicBoolean running = new AtomicBoolean(true);
+        Thread rollTranslog = new Thread(() -> {
+            while (running.get() && engine.getTranslog().currentFileGeneration() < 500) {
+                engine.rollTranslogGeneration(); // make adding operations to translog slower
+            }
+        });
+        rollTranslog.start();
+
+        Thread indexing = new Thread(() -> {
+            long seqNo = 0;
+            while (running.get() && seqNo <= 1000) {
+                try {
+                    String id = Long.toString(between(1, 50));
+                    if (randomBoolean()) {
+                        ParsedDocument doc = testParsedDocument(id, null, testDocumentWithTextField(), SOURCE, null);
+                        engine.index(replicaIndexForDoc(doc, 1L, seqNo, false));
+                    } else {
+                        engine.delete(replicaDeleteForDoc(id, 1L, seqNo, 0L));
+                    }
+                    seqNo++;
+                } catch (IOException e) {
+                    throw new AssertionError(e);
+                }
+            }
+        });
+        indexing.start();
+
+        int numCommits = between(5, 20);
+        for (int i = 0; i < numCommits; i++) {
+            engine.flush(false, true);
+        }
+        running.set(false);
+        indexing.join();
+        rollTranslog.join();
+        assertMaxSeqNoInCommitUserData(engine);
     }
 
     @Test
