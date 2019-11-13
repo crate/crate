@@ -74,4 +74,8 @@ public class Stats implements Writeable {
             entry.getValue().writeTo(out);
         }
     }
+
+    public Map<ColumnIdent, ColumnStats> statsByColumn() {
+        return statsByColumn;
+    }
 }

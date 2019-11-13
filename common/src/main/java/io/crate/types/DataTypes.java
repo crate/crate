@@ -75,6 +75,7 @@ public final class DataTypes {
     public static final GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
 
     public static final ArrayType<Double> DOUBLE_ARRAY = new ArrayType<>(DOUBLE);
+    public static final ArrayType<Float> FLOAT_ARRAY = new ArrayType<>(FLOAT);
     public static final ArrayType<String> STRING_ARRAY = new ArrayType<>(STRING);
     public static final ArrayType<Integer> INTEGER_ARRAY = new ArrayType<>(INTEGER);
     public static final ArrayType<Short> SHORT_ARRAY = new ArrayType<>(SHORT);

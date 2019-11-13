@@ -24,14 +24,18 @@ package io.crate.integrationtests;
 
 import io.crate.metadata.RelationName;
 import io.crate.statistics.TableStats;
+import io.crate.types.DataTypes;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 
 public class AnalyzeITest extends SQLTransportIntegrationTest{
 
     @Test
-    public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class() {
+    public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class_and_pg_stats() {
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl (x) values (1), (2), (3), (null), (3), (3)");
         execute("refresh table doc.tbl");
@@ -41,5 +45,22 @@ public class AnalyzeITest extends SQLTransportIntegrationTest{
         }
         execute("select reltuples from pg_class where relname = 'tbl'");
         assertThat(response.rows()[0][0], is(6.0f));
+
+        execute(
+            "select " +
+            "   null_frac," +
+            "   avg_width," +
+            "   n_distinct," +
+            "   most_common_vals," +
+            "   most_common_freqs," +
+            "   histogram_bounds " +
+            "from pg_stats where tablename = 'tbl'");
+        Object[] row = response.rows()[0];
+        assertThat(row[0], Matchers.is(0.2f));
+        assertThat(row[1], is(DataTypes.INTEGER.fixedSize()));
+        assertThat(row[2], is(3.0f));
+        assertThat(((List<String>) row[3]), Matchers.empty());
+        assertThat(((List<Double>) row[4]), Matchers.empty());
+        assertThat(((List<String>) row[5]), Matchers.contains("1", "2", "3"));
     }
 }
