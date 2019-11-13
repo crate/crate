@@ -260,10 +260,6 @@ public abstract class EngineTestCase extends ESTestCase {
         } finally {
             IOUtils.close(replicaEngine, storeReplica, engine, store, () -> terminate(threadPool));
         }
-        IOUtils.close(
-            replicaEngine, storeReplica,
-            engine, store);
-        terminate(threadPool);
     }
 
 
