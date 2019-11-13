@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -65,7 +66,10 @@ public class ColumnStatsTest {
     @Test
     public void test_column_stats_generation_for_num_samples_gt_mcv_target() {
         List<Integer> numbers = IntStream.concat(
-            IntStream.generate(() -> 10).limit(90),
+            IntStream.concat(
+                IntStream.range(1, 10),
+                IntStream.generate(() -> 10).limit(90)
+            ),
             IntStream.concat(
                 IntStream.generate(() -> 20).limit(20),
                 IntStream.range(30, 150)
@@ -73,11 +77,24 @@ public class ColumnStatsTest {
             .boxed()
             .collect(Collectors.toList());
 
-        ColumnStats columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, 400L);
+        ColumnStats<Integer> columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, 400L);
+        List<Integer> histogramSample = columnStats.histogram().subList(0, 15);
+        assertThat(histogramSample, contains(1, 2, 3, 4, 5, 6, 7, 8, 9, 30, 31, 32, 33, 34, 35));
         MostCommonValues mostCommonValues = columnStats.mostCommonValues();
         assertThat(mostCommonValues.values().length, is(2));
-        assertThat(mostCommonValues.frequencies()[0], Matchers.closeTo(0.391, 0.01));
+        assertThat(mostCommonValues.values()[0], is(10));
+        assertThat(mostCommonValues.frequencies()[0], Matchers.closeTo(0.376, 0.01));
+        assertThat(mostCommonValues.values()[1], is(20));
         assertThat(mostCommonValues.frequencies()[1], Matchers.closeTo(0.086, 0.01));
+    }
+
+    @Test
+    public void test_histogram_contains_evenly_spaced_values_from_samples() {
+        List<Integer> histogram = ColumnStats.generateHistogram(
+            4,
+            IntStream.range(1, 21).boxed().collect(Collectors.toList())
+        );
+        assertThat(histogram, contains(1, 7, 13, 19));
     }
 
     @Test
