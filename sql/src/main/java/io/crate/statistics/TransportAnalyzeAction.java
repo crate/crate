@@ -83,7 +83,7 @@ public final class TransportAnalyzeAction {
      *
      * In PostgreSQL `k` is configurable (per column). We don't support changing k, we default it to 100
      */
-    private static final int NUM_SAMPLES = 300 * ColumnStats.MCV_TARGET;
+    private static final int NUM_SAMPLES = 300 * MostCommonValues.MCV_TARGET;
     private final TransportService transportService;
     private final Schemas schemas;
     private final ClusterService clusterService;
