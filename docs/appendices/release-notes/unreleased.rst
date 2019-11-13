@@ -62,6 +62,10 @@ Deprecations
 Changes
 =======
 
+- Added a :ref:`ANALYZE <analyze>` command that can be used to update
+  statistical data about the contents of the tables in the CrateDB cluster.
+  This data is visible in a newly added :ref:`pg_stats <pg_stats>` table.
+
 - Added support for casting to :ref:`geo_point_data_type`,
   :ref:`geo_shape_data_type` and :ref:`object_data_type` array data types.
   For example: ``cast(['POINT(2 3)','POINT(1 3)'] AS array(geo_point))``

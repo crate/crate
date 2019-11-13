@@ -50,6 +50,7 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
         this.udfService = udfService;
         this.pgClassTable = PgClassTable.create(tableStats);
         tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
+            .put(PgStatsTable.NAME.name(), new PgStatsTable())
             .put(PgTypeTable.IDENT.name(), new PgTypeTable())
             .put(PgClassTable.IDENT.name(), pgClassTable)
             .put(PgNamespaceTable.IDENT.name(), new PgNamespaceTable())

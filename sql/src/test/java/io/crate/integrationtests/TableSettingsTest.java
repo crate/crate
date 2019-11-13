@@ -91,7 +91,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     public void testFilterOnNull() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings IS NULL");
-        assertEquals(36L, response.rowCount());
+        assertEquals(37L, response.rowCount());
         execute("select * from information_schema.tables " +
                 "where table_name = 'settings_table' and settings['warmer']['enabled'] IS NULL");
         assertEquals(0, response.rowCount());
