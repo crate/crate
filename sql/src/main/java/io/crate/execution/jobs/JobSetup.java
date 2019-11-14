@@ -688,7 +688,7 @@ public class JobSetup {
                         phase.orderByPositions(),
                         () -> new RowAccountingWithEstimators(
                             phase.inputTypes(),
-                            RamAccountingContext.forExecutionPhase(breaker(), phase))),
+                            ramAccountingContext)),
                     phase.numUpstreams());
             } else {
                 pageBucketReceiver = new IncrementalPageBucketReceiver<>(

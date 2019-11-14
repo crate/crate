@@ -30,33 +30,45 @@ import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import io.crate.types.UndefinedType;
 
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
 
 public class SizeEstimatorFactory {
 
+    private static final Map<Integer, Function<DataType, SizeEstimator<?>>> ESTIMATORS = new HashMap<>();
+
+    static {
+        register(UndefinedType.ID, t -> new ConstSizeEstimator(0));
+        register(StringType.ID, t -> StringSizeEstimator.INSTANCE);
+        register(IpType.ID, t -> StringSizeEstimator.INSTANCE);
+        // no type info for inner types so we just use an arbitrary constant size for now
+        register(ObjectType.ID, t -> new ConstSizeEstimator(60));
+        // no type info for inner types so we just use an arbitrary constant size for now
+        // geo_shapes are usually large objects, so estimated greater than regular object type
+        register(GeoShapeType.ID, t -> new ConstSizeEstimator(120));
+        register(ArrayType.ID, t -> {
+            var innerEstimator = create(((ArrayType<?>) t).innerType());
+            return ArraySizeEstimator.create(innerEstimator);
+        });
+    }
+
+    public static void register(int id, Function<DataType, SizeEstimator<?>> estimatorFunction) {
+        if (ESTIMATORS.putIfAbsent(id, estimatorFunction) != null) {
+            throw new IllegalArgumentException("An estimator for DataType ID=" + id + " is already registered");
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> SizeEstimator<T> create(DataType type) {
-        switch (type.id()) {
-            case UndefinedType.ID:
-                return (SizeEstimator<T>) new ConstSizeEstimator(0);
-            case StringType.ID:
-            case IpType.ID:
-                return (SizeEstimator<T>) StringSizeEstimator.INSTANCE;
-            case ObjectType.ID:
-                // no type info for inner types so we just use an arbitrary constant size for now
-                return (SizeEstimator<T>) new ConstSizeEstimator(60);
-            case GeoShapeType.ID:
-                // no type info for inner types so we just use an arbitrary constant size for now
-                // geo_shapes are usually large objects, so estimated greater than regular object type
-                return (SizeEstimator<T>) new ConstSizeEstimator(120);
-            case ArrayType.ID:
-                var innerEstimator = create(((ArrayType<?>) type).innerType());
-                return (SizeEstimator<T>) ArraySizeEstimator.create(innerEstimator);
-            default:
-                if (type instanceof FixedWidthType) {
-                    return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWidthType) type).fixedSize());
-                }
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Cannot get SizeEstimator for type %s", type));
+        Function<DataType, SizeEstimator<?>> estimatorFunction = ESTIMATORS.get(type.id());
+        if (estimatorFunction != null) {
+            return (SizeEstimator<T>) estimatorFunction.apply(type);
         }
+        if (type instanceof FixedWidthType) {
+            return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWidthType) type).fixedSize());
+        }
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Cannot get SizeEstimator for type %s", type));
     }
 }

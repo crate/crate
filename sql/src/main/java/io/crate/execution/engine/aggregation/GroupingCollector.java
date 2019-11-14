@@ -33,6 +33,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.types.DataType;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 
 import javax.annotation.Nullable;
@@ -44,6 +45,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
@@ -65,6 +67,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final BiConsumer<K, Object[]> applyKeyToCells;
     private final int numKeyColumns;
     private BiConsumer<Map<K, Object[]>, K> accountForNewEntry;
+    private final Consumer<Object[]> accountForNewStates;
     private final Function<Row, K> keyExtractor;
     private final Version indexVersionCreated;
     private final BiConsumer<Map<K, Object[]>, Row> accumulator;
@@ -78,6 +81,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                RamAccountingContext ramAccountingContext,
                                                Input<?> keyInput,
                                                DataType keyType,
+                                               DataType[] aggregationPartialTypes,
                                                Version indexVersionCreated) {
         return new GroupingCollector<>(
             expressions,
@@ -93,6 +97,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                 SizeEstimatorFactory.create(keyType),
                 keyType
             ),
+            aggregationPartialTypes,
             row -> keyInput.value(),
             indexVersionCreated,
             GroupByMaps.mapForType(keyType)
@@ -107,6 +112,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                     RamAccountingContext ramAccountingContext,
                                                     List<Input<?>> keyInputs,
                                                     List<? extends DataType> keyTypes,
+                                                    DataType[] aggregationPartialTypes,
                                                     Version indexVersionCreated) {
         return new GroupingCollector<>(
             expressions,
@@ -122,6 +128,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                 new MultiSizeEstimator(keyTypes),
                 null
             ),
+            aggregationPartialTypes,
             row -> evalKeyInputs(keyInputs),
             indexVersionCreated,
             HashMap::new
@@ -151,6 +158,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                               BiConsumer<K, Object[]> applyKeyToCells,
                               int numKeyColumns,
                               BiConsumer<Map<K, Object[]>, K> accountForNewEntry,
+                              DataType[] aggregationPartialTypes,
                               Function<Row, K> keyExtractor,
                               Version indexVersionCreated,
                               Supplier<Map<K, Object[]>> supplier) {
@@ -167,6 +175,18 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.indexVersionCreated = indexVersionCreated;
         this.accumulator = mode == AggregateMode.PARTIAL_FINAL ? this::reduce : this::iter;
         this.supplier = supplier;
+
+        List<SizeEstimator<Object>> estimators = new ArrayList<>(aggregationPartialTypes.length);
+        for (DataType aggDataType : aggregationPartialTypes) {
+            estimators.add(SizeEstimatorFactory.create(aggDataType));
+        }
+        accountForNewStates = v -> {
+            long size = 0;
+            for (int i = 0; i < v.length; i++) {
+                size += estimators.get(i).estimateSize(v[i]);
+            }
+            ramAccountingContext.addBytes(size);
+        };
     }
 
     @Override
@@ -202,6 +222,12 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         }
         K key = keyExtractor.apply(row);
         Object[] states = statesByKey.get(key);
+
+        // account shallow size of the `states` or `newStates` object array
+        long newStatesArrayBytes = RamUsageEstimator.alignObjectSize(
+            RamUsageEstimator.NUM_BYTES_ARRAY_HEADER + RamUsageEstimator.NUM_BYTES_OBJECT_REF * aggregations.length);
+        ramAccountingContext.addBytes(newStatesArrayBytes);
+
         if (states == null) {
             states = new Object[aggregations.length];
             for (int i = 0; i < aggregations.length; i++) {
@@ -209,14 +235,21 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             }
             addWithAccounting(statesByKey, key, states);
         } else {
+            Object[] newStates = new Object[aggregations.length];
             for (int i = 0; i < aggregations.length; i++) {
-                states[i] = aggregations[i].reduce(ramAccountingContext, states[i], inputs[i][0].value());
+                newStates[i] = inputs[i][0].value();
+            }
+            accountForNewStates.accept(newStates);
+
+            for (int i = 0; i < aggregations.length; i++) {
+                states[i] = aggregations[i].reduce(ramAccountingContext, states[i], newStates[i]);
             }
         }
     }
 
     private void addWithAccounting(Map<K, Object[]> statesByKey, K key, Object[] states) {
         accountForNewEntry.accept(statesByKey, key);
+        accountForNewStates.accept(states);
         statesByKey.put(key, states);
     }
 

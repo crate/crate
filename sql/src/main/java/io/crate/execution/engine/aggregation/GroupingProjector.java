@@ -59,11 +59,13 @@ public class GroupingProjector implements Projector {
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
         Input[][] inputs = new Input[aggregations.length][];
         Input<Boolean>[] filters = new Input[aggregations.length];
+        DataType[] partialTypes = new DataType[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             AggregationContext aggregation = aggregations[i];
             functions[i] = aggregation.function();
             inputs[i] = aggregation.inputs();
             filters[i] = aggregation.filter();
+            partialTypes[i] = aggregation.function().partialType();
         }
         if (keys.size() == 1) {
             Symbol key = keys.get(0);
@@ -76,6 +78,7 @@ public class GroupingProjector implements Projector {
                 ramAccountingContext,
                 keyInputs.get(0),
                 key.valueType(),
+                partialTypes,
                 indexVersionCreated
             );
         } else {
@@ -89,6 +92,7 @@ public class GroupingProjector implements Projector {
                 ramAccountingContext,
                 keyInputs,
                 typeView(keys),
+                partialTypes,
                 indexVersionCreated
             );
         }

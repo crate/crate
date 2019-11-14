@@ -22,6 +22,8 @@ import com.carrotsearch.hppc.BitMixer;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.SizeEstimator;
+import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
@@ -61,6 +63,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
     static {
         DataTypes.register(HllStateType.ID, in -> HllStateType.INSTANCE);
+        SizeEstimatorFactory.register(HllStateType.ID, t -> HllStateSizeEstimator.INSTANCE);
     }
 
     public static void register(EnterpriseFunctionsModule mod) {
@@ -316,6 +319,23 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 MurmurHash3.hash128(bytes, 0, bytes.length, 0, hash);
                 return hash.h1;
             }
+        }
+    }
+
+    public static class HllStateSizeEstimator extends SizeEstimator<HllState> {
+
+        static final HllStateSizeEstimator INSTANCE = new HllStateSizeEstimator();
+
+        @Override
+        public long estimateSize(@Nullable HllState value) {
+            if (value == null) {
+                return 0;
+            }
+            if (value.hyperLogLogPlusPlus == null) {
+                return (int) HllState.BASE_RAM_BYTES;
+            }
+            return (int) (HllState.BASE_RAM_BYTES
+                          + HyperLogLogPlusPlus.memoryUsage(value.hyperLogLogPlusPlus.precision()));
         }
     }
 }
