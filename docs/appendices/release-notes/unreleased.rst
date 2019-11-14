@@ -46,3 +46,4 @@ None
 Fixes
 =====
 
+- Fixed case sensitivity of unquoted column names inside ``ON CONFLICT`` clauses.
