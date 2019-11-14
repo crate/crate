@@ -22,21 +22,30 @@
 
 package io.crate.statistics;
 
+import com.pholser.junit.quickcheck.Property;
+import com.pholser.junit.quickcheck.generator.InRange;
+import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeThat;
 
+@RunWith(JUnitQuickcheck.class)
 public class ColumnStatsTest {
 
     @Test
@@ -44,10 +53,22 @@ public class ColumnStatsTest {
         List<Integer> numbers = List.of(1, 1, 2, 4, 4, 4, 4, 4);
         ColumnStats columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 1, 400L);
         assertThat(columnStats.averageSizeInBytes(), is((double) DataTypes.INTEGER.fixedSize()));
-        assertThat(columnStats.nullFraction(), is(0.125));
+        assertThat(columnStats.nullFraction(), Matchers.closeTo(0.111, 0.01));
         assertThat(columnStats.approxDistinct(), is(3.0));
         MostCommonValues mostCommonValues = columnStats.mostCommonValues();
         assertThat(mostCommonValues.values().length, is(0));
+    }
+
+    @Property
+    public void test_null_fraction_is_between_incl_0_and_incl_1(ArrayList<Integer> numbers,
+                                                                @InRange(minInt = 0) int nullCount,
+                                                                long totalRowCount) {
+        assumeThat(totalRowCount, greaterThanOrEqualTo((long) nullCount));
+        assumeThat((long) numbers.size() + nullCount, lessThanOrEqualTo(totalRowCount));
+
+        ColumnStats<Integer> stats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, nullCount, totalRowCount);
+        assertThat(stats.nullFraction(), greaterThanOrEqualTo(0.0));
+        assertThat(stats.nullFraction(), lessThanOrEqualTo(1.0));
     }
 
     @Test

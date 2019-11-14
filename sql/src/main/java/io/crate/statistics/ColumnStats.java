@@ -211,7 +211,7 @@ public final class ColumnStats<T> implements Writeable {
             }
             duplicates = 0;
         }
-        double nullFraction = (double) nullCount / (double) samples.size();
+        double nullFraction = (double) nullCount / (double) (samples.size() + nullCount);
         double averageSizeInBytes = isVariableLength
             ? totalSampleValueSizeInBytes / (double) notNullCount
             : ((FixedWidthType) type).fixedSize();

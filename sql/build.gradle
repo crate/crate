@@ -42,6 +42,8 @@ dependencies {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
     }
+    testCompile 'com.pholser:junit-quickcheck-core:0.9'
+    testCompile 'com.pholser:junit-quickcheck-generators:0.9'
     // These plugins are dynamically loaded and need to be present here.
     // They are required by 1) tests in :sql 2) modules depending on :sql.
     // They also need to be added in :app because :sql is declared non-transitive
