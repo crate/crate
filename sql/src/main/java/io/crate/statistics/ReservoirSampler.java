@@ -23,6 +23,10 @@
 package io.crate.statistics;
 
 import io.crate.Streamer;
+import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.breaker.RamAccounting;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -42,6 +46,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.types.DataTypes;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.Collector;
@@ -58,6 +63,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -72,16 +78,19 @@ public final class ReservoirSampler {
     private final ClusterService clusterService;
     private final Functions functions;
     private final Schemas schemas;
+    private CircuitBreakerService circuitBreakerService;
     private final IndicesService indicesService;
 
     @Inject
     public ReservoirSampler(ClusterService clusterService,
                             Functions functions,
                             Schemas schemas,
+                            CircuitBreakerService circuitBreakerService,
                             IndicesService indicesService) {
         this.clusterService = clusterService;
         this.functions = functions;
         this.schemas = schemas;
+        this.circuitBreakerService = circuitBreakerService;
         this.indicesService = indicesService;
     }
 
@@ -101,10 +110,24 @@ public final class ReservoirSampler {
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         List<Streamer> streamers = Arrays.asList(Symbols.streamerArray(columns));
         List<Engine.Searcher> searchersToRelease = new ArrayList<>();
+        RamAccountingContext ramAccounting = new RamAccountingContext(
+            "Reservoir-sampling",
+            circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY)
+        );
         try {
             return getSamples(
-                columns, maxSamples, docTable, random, metaData, coordinatorTxnCtx, streamers, searchersToRelease);
+                columns,
+                maxSamples,
+                docTable,
+                random,
+                metaData,
+                coordinatorTxnCtx,
+                streamers,
+                searchersToRelease,
+                ramAccounting
+            );
         } finally {
+            ramAccounting.close();
             for (Engine.Searcher searcher : searchersToRelease) {
                 searcher.close();
             }
@@ -118,7 +141,9 @@ public final class ReservoirSampler {
                                MetaData metaData,
                                CoordinatorTxnCtx coordinatorTxnCtx,
                                List<Streamer> streamers,
-                               List<Engine.Searcher> searchersToRelease) {
+                               List<Engine.Searcher> searchersToRelease,
+                               RamAccounting ramAccounting) {
+        ramAccounting.addBytes(DataTypes.LONG.fixedSize() * maxSamples);
         Reservoir<Long> fetchIdSamples = new Reservoir<>(maxSamples, random);
         ArrayList<DocIdToRow> docIdToRowsFunctionPerReader = new ArrayList<>();
         long totalNumDocs = 0;
@@ -167,11 +192,14 @@ public final class ReservoirSampler {
                 }
             }
         }
+        var rowAccounting = new RowAccountingWithEstimators(Symbols.typeView(columns), ramAccounting);
         return new Samples(
             Lists2.map(fetchIdSamples.samples(), fetchId -> {
                 int readerId = FetchId.decodeReaderId(fetchId);
                 DocIdToRow docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
-                return docIdToRow.apply(FetchId.decodeDocId(fetchId));
+                Row row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
+                rowAccounting.accountForAndMaybeBreak(row);
+                return row;
             }),
             streamers,
             totalNumDocs,
