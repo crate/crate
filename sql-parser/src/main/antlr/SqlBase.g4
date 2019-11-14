@@ -453,7 +453,7 @@ onConflict
    ;
 
 conflictTarget
-   : '(' qname (',' qname)* ')'
+   : '(' ident (',' ident)* ')'
    ;
 
 values

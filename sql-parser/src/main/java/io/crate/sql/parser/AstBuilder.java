@@ -183,7 +183,6 @@ import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -586,8 +585,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             SqlBaseParser.OnConflictContext onConflictContext = context.onConflict();
             final List<String> conflictColumns;
             if (onConflictContext.conflictTarget() != null) {
-                conflictColumns = onConflictContext.conflictTarget().qname().stream()
-                    .map(RuleContext::getText)
+                conflictColumns = onConflictContext.conflictTarget().ident().stream()
+                    .map(this::getIdentText)
                     .collect(toList());
             } else {
                 conflictColumns = emptyList();

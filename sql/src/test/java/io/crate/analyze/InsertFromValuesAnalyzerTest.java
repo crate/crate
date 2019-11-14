@@ -928,7 +928,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
                       "  primary key (o2['p'])" +
                       ")")
             .build();
-        String insertStatement = "insert into nested_on_conflict (o, o2) values ({c=1}, {p=1}) on conflict (o2.p) do update set k = 1";
+        String insertStatement = "insert into nested_on_conflict (o, o2) values ({c=1}, {p=1}) on conflict (\"o2.p\") do update set k = 1";
         InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
         assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
         assertThat(statement.onDuplicateKeyAssignmentsColumns().size(), is(1));
@@ -1489,5 +1489,21 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(res[0], is(1));
         assertThat(res[1], is(1));
         assertThat(res[2], is(2));
+    }
+
+    @Test
+    public void test_unquoted_on_conflict_columns_are_treated_case_insensitive() {
+        //should not throw a ColumnUnknownException
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (ID) do update set name = excluded.name");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id) do update set NAME = excluded.name");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (\"id\") do update set NAME = excluded.name");
+    }
+
+
+    @Test
+    public void test_quoted_on_conflict_columns_are_treated_case_sensitive() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Conflict target ([ID]) did not match the primary key columns ([id]");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (\"ID\") do update set NAME = excluded.name");
     }
 }
