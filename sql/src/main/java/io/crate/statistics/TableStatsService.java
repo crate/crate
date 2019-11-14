@@ -40,7 +40,10 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import javax.annotation.Nullable;
 
 /**
  * Periodically refresh {@link TableStats} based on {@link #refreshInterval}.
@@ -62,9 +65,10 @@ public class TableStatsService implements Runnable {
     private final Session session;
 
     @VisibleForTesting
-    ThreadPool.Cancellable refreshScheduledTask;
+    volatile TimeValue refreshInterval;
+
     @VisibleForTesting
-    TimeValue refreshInterval;
+    volatile Scheduler.ScheduledCancellable scheduledRefresh;
 
     @Inject
     public TableStatsService(Settings settings,
@@ -74,7 +78,7 @@ public class TableStatsService implements Runnable {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting().get(settings);
-        refreshScheduledTask = scheduleRefresh(refreshInterval);
+        scheduledRefresh = scheduleNextRefresh(refreshInterval);
         session = sqlOperations.newSystemSession();
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
@@ -101,9 +105,11 @@ public class TableStatsService implements Runnable {
         }
         try {
             BaseResultReceiver resultReceiver = new BaseResultReceiver();
-            resultReceiver.completionFuture().exceptionally(err -> {
-                LOGGER.error("Error running periodic " + STMT + "", err);
-                return null;
+            resultReceiver.completionFuture().whenComplete((res, err) -> {
+                scheduledRefresh = scheduleNextRefresh(refreshInterval);
+                if (err != null) {
+                    LOGGER.error("Error running periodic " + STMT + "", err);
+                }
             });
             session.quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
         } catch (Throwable t) {
@@ -111,22 +117,25 @@ public class TableStatsService implements Runnable {
         }
     }
 
-    private ThreadPool.Cancellable scheduleRefresh(TimeValue newRefreshInterval) {
-        if (newRefreshInterval.millis() > 0) {
-            return threadPool.scheduleWithFixedDelay(
+    @Nullable
+    private Scheduler.ScheduledCancellable scheduleNextRefresh(TimeValue refreshInterval) {
+        if (refreshInterval.millis() > 0) {
+            return threadPool.schedule(
                 this,
-                newRefreshInterval,
-                ThreadPool.Names.REFRESH);
+                refreshInterval,
+                ThreadPool.Names.REFRESH
+            );
         }
         return null;
     }
 
     private void setRefreshInterval(TimeValue newRefreshInterval) {
-        if (refreshScheduledTask != null) {
-            refreshScheduledTask.cancel();
+        if (scheduledRefresh != null) {
+            scheduledRefresh.cancel();
+            scheduledRefresh = null;
         }
-        refreshScheduledTask = scheduleRefresh(newRefreshInterval);
         refreshInterval = newRefreshInterval;
+        scheduledRefresh = scheduleNextRefresh(newRefreshInterval);
     }
 }
 
