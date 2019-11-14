@@ -56,7 +56,7 @@ public class AnalyzeITest extends SQLTransportIntegrationTest{
             "   histogram_bounds " +
             "from pg_stats where tablename = 'tbl'");
         Object[] row = response.rows()[0];
-        assertThat(row[0], Matchers.is(0.2f));
+        assertThat(((Float) row[0]).doubleValue(), Matchers.closeTo(0.166, 0.01));
         assertThat(row[1], is(DataTypes.INTEGER.fixedSize()));
         assertThat(row[2], is(3.0f));
         assertThat(((List<String>) row[3]), Matchers.empty());
