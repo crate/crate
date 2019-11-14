@@ -59,7 +59,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
         Assert.assertThat(statsService.refreshInterval,
                           Matchers.is(TimeValue.timeValueMinutes(0)));
-        Assert.assertThat(statsService.refreshScheduledTask, Matchers.is(Matchers.nullValue()));
+        Assert.assertThat(statsService.scheduledRefresh, Matchers.is(Matchers.nullValue()));
 
         // Default setting
         statsService = new TableStatsService(
@@ -70,7 +70,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
         Assert.assertThat(statsService.refreshInterval,
                           Matchers.is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault()));
-        Assert.assertThat(statsService.refreshScheduledTask, Matchers.is(IsNull.notNullValue()));
+        Assert.assertThat(statsService.scheduledRefresh, Matchers.is(IsNull.notNullValue()));
 
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
 
@@ -79,7 +79,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), "10m").build());
 
         Assert.assertThat(statsService.refreshInterval, Matchers.is(TimeValue.timeValueMinutes(10)));
-        Assert.assertThat(statsService.refreshScheduledTask,
+        Assert.assertThat(statsService.scheduledRefresh,
                           Matchers.is(IsNull.notNullValue()));
 
         // Disable
@@ -87,7 +87,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build());
 
         Assert.assertThat(statsService.refreshInterval, Matchers.is(TimeValue.timeValueMillis(0)));
-        Assert.assertThat(statsService.refreshScheduledTask,
+        Assert.assertThat(statsService.scheduledRefresh,
                           Matchers.is(Matchers.nullValue()));
 
         // Reset setting
@@ -95,7 +95,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
         Assert.assertThat(statsService.refreshInterval,
                           Matchers.is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault()));
-        Assert.assertThat(statsService.refreshScheduledTask, Matchers.is(IsNull.notNullValue()));
+        Assert.assertThat(statsService.scheduledRefresh, Matchers.is(IsNull.notNullValue()));
     }
 
     @Test
