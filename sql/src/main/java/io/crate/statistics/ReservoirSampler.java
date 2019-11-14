@@ -29,6 +29,7 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.collect.DocInputFactory;
+import io.crate.execution.engine.fetch.FetchId;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
@@ -60,6 +61,7 @@ import org.elasticsearch.indices.IndicesService;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -98,7 +100,29 @@ public final class ReservoirSampler {
         MetaData metaData = clusterService.state().metaData();
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         List<Streamer> streamers = Arrays.asList(Symbols.streamerArray(columns));
-        Samples samples = Samples.EMPTY;
+        List<Engine.Searcher> searchersToRelease = new ArrayList<>();
+        try {
+            return getSamples(
+                columns, maxSamples, docTable, random, metaData, coordinatorTxnCtx, streamers, searchersToRelease);
+        } finally {
+            for (Engine.Searcher searcher : searchersToRelease) {
+                searcher.close();
+            }
+        }
+    }
+
+    private Samples getSamples(List<Reference> columns,
+                               int maxSamples,
+                               DocTableInfo docTable,
+                               Random random,
+                               MetaData metaData,
+                               CoordinatorTxnCtx coordinatorTxnCtx,
+                               List<Streamer> streamers,
+                               List<Engine.Searcher> searchersToRelease) {
+        Reservoir<Long> fetchIdSamples = new Reservoir<>(maxSamples, random);
+        ArrayList<DocIdToRow> docIdToRowsFunctionPerReader = new ArrayList<>();
+        long totalNumDocs = 0;
+        long totalSizeInBytes = 0;
         for (String index : docTable.concreteOpenIndices()) {
             var indexMetaData = metaData.index(index);
             if (indexMetaData == null) {
@@ -118,32 +142,24 @@ public final class ReservoirSampler {
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.startCollect(collectorContext);
             }
-            // TODO: We could also go through all shards first and sample _fetchIds,
-            //  and then do the conversion to values afterwards
-            // would reduce the amount of value lookup's and make the merge unnecessary
             for (IndexShard indexShard : indexService) {
                 if (!indexShard.routingEntry().primary()) {
                     continue;
                 }
-                try (Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics")) {
+                try {
+                    Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics");
+                    searchersToRelease.add(searcher);
+                    totalNumDocs += searcher.reader().numDocs();
+                    totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
                     DocIdToRow docIdToRow = new DocIdToRow(searcher, inputs, expressions);
+                    docIdToRowsFunctionPerReader.add(docIdToRow);
                     try {
                         // We do the sampling in 2 phases. First we get the docIds;
                         // then we retrieve the column values for the sampled docIds.
                         // we do this in 2 phases because the reservoir sampling might override previously seen
                         // items and we want to avoid unnecessary disk-lookup
-                        ReservoirCollector results = new ReservoirCollector(maxSamples, random);
-                        searcher.searcher().search(new MatchAllDocsQuery(), results);
-                        samples = samples.merge(
-                            maxSamples,
-                            new Samples(
-                                Lists2.map(results.items.samples(), docIdToRow),
-                                streamers,
-                                searcher.reader().numDocs(),
-                                indexShard.storeStats().getSizeInBytes()
-                            ),
-                            random
-                        );
+                        var collector = new ReservoirCollector(fetchIdSamples, searchersToRelease.size() - 1);
+                        searcher.searcher().search(new MatchAllDocsQuery(), collector);
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
                     }
@@ -151,9 +167,17 @@ public final class ReservoirSampler {
                 }
             }
         }
-        return samples;
+        return new Samples(
+            Lists2.map(fetchIdSamples.samples(), fetchId -> {
+                int readerId = FetchId.decodeReaderId(fetchId);
+                DocIdToRow docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
+                return docIdToRow.apply(FetchId.decodeDocId(fetchId));
+            }),
+            streamers,
+            totalNumDocs,
+            totalSizeInBytes
+        );
     }
-
 
     static class DocIdToRow implements Function<Integer, Row> {
 
@@ -194,15 +218,17 @@ public final class ReservoirSampler {
 
     private static class ReservoirCollector implements Collector {
 
-        private final Reservoir<Integer> items;
+        private final Reservoir<Long> reservoir;
+        private int readerIdx;
 
-        ReservoirCollector(int maxSamples, Random random) {
-            items = new Reservoir<>(maxSamples, random);
+        ReservoirCollector(Reservoir<Long> reservoir, int readerIdx) {
+            this.reservoir = reservoir;
+            this.readerIdx = readerIdx;
         }
 
         @Override
         public LeafCollector getLeafCollector(LeafReaderContext context) {
-            return new ReservoirLeafCollector(items, context);
+            return new ReservoirLeafCollector(reservoir, readerIdx, context);
         }
 
         @Override
@@ -213,11 +239,13 @@ public final class ReservoirSampler {
 
     private static class ReservoirLeafCollector implements LeafCollector {
 
-        private final Reservoir<Integer> reservoir;
+        private final Reservoir<Long> reservoir;
+        private final int readerIdx;
         private final LeafReaderContext context;
 
-        ReservoirLeafCollector(Reservoir<Integer> reservoir, LeafReaderContext context) {
+        ReservoirLeafCollector(Reservoir<Long> reservoir, int readerIdx, LeafReaderContext context) {
             this.reservoir = reservoir;
+            this.readerIdx = readerIdx;
             this.context = context;
         }
 
@@ -227,7 +255,7 @@ public final class ReservoirSampler {
 
         @Override
         public void collect(int doc) {
-            reservoir.update(doc + context.docBase);
+            reservoir.update(FetchId.encode(readerIdx, doc + context.docBase));
         }
     }
 }
