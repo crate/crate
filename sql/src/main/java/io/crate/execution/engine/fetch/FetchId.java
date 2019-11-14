@@ -40,11 +40,11 @@ package io.crate.execution.engine.fetch;
 public final class FetchId {
 
 
-    static int decodeReaderId(long fetchId) {
+    public static int decodeReaderId(long fetchId) {
         return (int) (fetchId >> 32);
     }
 
-    static int decodeDocId(long fetchId) {
+    public static int decodeDocId(long fetchId) {
         return (int) fetchId;
     }
 
