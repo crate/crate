@@ -63,7 +63,7 @@ public final class GroupByMaps {
                 int mapSize = map.size();
                 // If mapSize is a power of 2 then the map is going to grow by doubling its size.
                 if (mapSize >= 4 && (mapSize & (mapSize - 1)) == 0) {
-                    ramAccounting.addBytes(mapSize * entryOverHead);
+                    ramAccounting.addBytes(mapSize * (long) entryOverHead);
                 }
             };
         }
