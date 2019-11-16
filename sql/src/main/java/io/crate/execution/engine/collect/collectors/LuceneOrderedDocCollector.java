@@ -55,7 +55,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     private static final Logger LOGGER = LogManager.getLogger(LuceneOrderedDocCollector.class);
     private static final int OPTIMIZE_BATCH_SIZE_THRESHOLD = 1000;
-    private static final int FIELD_DOC_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(FieldDoc.class);
+    private static final long FIELD_DOC_SIZE = RamUsageEstimator.shallowSizeOfInstance(FieldDoc.class);
 
     private final Query query;
     private final Float minScore;
