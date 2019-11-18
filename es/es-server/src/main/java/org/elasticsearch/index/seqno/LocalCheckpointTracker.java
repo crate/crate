@@ -22,6 +22,8 @@ package org.elasticsearch.index.seqno;
 import com.carrotsearch.hppc.LongObjectHashMap;
 import org.elasticsearch.common.SuppressForbidden;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * This class generates sequences numbers and keeps track of the so-called "local checkpoint" which is the highest number for which all
  * previous sequence numbers have been processed (inclusive).
@@ -48,7 +50,7 @@ public class LocalCheckpointTracker {
     /**
      * The next available sequence number.
      */
-    private volatile long nextSeqNo;
+    final AtomicLong nextSeqNo = new AtomicLong();
 
     /**
      * Initialize the local checkpoint service. The {@code maxSeqNo} should be set to the last sequence number assigned, or
@@ -62,13 +64,14 @@ public class LocalCheckpointTracker {
         if (localCheckpoint < 0 && localCheckpoint != SequenceNumbers.NO_OPS_PERFORMED) {
             throw new IllegalArgumentException(
                 "local checkpoint must be non-negative or [" + SequenceNumbers.NO_OPS_PERFORMED + "] "
-                    + "but was [" + localCheckpoint + "]");
+                + "but was [" + localCheckpoint + "]");
         }
         if (maxSeqNo < 0 && maxSeqNo != SequenceNumbers.NO_OPS_PERFORMED) {
             throw new IllegalArgumentException(
-                "max seq. no. must be non-negative or [" + SequenceNumbers.NO_OPS_PERFORMED + "] but was [" + maxSeqNo + "]");
+                "max seq. no. must be non-negative or [" + SequenceNumbers.NO_OPS_PERFORMED + "] but was [" + maxSeqNo +
+                "]");
         }
-        nextSeqNo = maxSeqNo == SequenceNumbers.NO_OPS_PERFORMED ? 0 : maxSeqNo + 1;
+        nextSeqNo.set(maxSeqNo + 1);
         checkpoint = localCheckpoint;
     }
 
@@ -78,7 +81,14 @@ public class LocalCheckpointTracker {
      * @return the next assigned sequence number
      */
     public synchronized long generateSeqNo() {
-        return nextSeqNo++;
+        return nextSeqNo.getAndIncrement();
+    }
+
+    /**
+     * Marks the provided sequence number as seen and updates the max_seq_no if needed.
+     */
+    public synchronized void advanceMaxSeqNo(final long seqNo) {
+        nextSeqNo.accumulateAndGet(seqNo + 1, Math::max);
     }
 
     /**
@@ -87,10 +97,7 @@ public class LocalCheckpointTracker {
      * @param seqNo the sequence number to mark as completed
      */
     public synchronized void markSeqNoAsCompleted(final long seqNo) {
-        // make sure we track highest seen sequence number
-        if (seqNo >= nextSeqNo) {
-            nextSeqNo = seqNo + 1;
-        }
+        advanceMaxSeqNo(seqNo);
         if (seqNo <= checkpoint) {
             // this is possible during recovery where we might replay an operation that was also replicated
             return;
@@ -131,13 +138,13 @@ public class LocalCheckpointTracker {
      * @return the maximum sequence number
      */
     public long getMaxSeqNo() {
-        return nextSeqNo - 1;
+        return nextSeqNo.get() - 1;
     }
 
 
     /**
      * constructs a {@link SeqNoStats} object, using local state and the supplied global checkpoint
-     *
+     * <p>
      * This is needed to make sure the local checkpoint and max seq no are consistent
      */
     public synchronized SeqNoStats getStats(final long globalCheckpoint) {
@@ -163,7 +170,7 @@ public class LocalCheckpointTracker {
      */
     public boolean contains(final long seqNo) {
         assert seqNo >= 0 : "invalid seq_no=" + seqNo;
-        if (seqNo >= nextSeqNo) {
+        if (seqNo >= nextSeqNo.get()) {
             return false;
         }
         if (seqNo <= checkpoint) {
