@@ -35,6 +35,8 @@ import java.util.Map;
 @VisibleForTesting
 public class Stats implements Writeable {
 
+    public static final Stats EMPTY = new Stats();
+
     @VisibleForTesting
     final long numDocs;
     @VisibleForTesting
@@ -42,7 +44,7 @@ public class Stats implements Writeable {
 
     private final Map<ColumnIdent, ColumnStats> statsByColumn;
 
-    Stats() {
+    private Stats() {
         numDocs = -1;
         sizeInBytes = -1;
         statsByColumn = Map.of();
@@ -73,6 +75,14 @@ public class Stats implements Writeable {
             entry.getKey().writeTo(out);
             entry.getValue().writeTo(out);
         }
+    }
+
+    public long numDocs() {
+        return numDocs;
+    }
+
+    public long sizeInBytes() {
+        return sizeInBytes;
     }
 
     public Map<ColumnIdent, ColumnStats> statsByColumn() {

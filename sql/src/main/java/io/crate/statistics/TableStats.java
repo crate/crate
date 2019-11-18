@@ -33,8 +33,6 @@ import java.util.Set;
  */
 public class TableStats {
 
-    private static final Stats EMPTY_STATS = new Stats();
-
     private volatile Map<RelationName, Stats> tableStats = new HashMap<>();
 
     public void updateTableStats(Map<RelationName, Stats> tableStats) {
@@ -50,7 +48,7 @@ public class TableStats {
      * Returns -1 if the table isn't in the cache
      */
     public long numDocs(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, EMPTY_STATS).numDocs;
+        return tableStats.getOrDefault(relationName, Stats.EMPTY).numDocs;
     }
 
     /**
@@ -62,7 +60,7 @@ public class TableStats {
      * Returns 0 if the table isn't in the cache
      */
     private long sizeInBytes(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, EMPTY_STATS).sizeInBytes;
+        return tableStats.getOrDefault(relationName, Stats.EMPTY).sizeInBytes;
     }
 
     /**
@@ -90,5 +88,9 @@ public class TableStats {
                     .map(columnEntry ->
                         new ColumnStatsEntry(tableEntry.getKey(), columnEntry.getKey(), columnEntry.getValue()));
             }).iterator();
+    }
+
+    public Stats getStats(RelationName relationName) {
+        return tableStats.getOrDefault(relationName, Stats.EMPTY);
     }
 }

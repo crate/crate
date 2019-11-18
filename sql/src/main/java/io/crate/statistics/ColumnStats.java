@@ -157,6 +157,16 @@ public final class ColumnStats<T> implements Writeable {
         return result;
     }
 
+    @Override
+    public String toString() {
+        return "ColumnStats{" +
+            "nullFraction=" + nullFraction +
+            ", approxDistinct=" + approxDistinct +
+            ", mcv=" + Arrays.toString(mostCommonValues.values()) +
+            ", frequencies=" + Arrays.toString(mostCommonValues.frequencies()) + '}';
+    }
+
+
     /**
      * @param samples sorted sample values (must exclude any null values that might have been sampled)
      * @param nullCount Number of null values that have been excluded from the samples
