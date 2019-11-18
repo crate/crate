@@ -62,6 +62,10 @@ Deprecations
 Changes
 =======
 
+- The optimizer now utilizes internal statistics to approximate the number of
+  rows returned by various parts of a query plan. This should result in more
+  efficient execution plans for joins.
+
 - Added a :ref:`ANALYZE <analyze>` command that can be used to update
   statistical data about the contents of the tables in the CrateDB cluster.
   This data is visible in a newly added :ref:`pg_stats <pg_stats>` table.

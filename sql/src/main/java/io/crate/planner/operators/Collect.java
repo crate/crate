@@ -58,9 +58,11 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
-import io.crate.statistics.TableStats;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.selectivity.SelectivityFunctions;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -93,11 +95,11 @@ public class Collect implements LogicalPlan {
     private final boolean preferSourceLookup;
     private final List<Symbol> outputs;
     private final List<AbstractTableRelation> baseTables;
-    WhereClause where;
-
     final TableInfo tableInfo;
     private final long numExpectedRows;
     private final long estimatedRowSize;
+
+    WhereClause where;
 
     public static LogicalPlan.Builder create(AbstractTableRelation relation,
                                              List<Symbol> toCollect,
@@ -108,8 +110,8 @@ public class Collect implements LogicalPlan {
             toCollect,
             where,
             usedColumns,
-            tableStats.numDocs(relation.tableInfo().ident()),
-            tableStats.estimatedSizePerRow(relation.tableInfo().ident()));
+            tableStats.getStats(relation.tableInfo().ident())
+        );
     }
 
     public Collect(boolean preferSourceLookup,
@@ -117,15 +119,13 @@ public class Collect implements LogicalPlan {
                    List<Symbol> toCollect,
                    WhereClause where,
                    Set<Symbol> usedBeforeNextFetch,
-                   long numExpectedRows,
-                   long estimatedRowSize) {
+                   Stats stats) {
         this(
             preferSourceLookup,
             relation,
             generateOutputs(toCollect, relation, usedBeforeNextFetch, where),
             where,
-            numExpectedRows,
-            estimatedRowSize
+            SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback()), stats.sizeInBytes()
         );
     }
 
@@ -375,12 +375,10 @@ public class Collect implements LogicalPlan {
         return Map.of();
     }
 
-    @Override
     public long numExpectedRows() {
         return numExpectedRows;
     }
 
-    @Override
     public long estimatedRowSize() {
         return estimatedRowSize;
     }
