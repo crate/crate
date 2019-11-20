@@ -25,6 +25,7 @@ package io.crate.planner.selectivity;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
+import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
@@ -108,10 +109,28 @@ public class SelectivityFunctions {
                     return 1.0 - function.arguments().get(0).accept(this, stats);
                 }
 
+                case IsNullPredicate.NAME: {
+                    var arguments = function.arguments();
+                    return isNullSelectivity(arguments.get(0), stats);
+                }
+
                 default:
                     return MAGIC_SEL;
             }
         }
+
+    }
+
+    private static double isNullSelectivity(Symbol arg, Stats stats) {
+        ColumnIdent column = getColumn(arg);
+        if (column == null) {
+            return MAGIC_SEL;
+        }
+        var columnStats = stats.statsByColumn().get(column);
+        if (columnStats == null) {
+            return MAGIC_SEL;
+        }
+        return columnStats.nullFraction();
     }
 
     private static double eqSelectivity(Symbol leftArg, Symbol rightArg, Stats stats) {
