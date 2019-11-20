@@ -91,4 +91,14 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         Stats stats = new Stats(20_000, 16, Map.of(new ColumnIdent("x"), columnStats));
         assertThat(SelectivityFunctions.estimateNumRows(stats, query), Matchers.is(19999L));
     }
+
+    @Test
+    public void test_col_is_null_uses_null_fraction_as_selectivity() {
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
+        Symbol query = expressions.asSymbol("x is null");
+        var columnStats = ColumnStats.fromSortedValues(List.of(1, 2), DataTypes.INTEGER, 2, 4);
+        assertThat(columnStats.nullFraction(), Matchers.is(0.5));
+        Stats stats = new Stats(100, 16, Map.of(new ColumnIdent("x"), columnStats));
+        assertThat(SelectivityFunctions.estimateNumRows(stats, query), Matchers.is(50L));
+    }
 }
