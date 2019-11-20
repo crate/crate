@@ -1691,4 +1691,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                "3| c\n")
         );
     }
+
+
+    @Test
+    public void test_select_with_explicit_high_limit_and_query_that_does_not_match_anything_to_trigger_batch_size_optimization() {
+        execute("create table tbl (x int) clustered into 1 shards");
+        Object[][] values = new Object[1001][];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = new Object[] { i };
+        }
+        execute("insert into tbl (x) values (?)", values);
+        execute("refresh table tbl");
+
+        // This tests a regression where we optimized the internal batchSize down to 0, which caused a failure as this is
+        // not supported by the TopFieldCollector
+        execute("select x from tbl where x > 5000 order by x limit 1500");
+    }
 }
