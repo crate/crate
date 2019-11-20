@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Fixed a regression introduced in 4.0.8 which could cause queries with an
+  explicit limit larger than 1000 to fail with a ``numHits must be > 0`` error.
+
 - Fixed an resiliency issue on snapshot creation while dynamic columns are
   created concurrently which may result in incompatibility problems on restore.
 
