@@ -5083,10 +5083,11 @@ public class InternalEngineTests extends EngineTestCase {
         final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
         Path translogPath = createTempDir();
         int numOps = scaledRandomIntBetween(1, 500);
+        int maxDocId = 2 * numOps;
         List<Engine.Operation> operations = new ArrayList<>();
         for (int i = 0; i < numOps; i++) {
             long seqNo = i;
-            final ParsedDocument doc = EngineTestCase.createParsedDoc(Integer.toString(between(1, 100)), null);
+            final ParsedDocument doc = EngineTestCase.createParsedDoc(Integer.toString(between(0, maxDocId)), null);
             if (randomBoolean()) {
                 operations.add(new Engine.Index(EngineTestCase.newUid(doc), doc, seqNo, primaryTerm.get(),
                                                 i, null, Engine.Operation.Origin.REPLICA, threadPool.relativeTimeInMillis(), -1, true, UNASSIGNED_SEQ_NO, 0L));
