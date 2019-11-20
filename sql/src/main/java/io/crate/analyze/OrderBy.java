@@ -220,6 +220,11 @@ public class OrderBy implements Writeable {
         return sb.toString();
     }
 
+    public String explainRepresentation() {
+        StringBuilder sb = new StringBuilder();
+        return explainRepresentation(sb, orderBySymbols, reverseFlags, nullsFirst).toString();
+    }
+
     public static StringBuilder explainRepresentation(StringBuilder sb,
                                                       List<? extends ExplainLeaf> leaves,
                                                       boolean[] reverseFlags,
