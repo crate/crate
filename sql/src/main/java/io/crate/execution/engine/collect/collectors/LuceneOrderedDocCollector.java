@@ -138,7 +138,8 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private KeyIterable<ShardId, Row> initialSearch() throws IOException {
         if (batchSize > OPTIMIZE_BATCH_SIZE_THRESHOLD && !batchSizeReduced) {
             batchSizeReduced = true;
-            batchSize = Math.min(batchSize, searcher.count(query));
+            // + 1 because TopFieldCollector doesn't work with size=0 and we need to set the `exhausted` flag properly.
+            batchSize = Math.min(batchSize, searcher.count(query) + 1);
         }
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
