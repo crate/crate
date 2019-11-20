@@ -24,6 +24,7 @@ package io.crate.planner;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.OrderBy;
 import io.crate.execution.dsl.phases.AbstractProjectionsPhase;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.CountPhase;
@@ -121,9 +122,13 @@ public final class PlanPrinter {
         public ImmutableMap.Builder<String, Object> visitRoutedCollectPhase(RoutedCollectPhase phase, Void context) {
             ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
             builder.put("toCollect", ExplainLeaf.printList(phase.toCollect()));
-            builder = dqlPlanNode(phase, builder);
+            dqlPlanNode(phase, builder);
             builder.put("routing", xContentSafeRoutingLocations(phase.routing().locations()));
             builder.put("where", phase.where().representation());
+            OrderBy orderBy = phase.orderBy();
+            if (orderBy != null) {
+                builder.put("orderBy", orderBy.explainRepresentation());
+            }
             return createMap(phase, builder);
         }
 
