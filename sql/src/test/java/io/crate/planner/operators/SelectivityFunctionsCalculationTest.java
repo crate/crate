@@ -65,4 +65,28 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
         LogicalPlan plan = e.logicalPlan("select * from doc.tbl where x = 10");
         assertThat(plan.numExpectedRows(), Matchers.is(1L));
     }
+
+
+    @Test
+    public void test_group_operator_adapt_expected_row_count_based_on_column_stats() throws Throwable {
+        var samples = IntStream.concat(
+            IntStream.generate(() -> 10).limit(50),
+            IntStream.generate(() -> 20).limit(50)
+        ).boxed().collect(Collectors.toList());
+        long numDocs = 2_000L;
+        Stats stats = new Stats(
+            numDocs,
+            DataTypes.INTEGER.fixedSize(),
+            Map.of(new ColumnIdent("x"), ColumnStats.fromSortedValues(samples, DataTypes.INTEGER, 0, numDocs))
+        );
+        TableStats tableStats = new TableStats();
+        tableStats.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setTableStats(tableStats)
+            .addTable("create table doc.tbl (x int)")
+            .build();
+
+        LogicalPlan plan = e.logicalPlan("select x, count(*) from doc.tbl group by x");
+        assertThat(plan.numExpectedRows(), Matchers.is(2L));
+    }
 }

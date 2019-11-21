@@ -32,8 +32,10 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.ExecutionPlan;
@@ -41,6 +43,9 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.GroupByConsumer;
+import io.crate.statistics.ColumnStats;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
@@ -60,26 +65,78 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     final List<Function> aggregates;
     final List<Symbol> groupKeys;
     private final List<Symbol> outputs;
+    private final long numExpectedRows;
 
     public static Builder create(Builder source, List<Symbol> groupKeys, List<Function> aggregates) {
         return (tableStats, hints, parentUsedCols, params) -> {
             HashSet<Symbol> usedCols = new LinkedHashSet<>();
             usedCols.addAll(groupKeys);
             usedCols.addAll(extractColumns(aggregates));
+            LogicalPlan sourcePlan = source.build(
+                tableStats,
+                Sets.difference(hints, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP)),
+                usedCols,
+                params
+            );
+            long numExpectedRows = approximateDistinctValues(sourcePlan.numExpectedRows(), tableStats, groupKeys);
             return new GroupHashAggregate(
-                source.build(tableStats, Sets.difference(hints, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP)), usedCols, params),
+                sourcePlan,
                 groupKeys,
-                aggregates
+                aggregates,
+                numExpectedRows
             );
         };
     }
 
-    GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
+    static long approximateDistinctValues(long numSourceRows, TableStats tableStats, List<Symbol> groupKeys) {
+        long distinctValues = 1;
+        int numKeysWithStats = 0;
+        for (Symbol groupKey : groupKeys) {
+            while (groupKey instanceof Field) {
+                groupKey = ((Field) groupKey).pointer();
+            }
+            if (groupKey instanceof Reference) {
+                Reference ref = (Reference) groupKey;
+                Stats stats = tableStats.getStats(ref.ident().tableIdent());
+                ColumnStats columnStats = stats.statsByColumn().get(ref.column());
+                if (columnStats == null) {
+                    // Assume worst case: Every value is unique
+                    distinctValues *= numSourceRows;
+                } else {
+                    // `approxDistinct` is the number of distinct values in relation to `stats.numDocs()´, not in
+                    // relation to `numSourceRows`, which is based on the estimates of a source operator.
+                    // That is why we calculate the cardinality ratio and calculate the new distinct
+                    // values based on `numSourceRows` to account for changes in the number of rows in source operators
+                    //
+                    // e.g. SELECT x, count(*) FROM tbl GROUP BY x
+                    // and  SELECT x, count(*) FROM tbl WHERE pk = 1 GROUP BY x
+                    //
+                    // have a different number of groups
+                    double cardinalityRatio = columnStats.approxDistinct() / stats.numDocs();
+                    distinctValues *= (long) (numSourceRows * cardinalityRatio);
+                }
+                numKeysWithStats++;
+            }
+        }
+        if (numKeysWithStats == groupKeys.size()) {
+            return Math.min(distinctValues, numSourceRows);
+        } else {
+            return numSourceRows;
+        }
+    }
+
+    GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates, long numExpectedRows) {
         super(source);
+        this.numExpectedRows = numExpectedRows;
         this.outputs = Lists2.concat(groupKeys, aggregates);
         this.groupKeys = groupKeys;
         this.aggregates = aggregates;
         GroupByConsumer.validateGroupBySymbols(groupKeys);
+    }
+
+    @Override
+    public long numExpectedRows() {
+        return numExpectedRows;
     }
 
     @Override
@@ -155,7 +212,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new GroupHashAggregate(Lists2.getOnlyElement(sources), groupKeys, aggregates);
+        return new GroupHashAggregate(Lists2.getOnlyElement(sources), groupKeys, aggregates, numExpectedRows);
     }
 
     private ExecutionPlan createMerge(PlannerContext plannerContext,
