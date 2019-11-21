@@ -60,7 +60,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.statistics.TableStats;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
@@ -85,10 +84,10 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.RewriteCollectToGet;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
+import io.crate.statistics.TableStats;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -174,7 +173,7 @@ public class LogicalPlanner {
 
         planBuilder = tryOptimizeForInSubquery(selectSymbol, relation, planBuilder);
         LogicalPlan optimizedPlan = optimizer.optimize(
-            maybeApplySoftLimit.apply(planBuilder.build(tableStats, Set.of(), Collections.emptySet())),
+            maybeApplySoftLimit.apply(planBuilder.build(tableStats, Set.of(), Set.of(), subSelectPlannerContext.params())),
             tableStats,
             plannerContext.transactionContext()
         );
@@ -205,7 +204,7 @@ public class LogicalPlanner {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         AnalyzedRelation relation = relationNormalizer.normalize(analyzedRelation, coordinatorTxnCtx);
         LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, coordinatorTxnCtx)
-            .build(tableStats, hints, new HashSet<>(relation.outputs()));
+            .build(tableStats, hints, Set.copyOf(relation.outputs()), plannerContext.params());
 
         return optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
     }
@@ -289,8 +288,8 @@ public class LogicalPlanner {
             return GroupHashAggregate.create(source, groupKeys, aggregates);
         }
         if (!aggregates.isEmpty()) {
-            return (tableStats, hints, usedColumns) ->
-                new HashAggregate(source.build(tableStats, hints, extractColumns(aggregates)), aggregates);
+            return (tableStats, hints, usedColumns, params) ->
+                new HashAggregate(source.build(tableStats, hints, extractColumns(aggregates), params), aggregates);
         }
         return source;
     }
@@ -335,7 +334,7 @@ public class LogicalPlanner {
 
                 Optional<DocKeys> docKeys = detailedQuery.docKeys();
                 if (docKeys.isPresent()) {
-                    return (tableStats, hints, usedBeforeNextFetch) ->
+                    return (tableStats, hints, usedBeforeNextFetch, params) ->
                         new Get(docTableRelation, docKeys.get(), toCollect, tableStats);
                 }
                 return Collect.create(docTableRelation, toCollect, new WhereClause(

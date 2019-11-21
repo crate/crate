@@ -119,7 +119,7 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                                       FetchMode fetchMode,
                                       boolean isLastFetch,
                                       boolean childIsLimited) {
-        return (tableStats, hints, usedBeforeNextFetch) -> {
+        return (tableStats, hints, usedBeforeNextFetch, params) -> {
             final LogicalPlan source;
 
             // This avoids collecting scalars unnecessarily if their source-columns are already collected
@@ -128,9 +128,9 @@ public class FetchOrEval extends ForwardingLogicalPlan {
 
             boolean doFetch = isLastFetch;
             if (fetchMode == FetchMode.NEVER_CLEAR) {
-                source = sourceBuilder.build(tableStats, hints, usedBeforeNextFetch);
+                source = sourceBuilder.build(tableStats, hints, usedBeforeNextFetch, params);
             } else if (isLastFetch) {
-                source = sourceBuilder.build(tableStats, hints, Collections.emptySet());
+                source = sourceBuilder.build(tableStats, hints, Collections.emptySet(), params);
             } else {
                 /*
                  * In a case like
@@ -148,10 +148,10 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                  */
                 List<Symbol> unusedColumns = getUnusedColumns(outputs, usedBeforeNextFetch);
                 if (unusedColumns.isEmpty() && childIsLimited) {
-                    source = sourceBuilder.build(tableStats, hints, Collections.emptySet());
+                    source = sourceBuilder.build(tableStats, hints, Collections.emptySet(), params);
                     doFetch = true;
                 } else {
-                    source = sourceBuilder.build(tableStats, hints, usedBeforeNextFetch);
+                    source = sourceBuilder.build(tableStats, hints, usedBeforeNextFetch, params);
                 }
             }
             if (source.outputs().equals(outputs)) {

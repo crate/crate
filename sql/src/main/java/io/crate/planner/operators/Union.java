@@ -72,7 +72,7 @@ public class Union implements LogicalPlan {
     private final Map<LogicalPlan, SelectSymbol> dependencies;
 
     static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner, Functions functions, CoordinatorTxnCtx txnCtx) {
-        return (tableStats, hints, usedColsByParent) -> {
+        return (tableStats, hints, usedColsByParent, params) -> {
 
             AnalyzedRelation left = ttr.left();
             AnalyzedRelation right = ttr.right();
@@ -88,11 +88,11 @@ public class Union implements LogicalPlan {
 
             LogicalPlan lhsPlan = LogicalPlanner
                 .plan(left, FetchMode.NEVER_CLEAR, subqueryPlanner, true, functions, txnCtx)
-                .build(tableStats, hints, usedFromLeft);
+                .build(tableStats, hints, usedFromLeft, params);
 
             LogicalPlan rhsPlan = LogicalPlanner
                 .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, true, functions, txnCtx)
-                .build(tableStats, hints, usedFromRight);
+                .build(tableStats, hints, usedFromRight, params);
 
             return new Union(lhsPlan, rhsPlan, ttr.outputs());
         };

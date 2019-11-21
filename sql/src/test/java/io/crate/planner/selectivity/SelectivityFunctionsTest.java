@@ -4,6 +4,7 @@
 package io.crate.planner.selectivity;
 
 import io.crate.common.collections.Lists2;
+import io.crate.data.Row1;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.statistics.ColumnStats;
@@ -34,7 +35,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         var columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, 20_000L);
         statsByColumn.put(new ColumnIdent("x"), columnStats);
         Stats stats = new Stats(20_000, 16, statsByColumn);
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query), Matchers.is(1L));
+        assertThat(SelectivityFunctions.estimateNumRows(stats, query, null), Matchers.is(1L));
     }
 
     @Test
@@ -48,7 +49,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         var statsByColumn = new HashMap<ColumnIdent, ColumnStats>();
         statsByColumn.put(new ColumnIdent("x"), columnStats);
         Stats stats = new Stats(20_000, 16, statsByColumn);
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query), Matchers.is(0L));
+        assertThat(SelectivityFunctions.estimateNumRows(stats, query, null), Matchers.is(0L));
     }
 
     @Test
@@ -62,13 +63,13 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         var columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, numbers.size());
         var statsByColumn = Map.<ColumnIdent, ColumnStats>of(new ColumnIdent("x"), columnStats);
         Stats stats = new Stats(numbers.size(), 16, statsByColumn);
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query), Matchers.is(3L));
+        assertThat(SelectivityFunctions.estimateNumRows(stats, query, null), Matchers.is(3L));
     }
 
     @Test
     public void test_eq_value_that_is_present_in_mcv_uses_mcv_frequency_as_selectivity() {
         SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
-        Symbol query = expressions.asSymbol("x = 10");
+        Symbol query = expressions.asSymbol("x = ?");
         var numbers = Lists2.concat(
             List.of(1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 10, 10, 10, 10, 10, 10, 10, 10),
             IntStream.range(11, 15).boxed().collect(Collectors.toList())
@@ -77,7 +78,9 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         double frequencyOf10 = columnStats.mostCommonValues().frequencies()[0];
         var statsByColumn = Map.<ColumnIdent, ColumnStats>of(new ColumnIdent("x"), columnStats);
         Stats stats = new Stats(numbers.size(), 16, statsByColumn);
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query), Matchers.is((long) (frequencyOf10 * numbers.size())));
+        assertThat(
+            SelectivityFunctions.estimateNumRows(stats, query, new Row1(10)),
+            Matchers.is((long) (frequencyOf10 * numbers.size())));
     }
 
     @Test
@@ -89,7 +92,7 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
             .collect(Collectors.toList());
         var columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 0, 20_000L);
         Stats stats = new Stats(20_000, 16, Map.of(new ColumnIdent("x"), columnStats));
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query), Matchers.is(19999L));
+        assertThat(SelectivityFunctions.estimateNumRows(stats, query, null), Matchers.is(19999L));
     }
 
     @Test
@@ -99,6 +102,6 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
         var columnStats = ColumnStats.fromSortedValues(List.of(1, 2), DataTypes.INTEGER, 2, 4);
         assertThat(columnStats.nullFraction(), Matchers.is(0.5));
         Stats stats = new Stats(100, 16, Map.of(new ColumnIdent("x"), columnStats));
-        assertThat(SelectivityFunctions.estimateNumRows(stats, query), Matchers.is(50L));
+        assertThat(SelectivityFunctions.estimateNumRows(stats, query, null), Matchers.is(50L));
     }
 }

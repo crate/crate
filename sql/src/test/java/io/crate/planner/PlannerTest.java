@@ -56,7 +56,8 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             UUID.randomUUID(),
             e.functions(),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext()),
-            0
+            0,
+            null
         );
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));

@@ -177,7 +177,8 @@ public class Session implements AutoCloseable {
             jobId,
             planner.functions(),
             txnCtx,
-            0
+            0,
+            params
         );
         Plan plan;
         try {
@@ -226,7 +227,8 @@ public class Session implements AutoCloseable {
             jobId,
             planner.functions(),
             txnCtx,
-            0
+            0,
+            params
         );
         Plan plan = planner.plan(stmt, plannerContext);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
@@ -466,7 +468,8 @@ public class Session implements AutoCloseable {
             jobId,
             executor.functions(),
             txnCtx,
-            0
+            0,
+            null
         );
         var bulkArgs = Lists2.map(toExec, x -> (Row) new RowN(x.portal().params().toArray()));
 
@@ -536,9 +539,9 @@ public class Session implements AutoCloseable {
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var clusterState = executor.clusterService().state();
         var txnCtx = new CoordinatorTxnCtx(sessionContext);
-        var plannerContext = new PlannerContext(
-            clusterState, routingProvider, jobId, executor.functions(), txnCtx, maxRows);
         var params = new RowN(portal.params().toArray());
+        var plannerContext = new PlannerContext(
+            clusterState, routingProvider, jobId, executor.functions(), txnCtx, maxRows, params);
         var analyzedStmt = portal.boundOrUnboundStatement();
         String rawStatement = portal.preparedStmt().rawStatement();
         if (analyzedStmt == null) {

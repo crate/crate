@@ -104,13 +104,14 @@ public class Collect implements LogicalPlan {
     public static LogicalPlan.Builder create(AbstractTableRelation relation,
                                              List<Symbol> toCollect,
                                              WhereClause where) {
-        return (tableStats, hints, usedColumns) -> new Collect(
+        return (tableStats, hints, usedColumns, params) -> new Collect(
             hints.contains(PlanHint.PREFER_SOURCE_LOOKUP),
             relation,
             toCollect,
             where,
             usedColumns,
-            tableStats.getStats(relation.tableInfo().ident())
+            tableStats.getStats(relation.tableInfo().ident()),
+            params
         );
     }
 
@@ -119,13 +120,15 @@ public class Collect implements LogicalPlan {
                    List<Symbol> toCollect,
                    WhereClause where,
                    Set<Symbol> usedBeforeNextFetch,
-                   Stats stats) {
+                   Stats stats,
+                   @Nullable Row params) {
         this(
             preferSourceLookup,
             relation,
             generateOutputs(toCollect, relation, usedBeforeNextFetch, where),
             where,
-            SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback()), stats.sizeInBytes()
+            SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
+            stats.sizeInBytes()
         );
     }
 

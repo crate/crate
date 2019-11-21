@@ -86,7 +86,6 @@ import io.crate.metadata.view.ViewsMetaData;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
@@ -96,6 +95,7 @@ import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.statistics.TableStats;
 import io.crate.user.StubUserManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -205,7 +205,8 @@ public class SQLExecutor {
             UUID.randomUUID(),
             functions,
             new CoordinatorTxnCtx(sessionContext),
-            -1
+            -1,
+            null
         );
     }
 
@@ -763,7 +764,8 @@ public class SQLExecutor {
             jobId,
             functions,
             coordinatorTxnCtx,
-            fetchSize
+            fetchSize,
+            null
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan) {

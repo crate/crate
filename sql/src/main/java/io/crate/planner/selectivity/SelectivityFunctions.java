@@ -22,6 +22,7 @@
 
 package io.crate.planner.selectivity;
 
+import io.crate.data.Row;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
@@ -30,10 +31,12 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
 
 import javax.annotation.Nullable;
@@ -55,38 +58,44 @@ public class SelectivityFunctions {
      */
     private static final double MAGIC_SEL = 0.333;
 
-    public static long estimateNumRows(Stats stats, Symbol query) {
-        return (long) (stats.numDocs() * query.accept(SelectivityEstimator.INSTANCE, stats));
+    public static long estimateNumRows(Stats stats, Symbol query, @Nullable Row params) {
+        var estimator = new SelectivityEstimator(stats, params);
+        return (long) (stats.numDocs() * query.accept(estimator, null));
     }
 
-    static class SelectivityEstimator extends SymbolVisitor<Stats, Double> {
+    static class SelectivityEstimator extends SymbolVisitor<Void, Double> {
 
-        static final SelectivityEstimator INSTANCE = new SelectivityEstimator();
+        private final Stats stats;
+        @Nullable
+        private final Row params;
+
+        SelectivityEstimator(Stats stats, @Nullable Row params) {
+            this.stats = stats;
+            this.params = params;
+        }
 
         @Override
-        protected Double visitSymbol(Symbol symbol, Stats stats) {
+        protected Double visitSymbol(Symbol symbol, Void context) {
             return 1.0;
         }
 
         @Override
-        public Double visitLiteral(Literal literal, Stats stats) {
+        public Double visitLiteral(Literal literal, Void context) {
             Object value = literal.value();
             if (value instanceof Boolean) {
                 Boolean val = (Boolean) value;
-                return (val == null || !val)
-                    ? 0.0
-                    : 1.0;
+                return !val ? 0.0 : 1.0;
             }
-            return super.visitLiteral(literal, stats);
+            return super.visitLiteral(literal, context);
         }
 
         @Override
-        public Double visitFunction(Function function, Stats stats) {
+        public Double visitFunction(Function function, Void context) {
             switch (function.info().ident().name()) {
                 case AndOperator.NAME: {
                     double selectivity = 1.0;
                     for (Symbol argument : function.arguments()) {
-                        selectivity *= argument.accept(this, stats);
+                        selectivity *= argument.accept(this, context);
                     }
                     return selectivity;
                 }
@@ -94,7 +103,7 @@ public class SelectivityFunctions {
                 case OrOperator.NAME: {
                     double sel1 = 1.0;
                     for (Symbol argument : function.arguments()) {
-                        double sel2 = argument.accept(this, stats);
+                        double sel2 = argument.accept(this, context);
                         sel1 = sel1 + sel2 - sel1 * sel2;
                     }
                     return sel1;
@@ -102,11 +111,11 @@ public class SelectivityFunctions {
 
                 case EqOperator.NAME: {
                     List<Symbol> arguments = function.arguments();
-                    return eqSelectivity(arguments.get(0), arguments.get(1), stats);
+                    return eqSelectivity(arguments.get(0), arguments.get(1), stats, params);
                 }
 
                 case NotPredicate.NAME: {
-                    return 1.0 - function.arguments().get(0).accept(this, stats);
+                    return 1.0 - function.arguments().get(0).accept(this, context);
                 }
 
                 case IsNullPredicate.NAME: {
@@ -133,7 +142,7 @@ public class SelectivityFunctions {
         return columnStats.nullFraction();
     }
 
-    private static double eqSelectivity(Symbol leftArg, Symbol rightArg, Stats stats) {
+    private static double eqSelectivity(Symbol leftArg, Symbol rightArg, Stats stats, @Nullable Row params) {
         ColumnIdent column = getColumn(leftArg);
         if (column == null) {
             return DEFAULT_EQ_SEL;
@@ -142,10 +151,17 @@ public class SelectivityFunctions {
         if (columnStats == null) {
             return DEFAULT_EQ_SEL;
         }
-        if (!(rightArg instanceof Literal)) {
-            return 1.0 / columnStats.approxDistinct();
+        if (rightArg instanceof ParameterSymbol && params != null) {
+            var value = params.get(((ParameterSymbol) rightArg).index());
+            return eqSelectivityFromValueAndStats(value, columnStats);
         }
-        var value = ((Literal<?>) rightArg).value();
+        if (rightArg instanceof Literal) {
+            return eqSelectivityFromValueAndStats(((Literal) rightArg).value(), columnStats);
+        }
+        return 1.0 / columnStats.approxDistinct();
+    }
+
+    private static double eqSelectivityFromValueAndStats(Object value, ColumnStats columnStats) {
         if (value == null) {
             // x = null -> is always false
             return 0.0;

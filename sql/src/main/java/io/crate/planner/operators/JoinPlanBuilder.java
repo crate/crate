@@ -28,6 +28,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
+import io.crate.data.Row;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
@@ -35,10 +36,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.statistics.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.statistics.TableStats;
 import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
@@ -91,7 +92,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
     }
 
     @Override
-    public LogicalPlan build(TableStats tableStats, Set<PlanHint> hints, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan build(TableStats tableStats, Set<PlanHint> hints, Set<Symbol> usedBeforeNextFetch, @Nullable Row params) {
         Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
         LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs =
             JoinOperations.buildRelationsToJoinPairsMap(
@@ -145,9 +146,9 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         // This is necessary; because due to how the fetch-reader-allocation works it's not possible to
         // have more than 1 fetchProjection within a single execution
         LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints, usedFromLeft);
+            .build(tableStats, hints, usedFromLeft, params);
         LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints, usedFromRight);
+            .build(tableStats, hints, usedFromRight, params);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
         LogicalPlan joinPlan = createJoinPlan(
             lhsPlan,
@@ -175,7 +176,9 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 subqueryPlanner,
                 lhs,
                 functions,
-                txnCtx);
+                txnCtx,
+                params
+            );
             joinNames.add(nextRel.getQualifiedName());
         }
         assert queryParts.isEmpty() : "Must've applied all queryParts";
@@ -237,7 +240,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             SubqueryPlanner subqueryPlanner,
                                             AnalyzedRelation leftRelation,
                                             Functions functions,
-                                            CoordinatorTxnCtx txnCtx) {
+                                            CoordinatorTxnCtx txnCtx,
+                                            @Nullable Row params) {
         QualifiedName nextName = nextRel.getQualifiedName();
 
         Set<Symbol> usedFromNext = new LinkedHashSet<>();
@@ -262,7 +266,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
 
         LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints, usedFromNext);
+            .build(tableStats, hints, usedFromNext, params);
 
         Symbol query = AndOperator.join(
             Stream.of(
