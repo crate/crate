@@ -34,8 +34,8 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -103,8 +103,12 @@ public interface LogicalPlan extends Plan {
          *                       Collect (usedColumns: [a] - inherited from Order)
          *                         outputs: [_fetch, a]
          *                    </pre>
+         * @param params See {@link PlannerContext#params()}
          */
-        LogicalPlan build(TableStats tableStats, Set<PlanHint> hints, Set<Symbol> usedBeforeNextFetch);
+        LogicalPlan build(TableStats tableStats,
+                          Set<PlanHint> hints,
+                          Set<Symbol> usedBeforeNextFetch,
+                          @Nullable Row params);
     }
 
     /**

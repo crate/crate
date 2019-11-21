@@ -35,8 +35,8 @@ public final class Distinct {
         if (!distinct) {
             return source;
         }
-        return (tableStats, hints, usedBeforeNextFetch) -> {
-            LogicalPlan sourcePlan = source.build(tableStats, hints, extractColumns(outputs));
+        return (tableStats, hints, usedBeforeNextFetch, params) -> {
+            LogicalPlan sourcePlan = source.build(tableStats, hints, extractColumns(outputs), params);
             return new GroupHashAggregate(sourcePlan, outputs, Collections.emptyList());
         };
     }

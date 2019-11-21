@@ -51,11 +51,11 @@ public class Order extends ForwardingLogicalPlan {
         if (orderBy == null) {
             return source;
         }
-        return (tableStats, hints, usedColumns) -> {
+        return (tableStats, hints, usedColumns, params) -> {
             Set<Symbol> allUsedColumns = new LinkedHashSet<>();
             allUsedColumns.addAll(orderBy.orderBySymbols());
             allUsedColumns.addAll(usedColumns);
-            return new Order(source.build(tableStats, hints, allUsedColumns), orderBy);
+            return new Order(source.build(tableStats, hints, allUsedColumns, params), orderBy);
         };
     }
 

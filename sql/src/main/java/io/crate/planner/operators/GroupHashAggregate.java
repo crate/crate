@@ -62,12 +62,12 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     private final List<Symbol> outputs;
 
     public static Builder create(Builder source, List<Symbol> groupKeys, List<Function> aggregates) {
-        return (tableStats, hints, parentUsedCols) -> {
+        return (tableStats, hints, parentUsedCols, params) -> {
             HashSet<Symbol> usedCols = new LinkedHashSet<>();
             usedCols.addAll(groupKeys);
             usedCols.addAll(extractColumns(aggregates));
             return new GroupHashAggregate(
-                source.build(tableStats, Sets.difference(hints, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP)), usedCols),
+                source.build(tableStats, Sets.difference(hints, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP)), usedCols, params),
                 groupKeys,
                 aggregates
             );

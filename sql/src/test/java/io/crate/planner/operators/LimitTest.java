@@ -60,7 +60,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             ),
             Literal.of(20L),
             Literal.of(7L)
-        ).build(new TableStats(), Set.of(), Set.of());
+        ).build(new TableStats(), Set.of(), Set.of(), null);
 
         assertThat(plan, isPlan(e.functions(), "Limit[20;7]\n" +
                                                "Limit[10;5]\n" +

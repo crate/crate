@@ -24,6 +24,7 @@ package io.crate.planner;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
@@ -48,7 +49,8 @@ public class PlannerContext {
             UUID.randomUUID(),
             context.functions,
             context.coordinatorTxnCtx,
-            fetchSize
+            fetchSize,
+            context.params
         );
     }
 
@@ -61,21 +63,37 @@ public class PlannerContext {
     private final ClusterState clusterState;
     private int executionPhaseId = 0;
     private final String handlerNode;
+    @Nullable
+    private final Row params;
 
+    /**
+     * @param params See {@link #params()}
+     */
     public PlannerContext(ClusterState clusterState,
                           RoutingProvider routingProvider,
                           UUID jobId,
                           Functions functions,
                           CoordinatorTxnCtx coordinatorTxnCtx,
-                          int fetchSize) {
+                          int fetchSize,
+                          @Nullable Row params) {
         this.routingProvider = routingProvider;
         this.functions = functions;
+        this.params = params;
         this.routingBuilder = new RoutingBuilder(clusterState, routingProvider);
         this.clusterState = clusterState;
         this.jobId = jobId;
         this.coordinatorTxnCtx = coordinatorTxnCtx;
         this.fetchSize = fetchSize;
         this.handlerNode = clusterState.getNodes().getLocalNodeId();
+    }
+
+    /**
+     * The parameters provided by the client for the param placeholders (`?`) in the query.
+     * This can be `null` if the query is going to be executed as bulk-operation.
+     */
+    @Nullable
+    public Row params() {
+        return params;
     }
 
     public int fetchSize() {

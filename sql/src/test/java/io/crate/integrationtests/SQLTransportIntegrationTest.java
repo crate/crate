@@ -460,7 +460,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             UUID.randomUUID(),
             planner.functions(),
             coordinatorTxnCtx,
-            0
+            0,
+            null
         );
         Plan plan = planner.plan(
             analyzer.boundAnalyze(SqlParser.createStatement(stmt), coordinatorTxnCtx, parameterContext).analyzedStatement(),

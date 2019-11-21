@@ -54,8 +54,8 @@ public class MultiPhase extends ForwardingLogicalPlan {
         if (subQueries.isEmpty()) {
             return sourceBuilder;
         }
-        return (tableStats, hints, usedBeforeNextFetch) -> {
-            LogicalPlan source = sourceBuilder.build(tableStats, hints, usedBeforeNextFetch);
+        return (tableStats, hints, usedBeforeNextFetch, params) -> {
+            LogicalPlan source = sourceBuilder.build(tableStats, hints, usedBeforeNextFetch, params);
             return new MultiPhase(source, subQueries);
         };
     }
