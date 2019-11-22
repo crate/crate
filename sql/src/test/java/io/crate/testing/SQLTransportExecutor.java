@@ -44,6 +44,7 @@ import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.ServerErrorMessage;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -365,12 +366,10 @@ public class SQLTransportExecutor {
             Collection values = (Collection) arg;
             if (values.isEmpty()) {
                 return null; // TODO: can't insert empty list without knowing the type
-            }
-
-            if (values.iterator().next() instanceof Map) {
+            } else if (values.iterator().next() instanceof Map) {
                 try {
-                    return toPGObjectJson(toJsonString(values));
-                } catch (SQLException | IOException e) {
+                    return connection.createArrayOf(ObjectType.NAME, values.toArray(new Object[0]));
+                } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -399,18 +398,6 @@ public class SQLTransportExecutor {
     private static String toJsonString(Map value) throws IOException {
         XContentBuilder builder = JsonXContent.contentBuilder();
         builder.map(value);
-        builder.close();
-        return Strings.toString(builder);
-    }
-
-    private static String toJsonString(Collection values) throws IOException {
-        XContentBuilder builder;
-        builder = JsonXContent.contentBuilder();
-        builder.startArray();
-        for (Object value : values) {
-            builder.value(value);
-        }
-        builder.endArray();
         builder.close();
         return Strings.toString(builder);
     }
