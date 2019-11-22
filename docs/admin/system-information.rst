@@ -1093,6 +1093,9 @@ of shards.
     * - ``table_name``
       - Table name of the shard.
       - ``TEXT``
+    * - ``partition_ident``
+      - The partition ident of a partitioned table. Empty for non-partitioned tables.
+      - ``TEXT``
     * - ``node``
       - Information about the node the shard is located at.
       - ``OBJECT``

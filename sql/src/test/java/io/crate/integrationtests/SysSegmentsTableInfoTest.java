@@ -26,9 +26,9 @@ import org.elasticsearch.Version;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 
@@ -38,17 +38,21 @@ public class SysSegmentsTableInfoTest extends SQLTransportIntegrationTest {
 
     @Test
     public void test_retrieve_segment_information() {
-        execute("create table t1 (id INTEGER, name STRING) clustered into 1 shards with (number_of_replicas = 1)");
+        execute("create table t1 (id INTEGER, name STRING) clustered into 1 shards" +
+                " partitioned by(id)" +
+                " with (number_of_replicas = 1)");
         execute("insert into t1 values (1, 'test')");
         refresh();
         ensureGreen();
         execute("select table_name, shard_id, segment_name, generation, num_docs, deleted_docs, size, memory, " +
-                "committed, search, compound, version, node, node['id'], node['name'], attributes, primary from sys.segments order by primary desc");
+                "committed, search, compound, version, node, node['id'], node['name'], attributes, primary, partition_ident" +
+                " from sys.segments order by primary desc");
         assertThat(response.rowCount(), is(2L));
         validateResponse(response.rows()[0], true);
         validateResponse(response.rows()[1],false);
     }
 
+    @SuppressWarnings("unchecked")
     private void validateResponse(Object[] result, boolean primary) {
         assertThat(result[0], is("t1"));
         assertThat(result[1], is(0));
@@ -56,22 +60,22 @@ public class SysSegmentsTableInfoTest extends SQLTransportIntegrationTest {
         assertThat(result[3], is(0L));
         assertThat(result[4], is(1));
         assertThat(result[5], is(0));
-        assertThat((Long) result[6], greaterThan(3000L));
+        assertThat((Long) result[6], greaterThan(2700L));
         assertThat((Long) result[7], greaterThan(900L));
         assertThat(result[8], is(false));
         assertThat(result[9], is(true));
         assertThat(result[10], is(true));
         assertThat(result[11], is(Version.CURRENT.luceneVersion.toString()));
-        Map node = (Map) result[12];
+        Map<String, Object> node = (Map<String, Object>) result[12];
         assertNotNull(node);
         assertThat(node.size(), is(2));
-        assertTrue(node.keySet().contains("name"));
-        assertTrue(node.keySet().contains("id"));
+        assertThat(node.keySet(), containsInAnyOrder("name", "id"));
         assertNotNull(result[13]);
         assertNotNull(result[14]);
         Map attributes = (Map) result[15];
         assertNotNull(attributes);
         assertThat(attributes.size(), is(1));
         assertThat(result[16], is(primary));
+        assertThat(result[17], is("04132"));
     }
 }
