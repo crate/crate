@@ -58,6 +58,7 @@ public class SysSegmentsTableInfo extends StaticTableInfo<ShardSegment> {
         return new ColumnRegistrar<ShardSegment>(IDENT, RowGranularity.DOC)
             .register("table_schema", STRING, () -> forFunction(r -> r.getIndexParts().getSchema()))
             .register("table_name", STRING, () -> forFunction(r -> r.getIndexParts().getTable()))
+            .register("partition_ident", STRING, () -> forFunction(r -> r.getIndexParts().getPartitionIdent()))
             .register("shard_id", INTEGER, () -> forFunction(ShardSegment::getShardId))
             .register("node", ObjectType.builder()
                 .setInnerType("id", STRING)
