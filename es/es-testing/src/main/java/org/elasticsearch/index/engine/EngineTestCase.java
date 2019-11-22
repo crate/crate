@@ -50,6 +50,7 @@ import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -111,6 +112,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.shuffle;
+import static org.elasticsearch.index.engine.Engine.Operation.Origin.PEER_RECOVERY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.REPLICA;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
@@ -736,6 +738,43 @@ public abstract class EngineTestCase extends ESTestCase {
             ops.add(op);
         }
         return ops;
+    }
+
+    public List<Engine.Operation> generateHistoryOnReplica(int numOps, boolean allowGapInSeqNo, boolean allowDuplicate) throws Exception {
+        long seqNo = 0;
+        final int maxIdValue = randomInt(numOps * 2);
+        final List<Engine.Operation> operations = new ArrayList<>(numOps);
+        for (int i = 0; i < numOps; i++) {
+            final String id = Integer.toString(randomInt(maxIdValue));
+            final Engine.Operation.TYPE opType = randomFrom(Engine.Operation.TYPE.values());
+            final long startTime = threadPool.relativeTimeInMillis();
+            final int copies = allowDuplicate && rarely() ? between(2, 4) : 1;
+            for (int copy = 0; copy < copies; copy++) {
+                final ParsedDocument doc = createParsedDoc(id, null);
+                switch (opType) {
+                    case INDEX:
+                        operations.add(new Engine.Index(EngineTestCase.newUid(doc), doc, seqNo, primaryTerm.get(),
+                                                        i, null, randomFrom(REPLICA, PEER_RECOVERY), startTime, -1, true, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
+                        break;
+                    case DELETE:
+                        operations.add(new Engine.Delete("default", doc.id(), EngineTestCase.newUid(doc), seqNo, primaryTerm.get(),
+                                                         i, null, randomFrom(REPLICA, PEER_RECOVERY), startTime, SequenceNumbers.UNASSIGNED_SEQ_NO, 0));
+                        break;
+                    case NO_OP:
+                        operations.add(new Engine.NoOp(seqNo, primaryTerm.get(),
+                                                       randomFrom(REPLICA, PEER_RECOVERY), startTime, "test-" + i));
+                        break;
+                    default:
+                        throw new IllegalStateException("Unknown operation type [" + opType + "]");
+                }
+            }
+            seqNo++;
+            if (allowGapInSeqNo && rarely()) {
+                seqNo++;
+            }
+        }
+        Randomness.shuffle(operations);
+        return operations;
     }
 
     public static void assertOpsOnReplica(
