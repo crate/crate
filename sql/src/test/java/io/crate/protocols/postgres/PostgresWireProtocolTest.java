@@ -42,6 +42,7 @@ import io.crate.types.DataTypes;
 import io.crate.user.StubUserManager;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.elasticsearch.Version;
@@ -63,6 +64,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
@@ -152,7 +154,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testFlushMessageResultsInSyncCallOnSession() throws Exception {
+    public void test_channel_is_flushed_after_receiving_flush_request() throws Exception {
         SQLOperations sqlOperations = mock(SQLOperations.class);
         Session session = mock(Session.class);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
@@ -162,7 +164,14 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 sessionContext -> AccessControl.DISABLED,
                 new AlwaysOKNullAuthentication(),
                 null);
-        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        AtomicBoolean flushed = new AtomicBoolean(false);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler) {
+            @Override
+            public Channel flush() {
+                flushed.set(true);
+                return super.flush();
+            }
+        };
 
         ByteBuf buffer = Unpooled.buffer();
         ClientMessages.sendStartupMessage(buffer, "doc");
@@ -172,7 +181,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel.writeInbound(buffer);
         channel.releaseInbound();
 
-        verify(session, times(1)).sync();
+        assertThat(flushed.get(), is(true));
     }
 
     @Test

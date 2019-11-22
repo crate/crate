@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed an incompatibility in the ``PostgreSQL`` wire protocol which could
+  cause queries being sent using the ``asyncpg`` python client to get stuck.
+  (Using version 0.20 of the client).
+
 - Fixed two display issues in the Admin UI:
 
   - ``0`` values in the partitions view for tables could be incorrectly

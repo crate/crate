@@ -456,17 +456,15 @@ class PostgresWireProtocol {
      * Flush forces the backend to deliver any data pending in it's output buffers.
      */
     private void handleFlush(Channel channel) {
-        /*
-         * Currently we don't buffer data. It is always send to the client immediately.
-         * So flush would be a no-op except that we delay execution until sync to be able to execute bulk operations
-         * more efficiently.
-         * If a Client sends flush we also need to trigger execution because a Client is expecting to receive data after
-         * a Flush.
-         *
-         * Note that there is no ReadyForQueryCallback here because handleSync will still be called and it is done there.
-         */
         try {
-            session.sync();
+            // If we have deferred any executions we need to trigger a sync now because the client is expecting data
+            // (That we've been holding back, as we don't eager react to `execute` requests. (We do that to optimize batch inserts))
+            // The sync will also trigger a flush eventually if there are deferred executions.
+            if (session.hasDeferredExecutions()) {
+                session.sync();
+            } else {
+                channel.flush();
+            }
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, t);
         }
