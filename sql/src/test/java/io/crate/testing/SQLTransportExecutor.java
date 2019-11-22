@@ -485,9 +485,13 @@ public class SQLTransportExecutor {
                 value = resultSet.getByte(i + 1);
                 break;
             case "_json":
-                List<Object> jsonObjects = new ArrayList<>();
-                for (Object json : (Object[]) resultSet.getArray(i + 1).getArray()) {
-                    jsonObjects.add(jsonToObject(((PGobject) json).getValue()));
+                Array array = resultSet.getArray(i + 1);
+                if (array == null) {
+                    return null;
+                }
+                ArrayList<Object> jsonObjects = new ArrayList<>();
+                for (Object item : (Object[]) array.getArray()) {
+                    jsonObjects.add(jsonToObject(((PGobject) item).getValue()));
                 }
                 value = jsonObjects;
                 break;
