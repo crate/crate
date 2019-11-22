@@ -679,6 +679,10 @@ public class Session implements AutoCloseable {
         preparedStatements.clear();
     }
 
+    public boolean hasDeferredExecutions() {
+        return !deferredExecutionsByStmt.isEmpty();
+    }
+
     public void resetDeferredExecutions() {
         for (var deferredExecutions : deferredExecutionsByStmt.values()) {
             for (DeferredExecution deferredExecution : deferredExecutions) {
