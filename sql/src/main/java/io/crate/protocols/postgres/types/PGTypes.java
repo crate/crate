@@ -65,10 +65,10 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.TIMESTAMP), PGArray.TIMESTAMP_ARRAY)
         .put(new ArrayType<>(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.IP), PGArray.VARCHAR_ARRAY)
+        .put(new ArrayType<>(ObjectType.untyped()), PGArray.JSON_ARRAY)
         .put(new ArrayType<>(DataTypes.GEO_POINT), PGArray.POINT_ARRAY)
         .put(new ArrayType<>(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
         .put(new ArrayType<>(DataTypes.INTERVAL), PGArray.INTERVAL_ARRAY)
-        .put(new ArrayType<>(ObjectType.untyped()), JsonType.INSTANCE)
         .build();
 
     private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
