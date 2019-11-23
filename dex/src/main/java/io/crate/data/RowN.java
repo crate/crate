@@ -65,4 +65,26 @@ public class RowN implements Row {
     public String toString() {
         return "RowN{" + Arrays.toString(cells) + '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        RowN rowN = (RowN) o;
+        if (size != rowN.size) {
+            return false;
+        }
+        return Arrays.equals(cells, rowN.cells);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = size;
+        result = 31 * result + Arrays.hashCode(cells);
+        return result;
+    }
 }

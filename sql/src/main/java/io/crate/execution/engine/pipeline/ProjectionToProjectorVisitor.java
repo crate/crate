@@ -51,6 +51,7 @@ import io.crate.execution.dsl.projection.ProjectionVisitor;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
 import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.SysUpdateProjection;
+import io.crate.execution.dsl.projection.TopNDistinctProjection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
@@ -263,6 +264,11 @@ public class ProjectionToProjectorVisitor
             OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
             projection.offset()
         );
+    }
+
+    @Override
+    public Projector visitTopNDistinct(TopNDistinctProjection topNDistinct, Context context) {
+        return new TopNDistinctProjector(topNDistinct.limit());
     }
 
     @Override

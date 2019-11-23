@@ -877,4 +877,26 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = (Collect) merge.subPlan();
         assertThat(((RoutedCollectPhase) collect.collectPhase()).where(), isFunction("match"));
     }
+
+    @Test
+    public void test_distinct_with_limit_is_optimized_to_topn_distinct() throws Exception {
+        String stmt = "select distinct name from users limit 20";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[name]\n" +
+            "TopNDistinct[20 | [name]\n" +
+            "Collect[doc.users | [name] | All]\n"
+        ));
+    }
+
+    @Test
+    public void test_group_by_without_aggregates_and_with_limit_is_optimized_to_topn_distinct() throws Exception {
+        String stmt = "select id, name from users group by id, name limit 20";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[id, name]\n" +
+            "TopNDistinct[20 | [id, name]\n" +
+            "Collect[doc.users | [id, name] | All]\n"
+        ));
+    }
 }

@@ -58,4 +58,21 @@ public class InputRow implements Row {
                "inputs=" + inputs +
                '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        InputRow inputRow = (InputRow) o;
+        return inputs.equals(inputRow.inputs);
+    }
+
+    @Override
+    public int hashCode() {
+        return inputs.hashCode();
+    }
 }

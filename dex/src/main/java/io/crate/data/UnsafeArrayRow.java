@@ -22,6 +22,8 @@
 
 package io.crate.data;
 
+import java.util.Arrays;
+
 /**
  * An array backed row, which returns the inner array upon materialize.
  * <p>
@@ -31,7 +33,7 @@ package io.crate.data;
  */
 public class UnsafeArrayRow implements Row {
 
-    Object[] cells;
+    private Object[] cells;
 
     public void cells(Object[] cells) {
         this.cells = cells;
@@ -55,5 +57,23 @@ public class UnsafeArrayRow implements Row {
     @Override
     public Object[] materialize() {
         return cells;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        UnsafeArrayRow that = (UnsafeArrayRow) o;
+        return Arrays.equals(cells, that.cells);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(cells);
     }
 }

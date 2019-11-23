@@ -55,4 +55,21 @@ public class Row1 implements Row {
     public String toString() {
         return "Row1{" + value + '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Row1 row1 = (Row1) o;
+        return value != null ? value.equals(row1.value) : row1.value == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return value != null ? value.hashCode() : 0;
+    }
 }
