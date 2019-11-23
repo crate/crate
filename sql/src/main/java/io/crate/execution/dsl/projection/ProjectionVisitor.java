@@ -97,5 +97,8 @@ public class ProjectionVisitor<C, R> {
     public R visitWindowAgg(WindowAggProjection windowAgg, C context) {
         return visitProjection(windowAgg, context);
     }
-}
 
+    public R visitTopNDistinct(TopNDistinctProjection topNDistinctProjection, C context) {
+        return visitProjection(topNDistinctProjection, context);
+    }
+}

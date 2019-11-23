@@ -460,6 +460,15 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 sb.append("]\n");
                 plan = aggregate.source;
             }
+            if (plan instanceof TopNDistinct) {
+                var topNDistinct = (TopNDistinct) plan;
+                startLine("TopNDistinct[");
+                sb.append(symbolPrinter.printUnqualified(topNDistinct.limit()));
+                sb.append(" | [");
+                addSymbolsList(topNDistinct.outputs());
+                sb.append("]\n");
+                plan = topNDistinct.source();
+            }
             if (plan instanceof NestedLoopJoin) {
                 NestedLoopJoin nestedLoopJoin = (NestedLoopJoin) plan;
                 startLine("NestedLoopJoin[\n");

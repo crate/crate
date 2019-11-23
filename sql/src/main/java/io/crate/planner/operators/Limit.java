@@ -70,6 +70,11 @@ public class Limit extends ForwardingLogicalPlan {
         this.offset = offset;
     }
 
+    public Symbol limit() {
+        return limit;
+    }
+
+
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,

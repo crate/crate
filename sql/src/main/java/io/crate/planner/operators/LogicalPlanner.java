@@ -84,6 +84,7 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.RewriteCollectToGet;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
+import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.statistics.TableStats;
 
 import java.util.Collection;
@@ -131,7 +132,8 @@ public class LogicalPlanner {
             new MoveOrderBeneathBoundary(),
             new MoveOrderBeneathFetchOrEval(),
             new DeduplicateOrder(),
-            new RewriteCollectToGet(functions)
+            new RewriteCollectToGet(functions),
+            new RewriteGroupByKeysLimitToTopNDistinct()
         ));
         this.tableStats = tableStats;
         this.functions = functions;

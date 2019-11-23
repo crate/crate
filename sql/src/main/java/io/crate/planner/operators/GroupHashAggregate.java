@@ -139,6 +139,11 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         return numExpectedRows;
     }
 
+    public List<Function> aggregates() {
+        return aggregates;
+    }
+
+
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
