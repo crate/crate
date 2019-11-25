@@ -60,7 +60,6 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -232,19 +231,19 @@ final class GroupByOptimizedIterator {
         return false;
     }
 
-    private static Iterable<Row> getRows(Map<BytesRef, Object[]> groupedStates,
+    private static Iterable<Row> getRows(Map<String, Object[]> groupedStates,
                                          RamAccountingContext ramAccounting,
                                          List<AggregationContext> aggregations,
                                          AggregateMode mode) {
         return () -> groupedStates.entrySet().stream()
-            .map(new Function<Map.Entry<BytesRef, Object[]>, Row>() {
+            .map(new Function<Map.Entry<String, Object[]>, Row>() {
 
                 final Object[] cells = new Object[1 + aggregations.size()];
                 final RowN row = new RowN(cells);
 
                 @Override
-                public Row apply(Map.Entry<BytesRef, Object[]> entry) {
-                    cells[0] = BytesRefs.toString(entry.getKey());
+                public Row apply(Map.Entry<String, Object[]> entry) {
+                    cells[0] = entry.getKey();
                     Object[] states = entry.getValue();
                     for (int i = 0, c = 1; i < states.length; i++, c++) {
                         //noinspection unchecked
@@ -256,7 +255,7 @@ final class GroupByOptimizedIterator {
             .iterator();
     }
 
-    private static Map<BytesRef, Object[]> applyAggregatesGroupedByKey(BigArrays bigArrays,
+    private static Map<String, Object[]> applyAggregatesGroupedByKey(BigArrays bigArrays,
                                                                        Engine.Searcher searcher,
                                                                        IndexOrdinalsFieldData keyIndexFieldData,
                                                                        InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations,
@@ -265,7 +264,7 @@ final class GroupByOptimizedIterator {
                                                                        RamAccountingContext ramAccounting,
                                                                        InputRow inputRow,
                                                                        LuceneQueryBuilder.Context queryContext) throws IOException {
-        final Map<BytesRef, Object[]> statesByKey = new HashMap<>();
+        final Map<String, Object[]> statesByKey = new HashMap<>();
         IndexSearcher indexSearcher = searcher.searcher();
         final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(queryContext.query()), ScoreMode.COMPLETE, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
@@ -318,11 +317,11 @@ final class GroupByOptimizedIterator {
                     if (states == null) {
                         continue;
                     }
-                    BytesRef sharedKey = values.lookupOrd(ord);
+                    String sharedKey = BytesRefs.toString(values.lookupOrd(ord));
                     Object[] prevStates = statesByKey.get(sharedKey);
                     if (prevStates == null) {
-                        ramAccounting.addBytes(StringSizeEstimator.estimateSize(sharedKey) + HASH_MAP_ENTRY_OVERHEAD);
-                        statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
+                        ramAccounting.addBytes(StringSizeEstimator.estimate(sharedKey) + HASH_MAP_ENTRY_OVERHEAD);
+                        statesByKey.put(sharedKey, states);
                     } else {
                         for (int i = 0; i < aggregations.size(); i++) {
                             AggregationContext aggregation = aggregations.get(i);
