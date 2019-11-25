@@ -46,22 +46,4 @@ None
 Fixes
 =====
 
-- Fixed an incompatibility in the ``PostgreSQL`` wire protocol which could
-  cause queries being sent using the ``asyncpg`` python client to get stuck.
-  (Using version 0.20 of the client).
-
-- Fixed two display issues in the Admin UI:
-
-  - ``0`` values in the partitions view for tables could be incorrectly
-    displayed as ``NULL``.
-
-  - The node health in the cluster view was not displayed when the name of a
-    node was too long.
-
-- Fixed a regression introduced in 4.0.8 which could cause queries with an
-  explicit limit larger than 1000 to fail with a ``numHits must be > 0`` error.
-
-- Fixed an resiliency issue on snapshot creation while dynamic columns are
-  created concurrently which may result in incompatibility problems on restore.
-
-- Fixed case sensitivity of unquoted column names inside ``ON CONFLICT`` clauses.
+None
