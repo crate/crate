@@ -63,6 +63,8 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -101,6 +103,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
+        TableStats tableStats = new TableStats();
+        tableStats.updateTableStats(
+            Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
         e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_DEFINITION)
@@ -135,6 +140,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName())
+            .setTableStats(tableStats)
             .build();
     }
 
@@ -880,22 +886,22 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_distinct_with_limit_is_optimized_to_topn_distinct() throws Exception {
-        String stmt = "select distinct name from users limit 20";
+        String stmt = "select distinct name from users limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[name]\n" +
-            "TopNDistinct[20 | [name]\n" +
+            "TopNDistinct[1 | [name]\n" +
             "Collect[doc.users | [name] | All]\n"
         ));
     }
 
     @Test
     public void test_group_by_without_aggregates_and_with_limit_is_optimized_to_topn_distinct() throws Exception {
-        String stmt = "select id, name from users group by id, name limit 20";
+        String stmt = "select id, name from users group by id, name limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[id, name]\n" +
-            "TopNDistinct[20 | [id, name]\n" +
+            "TopNDistinct[1 | [id, name]\n" +
             "Collect[doc.users | [id, name] | All]\n"
         ));
     }
