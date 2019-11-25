@@ -22,12 +22,28 @@
 package io.crate.breaker;
 
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.RamUsageEstimator;
 
 import javax.annotation.Nullable;
 
 public final class StringSizeEstimator extends SizeEstimator<String> {
 
     public static final StringSizeEstimator INSTANCE = new StringSizeEstimator();
+    /**
+     * In this base value, we account for the {@link BytesRef} object itself as
+     * well as the header of the byte[] array it holds, and some lost bytes due
+     * to object alignment. So consumers of this constant just have to add the
+     * length of the byte[] (assuming it is not shared between multiple
+     * instances). */
+    private static final long BASE_BYTES_PER_BYTES_REF =
+        // shallow memory usage of the BytesRef object
+        RamUsageEstimator.shallowSizeOfInstance(BytesRef.class) +
+        // header of the byte[] array
+        RamUsageEstimator.NUM_BYTES_ARRAY_HEADER +
+        // with an alignment size (-XX:ObjectAlignmentInBytes) of 8 (default),
+        // there could be between 0 and 7 lost bytes, so we account for 3
+        // lost bytes on average
+        3;
 
     private StringSizeEstimator() {
     }
@@ -48,8 +64,6 @@ public final class StringSizeEstimator extends SizeEstimator<String> {
         if (value == null) {
             return 8;
         }
-        long bytes = value.length;
-        bytes += 32; // overhead
-        return bytes;
+        return RamUsageEstimator.alignObjectSize(BASE_BYTES_PER_BYTES_REF + value.length);
     }
 }
