@@ -5048,29 +5048,11 @@ public class InternalEngineTests extends EngineTestCase {
         final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexMetaData);
         final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
         Path translogPath = createTempDir();
-        int numOps = scaledRandomIntBetween(1, 500);
-        List<Engine.Operation> operations = new ArrayList<>();
-        for (int i = 0; i < numOps; i++) {
-            long seqNo = i;
-            final ParsedDocument doc = EngineTestCase.createParsedDoc(Integer.toString(between(1, 100)), null);
-            if (randomBoolean()) {
-                operations.add(new Engine.Index(EngineTestCase.newUid(doc), doc, seqNo, primaryTerm.get(),
-                                                i, null, Engine.Operation.Origin.REPLICA, threadPool.relativeTimeInMillis(), -1, true, UNASSIGNED_SEQ_NO, 0L));
-            } else if (randomBoolean()) {
-                operations.add(new Engine.Delete("default", doc.id(), EngineTestCase.newUid(doc), seqNo, primaryTerm.get(),
-                                                 i, null, Engine.Operation.Origin.REPLICA, threadPool.relativeTimeInMillis(),
-                                                 UNASSIGNED_SEQ_NO, 0L));
-            } else {
-                operations.add(new Engine.NoOp(seqNo, primaryTerm.get(), Engine.Operation.Origin.REPLICA,
-                                               threadPool.relativeTimeInMillis(), "test-" + i));
-            }
-        }
-        Randomness.shuffle(operations);
+        List<Engine.Operation> operations = generateHistoryOnReplica(between(1, 500), randomBoolean(), randomBoolean());
         List<List<Engine.Operation>> commits = new ArrayList<>();
         commits.add(new ArrayList<>());
         try (Store store = createStore()) {
-            EngineConfig config = config(indexSettings, store, translogPath,
-                                         newMergePolicy(), null, null, globalCheckpoint::get);
+            EngineConfig config = config(indexSettings, store, translogPath, NoMergePolicy.INSTANCE, null, null, globalCheckpoint::get);
             final List<DocIdSeqNoAndTerm> docs;
             try (InternalEngine engine = createEngine(config)) {
                 List<Engine.Operation> flushedOperations = new ArrayList<>();
@@ -5083,17 +5065,19 @@ public class InternalEngineTests extends EngineTestCase {
                     } else {
                         engine.noOp((Engine.NoOp) op);
                     }
+                    if (randomBoolean()) {
+                        engine.syncTranslog();
+                        globalCheckpoint.set(randomLongBetween(globalCheckpoint.get(), engine.getLocalCheckpoint()));
+                    }
                     if (randomInt(100) < 10) {
                         engine.refresh("test");
                     }
                     if (randomInt(100) < 5) {
-                        engine.flush();
+                        engine.flush(true, true);
+                        flushedOperations.sort(Comparator.comparing(Engine.Operation::seqNo));
                         commits.add(new ArrayList<>(flushedOperations));
-                        globalCheckpoint.set(randomLongBetween(globalCheckpoint.get(), engine.getLocalCheckpoint()));
                     }
                 }
-                globalCheckpoint.set(randomLongBetween(globalCheckpoint.get(), engine.getLocalCheckpoint()));
-                engine.syncTranslog();
                 docs = getDocIds(engine, true);
             }
             trimUnsafeCommits(config);
