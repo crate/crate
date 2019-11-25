@@ -24,23 +24,27 @@ package io.crate.planner.optimizer;
 
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.TransactionContext;
-import io.crate.statistics.TableStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
+import io.crate.statistics.TableStats;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 public class Optimizer {
 
     private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
 
-    private List<Rule<?>> rules;
+    private final List<Rule<?>> rules;
+    private final Supplier<Version> minNodeVersionInCluster;
 
-    public Optimizer(List<Rule<?>> rules) {
+    public Optimizer(List<Rule<?>> rules, Supplier<Version> minNodeVersionInCluster) {
         this.rules = rules;
+        this.minNodeVersionInCluster = minNodeVersionInCluster;
     }
 
     public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
@@ -56,7 +60,11 @@ public class Optimizer {
         boolean done = false;
         while (!done) {
             done = true;
+            Version minVersion = minNodeVersionInCluster.get();
             for (Rule rule : rules) {
+                if (minVersion.before(rule.requiredVersion())) {
+                    continue;
+                }
                 Match match = rule.pattern().accept(node, Captures.empty());
                 if (match.isPresent()) {
                     if (isTraceEnabled) {

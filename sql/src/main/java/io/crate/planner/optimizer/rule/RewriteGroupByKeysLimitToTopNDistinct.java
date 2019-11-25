@@ -22,9 +22,6 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.Limit;
@@ -35,6 +32,10 @@ import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
+import org.elasticsearch.Version;
+
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 public final class RewriteGroupByKeysLimitToTopNDistinct implements Rule<Limit> {
 
@@ -69,5 +70,10 @@ public final class RewriteGroupByKeysLimitToTopNDistinct implements Rule<Limit> 
             limit.limit(),
             groupBy.outputs()
         );
+    }
+
+    @Override
+    public Version requiredVersion() {
+        return Version.V_4_1_0;
     }
 }

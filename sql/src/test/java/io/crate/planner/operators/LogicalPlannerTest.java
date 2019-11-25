@@ -334,7 +334,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                    TableStats tableStats) {
         PlannerContext context = sqlExecutor.getPlannerContext(clusterService.state());
         AnalyzedRelation relation = sqlExecutor.analyze(statement);
-        LogicalPlanner logicalPlanner = new LogicalPlanner(getFunctions(), tableStats);
+        LogicalPlanner logicalPlanner = new LogicalPlanner(
+            getFunctions(),
+            tableStats,
+            () -> clusterService.state().nodes().getMinNodeVersion()
+        );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
 
         return logicalPlanner.normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR, Set.of());

@@ -86,6 +86,7 @@ import io.crate.planner.optimizer.rule.RewriteCollectToGet;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.statistics.TableStats;
+import org.elasticsearch.Version;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -95,6 +96,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 
@@ -111,30 +113,33 @@ public class LogicalPlanner {
     private final Functions functions;
     private final RelationNormalizer relationNormalizer;
 
-    public LogicalPlanner(Functions functions, TableStats tableStats) {
-        this.optimizer = new Optimizer(List.of(
-            new RemoveRedundantFetchOrEval(),
-            new MergeAggregateAndCollectToCount(),
-            new MergeFilters(),
-            new MoveFilterBeneathBoundary(),
-            new MoveFilterBeneathFetchOrEval(),
-            new MoveFilterBeneathOrder(),
-            new MoveFilterBeneathProjectSet(),
-            new MoveFilterBeneathHashJoin(),
-            new MoveFilterBeneathNestedLoop(),
-            new MoveFilterBeneathUnion(),
-            new MoveFilterBeneathGroupBy(),
-            new MoveFilterBeneathWindowAgg(),
-            new MergeFilterAndCollect(),
-            new RewriteFilterOnOuterJoinToInnerJoin(functions),
-            new MoveOrderBeneathUnion(),
-            new MoveOrderBeneathNestedLoop(),
-            new MoveOrderBeneathBoundary(),
-            new MoveOrderBeneathFetchOrEval(),
-            new DeduplicateOrder(),
-            new RewriteCollectToGet(functions),
-            new RewriteGroupByKeysLimitToTopNDistinct()
-        ));
+    public LogicalPlanner(Functions functions, TableStats tableStats, Supplier<Version> minNodeVersionInCluster) {
+        this.optimizer = new Optimizer(
+            List.of(
+                new RemoveRedundantFetchOrEval(),
+                new MergeAggregateAndCollectToCount(),
+                new MergeFilters(),
+                new MoveFilterBeneathBoundary(),
+                new MoveFilterBeneathFetchOrEval(),
+                new MoveFilterBeneathOrder(),
+                new MoveFilterBeneathProjectSet(),
+                new MoveFilterBeneathHashJoin(),
+                new MoveFilterBeneathNestedLoop(),
+                new MoveFilterBeneathUnion(),
+                new MoveFilterBeneathGroupBy(),
+                new MoveFilterBeneathWindowAgg(),
+                new MergeFilterAndCollect(),
+                new RewriteFilterOnOuterJoinToInnerJoin(functions),
+                new MoveOrderBeneathUnion(),
+                new MoveOrderBeneathNestedLoop(),
+                new MoveOrderBeneathBoundary(),
+                new MoveOrderBeneathFetchOrEval(),
+                new DeduplicateOrder(),
+                new RewriteCollectToGet(functions),
+                new RewriteGroupByKeysLimitToTopNDistinct()
+            ),
+            minNodeVersionInCluster
+        );
         this.tableStats = tableStats;
         this.functions = functions;
         this.relationNormalizer = new RelationNormalizer(functions);
