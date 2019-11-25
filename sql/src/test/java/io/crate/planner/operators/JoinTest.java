@@ -102,7 +102,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private LogicalPlan createLogicalPlan(MultiSourceSelect mss, TableStats tableStats) {
-        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
+        LogicalPlanner logicalPlanner = new LogicalPlanner(
+            functions,
+            tableStats,
+            () -> clusterService.state().nodes().getMinNodeVersion()
+        );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
         return JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx)
             .build(tableStats, Set.of(), Set.of(), null);
@@ -183,7 +187,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         tableStats.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
-        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
+        LogicalPlanner logicalPlanner = new LogicalPlanner(
+            functions,
+            tableStats,
+            () -> clusterService.state().nodes().getMinNodeVersion()
+        );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
         LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, e.functions(), txnCtx)
             .build(tableStats, Set.of(), Set.of(), null);
@@ -204,7 +212,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
         context.transactionContext().sessionContext().setHashJoinEnabled(false);
-        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
+        LogicalPlanner logicalPlanner = new LogicalPlanner(
+            functions,
+            tableStats,
+            () -> clusterService.state().nodes().getMinNodeVersion()
+        );
         LogicalPlan plan = logicalPlanner.plan(e.analyze("select users.id from users, locations " +
                                                          "where users.id = locations.id order by users.id"), context);
         Merge merge = (Merge) plan.build(
@@ -401,8 +413,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         plannerCtx = e.getPlannerContext(clusterService.state());
 
         MultiSourceSelect mss = e.normalize("select * from t1, t4 order by t1.x");
-
-        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
+        LogicalPlanner logicalPlanner = new LogicalPlanner(
+            functions,
+            tableStats,
+            () -> clusterService.state().nodes().getMinNodeVersion()
+        );
         LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx);
         ExecutionPlan build = operator.build(plannerCtx, projectionBuilder, -1, 0, null,
             null, Row.EMPTY, SubQueryResults.EMPTY);
@@ -418,7 +433,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                             "FROM t1 t1 " +
                                             "JOIN t2 t2 on t1.a = t2.b " +
                                             "JOIN t3 t3 on t3.c = t2.b");
-        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, new TableStats());
+        LogicalPlanner logicalPlanner = new LogicalPlanner(
+            functions,
+            new TableStats(),
+            () -> clusterService.state().nodes().getMinNodeVersion()
+        );
         LogicalPlan join = logicalPlanner.plan(mss, plannerCtx);
 
         WindowAgg windowAggOperator = (WindowAgg) ((FetchOrEval) ((RootRelationBoundary) join).source).source;

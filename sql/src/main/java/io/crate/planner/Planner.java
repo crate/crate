@@ -192,7 +192,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    BooleanSupplier hasValidLicense) {
         this.clusterService = clusterService;
         this.functions = functions;
-        this.logicalPlanner = new LogicalPlanner(functions, tableStats);
+        this.logicalPlanner = new LogicalPlanner(functions, tableStats, () -> clusterService.state().nodes().getMinNodeVersion());
         this.isStatementExecutionAllowed = new IsStatementExecutionAllowed(hasValidLicense);
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;

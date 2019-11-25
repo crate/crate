@@ -23,14 +23,22 @@
 package io.crate.planner.optimizer;
 
 import io.crate.metadata.TransactionContext;
-import io.crate.statistics.TableStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
+import org.elasticsearch.Version;
 
 public interface Rule<T> {
 
     Pattern<T> pattern();
 
     LogicalPlan apply(T plan, Captures captures, TableStats tableStats, TransactionContext txnCtx);
+
+    /**
+     * @return The version all nodes in the cluster must have to be able to use this optimization.
+     */
+    default Version requiredVersion() {
+        return Version.V_4_0_0;
+    }
 }
