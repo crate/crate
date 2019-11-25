@@ -49,6 +49,8 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
@@ -86,6 +88,9 @@ import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.for
 import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.getCollectorContext;
 
 final class GroupByOptimizedIterator {
+
+    private static final Logger LOGGER = LogManager.getLogger(GroupByOptimizedIterator.class);
+
 
     /**
      * This was chosen after benchmarking different ratios with this optimization always enabled:
@@ -136,6 +141,7 @@ final class GroupByOptimizedIterator {
         if (hasHighCardinalityRatio(() -> indexShard.acquireSearcher("group-by-cardinality-check"), keyFieldType.name())) {
             return null;
         }
+        LOGGER.info("========== Using GroupByOptimizedIterator ==========");
 
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
