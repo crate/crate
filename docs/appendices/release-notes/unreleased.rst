@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed an issue where values of type ``array(varchar)`` were decoded
+  incorrectly if they contained a ``,`` character. This occurred when
+  the PostgreSQL wire protocol was used in ``text`` mode.
+
 - Improved performance of snapshot finalization as https://github.com/crate/crate/pull/9327
   introduced a performance regression on the snapshot process.
 
