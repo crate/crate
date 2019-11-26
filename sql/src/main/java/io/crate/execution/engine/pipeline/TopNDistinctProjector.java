@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.pipeline;
 
+import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
@@ -31,14 +32,19 @@ import io.crate.data.TopNDistinctBatchIterator;
 public final class TopNDistinctProjector implements Projector {
 
     private final int limit;
+    private final RowAccounting<Row> rowAccounting;
 
-    public TopNDistinctProjector(int limit) {
+    TopNDistinctProjector(int limit, RowAccounting<Row> rowAccounting) {
         this.limit = limit;
+        this.rowAccounting = rowAccounting;
     }
 
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> source) {
-        return new TopNDistinctBatchIterator<>(source, limit, row -> new RowN(row.materialize()));
+        return new TopNDistinctBatchIterator<>(source, limit, row -> {
+            rowAccounting.accountForAndMaybeBreak(row);
+            return new RowN(row.materialize());
+        });
     }
 
     public boolean providesIndependentScroll() {

@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Bucket;
@@ -268,7 +269,11 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitTopNDistinct(TopNDistinctProjection topNDistinct, Context context) {
-        return new TopNDistinctProjector(topNDistinct.limit());
+        var rowAccounting = new RowAccountingWithEstimators(
+            Symbols.typeView(topNDistinct.outputs()),
+            context.ramAccountingContext
+        );
+        return new TopNDistinctProjector(topNDistinct.limit(), rowAccounting);
     }
 
     @Override
