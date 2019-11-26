@@ -104,6 +104,7 @@ final class GroupByOptimizedIterator {
      * (+ being faster, - being slower)
      */
     private static final double CARDINALITY_RATIO_THRESHOLD = 0.5;
+    private static final long HASH_MAP_ENTRY_OVERHEAD = 32; // see private RamUsageEstimator.shallowSizeOfInstance(HashMap.Node.class)
 
     @Nullable
     static BatchIterator<Row> tryOptimizeSingleStringKey(IndexShard indexShard,
@@ -338,9 +339,8 @@ final class GroupByOptimizedIterator {
                     BytesRef sharedKey = values.lookupOrd(ord);
                     Object[] prevStates = statesByKey.get(sharedKey);
                     if (prevStates == null) {
-                        long hashMapEntryOverhead = 36L;
                         ramAccounting.addBytes(roundUp(
-                            StringSizeEstimator.INSTANCE.estimateSize(sharedKey) + hashMapEntryOverhead));
+                            StringSizeEstimator.INSTANCE.estimateSize(sharedKey) + HASH_MAP_ENTRY_OVERHEAD));
                         statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
                     } else {
                         for (int i = 0; i < aggregations.size(); i++) {
