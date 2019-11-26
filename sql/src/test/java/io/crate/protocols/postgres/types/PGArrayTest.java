@@ -66,57 +66,20 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
         assertThat(o, is(array));
     }
 
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testJsonArrayEncodeDecode() {
-        // 1-dimension array
-        // Decode
-        String s = "{\"{\"names\":[\"Arthur\",\"Trillian\"]}\",\"{\"names\":[\"Ford\",\"Slarti\"]}\"}";
-        List<Object> values = (List<Object>) PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+    public void test_json_array_encode_decode_round_trip() {
+        var actual = List.of(
+            Map.of("names", List.of("Arthur", "Trillian")),
+            Map.of("names", List.of("Ford", "Slarti")));
 
-        List<String> names = (List<String>) ((Map) values.get(0)).get("names");
-        assertThat(names, Matchers.contains("Arthur", "Trillian"));
+        byte[] bytes = PGArray.JSON_ARRAY.encodeAsUTF8Text(actual);
+        assertThat(
+            new String(bytes, StandardCharsets.UTF_8),
+            is("{" +
+               "\"{\\\"names\\\":[\\\"Arthur\\\",\\\"Trillian\\\"]}\"," +
+               "\"{\\\"names\\\":[\\\"Ford\\\",\\\"Slarti\\\"]}\"" +
+               "}"));
 
-        names = (List<String>) ((Map) values.get(1)).get("names");
-        assertThat(names, Matchers.contains("Ford", "Slarti"));
-
-        // Encode
-        byte[] bytes = PGArray.JSON_ARRAY.encodeAsUTF8Text(values);
-        s = new String(bytes, StandardCharsets.UTF_8);
-        assertThat(s, is(s));
-
-        // 3-dimension array
-        // Decode
-        s = "{{{\"{\"names\":[\"A\",\"B\"]}\",\"{\"names\":[\"C\",\"D\"]}\"}," +
-              "{\"{\"names\":[\"E\",\"F\"]}\",\"{\"names\":[\"G\",\"H\"]}\"}}," +
-             "{{\"{\"names\":[\"I\",\"J\"]}\",\"{\"names\":[\"K\",\"L\"]}\"}," +
-              "{\"{\"names\":[\"M\",\"N\"]}\",\"{\"names\":[\"O\",\"P\"]}\"}}}";
-        values = (List<Object>) PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
-
-        names = (List<String>) ((Map) ((List<Object>)((List<Object>)values.get(0)).get(0)).get(0)).get("names");
-        assertThat(names, Matchers.contains("A", "B"));
-        names = (List<String>) ((Map) ((List<Object>)((List<Object>)values.get(0)).get(0)).get(1)).get("names");
-        assertThat(names, Matchers.contains("C", "D"));
-
-        names = (List<String>) ((Map) ((List<Object>)((List<Object>)values.get(0)).get(1)).get(0)).get("names");
-        assertThat(names, Matchers.contains("E", "F"));
-        names = (List<String>) ((Map) ((List<Object>)((List<Object>)values.get(0)).get(1)).get(1)).get("names");
-        assertThat(names, Matchers.contains("G", "H"));
-
-        names = (List<String>) ((Map) ((List<Object>)((List<Object>)values.get(1)).get(0)).get(0)).get("names");
-        assertThat(names, Matchers.contains("I", "J"));
-        names = (List<String>) ((Map) ((List<Object>)((List<Object>)values.get(1)).get(0)).get(1)).get("names");
-        assertThat(names, Matchers.contains("K", "L"));
-
-        names = (List<String>) ((Map) ((List<Object>)((List<Object>)values.get(1)).get(1)).get(0)).get("names");
-        assertThat(names, Matchers.contains("M", "N"));
-        names = (List<String>) ((Map) ((List<Object>)((List<Object>)values.get(1)).get(1)).get(1)).get("names");
-        assertThat(names, Matchers.contains("O", "P"));
-
-        // Encode
-        bytes = PGArray.JSON_ARRAY.encodeAsUTF8Text(values);
-        s = new String(bytes, StandardCharsets.UTF_8);
-        assertThat(s, is(s));
+        assertThat(PGArray.JSON_ARRAY.decodeUTF8Text(bytes), is(actual));
     }
 
     @Test
@@ -162,7 +125,7 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
         assertThat(o, is(List.of(Arrays.asList(1, null, 2), Arrays.asList(null, 3, 4))));
 
         // 3-dimension array
-        o = pgArray.decodeUTF8Text("{{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}},{{\"5\",NULL,\"6\"},{\"7\"}}".getBytes(StandardCharsets.UTF_8));
+        o = pgArray.decodeUTF8Text("{{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}},{{\"5\",NULL,\"6\"},{\"7\"}}}".getBytes(StandardCharsets.UTF_8));
         assertThat(o, is(List.of(
             List.of(
                 Arrays.asList(1, null, 2),

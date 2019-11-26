@@ -28,6 +28,7 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.shade.org.postgresql.PGProperty;
 import io.crate.shade.org.postgresql.geometric.PGpoint;
 import io.crate.shade.org.postgresql.jdbc.PreferQueryMode;
+import io.crate.shade.org.postgresql.util.PGobject;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.PSQLState;
 import io.crate.testing.UseJdbc;
@@ -49,6 +50,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -280,35 +282,89 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testArrayTypeSupport() throws Exception {
+    public void test_char_types_arrays() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.createStatement().executeUpdate(
-                "create table t (" +
-                "   ints array(int)," +
-                "   strings array(string)," +
-                "   points array(geo_point) ) with (number_of_replicas = 0)");
+                "CREATE TABLE t (" +
+                "   chars array(byte)," +
+                "   strings array(text)) " +
+                "WITH (number_of_replicas = 0)");
 
-            PreparedStatement preparedStatement = conn.prepareStatement("insert into t (ints, strings, points) " +
-                                                                        "values (?, ?, ?)");
-            preparedStatement.setArray(1, conn.createArrayOf("int4", new Integer[]{10, 20}));
-            preparedStatement.setArray(2, conn.createArrayOf("varchar", new String[]{"foo", "bar"}));
-            preparedStatement.setArray(3, conn.createArrayOf("float8", new Double[][]{new Double[]{1.1, 2.2},
-                new Double[]{3.3, 4.4}}));
+            PreparedStatement preparedStatement = conn.prepareStatement(
+                "INSERT INTO t (chars, strings) VALUES (?, ?)");
+            preparedStatement.setArray(1, conn.createArrayOf("char", new Byte[]{'c', '3'}));
+            preparedStatement.setArray(2, conn.createArrayOf("varchar", new String[]{"fo,o", "bar"}));
             preparedStatement.executeUpdate();
+            conn.createStatement().execute("REFRESH TABLE t");
 
-            conn.createStatement().executeUpdate("refresh table t");
-
-            ResultSet resultSet = conn.createStatement().executeQuery("select ints, strings, points from t");
+            ResultSet resultSet = conn.createStatement().executeQuery("SELECT chars, strings FROM t");
             assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getArray(1).getArray(), is(new Byte[]{'c', '3'}));
+            assertThat(resultSet.getArray(2).getArray(), is(new String[]{"fo,o", "bar"}));
+        } catch (BatchUpdateException e) {
+            throw e.getNextException();
+        }
+    }
 
-            Object[] object = (Object[]) resultSet.getArray(1).getArray();
-            assertThat(object, is(new Object[]{10, 20}));
+    @Test
+    public void test_numeric_types_arrays() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().executeUpdate(
+                "CREATE TABLE t (" +
+                "   ints array(int)," +
+                "   floats array(float)" +
+                ") " +
+                "WITH (number_of_replicas = 0)");
 
-            object = (Object[]) resultSet.getArray(2).getArray();
-            assertThat(object, is(new Object[]{"foo", "bar"}));
+            PreparedStatement preparedStatement = conn.prepareStatement(
+                "INSERT INTO t (ints, floats) VALUES (?, ?)");
+            preparedStatement.setArray(1, conn.createArrayOf("int4", new Integer[]{10, 20}));
+            preparedStatement.setArray(2, conn.createArrayOf("float4", new Float[]{1.2f, 3.5f}));
+            preparedStatement.executeUpdate();
+            conn.createStatement().execute("REFRESH TABLE t");
 
-            object = (Object[]) resultSet.getArray(3).getArray();
-            assertThat(object, arrayContaining(new PGpoint(1.1, 2.2), new PGpoint(3.3, 4.4)));
+            ResultSet rs = conn.createStatement().executeQuery("SELECT ints, floats FROM t");
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getArray(1).getArray(), is(new Integer[]{10, 20}));
+            assertThat(rs.getArray(2).getArray(), is(new Float[]{1.2f, 3.5f}));
+        } catch (BatchUpdateException e) {
+            throw e.getNextException();
+        }
+    }
+
+    @Test
+    public void test_geo_types_arrays() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().execute(
+                "CREATE TABLE t (" +
+                "   geo_points array(geo_point)," +
+                "   geo_shapes array(geo_shape)" +
+                ") " +
+                "WITH (number_of_replicas = 0)");
+
+            PreparedStatement preparedStatement = conn.prepareStatement(
+                "INSERT INTO t (geo_points, geo_shapes) VALUES (?, ?)");
+            preparedStatement.setArray(1, conn.createArrayOf(
+                "point",
+                new PGpoint[]{new PGpoint(1.1, 2.2), new PGpoint(3.3, 4.4)}));
+            preparedStatement.setArray(2, conn.createArrayOf(
+                "object",
+                new Object[]{Map.of(
+                    "coordinates", new double[][]{{0, 0}, {1, 1}}, "type", "LineString")
+                }));
+            preparedStatement.executeUpdate();
+            conn.createStatement().execute("REFRESH TABLE t");
+
+            ResultSet rs = conn.createStatement().executeQuery("SELECT geo_points, geo_shapes FROM t");
+            assertThat(rs.next(), is(true));
+            assertThat(
+                (Object[]) rs.getArray(1).getArray(),
+                arrayContaining(new PGpoint(1.1, 2.2), new PGpoint(3.3, 4.4)));
+
+            var shape = new PGobject();
+            shape.setType("json");
+            shape.setValue("{\"coordinates\":[[0.0,0.0],[1.0,1.0]],\"type\":\"LineString\"}");
+            assertThat((Object[]) rs.getArray(2).getArray(), arrayContaining(shape));
         } catch (BatchUpdateException e) {
             throw e.getNextException();
         }
