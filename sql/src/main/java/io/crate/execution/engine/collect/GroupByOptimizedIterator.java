@@ -60,7 +60,6 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
@@ -106,7 +105,7 @@ final class GroupByOptimizedIterator {
      * (+ being faster, - being slower)
      */
     private static final double CARDINALITY_RATIO_THRESHOLD = 0.5;
-    private static final long HASH_MAP_ENTRY_OVERHEAD = RamUsageEstimator.shallowSizeOfInstance(HashMap.SimpleEntry.class);
+    private static final long HASH_MAP_ENTRY_OVERHEAD = 32; // see RamUsageEstimator.shallowSizeOfInstance(HashMap.Node.class)
 
     @Nullable
     static BatchIterator<Row> tryOptimizeSingleStringKey(IndexShard indexShard,
