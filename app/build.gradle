@@ -72,6 +72,7 @@ dependencies {
     compileNotTransitive project(':es:es-x-content')
     compileNotTransitive project(':sql')
     compileNotTransitive project(':sql-parser')
+    compileNotTransitive project(':pgwire')
     compileNotTransitive project(':dex')
     compileNotTransitive project(':shared')
     compileNotTransitive project(':blob')

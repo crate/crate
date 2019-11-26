@@ -45,12 +45,12 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
     @Test
     public void testEncodeUTF8Text() {
         // 1-dimension array
-        byte[] bytes = pgArray.encodeAsUTF8Text(new Object[] { 10, 20 });
+        byte[] bytes = pgArray.encodeAsUTF8Text(new Object[]{10, 20});
         String s = new String(bytes, StandardCharsets.UTF_8);
         assertThat(s, is("{\"10\",\"20\"}"));
 
         // 3-dimension array
-        bytes = pgArray.encodeAsUTF8Text(new Object[][][] {{{1, 2}, {3, 4}}, {{5, 6}, {7}}});
+        bytes = pgArray.encodeAsUTF8Text(new Object[][][]{{{1, 2}, {3, 4}}, {{5, 6}, {7}}});
         s = new String(bytes, StandardCharsets.UTF_8);
         assertThat(s, is("{{{\"1\",\"2\"},{\"3\",\"4\"}},{{\"5\",\"6\"},{\"7\"}}}"));
     }
@@ -65,57 +65,22 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
         assertThat(o, is(array));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    public void testJsonArrayEncodeDecode() {
-        // 1-dimension array
-        // Decode
-        String s = "{\"{\"names\":[\"Arthur\",\"Trillian\"]}\",\"{\"names\":[\"Ford\",\"Slarti\"]}\"}";
-        Object[] values = (Object[]) PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+    public void test_json_array_encode_decode_round_trip() {
+        var actual = new Object[]{
+            Map.of("names", List.of("Arthur", "Trillian")),
+            Map.of("names", List.of("Ford", "Slarti"))
+        };
 
-        List<String> names = (List<String>) ((Map) values[0]).get("names");
-        assertThat(names, Matchers.contains("Arthur", "Trillian"));
+        byte[] bytes = PGArray.JSON_ARRAY.encodeAsUTF8Text(actual);
+        assertThat(
+            new String(bytes, StandardCharsets.UTF_8),
+            is("{" +
+               "\"{\\\"names\\\":[\\\"Arthur\\\",\\\"Trillian\\\"]}\"," +
+               "\"{\\\"names\\\":[\\\"Ford\\\",\\\"Slarti\\\"]}\"" +
+               "}"));
 
-        names = (List<String>) ((Map) values[1]).get("names");
-        assertThat(names, Matchers.contains("Ford", "Slarti"));
-
-        // Encode
-        byte[] bytes = PGArray.JSON_ARRAY.encodeAsUTF8Text(values);
-        s = new String(bytes, StandardCharsets.UTF_8);
-        assertThat(s, is(s));
-
-        // 3-dimension array
-        // Decode
-        s = "{{{\"{\"names\":[\"A\",\"B\"]}\",\"{\"names\":[\"C\",\"D\"]}\"}," +
-              "{\"{\"names\":[\"E\",\"F\"]}\",\"{\"names\":[\"G\",\"H\"]}\"}}," +
-             "{{\"{\"names\":[\"I\",\"J\"]}\",\"{\"names\":[\"K\",\"L\"]}\"}," +
-              "{\"{\"names\":[\"M\",\"N\"]}\",\"{\"names\":[\"O\",\"P\"]}\"}}}";
-        values = (Object[]) PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
-
-        names = (List<String>) ((Map) ((Object[])((Object[])values[0])[0])[0]).get("names");
-        assertThat(names, Matchers.contains("A", "B"));
-        names = (List<String>) ((Map) ((Object[])((Object[])values[0])[0])[1]).get("names");
-        assertThat(names, Matchers.contains("C", "D"));
-
-        names = (List<String>) ((Map) ((Object[])((Object[])values[0])[1])[0]).get("names");
-        assertThat(names, Matchers.contains("E", "F"));
-        names = (List<String>) ((Map) ((Object[])((Object[])values[0])[1])[1]).get("names");
-        assertThat(names, Matchers.contains("G", "H"));
-
-        names = (List<String>) ((Map) ((Object[])((Object[])values[1])[0])[0]).get("names");
-        assertThat(names, Matchers.contains("I", "J"));
-        names = (List<String>) ((Map) ((Object[])((Object[])values[1])[0])[1]).get("names");
-        assertThat(names, Matchers.contains("K", "L"));
-
-        names = (List<String>) ((Map) ((Object[])((Object[])values[1])[1])[0]).get("names");
-        assertThat(names, Matchers.contains("M", "N"));
-        names = (List<String>) ((Map) ((Object[])((Object[])values[1])[1])[1]).get("names");
-        assertThat(names, Matchers.contains("O", "P"));
-
-        // Encode
-        bytes = PGArray.JSON_ARRAY.encodeAsUTF8Text(values);
-        s = new String(bytes, StandardCharsets.UTF_8);
-        assertThat(s, is(s));
+        assertThat(PGArray.JSON_ARRAY.decodeUTF8Text(bytes), is(actual));
     }
 
     @Test
@@ -142,15 +107,15 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
     public void testDecodeUTF8Text() {
         // 1-dimension array
         Object o = pgArray.decodeUTF8Text("{\"10\",\"20\"}".getBytes(StandardCharsets.UTF_8));
-        assertThat(o, is(new Object[] {10, 20}));
+        assertThat(o, is(new Object[]{10, 20}));
 
         // ensure unquoted integer values are decoded correctly (a bug prevented that once)
         o = pgArray.decodeUTF8Text("{10,2}".getBytes(StandardCharsets.UTF_8));
-        assertThat(o, is(new Object[] {10, 2}));
+        assertThat(o, is(new Object[]{10, 2}));
 
         // ensure array with single value is decoded correctly (a bug prevented that once)
         o = pgArray.decodeUTF8Text("{10}".getBytes(StandardCharsets.UTF_8));
-        assertThat(o, is(new Object[] {10}));
+        assertThat(o, is(new Object[]{10}));
 
         // ensure that elements consisting of only a single character within an array can be decoded (a bug prevented that once)
         o = pgArray.decodeUTF8Text("{1}".getBytes(StandardCharsets.UTF_8));
@@ -158,16 +123,17 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
 
         // 2-dimension array
         o = pgArray.decodeUTF8Text("{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}}".getBytes(StandardCharsets.UTF_8));
-        assertThat(o, is(new Object[][] {{1, null, 2}, {null, 3, 4}}));
+        assertThat(o, is(new Object[][]{{1, null, 2}, {null, 3, 4}}));
 
         // 3-dimension array
-        o = pgArray.decodeUTF8Text("{{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}},{{\"5\",NULL,\"6\"},{\"7\"}}".getBytes(StandardCharsets.UTF_8));
-        assertThat(o, is(new Object[][][] {{{1, null, 2}, {null, 3, 4}}, {{5, null, 6}, {7}}}));
+        o = pgArray.decodeUTF8Text(
+            "{{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}},{{\"5\",NULL,\"6\"},{\"7\"}}}".getBytes(StandardCharsets.UTF_8));
+        assertThat(o, is(new Object[][][]{{{1, null, 2}, {null, 3, 4}}, {{5, null, 6}, {7}}}));
     }
 
     @Test
     public void testBinaryEncodingDecodingRoundtrip() {
-        byte[] bytes = new byte[] {
+        byte[] bytes = new byte[]{
             0, 0, 0, 44, // length as 4 byte int (not including the length itself)
             0, 0, 0, 1,  // dimensions as 4 byte int
             0, 0, 0, 1,  // possible nulls flag as 4 byte int
@@ -182,7 +148,7 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
             0, 0, 0, 3   // value
         };
 
-        Object sourceArray = new Object[] {1, 2, 3};
+        Object sourceArray = new Object[]{1, 2, 3};
         assertBytesWritten(sourceArray, bytes, 48);
 
         ByteBuf buffer = Unpooled.wrappedBuffer(bytes);
@@ -194,9 +160,9 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
 
     @Test
     @Ignore // For multi-dimensions -1 is used both for "padding" until the max length of the dimension,
-            // but also for null handling, therefore we cannot distinguish between the two
+    // but also for null handling, therefore we cannot distinguish between the two
     public void testBinaryEncodingDecodingRoundtrip_MultipleDimensionsWithNulls() {
-        Object sourceArray = new Object[][] {
+        Object sourceArray = new Object[][]{
             {1, 2, 3},
             {4, 5, null},
             {null, 6, 7, 8},
