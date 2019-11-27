@@ -44,7 +44,6 @@ import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.ServerErrorMessage;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -60,11 +59,9 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.hamcrest.Matchers;
@@ -348,16 +345,8 @@ public class SQLTransportExecutor {
     }
 
     private static Object toJdbcCompatObject(Connection connection, Object arg) {
-        if (arg == null) {
-            return null;
-        }
-        if (arg instanceof Map) {
-            // setObject with a Map would use hstore. But that only supports text values
-            try {
-                return toPGObjectJson(toJsonString(((Map) arg)));
-            } catch (SQLException | IOException e) {
-                throw new RuntimeException(e);
-            }
+        if (arg == null || arg instanceof Map) {
+            return arg;
         }
         if (arg.getClass().isArray()) {
             arg = Arrays.asList((Object[]) arg);
@@ -366,12 +355,6 @@ public class SQLTransportExecutor {
             Collection values = (Collection) arg;
             if (values.isEmpty()) {
                 return null; // TODO: can't insert empty list without knowing the type
-            } else if (values.iterator().next() instanceof Map) {
-                try {
-                    return connection.createArrayOf(ObjectType.NAME, values.toArray(new Object[0]));
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
             }
             List<Object> convertedValues = new ArrayList<>(values.size());
             PGType pgType = null;
@@ -393,20 +376,6 @@ public class SQLTransportExecutor {
             }
         }
         return arg;
-    }
-
-    private static String toJsonString(Map value) throws IOException {
-        XContentBuilder builder = JsonXContent.contentBuilder();
-        builder.map(value);
-        builder.close();
-        return Strings.toString(builder);
-    }
-
-    private static PGobject toPGObjectJson(String json) throws SQLException {
-        PGobject pGobject = new PGobject();
-        pGobject.setType("json");
-        pGobject.setValue(json);
-        return pGobject;
     }
 
     private SQLResponse executeAndConvertResult(PreparedStatement preparedStatement) throws SQLException {
