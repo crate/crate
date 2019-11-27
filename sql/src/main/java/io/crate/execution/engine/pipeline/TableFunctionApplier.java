@@ -23,7 +23,6 @@
 package io.crate.execution.engine.pipeline;
 
 import io.crate.common.collections.Lists2;
-import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -38,24 +37,14 @@ public final class TableFunctionApplier implements Function<Row, Iterator<Row>> 
 
     private final RowN outgoingRow;
     private final Object[] outgoingCells;
-    private final List<Func> tableFunctions;
+    private final List<Input<Iterable<Row>>> tableFunctions;
     private final List<Input<?>> standalone;
     private final List<CollectExpression<Row, ?>> expressions;
 
-    private static class Func {
-        private final Input<Bucket> input;
-        Iterator<Row> iterator;
-
-        private Func(Input<Bucket> input) {
-            this.input = input;
-        }
-    }
-
-
-    public TableFunctionApplier(List<Input<Bucket>> tableFunctions,
+    public TableFunctionApplier(List<Input<Iterable<Row>>> tableFunctions,
                                 List<Input<?>> standalone,
                                 List<CollectExpression<Row, ?>> expressions) {
-        this.tableFunctions = Lists2.map(tableFunctions, Func::new);
+        this.tableFunctions = tableFunctions;
         this.standalone = standalone;
         this.expressions = expressions;
         this.outgoingCells = new Object[tableFunctions.size() + standalone.size()];
@@ -64,24 +53,21 @@ public final class TableFunctionApplier implements Function<Row, Iterator<Row>> 
 
     @Override
     public Iterator<Row> apply(Row row) {
-        int maxRows = 0;
         for (int i = 0; i < expressions.size(); i++) {
             expressions.get(i).setNextRow(row);
         }
-        for (Func tableFunction : tableFunctions) {
-            Bucket bucket = tableFunction.input.value();
-            maxRows = Math.max(bucket.size(), maxRows);
-            tableFunction.iterator = bucket.iterator();
-        }
         mapIncomingValuesToOutgoingCells();
-        final int numRows = maxRows;
-        return new Iterator<Row>() {
-
-            int currentRow = 0;
+        List<Iterator<Row>> iterators = Lists2.map(tableFunctions, x -> x.value().iterator());
+        return new Iterator<>() {
 
             @Override
             public boolean hasNext() {
-                return currentRow < numRows;
+                for (int i = 0; i < iterators.size(); i++) {
+                    if (iterators.get(i).hasNext()) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             @Override
@@ -89,18 +75,13 @@ public final class TableFunctionApplier implements Function<Row, Iterator<Row>> 
                 if (!hasNext()) {
                     throw new NoSuchElementException("Iterator doesn't have any more elements");
                 }
-                fillOutgoingCellsFromBuckets();
-                currentRow++;
+                for (int i = 0; i < iterators.size(); i++) {
+                    Iterator<Row> it = iterators.get(i);
+                    outgoingCells[i] = it.hasNext() ? it.next().get(0) : null;
+                }
                 return outgoingRow;
             }
         };
-    }
-
-    private void fillOutgoingCellsFromBuckets() {
-        for (int i = 0; i < tableFunctions.size(); i++) {
-            Func func = tableFunctions.get(i);
-            outgoingCells[i] = func.iterator.hasNext() ? func.iterator.next().get(0) : null;
-        }
     }
 
     private void mapIncomingValuesToOutgoingCells() {
