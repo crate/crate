@@ -28,6 +28,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -66,8 +67,9 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     private S3Repository createRepository(final RepositoryMetaData metadata,
                                           final Settings settings,
-                                          final NamedXContentRegistry registry) {
-        return new S3Repository(metadata, settings, registry, service);
+                                          final NamedXContentRegistry registry,
+                                          final ThreadPool threadpool) {
+        return new S3Repository(metadata, settings, registry, service, threadpool);
     }
 
     @Override
@@ -76,8 +78,8 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
     }
 
     @Override
-    public Map<String, Repository.Factory> getRepositories(final Environment env, final NamedXContentRegistry registry) {
-        return Collections.singletonMap(S3Repository.TYPE, (metadata) -> createRepository(metadata, env.settings(), registry));
+    public Map<String, Repository.Factory> getRepositories(final Environment env, final NamedXContentRegistry registry, ThreadPool threadPool) {
+        return Collections.singletonMap(S3Repository.TYPE, (metadata) -> createRepository(metadata, env.settings(), registry, threadPool));
     }
 
     @Override

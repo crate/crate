@@ -20,6 +20,7 @@ package org.elasticsearch.repositories;
 
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
@@ -126,25 +127,27 @@ public interface Repository extends LifecycleComponent {
      * <p>
      * This method is called on master after all shards are snapshotted.
      *
-     * @param snapshotId    snapshot id
-     * @param indices       list of indices in the snapshot
-     * @param startTime     start time of the snapshot
-     * @param failure       global failure reason or null
-     * @param totalShards   total number of shards
-     * @param shardFailures list of shard failures
-     * @param repositoryStateId the unique id identifying the state of the repository when the snapshot began
-     * @param includeGlobalState include cluster global state
-     * @return snapshot description
+     * @param snapshotId            snapshot id
+     * @param indices               list of indices in the snapshot
+     * @param startTime             start time of the snapshot
+     * @param failure               global failure reason or null
+     * @param totalShards           total number of shards
+     * @param shardFailures         list of shard failures
+     * @param repositoryStateId     the unique id identifying the state of the repository when the snapshot began
+     * @param includeGlobalState    include cluster global state
+     * @param clusterMetaData       cluster metadata
+     * @param listener              listener to be called on completion of the snapshot
      */
-    SnapshotInfo finalizeSnapshot(SnapshotId snapshotId,
+    void finalizeSnapshot(SnapshotId snapshotId,
                                   List<IndexId> indices,
                                   long startTime,
                                   String failure,
                                   int totalShards,
                                   List<SnapshotShardFailure> shardFailures,
                                   long repositoryStateId,
-                                  final MetaData clusterMetaData,
-                                  boolean includeGlobalState);
+                                  boolean includeGlobalState,
+                                  MetaData clusterMetaData,
+                                  ActionListener<SnapshotInfo> listener);
 
     /**
      * Deletes snapshot

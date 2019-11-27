@@ -42,6 +42,7 @@ import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.net.Proxy;
 import java.net.URISyntaxException;
@@ -165,8 +166,9 @@ public class AzureRepository extends BlobStoreRepository {
 
     public AzureRepository(RepositoryMetaData metadata, Environment environment,
                            NamedXContentRegistry namedXContentRegistry,
-                           AzureStorageService storageService) {
-        super(metadata, environment.settings(), namedXContentRegistry);
+                           AzureStorageService storageService,
+                           ThreadPool threadPool) {
+        super(metadata, environment.settings(), namedXContentRegistry, threadPool);
         this.chunkSize = Repository.CHUNK_SIZE_SETTING.get(metadata.settings());
         this.storageService = storageService;
 

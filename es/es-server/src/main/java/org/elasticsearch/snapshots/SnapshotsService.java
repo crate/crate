@@ -107,7 +107,7 @@ import static org.elasticsearch.cluster.SnapshotsInProgress.completed;
  * the {@link SnapshotShardsService#sendSnapshotShardUpdate(Snapshot, ShardId, ShardSnapshotStatus)} method</li>
  * <li>When last shard is completed master node in {@link SnapshotShardsService#innerUpdateSnapshotState} method marks the snapshot
  * as completed</li>
- * <li>After cluster state is updated, the {@link #endSnapshot(SnapshotsInProgress.Entry)} finalizes snapshot in the repository,
+ * <li>After cluster state is updated, the {@link #endSnapshot(SnapshotsInProgress.Entry, MetaData)} finalizes snapshot in the repository,
  * notifies all {@link #snapshotCompletionListeners} that snapshot is completed, and finally calls
  * {@link #removeSnapshotFromClusterState(Snapshot, SnapshotInfo, Exception)} to remove snapshot from cluster state</li>
  * </ul>
@@ -556,27 +556,31 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         }
 
         private void cleanupAfterError(Exception exception) {
-            if(snapshotCreated) {
-                try {
+            threadPool.generic().execute(() -> {
+                if (snapshotCreated) {
                     repositoriesService.repository(snapshot.snapshot().getRepository())
                         .finalizeSnapshot(snapshot.snapshot().getSnapshotId(),
                                           snapshot.indices(),
                                           snapshot.startTime(),
-                                          ExceptionsHelper.detailedMessage(exception),
+                                          ExceptionsHelper.stackTrace(exception),
                                           0,
                                           Collections.emptyList(),
                                           snapshot.getRepositoryStateId(),
+                                          snapshot.includeGlobalState(),
                                           metaDataForSnapshot(snapshot, clusterService.state().metaData()),
-                                          snapshot.includeGlobalState());
-                } catch (Exception inner) {
-                    inner.addSuppressed(exception);
-                    logger.warn(() -> new ParameterizedMessage("[{}] failed to close snapshot in repository",
-                                                               snapshot.snapshot()), inner);
+                                          ActionListener.runAfter(ActionListener.wrap(ignored -> {
+                            }, inner -> {
+                                inner.addSuppressed(exception);
+                                logger.warn(() -> new ParameterizedMessage("[{}] failed to finalize snapshot in repository",
+                                                                           snapshot.snapshot()), inner);
+                            }), () -> userCreateSnapshotListener.onFailure(e)));
+                } else {
+                    userCreateSnapshotListener.onFailure(e);
                 }
-            }
-            userCreateSnapshotListener.onFailure(e);
+            });
         }
     }
+
 
     private static SnapshotInfo inProgressSnapshot(SnapshotsInProgress.Entry entry) {
         return new SnapshotInfo(entry.snapshot().getSnapshotId(),
@@ -968,7 +972,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * <p>
      * This is non-blocking method that runs on a thread from SNAPSHOT thread pool
      *
-     * @param entry snapshot
+     * @param entry SnapshotsInProgress.Entry   current snapshot in progress
+     * @param metaData MetaData                 cluster metadata
      */
     private void endSnapshot(final SnapshotsInProgress.Entry entry, final MetaData metaData) {
         if (endingSnapshots.add(entry.snapshot()) == false) {
@@ -989,7 +994,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         shardFailures.add(new SnapshotShardFailure(status.nodeId(), shardId, status.reason()));
                     }
                 }
-                SnapshotInfo snapshotInfo = repository.finalizeSnapshot(
+                repository.finalizeSnapshot(    
                     snapshot.getSnapshotId(),
                     entry.indices(),
                     entry.startTime(),
@@ -997,11 +1002,12 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     entry.shards().size(),
                     unmodifiableList(shardFailures),
                     entry.getRepositoryStateId(),
+                    entry.includeGlobalState(),
                     metaDataForSnapshot(entry, metaData),
-                    entry.includeGlobalState()
-                    );
-                removeSnapshotFromClusterState(snapshot, snapshotInfo, null);
-                logger.info("snapshot [{}] completed with state [{}]", snapshot, snapshotInfo.state());
+                    ActionListener.wrap(snapshotInfo -> {
+                        removeSnapshotFromClusterState(snapshot, snapshotInfo, null);
+                        logger.info("snapshot [{}] completed with state [{}]", snapshot, snapshotInfo.state());
+                    }, this::onFailure));
             }
 
             @Override
