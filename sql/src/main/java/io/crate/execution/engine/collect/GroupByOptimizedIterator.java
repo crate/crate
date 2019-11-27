@@ -42,6 +42,7 @@ import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
+import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.symbol.AggregateMode;
@@ -72,7 +73,6 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ObjectArray;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
@@ -162,21 +162,23 @@ final class GroupByOptimizedIterator {
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
         try {
-            QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
 
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
             docCtx.add(collectPhase.toCollect().stream()::iterator);
-            IndexOrdinalsFieldData keyIndexFieldData = queryShardContext.getForField(keyFieldType);
+            //IndexOrdinalsFieldData keyIndexFieldData = queryShardContext.getForField(keyFieldType);
 
             InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations(collectTask.txnCtx());
             ctxForAggregations.add(groupProjection.values());
 
             List<AggregationContext> aggregations = ctxForAggregations.aggregations();
             List<? extends LuceneCollectorExpression<?>> expressions = docCtx.expressions();
+            BytesRefColumnReference keyExpression = getKeyExpression(keyRef.column().fqn(), expressions);
+            assert keyExpression != null : "Could not find the required key expression for '" + keyRef + "'";
 
             RamAccountingContext ramAccounting = collectTask.queryPhaseRamAccountingContext();
 
+            QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
             CollectorContext collectorContext = getCollectorContext(
                 sharedShardContext.readerId(), queryShardContext::getForField);
 
@@ -202,7 +204,7 @@ final class GroupByOptimizedIterator {
                                 applyAggregatesGroupedByKey(
                                     bigArrays,
                                     searcher,
-                                    keyIndexFieldData,
+                                    keyExpression,
                                     ctxForAggregations,
                                     aggregations,
                                     expressions,
@@ -273,7 +275,7 @@ final class GroupByOptimizedIterator {
 
     private static Map<String, Object[]> applyAggregatesGroupedByKey(BigArrays bigArrays,
                                                                        Engine.Searcher searcher,
-                                                                       IndexOrdinalsFieldData keyIndexFieldData,
+                                                                       BytesRefColumnReference keyExpression,
                                                                        InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations,
                                                                        List<AggregationContext> aggregations,
                                                                        List<? extends LuceneCollectorExpression<?>> expressions,
@@ -311,7 +313,8 @@ final class GroupByOptimizedIterator {
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                 expressions.get(i).setNextReader(leaf);
             }
-            SortedSetDocValues values = keyIndexFieldData.load(leaf).getOrdinalsValues();
+
+            SortedSetDocValues values = keyExpression.getOrdinalsValues();
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {
                 DocIdSetIterator docs = scorer.iterator();
                 Bits liveDocs = leaf.reader().getLiveDocs();
@@ -337,7 +340,7 @@ final class GroupByOptimizedIterator {
                             aggregateValues(aggregations, ramAccounting, states);
                         }
                         if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
-                            throw new GroupByOnArrayUnsupportedException(keyIndexFieldData.getFieldName());
+                            throw new GroupByOnArrayUnsupportedException(keyExpression.getColumnName());
                         }
                     } else {
                         if (nullStates == null) {
@@ -429,9 +432,24 @@ final class GroupByOptimizedIterator {
     @Nullable
     private static Reference getKeyRef(List<Symbol> toCollect, Symbol key) {
         if (key instanceof InputColumn) {
-            Symbol keyRef = toCollect.get(((InputColumn) key).index());
+            int idx = ((InputColumn) key).index();
+            Symbol keyRef = toCollect.get(idx);
             if (keyRef instanceof Reference) {
-                return ((Reference) keyRef);
+                return (Reference) keyRef;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static BytesRefColumnReference getKeyExpression(String columnName,
+                                                            List<? extends LuceneCollectorExpression<?>> expressions) {
+        for (LuceneCollectorExpression<?> expression : expressions) {
+            if (expression instanceof BytesRefColumnReference) {
+                BytesRefColumnReference bytesRefExpression = (BytesRefColumnReference) expression;
+                if (bytesRefExpression.getColumnName().equals(columnName)) {
+                    return bytesRefExpression;
+                }
             }
         }
         return null;

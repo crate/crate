@@ -24,6 +24,8 @@ package io.crate.expression.reference.doc.lucene;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.exceptions.ValidationException;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SortedSetDocValues;
+import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -34,6 +36,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
 
     private final String columnName;
     private SortedBinaryDocValues values;
+    private SortedSetDocValues ordinalsValues;
     private String value;
 
     public BytesRefColumnReference(String columnName, MappedFieldType mappedFieldType) {
@@ -66,7 +69,16 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
         // String columns created via CREATE TABLE use docValues so we could use
         //  `FieldData.maybeSlowRandomAccessOrds(DocValues.getSortedSet(reader, field));` for those.
         // But dynamic columns don't use docValues so we need to use the fieldData abstraction layer.
-        values = indexFieldData.load(context).getBytesValues();
+        ordinalsValues = indexFieldData.load(context).getOrdinalsValues();
+        values = FieldData.toString(ordinalsValues);
+    }
+
+    public SortedSetDocValues getOrdinalsValues() {
+        return ordinalsValues;
+    }
+
+    public String getColumnName() {
+        return columnName;
     }
 }
 
