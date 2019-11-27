@@ -206,4 +206,5 @@ Changes
 Fixes
 =====
 
-None
+- Fixed a ``ClassCastException`` that could occur when using ``unnest`` on
+  multi dimensional arrays.

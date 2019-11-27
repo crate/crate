@@ -89,7 +89,7 @@ public class UnnestFunction {
         @SafeVarargs
         @Override
         public final Bucket evaluate(TransactionContext txnCtx, Input<List<Object>>... arguments) {
-            final List<List<Object>> values = extractValues(arguments);
+            final List<List<Object>> values = extractValues(info.ident().argumentTypes(), arguments);
             final int numCols = arguments.length;
             final int numRows = maxLength(values);
 
@@ -142,12 +142,35 @@ public class UnnestFunction {
         }
 
         @SafeVarargs
-        private static List<List<Object>> extractValues(Input<List<Object>> ... arguments) {
-            List<List<Object>> values = new ArrayList<>(arguments.length);
-            for (Input<List<Object>> argument : arguments) {
-                values.add(argument.value());
+        private static List<List<Object>> extractValues(List<DataType> types, Input<List<Object>> ... arguments) {
+            List<List<Object>> valuesPerColumn = new ArrayList<>(arguments.length);
+            for (int i = 0; i < arguments.length; i++) {
+                DataType type = types.get(i);
+                List<Object> values = arguments[i].value();
+
+                assert type instanceof ArrayType : "Argument to unnest must be an array";
+                DataType innerType = ((ArrayType) type).innerType();
+                if (innerType instanceof ArrayType) {
+                    valuesPerColumn.add(flattenValues(values, (ArrayType) innerType));
+                } else {
+                    valuesPerColumn.add(values);
+                }
             }
-            return values;
+            return valuesPerColumn;
+        }
+
+        private static List<Object> flattenValues(List<Object> values, ArrayType type) {
+            var result = new ArrayList<>();
+            DataType innerType = type.innerType();
+            for (int i = 0; i < values.size(); i++) {
+                var nestedValues = (List<Object>) values.get(i);
+                if (innerType instanceof ArrayType) {
+                    result.addAll(flattenValues(nestedValues, (ArrayType) innerType));
+                } else {
+                    result.addAll(nestedValues);
+                }
+            }
+            return result;
         }
 
         @Override
@@ -158,7 +181,7 @@ public class UnnestFunction {
 
             for (int i = 0; i < info.ident().argumentTypes().size(); i++) {
                 ColumnIdent columnIdent = new ColumnIdent("col" + (i + 1));
-                DataType dataType = ((ArrayType) info.ident().argumentTypes().get(i)).innerType();
+                DataType dataType = ArrayType.unnest(info.ident().argumentTypes().get(i));
                 Reference reference = new Reference(
                     new ReferenceIdent(TABLE_IDENT, columnIdent), RowGranularity.DOC, dataType, i, null
                 );
