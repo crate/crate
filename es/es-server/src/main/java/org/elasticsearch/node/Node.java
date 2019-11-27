@@ -482,7 +482,7 @@ public class Node implements Closeable {
 
             modules.add(new RepositoriesModule(this.environment,
                                                pluginsService.filterPlugins(RepositoryPlugin.class),
-                                               xContentRegistry));
+                                               xContentRegistry, threadPool));
 
             final DiscoveryModule discoveryModule = new DiscoveryModule(this.settings,
                                                                         threadPool,

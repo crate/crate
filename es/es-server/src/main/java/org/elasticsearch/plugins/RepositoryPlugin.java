@@ -25,6 +25,7 @@ import java.util.Map;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.threadpool.ThreadPool;
 
 /**
  * An extension point for {@link Plugin} implementations to add custom snapshot repositories.
@@ -36,10 +37,16 @@ public interface RepositoryPlugin {
      *
      * @param env The environment for the local node, which may be used for the local settings and path.repo
      *
+     * @param namedXContentRegistry the NamedXContentRegistry used for the {@link Repository.Factory}
+     *
+     * @param threadPool the thread pool used to execute the operations in the repositories
+     *
      * The key of the returned {@link Map} is the type name of the repository and
      * the value is a factory to construct the {@link Repository} interface.
      */
-    default Map<String, Repository.Factory> getRepositories(Environment env, NamedXContentRegistry namedXContentRegistry) {
+    default Map<String, Repository.Factory> getRepositories(Environment env,
+                                                            NamedXContentRegistry namedXContentRegistry,
+                                                            ThreadPool threadPool) {
         return Collections.emptyMap();
     }
 }

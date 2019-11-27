@@ -157,4 +157,30 @@ public interface ActionListener<Response> {
             }
         };
     }
+
+    /**
+     * Wraps a given listener and returns a new listener which executes the provided {@code runAfter}
+     * callback when the listener is notified via either {@code #onResponse} or {@code #onFailure}.
+     */
+    static <Response> ActionListener<Response> runAfter(ActionListener<Response> delegate, Runnable runAfter) {
+        return new ActionListener<>() {
+            @Override
+            public void onResponse(Response response) {
+                try {
+                    delegate.onResponse(response);
+                } finally {
+                    runAfter.run();
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                try {
+                    delegate.onFailure(e);
+                } finally {
+                    runAfter.run();
+                }
+            }
+        };
+    }
 }
