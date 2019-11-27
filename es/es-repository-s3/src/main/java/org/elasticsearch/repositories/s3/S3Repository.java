@@ -31,6 +31,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.List;
 
@@ -108,8 +109,9 @@ public class S3Repository extends BlobStoreRepository {
     S3Repository(final RepositoryMetaData metadata,
                  final Settings settings,
                  final NamedXContentRegistry namedXContentRegistry,
-                 final S3Service service) {
-        super(metadata, settings, namedXContentRegistry);
+                 final S3Service service,
+                 final ThreadPool threadPool) {
+        super(metadata, settings, namedXContentRegistry, threadPool);
         this.service = service;
 
         // Parse and validate the user's S3 Storage Class setting

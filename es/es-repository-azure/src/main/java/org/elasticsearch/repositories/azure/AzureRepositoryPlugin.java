@@ -25,6 +25,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Collections;
 import java.util.List;
@@ -43,9 +44,14 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     @Override
     public Map<String, Repository.Factory> getRepositories(Environment env,
-                                                           NamedXContentRegistry namedXContentRegistry) {
+                                                           NamedXContentRegistry namedXContentRegistry,
+                                                           ThreadPool threadPool) {
         return Collections.singletonMap(AzureRepository.TYPE,
-            (metadata) -> new AzureRepository(metadata, env, namedXContentRegistry, azureStoreService));
+                                        (metadata) -> new AzureRepository(metadata,
+                                                                          env,
+                                                                          namedXContentRegistry,
+                                                                          azureStoreService,
+                                                                          threadPool));
     }
 
     @Override
