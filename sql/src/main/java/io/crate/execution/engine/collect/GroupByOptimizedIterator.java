@@ -128,24 +128,29 @@ final class GroupByOptimizedIterator {
         Collection<? extends Projection> shardProjections = shardProjections(collectPhase.projections());
         GroupProjection groupProjection = getSingleStringKeyGroupProjection(shardProjections);
         if (groupProjection == null) {
+            LOGGER.info("========== NOT using GroupByOptimizedIterator cause of group projection not found ==========");
             return null;
         }
         assert groupProjection.keys().size() == 1 : "Must have 1 key if getSingleStringKeyGroupProjection returned a projection";
         Reference keyRef = getKeyRef(collectPhase.toCollect(), groupProjection.keys().get(0));
         if (keyRef == null) {
+            LOGGER.info("========== NOT using GroupByOptimizedIterator cause of non-reference as group key ==========");
             return null; // group by on non-reference
         }
         MappedFieldType keyFieldType = fieldTypeLookup.get(keyRef.column().fqn());
         if (keyFieldType == null || !keyFieldType.hasDocValues()) {
+            LOGGER.info("========== NOT using GroupByOptimizedIterator cause of missing DocValues ==========");
             return null;
         }
         if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE)
             || Symbols.containsColumn(collectPhase.where(), DocSysColumns.SCORE)) {
             // We could optimize this, but since it's assumed to be an uncommon case we fallback to generic group-by
             // to keep the optimized implementation a bit simpler
+            LOGGER.info("========== NOT using GroupByOptimizedIterator cause of _score is selected ==========");
             return null;
         }
         if (hasHighCardinalityRatio(() -> indexShard.acquireSearcher("group-by-cardinality-check"), keyFieldType.name())) {
+            LOGGER.info("========== NOT using GroupByOptimizedIterator cause of high cardinality ==========");
             return null;
         }
         LOGGER.info("========== Using GroupByOptimizedIterator ==========");
