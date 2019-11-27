@@ -65,6 +65,11 @@ Deprecations
 Changes
 =======
 
+- Added support for type interval in ``offset PRECEDING/FOLLOWING``, in
+  RANGE mode of window functions. When the ordering column is of type
+  :ref:`timestamp <timestamp_data_type>`, the ``offset`` expression can
+  be an :ref:`interval <interval_data_type>`.
+
 - Added support for casting values of type ``object`` to ``text``. This will
   cause the object to be converted to a JSON string.
 

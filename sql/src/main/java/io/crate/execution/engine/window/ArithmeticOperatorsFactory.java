@@ -22,15 +22,18 @@
 
 package io.crate.execution.engine.window;
 
+import io.crate.expression.scalar.arithmetic.IntervalTimestampScalar;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
+import io.crate.types.IntervalType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
+import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 
 class ArithmeticOperatorsFactory {
@@ -45,11 +48,15 @@ class ArithmeticOperatorsFactory {
     private static final BinaryOperator<Long> SUB_LONG_FUNCTION = (arg0, arg1) -> arg0 - arg1;
     private static final BinaryOperator<Float> SUB_FLOAT_FUNCTION = (arg0, arg1) -> arg0 - arg1;
 
-    static BinaryOperator getAddFunction(DataType dataType) {
-        switch (dataType.id()) {
+    static BiFunction getAddFunction(DataType fstArgDataType, DataType sndArgDataType) {
+        switch (fstArgDataType.id()) {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
+                if (IntervalType.ID == sndArgDataType.id()) {
+                    return new IntervalTimestampScalar(
+                        "+", "add-interval", fstArgDataType, sndArgDataType, fstArgDataType);
+                }
                 return ADD_LONG_FUNCTION;
             case DoubleType.ID:
                 return ADD_DOUBLE_FUNCTION;
@@ -61,15 +68,19 @@ class ArithmeticOperatorsFactory {
                 return ADD_INTEGER_FUNCTION;
             default:
                 throw new UnsupportedOperationException(
-                    "Cannot create add function for data type " + dataType.getName());
+                    "Cannot create add function for data type " + fstArgDataType.getName());
         }
     }
 
-    static BinaryOperator getSubtractFunction(DataType dataType) {
-        switch (dataType.id()) {
+    static BiFunction getSubtractFunction(DataType fstArgDataType, DataType sndArgDataType) {
+        switch (fstArgDataType.id()) {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
+                if (IntervalType.ID == sndArgDataType.id()) {
+                    return new IntervalTimestampScalar(
+                        "-", "sub-interval", fstArgDataType, sndArgDataType, fstArgDataType);
+                }
                 return SUB_LONG_FUNCTION;
             case DoubleType.ID:
                 return SUB_DOUBLE_FUNCTION;
@@ -81,7 +92,7 @@ class ArithmeticOperatorsFactory {
                 return SUB_INTEGER_FUNCTION;
             default:
                 throw new UnsupportedOperationException(
-                    "Cannot create subtract function for data type " + dataType.getName());
+                    "Cannot create subtract function for data type " + fstArgDataType.getName());
         }
     }
 }

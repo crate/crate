@@ -106,12 +106,15 @@ In ``ROWS`` mode ``CURRENT_ROW`` means the current row.
 The ``offset PRECEDING`` and ``offset FOLLOWING`` options vary in meaning
 depending on the frame mode. In ``ROWS`` mode, the ``offset`` is an integer
 indicating that the frame start or end is offsetted by that many rows before or
-after the current row. In ``RANGE`` mode, the use of a custome ``offset``
+after the current row. In ``RANGE`` mode, the use of a custom ``offset``
 option requires that there is exactly one ``ORDER BY`` column in the window
 definition. The frame contains those rows whose ordering column value is no
 more than ``offset`` minus (for PRECEDING) or plus (for FOLLOWING) the current
-row's ordering column value. In this case the data type of the ``offset``
-expression must have the same type of the ordering column.
+row's ordering column value. Because the value of ``offset`` is substracted/added
+to the values of the ordering column, only type combinations that support
+addition/substraction operations are allowed. For instance, when the ordering
+column is of type :ref:`timestamp <timestamp_data_type>`, the ``offset``
+expression can be an :ref:`interval <interval_data_type>`.
 
 The ``OVER`` clause defines the ``window`` containing the appropriate rows
 which will take part in the ``window function`` computation.

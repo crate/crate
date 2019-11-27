@@ -44,6 +44,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.DataType;
+import io.crate.types.IntervalType;
 import org.elasticsearch.Version;
 
 import javax.annotation.Nullable;
@@ -52,8 +53,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
@@ -165,11 +164,13 @@ public class WindowProjector {
         var frameDefinition = windowDefinition.windowFrameDefinition();
         var frameBoundEnd = frameDefinition.end();
         var framingMode = frameDefinition.mode();
+        DataType offsetType = frameBoundEnd.value().valueType();
         Object offsetValue = evaluateWithoutParams(txnCtx, functions, frameBoundEnd.value());
         Object[] endProbeValues = new Object[numCellsInSourceRow];
         BiFunction<Object[], Object[], Object[]> updateProbeValues;
         if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {
-            updateProbeValues = createUpdateProbeValueFunction(windowDefinition, ArithmeticOperatorsFactory::getAddFunction, offsetValue);
+            updateProbeValues = createUpdateProbeValueFunction(
+                windowDefinition, ArithmeticOperatorsFactory::getAddFunction, offsetValue, offsetType);
         } else {
             updateProbeValues = (currentRow, x) -> x;
         }
@@ -193,11 +194,13 @@ public class WindowProjector {
         var frameDefinition = windowDefinition.windowFrameDefinition();
         var frameBoundStart = frameDefinition.start();
         var framingMode = frameDefinition.mode();
+        DataType offsetType = frameBoundStart.value().valueType();
         Object offsetValue = evaluateWithoutParams(txnCtx, functions, frameBoundStart.value());
         Object[] startProbeValues = new Object[numCellsInSourceRow];
         BiFunction<Object[], Object[], Object[]> updateStartProbeValue;
         if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {
-            updateStartProbeValue = createUpdateProbeValueFunction(windowDefinition, ArithmeticOperatorsFactory::getSubtractFunction, offsetValue);
+            updateStartProbeValue = createUpdateProbeValueFunction(
+                windowDefinition, ArithmeticOperatorsFactory::getSubtractFunction, offsetValue, offsetType);
         } else {
             updateStartProbeValue = (currentRow, x) -> x;
         }
@@ -214,8 +217,9 @@ public class WindowProjector {
     }
 
     private static BiFunction<Object[], Object[], Object[]> createUpdateProbeValueFunction(WindowDefinition windowDefinition,
-                                                                                           Function<DataType<?>, BinaryOperator<?>> getOffsetApplicationFunction,
-                                                                                           Object offsetValue) {
+                                                                                           BiFunction<DataType<?>, DataType<?>, BiFunction> getOffsetApplicationFunction,
+                                                                                           Object offsetValue,
+                                                                                           DataType offsetType) {
         OrderBy windowOrdering = windowDefinition.orderBy();
         assert windowOrdering != null : "The window definition must be ordered if custom offsets are specified";
         List<Symbol> orderBySymbols = windowOrdering.orderBySymbols();
@@ -224,7 +228,7 @@ public class WindowProjector {
         }
         int offsetColumnPosition;
         Symbol orderSymbol = orderBySymbols.get(0);
-        BinaryOperator applyOffsetOnOrderingValue = getOffsetApplicationFunction.apply(orderSymbol.valueType());
+        BiFunction applyOffsetOnOrderingValue = getOffsetApplicationFunction.apply(orderSymbol.valueType(), offsetType);
         if (orderSymbol.symbolType() == SymbolType.LITERAL) {
             offsetColumnPosition = -1;
         } else {
@@ -232,7 +236,8 @@ public class WindowProjector {
                 : "ORDER BY expression must resolve to an InputColumn, but got: " + orderSymbol;
             offsetColumnPosition = ((InputColumn) orderSymbol).index();
         }
-        var finalOffsetValue = orderSymbol.valueType().value(offsetValue);
+        var finalOffsetValue =
+            offsetType.id() == IntervalType.ID ? offsetType.value(offsetValue) : orderSymbol.valueType().value(offsetValue);
         return (currentRow, x) -> {
             // if the offsetCell position is -1 the window is ordered by a Literal so we leave the
             // probe value to null so it doesn't impact ordering (ie. all values will be consistently GT or LT
