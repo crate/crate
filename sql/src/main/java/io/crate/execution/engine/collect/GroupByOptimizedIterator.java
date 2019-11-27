@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.collect;
 
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -65,6 +66,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ObjectArray;
@@ -309,9 +311,12 @@ final class GroupByOptimizedIterator {
                     if (docDeleted(liveDocs, doc)) {
                         continue;
                     }
+                    onDoc(doc, expressions, ramAccounting);
+                    /*
                     for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                         expressions.get(i).setNextDocId(doc);
                     }
+                     */
                     for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
                         aggExpressions.get(i).setNextRow(inputRow);
                     }
@@ -434,5 +439,23 @@ final class GroupByOptimizedIterator {
             return null;
         }
         return groupProjection;
+    }
+
+    private static void checkCircuitBreaker(RamAccountingContext ramAccountingContext) throws CircuitBreakingException {
+        if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
+            // stop collecting because breaker limit was reached
+            throw new CircuitBreakingException(
+                CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
+                                                                    ramAccountingContext.limit()));
+        }
+    }
+
+    private static void onDoc(int doc,
+                              List<? extends LuceneCollectorExpression<?>> expressions,
+                              RamAccountingContext ramAccountingContext) throws IOException {
+        checkCircuitBreaker(ramAccountingContext);
+        for (LuceneCollectorExpression expression : expressions) {
+            expression.setNextDocId(doc);
+        }
     }
 }
