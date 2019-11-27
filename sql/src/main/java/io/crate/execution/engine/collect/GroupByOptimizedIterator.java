@@ -149,10 +149,12 @@ final class GroupByOptimizedIterator {
             LOGGER.info("========== NOT using GroupByOptimizedIterator cause of _score is selected ==========");
             return null;
         }
+        /*
         if (hasHighCardinalityRatio(() -> indexShard.acquireSearcher("group-by-cardinality-check"), keyFieldType.name())) {
             LOGGER.info("========== NOT using GroupByOptimizedIterator cause of high cardinality ==========");
             return null;
         }
+         */
         LOGGER.info("========== Using GroupByOptimizedIterator ==========");
 
         ShardId shardId = indexShard.shardId();
