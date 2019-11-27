@@ -375,6 +375,8 @@ final class GroupByOptimizedIterator {
             }
         }
         if (nullStates != null) {
+            accountForNewEntry.accept(statesByKey, null);
+            accountForNewStates.accept(nullStates);
             statesByKey.put(null, nullStates);
         }
         return statesByKey;
