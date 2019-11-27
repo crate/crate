@@ -23,6 +23,8 @@
 package io.crate.execution.engine.collect;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.SizeEstimator;
+import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.breaker.StringSizeEstimator;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -34,6 +36,7 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.GroupByMaps;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
@@ -49,6 +52,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.LeafReaderContext;
@@ -73,11 +77,14 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -270,6 +277,22 @@ final class GroupByOptimizedIterator {
         final List<CollectExpression<Row, ?>> aggExpressions = ctxForAggregations.expressions();
         Object[] nullStates = null;
 
+        BiConsumer<Map<String, Object[]>, String> accountForNewEntry = GroupByMaps.accountForNewEntry(
+            ramAccounting,
+            StringSizeEstimator.INSTANCE,
+            StringType.INSTANCE);
+        List<SizeEstimator<Object>> estimators = new ArrayList<>(aggregations.size());
+        for (AggregationContext ctx : aggregations) {
+            estimators.add(SizeEstimatorFactory.create(ctx.function().partialType()));
+        }
+        Consumer<Object[]> accountForNewStates = v -> {
+            long size = 0;
+            for (int i = 0; i < v.length; i++) {
+                size += estimators.get(i).estimateSize(v[i]);
+            }
+            ramAccounting.addBytes(size);
+        };
+
         for (LeafReaderContext leaf: leaves) {
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
@@ -319,7 +342,10 @@ final class GroupByOptimizedIterator {
                     String sharedKey = BytesRefs.toString(values.lookupOrd(ord));
                     Object[] prevStates = statesByKey.get(sharedKey);
                     if (prevStates == null) {
-                        ramAccounting.addBytes(StringSizeEstimator.estimate(sharedKey) + HASH_MAP_ENTRY_OVERHEAD);
+                        accountForNewEntry.accept(statesByKey, sharedKey);
+                        accountForNewStates.accept(states);
+                        //ramAccounting.addBytes(StringSizeEstimator.estimate(sharedKey) + HASH_MAP_ENTRY_OVERHEAD);
+                        //ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(states));
                         statesByKey.put(sharedKey, states);
                     } else {
                         for (int i = 0; i < aggregations.size(); i++) {
