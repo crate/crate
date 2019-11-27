@@ -29,7 +29,6 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
-import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
@@ -611,12 +610,12 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitProjectSet(ProjectSetProjection projectSet, Context context) {
-        ArrayList<Input<Bucket>> tableFunctions = new ArrayList<>(projectSet.tableFunctions().size());
+        ArrayList<Input<Iterable<Row>>> tableFunctions = new ArrayList<>(projectSet.tableFunctions().size());
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
 
         for (int i = 0; i < projectSet.tableFunctions().size(); i++) {
             Symbol tableFunction = projectSet.tableFunctions().get(i);
-            Input<Bucket> implementation = (Input<Bucket>) ctx.add(tableFunction);
+            Input<Iterable<Row>> implementation = (Input<Iterable<Row>>) ctx.add(tableFunction);
             tableFunctions.add(implementation);
         }
         ctx.add(projectSet.standalone());

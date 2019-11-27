@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -41,12 +40,12 @@ public class TableFunctionApplierTest {
 
     @Test
     public void testFunctionsAreApplied() {
-        Input<Bucket> fstFunc = () -> new CollectionBucket(Arrays.asList(
+        Input<Iterable<Row>> fstFunc = () -> new CollectionBucket(Arrays.asList(
             new Object[]{1},
             new Object[]{2},
             new Object[]{3}
         ));
-        Input<Bucket> sndFunc = () -> new CollectionBucket(Arrays.asList(
+        Input<Iterable<Row>> sndFunc = () -> new CollectionBucket(Arrays.asList(
             new Object[]{4},
             new Object[]{5}
         ));

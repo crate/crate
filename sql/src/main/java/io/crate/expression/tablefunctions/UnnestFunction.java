@@ -22,9 +22,10 @@
 
 package io.crate.expression.tablefunctions;
 
+import com.google.common.collect.Iterators;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.data.Bucket;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -49,7 +50,6 @@ import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -88,89 +88,67 @@ public class UnnestFunction {
          */
         @SafeVarargs
         @Override
-        public final Bucket evaluate(TransactionContext txnCtx, Input<List<Object>>... arguments) {
-            final List<List<Object>> values = extractValues(info.ident().argumentTypes(), arguments);
+        public final Iterable<Row> evaluate(TransactionContext txnCtx, Input<List<Object>>... arguments) {
             final int numCols = arguments.length;
-            final int numRows = maxLength(values);
+            ArrayList<List<Object>> valuesPerColumn = new ArrayList<>(numCols);
+            for (Input<List<Object>> argument : arguments) {
+                valuesPerColumn.add(argument.value());
+            }
+            final Object[] cells = new Object[numCols];
+            final RowN row = new RowN(cells);
+            return () -> new Iterator<>() {
 
-            return new Bucket() {
-                final Object[] cells = new Object[numCols];
-                final RowN row = new RowN(cells);
+                final Iterator<Object>[] iteratorsPerColumn = createIterators(valuesPerColumn);
 
                 @Override
-                public int size() {
-                    return numRows;
+                public boolean hasNext() {
+                    for (Iterator<Object> it : iteratorsPerColumn) {
+                        if (it.hasNext()) {
+                            return true;
+                        }
+                    }
+                    return false;
                 }
 
                 @Override
-                @Nonnull
-                public Iterator<Row> iterator() {
-                    return new Iterator<>() {
-
-                        int currentRow = 0;
-
-                        @Override
-                        public boolean hasNext() {
-                            return currentRow < numRows;
-                        }
-
-                        @Override
-                        public Row next() {
-                            if (!hasNext()) {
-                                throw new NoSuchElementException("No more rows");
-                            }
-                            for (int c = 0; c < numCols; c++) {
-                                List<Object> columnValues = values.get(c);
-                                if (columnValues == null || columnValues.size() <= currentRow) {
-                                    cells[c] = null;
-                                } else {
-                                    cells[c] = columnValues.get(currentRow);
-                                }
-                            }
-                            currentRow++;
-                            return row;
-                        }
-
-                        @Override
-                        public void remove() {
-                            throw new UnsupportedOperationException("remove is not supported for " +
-                                                                    UnnestFunction.class.getSimpleName() + "$iterator");
-                        }
-                    };
+                public Row next() {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException("No more rows");
+                    }
+                    for (int i = 0; i < iteratorsPerColumn.length; i++) {
+                        Iterator<Object> iterator = iteratorsPerColumn[i];
+                        cells[i] = iterator.hasNext() ? iterator.next() : null;
+                    }
+                    return row;
                 }
             };
         }
 
-        @SafeVarargs
-        private static List<List<Object>> extractValues(List<DataType> types, Input<List<Object>> ... arguments) {
-            List<List<Object>> valuesPerColumn = new ArrayList<>(arguments.length);
-            for (int i = 0; i < arguments.length; i++) {
-                DataType type = types.get(i);
-                List<Object> values = arguments[i].value();
-
-                assert type instanceof ArrayType : "Argument to unnest must be an array";
-                DataType innerType = ((ArrayType) type).innerType();
-                if (innerType instanceof ArrayType) {
-                    valuesPerColumn.add(flattenValues(values, (ArrayType) innerType));
-                } else {
-                    valuesPerColumn.add(values);
-                }
+        private Iterator<Object>[] createIterators(ArrayList<List<Object>> valuesPerColumn) {
+            Iterator[] iterators = new Iterator[valuesPerColumn.size()];
+            for (int i = 0; i < valuesPerColumn.size(); i++) {
+                DataType dataType = info.ident().argumentTypes().get(i);
+                assert dataType instanceof ArrayType : "Argument to unnest must be an array";
+                iterators[i] = createIterator(valuesPerColumn.get(i), (ArrayType) dataType);
             }
-            return valuesPerColumn;
+            //noinspection unchecked
+            return iterators;
         }
 
-        private static List<Object> flattenValues(List<Object> values, ArrayType type) {
-            var result = new ArrayList<>();
-            DataType innerType = type.innerType();
-            for (int i = 0; i < values.size(); i++) {
-                var nestedValues = (List<Object>) values.get(i);
-                if (innerType instanceof ArrayType) {
-                    result.addAll(flattenValues(nestedValues, (ArrayType) innerType));
-                } else {
-                    result.addAll(nestedValues);
-                }
+        private static Iterator<Object> createIterator(List<Object> objects, ArrayType type) {
+            if (objects == null) {
+                return Collections.emptyIterator();
             }
-            return result;
+            if (type.innerType() instanceof ArrayType) {
+                @SuppressWarnings("unchecked")
+                List<Iterator<Object>> iterators = Lists2.map(
+                    objects,
+                    x -> createIterator((List<Object>) x, (ArrayType) type.innerType())
+                );
+                return Iterators.concat(iterators.iterator());
+            } else {
+                return objects.iterator();
+            }
         }
 
         @Override
