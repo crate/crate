@@ -213,4 +213,66 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
             new Object[]{4}
         );
     }
+
+    private static final List<ColumnIdent> INTERVAL_COLS = List.of(new ColumnIdent("x"), new ColumnIdent("y"));
+
+    private static final Object[][] INTERVAL_DATA = new Object[][]{
+        new Object[]{7, 1574812800000L},
+        new Object[]{3, 1574812810000L},
+        new Object[]{5, 1574812820000L},
+        new Object[]{7, 1574812830000L},
+        new Object[]{8, 1574812840000L},
+        new Object[]{2, 1574812850000L},
+        new Object[]{3, 1574812860000L},
+        new Object[]{2, 1574812870000L},
+        new Object[]{2, 1574812880000L},
+        new Object[]{3, 1574812890000L},
+        new Object[]{7, 1574812900000L},
+        new Object[]{6, 1574812910000L}
+    };
+
+    @Test
+    public void test_offset_preceding_supports_interval_in_range_mode() throws Throwable {
+        assertEvaluate(
+            "avg(x) over(order by y range between '30 seconds'::interval preceding and current row)",
+            contains(new Object[]{
+                7.0,
+                5.0,
+                5.0,
+                5.5,
+                5.75,
+                5.5,
+                5.0,
+                3.75,
+                2.25,
+                2.5,
+                3.5,
+                4.5}),
+            INTERVAL_COLS,
+            INTERVAL_DATA
+        );
+    }
+
+    @Test
+    public void test_offset_following_supports_interval_in_range_mode_simple() throws Throwable {
+        assertEvaluate(
+            "avg(x) over(order by y range between current row and '30 seconds'::interval following)",
+            contains(new Object[]{
+                5.5,
+                5.75,
+                5.5,
+                5.0,
+                3.75,
+                2.25,
+                2.5,
+                3.5,
+                4.5,
+                5.333333333333333,
+                6.5,
+                6.0}),
+            INTERVAL_COLS,
+            INTERVAL_DATA
+        );
+    }
+
 }

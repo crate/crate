@@ -48,8 +48,6 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 import org.elasticsearch.common.util.set.Sets;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
@@ -295,57 +293,6 @@ public class ArithmeticFunctions {
                 return null;
             }
             return operation.apply(fst, snd);
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return this.info;
-        }
-    }
-
-    private static final class IntervalTimestampScalar extends Scalar<Long, Object> {
-
-        private final BiFunction<DateTime, Period, DateTime> operation;
-        private final FunctionInfo info;
-        private final int periodIdx;
-        private final int timestampIdx;
-
-        IntervalTimestampScalar(String operator, String name, DataType firstType, DataType secondType, DataType returnType) {
-            this.info = new FunctionInfo(new FunctionIdent(name, Arrays.asList(firstType, secondType)), returnType);
-            if (ArithmeticFunctionResolver.isInterval(firstType)) {
-                periodIdx = 0;
-                timestampIdx = 1;
-            } else {
-                periodIdx = 1;
-                timestampIdx = 0;
-            }
-
-            switch (operator) {
-                case "+":
-                    operation = DateTime::plus;
-                    break;
-                case "-":
-                    if (ArithmeticFunctionResolver.isInterval(firstType)) {
-                        throw new IllegalArgumentException("Unsupported operator for interval " + operator);
-                    }
-                    operation = DateTime::minus;
-                    break;
-                default:
-                    operation = (a,b) -> {
-                        throw new IllegalArgumentException("Unsupported operator for interval " + operator);
-                    };
-            }
-        }
-
-        @Override
-        public Long evaluate(TransactionContext txnCtx, Input<Object>... args) {
-            final Long timestamp = (Long) args[timestampIdx].value();
-            final Period period = (Period) args[periodIdx].value();
-
-            if (period == null || timestamp == null) {
-                return null;
-            }
-            return operation.apply(new DateTime(timestamp, DateTimeZone.UTC), period).toInstant().getMillis();
         }
 
         @Override

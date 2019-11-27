@@ -26,7 +26,6 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.expression.symbol.Symbol;
