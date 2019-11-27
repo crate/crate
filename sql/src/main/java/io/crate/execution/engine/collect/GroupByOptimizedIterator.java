@@ -65,6 +65,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -402,6 +403,7 @@ final class GroupByOptimizedIterator {
 
     private static Object[] initStates(List<AggregationContext> aggregations, RamAccountingContext ramAccounting) {
         Object[] states = new Object[aggregations.size()];
+        ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(states));
         for (int i = 0; i < aggregations.size(); i++) {
             AggregationContext aggregation = aggregations.get(i);
             AggregationFunction function = aggregation.function();
