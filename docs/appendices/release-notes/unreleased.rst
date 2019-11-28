@@ -206,6 +206,15 @@ Changes
 Fixes
 =====
 
+- Fixed issues that would prevent usage or lead to incorrect behaviour
+  of the client that use PostgreSQL Wire Protocol when inserting arrays
+  of certain types:
+
+  - Insertion of the PostgreSQL ``point`` arrays was not possible.
+
+  - Insertion of the PostgreSQL ``varchar`` arrays that contain the ``,``
+    in its items would have led to incorrect results.
+
 - Improved performance of snapshot finalization as https://github.com/crate/crate/pull/9327
   introduced a performance regression on the snapshot process.
 

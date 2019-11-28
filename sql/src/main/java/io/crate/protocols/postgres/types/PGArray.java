@@ -23,6 +23,7 @@
 package io.crate.protocols.postgres.types;
 
 import com.google.common.primitives.Bytes;
+import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.netty.buffer.ByteBuf;
 
 import javax.annotation.Nonnull;
@@ -195,88 +196,7 @@ class PGArray extends PGType {
          *      {{"{"x": 10}","{"y": 20}"},{"{"x": 30}","{"y": 40}"}}
          */
 
-        List<Object> values = new ArrayList<>();
-        decodeUTF8Text(bytes, 0, bytes.length - 1, values);
-        return values;
-    }
-
-    private int decodeUTF8Text(byte[] bytes, int startIdx, int endIdx, List<Object> objects) {
-        int valIdx = startIdx;
-        boolean jsonObject = false;
-        for (int i = startIdx; i <= endIdx; i++) {
-            byte aByte = bytes[i];
-            switch (aByte) {
-                case '{':
-                    if (i == 0 || bytes[i - 1] != '"') {
-                        if (i > 0) {
-                            // n-dimensions array -> call recursively
-                            List<Object> nestedObjects = new ArrayList<>();
-                            i = decodeUTF8Text(bytes, i + 1, endIdx, nestedObjects);
-                            valIdx = i + 1;
-                            objects.add(nestedObjects);
-                        } else {
-                            // 1-dimension array -> call recursively
-                            i = decodeUTF8Text(bytes, i + 1, endIdx, objects);
-                        }
-                    } else {
-                        // Start of JSON object
-                        valIdx = i - 1;
-                        jsonObject = true;
-                    }
-                    break;
-                case ',':
-                    if (!jsonObject) {
-                        addObject(bytes, valIdx, i - 1, objects);
-                        valIdx = i + 1;
-                    }
-                    break;
-                case '}':
-                    if (i == endIdx || bytes[i + 1] != '"') {
-                        addObject(bytes, valIdx, i - 1, objects);
-                        return i;
-                    } else {
-                        //End of JSON object
-                        addObject(bytes, valIdx, i + 1, objects);
-                        jsonObject = false;
-                        i++;
-                        valIdx = i;
-                        if (bytes[i] == '}') { // end of array
-                            return i + 2;
-                        }
-                    }
-                // fall through
-                default:
-            }
-        }
-        return endIdx;
-    }
-
-    // Decode individual inner object
-    private void addObject(byte[] bytes, int startIdx, int endIdx, List<Object> objects) {
-        if (endIdx >= startIdx) {
-            byte firstValueByte = bytes[startIdx];
-            if (firstValueByte == 'N') {
-                objects.add(null);
-            } else {
-                if (firstValueByte == '"') {
-                    // skip any quote character
-                    if (startIdx == endIdx) {
-                        return;
-                    }
-                    startIdx++;
-                    endIdx--;
-                }
-                byte[] innerBytes = new byte[endIdx - startIdx + 1];
-                for (int i = startIdx, innerBytesIdx = 0; i <= endIdx; i++, innerBytesIdx++) {
-                    if (i < endIdx && (char) bytes[i] == '\\' &&
-                        ((char) bytes[i + 1] == '\\' || (char) bytes[i + 1] == '\"')) {
-                        i++;
-                    }
-                    innerBytes[innerBytesIdx] = bytes[i];
-                }
-                objects.add(innerType.decodeUTF8Text(innerBytes));
-            }
-        }
+        return PgArrayParser.parse(bytes, innerType::decodeUTF8Text);
     }
 
     private int buildDimensions(List<Object> values, List<Integer> dimensionsList, int maxDimensions, int currentDimension) {

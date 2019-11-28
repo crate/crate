@@ -16,6 +16,7 @@ dependencies {
     compile project(':dex')
     compile project(':blob')
     compile project(':sql-parser')
+    compile project(':pgwire')
     compile project(':udc')
     compile project(':ssl')
     compile "com.tdunning:t-digest:3.2"

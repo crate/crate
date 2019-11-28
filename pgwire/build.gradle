@@ -1,0 +1,54 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+archivesBaseName = 'crate-pgwire'
+
+ext.antlr = [
+    source : "src/main/antlr",
+    output : "src/main/java/io/crate/protocols/postgres/antlr/v4",
+    package: 'io.crate.protocols.postgres.antlr.v4'
+]
+
+configurations {
+    antlr4
+}
+
+dependencies {
+    antlr4 "org.antlr:antlr4:${versions.antlr}"
+
+    implementation "org.antlr:antlr4-runtime:${versions.antlr}"
+    implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
+
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "junit:junit:${versions.junit}"
+    testImplementation "com.fasterxml.jackson.core:jackson-databind:${versions.jacksondatabind}"
+}
+
+task antlrOutputDir {
+    doLast {
+        mkdir(antlr.output)
+    }
+}
+
+task generateGrammarSource(dependsOn: antlrOutputDir, type: JavaExec) {
+    inputs.files(fileTree(antlr.source))
+    outputs.dir file(antlr.output)
+
+    def grammars = fileTree(antlr.source).include('**/*.g4')
+
+    main = 'org.antlr.v4.Tool'
+    classpath = configurations.antlr4
+    args = [
+        "-o", "${antlr.output}",
+        "-visitor", "-no-listener",
+        "-package", antlr.package,
+        grammars.files
+    ].flatten()
+}
+
+tasks.withType(JavaCompile) {
+    it.dependsOn('generateGrammarSource')
+}
+
+clean {
+    delete antlr.output
+}
