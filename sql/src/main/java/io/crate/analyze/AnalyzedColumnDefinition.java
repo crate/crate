@@ -280,7 +280,7 @@ public class AnalyzedColumnDefinition<T> {
         this.isIndex = true;
     }
 
-    void addChild(AnalyzedColumnDefinition<T> analyzedColumnDefinition) {
+    public void addChild(AnalyzedColumnDefinition<T> analyzedColumnDefinition) {
         children.add(analyzedColumnDefinition);
     }
 
@@ -533,6 +533,7 @@ public class AnalyzedColumnDefinition<T> {
     public void ident(ColumnIdent ident) {
         assert this.ident == null : "ident must be null";
         this.ident = ident;
+        this.name = ident.leafName();
     }
 
     boolean isArrayOrInArray() {

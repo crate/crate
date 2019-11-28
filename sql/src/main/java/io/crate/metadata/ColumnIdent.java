@@ -404,4 +404,12 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
         newPath.add(0, this.name);
         return new ColumnIdent(name, newPath);
     }
+
+    public String leafName() {
+        if (path.isEmpty()) {
+            return name;
+        } else {
+            return path.get(path.size() - 1);
+        }
+    }
 }
