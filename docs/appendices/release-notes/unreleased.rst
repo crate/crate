@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused an error when using ``ALTER TABLE .. ADD`` on a
+  table which contains nested primary key columns.
+
 - Fixed an issue where values of type ``array(varchar)`` were decoded
   incorrectly if they contained a ``,`` character. This occurred when
   the PostgreSQL wire protocol was used in ``text`` mode.
