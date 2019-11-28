@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.collect;
 
+import com.sun.management.ThreadMXBean;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
@@ -80,6 +81,7 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -194,6 +196,7 @@ final class GroupByOptimizedIterator {
                 queryShardContext,
                 sharedShardContext.indexService().cache()
             );
+
             return CollectingBatchIterator.newInstance(
                 searcher::close,
                 t -> {},
@@ -282,6 +285,9 @@ final class GroupByOptimizedIterator {
                                                                        RamAccountingContext ramAccounting,
                                                                        InputRow inputRow,
                                                                        LuceneQueryBuilder.Context queryContext) throws IOException {
+        long usedMemoryStart = memoryUsage();
+        long accountedMemoryStart = ramAccounting.totalBytes();
+
         final Map<String, Object[]> statesByKey = new HashMap<>();
         IndexSearcher indexSearcher = searcher.searcher();
         final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(queryContext.query()), ScoreMode.COMPLETE, 1f);
@@ -305,6 +311,8 @@ final class GroupByOptimizedIterator {
             ramAccounting.addBytes(size);
         };
 
+        logMemUsage("prepared", usedMemoryStart, accountedMemoryStart, ramAccounting);
+
         for (LeafReaderContext leaf: leaves) {
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
@@ -315,6 +323,8 @@ final class GroupByOptimizedIterator {
             }
 
             SortedSetDocValues values = keyExpression.getOrdinalsValues();
+
+            logMemUsage("ordinals loaded", usedMemoryStart, accountedMemoryStart, ramAccounting);
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {
                 DocIdSetIterator docs = scorer.iterator();
                 Bits liveDocs = leaf.reader().getLiveDocs();
@@ -331,6 +341,7 @@ final class GroupByOptimizedIterator {
                     for (int i = 0, expressionsSize = aggExpressions.size(); i < expressionsSize; i++) {
                         aggExpressions.get(i).setNextRow(inputRow);
                     }
+                    logMemUsage("expressions", usedMemoryStart, accountedMemoryStart, ramAccounting);
                     if (values.advanceExact(doc)) {
                         long ord = values.nextOrd();
                         Object[] states = statesByOrd.get(ord);
@@ -339,6 +350,7 @@ final class GroupByOptimizedIterator {
                         } else {
                             aggregateValues(aggregations, ramAccounting, states);
                         }
+                        logMemUsage("states iterated", usedMemoryStart, accountedMemoryStart, ramAccounting);
                         if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
                             throw new GroupByOnArrayUnsupportedException(keyExpression.getColumnName());
                         }
@@ -348,6 +360,7 @@ final class GroupByOptimizedIterator {
                         } else {
                             aggregateValues(aggregations, ramAccounting, nullStates);
                         }
+                        logMemUsage("NULL states iterated", usedMemoryStart, accountedMemoryStart, ramAccounting);
                     }
                 }
                 for (long ord = 0; ord < statesByOrd.size(); ord++) {
@@ -375,12 +388,15 @@ final class GroupByOptimizedIterator {
                         }
                     }
                 }
+
+                logMemUsage("states stored", usedMemoryStart, accountedMemoryStart, ramAccounting);
             }
         }
         if (nullStates != null) {
             accountForNewEntry.accept(statesByKey, null);
             accountForNewStates.accept(nullStates);
             statesByKey.put(null, nullStates);
+            logMemUsage("NULL states stored", usedMemoryStart, accountedMemoryStart, ramAccounting);
         }
         return statesByKey;
     }
@@ -486,5 +502,18 @@ final class GroupByOptimizedIterator {
         for (LuceneCollectorExpression expression : expressions) {
             expression.setNextDocId(doc);
         }
+    }
+
+    private static long memoryUsage() {
+        ThreadMXBean bean = ManagementFactory.getPlatformMXBean(ThreadMXBean.class);
+        return bean.getThreadAllocatedBytes(Thread.currentThread().getId());
+    }
+
+    private static void logMemUsage(String namespace,
+                                    long usedMemoryStart,
+                                    long accountedStart,
+                                    RamAccountingContext ramAccountingContext) {
+        LOGGER.info("[" + namespace + "] Current memory usage: " + (memoryUsage() - usedMemoryStart));
+        LOGGER.info("[" + namespace + "] Accounted memory: " + (ramAccountingContext.totalBytes() - accountedStart));
     }
 }
