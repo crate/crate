@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.common.collections.Maps;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.ColumnIdent;
@@ -51,7 +52,26 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .addTable("create table nested_pks (" +
+                      "     pk object as (a int, b object as (c int))," +
+                      "     primary key (pk['a'], pk['b']['c'])" +
+                      ")")
+            .build();
+    }
+
+
+    @Test
+    public void test_can_add_column_to_table_with_multiple_nested_pks() {
+        AddColumnAnalyzedStatement analysis = e.analyze("alter table nested_pks add x int");
+        assertThat(
+            analysis.analyzedTableElements().toMapping().toString(),
+            is("{_meta={primary_keys=[pk.a, pk.b.c]}, " +
+               "properties={" +
+                    "x={position=2, type=integer}, " +
+                    "pk={dynamic=true, type=object, properties={a={type=integer}, b={dynamic=true, type=object, properties={c={type=integer}}}}}}}")
+        );
     }
 
     @Test

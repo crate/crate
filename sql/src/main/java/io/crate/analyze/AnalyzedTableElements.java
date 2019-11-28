@@ -520,4 +520,5 @@ public class AnalyzedTableElements {
     boolean hasGeneratedColumns() {
         return numGeneratedColumns > 0;
     }
+
 }
