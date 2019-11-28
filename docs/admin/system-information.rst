@@ -1545,6 +1545,10 @@ partitioning.
 Tables need to be recreated
 ...........................
 
+.. raw:: html
+
+  <span id="tables-need-to-be-upgraded"></span>
+
 .. WARNING::
 
    Do not attempt to upgrade your cluster to a newer major version if this
