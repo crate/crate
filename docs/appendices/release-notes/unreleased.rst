@@ -206,6 +206,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused an error when using ``ALTER TABLE .. ADD`` on a
+  table which contains nested primary key columns.
+
 - Fixed issues that would prevent usage or lead to incorrect behaviour
   of the client that use PostgreSQL Wire Protocol when inserting arrays
   of certain types:
