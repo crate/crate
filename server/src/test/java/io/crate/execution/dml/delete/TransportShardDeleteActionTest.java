@@ -30,7 +30,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
@@ -77,7 +76,6 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         transportShardDeleteAction = new TransportShardDeleteAction(
             MockTransportService.createNewService(
                 Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings()),
-            mock(IndexNameExpressionResolver.class),
             mock(ClusterService.class),
             indicesService,
             mock(ThreadPool.class),

@@ -22,6 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
@@ -44,11 +45,9 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
@@ -109,10 +108,9 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  IndicesService indicesService,
                                                  ShardStateAction shardStateAction,
                                                  NodeContext nodeCtx,
-                                                 Schemas schemas,
-                                                 IndexNameExpressionResolver indexNameExpressionResolver) {
+                                                 Schemas schemas) {
             super(threadPool, clusterService, transportService, schemaUpdateClient,
-                tasksService, indicesService, shardStateAction, nodeCtx, schemas, indexNameExpressionResolver);
+                tasksService, indicesService, shardStateAction, nodeCtx, schemas);
         }
 
         @Override
@@ -163,8 +161,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             indicesService,
             mock(ShardStateAction.class),
             createNodeContext(),
-            schemas,
-            mock(IndexNameExpressionResolver.class)
+            schemas
         );
     }
 

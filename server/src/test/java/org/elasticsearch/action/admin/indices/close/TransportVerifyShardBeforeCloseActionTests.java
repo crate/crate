@@ -36,7 +36,6 @@ import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
@@ -156,8 +155,8 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             mock(
                 IndicesService.class),
             mock(ThreadPool.class),
-            shardStateAction,
-            mock(IndexNameExpressionResolver.class));
+            shardStateAction
+        );
     }
 
     @Override

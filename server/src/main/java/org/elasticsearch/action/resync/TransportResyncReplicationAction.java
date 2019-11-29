@@ -27,7 +27,6 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -56,8 +55,7 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
                                             ClusterService clusterService,
                                             IndicesService indicesService,
                                             ThreadPool threadPool,
-                                            ShardStateAction shardStateAction,
-                                            IndexNameExpressionResolver indexNameExpressionResolver) {
+                                            ShardStateAction shardStateAction) {
         super(
             ACTION_NAME,
             transportService,
@@ -65,7 +63,6 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
             indicesService,
             threadPool,
             shardStateAction,
-            indexNameExpressionResolver,
             ResyncReplicationRequest::new,
             ResyncReplicationRequest::new,
             ThreadPool.Names.WRITE,

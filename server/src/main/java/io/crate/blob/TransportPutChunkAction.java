@@ -24,7 +24,6 @@ package io.crate.blob;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -45,8 +44,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
                                    IndicesService indicesService,
                                    ThreadPool threadPool,
                                    ShardStateAction shardStateAction,
-                                   BlobTransferTarget transferTarget,
-                                   IndexNameExpressionResolver indexNameExpressionResolver) {
+                                   BlobTransferTarget transferTarget) {
         super(
             PutChunkAction.NAME,
             transportService,
@@ -54,7 +52,6 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
             indicesService,
             threadPool,
             shardStateAction,
-            indexNameExpressionResolver,
             PutChunkRequest::new,
             PutChunkReplicaRequest::new,
             ThreadPool.Names.WRITE
@@ -93,10 +90,4 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
         transferTarget.continueTransfer(shardRequest, response);
         return new ReplicaResult();
     }
-
-    @Override
-    protected boolean resolveIndex() {
-        return false;
-    }
 }
-

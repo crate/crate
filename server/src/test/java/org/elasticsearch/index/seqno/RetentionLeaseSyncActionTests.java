@@ -17,21 +17,11 @@
 
 package org.elasticsearch.index.seqno;
 
-import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.ActionTestUtils;
-import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.WriteStateException;
@@ -46,9 +36,14 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
-import io.crate.common.io.IOUtils;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class RetentionLeaseSyncActionTests extends ESTestCase {
 
@@ -104,9 +99,9 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
             clusterService,
             indicesService,
             threadPool,
-            shardStateAction,
-            new IndexNameExpressionResolver());
-        final RetentionLeases retentionLeases = mock(RetentionLeases.class);
+            shardStateAction
+        );
+       final RetentionLeases retentionLeases = mock(RetentionLeases.class);
         final RetentionLeaseSyncAction.Request request = new RetentionLeaseSyncAction.Request(indexShard.shardId(), retentionLeases);
 
         action.shardOperationOnPrimary(request, indexShard,
@@ -142,8 +137,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
             clusterService,
             indicesService,
             threadPool,
-            shardStateAction,
-            new IndexNameExpressionResolver()
+            shardStateAction
         );
         final RetentionLeases retentionLeases = mock(RetentionLeases.class);
         final RetentionLeaseSyncAction.Request request = new RetentionLeaseSyncAction.Request(indexShard.shardId(), retentionLeases);
@@ -181,8 +175,8 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
             clusterService,
             indicesService,
             threadPool,
-            shardStateAction,
-            new IndexNameExpressionResolver());
+            shardStateAction
+        );
 
         assertNull(action.indexBlockLevel());
     }
