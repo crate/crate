@@ -23,10 +23,10 @@
 package io.crate.planner.node.ddl;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.BoundAddColumn;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.AnalyzedTableElements;
+import io.crate.analyze.BoundAddColumn;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -45,12 +45,16 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.types.ArrayType;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class AlterTableAddColumnPlan implements Plan {
@@ -150,23 +154,42 @@ public class AlterTableAddColumnPlan implements Plan {
     }
 
     private static void addExistingPrimaryKeys(DocTableInfo tableInfo, AnalyzedTableElements<Object> tableElements) {
+        LinkedHashSet<ColumnIdent> pkIncludingAncestors = new LinkedHashSet<>();
         for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
-            if (pkIdent.name().equals("_id")) {
+            if (pkIdent.name().equals(DocSysColumns.Names.ID)) {
                 continue;
             }
-            Reference pkInfo = tableInfo.getReference(pkIdent);
-            assert pkInfo != null : "pk must not be null";
-
-            AnalyzedColumnDefinition<Object> pkColumn = new AnalyzedColumnDefinition<>(null, null);
-            pkColumn.ident(pkIdent);
-            pkColumn.name(pkIdent.name());
-            pkColumn.setPrimaryKeyConstraint();
-
-            assert !(pkInfo.valueType() instanceof ArrayType) : "pk can't be an array";
-            pkColumn.dataType(pkInfo.valueType().getName());
-            tableElements.add(pkColumn);
+            ColumnIdent maybeParent = pkIdent;
+            pkIncludingAncestors.add(maybeParent);
+            while ((maybeParent = maybeParent.getParent()) != null) {
+                pkIncludingAncestors.add(maybeParent);
+            }
         }
-
+        ArrayList<ColumnIdent> columnsToBuildHierarchy = new ArrayList<>(pkIncludingAncestors);
+        // We want to have the root columns earlier in the list so that the loop below can be sure parent elements are already present in `columns`
+        columnsToBuildHierarchy.sort(Comparator.comparingInt(c -> c.path().size()));
+        HashMap<ColumnIdent, AnalyzedColumnDefinition<Object>> columns = new HashMap<>();
+        for (ColumnIdent column : columnsToBuildHierarchy) {
+            ColumnIdent parent = column.getParent();
+            // sort of `columnsToBuildHierarchy` ensures parent would already have been processed and must be present in columns
+            AnalyzedColumnDefinition<Object> parentDef = columns.get(parent);
+            AnalyzedColumnDefinition<Object> columnDef = new AnalyzedColumnDefinition<>(null, parentDef);
+            columns.put(column, columnDef);
+            columnDef.ident(column);
+            if (tableInfo.primaryKey().contains(column)) {
+                columnDef.setPrimaryKeyConstraint();
+            }
+            Reference reference = Objects.requireNonNull(
+                tableInfo.getReference(column),
+                "Must be able to retrieve Reference for any column that is part of `primaryKey()`");
+            columnDef.dataType(reference.valueType().getName());
+            if (parentDef != null) {
+                parentDef.addChild(columnDef);
+            }
+            if (column.isTopLevel()) {
+                tableElements.add(columnDef);
+            }
+        }
         for (ColumnIdent columnIdent : tableInfo.partitionedBy()) {
             AnalyzedTableElements.changeToPartitionedByColumn(tableElements, columnIdent, true, tableInfo.ident());
         }

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -56,7 +57,13 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .addTable("create table nested_pks (" +
+                      "     pk object as (a int, b object as (c int))," +
+                      "     primary key (pk['a'], pk['b']['c'])" +
+                      ")")
+            .build();
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
@@ -69,6 +76,18 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             Row.EMPTY,
             SubQueryResults.EMPTY,
             e.fulltextAnalyzerResolver()
+        );
+    }
+
+    @Test
+    public void test_can_add_column_to_table_with_multiple_nested_pks() {
+        BoundAddColumn boundAddColumn = analyze("alter table nested_pks add x int");
+        assertThat(
+            boundAddColumn.mapping().toString(),
+            is("{_meta={primary_keys=[pk.a, pk.b.c]}, " +
+               "properties={" +
+                    "x={position=2, type=integer}, " +
+                    "pk={dynamic=true, type=object, properties={a={type=integer}, b={dynamic=true, type=object, properties={c={type=integer}}}}}}}")
         );
     }
 
