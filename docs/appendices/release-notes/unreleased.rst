@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed a possible OutOfMemory issue which may happen on ``GROUP BY`` statement
+  using a group key of type ``TEXT`` on tables containing at least one shard
+  with a low to medium cardinality on the group key.
+
 - Fixed an issue that caused an error when using ``ALTER TABLE .. ADD`` on a
   table which contains nested primary key columns.
 

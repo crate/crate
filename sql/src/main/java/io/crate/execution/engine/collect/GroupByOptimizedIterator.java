@@ -28,6 +28,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.GroupProjection;
@@ -53,6 +54,7 @@ import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
@@ -76,6 +78,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -141,6 +145,7 @@ final class GroupByOptimizedIterator {
             QueryShardContext queryShardContext =
                 sharedShardContext.indexService().newQueryShardContext(System::currentTimeMillis);
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
+            IndexSearcher indexSearcher = searcher.searcher();
 
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
             docCtx.add(collectPhase.toCollect().stream()::iterator);
@@ -148,6 +153,7 @@ final class GroupByOptimizedIterator {
 
             InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations(collectTask.txnCtx());
             ctxForAggregations.add(groupProjection.values());
+            final List<CollectExpression<Row, ?>> aggExpressions = ctxForAggregations.expressions();
 
             List<AggregationContext> aggregations = ctxForAggregations.aggregations();
             List<? extends LuceneCollectorExpression<?>> expressions = docCtx.expressions();
@@ -157,9 +163,6 @@ final class GroupByOptimizedIterator {
             CollectorContext collectorContext = getCollectorContext(
                 sharedShardContext.readerId(), queryShardContext::getForField);
 
-            for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
-                expressions.get(i).startCollect(collectorContext);
-            }
             InputRow inputRow = new InputRow(docCtx.topLevelInputs());
 
             LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
@@ -169,59 +172,77 @@ final class GroupByOptimizedIterator {
                 queryShardContext,
                 sharedShardContext.indexService().cache()
             );
-            return CollectingBatchIterator.newInstance(
-                searcher::close,
-                t -> {},
-                () -> {
-                    try {
-                        return CompletableFuture.completedFuture(
-                            getRows(
-                                applyAggregatesGroupedByKey(
-                                    bigArrays,
-                                    searcher,
-                                    keyIndexFieldData,
-                                    ctxForAggregations,
-                                    aggregations,
-                                    expressions,
-                                    ramAccounting,
-                                    inputRow,
-                                    queryContext
-                                ),
-                                ramAccounting,
-                                aggregations,
-                                groupProjection.mode()
-                            )
-                        );
-                    } catch (Throwable t) {
-                        return CompletableFuture.failedFuture(t);
-                    }
-                },
-                true
-            );
+
+            return getIterator(
+                bigArrays,
+                indexSearcher,
+                leaf -> keyIndexFieldData.load(leaf).getOrdinalsValues(),
+                keyIndexFieldData.getFieldName(),
+                aggregations,
+                expressions,
+                aggExpressions,
+                ramAccounting,
+                inputRow,
+                queryContext.query(),
+                collectorContext,
+                groupProjection.mode());
         } catch (Throwable t) {
             searcher.close();
             throw t;
         }
     }
 
-    static boolean hasHighCardinalityRatio(Supplier<Engine.Searcher> acquireSearcher, String fieldName) {
-        // acquire separate searcher:
-        // Can't use sharedShardContexts() yet, if we bail out the "getOrCreateContext" causes issues later on in the fallback logic
-        try (Engine.Searcher searcher = acquireSearcher.get()) {
-            for (LeafReaderContext leaf : searcher.reader().leaves()) {
-                Terms terms = leaf.reader().terms(fieldName);
-                if (terms == null) {
-                    return true;
-                }
-                double cardinalityRatio = terms.size() / (double) leaf.reader().numDocs();
-                if (cardinalityRatio > CARDINALITY_RATIO_THRESHOLD) {
-                    return true;
-                }
-            }
-        } catch (IOException e) {
-            return true;
+    static BatchIterator<Row> getIterator(BigArrays bigArrays,
+                                          IndexSearcher indexSearcher,
+                                          Function<LeafReaderContext, SortedSetDocValues> ordinalsFunction,
+                                          String keyColumnName,
+                                          List<AggregationContext> aggregations,
+                                          List<? extends LuceneCollectorExpression<?>> expressions,
+                                          List<CollectExpression<Row, ?>> aggExpressions,
+                                          RamAccountingContext ramAccounting,
+                                          InputRow inputRow,
+                                          Query query,
+                                          CollectorContext collectorContext,
+                                          AggregateMode aggregateMode) {
+        for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
+            expressions.get(i).startCollect(collectorContext);
         }
-        return false;
+
+        AtomicReference<Throwable> killed = new AtomicReference<>();
+        AtomicBoolean closed = new AtomicBoolean();
+        return CollectingBatchIterator.newInstance(
+            () -> closed.set(true),
+            killed::set,
+            () -> {
+                try {
+                    return CompletableFuture.completedFuture(
+                        getRows(
+                            applyAggregatesGroupedByKey(
+                                bigArrays,
+                                indexSearcher,
+                                ordinalsFunction,
+                                keyColumnName,
+                                aggregations,
+                                expressions,
+                                aggExpressions,
+                                ramAccounting,
+                                inputRow,
+                                query,
+                                killed,
+                                closed
+                            ),
+                            ramAccounting,
+                            aggregations,
+                            aggregateMode
+                        )
+                    );
+                } catch (Throwable t) {
+                    return CompletableFuture.failedFuture(t);
+                }
+            },
+            true
+        );
+
     }
 
     private static Iterable<Row> getRows(Map<BytesRef, Object[]> groupedStates,
@@ -249,22 +270,24 @@ final class GroupByOptimizedIterator {
     }
 
     private static Map<BytesRef, Object[]> applyAggregatesGroupedByKey(BigArrays bigArrays,
-                                                                       Engine.Searcher searcher,
-                                                                       IndexOrdinalsFieldData keyIndexFieldData,
-                                                                       InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations,
+                                                                       IndexSearcher indexSearcher,
+                                                                       Function<LeafReaderContext, SortedSetDocValues> ordinalsFunction,
+                                                                       String keyColumnName,
                                                                        List<AggregationContext> aggregations,
                                                                        List<? extends LuceneCollectorExpression<?>> expressions,
+                                                                       List<CollectExpression<Row, ?>> aggExpressions,
                                                                        RamAccountingContext ramAccounting,
                                                                        InputRow inputRow,
-                                                                       LuceneQueryBuilder.Context queryContext) throws IOException {
+                                                                       Query query,
+                                                                       AtomicReference<Throwable> killed,
+                                                                       AtomicBoolean closed) throws IOException {
         final Map<BytesRef, Object[]> statesByKey = new HashMap<>();
-        IndexSearcher indexSearcher = searcher.searcher();
-        final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(queryContext.query()), ScoreMode.COMPLETE, 1f);
+        final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
-        final List<CollectExpression<Row, ?>> aggExpressions = ctxForAggregations.expressions();
         Object[] nullStates = null;
 
         for (LeafReaderContext leaf: leaves) {
+            raiseIfClosedOrKilled(killed, closed);
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
                 continue;
@@ -272,11 +295,12 @@ final class GroupByOptimizedIterator {
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                 expressions.get(i).setNextReader(leaf);
             }
-            SortedSetDocValues values = keyIndexFieldData.load(leaf).getOrdinalsValues();
+            SortedSetDocValues values = ordinalsFunction.apply(leaf);
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {
                 DocIdSetIterator docs = scorer.iterator();
                 Bits liveDocs = leaf.reader().getLiveDocs();
                 for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
+                    raiseIfClosedOrKilled(killed, closed);
                     if (docDeleted(liveDocs, doc)) {
                         continue;
                     }
@@ -295,7 +319,7 @@ final class GroupByOptimizedIterator {
                             aggregateValues(aggregations, ramAccounting, states);
                         }
                         if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
-                            throw new GroupByOnArrayUnsupportedException(keyIndexFieldData.getFieldName());
+                            throw new GroupByOnArrayUnsupportedException(keyColumnName);
                         }
                     } else {
                         if (nullStates == null) {
@@ -306,6 +330,7 @@ final class GroupByOptimizedIterator {
                     }
                 }
                 for (long ord = 0; ord < statesByOrd.size(); ord++) {
+                    raiseIfClosedOrKilled(killed, closed);
                     Object[] states = statesByOrd.get(ord);
                     if (states == null) {
                         continue;
@@ -335,6 +360,26 @@ final class GroupByOptimizedIterator {
             statesByKey.put(null, nullStates);
         }
         return statesByKey;
+    }
+
+    static boolean hasHighCardinalityRatio(Supplier<Engine.Searcher> acquireSearcher, String fieldName) {
+        // acquire separate searcher:
+        // Can't use sharedShardContexts() yet, if we bail out the "getOrCreateContext" causes issues later on in the fallback logic
+        try (Engine.Searcher searcher = acquireSearcher.get()) {
+            for (LeafReaderContext leaf : searcher.reader().leaves()) {
+                Terms terms = leaf.reader().terms(fieldName);
+                if (terms == null) {
+                    return true;
+                }
+                double cardinalityRatio = terms.size() / (double) leaf.reader().numDocs();
+                if (cardinalityRatio > CARDINALITY_RATIO_THRESHOLD) {
+                    return true;
+                }
+            }
+        } catch (IOException e) {
+            return true;
+        }
+        return false;
     }
 
     private static boolean docDeleted(@Nullable Bits liveDocs, int doc) {
@@ -397,5 +442,15 @@ final class GroupByOptimizedIterator {
             return null;
         }
         return groupProjection;
+    }
+
+    private static void raiseIfClosedOrKilled(AtomicReference<Throwable> killed, AtomicBoolean closed) {
+        Throwable killedException = killed.get();
+        if (killedException != null) {
+            Exceptions.rethrowUnchecked(killedException);
+        }
+        if (closed.get()) {
+            throw new IllegalStateException("BatchIterator is closed");
+        }
     }
 }
