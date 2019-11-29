@@ -81,14 +81,16 @@ public class RamAccountingContext implements RamAccounting {
         if (closed || bytes == 0) {
             return;
         }
-        long currentFlushBuffer = flushBuffer.addAndGet(bytes);
-        if (currentFlushBuffer >= FLUSH_BUFFER_SIZE) {
-            if (shouldBreak) {
-                flush(currentFlushBuffer);
-            } else {
-                flushWithoutBreaking(currentFlushBuffer);
+        synchronized (this) {
+            long currentFlushBuffer = flushBuffer.addAndGet(bytes);
+            if (currentFlushBuffer >= FLUSH_BUFFER_SIZE) {
+                if (shouldBreak) {
+                    flush(currentFlushBuffer);
+                } else {
+                    flushWithoutBreaking(currentFlushBuffer);
+                }
             }
-        }
+        };
     }
 
     /**
