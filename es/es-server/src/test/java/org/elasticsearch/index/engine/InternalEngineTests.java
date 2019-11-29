@@ -4022,7 +4022,7 @@ public class InternalEngineTests extends EngineTestCase {
             Randomness.shuffle(seqNos);
             final EngineConfig engineConfig;
             final SeqNoStats prevSeqNoStats;
-            final List<DocIdSeqNoAndTerm> prevDocs;
+            final List<DocIdSeqNoAndSource> prevDocs;
             final int totalTranslogOps;
             try (InternalEngine engine = createEngine(store, createTempDir(), globalCheckpoint::get)) {
                 engineConfig = engine.config();
@@ -5086,7 +5086,7 @@ public class InternalEngineTests extends EngineTestCase {
         commits.add(new ArrayList<>());
         try (Store store = createStore()) {
             EngineConfig config = config(indexSettings, store, translogPath, NoMergePolicy.INSTANCE, null, null, globalCheckpoint::get);
-            final List<DocIdSeqNoAndTerm> docs;
+            final List<DocIdSeqNoAndSource> docs;
             try (InternalEngine engine = createEngine(config)) {
                 List<Engine.Operation> flushedOperations = new ArrayList<>();
                 for (Engine.Operation op : operations) {
