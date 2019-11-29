@@ -45,7 +45,6 @@ import io.crate.metadata.table.Operation;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
@@ -102,12 +101,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
                                       NodeContext nodeCtx,
-                                      Schemas schemas,
-                                      IndexNameExpressionResolver indexNameExpressionResolver) {
+                                      Schemas schemas) {
         super(
             ACTION_NAME,
             transportService,
-            indexNameExpressionResolver,
             clusterService,
             indicesService,
             threadPool,

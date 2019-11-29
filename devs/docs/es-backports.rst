@@ -546,7 +546,7 @@ should be crossed out as well.
 - [ ] de5eb04f050 Silence lint warnings in server project - part 2 (#49728)
 - [ ] 944c681680d Make Snapshot Metadata Javadocs Clearer (#49697)
 - [ ] f8e39d2ff18 New setting to prevent automatically importing dangling indices (#49174)
-- [ ] 3ad8aa6d465 Remove obsolete resolving logic from TRA (#49685)
+- [x] 3ad8aa6d465 Remove obsolete resolving logic from TRA (#49685)
 - [x] 602e589235d fix mis typo (#49689)
 - [s] a354c607228 Revert "Remove obsolete resolving logic from TRA (#49647)"
 - [s] 6cca2b04fa0 Remove obsolete resolving logic from TRA (#49647)

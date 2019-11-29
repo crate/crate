@@ -19,19 +19,19 @@
 
 package org.elasticsearch.action.support.replication;
 
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.refresh.TransportShardRefreshAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.transport.TransportRequest;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -154,7 +154,7 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
      * Used to prevent redirect loops, see also {@link TransportReplicationAction.ReroutePhase#doRun()}
      */
     @SuppressWarnings("unchecked")
-    Request routedBasedOnClusterVersion(long routedBasedOnClusterVersion) {
+    protected Request routedBasedOnClusterVersion(long routedBasedOnClusterVersion) {
         this.routedBasedOnClusterVersion = routedBasedOnClusterVersion;
         return (Request) this;
     }

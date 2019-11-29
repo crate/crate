@@ -27,7 +27,6 @@ import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -57,8 +56,7 @@ public class GlobalCheckpointSyncAction extends TransportReplicationAction<
             final ClusterService clusterService,
             final IndicesService indicesService,
             final ThreadPool threadPool,
-            final ShardStateAction shardStateAction,
-            final IndexNameExpressionResolver indexNameExpressionResolver) {
+            final ShardStateAction shardStateAction) {
         super(
                 ACTION_NAME,
                 transportService,
@@ -66,7 +64,6 @@ public class GlobalCheckpointSyncAction extends TransportReplicationAction<
                 indicesService,
                 threadPool,
                 shardStateAction,
-                indexNameExpressionResolver,
                 Request::new,
                 Request::new,
                 ThreadPool.Names.MANAGEMENT);
