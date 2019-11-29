@@ -206,6 +206,10 @@ Changes
 Fixes
 =====
 
+- Fixed a possible OutOfMemory issue which may happen on ``GROUP BY`` statement
+  using a group key of type ``TEXT`` on tables containing at least one shard
+  with a low to medium cardinality on the group key.
+
 - Improved snapshot error handling by assuring a snapshot is declared as failed
   when a shard or node failure happens during the snapshot process.
 
