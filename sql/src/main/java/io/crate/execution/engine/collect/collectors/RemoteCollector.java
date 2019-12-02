@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.NodeOperation;
@@ -64,7 +64,7 @@ public class RemoteCollector {
     private final TransportJobAction transportJobAction;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final TasksService tasksService;
-    private final RamAccountingContext ramAccountingContext;
+    private final RamAccounting ramAccounting;
     private final RowConsumer consumer;
     private final RoutedCollectPhase collectPhase;
 
@@ -82,7 +82,7 @@ public class RemoteCollector {
                            TransportKillJobsNodeAction transportKillJobsNodeAction,
                            Executor executor,
                            TasksService tasksService,
-                           RamAccountingContext ramAccountingContext,
+                           RamAccounting ramAccounting,
                            RowConsumer consumer,
                            RoutedCollectPhase collectPhase) {
         this.jobId = jobId;
@@ -101,7 +101,7 @@ public class RemoteCollector {
         this.transportJobAction = transportJobAction;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         this.tasksService = tasksService;
-        this.ramAccountingContext = ramAccountingContext;
+        this.ramAccounting = ramAccounting;
         this.consumer = consumer;
         this.collectPhase = collectPhase;
     }
@@ -194,7 +194,7 @@ public class RemoteCollector {
             RECEIVER_PHASE_ID,
             "RemoteCollectPhase",
             pageBucketReceiver,
-            ramAccountingContext,
+            ramAccounting,
             1
         ));
         return builder;

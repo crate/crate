@@ -22,7 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
@@ -67,22 +67,22 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     @Nullable
     @Override
-    public Object newState(RamAccountingContext ramAccountingContext,
+    public Object newState(RamAccounting ramAccounting,
                            Version indexVersionCreated) {
         return null;
     }
 
     @Override
-    public Object iterate(RamAccountingContext ramAccountingContext, Object state, Input... args) {
-        return reduce(ramAccountingContext, state, args[0].value());
+    public Object iterate(RamAccounting ramAccounting, Object state, Input... args) {
+        return reduce(ramAccounting, state, args[0].value());
     }
 
     @Override
-    public Object reduce(RamAccountingContext ramAccountingContext, Object state1, Object state2) {
+    public Object reduce(RamAccounting ramAccounting, Object state1, Object state2) {
         if (state1 == null) {
             if (state2 != null) {
                 // this case happens only once per aggregation so ram usage is only estimated once
-                ramAccountingContext.addBytes(partialEstimator.estimateSize(state2));
+                ramAccounting.addBytes(partialEstimator.estimateSize(state2));
             }
             return state2;
         }
@@ -90,7 +90,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     }
 
     @Override
-    public Object terminatePartial(RamAccountingContext ramAccountingContext, Object state) {
+    public Object terminatePartial(RamAccounting ramAccounting, Object state) {
         return state;
     }
 }

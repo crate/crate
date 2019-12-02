@@ -271,7 +271,7 @@ public class ShardCollectSource implements CollectSource {
             collectPhase.projections(),
             collectPhase.jobId(),
             collectTask.txnCtx(),
-            collectTask.queryPhaseRamAccountingContext(),
+            collectTask.getRamAccounting(),
             sharedProjectorFactory
         );
         boolean requireMoveToStartSupport = supportMoveToStart && !projectors.providesIndependentScroll();
@@ -376,7 +376,7 @@ public class ShardCollectSource implements CollectSource {
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
             ),
-            new RowAccountingWithEstimators(columnTypes, collectTask.queryPhaseRamAccountingContext()),
+            new RowAccountingWithEstimators(columnTypes, collectTask.getRamAccounting()),
             executor,
             availableThreads,
             supportMoveToStart

@@ -199,7 +199,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             queryContext.minScore(),
             Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
             batchSize,
-            collectTask.queryPhaseRamAccountingContext(),
+            collectTask.getRamAccounting(),
             collectorContext,
             optimizeQueryForSearchAfter,
             LuceneSortGenerator.generateLuceneSort(collectTask.txnCtx(), collectorContext, collectPhase.orderBy(), docInputFactory, fieldTypeLookup),

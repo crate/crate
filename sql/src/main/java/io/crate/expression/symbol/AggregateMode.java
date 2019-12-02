@@ -23,7 +23,7 @@
 package io.crate.expression.symbol;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -40,7 +40,7 @@ public enum AggregateMode {
         }
 
         @Override
-        public <TP, TF> TF finishCollect(RamAccountingContext ramAccounting, AggregationFunction<TP, TF> function, TP state) {
+        public <TP, TF> TF finishCollect(RamAccounting ramAccounting, AggregationFunction<TP, TF> function, TP state) {
             return (TF) state;
         }
     },
@@ -53,7 +53,7 @@ public enum AggregateMode {
         return function.info().returnType();
     }
 
-    public <TP, TF> TF finishCollect(RamAccountingContext ramAccounting, AggregationFunction<TP, TF> function, TP state) {
+    public <TP, TF> TF finishCollect(RamAccounting ramAccounting, AggregationFunction<TP, TF> function, TP state) {
         return function.terminatePartial(ramAccounting, state);
     }
 

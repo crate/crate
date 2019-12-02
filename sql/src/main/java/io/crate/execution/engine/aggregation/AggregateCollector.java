@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -46,7 +46,7 @@ import java.util.stream.Collector;
 public class AggregateCollector implements Collector<Row, Object[], Iterable<Row>> {
 
     private final List<? extends CollectExpression<Row, ?>> expressions;
-    private final RamAccountingContext ramAccounting;
+    private final RamAccounting ramAccounting;
     private final AggregationFunction[] aggregations;
     private final Version indexVersionCreated;
     private final Input<Boolean>[] filters;
@@ -55,7 +55,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private final Function<Object[], Iterable<Row>> finisher;
 
     public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
-                              RamAccountingContext ramAccounting,
+                              RamAccounting ramAccounting,
                               AggregateMode mode,
                               AggregationFunction[] aggregations,
                               Version indexVersionCreated,

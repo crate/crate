@@ -21,7 +21,7 @@ package io.crate.operation.aggregation;
 import com.carrotsearch.hppc.BitMixer;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
@@ -84,18 +84,18 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
     @Nullable
     @Override
-    public HllState newState(RamAccountingContext ramAccountingContext, Version indexVersionCreated) {
+    public HllState newState(RamAccounting ramAccounting, Version indexVersionCreated) {
         return new HllState(dataType);
     }
 
     @Override
-    public HllState iterate(RamAccountingContext ramAccountingContext, HllState state, Input... args) throws CircuitBreakingException {
+    public HllState iterate(RamAccounting ramAccounting, HllState state, Input... args) throws CircuitBreakingException {
         if (state.isInitialized() == false) {
             int precision = HyperLogLogPlusPlus.DEFAULT_PRECISION;
             if (args.length > 1) {
                 precision = DataTypes.INTEGER.value(args[1].value());
             }
-            ramAccountingContext.addBytes(HyperLogLogPlusPlus.memoryUsage(precision));
+            ramAccounting.addBytes(HyperLogLogPlusPlus.memoryUsage(precision));
             state.init(precision);
         }
         Object value = args[0].value();
@@ -106,7 +106,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     }
 
     @Override
-    public HllState reduce(RamAccountingContext ramAccountingContext, HllState state1, HllState state2) {
+    public HllState reduce(RamAccounting ramAccounting, HllState state1, HllState state2) {
         if (state1.isInitialized() == false) {
             return state2;
         }
@@ -117,7 +117,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     }
 
     @Override
-    public Long terminatePartial(RamAccountingContext ramAccountingContext, HllState state) {
+    public Long terminatePartial(RamAccounting ramAccounting, HllState state) {
         if (state.isInitialized()) {
             return state.value();
         }

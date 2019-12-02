@@ -24,7 +24,7 @@ package io.crate.execution.engine.window;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Input;
 import io.crate.data.Projector;
@@ -65,7 +65,7 @@ public class WindowProjector {
                                            Functions functions,
                                            InputFactory inputFactory,
                                            TransactionContext txnCtx,
-                                           RamAccountingContext ramAccountingContext,
+                                           RamAccounting ramAccounting,
                                            Version indexVersionCreated,
                                            IntSupplier numThreads,
                                            Executor executor) {
@@ -100,7 +100,7 @@ public class WindowProjector {
                         (AggregationFunction) impl,
                         filter,
                         indexVersionCreated,
-                        ramAccountingContext)
+                        ramAccounting)
                 );
             } else if (impl instanceof WindowFunction) {
                 windowFunctions.add((WindowFunction) impl);
@@ -116,7 +116,7 @@ public class WindowProjector {
             () -> inputFactory.ctxForInputColumns(txnCtx);
         int arrayListElementOverHead = 32;
         RowAccountingWithEstimators accounting = new RowAccountingWithEstimators(
-            Symbols.typeView(projection.standalone()), ramAccountingContext, arrayListElementOverHead);
+            Symbols.typeView(projection.standalone()), ramAccounting, arrayListElementOverHead);
         Comparator<Object[]> cmpPartitionBy = partitions.isEmpty()
             ? null
             : createComparator(createInputFactoryContext, new OrderBy(windowDefinition.partitions()));

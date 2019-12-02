@@ -23,7 +23,7 @@
 package io.crate.execution.engine.pipeline;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
@@ -47,7 +47,7 @@ public final class Projectors {
     public Projectors(Collection<? extends Projection> projections,
                       UUID jobId,
                       TransactionContext txnCtx,
-                      RamAccountingContext ramAccountingContext,
+                      RamAccounting ramAccounting,
                       ProjectorFactory projectorFactory) {
         boolean independentScroll = false;
         this.projectors = new ArrayList<>(projections.size());
@@ -55,7 +55,7 @@ public final class Projectors {
             if (projection.requiredGranularity().ordinal() > projectorFactory.supportedGranularity().ordinal()) {
                 continue;
             }
-            Projector projector = projectorFactory.create(projection, txnCtx, ramAccountingContext, jobId);
+            Projector projector = projectorFactory.create(projection, txnCtx, ramAccounting, jobId);
             projectors.add(projector);
             independentScroll = independentScroll || projector.providesIndependentScroll();
         }
@@ -69,7 +69,7 @@ public final class Projectors {
     public static BatchIterator<Row> wrap(Collection<? extends Projection> projections,
                                           UUID jobId,
                                           TransactionContext txnCtx,
-                                          RamAccountingContext ramAccountingContext,
+                                          RamAccounting ramAccounting,
                                           ProjectorFactory projectorFactory,
                                           BatchIterator<Row> source) {
         BatchIterator<Row> result = source;
@@ -77,7 +77,7 @@ public final class Projectors {
             if (projection.requiredGranularity().ordinal() > projectorFactory.supportedGranularity().ordinal()) {
                 continue;
             }
-            result = projectorFactory.create(projection, txnCtx, ramAccountingContext, jobId).apply(result);
+            result = projectorFactory.create(projection, txnCtx, ramAccounting, jobId).apply(result);
         }
         return result;
     }

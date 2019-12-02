@@ -145,7 +145,7 @@ public class RemoteCollectorFactory {
                 transportActionProvider.transportKillJobsNodeAction(),
                 searchTp,
                 tasksService,
-                collectTask.queryPhaseRamAccountingContext(),
+                collectTask.getRamAccounting(),
                 consumer,
                 createRemoteCollectPhase(childJobId, collectPhase, activePrimaryRouting.shardId(), nodeId)
             );

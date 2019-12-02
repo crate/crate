@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.StringSizeEstimator;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -161,7 +161,7 @@ final class GroupByOptimizedIterator {
             List<AggregationContext> aggregations = ctxForAggregations.aggregations();
             List<? extends LuceneCollectorExpression<?>> expressions = docCtx.expressions();
 
-            RamAccountingContext ramAccounting = collectTask.queryPhaseRamAccountingContext();
+            RamAccounting ramAccounting = collectTask.getRamAccounting();
 
             CollectorContext collectorContext = getCollectorContext(
                 sharedShardContext.readerId(), queryShardContext::getForField);
@@ -202,7 +202,7 @@ final class GroupByOptimizedIterator {
                                           List<AggregationContext> aggregations,
                                           List<? extends LuceneCollectorExpression<?>> expressions,
                                           List<CollectExpression<Row, ?>> aggExpressions,
-                                          RamAccountingContext ramAccounting,
+                                          RamAccounting ramAccounting,
                                           InputRow inputRow,
                                           Query query,
                                           CollectorContext collectorContext,
@@ -249,7 +249,7 @@ final class GroupByOptimizedIterator {
     }
 
     private static Iterable<Row> getRows(Map<BytesRef, Object[]> groupedStates,
-                                         RamAccountingContext ramAccounting,
+                                         RamAccounting ramAccounting,
                                          List<AggregationContext> aggregations,
                                          AggregateMode mode) {
         return () -> groupedStates.entrySet().stream()
@@ -279,7 +279,7 @@ final class GroupByOptimizedIterator {
                                                                        List<AggregationContext> aggregations,
                                                                        List<? extends LuceneCollectorExpression<?>> expressions,
                                                                        List<CollectExpression<Row, ?>> aggExpressions,
-                                                                       RamAccountingContext ramAccounting,
+                                                                       RamAccounting ramAccounting,
                                                                        InputRow inputRow,
                                                                        Query query,
                                                                        AtomicReference<Throwable> killed,
@@ -388,7 +388,7 @@ final class GroupByOptimizedIterator {
     }
 
     private static void aggregateValues(List<AggregationContext> aggregations,
-                                        RamAccountingContext ramAccounting,
+                                        RamAccounting ramAccounting,
                                         Object[] states) {
         for (int i = 0; i < aggregations.size(); i++) {
             AggregationContext aggregation = aggregations.get(i);
@@ -404,7 +404,7 @@ final class GroupByOptimizedIterator {
         }
     }
 
-    private static Object[] initStates(List<AggregationContext> aggregations, RamAccountingContext ramAccounting) {
+    private static Object[] initStates(List<AggregationContext> aggregations, RamAccounting ramAccounting) {
         Object[] states = new Object[aggregations.size()];
         for (int i = 0; i < aggregations.size(); i++) {
             AggregationContext aggregation = aggregations.get(i);

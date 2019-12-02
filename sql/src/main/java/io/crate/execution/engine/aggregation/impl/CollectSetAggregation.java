@@ -22,6 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -84,7 +85,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     @Override
-    public Map<Object, Object> iterate(RamAccountingContext ramAccountingContext,
+    public Map<Object, Object> iterate(RamAccounting ramAccounting,
                                        Map<Object, Object> state,
                                        Input... args) throws CircuitBreakingException {
         Object value = args[0].value();
@@ -92,7 +93,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
             return state;
         }
         if (state.put(value, PRESENT) == null) {
-            ramAccountingContext.addBytes(
+            ramAccounting.addBytes(
                 // values size + 32 bytes for entry, 4 bytes for increased capacity
                 RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 36L)
             );
@@ -102,9 +103,9 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
     @Nullable
     @Override
-    public Map<Object, Object> newState(RamAccountingContext ramAccountingContext,
+    public Map<Object, Object> newState(RamAccounting ramAccounting,
                                         Version indexVersionCreated) {
-        ramAccountingContext.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
+        ramAccounting.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
         return new HashMap<>();
     }
 
@@ -114,12 +115,12 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     @Override
-    public Map<Object, Object> reduce(RamAccountingContext ramAccountingContext,
+    public Map<Object, Object> reduce(RamAccounting ramAccounting,
                                       Map<Object, Object> state1,
                                       Map<Object, Object> state2) {
         for (Object newValue : state2.keySet()) {
             if (state1.put(newValue, PRESENT) == null) {
-                ramAccountingContext.addBytes(
+                ramAccounting.addBytes(
                     // value size + 32 bytes for entry + 4 bytes for increased capacity
                     RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(newValue) + 36L)
                 );
@@ -129,7 +130,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     @Override
-    public List<Object> terminatePartial(RamAccountingContext ramAccountingContext, Map<Object, Object> state) {
+    public List<Object> terminatePartial(RamAccounting ramAccounting, Map<Object, Object> state) {
         return new ArrayList<>(state.keySet());
     }
 
@@ -165,28 +166,28 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
         @Nullable
         @Override
-        public Map<Object, Long> newState(RamAccountingContext ramAccountingContext,
+        public Map<Object, Long> newState(RamAccounting ramAccounting,
                                           Version indexVersionCreated) {
-            ramAccountingContext.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
+            ramAccounting.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
             return new HashMap<>();
         }
 
         @Override
-        public Map<Object, Long> iterate(RamAccountingContext ramAccountingContext,
+        public Map<Object, Long> iterate(RamAccounting ramAccounting,
                                          Map<Object, Long> state,
                                          Input... args) throws CircuitBreakingException {
             Object value = args[0].value();
             if (value == null) {
                 return state;
             }
-            upsertOccurrenceForValue(state, value, 1, ramAccountingContext, innerTypeEstimator);
+            upsertOccurrenceForValue(state, value, 1, ramAccounting, innerTypeEstimator);
             return state;
         }
 
         private static void upsertOccurrenceForValue(final Map<Object, Long> state,
                                                      final Object value,
                                                      final long occurrenceIncrement,
-                                                     final RamAccountingContext ramAccountingContext,
+                                                     final RamAccounting ramAccountingContext,
                                                      final SizeEstimator<Object> innerTypeEstimator) {
             state.compute(value, (k, v) -> {
                 if (v == null) {
@@ -208,7 +209,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         }
 
         @Override
-        public Map<Object, Long> removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+        public Map<Object, Long> removeFromAggregatedState(RamAccounting ramAccounting,
                                                            Map<Object, Long> previousAggState,
                                                            Input[] stateToRemove) {
             Object value = stateToRemove[0].value();
@@ -221,7 +222,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
             }
             if (numTimesValueSeen == 1) {
                 previousAggState.remove(value);
-                ramAccountingContext.addBytes(
+                ramAccounting.addBytes(
                     // we initially accounted for values size + 32 bytes for entry, 4 bytes for increased capacity
                     // and 12 bytes for the array container and the int value it stored
                     -RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 48L)
@@ -233,21 +234,23 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         }
 
         @Override
-        public Map<Object, Long> reduce(RamAccountingContext ramAccountingContext,
+        public Map<Object, Long> reduce(RamAccounting ramAccounting,
                                         Map<Object, Long> state1,
                                         Map<Object, Long> state2) {
             for (Map.Entry<Object, Long> state2Entry : state2.entrySet()) {
-                upsertOccurrenceForValue(state1,
+                upsertOccurrenceForValue(
+                    state1,
                     state2Entry.getKey(),
                     state2Entry.getValue(),
-                    ramAccountingContext,
-                    innerTypeEstimator);
+                    ramAccounting,
+                    innerTypeEstimator
+                );
             }
             return state1;
         }
 
         @Override
-        public List<Object> terminatePartial(RamAccountingContext ramAccountingContext, Map<Object, Long> state) {
+        public List<Object> terminatePartial(RamAccounting ramAccounting, Map<Object, Long> state) {
             return new ArrayList<>(state.keySet());
         }
 

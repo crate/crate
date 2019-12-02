@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -154,7 +155,7 @@ public class CollectTask extends AbstractTask {
         return txnCtx;
     }
 
-    public RamAccountingContext queryPhaseRamAccountingContext() {
+    public RamAccounting getRamAccounting() {
         return queryPhaseRamAccountingContext;
     }
 

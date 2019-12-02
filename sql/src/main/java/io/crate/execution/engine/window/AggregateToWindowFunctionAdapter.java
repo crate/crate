@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -44,7 +44,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
     private final AggregationFunction aggregationFunction;
     private final ExpressionsInput<Row, Boolean> filter;
-    private final RamAccountingContext ramAccountingContext;
+    private final RamAccounting ramAccounting;
     private final Version indexVersionCreated;
     private Object accumulatedState;
 
@@ -55,12 +55,12 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     AggregateToWindowFunctionAdapter(AggregationFunction aggregationFunction,
                                      ExpressionsInput<Row, Boolean> filter,
                                      Version indexVersionCreated,
-                                     RamAccountingContext ramAccountingContext) {
+                                     RamAccounting ramAccounting) {
         this.aggregationFunction = aggregationFunction.optimizeForExecutionAsWindowFunction();
         this.filter = filter;
-        this.ramAccountingContext = ramAccountingContext;
+        this.ramAccounting = ramAccounting;
         this.indexVersionCreated = indexVersionCreated;
-        this.accumulatedState = this.aggregationFunction.newState(ramAccountingContext, indexVersionCreated);
+        this.accumulatedState = this.aggregationFunction.newState(this.ramAccounting, indexVersionCreated);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
         } else if (isLowerBoundIncreasing(frame, seenFrameLowerBound)) {
             if (aggregationFunction.isRemovableCumulative()) {
                 removeSeenRowsFromAccumulatedState(frame, expressions, args);
-                resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccountingContext, accumulatedState);
+                resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccounting, accumulatedState);
                 if (frame.upperBoundExclusive() > seenFrameUpperBound) {
                     // if the frame is growing on the upper side, we need to accumulate the new rows
                     accumulateAndExecuteStartingWithIndex(seenFrameUpperBound, frame, expressions, args);
@@ -113,7 +113,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
             if (filter.value(row)) {
                 //noinspection unchecked
                 accumulatedState = aggregationFunction.removeFromAggregatedState(
-                    ramAccountingContext,
+                    ramAccounting,
                     accumulatedState,
                     args);
             }
@@ -123,7 +123,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private void recomputeFunction(WindowFrameState frame,
                                    List<? extends CollectExpression<Row, ?>> expressions,
                                    Input[] args) {
-        accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated);
+        accumulatedState = aggregationFunction.newState(ramAccounting, indexVersionCreated);
         seenFrameUpperBound = -1;
         seenFrameLowerBound = -1;
         executeAggregateForFrame(frame, expressions, args);
@@ -159,13 +159,13 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
             if (filter.value(row)) {
                 //noinspection unchecked
                 accumulatedState = aggregationFunction.iterate(
-                    ramAccountingContext,
+                    ramAccounting,
                     accumulatedState,
                     inputs);
             }
         }
 
-        resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccountingContext, accumulatedState);
+        resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccounting, accumulatedState);
         seenFrameLowerBound = frame.lowerBound();
         seenFrameUpperBound = frame.upperBoundExclusive();
     }

@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.statistics.StandardDeviation;
@@ -119,14 +119,14 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
     @Nullable
     @Override
-    public StandardDeviation newState(RamAccountingContext ramAccountingContext,
+    public StandardDeviation newState(RamAccounting ramAccounting,
                                       Version indexVersionCreated) {
-        ramAccountingContext.addBytes(StdDevStateType.INSTANCE.fixedSize());
+        ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
         return new StandardDeviation();
     }
 
     @Override
-    public StandardDeviation iterate(RamAccountingContext ramAccountingContext, StandardDeviation state, Input... args) throws CircuitBreakingException {
+    public StandardDeviation iterate(RamAccounting ramAccounting, StandardDeviation state, Input... args) throws CircuitBreakingException {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
@@ -137,7 +137,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     @Override
-    public StandardDeviation reduce(RamAccountingContext ramAccountingContext, StandardDeviation state1, StandardDeviation state2) {
+    public StandardDeviation reduce(RamAccounting ramAccounting, StandardDeviation state1, StandardDeviation state2) {
         if (state1 == null) {
             return state2;
         }
@@ -154,7 +154,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     @Override
-    public StandardDeviation removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+    public StandardDeviation removeFromAggregatedState(RamAccounting ramAccounting,
                                                        StandardDeviation previousAggState,
                                                        Input[] stateToRemove) {
         if (previousAggState != null) {
@@ -167,7 +167,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     @Override
-    public Double terminatePartial(RamAccountingContext ramAccountingContext, StandardDeviation state) {
+    public Double terminatePartial(RamAccounting ramAccounting, StandardDeviation state) {
         double result = state.result();
         return Double.isNaN(result) ? null : result;
     }
