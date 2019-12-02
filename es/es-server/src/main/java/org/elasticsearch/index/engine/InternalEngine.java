@@ -47,7 +47,6 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.InfoStream;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.lease.Releasable;
@@ -145,6 +144,10 @@ public class InternalEngine extends Engine {
     private final AtomicLong maxUnsafeAutoIdTimestamp = new AtomicLong(-1);
     private final AtomicLong maxSeenAutoIdTimestamp = new AtomicLong(-1);
     private final AtomicLong maxSeqNoOfNonAppendOnlyOperations = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
+    // max_seq_no_of_updates_or_deletes tracks the max seq_no of update or delete operations that have been processed in this engine.
+    // An index request is considered as an update if it overwrites existing documents with the same docId in the Lucene index.
+    // The value of this marker never goes backwards, and is tracked/updated differently on primary and replica.
+    private final AtomicLong maxSeqNoOfUpdatesOrDeletes;
     private final CounterMetric numVersionLookups = new CounterMetric();
     private final CounterMetric numIndexVersionsLookups = new CounterMetric();
     // Lucene operations since this engine was opened - not include operations from existing segments.
@@ -239,6 +242,7 @@ public class InternalEngine extends Engine {
             }
             this.lastRefreshedCheckpointListener = new LastRefreshedCheckpointListener(localCheckpointTracker.getProcessedCheckpoint());
             this.internalSearcherManager.addListener(lastRefreshedCheckpointListener);
+            maxSeqNoOfUpdatesOrDeletes = new AtomicLong(SequenceNumbers.max(localCheckpointTracker.getMaxSeqNo(), translog.getMaxSeqNo()));
             success = true;
         } finally {
             if (success == false) {
@@ -1016,7 +1020,6 @@ public class InternalEngine extends Engine {
 
     protected final IndexingStrategy planIndexingAsPrimary(Index index) throws IOException {
         assert index.origin() == Operation.Origin.PRIMARY : "planing as primary but origin isn't. got " + index.origin();
-        assert getMaxSeqNoOfUpdatesOrDeletes() != SequenceNumbers.UNASSIGNED_SEQ_NO : "max_seq_no_of_updates is not initialized";
         final IndexingStrategy plan;
         // resolve an external operation into an internal one which is safe to replay
         if (canOptimizeAddDocument(index)) {
@@ -1389,7 +1392,6 @@ public class InternalEngine extends Engine {
 
     protected final DeletionStrategy planDeletionAsPrimary(Delete delete) throws IOException {
         assert delete.origin() == Operation.Origin.PRIMARY : "planing as primary but got " + delete.origin();
-        assert getMaxSeqNoOfUpdatesOrDeletes() != SequenceNumbers.UNASSIGNED_SEQ_NO : "max_seq_no_of_updates is not initialized";
         // resolve operation from external to internal
         final VersionValue versionValue = resolveDocVersion(delete, delete.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO);
         assert incrementVersionLookup();
@@ -2775,13 +2777,22 @@ public class InternalEngine extends Engine {
         assert maxUnsafeAutoIdTimestamp.get() <= maxSeenAutoIdTimestamp.get();
     }
 
+    @Override
+    public long getMaxSeqNoOfUpdatesOrDeletes() {
+        return maxSeqNoOfUpdatesOrDeletes.get();
+    }
+
+    @Override
+    public void advanceMaxSeqNoOfUpdatesOrDeletes(long maxSeqNoOfUpdatesOnPrimary) {
+        if (maxSeqNoOfUpdatesOnPrimary == SequenceNumbers.UNASSIGNED_SEQ_NO) {
+            assert false : "max_seq_no_of_updates on primary is unassigned";
+            throw new IllegalArgumentException("max_seq_no_of_updates on primary is unassigned");
+        }
+        this.maxSeqNoOfUpdatesOrDeletes.updateAndGet(curr -> Math.max(curr, maxSeqNoOfUpdatesOnPrimary));
+    }
+
     private boolean assertMaxSeqNoOfUpdatesIsAdvanced(Term id, long seqNo, boolean allowDeleted, boolean relaxIfGapInSeqNo) {
         final long maxSeqNoOfUpdates = getMaxSeqNoOfUpdatesOrDeletes();
-        // If the primary is on an old version which does not replicate msu, we need to relax this assertion for that.
-        if (maxSeqNoOfUpdates == SequenceNumbers.UNASSIGNED_SEQ_NO) {
-            assert config().getIndexSettings().getIndexVersionCreated().before(Version.ES_V_6_5_1);
-            return true;
-        }
         // We treat a delete on the tombstones on replicas as a regular document, then use updateDocument (not addDocument).
         if (allowDeleted) {
             final VersionValue versionValue = versionMap.getVersionForAssert(id.bytes());
@@ -2797,13 +2808,5 @@ public class InternalEngine extends Engine {
         }
         assert seqNo <= maxSeqNoOfUpdates : "id=" + id + " seq_no=" + seqNo + " msu=" + maxSeqNoOfUpdates;
         return true;
-    }
-
-    @Override
-    public void initializeMaxSeqNoOfUpdatesOrDeletes() {
-        assert getMaxSeqNoOfUpdatesOrDeletes() == SequenceNumbers.UNASSIGNED_SEQ_NO :
-            "max_seq_no_of_updates is already initialized [" + getMaxSeqNoOfUpdatesOrDeletes() + "]";
-        final long maxSeqNo = SequenceNumbers.max(localCheckpointTracker.getMaxSeqNo(), translog.getMaxSeqNo());
-        advanceMaxSeqNoOfUpdatesOrDeletes(maxSeqNo);
     }
 }
