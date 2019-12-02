@@ -107,6 +107,7 @@ public class GroupingStringCollectorBenchmark {
             new Input[] { Literal.BOOLEAN_TRUE },
             RAM_ACCOUNTING_CONTEXT,
             memoryManager,
+            Version.CURRENT,
             keyInputs.get(0),
             DataTypes.STRING,
             Version.CURRENT

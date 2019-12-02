@@ -40,6 +40,7 @@ import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -52,6 +53,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -62,25 +64,25 @@ import java.util.stream.IntStream;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@State(Scope.Benchmark)
-@Warmup(iterations = 3)
+@Warmup(iterations = 2)
 @Fork(value = 2)
+@State(Scope.Benchmark)
 public class HyperLogLogDistinctAggregationBenchmark {
 
     private final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
     private final List<Row> rows = IntStream.range(0, 10_000).mapToObj(i -> new Row1(String.valueOf(i))).collect(Collectors.toList());
-    private final HyperLogLogDistinctAggregation.Murmur3Hash murmur3Hash =
-        HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING);
 
     private HyperLogLogPlusPlus hyperLogLogPlusPlus;
     private AggregateCollector onHeapCollector;
     private OnHeapMemoryManager onHeapMemoryManager;
     private OffHeapMemoryManager offHeapMemoryManager;
     private AggregateCollector offHeapCollector;
+    private MurmurHash3.Hash128 hash;
 
     @Setup
     public void setUp() throws Exception {
+        hash = new MurmurHash3.Hash128();
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
         Functions functions = new ModulesBuilder()
             .add(new EnterpriseFunctionsModule())
@@ -94,6 +96,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
             Collections.singletonList(inExpr0),
             RAM_ACCOUNTING_CONTEXT,
             onHeapMemoryManager,
+            Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { hllAggregation },
             Version.CURRENT,
@@ -104,6 +107,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
             Collections.singletonList(inExpr0),
             RAM_ACCOUNTING_CONTEXT,
             offHeapMemoryManager,
+            Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { hllAggregation },
             Version.CURRENT,
@@ -119,9 +123,22 @@ public class HyperLogLogDistinctAggregationBenchmark {
     }
 
     @Benchmark
-    public long benchmarkHLLPlusPlus() throws Exception {
+    public long benchmarkHLLPlusPlusMurmur128() throws Exception {
         for (int i = 0; i < rows.size(); i++) {
-            hyperLogLogPlusPlus.collect(murmur3Hash.hash(rows.get(i).get(0)));
+            String value = DataTypes.STRING.value(rows.get(i).get(0));
+            byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+            MurmurHash3.Hash128 hash128 = MurmurHash3.hash128(bytes, 0, bytes.length, 0, hash);
+            hyperLogLogPlusPlus.collect(hash128.h1);
+        }
+        return hyperLogLogPlusPlus.cardinality();
+    }
+
+    @Benchmark
+    public long benchmarkHLLPlusPlusMurmur64() throws Exception {
+        for (int i = 0; i < rows.size(); i++) {
+            String value = DataTypes.STRING.value(rows.get(i).get(0));
+            byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+            hyperLogLogPlusPlus.collect(MurmurHash3.hash64(bytes, bytes.length));
         }
         return hyperLogLogPlusPlus.cardinality();
     }

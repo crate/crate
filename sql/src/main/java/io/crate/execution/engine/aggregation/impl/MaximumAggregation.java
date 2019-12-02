@@ -70,6 +70,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         @Override
         public Comparable newState(RamAccounting ramAccounting,
                                    Version indexVersionCreated,
+                                   Version minNodeInCluster,
                                    MemoryManager memoryManager) {
             ramAccounting.addBytes(size);
             return null;
@@ -103,6 +104,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         @Override
         public Comparable newState(RamAccounting ramAccounting,
                                    Version indexVersionCreated,
+                                   Version minNodeInCluster,
                                    MemoryManager memoryManager) {
             return null;
         }

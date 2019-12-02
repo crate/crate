@@ -68,6 +68,7 @@ public class WindowProjector {
                                            TransactionContext txnCtx,
                                            RamAccounting ramAccounting,
                                            MemoryManager memoryManager,
+                                           Version minNodeVersion,
                                            Version indexVersionCreated,
                                            IntSupplier numThreads,
                                            Executor executor) {
@@ -102,7 +103,8 @@ public class WindowProjector {
                         filter,
                         indexVersionCreated,
                         ramAccounting,
-                        memoryManager
+                        memoryManager,
+                        minNodeVersion
                     )
                 );
             } else if (impl instanceof WindowFunction) {

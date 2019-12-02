@@ -54,6 +54,7 @@ public class GroupingProjector implements Projector {
                              AggregationContext[] aggregations,
                              RamAccounting ramAccounting,
                              MemoryManager memoryManager,
+                             Version minNodeVersion,
                              Version indexVersionCreated) {
         assert keys.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         ensureAllTypesSupported(keys);
@@ -77,6 +78,7 @@ public class GroupingProjector implements Projector {
                 filters,
                 ramAccounting,
                 memoryManager,
+                minNodeVersion,
                 keyInputs.get(0),
                 key.valueType(),
                 indexVersionCreated
@@ -91,6 +93,7 @@ public class GroupingProjector implements Projector {
                 filters,
                 ramAccounting,
                 memoryManager,
+                minNodeVersion,
                 keyInputs,
                 typeView(keys),
                 indexVersionCreated

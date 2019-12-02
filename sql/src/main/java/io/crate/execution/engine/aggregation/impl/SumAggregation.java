@@ -88,6 +88,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     @Override
     public T newState(RamAccounting ramAccounting,
                       Version indexVersionCreated,
+                      Version minNodeInCluster,
                       MemoryManager memoryManager) {
         ramAccounting.addBytes(bytesSize);
         return null;

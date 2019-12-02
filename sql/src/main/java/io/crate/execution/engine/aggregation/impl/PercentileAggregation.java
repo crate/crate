@@ -72,6 +72,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     @Override
     public TDigestState newState(RamAccounting ramAccounting,
                                  Version indexVersionCreated,
+                                 Version minNodeInCluster,
                                  MemoryManager memoryManager) {
         return TDigestState.createEmptyState();
     }

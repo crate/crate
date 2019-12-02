@@ -45,19 +45,18 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      *
      * @param ramAccounting used to account the memory used for the state.
      * @param indexVersionCreated the version the current index was created on, this is useful for BWC
-     * @param memoryManager
      * @return a new state instance or null
      */
     @Nullable
     public abstract TPartial newState(RamAccounting ramAccounting,
                                       Version indexVersionCreated,
+                                      Version minNodeInCluster,
                                       MemoryManager memoryManager);
 
     /**
      * the "aggregate" function.
      *
      * @param ramAccounting used to account for additional memory usage if the state grows in size
-     * @param memoryManager
      * @param state                the previous aggregation state
      * @param args                 arguments / input values matching the types of FunctionInfo.argumentTypes.
      *                             These are usually used to increment/modify the previous state

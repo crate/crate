@@ -87,13 +87,16 @@ public abstract class AggregationTest extends CrateUnitTest {
         }
         AggregationFunction impl = (AggregationFunction) functions.getQualified(fi);
         List<Object> states = new ArrayList<>();
-        states.add(impl.newState(ramAccountingContext, Version.CURRENT, memoryManager));
+        Version minNodeVersion = randomBoolean()
+            ? Version.CURRENT
+            : Version.V_4_0_9;
+        states.add(impl.newState(ramAccountingContext, Version.CURRENT, minNodeVersion, memoryManager));
         for (Row row : new ArrayBucket(data)) {
             for (InputCollectExpression input : inputs) {
                 input.setNextRow(row);
             }
             if (randomIntBetween(1, 4) == 1) {
-                states.add(impl.newState(ramAccountingContext, Version.CURRENT, memoryManager));
+                states.add(impl.newState(ramAccountingContext, Version.CURRENT, minNodeVersion, memoryManager));
             }
             int idx = states.size() - 1;
             states.set(idx, impl.iterate(ramAccountingContext, memoryManager, states.get(idx), inputs));

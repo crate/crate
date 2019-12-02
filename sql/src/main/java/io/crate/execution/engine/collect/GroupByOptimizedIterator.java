@@ -186,6 +186,7 @@ final class GroupByOptimizedIterator {
                 aggExpressions,
                 ramAccounting,
                 collectTask.memoryManager(),
+                collectTask.minNodeVersion(),
                 inputRow,
                 queryContext.query(),
                 collectorContext,
@@ -205,6 +206,7 @@ final class GroupByOptimizedIterator {
                                           List<CollectExpression<Row, ?>> aggExpressions,
                                           RamAccounting ramAccounting,
                                           MemoryManager memoryManager,
+                                          Version minNodeVersion,
                                           InputRow inputRow,
                                           Query query,
                                           CollectorContext collectorContext,
@@ -232,6 +234,7 @@ final class GroupByOptimizedIterator {
                                 aggExpressions,
                                 ramAccounting,
                                 memoryManager,
+                                minNodeVersion,
                                 inputRow,
                                 query,
                                 killed,
@@ -284,6 +287,7 @@ final class GroupByOptimizedIterator {
                                                                        List<CollectExpression<Row, ?>> aggExpressions,
                                                                        RamAccounting ramAccounting,
                                                                        MemoryManager memoryManager,
+                                                                       Version minNodeVersion,
                                                                        InputRow inputRow,
                                                                        Query query,
                                                                        AtomicReference<Throwable> killed,
@@ -321,7 +325,7 @@ final class GroupByOptimizedIterator {
                         long ord = values.nextOrd();
                         Object[] states = statesByOrd.get(ord);
                         if (states == null) {
-                            statesByOrd.set(ord, initStates(aggregations, ramAccounting, memoryManager));
+                            statesByOrd.set(ord, initStates(aggregations, ramAccounting, memoryManager, minNodeVersion));
                         } else {
                             aggregateValues(aggregations, ramAccounting, memoryManager, states);
                         }
@@ -330,7 +334,7 @@ final class GroupByOptimizedIterator {
                         }
                     } else {
                         if (nullStates == null) {
-                            nullStates = initStates(aggregations, ramAccounting, memoryManager);
+                            nullStates = initStates(aggregations, ramAccounting, memoryManager, minNodeVersion);
                         } else {
                             aggregateValues(aggregations, ramAccounting, memoryManager, nullStates);
                         }
@@ -411,13 +415,14 @@ final class GroupByOptimizedIterator {
 
     private static Object[] initStates(List<AggregationContext> aggregations,
                                        RamAccounting ramAccounting,
-                                       MemoryManager memoryManager) {
+                                       MemoryManager memoryManager,
+                                       Version minNodeVersion) {
         Object[] states = new Object[aggregations.size()];
         for (int i = 0; i < aggregations.size(); i++) {
             AggregationContext aggregation = aggregations.get(i);
             AggregationFunction function = aggregation.function();
 
-            var newState = function.newState(ramAccounting, Version.CURRENT, memoryManager);
+            var newState = function.newState(ramAccounting, Version.CURRENT, minNodeVersion, memoryManager);
             if (InputCondition.matches(aggregation.filter())) {
                 //noinspection unchecked
                 states[i] = function.iterate(

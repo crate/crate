@@ -44,6 +44,7 @@ public class AggregationPipe implements Projector {
                            AggregationContext[] aggregations,
                            RamAccounting ramAccounting,
                            MemoryManager memoryManager,
+                           Version minNodeVersion,
                            Version indexVersionCreated) {
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
         Input[][] inputs = new Input[aggregations.length][];
@@ -59,6 +60,7 @@ public class AggregationPipe implements Projector {
             expressions,
             ramAccounting,
             memoryManager,
+            minNodeVersion,
             aggregateMode,
             functions,
             indexVersionCreated,

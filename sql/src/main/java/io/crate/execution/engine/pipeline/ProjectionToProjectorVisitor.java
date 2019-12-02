@@ -304,6 +304,7 @@ public class ProjectionToProjectorVisitor
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccounting,
             context.memoryManager,
+            clusterService.state().getNodes().getMinNodeVersion(),
             indexVersionCreated
         );
     }
@@ -323,6 +324,7 @@ public class ProjectionToProjectorVisitor
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccounting,
             context.memoryManager,
+            clusterService.state().nodes().getMinNodeVersion(),
             indexVersionCreated
         );
     }
@@ -640,6 +642,7 @@ public class ProjectionToProjectorVisitor
             context.txnCtx,
             context.ramAccounting,
             context.memoryManager,
+            clusterService.state().nodes().getMinNodeVersion(),
             indexVersionCreated,
             ThreadPools.numIdleThreads(searchThreadPool, numProcessors),
             searchThreadPool

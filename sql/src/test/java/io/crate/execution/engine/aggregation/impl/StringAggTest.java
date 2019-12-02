@@ -68,11 +68,11 @@ public class StringAggTest extends AggregationTest {
     @Test
     public void testMergeOf2States() throws Exception {
         var stringAgg = new StringAgg();
-        var state1 = stringAgg.newState(ramAccountingContext, Version.CURRENT, memoryManager);
+        var state1 = stringAgg.newState(ramAccountingContext, Version.CURRENT, Version.CURRENT, memoryManager);
         stringAgg.iterate(ramAccountingContext, memoryManager, state1, Literal.of("a"), Literal.of(","));
         stringAgg.iterate(ramAccountingContext, memoryManager, state1, Literal.of("b"), Literal.of(";"));
 
-        var state2 = stringAgg.newState(ramAccountingContext, Version.CURRENT, memoryManager);
+        var state2 = stringAgg.newState(ramAccountingContext, Version.CURRENT, Version.CURRENT, memoryManager);
         stringAgg.iterate(ramAccountingContext, memoryManager, state2, Literal.of("c"), Literal.of(","));
         stringAgg.iterate(ramAccountingContext, memoryManager, state2, Literal.of("d"), Literal.of(";"));
 

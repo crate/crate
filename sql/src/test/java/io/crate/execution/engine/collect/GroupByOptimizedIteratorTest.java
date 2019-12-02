@@ -46,6 +46,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
@@ -113,6 +114,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
                 Collections.singletonList(inExpr),
                 new RamAccountingContext("group", new NoopCircuitBreaker("test")),
                 new OnHeapMemoryManager(usedBytes -> {}),
+                Version.CURRENT,
                 new InputRow(Collections.singletonList(inExpr)),
                 new MatchAllDocsQuery(),
                 new CollectorContext(mappedFieldType -> null),
