@@ -72,7 +72,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
 
     @Setup
     public void setUp() throws Exception {
-        hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, BigArrays.NON_RECYCLING_INSTANCE, 1);
+        hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, BigArrays.NON_RECYCLING_INSTANCE);
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
         Functions functions = new ModulesBuilder()
             .add(new EnterpriseFunctionsModule())
@@ -93,9 +93,9 @@ public class HyperLogLogDistinctAggregationBenchmark {
     @Benchmark
     public long benchmarkHLLPlusPlus() throws Exception {
         for (int i = 0; i < rows.size(); i++) {
-            hyperLogLogPlusPlus.collect(0, murmur3Hash.hash(rows.get(i).get(0)));
+            hyperLogLogPlusPlus.collect(murmur3Hash.hash(rows.get(i).get(0)));
         }
-        return hyperLogLogPlusPlus.cardinality(0);
+        return hyperLogLogPlusPlus.cardinality();
     }
 
     @Benchmark
