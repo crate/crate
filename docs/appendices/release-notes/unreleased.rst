@@ -206,6 +206,9 @@ Changes
 Fixes
 =====
 
+- Improved snapshot error handling by assuring a snapshot is declared as failed
+  when a shard or node failure happens during the snapshot process.
+
 - Fixed an issue that caused an error when using ``ALTER TABLE .. ADD`` on a
   table which contains nested primary key columns.
 
