@@ -45,7 +45,6 @@ import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
 
 import javax.annotation.Nullable;
@@ -153,14 +152,14 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             dataType = DataTypes.fromStream(in);
             murmur3Hash = Murmur3Hash.getForType(dataType);
             if (in.readBoolean()) {
-                hyperLogLogPlusPlus = HyperLogLogPlusPlus.readFrom(in, BigArrays.NON_RECYCLING_INSTANCE);
+                hyperLogLogPlusPlus = HyperLogLogPlusPlus.readFrom(in);
             }
         }
 
         void init(int precision) {
             assert hyperLogLogPlusPlus == null : "hyperLogLog algorithm was already initialized";
             try {
-                hyperLogLogPlusPlus = new HyperLogLogPlusPlus(precision, BigArrays.NON_RECYCLING_INSTANCE);
+                hyperLogLogPlusPlus = new HyperLogLogPlusPlus(precision);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("precision must be >= 4 and <= 18");
             }
