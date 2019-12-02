@@ -58,7 +58,7 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
              "192.168.1.1", "192.168.1.7");
     }
 
-    private void test(Object[] valuesToIndex, String queryStr, String... expectedResults) throws Throwable {
+    private void test(Object[] valuesToIndex, String queryStr, Object... expectedResults) throws Throwable {
         QueryTester.Builder builder = new QueryTester.Builder(
             createTempDir(),
             THREAD_POOL,
