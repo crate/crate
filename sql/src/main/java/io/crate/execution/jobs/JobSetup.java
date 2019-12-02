@@ -724,7 +724,8 @@ public class JobSetup {
                 ramAccounting,
                 memoryManagerFactory,
                 consumer,
-                context.sharedShardContexts
+                context.sharedShardContexts,
+                clusterService.state().getNodes().getMinNodeVersion()
             ));
             return true;
         }
@@ -741,7 +742,8 @@ public class JobSetup {
                 ramAccountingContext,
                 memoryManagerFactory,
                 consumer,
-                context.sharedShardContexts
+                context.sharedShardContexts,
+                clusterService.state().getNodes().getMinNodeVersion()
             ));
             return true;
         }

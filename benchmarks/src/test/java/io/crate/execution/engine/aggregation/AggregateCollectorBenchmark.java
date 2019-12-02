@@ -74,6 +74,7 @@ public class AggregateCollectorBenchmark {
             Collections.singletonList(inExpr0),
             RAM_ACCOUNTING_CONTEXT,
             memoryManager,
+            Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { sumAggregation },
             Version.CURRENT,

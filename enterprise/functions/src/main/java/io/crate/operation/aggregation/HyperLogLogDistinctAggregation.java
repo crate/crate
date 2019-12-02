@@ -87,8 +87,9 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @Override
     public HllState newState(RamAccounting ramAccounting,
                              Version indexVersionCreated,
+                             Version minNodeInCluster,
                              MemoryManager memoryManager) {
-        return new HllState(dataType);
+        return new HllState(dataType, minNodeInCluster.onOrAfter(Version.V_4_1_0));
     }
 
     @Override
@@ -141,21 +142,28 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
     public static class HllState implements Comparable<HllState>, Writeable {
 
-        private final DataType dataType;
+        private final DataType<?> dataType;
         private final Murmur3Hash murmur3Hash;
+        private final boolean allOn4_1;
 
         // Although HyperLogLogPlus implements Releasable we do not close instances.
         // We're using BigArrays.NON_RECYCLING_INSTANCE and instances created using it are not accounted / recycled
         private HyperLogLogPlusPlus hyperLogLogPlusPlus;
 
-        HllState(DataType dataType) {
+        HllState(DataType<?> dataType, boolean allOn4_1) {
             this.dataType = dataType;
-            murmur3Hash = Murmur3Hash.getForType(dataType);
+            this.allOn4_1 = allOn4_1;
+            murmur3Hash = Murmur3Hash.getForType(dataType, allOn4_1);
         }
 
         HllState(StreamInput in) throws IOException {
+            if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
+                this.allOn4_1 = in.readBoolean();
+            } else {
+                this.allOn4_1 = false;
+            }
             dataType = DataTypes.fromStream(in);
-            murmur3Hash = Murmur3Hash.getForType(dataType);
+            murmur3Hash = Murmur3Hash.getForType(dataType, allOn4_1);
             if (in.readBoolean()) {
                 hyperLogLogPlusPlus = HyperLogLogPlusPlus.readFrom(in);
             }
@@ -198,6 +206,9 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
+            if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+                out.writeBoolean(allOn4_1);
+            }
             DataTypes.toStream(dataType, out);
             if (isInitialized()) {
                 out.writeBoolean(true);
@@ -262,7 +273,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @VisibleForTesting
     abstract static class Murmur3Hash {
 
-        static Murmur3Hash getForType(DataType dataType) {
+        static Murmur3Hash getForType(DataType<?> dataType, boolean allOn4_1) {
             switch (dataType.id()) {
                 case DoubleType.ID:
                 case FloatType.ID:
@@ -276,7 +287,11 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 case StringType.ID:
                 case BooleanType.ID:
                 case IpType.ID:
-                    return new Bytes();
+                    if (allOn4_1) {
+                        return Bytes64.INSTANCE;
+                    } else {
+                        return new Bytes();
+                    }
                 default:
                     throw new IllegalArgumentException("data type \"" + dataType + "\" is not supported");
             }
@@ -301,6 +316,17 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             @Override
             long hash(Object val) {
                 return BitMixer.mix64(java.lang.Double.doubleToLongBits(DataTypes.DOUBLE.value(val)));
+            }
+        }
+
+        static class Bytes64 extends Murmur3Hash {
+
+            static final Bytes64 INSTANCE = new Bytes64();
+
+            @Override
+            long hash(Object val) {
+                byte[] bytes = DataTypes.STRING.value(val).getBytes(StandardCharsets.UTF_8);
+                return MurmurHash3.hash64(bytes, bytes.length);
             }
         }
 

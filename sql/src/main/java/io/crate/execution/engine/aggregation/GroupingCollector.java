@@ -71,6 +71,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final Version indexVersionCreated;
     private final BiConsumer<Map<K, Object[]>, Row> accumulator;
     private final Supplier<Map<K, Object[]>> supplier;
+    private final Version minNodeVersion;
 
     static GroupingCollector<Object> singleKey(CollectExpression<Row, ?>[] expressions,
                                                AggregateMode mode,
@@ -79,6 +80,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                Input<Boolean>[] filters,
                                                RamAccounting ramAccounting,
                                                MemoryManager memoryManager,
+                                               Version minNodeVersion,
                                                Input<?> keyInput,
                                                DataType keyType,
                                                Version indexVersionCreated) {
@@ -90,6 +92,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             filters,
             ramAccounting,
             memoryManager,
+            minNodeVersion,
             (key, cells) -> cells[0] = key,
             1,
             GroupByMaps.accountForNewEntry(
@@ -110,6 +113,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                     Input<Boolean>[] filters,
                                                     RamAccounting ramAccountingContext,
                                                     MemoryManager memoryManager,
+                                                    Version minNodeVersion,
                                                     List<Input<?>> keyInputs,
                                                     List<? extends DataType> keyTypes,
                                                     Version indexVersionCreated) {
@@ -121,6 +125,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             filters,
             ramAccountingContext,
             memoryManager,
+            minNodeVersion,
             GroupingCollector::applyKeysToCells,
             keyInputs.size(),
             GroupByMaps.accountForNewEntry(
@@ -155,6 +160,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                               Input<Boolean>[] filters,
                               RamAccounting ramAccounting,
                               MemoryManager memoryManager,
+                              Version minNodeVersion,
                               BiConsumer<K, Object[]> applyKeyToCells,
                               int numKeyColumns,
                               BiConsumer<Map<K, Object[]>, K> accountForNewEntry,
@@ -175,6 +181,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.indexVersionCreated = indexVersionCreated;
         this.accumulator = mode == AggregateMode.PARTIAL_FINAL ? this::reduce : this::iter;
         this.supplier = supplier;
+        this.minNodeVersion = minNodeVersion;
     }
 
     @Override
@@ -252,7 +259,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         for (int i = 0; i < aggregations.length; i++) {
             AggregationFunction aggregation = aggregations[i];
 
-            var newState = aggregation.newState(ramAccounting, indexVersionCreated, memoryManager);
+            var newState = aggregation.newState(ramAccounting, indexVersionCreated, minNodeVersion, memoryManager);
             if (InputCondition.matches(filters[i])) {
                 //noinspection unchecked
                 states[i] = aggregation.iterate(ramAccounting, memoryManager, newState, inputs[i]);

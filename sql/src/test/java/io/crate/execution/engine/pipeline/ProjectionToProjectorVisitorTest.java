@@ -22,7 +22,36 @@
 
 package io.crate.execution.engine.pipeline;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 import com.google.common.collect.ImmutableList;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Answers;
+import org.mockito.MockitoAnnotations;
+
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
@@ -60,40 +89,12 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Answers;
-import org.mockito.MockitoAnnotations;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.testing.TestingHelpers.getFunctions;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-
-public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
+public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
@@ -110,12 +111,11 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     public void prepare() {
         MockitoAnnotations.initMocks(this);
         functions = getFunctions();
-        threadPool = new TestThreadPool("testing");
         visitor = new ProjectionToProjectorVisitor(
-            mock(ClusterService.class),
+            clusterService,
             new NodeJobsCounter(),
             functions,
-            threadPool,
+            THREAD_POOL,
             Settings.EMPTY,
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS),
             new InputFactory(functions),
@@ -132,12 +132,6 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         avgInfo = new FunctionInfo(
             new FunctionIdent(AverageAggregation.NAME, Collections.singletonList(DataTypes.INTEGER)),
             DataTypes.DOUBLE);
-    }
-
-    @After
-    public void shutdownThreadPool() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     @Test

@@ -48,6 +48,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private final RamAccounting ramAccounting;
     private final Version indexVersionCreated;
     private final MemoryManager memoryManager;
+    private final Version minNodeVersion;
     private Object accumulatedState;
 
     private int seenFrameLowerBound = -1;
@@ -58,13 +59,20 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                                      ExpressionsInput<Row, Boolean> filter,
                                      Version indexVersionCreated,
                                      RamAccounting ramAccounting,
-                                     MemoryManager memoryManager) {
+                                     MemoryManager memoryManager,
+                                     Version minNodeVersion) {
         this.aggregationFunction = aggregationFunction.optimizeForExecutionAsWindowFunction();
         this.filter = filter;
         this.ramAccounting = ramAccounting;
         this.indexVersionCreated = indexVersionCreated;
         this.memoryManager = memoryManager;
-        this.accumulatedState = this.aggregationFunction.newState(this.ramAccounting, indexVersionCreated, memoryManager);
+        this.minNodeVersion = minNodeVersion;
+        this.accumulatedState = this.aggregationFunction.newState(
+            this.ramAccounting,
+            indexVersionCreated,
+            minNodeVersion,
+            memoryManager
+        );
     }
 
     @Override
@@ -127,7 +135,12 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private void recomputeFunction(WindowFrameState frame,
                                    List<? extends CollectExpression<Row, ?>> expressions,
                                    Input[] args) {
-        accumulatedState = aggregationFunction.newState(ramAccounting, indexVersionCreated, memoryManager);
+        accumulatedState = aggregationFunction.newState(
+            ramAccounting,
+            indexVersionCreated,
+            minNodeVersion,
+            memoryManager
+        );
         seenFrameUpperBound = -1;
         seenFrameLowerBound = -1;
         executeAggregateForFrame(frame, expressions, args);

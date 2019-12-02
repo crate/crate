@@ -47,6 +47,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -78,12 +79,11 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class ProjectingRowConsumerTest extends CrateUnitTest {
+public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
     private Functions functions;
-    private ThreadPool threadPool;
     private ProjectorFactory projectorFactory;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private OnHeapMemoryManager memoryManager;
@@ -92,13 +92,12 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
     @Before
     public void prepare() {
         functions = getFunctions();
-        threadPool = new TestThreadPool(Thread.currentThread().getName());
         memoryManager = new OnHeapMemoryManager(usedBytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
-            mock(ClusterService.class),
+            clusterService,
             new NodeJobsCounter(),
             functions,
-            threadPool,
+            THREAD_POOL,
             Settings.EMPTY,
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS),
             new InputFactory(functions),
@@ -113,12 +112,6 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
             BigArrays.NON_RECYCLING_INSTANCE,
             new ShardId("dummy", UUID.randomUUID().toString(), 0)
         );
-    }
-
-    @After
-    public void shutdownThreadPool() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     private static class DummyRowConsumer implements RowConsumer {

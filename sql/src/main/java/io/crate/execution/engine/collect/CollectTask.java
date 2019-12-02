@@ -35,6 +35,8 @@ import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -56,6 +58,7 @@ public class CollectTask extends AbstractTask {
     private final Object subContextLock = new Object();
     private final RowConsumer consumer;
     private final ArrayList<MemoryManager> memoryManagers = new ArrayList<>();
+    private final Version minNodeVersion;
 
     private BatchIterator<Row> batchIterator = null;
     private long totalBytes = -1;
@@ -66,7 +69,8 @@ public class CollectTask extends AbstractTask {
                        RamAccounting ramAccounting,
                        Function<RamAccounting, MemoryManager> memoryManagerFactory,
                        RowConsumer consumer,
-                       SharedShardContexts sharedShardContexts) {
+                       SharedShardContexts sharedShardContexts,
+                       Version minNodeVersion) {
         super(collectPhase.phaseId());
         this.collectPhase = collectPhase;
         this.txnCtx = txnCtx;
@@ -76,6 +80,7 @@ public class CollectTask extends AbstractTask {
         this.sharedShardContexts = sharedShardContexts;
         this.consumer = consumer;
         this.consumer.completionFuture().whenComplete(closeOrKill(this));
+        this.minNodeVersion = minNodeVersion;
     }
 
     public void addSearcher(int searcherId, Engine.Searcher searcher) {
@@ -195,5 +200,9 @@ public class CollectTask extends AbstractTask {
             memoryManagers.add(memoryManager);
         }
         return memoryManager;
+    }
+
+    public Version minNodeVersion() {
+        return minNodeVersion;
     }
 }

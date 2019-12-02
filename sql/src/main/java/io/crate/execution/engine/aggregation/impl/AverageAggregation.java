@@ -216,7 +216,9 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     @Nullable
     @Override
     public AverageState newState(RamAccounting ramAccounting,
-                                 Version indexVersionCreated, MemoryManager memoryManager) {
+                                 Version indexVersionCreated,
+                                 Version minNodeInCluster,
+                                 MemoryManager memoryManager) {
         ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
         return new AverageState();
     }

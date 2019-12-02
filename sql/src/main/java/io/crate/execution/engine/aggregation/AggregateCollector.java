@@ -55,10 +55,12 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private final Input[][] inputs;
     private final BiConsumer<Object[], Row> accumulator;
     private final Function<Object[], Iterable<Row>> finisher;
+    private final Version minNodeVersion;
 
     public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
                               RamAccounting ramAccounting,
                               MemoryManager memoryManager,
+                              Version minNodeVersion,
                               AggregateMode mode,
                               AggregationFunction[] aggregations,
                               Version indexVersionCreated,
@@ -67,6 +69,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
         this.expressions = expressions;
         this.ramAccounting = ramAccounting;
         this.memoryManager = memoryManager;
+        this.minNodeVersion = minNodeVersion;
         this.aggregations = aggregations;
         this.indexVersionCreated = indexVersionCreated;
         this.filters = filters;
@@ -122,7 +125,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private Object[] prepareState() {
         Object[] states = new Object[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
-            states[i] = aggregations[i].newState(ramAccounting, indexVersionCreated, memoryManager);
+            states[i] = aggregations[i].newState(ramAccounting, indexVersionCreated, minNodeVersion, memoryManager);
         }
         return states;
     }

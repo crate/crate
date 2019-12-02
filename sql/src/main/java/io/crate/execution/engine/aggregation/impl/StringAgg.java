@@ -133,6 +133,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     @Override
     public StringAggState newState(RamAccounting ramAccounting,
                                    Version indexVersionCreated,
+                                   Version minNodeInCluster,
                                    MemoryManager memoryManager) {
         return new StringAggState();
     }

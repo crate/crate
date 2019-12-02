@@ -70,6 +70,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         @Override
         public Comparable newState(RamAccounting ramAccounting,
                                    Version indexVersionCreated,
+                                   Version minNodeInCluster,
                                    MemoryManager memoryManager) {
             return null;
         }
@@ -106,6 +107,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         @Override
         public Comparable newState(RamAccounting ramAccounting,
                                    Version indexVersionCreated,
+                                   Version minNodeInCluster,
                                    MemoryManager memoryManager) {
             ramAccounting.addBytes(size);
             return null;

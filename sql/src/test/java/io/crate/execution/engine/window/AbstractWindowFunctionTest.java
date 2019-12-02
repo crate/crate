@@ -151,7 +151,8 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
                 new ExpressionsInput<>(Literal.BOOLEAN_TRUE, List.of()),
                 Version.CURRENT,
                 RAM_ACCOUNTING_CONTEXT,
-                memoryManager
+                memoryManager,
+                Version.CURRENT
             );
         } else {
             windowFunctionImpl = (WindowFunction) impl;

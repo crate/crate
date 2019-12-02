@@ -107,6 +107,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     @Override
     public Map<Object, Object> newState(RamAccounting ramAccounting,
                                         Version indexVersionCreated,
+                                        Version minNodeInCluster,
                                         MemoryManager memoryManager) {
         ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
         return new HashMap<>();
@@ -171,6 +172,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         @Override
         public Map<Object, Long> newState(RamAccounting ramAccounting,
                                           Version indexVersionCreated,
+                                          Version minNodeInCluster,
                                           MemoryManager memoryManager) {
             ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
             return new HashMap<>();

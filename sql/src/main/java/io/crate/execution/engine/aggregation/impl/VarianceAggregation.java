@@ -124,6 +124,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     @Override
     public Variance newState(RamAccounting ramAccounting,
                              Version indexVersionCreated,
+                             Version minNodeInCluster,
                              MemoryManager memoryManager) {
         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
         return new Variance();

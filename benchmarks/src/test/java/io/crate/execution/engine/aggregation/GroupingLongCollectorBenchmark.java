@@ -136,6 +136,7 @@ public class GroupingLongCollectorBenchmark {
             new Input[] { Literal.BOOLEAN_TRUE },
             RAM_ACCOUNTING_CONTEXT,
             memoryManager,
+            Version.CURRENT,
             keyInputs.get(0),
             DataTypes.LONG,
             Version.CURRENT

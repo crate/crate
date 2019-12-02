@@ -124,6 +124,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     @Override
     public LongState newState(RamAccounting ramAccounting,
                               Version indexVersionCreated,
+                              Version minNodeInCluster,
                               MemoryManager memoryManager) {
         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
         return new LongState();

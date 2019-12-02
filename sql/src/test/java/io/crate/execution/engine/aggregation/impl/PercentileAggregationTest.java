@@ -198,7 +198,7 @@ public class PercentileAggregationTest extends AggregationTest {
             new FunctionIdent(NAME, Arrays.asList(DataTypes.LONG, doubleArray)));
 
         RamAccountingContext memoryCtx = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
-        Object state = impl.newState(memoryCtx, Version.CURRENT, memoryManager);
+        Object state = impl.newState(memoryCtx, Version.CURRENT, Version.CURRENT, memoryManager);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), doubleArray);
         impl.iterate(memoryCtx, memoryManager, state, Literal.of(10L), fractions);
         impl.iterate(memoryCtx, memoryManager, state, Literal.of(20L), fractions);
