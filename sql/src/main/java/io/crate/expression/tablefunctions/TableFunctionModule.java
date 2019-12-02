@@ -32,5 +32,6 @@ public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImp
         UnnestFunction.register(this);
         EmptyRowTableFunction.register(this);
         GenerateSeries.register(this);
+        ValuesFunction.register(this);
     }
 }
