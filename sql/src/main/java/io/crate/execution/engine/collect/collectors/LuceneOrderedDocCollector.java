@@ -60,7 +60,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private final Query query;
     private final Float minScore;
     private final boolean doDocsScores;
-    private RamAccounting ramAccounting;
+    private final RamAccounting ramAccounting;
     private final CollectorContext collectorContext;
     private final Function<FieldDoc, Query> searchAfterQueryOptimize;
     private final Sort sort;
