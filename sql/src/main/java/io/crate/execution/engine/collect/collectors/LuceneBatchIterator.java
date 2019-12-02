@@ -22,8 +22,6 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -40,7 +38,6 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -62,7 +59,6 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     private final IndexSearcher indexSearcher;
     private final Query query;
     private final CollectorContext collectorContext;
-    private final RamAccountingContext ramAccountingContext;
     private final boolean doScores;
     private final LuceneCollectorExpression[] expressions;
     private final List<LeafReaderContext> leaves;
@@ -82,7 +78,6 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
                                @Nullable Float minScore,
                                boolean doScores,
                                CollectorContext collectorContext,
-                               RamAccountingContext ramAccountingContext,
                                List<? extends Input<?>> inputs,
                                Collection<? extends LuceneCollectorExpression<?>> expressions) {
         this.indexSearcher = indexSearcher;
@@ -90,7 +85,6 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
         this.doScores = doScores || minScore != null;
         this.minScore = minScore;
         this.collectorContext = collectorContext;
-        this.ramAccountingContext = ramAccountingContext;
         this.row = new InputRow(inputs);
         this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         leaves = indexSearcher.getTopReaderContext().leaves();
@@ -215,17 +209,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
         return liveDocs.get(doc) == false;
     }
 
-    private void checkCircuitBreaker() throws CircuitBreakingException {
-        if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
-            // stop collecting because breaker limit was reached
-            throw new CircuitBreakingException(
-                CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
-                    ramAccountingContext.limit()));
-        }
-    }
-
     private void onDoc(int doc) throws IOException {
-        checkCircuitBreaker();
         for (LuceneCollectorExpression expression : expressions) {
             expression.setNextDocId(doc);
         }
