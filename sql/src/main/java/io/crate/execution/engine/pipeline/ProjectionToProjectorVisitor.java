@@ -25,7 +25,7 @@ package io.crate.execution.engine.pipeline;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
@@ -241,7 +241,7 @@ public class ProjectionToProjectorVisitor
         int rowMemoryOverhead = 32; // priority queues implementation are backed by an arrayList
         RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(
             Symbols.typeView(Lists2.concat(projection.outputs(), projection.orderBy())),
-            context.ramAccountingContext,
+            context.ramAccounting,
             rowMemoryOverhead
         );
         if (projection.limit() > TopN.NO_LIMIT) {
@@ -270,7 +270,7 @@ public class ProjectionToProjectorVisitor
     public Projector visitTopNDistinct(TopNDistinctProjection topNDistinct, Context context) {
         var rowAccounting = new RowAccountingWithEstimators(
             Symbols.typeView(topNDistinct.outputs()),
-            context.ramAccountingContext
+            context.ramAccounting
         );
         return new TopNDistinctProjector(topNDistinct.limit(), rowAccounting);
     }
@@ -301,7 +301,7 @@ public class ProjectionToProjectorVisitor
             Iterables.toArray(ctx.expressions(), CollectExpression.class),
             projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
-            context.ramAccountingContext,
+            context.ramAccounting,
             indexVersionCreated
         );
     }
@@ -319,7 +319,7 @@ public class ProjectionToProjectorVisitor
             ctx.expressions(),
             projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
-            context.ramAccountingContext,
+            context.ramAccounting,
             indexVersionCreated
         );
     }
@@ -567,7 +567,7 @@ public class ProjectionToProjectorVisitor
                 projectorContext.nodeIdsToStreamers(),
                 context.jobId,
                 projection.fetchPhaseId(),
-                context.ramAccountingContext
+                context.ramAccounting
             ),
             functions,
             projection.outputSymbols(),
@@ -635,7 +635,7 @@ public class ProjectionToProjectorVisitor
             functions,
             inputFactory,
             context.txnCtx,
-            context.ramAccountingContext,
+            context.ramAccounting,
             indexVersionCreated,
             ThreadPools.numIdleThreads(searchThreadPool, numProcessors),
             searchThreadPool
@@ -645,9 +645,9 @@ public class ProjectionToProjectorVisitor
     @Override
     public Projector create(Projection projection,
                             TransactionContext txnCtx,
-                            RamAccountingContext ramAccountingContext,
+                            RamAccounting ramAccounting,
                             UUID jobId) {
-        return process(projection, new Context(txnCtx, ramAccountingContext, jobId));
+        return process(projection, new Context(txnCtx, ramAccounting, jobId));
     }
 
     @Override
@@ -657,13 +657,13 @@ public class ProjectionToProjectorVisitor
 
     static class Context {
 
-        private final RamAccountingContext ramAccountingContext;
+        private final RamAccounting ramAccounting;
         private final UUID jobId;
         private final TransactionContext txnCtx;
 
-        public Context(TransactionContext txnCtx, RamAccountingContext ramAccountingContext, UUID jobId) {
+        public Context(TransactionContext txnCtx, RamAccounting ramAccounting, UUID jobId) {
             this.txnCtx = txnCtx;
-            this.ramAccountingContext = ramAccountingContext;
+            this.ramAccounting = ramAccounting;
             this.jobId = jobId;
         }
     }

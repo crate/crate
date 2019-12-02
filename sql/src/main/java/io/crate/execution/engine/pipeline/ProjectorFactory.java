@@ -22,11 +22,11 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Projector;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 
 import java.util.UUID;
 
@@ -34,7 +34,7 @@ public interface ProjectorFactory {
 
     Projector create(Projection projection,
                      TransactionContext txnCtx,
-                     RamAccountingContext ramAccountingContext,
+                     RamAccounting ramAccounting,
                      UUID jobId);
 
     RowGranularity supportedGranularity();

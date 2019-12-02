@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
@@ -161,7 +161,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     @Override
-    public AverageState iterate(RamAccountingContext ramAccountingContext, AverageState state, Input... args) {
+    public AverageState iterate(RamAccounting ramAccounting, AverageState state, Input... args) {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
@@ -178,7 +178,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     @Override
-    public AverageState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+    public AverageState removeFromAggregatedState(RamAccounting ramAccounting,
                                                   AverageState previousAggState,
                                                   Input[] stateToRemove) {
         if (previousAggState != null) {
@@ -192,7 +192,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     @Override
-    public AverageState reduce(RamAccountingContext ramAccountingContext, AverageState state1, AverageState state2) {
+    public AverageState reduce(RamAccounting ramAccounting, AverageState state1, AverageState state2) {
         if (state1 == null) {
             return state2;
         }
@@ -205,15 +205,15 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     @Override
-    public Double terminatePartial(RamAccountingContext ramAccountingContext, AverageState state) {
+    public Double terminatePartial(RamAccounting ramAccounting, AverageState state) {
         return state.value();
     }
 
     @Nullable
     @Override
-    public AverageState newState(RamAccountingContext ramAccountingContext,
+    public AverageState newState(RamAccounting ramAccounting,
                                  Version indexVersionCreated) {
-        ramAccountingContext.addBytes(AverageStateType.INSTANCE.fixedSize());
+        ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
         return new AverageState();
     }
 

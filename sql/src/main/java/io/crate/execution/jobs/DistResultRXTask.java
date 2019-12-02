@@ -21,7 +21,7 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,23 +38,23 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
     private final int numBuckets;
     private final PageBucketReceiver pageBucketReceiver;
     private final CompletableFuture<Void> completionFuture;
-    private final RamAccountingContext ramAccounting;
+    private final RamAccounting ramAccounting;
 
     private long totalBytesUsed = -1;
 
     public DistResultRXTask(int id,
                             String name,
                             PageBucketReceiver pageBucketReceiver,
-                            RamAccountingContext ramAccountingContext,
+                            RamAccounting ramAccounting,
                             int numBuckets) {
         this.id = id;
         this.name = name;
         this.numBuckets = numBuckets;
         this.pageBucketReceiver = pageBucketReceiver;
-        this.ramAccounting = ramAccountingContext;
+        this.ramAccounting = ramAccounting;
         this.completionFuture = pageBucketReceiver.completionFuture().handle((result, ex) -> {
-            totalBytesUsed = ramAccountingContext.totalBytes();
-            ramAccountingContext.close();
+            totalBytesUsed = ramAccounting.totalBytes();
+            ramAccounting.close();
             if (ex instanceof IllegalStateException) {
                 kill(ex);
             }

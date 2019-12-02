@@ -22,7 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
@@ -85,18 +85,18 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     @Nullable
     @Override
-    public T newState(RamAccountingContext ramAccountingContext, Version indexVersionCreated) {
-        ramAccountingContext.addBytes(bytesSize);
+    public T newState(RamAccounting ramAccounting, Version indexVersionCreated) {
+        ramAccounting.addBytes(bytesSize);
         return null;
     }
 
     @Override
-    public T iterate(RamAccountingContext ramAccountingContext, T state, Input[] args) throws CircuitBreakingException {
-        return reduce(ramAccountingContext, state, returnType.value(args[0].value()));
+    public T iterate(RamAccounting ramAccounting, T state, Input[] args) throws CircuitBreakingException {
+        return reduce(ramAccounting, state, returnType.value(args[0].value()));
     }
 
     @Override
-    public T reduce(RamAccountingContext ramAccountingContext, T state1, T state2) {
+    public T reduce(RamAccounting ramAccounting, T state1, T state2) {
         if (state1 == null) {
             return state2;
         }
@@ -107,7 +107,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     }
 
     @Override
-    public T terminatePartial(RamAccountingContext ramAccountingContext, T state) {
+    public T terminatePartial(RamAccounting ramAccounting, T state) {
         return state;
     }
 
@@ -127,7 +127,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     }
 
     @Override
-    public T removeFromAggregatedState(RamAccountingContext ramAccountingContext, T previousAggState, Input[] stateToRemove) {
+    public T removeFromAggregatedState(RamAccounting ramAccounting, T previousAggState, Input[] stateToRemove) {
         return subtraction.apply(previousAggState, returnType.value(stateToRemove[0].value()));
     }
 }

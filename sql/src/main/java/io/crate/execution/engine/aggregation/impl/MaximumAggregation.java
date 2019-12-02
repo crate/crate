@@ -22,7 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
@@ -67,14 +67,14 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
 
         @Nullable
         @Override
-        public Comparable newState(RamAccountingContext ramAccountingContext,
+        public Comparable newState(RamAccounting ramAccounting,
                                    Version indexVersionCreated) {
-            ramAccountingContext.addBytes(size);
+            ramAccounting.addBytes(size);
             return null;
         }
 
         @Override
-        public Comparable reduce(RamAccountingContext ramAccountingContext, Comparable state1, Comparable state2) {
+        public Comparable reduce(RamAccounting ramAccounting, Comparable state1, Comparable state2) {
             if (state1 == null) {
                 return state2;
             }
@@ -99,16 +99,16 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
 
         @Nullable
         @Override
-        public Comparable newState(RamAccountingContext ramAccountingContext,
+        public Comparable newState(RamAccounting ramAccounting,
                                    Version indexVersionCreated) {
             return null;
         }
 
         @Override
-        public Comparable reduce(RamAccountingContext ramAccountingContext, Comparable state1, Comparable state2) {
+        public Comparable reduce(RamAccounting ramAccounting, Comparable state1, Comparable state2) {
             if (state1 == null) {
                 if (state2 != null) {
-                    ramAccountingContext.addBytes(estimator.estimateSize(state2));
+                    ramAccounting.addBytes(estimator.estimateSize(state2));
                 }
                 return state2;
             }
@@ -116,7 +116,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
                 return state1;
             }
             if (state1.compareTo(state2) < 0) {
-                ramAccountingContext.addBytes(estimator.estimateSizeDelta(state1, state2));
+                ramAccounting.addBytes(estimator.estimateSizeDelta(state1, state2));
                 return state2;
             }
             return state1;
@@ -138,13 +138,13 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
     }
 
     @Override
-    public Comparable iterate(RamAccountingContext ramAccountingContext, Comparable state, Input... args) throws CircuitBreakingException {
+    public Comparable iterate(RamAccounting ramAccounting, Comparable state, Input... args) throws CircuitBreakingException {
         Object value = args[0].value();
-        return reduce(ramAccountingContext, state, (Comparable) value);
+        return reduce(ramAccounting, state, (Comparable) value);
     }
 
     @Override
-    public Comparable terminatePartial(RamAccountingContext ramAccountingContext, Comparable state) {
+    public Comparable terminatePartial(RamAccounting ramAccounting, Comparable state) {
         return state;
     }
 }

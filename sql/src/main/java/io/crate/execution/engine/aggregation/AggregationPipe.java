@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
@@ -41,7 +41,7 @@ public class AggregationPipe implements Projector {
     public AggregationPipe(List<CollectExpression<Row, ?>> expressions,
                            AggregateMode aggregateMode,
                            AggregationContext[] aggregations,
-                           RamAccountingContext ramAccountingContext,
+                           RamAccounting ramAccounting,
                            Version indexVersionCreated) {
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
         Input[][] inputs = new Input[aggregations.length][];
@@ -55,7 +55,7 @@ public class AggregationPipe implements Projector {
 
         collector = new AggregateCollector(
             expressions,
-            ramAccountingContext,
+            ramAccounting,
             aggregateMode,
             functions,
             indexVersionCreated,

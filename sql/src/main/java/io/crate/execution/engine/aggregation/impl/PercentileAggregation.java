@@ -22,7 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.exceptions.CircuitBreakingException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -69,13 +69,13 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
 
     @Nullable
     @Override
-    public TDigestState newState(RamAccountingContext ramAccountingContext,
+    public TDigestState newState(RamAccounting ramAccounting,
                                  Version indexVersionCreated) {
         return TDigestState.createEmptyState();
     }
 
     @Override
-    public TDigestState iterate(RamAccountingContext ramAccountingContext, TDigestState state, Input... args) throws CircuitBreakingException {
+    public TDigestState iterate(RamAccounting ramAccounting, TDigestState state, Input... args) throws CircuitBreakingException {
         if (state.isEmpty()) {
             Object fractionValue = args[1].value();
             initState(state, fractionValue);
@@ -110,7 +110,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     }
 
     @Override
-    public TDigestState reduce(RamAccountingContext ramAccountingContext, TDigestState state1, TDigestState state2) {
+    public TDigestState reduce(RamAccounting ramAccounting, TDigestState state1, TDigestState state2) {
         if (state1.isEmpty()) {
             return state2;
         }
@@ -123,7 +123,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
 
     @Override
     @Nullable
-    public Object terminatePartial(RamAccountingContext ramAccountingContext, TDigestState state) {
+    public Object terminatePartial(RamAccounting ramAccounting, TDigestState state) {
         if (state.isEmpty()) {
             return null;
         }

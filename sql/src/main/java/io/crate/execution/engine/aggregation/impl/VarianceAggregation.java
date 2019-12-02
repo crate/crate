@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.statistics.Variance;
@@ -121,14 +121,14 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
 
     @Nullable
     @Override
-    public Variance newState(RamAccountingContext ramAccountingContext,
+    public Variance newState(RamAccounting ramAccounting,
                              Version indexVersionCreated) {
-        ramAccountingContext.addBytes(VarianceStateType.INSTANCE.fixedSize());
+        ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
         return new Variance();
     }
 
     @Override
-    public Variance iterate(RamAccountingContext ramAccountingContext, Variance state, Input... args) throws CircuitBreakingException {
+    public Variance iterate(RamAccounting ramAccounting, Variance state, Input... args) throws CircuitBreakingException {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
@@ -139,7 +139,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     }
 
     @Override
-    public Variance reduce(RamAccountingContext ramAccountingContext, Variance state1, Variance state2) {
+    public Variance reduce(RamAccounting ramAccounting, Variance state1, Variance state2) {
         if (state1 == null) {
             return state2;
         }
@@ -156,7 +156,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     }
 
     @Override
-    public Variance removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+    public Variance removeFromAggregatedState(RamAccounting ramAccounting,
                                               Variance previousAggState,
                                               Input[] stateToRemove) {
         if (previousAggState != null) {
@@ -169,7 +169,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     }
 
     @Override
-    public Double terminatePartial(RamAccountingContext ramAccountingContext, Variance state) {
+    public Double terminatePartial(RamAccounting ramAccounting, Variance state) {
         double result = state.result();
         return Double.isNaN(result) ? null : result;
     }

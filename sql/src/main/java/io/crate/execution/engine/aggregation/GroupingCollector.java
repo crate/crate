@@ -23,7 +23,7 @@
 package io.crate.execution.engine.aggregation;
 
 import com.google.common.collect.Iterables;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
@@ -61,10 +61,10 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final AggregateMode mode;
     private final Input[][] inputs;
     private final Input<Boolean>[] filters;
-    private final RamAccountingContext ramAccountingContext;
+    private final RamAccounting ramAccounting;
     private final BiConsumer<K, Object[]> applyKeyToCells;
     private final int numKeyColumns;
-    private BiConsumer<Map<K, Object[]>, K> accountForNewEntry;
+    private final BiConsumer<Map<K, Object[]>, K> accountForNewEntry;
     private final Function<Row, K> keyExtractor;
     private final Version indexVersionCreated;
     private final BiConsumer<Map<K, Object[]>, Row> accumulator;
@@ -75,7 +75,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                AggregationFunction[] aggregations,
                                                Input[][] inputs,
                                                Input<Boolean>[] filters,
-                                               RamAccountingContext ramAccountingContext,
+                                               RamAccounting ramAccounting,
                                                Input<?> keyInput,
                                                DataType keyType,
                                                Version indexVersionCreated) {
@@ -85,11 +85,11 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             mode,
             inputs,
             filters,
-            ramAccountingContext,
+            ramAccounting,
             (key, cells) -> cells[0] = key,
             1,
             GroupByMaps.accountForNewEntry(
-                ramAccountingContext,
+                ramAccounting,
                 SizeEstimatorFactory.create(keyType),
                 keyType
             ),
@@ -104,7 +104,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                     AggregationFunction[] aggregations,
                                                     Input[][] inputs,
                                                     Input<Boolean>[] filters,
-                                                    RamAccountingContext ramAccountingContext,
+                                                    RamAccounting ramAccountingContext,
                                                     List<Input<?>> keyInputs,
                                                     List<? extends DataType> keyTypes,
                                                     Version indexVersionCreated) {
@@ -147,7 +147,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                               AggregateMode mode,
                               Input[][] inputs,
                               Input<Boolean>[] filters,
-                              RamAccountingContext ramAccountingContext,
+                              RamAccounting ramAccounting,
                               BiConsumer<K, Object[]> applyKeyToCells,
                               int numKeyColumns,
                               BiConsumer<Map<K, Object[]>, K> accountForNewEntry,
@@ -159,7 +159,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.mode = mode;
         this.inputs = inputs;
         this.filters = filters;
-        this.ramAccountingContext = ramAccountingContext;
+        this.ramAccounting = ramAccounting;
         this.applyKeyToCells = applyKeyToCells;
         this.numKeyColumns = numKeyColumns;
         this.accountForNewEntry = accountForNewEntry;
@@ -210,7 +210,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             addWithAccounting(statesByKey, key, states);
         } else {
             for (int i = 0; i < aggregations.length; i++) {
-                states[i] = aggregations[i].reduce(ramAccountingContext, states[i], inputs[i][0].value());
+                states[i] = aggregations[i].reduce(ramAccounting, states[i], inputs[i][0].value());
             }
         }
     }
@@ -232,7 +232,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             for (int i = 0; i < aggregations.length; i++) {
                 if (InputCondition.matches(filters[i])) {
                     //noinspection unchecked
-                    states[i] = aggregations[i].iterate(ramAccountingContext, states[i], inputs[i]);
+                    states[i] = aggregations[i].iterate(ramAccounting, states[i], inputs[i]);
                 }
             }
         }
@@ -244,10 +244,10 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         for (int i = 0; i < aggregations.length; i++) {
             AggregationFunction aggregation = aggregations[i];
 
-            var newState = aggregation.newState(ramAccountingContext, indexVersionCreated);
+            var newState = aggregation.newState(ramAccounting, indexVersionCreated);
             if (InputCondition.matches(filters[i])) {
                 //noinspection unchecked
-                states[i] = aggregation.iterate(ramAccountingContext, newState, inputs[i]);
+                states[i] = aggregation.iterate(ramAccounting, newState, inputs[i]);
             } else {
                 states[i] = newState;
             }
@@ -274,7 +274,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                 int c = numKeyColumns;
                 Object[] states = input.getValue();
                 for (int i = 0; i < states.length; i++) {
-                    cells[c] = mode.finishCollect(ramAccountingContext, aggregations[i], states[i]);
+                    cells[c] = mode.finishCollect(ramAccounting, aggregations[i], states[i]);
                     c++;
                 }
                 return row;

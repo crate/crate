@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
@@ -51,7 +51,7 @@ public class GroupingProjector implements Projector {
                              CollectExpression<Row, ?>[] collectExpressions,
                              AggregateMode mode,
                              AggregationContext[] aggregations,
-                             RamAccountingContext ramAccountingContext,
+                             RamAccounting ramAccounting,
                              Version indexVersionCreated) {
         assert keys.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         ensureAllTypesSupported(keys);
@@ -73,7 +73,7 @@ public class GroupingProjector implements Projector {
                 functions,
                 inputs,
                 filters,
-                ramAccountingContext,
+                ramAccounting,
                 keyInputs.get(0),
                 key.valueType(),
                 indexVersionCreated
@@ -86,7 +86,7 @@ public class GroupingProjector implements Projector {
                 functions,
                 inputs,
                 filters,
-                ramAccountingContext,
+                ramAccounting,
                 keyInputs,
                 typeView(keys),
                 indexVersionCreated

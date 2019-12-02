@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Function;
@@ -109,7 +109,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     }
 
     @Override
-    public LongState iterate(RamAccountingContext ramAccountingContext, LongState state, Input... args) {
+    public LongState iterate(RamAccounting ramAccounting, LongState state, Input... args) {
         if (!hasArgs || args[0].value() != null) {
             return state.add(1L);
         }
@@ -118,9 +118,9 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
 
     @Nullable
     @Override
-    public LongState newState(RamAccountingContext ramAccountingContext,
+    public LongState newState(RamAccounting ramAccounting,
                               Version indexVersionCreated) {
-        ramAccountingContext.addBytes(LongStateType.INSTANCE.fixedSize());
+        ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
         return new LongState();
     }
 
@@ -152,12 +152,12 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     }
 
     @Override
-    public LongState reduce(RamAccountingContext ramAccountingContext, LongState state1, LongState state2) {
+    public LongState reduce(RamAccounting ramAccounting, LongState state1, LongState state2) {
         return state1.merge(state2);
     }
 
     @Override
-    public Long terminatePartial(RamAccountingContext ramAccountingContext, LongState state) {
+    public Long terminatePartial(RamAccounting ramAccounting, LongState state) {
         return state.value;
     }
 
@@ -264,7 +264,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     }
 
     @Override
-    public LongState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+    public LongState removeFromAggregatedState(RamAccounting ramAccounting,
                                                LongState previousAggState,
                                                Input[] stateToRemove) {
         if (!hasArgs || stateToRemove[0].value() != null) {

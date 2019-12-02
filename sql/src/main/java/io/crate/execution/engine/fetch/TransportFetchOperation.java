@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
 import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 
 import java.util.Map;
@@ -41,18 +41,18 @@ public class TransportFetchOperation implements FetchOperation {
     private final Map<String, ? extends IntObjectMap<Streamer[]>> nodeIdToReaderIdToStreamers;
     private final UUID jobId;
     private final int fetchPhaseId;
-    private final RamAccountingContext ramAccountingContext;
+    private final RamAccounting ramAccounting;
 
     public TransportFetchOperation(TransportFetchNodeAction transportFetchNodeAction,
                                    Map<String, ? extends IntObjectMap<Streamer[]>> nodeIdToReaderIdToStreamers,
                                    UUID jobId,
                                    int fetchPhaseId,
-                                   RamAccountingContext ramAccountingContext) {
+                                   RamAccounting ramAccounting) {
         this.transportFetchNodeAction = transportFetchNodeAction;
         this.nodeIdToReaderIdToStreamers = nodeIdToReaderIdToStreamers;
         this.jobId = jobId;
         this.fetchPhaseId = fetchPhaseId;
-        this.ramAccountingContext = ramAccountingContext;
+        this.ramAccounting = ramAccounting;
     }
 
     @Override
@@ -64,7 +64,7 @@ public class TransportFetchOperation implements FetchOperation {
             nodeId,
             nodeIdToReaderIdToStreamers.get(nodeId),
             new NodeFetchRequest(jobId, fetchPhaseId, closeContext, toFetch),
-            ramAccountingContext,
+            ramAccounting,
             listener);
         return listener;
     }

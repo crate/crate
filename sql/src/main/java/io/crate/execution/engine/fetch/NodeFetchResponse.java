@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.execution.engine.distribution.StreamBucket;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -50,7 +50,7 @@ public class NodeFetchResponse extends TransportResponse {
         return fetched;
     }
 
-    public NodeFetchResponse(StreamInput in, IntObjectMap<Streamer[]> streamers, RamAccountingContext ramAccounting) throws IOException {
+    public NodeFetchResponse(StreamInput in, IntObjectMap<Streamer[]> streamers, RamAccounting ramAccounting) throws IOException {
         ramAccounting.addBytes(in.available());
         int numReaders = in.readVInt();
         if (numReaders > 0) {

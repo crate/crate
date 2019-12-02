@@ -23,7 +23,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.StringSizeEstimator;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -130,24 +130,24 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     @Override
-    public StringAggState newState(RamAccountingContext ramAccountingContext,
+    public StringAggState newState(RamAccounting ramAccounting,
                                    Version indexVersionCreated) {
         return new StringAggState();
     }
 
     @Override
-    public StringAggState iterate(RamAccountingContext ramAccountingContext, StringAggState state, Input... args) throws CircuitBreakingException {
+    public StringAggState iterate(RamAccounting ramAccounting, StringAggState state, Input... args) throws CircuitBreakingException {
         String expression = (String) args[0].value();
         if (expression == null) {
             return state;
         }
-        ramAccountingContext.addBytes(LIST_ENTRY_OVERHEAD + StringSizeEstimator.estimate(expression));
+        ramAccounting.addBytes(LIST_ENTRY_OVERHEAD + StringSizeEstimator.estimate(expression));
         String delimiter = (String) args[1].value();
         if (delimiter != null) {
             if (state.firstDelimiter == null && state.values.isEmpty()) {
                 state.firstDelimiter = delimiter;
             } else {
-                ramAccountingContext.addBytes(LIST_ENTRY_OVERHEAD + StringSizeEstimator.estimate(delimiter));
+                ramAccounting.addBytes(LIST_ENTRY_OVERHEAD + StringSizeEstimator.estimate(delimiter));
                 state.values.add(delimiter);
             }
         }
@@ -161,7 +161,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     @Override
-    public StringAggState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+    public StringAggState removeFromAggregatedState(RamAccounting ramAccounting,
                                                     StringAggState previousAggState,
                                                     Input[] stateToRemove) {
         String expression = (String) stateToRemove[0].value();
@@ -172,7 +172,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
 
         int indexOfExpression = previousAggState.values.indexOf(expression);
         if (indexOfExpression > -1) {
-            ramAccountingContext.addBytes(-LIST_ENTRY_OVERHEAD + StringSizeEstimator.estimate(expression));
+            ramAccounting.addBytes(-LIST_ENTRY_OVERHEAD + StringSizeEstimator.estimate(expression));
             if (delimiter != null) {
                 String elementNextToExpression = previousAggState.values.get(indexOfExpression + 1);
                 if (elementNextToExpression.equalsIgnoreCase(delimiter)) {
@@ -185,7 +185,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     @Override
-    public StringAggState reduce(RamAccountingContext ramAccountingContext, StringAggState state1, StringAggState state2) {
+    public StringAggState reduce(RamAccounting ramAccounting, StringAggState state1, StringAggState state2) {
         if (state1.values.isEmpty()) {
             return state2;
         }
@@ -200,7 +200,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     @Override
-    public String terminatePartial(RamAccountingContext ramAccountingContext, StringAggState state) {
+    public String terminatePartial(RamAccounting ramAccounting, StringAggState state) {
         List<String> values = state.values;
         if (values.isEmpty()) {
             return null;

@@ -23,7 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ComparisonChain;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
@@ -180,14 +180,14 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
 
     @Nullable
     @Override
-    public GeometricMeanState newState(RamAccountingContext ramAccountingContext,
+    public GeometricMeanState newState(RamAccounting ramAccounting,
                                        Version indexVersionCreated) {
-        ramAccountingContext.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
+        ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
         return new GeometricMeanState();
     }
 
     @Override
-    public GeometricMeanState iterate(RamAccountingContext ramAccountingContext, GeometricMeanState state, Input... args) throws CircuitBreakingException {
+    public GeometricMeanState iterate(RamAccounting ramAccounting, GeometricMeanState state, Input... args) throws CircuitBreakingException {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
@@ -198,7 +198,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     }
 
     @Override
-    public GeometricMeanState reduce(RamAccountingContext ramAccountingContext, GeometricMeanState state1, GeometricMeanState state2) {
+    public GeometricMeanState reduce(RamAccounting ramAccounting, GeometricMeanState state1, GeometricMeanState state2) {
         if (state1 == null) {
             return state2;
         }
@@ -210,7 +210,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     }
 
     @Override
-    public Double terminatePartial(RamAccountingContext ramAccountingContext, GeometricMeanState state) {
+    public Double terminatePartial(RamAccounting ramAccounting, GeometricMeanState state) {
         return state.value();
     }
 
@@ -220,7 +220,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     }
 
     @Override
-    public GeometricMeanState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+    public GeometricMeanState removeFromAggregatedState(RamAccounting ramAccounting,
                                                         GeometricMeanState previousAggState,
                                                         Input[] stateToRemove) {
         if (previousAggState != null) {
