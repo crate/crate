@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.breaker.RamAccountingContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import io.crate.test.integration.CrateUnitTest;
@@ -36,7 +35,6 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -76,7 +74,6 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
                 null,
                 false,
                 new CollectorContext(mappedFieldType -> null),
-                new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
                 columnRefs,
                 columnRefs
             )

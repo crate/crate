@@ -22,10 +22,8 @@
 
 package io.crate.expression.tablefunctions;
 
-import com.google.common.collect.Iterators;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.BaseFunctionResolver;
@@ -58,17 +56,18 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.metadata.functions.params.Param.ANY_ARRAY;
+import static io.crate.types.DataTypes.isArray;
 
-public class UnnestFunction {
+public class ValuesFunction {
 
-    public static final String NAME = "unnest";
+    public static final String NAME = "_values";
     private static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
-    static class UnnestTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
+    private static class ValuesTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final FunctionInfo info;
 
-        private UnnestTableFunctionImplementation(FunctionInfo info) {
+        private ValuesTableFunctionImplementation(FunctionInfo info) {
             this.info = info;
         }
 
@@ -77,48 +76,24 @@ public class UnnestFunction {
             return info;
         }
 
-        /**
-         *
-         * @param arguments collection of array-literals
-         *                  e.g. [ [1, 2], [Marvin, Trillian] ]
-         * @return Bucket containing the unnested rows.
-         * [ [1, Marvin], [2, Trillian] ]
-         */
-        @SafeVarargs
         @Override
-        public final Iterable<Row> evaluate(TransactionContext txnCtx, Input<List<Object>>... arguments) {
-            ArrayList<List<Object>> valuesPerColumn = new ArrayList<>(arguments.length);
-            for (Input<List<Object>> argument : arguments) {
-                valuesPerColumn.add(argument.value());
-            }
-            return new ColumnOrientedRowsIterator(() -> createIterators(valuesPerColumn));
+        public final Iterable<Row> evaluate(TransactionContext txnCtx,
+                                            Input<List<Object>>[] arguments) {
+            return new ColumnOrientedRowsIterator(() -> iteratorsFrom(arguments));
         }
 
-        private Iterator<Object>[] createIterators(ArrayList<List<Object>> valuesPerColumn) {
-            Iterator[] iterators = new Iterator[valuesPerColumn.size()];
-            for (int i = 0; i < valuesPerColumn.size(); i++) {
-                DataType dataType = info.ident().argumentTypes().get(i);
-                assert dataType instanceof ArrayType : "Argument to unnest must be an array";
-                iterators[i] = createIterator(valuesPerColumn.get(i), (ArrayType) dataType);
+        private Iterator<Object>[] iteratorsFrom(Input<List<Object>>[] arguments) {
+            Iterator[] iterators = new Iterator[arguments.length];
+            for (int i = 0; i < arguments.length; i++) {
+                var argument = arguments[i].value();
+                if (argument == null) {
+                    iterators[i] = Collections.emptyIterator();
+                } else {
+                    iterators[i] = argument.iterator();
+                }
             }
             //noinspection unchecked
             return iterators;
-        }
-
-        private static Iterator<Object> createIterator(List<Object> objects, ArrayType type) {
-            if (objects == null) {
-                return Collections.emptyIterator();
-            }
-            if (type.innerType() instanceof ArrayType) {
-                @SuppressWarnings("unchecked")
-                List<Iterator<Object>> iterators = Lists2.map(
-                    objects,
-                    x -> createIterator((List<Object>) x, (ArrayType) type.innerType())
-                );
-                return Iterators.concat(iterators.iterator());
-            } else {
-                return objects.iterator();
-            }
         }
 
         @Override
@@ -129,7 +104,7 @@ public class UnnestFunction {
 
             for (int i = 0; i < info.ident().argumentTypes().size(); i++) {
                 ColumnIdent columnIdent = new ColumnIdent("col" + (i + 1));
-                DataType dataType = ArrayType.unnest(info.ident().argumentTypes().get(i));
+                DataType dataType = ((ArrayType) info.ident().argumentTypes().get(i)).innerType();
                 Reference reference = new Reference(
                     new ReferenceIdent(TABLE_IDENT, columnIdent), RowGranularity.DOC, dataType, i, null
                 );
@@ -161,8 +136,19 @@ public class UnnestFunction {
 
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                DataType returnType = dataTypes.size() == 1 ? ArrayType.unnest(dataTypes.get(0)) : ObjectType.untyped();
-                return new UnnestTableFunctionImplementation(
+                DataType returnType;
+                if (dataTypes.size() == 1) {
+                    var dataType = dataTypes.get(0);
+                    if (isArray(dataType)) {
+                        returnType = ((ArrayType) dataType).innerType();
+                    } else {
+                        throw new IllegalArgumentException(
+                            "Function argument must have an array data type, but was '" + dataType + "'");
+                    }
+                } else {
+                    returnType = ObjectType.untyped();
+                }
+                return new ValuesTableFunctionImplementation(
                     new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.TABLE));
             }
         });

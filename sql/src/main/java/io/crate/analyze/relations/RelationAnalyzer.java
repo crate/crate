@@ -57,7 +57,7 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
-import io.crate.expression.tablefunctions.UnnestFunction;
+import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -774,7 +774,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         Function function = new Function(
             new FunctionInfo(
-                new FunctionIdent(UnnestFunction.NAME, Symbols.typeView(arrays)),
+                new FunctionIdent(ValuesFunction.NAME, Symbols.typeView(arrays)),
                 ObjectType.untyped(),
                 FunctionInfo.Type.TABLE
             ),
@@ -784,7 +784,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         TableFunctionImplementation tableFunc = TableFunctionFactory.from(implementation);
         TableInfo tableInfo = tableFunc.createTableInfo();
         Operation.blockedRaiseException(tableInfo, context.currentOperation());
-        QualifiedName qualifiedName = new QualifiedName(UnnestFunction.NAME);
+        QualifiedName qualifiedName = new QualifiedName(ValuesFunction.NAME);
         TableFunctionRelation relation = new TableFunctionRelation(
             tableInfo,
             tableFunc,

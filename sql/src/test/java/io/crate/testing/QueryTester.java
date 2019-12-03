@@ -24,7 +24,6 @@ package io.crate.testing;
 
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.auth.user.User;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterators;
 import io.crate.data.Input;
 import io.crate.execution.dml.upsert.GeneratedColumns;
@@ -48,7 +47,6 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.mapper.DocumentMapper;
@@ -168,7 +166,6 @@ public final class QueryTester implements AutoCloseable {
                 null,
                 false,
                 new CollectorContext(indexEnv.queryShardContext()::getForField),
-                new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
                 Collections.singletonList(input),
                 ctx.expressions()
             );

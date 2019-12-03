@@ -38,7 +38,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -72,7 +71,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
 
     @Setup
     public void setUp() throws Exception {
-        hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, BigArrays.NON_RECYCLING_INSTANCE, 1);
+        hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION);
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
         Functions functions = new ModulesBuilder()
             .add(new EnterpriseFunctionsModule())
@@ -93,9 +92,9 @@ public class HyperLogLogDistinctAggregationBenchmark {
     @Benchmark
     public long benchmarkHLLPlusPlus() throws Exception {
         for (int i = 0; i < rows.size(); i++) {
-            hyperLogLogPlusPlus.collect(0, murmur3Hash.hash(rows.get(i).get(0)));
+            hyperLogLogPlusPlus.collect(murmur3Hash.hash(rows.get(i).get(0)));
         }
-        return hyperLogLogPlusPlus.cardinality(0);
+        return hyperLogLogPlusPlus.cardinality();
     }
 
     @Benchmark

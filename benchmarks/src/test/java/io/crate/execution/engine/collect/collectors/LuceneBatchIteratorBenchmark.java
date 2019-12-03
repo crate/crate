@@ -53,7 +53,6 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 public class LuceneBatchIteratorBenchmark {
 
-    public static final RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
     private CollectorContext collectorContext;
     private IndexSearcher indexSearcher;
     private List<IntegerColumnReference> columnRefs;
@@ -83,7 +82,6 @@ public class LuceneBatchIteratorBenchmark {
             null,
             false,
             collectorContext,
-            RAM_ACCOUNTING_CONTEXT,
             columnRefs,
             columnRefs
         );

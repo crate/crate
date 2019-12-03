@@ -45,7 +45,6 @@ import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
 
 import javax.annotation.Nullable;
@@ -153,14 +152,14 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             dataType = DataTypes.fromStream(in);
             murmur3Hash = Murmur3Hash.getForType(dataType);
             if (in.readBoolean()) {
-                hyperLogLogPlusPlus = HyperLogLogPlusPlus.readFrom(in, BigArrays.NON_RECYCLING_INSTANCE);
+                hyperLogLogPlusPlus = HyperLogLogPlusPlus.readFrom(in);
             }
         }
 
         void init(int precision) {
             assert hyperLogLogPlusPlus == null : "hyperLogLog algorithm was already initialized";
             try {
-                hyperLogLogPlusPlus = new HyperLogLogPlusPlus(precision, BigArrays.NON_RECYCLING_INSTANCE, 1);
+                hyperLogLogPlusPlus = new HyperLogLogPlusPlus(precision);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("precision must be >= 4 and <= 18");
             }
@@ -171,20 +170,20 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
 
         void add(Object value) {
-            hyperLogLogPlusPlus.collect(0, murmur3Hash.hash(value));
+            hyperLogLogPlusPlus.collect(murmur3Hash.hash(value));
         }
 
         void merge(HllState state) {
-            hyperLogLogPlusPlus.merge(0, state.hyperLogLogPlusPlus, 0);
+            hyperLogLogPlusPlus.merge(state.hyperLogLogPlusPlus);
         }
 
         long value() {
-            return hyperLogLogPlusPlus.cardinality(0);
+            return hyperLogLogPlusPlus.cardinality();
         }
 
         @Override
         public int compareTo(HllState o) {
-            return java.lang.Long.compare(hyperLogLogPlusPlus.cardinality(0), o.hyperLogLogPlusPlus.cardinality(0));
+            return java.lang.Long.compare(hyperLogLogPlusPlus.cardinality(), o.hyperLogLogPlusPlus.cardinality());
         }
 
         @Override
@@ -197,7 +196,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             DataTypes.toStream(dataType, out);
             if (isInitialized()) {
                 out.writeBoolean(true);
-                hyperLogLogPlusPlus.writeTo(0, out);
+                hyperLogLogPlusPlus.writeTo(out);
             } else {
                 out.writeBoolean(false);
             }

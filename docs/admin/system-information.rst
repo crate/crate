@@ -1074,58 +1074,74 @@ The segment information is useful to understand the behaviour of the underlying
 Lucene file structures for troubleshooting and performance optimization
 of shards.
 
-+-------------------+-------------------------------------------+-------------+
-| Column Name       | Description                               | Return Type |
-+===================+===========================================+=============+
-| ``table_schema``  | Schema name of the table of the shard.    | ``TEXT``    |
-+-------------------+-------------------------------------------+-------------+
-| ``table_name``    | Table name of the shard.                  | ``TEXT``    |
-+-------------------+-------------------------------------------+-------------+
-| ``node``          | ID of the node on which the shard resides.| ``OBJECT``  |
-+-------------------+-------------------------------------------+-------------+
-| ``shard_id``      | ID of the effected shard.                 | ``INTEGER`` |
-+-------------------+-------------------------------------------+-------------+
-|``segment_name``   | Name of the segment, derived from the     | ``TEXT``    |
-|                   | segment generation and used internally    |             |
-|                   | to create file names in the directory of  |             |
-|                   | the shard.                                |             |
-+-------------------+-------------------------------------------+-------------+
-| ``generation``    | Generation number of the segment,         | ``LONG``    |
-|                   | increments for each segment written.      |             |
-+-------------------+-------------------------------------------+-------------+
-| ``num_docs``      | Number of non-deleted lucene documents    | ``INTEGER`` |
-|                   | in the segment.                           |             |
-+-------------------+-------------------------------------------+-------------+
-| ``deleted_docs``  | Number of deleted lucene documents in the | ``INTEGER`` |
-|                   | segment.                                  |             |
-+-------------------+-------------------------------------------+-------------+
-| ``size``          | Disk space used by the segment in bytes.  | ``LONG``    |
-+-------------------+-------------------------------------------+-------------+
-| ``memory``        | Segment data stored in memory for         | ``LONG``    |
-|                   | efficient search, -1 if it is unavailable.|             |
-+-------------------+-------------------------------------------+-------------+
-| ``committed``     | Indicates if the segments are synced to   | ``BOOLEAN`` |
-|                   | disk. Segments that are synced can survive|             |
-|                   | a hard reboot.                            |             |
-+-------------------+-------------------------------------------+-------------+
-| ``primary``       | Describes if this segment is part of a    | ``BOOLEAN`` |
-|                   | primary shard.                            |             |
-+-------------------+-------------------------------------------+-------------+
-| ``search``        | Indicates if the segment is searchable.   | ``BOOLEAN`` |
-|                   | If ``false``, the segment has most likely |             |
-|                   | been written to disk but needs a refresh  |             |
-|                   | to be searchable.                         |             |
-+-------------------+-------------------------------------------+-------------+
-| ``version``       | Version of Lucene used to write the       | ``TEXT``    |
-|                   | segment.                                  |             |
-+-------------------+-------------------------------------------+-------------+
-| ``compound``      | If ``true``, Lucene merges all files      | ``BOOLEAN`` |
-|                   | from the segment into a single file to    |             |
-|                   | save file descriptors.                    |             |
-+-------------------+-------------------------------------------+-------------+
-| ``attributes``    | Contains information about whether high   | ``OBJECT``  |
-|                   | compression was enabled.                  |             |
-+-------------------+-------------------------------------------+-------------+
+.. list-table::
+    :header-rows: 1
+
+    * - Column Name
+      - Description
+      - Return Type
+    * - ``segment_name``
+      - Name of the segment, derived from the segment generation and used
+        internally to create file names in the directory of the shard.
+      - ``TEXT``
+    * - ``shard_id``
+      - ID of the effected shard.
+      - ``INTEGER``
+    * - ``table_schema``
+      - Schema name of the table of the shard.
+      - ``TEXT``
+    * - ``table_name``
+      - Table name of the shard.
+      - ``TEXT``
+    * - ``partition_ident``
+      - The partition ident of a partitioned table. Empty for non-partitioned tables.
+      - ``TEXT``
+    * - ``node``
+      - Information about the node the shard is located at.
+      - ``OBJECT``
+    * - ``node['name']``
+      - The name of the node the shard is located at.
+      - ``TEXT``
+    * - ``node['id']``
+      - The id of the node the shard is located at.
+      - ``TEXT``
+    * - ``generation``
+      - Generation number of the segment, increments for each segment written.
+      - ``LONG``
+    * - ``num_docs``
+      - Number of non-deleted lucene documents in this segment.
+      - ``INTEGER``
+    * - ``deleted_docs``
+      - Number of deleted lucene documents in this segment.
+      - ``INTEGER``
+    * - ``size``
+      - Disk space used by the segment in bytes.
+      - ``LONG``
+    * - ``memory``
+      - Segment data stored in memory for efficient search, -1 if it is
+        unavailable.
+      - ``LONG``
+    * - ``committed``
+      - Indicates if the segments are synced to disk. Segments that are synced
+        can survive a hard reboot.
+      - ``BOOLEAN``
+    * - ``primary``
+      - Describes if this segment is part of a primary shard.
+      - ``BOOLEAN``
+    * - ``search``
+      - Indicates if the segment is searchable. If ``false``, the segment has
+        most likely been written to disk but needs a refresh to be searchable.
+      - ``BOOLEAN``
+    * - ``version``
+      - Version of Lucene used to write the segment.
+      - ``TEXT``
+    * - ``compound``
+      - If ``true``, Lucene merges all files from the segment into a single
+        file to save file descriptors.
+      - ``BOOLEAN``
+    * - ``attributes``
+      - Contains information about whether high compression was enabled.
+      - ``OBJECT``
 
 .. NOTE::
 
@@ -2066,7 +2082,7 @@ been analyzed.
       - Always null. Exists for PostgreSQL compatibility.
 
 
-.. note:: 
+.. note::
 
     Not all data types support creating statistics. So some columns may not
     show up in the table.

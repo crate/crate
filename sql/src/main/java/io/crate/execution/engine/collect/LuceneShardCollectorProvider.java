@@ -125,7 +125,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 queryContext.minScore(),
                 Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
                 getCollectorContext(sharedShardContext.readerId(), queryShardContext::getForField),
-                collectTask.queryPhaseRamAccountingContext(),
                 docCtx.topLevelInputs(),
                 docCtx.expressions()
             );

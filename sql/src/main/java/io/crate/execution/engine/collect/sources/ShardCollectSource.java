@@ -27,6 +27,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
@@ -80,6 +81,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -168,7 +170,8 @@ public class ShardCollectSource implements CollectSource {
                               SystemCollectSource systemCollectSource,
                               IndexEventListenerProxy indexEventListenerProxy,
                               BlobIndicesService blobIndicesService,
-                              BigArrays bigArrays) {
+                              PageCacheRecycler pageCacheRecycler,
+                              CrateCircuitBreakerService circuitBreakerService) {
         this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
             SysShardsTableInfo.unassignedShardsExpressions());
         this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.expressions());
@@ -179,6 +182,7 @@ public class ShardCollectSource implements CollectSource {
         this.availableThreads = numIdleThreads(executor, EsExecutors.numberOfProcessors(settings));
         this.executor = executor;
         this.inputFactory = new InputFactory(functions);
+        BigArrays bigArrays = new BigArrays(pageCacheRecycler, circuitBreakerService, CrateCircuitBreakerService.QUERY, true);
         this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
             clusterService,
             settings,
