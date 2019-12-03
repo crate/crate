@@ -37,7 +37,10 @@ statement
     | EXPLAIN (ANALYZE)? statement                                                   #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
     | REFRESH TABLE tableWithPartitions                                              #refreshTable
-    | UPDATE aliasedRelation SET assignment (',' assignment)* where?                 #update
+    | UPDATE aliasedRelation
+        SET assignment (',' assignment)*
+        where?
+        (RETURNING selectItem (',' selectItem)*)?      													 	   #update
     | DELETE FROM aliasedRelation where?                                             #delete
     | SHOW (TRANSACTION ISOLATION LEVEL | TRANSACTION_ISOLATION)                     #showTransaction
     | SHOW CREATE TABLE table                                                        #showCreateTable
@@ -652,8 +655,8 @@ nonReserved
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
     | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | WINDOW | DEFERRABLE
     | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN | PRECISION
-    | REPLACE | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM | CURRENT_SCHEMA
-    | PROMOTE
+    | REPLACE | RETURNING | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM
+    | CURRENT_SCHEMA | PROMOTE
     ;
 
 SELECT: 'SELECT';
@@ -875,6 +878,7 @@ FILTER: 'FILTER';
 PLAIN: 'PLAIN';
 INDEX: 'INDEX';
 STORAGE: 'STORAGE';
+RETURNING: 'RETURNING';
 
 DYNAMIC: 'DYNAMIC';
 STRICT: 'STRICT';

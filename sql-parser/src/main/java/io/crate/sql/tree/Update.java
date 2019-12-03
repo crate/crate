@@ -33,13 +33,18 @@ public class Update extends Statement {
     private final Relation relation;
     private final List<Assignment<Expression>> assignments;
     private final Optional<Expression> where;
+    private final List<SelectItem> returning;
 
-    public Update(Relation relation, List<Assignment<Expression>> assignments, Optional<Expression> where) {
+    public Update(Relation relation,
+                  List<Assignment<Expression>> assignments,
+                  Optional<Expression> where,
+                  List<SelectItem> returning) {
         Preconditions.checkNotNull(relation, "relation is null");
         Preconditions.checkNotNull(assignments, "assignments are null");
         this.relation = relation;
         this.assignments = assignments;
         this.where = where;
+        this.returning = returning;
     }
 
     public Relation relation() {
@@ -54,9 +59,13 @@ public class Update extends Statement {
         return where;
     }
 
+    public List<SelectItem> returningClause() {
+        return returning;
+    }
+
     @Override
     public int hashCode() {
-        return Objects.hashCode(relation, assignments, where);
+        return Objects.hashCode(relation, assignments, where, returning);
     }
 
     @Override
@@ -65,6 +74,7 @@ public class Update extends Statement {
             .add("relation", relation)
             .add("assignments", assignments)
             .add("where", where)
+            .add("returning", returning)
             .toString();
     }
 
@@ -77,7 +87,8 @@ public class Update extends Statement {
 
         if (!assignments.equals(update.assignments)) return false;
         if (!relation.equals(update.relation)) return false;
-        if (where != null ? !where.equals(update.where) : update.where != null) return false;
+        if (!java.util.Objects.equals(where, update.where)) return false;
+        if (!java.util.Objects.equals(returning, update.returning)) return false;
 
         return true;
     }
@@ -86,4 +97,5 @@ public class Update extends Statement {
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitUpdate(this, context);
     }
+
 }
