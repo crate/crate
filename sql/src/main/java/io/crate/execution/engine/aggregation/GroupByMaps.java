@@ -23,7 +23,6 @@
 package io.crate.execution.engine.aggregation;
 
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -36,6 +35,7 @@ import io.netty.util.collection.ByteObjectHashMap;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.ShortObjectHashMap;
+import org.apache.lucene.util.RamUsageEstimator;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -57,7 +57,7 @@ public final class GroupByMaps {
                                                                      @Nullable DataType<K> type) {
         Integer entryOverHead = type == null ? null : ENTRY_OVERHEAD_PER_TYPE.get(type);
         if (entryOverHead == null) {
-            return (map, k) -> ramAccounting.addBytes(RamAccountingContext.roundUp(sizeEstimator.estimateSize(k) + 36));
+            return (map, k) -> ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(sizeEstimator.estimateSize(k) + 36));
         } else {
             return (map, k) -> {
                 int mapSize = map.size();
