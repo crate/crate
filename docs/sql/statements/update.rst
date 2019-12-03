@@ -20,7 +20,7 @@ Synopsis
     UPDATE table_ident [ [AS] table_alias ] SET
         { column_ident = expression } [, ...]
       [ WHERE condition ]
-      [ RETURNING * | output_expression [ [ AS ] output_name ] [, ...] ]
+      [ RETURNING { * | output_expression [ [ AS ] output_name ] | relation.* } [, ...] ]
 
 Description
 ===========
@@ -30,10 +30,9 @@ condition. Only the columns to be modified need be mentioned in the SET clause;
 columns not explicitly modified retain their previous values.
 
 The optional RETURNING clause causes UPDATE to compute and return value(s) based
-on each row actually updated. Any expression using the table's columns, and/or
-columns of other tables mentioned in FROM, can be computed. The new (post-update)
-values of the table's columns are used. The syntax of the RETURNING list is
-identical to that of the output list of SELECT.
+on each row actually updated. Any expression using the table's columns can be
+computed. The new (post-update) values of the table's columns are used. The
+syntax of the RETURNING list is identical to that of the output list of SELECT.
 
 Parameters
 ==========
@@ -60,3 +59,13 @@ Parameters
 :condition:
   An expression that returns a value of type boolean. Only rows for
   which this expression returns true will be updated.
+
+:output_expression:
+
+	An expression to be computed and returned by the UPDATE command after each
+	row is updated. The expression can use any column names of the table or * to
+	return all columns.
+
+:output_name:
+
+	A name to use for the result of an output expression.
