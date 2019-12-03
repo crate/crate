@@ -20,6 +20,7 @@ Synopsis
     UPDATE table_ident [ [AS] table_alias ] SET
         { column_ident = expression } [, ...]
       [ WHERE condition ]
+      [ RETURNING * | output_expression [ [ AS ] output_name ] [, ...] ]
 
 Description
 ===========
@@ -27,6 +28,12 @@ Description
 UPDATE changes the values of the specified columns in all rows that satisfy the
 condition. Only the columns to be modified need be mentioned in the SET clause;
 columns not explicitly modified retain their previous values.
+
+The optional RETURNING clause causes UPDATE to compute and return value(s) based
+on each row actually updated. Any expression using the table's columns, and/or
+columns of other tables mentioned in FROM, can be computed. The new (post-update)
+values of the table's columns are used. The syntax of the RETURNING list is
+identical to that of the output list of SELECT.
 
 Parameters
 ==========
