@@ -23,6 +23,7 @@
 package io.crate.breaker;
 
 import io.crate.expression.reference.sys.operation.OperationContextLog;
+import org.apache.lucene.util.RamUsageEstimator;
 
 import javax.annotation.Nullable;
 
@@ -39,6 +40,6 @@ public class OperationContextLogSizeEstimator extends SizeEstimator<OperationCon
         size += 60L; // 24 bytes (headers) + 4 bytes (id) + 16 bytes (uuid) + 8 bytes (started) + 8 bytes (usedBytes)
         size += value.name().length();
 
-        return RamAccountingContext.roundUp(size);
+        return RamUsageEstimator.alignObjectSize(size);
     }
 }

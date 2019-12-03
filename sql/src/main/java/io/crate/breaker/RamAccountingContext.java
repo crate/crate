@@ -43,7 +43,6 @@ public class RamAccountingContext implements RamAccounting {
     private final AtomicLong totalBytes = new AtomicLong(0);
     private final AtomicLong flushBuffer = new AtomicLong(0);
     private volatile boolean closed = false;
-    private volatile boolean tripped = false;
 
     private static final Logger LOGGER = LogManager.getLogger(RamAccountingContext.class);
 
@@ -108,7 +107,6 @@ public class RamAccountingContext implements RamAccounting {
             // since we've already created the data, we need to
             // add it so closing the context re-adjusts properly
             breaker.addWithoutBreaking(bytes);
-            tripped = true;
             // re-throw the original exception
             throw e;
         } finally {
@@ -128,9 +126,6 @@ public class RamAccountingContext implements RamAccounting {
             return;
         }
         breaker.addWithoutBreaking(bytes);
-        if (exceededBreaker()) {
-            tripped = true;
-        }
         totalBytes.addAndGet(bytes);
         flushBuffer.addAndGet(-bytes);
     }
@@ -184,13 +179,6 @@ public class RamAccountingContext implements RamAccounting {
 
     /**
      * Returns true if the limit of the breaker was already reached
-     */
-    public boolean trippedBreaker() {
-        return tripped;
-    }
-
-    /**
-     * Returns true if the limit of the breaker was already reached
      * but the breaker did not trip (e.g. when adding bytes without breaking)
      */
     public boolean exceededBreaker() {
@@ -209,20 +197,5 @@ public class RamAccountingContext implements RamAccounting {
      */
     public String contextId() {
         return contextId;
-    }
-
-
-    /**
-     * round n up to the nearest multiple of m
-     */
-    public static long roundUp(long n, long m) {
-        return n + (n % m);
-    }
-
-    /**
-     * round n up to the nearest multiple of 8
-     */
-    public static long roundUp(long n) {
-        return roundUp(n, 8);
     }
 }
