@@ -68,6 +68,7 @@ import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.SwapTable;
+import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Window;
 import org.junit.Rule;
 import org.junit.Test;
@@ -304,6 +305,17 @@ public class TestStatementBuilder {
         printStatement("update foo set col['x'] = 3 where foo['x'] = 2");
         printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
         printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
+    }
+
+    @Test
+    public void test_update_returning_clause() {
+        printStatement("update foo set foo='a' returning id");
+        printStatement("update foo set foo='a' where x=false returning id");
+        printStatement("update foo set foo='a' returning id AS foo");
+        printStatement("update foo set foo='a' returning id + 1 AS foo, id -1 as bar");
+        printStatement("update foo set foo='a' returning id + 1 AS foo, id -1 as bar");
+        printStatement("update foo set foo='a' returning \"column['nested']\" AS bar");
+        printStatement("update foo set foo='a' returning foo.bar - 1 AS foo");
     }
 
     @Test
@@ -1613,6 +1625,7 @@ public class TestStatementBuilder {
             statement instanceof DropView ||
             statement instanceof DropRepository ||
             statement instanceof DropSnapshot ||
+            statement instanceof Update ||
             statement instanceof Window) {
                 println(SqlFormatter.formatSql(statement));
                 println("");

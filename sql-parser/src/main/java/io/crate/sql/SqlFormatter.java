@@ -87,6 +87,7 @@ import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
+import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Values;
 import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.Window;
@@ -203,6 +204,54 @@ public final class SqlFormatter {
             }
             return null;
         }
+
+        @Override
+        public Void visitUpdate(Update node, Integer indent) {
+            append(indent, "UPDATE");
+            builder.append(' ');
+            node.relation().accept(this, indent);
+            builder.append(' ');
+            if (!node.assignments().isEmpty()) {
+                append(indent, "SET");
+                builder.append(' ');
+                Iterator<Assignment<Expression>> assignments = node.assignments().iterator();
+                while (assignments.hasNext()) {
+                    assignments.next().accept(this, indent);
+                    if (assignments.hasNext()) {
+                        builder.append(',');
+                    }
+                }
+                builder.append(' ');
+            }
+            node.whereClause().ifPresent(x -> {
+                append(indent, "WHERE");
+                builder.append(' ');
+                x.accept(this, indent);
+                builder.append(' ');
+            });
+            if (!node.returningClause().isEmpty()) {
+                append(indent, "RETURNING");
+                Iterator<SelectItem> returningItems = node.returningClause().iterator();
+                while (returningItems.hasNext()) {
+                    builder.append(' ');
+                    returningItems.next().accept(this, indent);
+                    if (returningItems.hasNext()) {
+                        builder.append(',');
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitAssignment(Assignment<?> node, Integer indent) {
+            var assignment = (Assignment<Expression>) node;
+            assignment.columnName().accept(this, indent);
+            append(indent, "=");
+            assignment.expression().accept(this, indent);
+            return null;
+        }
+
 
         @Override
         protected Void visitExpression(Expression node, Integer indent) {

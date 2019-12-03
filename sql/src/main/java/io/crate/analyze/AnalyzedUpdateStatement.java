@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.Multimap;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
@@ -34,11 +35,16 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     private final AbstractTableRelation table;
     private final Map<Reference, Symbol> assignmentByTargetCol;
     private final Symbol query;
+    private final Multimap<String, Symbol> returningClause;
 
-    public AnalyzedUpdateStatement(AbstractTableRelation table, Map<Reference, Symbol> assignmentByTargetCol, Symbol query) {
+    public AnalyzedUpdateStatement(AbstractTableRelation table,
+                                   Map<Reference, Symbol> assignmentByTargetCol,
+                                   Symbol query,
+                                   Multimap<String, Symbol> returningClause) {
         this.table = table;
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.query = query;
+        this.returningClause = returningClause;
     }
 
     public AbstractTableRelation table() {
@@ -51,6 +57,10 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
 
     public Symbol query() {
         return query;
+    }
+
+    public Multimap<String, Symbol> returningClause() {
+        return returningClause;
     }
 
     @Override
@@ -68,6 +78,9 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         consumer.accept(query);
         for (Symbol sourceExpr : assignmentByTargetCol.values()) {
             consumer.accept(sourceExpr);
+        }
+        for (Symbol returningSymbol : returningClause.values()) {
+            consumer.accept(returningSymbol);
         }
     }
 
