@@ -23,4 +23,9 @@ package io.crate.sql.tree;
 
 public abstract class SelectItem
     extends Node {
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitSelectItem(this, context);
+    }
 }

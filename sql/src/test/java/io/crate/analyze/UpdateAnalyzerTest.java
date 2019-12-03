@@ -25,6 +25,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
@@ -61,6 +62,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -555,6 +557,70 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 isFunction("_array", singletonList(ObjectType.untyped())),
                 instanceOf(Literal.class)
             )));
+    }
+
+    @Test
+    public void test_update_returning_with_asterisk_contains_all_columns_in_returning_clause() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' WHERE ID=1 RETURNING *");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.returningClause().size(), is(17));
+    }
+
+    @Test
+    public void test_update_returning_with_single_value_in_returning_clause() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING id AS foo");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.returningClause().size(), is(1));
+        assertThat(stmt.returningClause().get("foo"), contains(isField("id")));
+    }
+
+    @Test
+    public void test_update_returning_with_multiple_values_in_returning_clause() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING id AS foo, name AS bar");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.returningClause().size(), is(2));
+        assertThat(stmt.returningClause().get("foo"), contains(isField("id")));
+        assertThat(stmt.returningClause().get("bar"), contains(isField("name")));
+    }
+
+    @Test
+    public void test_updat_returning_with_invalid_column_returning_error() {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column invalid unknown");
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING invalid");
+    }
+
+    @Test
+    public void test_update_returning_with_single_value_altered_in_returning_clause() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING id + 1 AS foo");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.returningClause().size(), is(1));
+        assertThat(stmt.returningClause().get("foo"), contains(isFunction("add")));
+    }
+
+    @Test
+    public void test_update_returning_with_multiple_values_altered_in_returning_clause() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING id + 1 AS foo, id -1 as bar");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.returningClause().size(), is(2));
+        assertThat(stmt.returningClause().get("foo"), contains(isFunction("add")));
+        assertThat(stmt.returningClause().get("bar"), contains(isFunction("subtract")));
     }
 
     private List<Object[]> execute(Plan plan, Row params) throws Exception {

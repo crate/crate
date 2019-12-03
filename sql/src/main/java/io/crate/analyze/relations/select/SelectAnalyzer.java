@@ -32,7 +32,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.Select;
+import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SingleColumn;
 
 import java.util.List;
@@ -41,15 +41,15 @@ import java.util.Map;
 
 public class SelectAnalyzer {
 
-    private static final InnerVisitor INSTANCE = new InnerVisitor();
+    public static final InnerVisitor INSTANCE = new InnerVisitor();
 
-    public static SelectAnalysis analyzeSelect(Select select,
-                                               Map<QualifiedName, AnalyzedRelation> sources,
-                                               ExpressionAnalyzer expressionAnalyzer,
-                                               ExpressionAnalysisContext expressionAnalysisContext) {
+    public static SelectAnalysis analyzeSelectItems(List<SelectItem> selectItems,
+                                                    Map<QualifiedName, AnalyzedRelation> sources,
+                                                    ExpressionAnalyzer expressionAnalyzer,
+                                                    ExpressionAnalysisContext expressionAnalysisContext) {
         SelectAnalysis selectAnalysis = new SelectAnalysis(
-            select.getSelectItems().size(), sources, expressionAnalyzer, expressionAnalysisContext);
-        select.accept(INSTANCE, selectAnalysis);
+            selectItems.size(), sources, expressionAnalyzer, expressionAnalysisContext);
+        selectItems.forEach(x -> x.accept(INSTANCE, selectAnalysis));
         SelectSymbolValidator.validate(selectAnalysis.outputSymbols());
         return selectAnalysis;
     }

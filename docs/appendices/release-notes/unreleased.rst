@@ -65,6 +65,9 @@ Deprecations
 Changes
 =======
 
+- Introduced new optional ```RETURNING`` clause for :ref:`Update <ref-update>` to
+  return values based on each row actually updated.
+
 - Optimized ``SELECT DISTINCT .. LIMIT n`` queries. On high cardinality
   columns this type of queries can now execute up to 200% faster and use
   less memory.

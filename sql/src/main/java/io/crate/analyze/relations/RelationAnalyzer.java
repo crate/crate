@@ -319,8 +319,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
         expressionAnalysisContext.windows(node.getWindows());
 
-        SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(
-            node.getSelect(),
+        SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(
+            node.getSelect().getSelectItems(),
             context.sources(),
             expressionAnalyzer,
             expressionAnalysisContext);

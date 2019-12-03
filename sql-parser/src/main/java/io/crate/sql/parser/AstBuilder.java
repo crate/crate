@@ -629,7 +629,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new Update(
             (Relation) visit(context.aliasedRelation()),
             assignments,
-            visitIfPresent(context.where(), Expression.class));
+            visitIfPresent(context.where(), Expression.class),
+            visitCollection(context.selectItem(), SelectItem.class)
+            );
     }
 
     @Override

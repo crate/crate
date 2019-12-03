@@ -32,6 +32,8 @@ import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.RelationAnalysisContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
+import io.crate.analyze.relations.select.SelectAnalysis;
+import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -118,7 +120,13 @@ public final class UpdateAnalyzer {
         query = maybeAliasedStatement.maybeMapFields(query);
 
         Symbol normalizedQuery = normalizer.normalize(query, txnCtx);
-        return new AnalyzedUpdateStatement(table, assignmentByTargetCol, normalizedQuery);
+
+        SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(update.returningClause(),
+                                                                          relCtx.sources(),
+                                                                          sourceExprAnalyzer,
+                                                                          exprCtx);
+
+        return new AnalyzedUpdateStatement(table, assignmentByTargetCol, normalizedQuery, selectAnalysis.outputMultiMap());
     }
 
     private HashMap<Reference, Symbol> getAssignments(List<Assignment<Expression>> assignments,

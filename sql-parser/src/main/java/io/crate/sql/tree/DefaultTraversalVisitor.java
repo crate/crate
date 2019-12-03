@@ -300,9 +300,12 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
         for (Assignment assignment : node.assignments()) {
             assignment.accept(this, context);
         }
+
         if (node.whereClause().isPresent()) {
             node.whereClause().get().accept(this, context);
         }
+
+        node.returningClause().forEach(x -> x.accept(this, context));
         return null;
     }
 
