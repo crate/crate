@@ -1,33 +1,33 @@
 /*
- * Licensed to Elasticsearch under one or more contributor
- * license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright
- * ownership. Elasticsearch licenses this file to you under
- * the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This file is part of a module with proprietary Enterprise Features.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed to Crate.io Inc. ("Crate.io") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unauthorized copying of this file, via any medium is strictly prohibited.
+ *
+ * To use this file, Crate.io must have given you permission to enable and
+ * use such Enterprise Features and you must have a valid Enterprise or
+ * Subscription Agreement with Crate.io.  If you enable or use the Enterprise
+ * Features, you represent and warrant that you have a valid Enterprise or
+ * Subscription Agreement with Crate.io.  Your use of the Enterprise Features
+ * if governed by the terms and conditions of your Enterprise or Subscription
+ * Agreement with Crate.io.
+ *
+ * This is based on the ASL 2.0 licensed HyperLogLogPlus implementation found in Elasticsearch.
  */
 
-package org.elasticsearch.search.aggregations.metrics.cardinality;
+package io.crate.execution.engine.aggregation.impl;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.apache.lucene.util.packed.PackedInts;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.util.ByteUtils;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Arrays;
+import java.util.function.IntFunction;
 
 /**
  * Hyperloglog++ counter, implemented based on pseudo code from
@@ -134,11 +134,12 @@ public final class HyperLogLogPlusPlus {
 
     private boolean algorithm = LINEAR_COUNTING;
     private final Hashset hashSet;
-    private final int p, m;
+    private final int p;
+    private final int m;
     private final double alphaMM;
-    private final byte[] runLens;
+    private final ByteBuf runLens;
 
-    public HyperLogLogPlusPlus(int precision) {
+    public HyperLogLogPlusPlus(int precision, IntFunction<ByteBuf> allocateByteBuf) {
         if (precision < MIN_PRECISION) {
             throw new IllegalArgumentException("precision must be >= 4");
         }
@@ -147,19 +148,19 @@ public final class HyperLogLogPlusPlus {
         }
         p = precision;
         m = 1 << p;
-        runLens = new byte[1 << p];
+        runLens = allocateByteBuf.apply(1 << p);
         hashSet = new Hashset();
         final double alpha;
         switch (p) {
-        case 4:
-            alpha = 0.673;
-            break;
-        case 5:
-            alpha = 0.697;
-            break;
-        default:
-            alpha = 0.7213 / (1 + 1.079 / m);
-            break;
+            case 4:
+                alpha = 0.673;
+                break;
+            case 5:
+                alpha = 0.697;
+                break;
+            default:
+                alpha = 0.7213 / (1 + 1.079 / m);
+                break;
         }
         alphaMM = alpha * m * m;
     }
@@ -187,7 +188,7 @@ public final class HyperLogLogPlusPlus {
                 upgradeToHll();
             }
             for (int i = 0; i < m; ++i) {
-                runLens[i] = (byte) Math.max(runLens[i], other.runLens[i]);
+                runLens.setByte(i, Math.max(runLens.getByte(i), other.runLens.getByte(i)));
             }
         }
     }
@@ -225,7 +226,7 @@ public final class HyperLogLogPlusPlus {
     }
 
     private void collectHll(int index, int runLen) {
-        runLens[index] = (byte) Math.max(runLen, runLens[index]);
+        runLens.setByte(index, Math.max(runLen, runLens.getByte(index)));
     }
 
     public long cardinality() {
@@ -246,7 +247,7 @@ public final class HyperLogLogPlusPlus {
         double inverseSum = 0;
         int zeros = 0;
         for (int i = 0, end = i + m; i < end; ++i) {
-            final int runLen = runLens[i];
+            final int runLen = runLens.getByte(i);
             inverseSum += 1. / (1L << runLen);
             if (runLen == 0) {
                 ++zeros;
@@ -269,7 +270,7 @@ public final class HyperLogLogPlusPlus {
 
     private void upgradeToHll() {
         final int[] values = hashSet.values();
-        Arrays.fill(runLens, 0, m, (byte) 0);
+        runLens.setZero(0, m);
         for (int i = 0; i < values.length; ++i) {
             final int encoded = values[i];
             collectHllEncoded(encoded);
@@ -385,23 +386,20 @@ public final class HyperLogLogPlusPlus {
         private final int capacity;
         private final int threshold;
         private final int mask;
-        private final ByteBuffer writeSpare;
         private int size = 0;
 
         Hashset() {
             capacity = m / 4; // because ints take 4 bytes
             threshold = (int) (capacity * MAX_LOAD_FACTOR);
             mask = capacity - 1;
-            writeSpare = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN);
         }
 
         private int get(int index) {
-            return ByteUtils.readIntLE(runLens, index(index));
+            return runLens.getIntLE(index(index));
         }
 
         private void set(int index, int value) {
-            writeSpare.putInt(0, value);
-            System.arraycopy(writeSpare.array(), 0, runLens, index(index), 4);
+            runLens.setIntLE(index(index), value);
         }
 
         private int recomputedSize() {
@@ -471,14 +469,14 @@ public final class HyperLogLogPlusPlus {
         } else {
             out.writeBoolean(HYPERLOGLOG);
             for (int i = 0, end = i + m; i < end; ++i) {
-                out.writeByte(runLens[i]);
+                out.writeByte(runLens.getByte(i));
             }
         }
     }
 
     public static HyperLogLogPlusPlus readFrom(StreamInput in) throws IOException {
         final int precision = in.readVInt();
-        HyperLogLogPlusPlus counts = new HyperLogLogPlusPlus(precision);
+        HyperLogLogPlusPlus counts = new HyperLogLogPlusPlus(precision, capacity -> Unpooled.wrappedBuffer(new byte[capacity]));
         final boolean algorithm = in.readBoolean();
         if (algorithm == LINEAR_COUNTING) {
             counts.algorithm = algorithm;
@@ -490,7 +488,7 @@ public final class HyperLogLogPlusPlus {
         } else {
             counts.algorithm = algorithm;
             for (int i = 0; i < counts.m; ++i) {
-                counts.runLens[i] = in.readByte();
+                counts.runLens.setByte(i, in.readByte());
             }
         }
         return counts;

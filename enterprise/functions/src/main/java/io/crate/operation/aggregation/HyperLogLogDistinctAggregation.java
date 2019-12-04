@@ -24,6 +24,7 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.module.EnterpriseFunctionsModule;
@@ -39,13 +40,13 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import io.netty.buffer.Unpooled;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -159,7 +160,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         void init(int precision) {
             assert hyperLogLogPlusPlus == null : "hyperLogLog algorithm was already initialized";
             try {
-                hyperLogLogPlusPlus = new HyperLogLogPlusPlus(precision);
+                hyperLogLogPlusPlus = new HyperLogLogPlusPlus(precision, capacity -> Unpooled.wrappedBuffer(new byte[capacity]));
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("precision must be >= 4 and <= 18");
             }
