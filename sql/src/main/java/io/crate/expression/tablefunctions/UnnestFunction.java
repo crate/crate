@@ -33,25 +33,23 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -89,7 +87,7 @@ public class UnnestFunction {
          */
         @Override
         public Bucket evaluate(TransactionContext txnCtx, Input[] arguments) {
-            final List<Object[]> values = extractValues(info.ident().argumentTypes(), arguments);
+            final List<Object[]> values = extractValues(arguments);
             final int numCols = arguments.length;
             final int numRows = maxLength(values);
 
@@ -104,7 +102,7 @@ public class UnnestFunction {
 
                 @Override
                 public Iterator<Row> iterator() {
-                    return new Iterator<>() {
+                    return new Iterator<Row>() {
 
                         int currentRow = 0;
 
@@ -140,37 +138,18 @@ public class UnnestFunction {
             };
         }
 
-        @SafeVarargs
-        private static List<Object[]> extractValues(List<DataType> types, Input ... arguments) {
-            List<Object[]> valuesPerColumn = new ArrayList<>(arguments.length);
-            for (int i = 0; i < arguments.length; i++) {
-                DataType type = types.get(i);
-                Object[] values = (Object[]) arguments[i].value();
-
-                assert type instanceof ArrayType : "Argument to unnest must be an array";
-                DataType innerType = ((ArrayType) type).innerType();
-                if (innerType instanceof ArrayType) {
-                    valuesPerColumn.add(flattenValues(values, (ArrayType) innerType));
+        private static List<Object[]> extractValues(Input[] arguments) {
+            List<Object[]> values = new ArrayList<>(arguments.length);
+            for (Input argument : arguments) {
+                Object value = argument.value();
+                if (value == null) {
+                    values.add(null);
                 } else {
-                    valuesPerColumn.add(values);
+                    assert value instanceof Object[] : "must be an array because unnest only accepts array arguments";
+                    values.add((Object[]) value);
                 }
             }
-            return valuesPerColumn;
-        }
-
-        private static Object[] flattenValues(Object[] values, ArrayType type) {
-            var result = new ArrayList<>();
-            DataType innerType = type.innerType();
-            for (int i = 0, valuesLength = values.length; i < valuesLength; i++) {
-                Object value = values[i];
-                var nestedValues = (Object[]) value;
-                if (innerType instanceof ArrayType) {
-                    result.addAll(Arrays.asList(flattenValues(nestedValues, (ArrayType) innerType)));
-                } else {
-                    result.addAll(Arrays.asList(nestedValues));
-                }
-            }
-            return result.toArray(new Object[0]);
+            return values;
         }
 
         @Override
@@ -181,7 +160,7 @@ public class UnnestFunction {
 
             for (int i = 0; i < info.ident().argumentTypes().size(); i++) {
                 ColumnIdent columnIdent = new ColumnIdent("col" + (i + 1));
-                DataType dataType = ArrayType.unnest(info.ident().argumentTypes().get(i));
+                DataType dataType = ((CollectionType) info.ident().argumentTypes().get(i)).innerType();
                 Reference reference = new Reference(
                     new ReferenceIdent(TABLE_IDENT, columnIdent), RowGranularity.DOC, dataType, i, null
                 );

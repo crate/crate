@@ -59,6 +59,3 @@ Fixes
 
 - Improved performance of snapshot finalization as https://github.com/crate/crate/pull/9327
   introduced a performance regression on the snapshot process.
-
-- Fixed a ``ClassCastException`` that could occur when using ``unnest`` on
-  multi dimensional arrays.
