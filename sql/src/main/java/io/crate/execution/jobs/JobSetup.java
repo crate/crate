@@ -36,6 +36,8 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
+import io.crate.breaker.BlockBasedRamAccounting;
+import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RamAccountingContext;
@@ -710,11 +712,16 @@ public class JobSetup {
 
         @Override
         public Boolean visitRoutedCollectPhase(final RoutedCollectPhase phase, final Context context) {
-            var ramAccounting = RamAccountingContext.forExecutionPhase(breaker(), phase);
+            CircuitBreaker breaker = breaker();
+            int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.calculateBlockSizeInBytes(
+                breaker.getLimit(),
+                phase.routing().numShards(clusterService.localNode().getId())
+            );
+            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
             RowConsumer consumer = context.getRowConsumer(
                 phase,
                 MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE),
-                ramAccounting
+                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes)
             );
             consumer.completionFuture().whenComplete((result, error) -> ramAccounting.close());
             context.registerSubContext(new CollectTask(
@@ -725,25 +732,36 @@ public class JobSetup {
                 memoryManagerFactory,
                 consumer,
                 context.sharedShardContexts,
-                clusterService.state().getNodes().getMinNodeVersion()
+                clusterService.state().getNodes().getMinNodeVersion(),
+                ramAccountingBlockSizeInBytes
             ));
             return true;
         }
 
         @Override
         public Boolean visitCollectPhase(CollectPhase phase, Context context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
-            RowConsumer consumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingContext);
-            consumer.completionFuture().whenComplete((result, error) -> ramAccountingContext.close());
+            CircuitBreaker breaker = breaker();
+            int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.calculateBlockSizeInBytes(
+                breaker.getLimit(),
+                1
+            );
+            RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker());
+            RowConsumer consumer = context.getRowConsumer(
+                phase,
+                Paging.PAGE_SIZE,
+                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes)
+            );
+            consumer.completionFuture().whenComplete((result, error) -> ramAccounting.close());
             context.registerSubContext(new CollectTask(
                 phase,
                 context.txnCtx(),
                 collectOperation,
-                ramAccountingContext,
+                ramAccounting,
                 memoryManagerFactory,
                 consumer,
                 context.sharedShardContexts,
-                clusterService.state().getNodes().getMinNodeVersion()
+                clusterService.state().getNodes().getMinNodeVersion(),
+                ramAccountingBlockSizeInBytes
             ));
             return true;
         }

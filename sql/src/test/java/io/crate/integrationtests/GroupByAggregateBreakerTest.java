@@ -39,16 +39,10 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
 
     @Test
     public void selectGroupByWithBreaking() throws Exception {
-        long origBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
-        RamAccountingContext.FLUSH_BUFFER_SIZE = 24;
-        try {
-            expectedException.expect(SQLActionException.class);
-            expectedException.expectMessage("CircuitBreakingException: [query] Data too large, data for ");
-            // query takes 252 bytes of memory
-            // 252b * 1.09 = 275b => should break with limit 256b
-            execute("select region, count(*) from sys.summits group by 1");
-        } finally {
-            RamAccountingContext.FLUSH_BUFFER_SIZE = origBufferSize;
-        }
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("CircuitBreakingException: [query] Data too large, data for ");
+        // query takes 252 bytes of memory
+        // 252b * 1.09 = 275b => should break with limit 256b
+        execute("select region, count(*) from sys.summits group by 1");
     }
 }
