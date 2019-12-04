@@ -46,6 +46,12 @@ None
 Fixes
 =====
 
+- Fixed a regression introduced in ``2.3.2`` which optimizes subqueries when
+  used inside multi-value producing functions and operators like ``IN()``,
+  ``ANY()`` or ``ARRAY()`` by applying an implicit ordering. When using data
+  types (e.g. like an object: ``select array(select {a = col} from test)`` which
+  do not support ordering, an NPE was raised.
+
 - Fixed a possible OutOfMemory issue which may happen on ``GROUP BY`` statement
   using a group key of type ``TEXT`` on tables containing at least one shard
   with a low to medium cardinality on the group key.
