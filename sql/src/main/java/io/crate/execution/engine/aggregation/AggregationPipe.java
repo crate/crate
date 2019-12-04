@@ -30,6 +30,7 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.memory.MemoryManager;
 import org.elasticsearch.Version;
 
 import java.util.List;
@@ -42,6 +43,7 @@ public class AggregationPipe implements Projector {
                            AggregateMode aggregateMode,
                            AggregationContext[] aggregations,
                            RamAccounting ramAccounting,
+                           MemoryManager memoryManager,
                            Version indexVersionCreated) {
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
         Input[][] inputs = new Input[aggregations.length][];
@@ -56,6 +58,7 @@ public class AggregationPipe implements Projector {
         collector = new AggregateCollector(
             expressions,
             ramAccounting,
+            memoryManager,
             aggregateMode,
             functions,
             indexVersionCreated,

@@ -47,6 +47,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
@@ -184,6 +185,7 @@ final class GroupByOptimizedIterator {
                 expressions,
                 aggExpressions,
                 ramAccounting,
+                collectTask.memoryManager(),
                 inputRow,
                 queryContext.query(),
                 collectorContext,
@@ -202,6 +204,7 @@ final class GroupByOptimizedIterator {
                                           List<? extends LuceneCollectorExpression<?>> expressions,
                                           List<CollectExpression<Row, ?>> aggExpressions,
                                           RamAccounting ramAccounting,
+                                          MemoryManager memoryManager,
                                           InputRow inputRow,
                                           Query query,
                                           CollectorContext collectorContext,
@@ -228,6 +231,7 @@ final class GroupByOptimizedIterator {
                                 expressions,
                                 aggExpressions,
                                 ramAccounting,
+                                memoryManager,
                                 inputRow,
                                 query,
                                 killed,
@@ -279,6 +283,7 @@ final class GroupByOptimizedIterator {
                                                                        List<? extends LuceneCollectorExpression<?>> expressions,
                                                                        List<CollectExpression<Row, ?>> aggExpressions,
                                                                        RamAccounting ramAccounting,
+                                                                       MemoryManager memoryManager,
                                                                        InputRow inputRow,
                                                                        Query query,
                                                                        AtomicReference<Throwable> killed,
@@ -316,18 +321,18 @@ final class GroupByOptimizedIterator {
                         long ord = values.nextOrd();
                         Object[] states = statesByOrd.get(ord);
                         if (states == null) {
-                            statesByOrd.set(ord, initStates(aggregations, ramAccounting));
+                            statesByOrd.set(ord, initStates(aggregations, ramAccounting, memoryManager));
                         } else {
-                            aggregateValues(aggregations, ramAccounting, states);
+                            aggregateValues(aggregations, ramAccounting, memoryManager, states);
                         }
                         if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
                             throw new GroupByOnArrayUnsupportedException(keyColumnName);
                         }
                     } else {
                         if (nullStates == null) {
-                            nullStates = initStates(aggregations, ramAccounting);
+                            nullStates = initStates(aggregations, ramAccounting, memoryManager);
                         } else {
-                            aggregateValues(aggregations, ramAccounting, nullStates);
+                            aggregateValues(aggregations, ramAccounting, memoryManager, nullStates);
                         }
                     }
                 }
@@ -388,6 +393,7 @@ final class GroupByOptimizedIterator {
 
     private static void aggregateValues(List<AggregationContext> aggregations,
                                         RamAccounting ramAccounting,
+                                        MemoryManager memoryManager,
                                         Object[] states) {
         for (int i = 0; i < aggregations.size(); i++) {
             AggregationContext aggregation = aggregations.get(i);
@@ -396,27 +402,29 @@ final class GroupByOptimizedIterator {
                 //noinspection unchecked
                 states[i] = aggregation.function().iterate(
                     ramAccounting,
+                    memoryManager,
                     states[i],
-                    aggregation.inputs()
-                );
+                    aggregation.inputs());
             }
         }
     }
 
-    private static Object[] initStates(List<AggregationContext> aggregations, RamAccounting ramAccounting) {
+    private static Object[] initStates(List<AggregationContext> aggregations,
+                                       RamAccounting ramAccounting,
+                                       MemoryManager memoryManager) {
         Object[] states = new Object[aggregations.size()];
         for (int i = 0; i < aggregations.size(); i++) {
             AggregationContext aggregation = aggregations.get(i);
             AggregationFunction function = aggregation.function();
 
-            var newState = function.newState(ramAccounting, Version.CURRENT);
+            var newState = function.newState(ramAccounting, Version.CURRENT, memoryManager);
             if (InputCondition.matches(aggregation.filter())) {
                 //noinspection unchecked
                 states[i] = function.iterate(
                     ramAccounting,
+                    memoryManager,
                     newState,
-                    aggregation.inputs()
-                );
+                    aggregation.inputs());
             } else {
                 states[i] = newState;
             }

@@ -31,6 +31,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.ExpressionsInput;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.Version;
@@ -46,6 +47,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private final ExpressionsInput<Row, Boolean> filter;
     private final RamAccounting ramAccounting;
     private final Version indexVersionCreated;
+    private final MemoryManager memoryManager;
     private Object accumulatedState;
 
     private int seenFrameLowerBound = -1;
@@ -55,12 +57,14 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     AggregateToWindowFunctionAdapter(AggregationFunction aggregationFunction,
                                      ExpressionsInput<Row, Boolean> filter,
                                      Version indexVersionCreated,
-                                     RamAccounting ramAccounting) {
+                                     RamAccounting ramAccounting,
+                                     MemoryManager memoryManager) {
         this.aggregationFunction = aggregationFunction.optimizeForExecutionAsWindowFunction();
         this.filter = filter;
         this.ramAccounting = ramAccounting;
         this.indexVersionCreated = indexVersionCreated;
-        this.accumulatedState = this.aggregationFunction.newState(this.ramAccounting, indexVersionCreated);
+        this.memoryManager = memoryManager;
+        this.accumulatedState = this.aggregationFunction.newState(this.ramAccounting, indexVersionCreated, memoryManager);
     }
 
     @Override
@@ -123,7 +127,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private void recomputeFunction(WindowFrameState frame,
                                    List<? extends CollectExpression<Row, ?>> expressions,
                                    Input[] args) {
-        accumulatedState = aggregationFunction.newState(ramAccounting, indexVersionCreated);
+        accumulatedState = aggregationFunction.newState(ramAccounting, indexVersionCreated, memoryManager);
         seenFrameUpperBound = -1;
         seenFrameLowerBound = -1;
         executeAggregateForFrame(frame, expressions, args);
@@ -160,8 +164,10 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                 //noinspection unchecked
                 accumulatedState = aggregationFunction.iterate(
                     ramAccounting,
+                    memoryManager,
                     accumulatedState,
-                    inputs);
+                    inputs
+                );
             }
         }
 

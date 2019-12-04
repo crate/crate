@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
@@ -161,7 +162,10 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     @Override
-    public AverageState iterate(RamAccounting ramAccounting, AverageState state, Input... args) {
+    public AverageState iterate(RamAccounting ramAccounting,
+                                MemoryManager memoryManager,
+                                AverageState state,
+                                Input... args) {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
@@ -212,7 +216,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     @Nullable
     @Override
     public AverageState newState(RamAccounting ramAccounting,
-                                 Version indexVersionCreated) {
+                                 Version indexVersionCreated, MemoryManager memoryManager) {
         ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
         return new AverageState();
     }

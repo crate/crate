@@ -49,6 +49,7 @@ public class ProjectorSetupCollectSource implements CollectSource {
             collectPhase.jobId(),
             collectTask.txnCtx(),
             collectTask.getRamAccounting(),
+            collectTask.memoryManager(),
             projectorFactory,
             sourceDelegate.getIterator(txnCtx, collectPhase, collectTask, supportMoveToStart)
         );

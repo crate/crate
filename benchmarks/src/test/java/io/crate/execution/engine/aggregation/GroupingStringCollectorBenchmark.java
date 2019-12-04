@@ -35,6 +35,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
@@ -71,6 +72,7 @@ public class GroupingStringCollectorBenchmark {
     private GroupingCollector groupByMinCollector;
     private BatchIterator<Row> rowsIterator;
     private List<Row> rows;
+    private OnHeapMemoryManager memoryManager;
 
     @Setup
     public void createGroupingCollector() {
@@ -78,6 +80,7 @@ public class GroupingStringCollectorBenchmark {
             .createInjector().getInstance(Functions.class);
 
         groupByMinCollector = createGroupByMinBytesRefCollector(functions);
+        memoryManager = new OnHeapMemoryManager(bytes -> {});
 
         List<String> keys = new ArrayList<>(Locale.getISOCountries().length);
         keys.addAll(Arrays.asList(Locale.getISOCountries()));
@@ -103,6 +106,7 @@ public class GroupingStringCollectorBenchmark {
             new Input[][] { new Input[] { keyInput }},
             new Input[] { Literal.BOOLEAN_TRUE },
             RAM_ACCOUNTING_CONTEXT,
+            memoryManager,
             keyInputs.get(0),
             DataTypes.STRING,
             Version.CURRENT

@@ -173,11 +173,14 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.builder()
+        Settings.Builder builder = Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(SETTING_HTTP_COMPRESSION.getKey(), false)
-            .put(PSQL_PORT_SETTING.getKey(), 0)
-            .build();
+            .put(PSQL_PORT_SETTING.getKey(), 0);
+        if (randomBoolean()) {
+            builder.put("memory.allocation.type", "off-heap");
+        }
+        return builder.build();
     }
 
     @Override

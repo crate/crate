@@ -272,6 +272,7 @@ public class ShardCollectSource implements CollectSource {
             collectPhase.jobId(),
             collectTask.txnCtx(),
             collectTask.getRamAccounting(),
+            collectTask.memoryManager(),
             sharedProjectorFactory
         );
         boolean requireMoveToStartSupport = supportMoveToStart && !projectors.providesIndependentScroll();

@@ -28,25 +28,29 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.engine.aggregation.AggregateCollector;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
+import io.crate.memory.OffHeapMemoryManager;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
-import io.netty.buffer.Unpooled;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.annotations.Warmup;
 
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +63,8 @@ import java.util.stream.IntStream;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Benchmark)
+@Warmup(iterations = 3)
+@Fork(value = 2)
 public class HyperLogLogDistinctAggregationBenchmark {
 
     private final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
@@ -68,26 +74,48 @@ public class HyperLogLogDistinctAggregationBenchmark {
         HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING);
 
     private HyperLogLogPlusPlus hyperLogLogPlusPlus;
-    private AggregateCollector collector;
+    private AggregateCollector onHeapCollector;
+    private OnHeapMemoryManager onHeapMemoryManager;
+    private OffHeapMemoryManager offHeapMemoryManager;
+    private AggregateCollector offHeapCollector;
 
     @Setup
     public void setUp() throws Exception {
-        hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, capacity -> Unpooled.wrappedBuffer(new byte[capacity]));
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
         Functions functions = new ModulesBuilder()
             .add(new EnterpriseFunctionsModule())
             .createInjector().getInstance(Functions.class);
         HyperLogLogDistinctAggregation hllAggregation = ((HyperLogLogDistinctAggregation) functions.getQualified(
             new FunctionIdent(HyperLogLogDistinctAggregation.NAME, Collections.singletonList(DataTypes.STRING))));
-        collector = new AggregateCollector(
+        onHeapMemoryManager = new OnHeapMemoryManager(bytes -> {});
+        offHeapMemoryManager = new OffHeapMemoryManager();
+        hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, onHeapMemoryManager::allocate);
+        onHeapCollector = new AggregateCollector(
             Collections.singletonList(inExpr0),
             RAM_ACCOUNTING_CONTEXT,
+            onHeapMemoryManager,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { hllAggregation },
             Version.CURRENT,
             new Input[][] { {inExpr0 } },
             new Input[] { Literal.BOOLEAN_TRUE }
         );
+        offHeapCollector = new AggregateCollector(
+            Collections.singletonList(inExpr0),
+            RAM_ACCOUNTING_CONTEXT,
+            offHeapMemoryManager,
+            AggregateMode.ITER_FINAL,
+            new AggregationFunction[] { hllAggregation },
+            Version.CURRENT,
+            new Input[][] { {inExpr0 } },
+            new Input[] { Literal.BOOLEAN_TRUE }
+        );
+    }
+
+    @TearDown
+    public void tearDown() {
+        onHeapMemoryManager.close();
+        offHeapMemoryManager.close();
     }
 
     @Benchmark
@@ -99,10 +127,21 @@ public class HyperLogLogDistinctAggregationBenchmark {
     }
 
     @Benchmark
-    public Iterable<Row> benchmarkHLLAggregation() throws Exception {
-        Object[] state = collector.supplier().get();
-        BiConsumer<Object[], Row> accumulator = collector.accumulator();
-        Function<Object[], Iterable<Row>> finisher = collector.finisher();
+    public Iterable<Row> benchmarkHLLAggregationOnHeap() throws Exception {
+        Object[] state = onHeapCollector.supplier().get();
+        BiConsumer<Object[], Row> accumulator = onHeapCollector.accumulator();
+        Function<Object[], Iterable<Row>> finisher = onHeapCollector.finisher();
+        for (int i = 0; i < rows.size(); i++) {
+            accumulator.accept(state, rows.get(i));
+        }
+        return finisher.apply(state);
+    }
+
+    @Benchmark
+    public Iterable<Row> benchmarkHLLAggregationOffHeap() throws Exception {
+        Object[] state = offHeapCollector.supplier().get();
+        BiConsumer<Object[], Row> accumulator = offHeapCollector.accumulator();
+        Function<Object[], Iterable<Row>> finisher = offHeapCollector.finisher();
         for (int i = 0; i < rows.size(); i++) {
             accumulator.accept(state, rows.get(i));
         }

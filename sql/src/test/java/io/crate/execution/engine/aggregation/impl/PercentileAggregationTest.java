@@ -163,7 +163,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     public void testIterate() throws Exception {
         PercentileAggregation pa = singleArgPercentile;
-        TDigestState state = pa.iterate(null, TDigestState.createEmptyState(), Literal.of(1), Literal.of(0.5));
+        TDigestState state = pa.iterate(null, memoryManager, TDigestState.createEmptyState(), Literal.of(1), Literal.of(0.5));
         assertThat(state, is(notNullValue()));
         assertThat(state.fractions()[0], is(0.5));
     }
@@ -198,10 +198,10 @@ public class PercentileAggregationTest extends AggregationTest {
             new FunctionIdent(NAME, Arrays.asList(DataTypes.LONG, doubleArray)));
 
         RamAccountingContext memoryCtx = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
-        Object state = impl.newState(memoryCtx, Version.CURRENT);
+        Object state = impl.newState(memoryCtx, Version.CURRENT, memoryManager);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), doubleArray);
-        impl.iterate(memoryCtx, state, Literal.of(10L), fractions);
-        impl.iterate(memoryCtx, state, Literal.of(20L), fractions);
+        impl.iterate(memoryCtx, memoryManager, state, Literal.of(10L), fractions);
+        impl.iterate(memoryCtx, memoryManager, state, Literal.of(20L), fractions);
         Object result = impl.terminatePartial(memoryCtx, state);
 
         assertThat("result must be an array", result, instanceOf(List.class));

@@ -30,6 +30,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -109,7 +110,10 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     }
 
     @Override
-    public LongState iterate(RamAccounting ramAccounting, LongState state, Input... args) {
+    public LongState iterate(RamAccounting ramAccounting,
+                             MemoryManager memoryManager,
+                             LongState state,
+                             Input... args) {
         if (!hasArgs || args[0].value() != null) {
             return state.add(1L);
         }
@@ -119,7 +123,8 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     @Nullable
     @Override
     public LongState newState(RamAccounting ramAccounting,
-                              Version indexVersionCreated) {
+                              Version indexVersionCreated,
+                              MemoryManager memoryManager) {
         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
         return new LongState();
     }

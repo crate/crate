@@ -52,6 +52,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -103,6 +104,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     private ThreadPool threadPool;
+    private OnHeapMemoryManager memoryManager;
 
     @Before
     public void prepare() {
@@ -122,6 +124,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             t -> null,
             BigArrays.NON_RECYCLING_INSTANCE
         );
+        memoryManager = new OnHeapMemoryManager(usedBytes -> {});
 
         countInfo = new FunctionInfo(
             new FunctionIdent(CountAggregation.NAME, Collections.singletonList(DataTypes.STRING)),
@@ -141,7 +144,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     public void testSimpleTopNProjection() throws Exception {
         TopNProjection projection = new TopNProjection(10, 2, Collections.singletonList(DataTypes.LONG));
 
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
         TestingRowConsumer consumer = new TestingRowConsumer();
@@ -160,7 +163,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             new boolean[]{false, false},
             new boolean[]{false, false}
         );
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingTopNProjector.class));
     }
 
@@ -172,7 +175,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             new boolean[]{false, false},
             new boolean[]{false, false}
         );
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingProjector.class));
     }
 
@@ -188,7 +191,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 countInfo.returnType(),
                 Collections.singletonList(new InputColumn(0)))
         ), RowGranularity.SHARD, AggregateMode.ITER_FINAL);
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
 
         assertThat(projector, instanceOf(AggregationPipe.class));
 
@@ -225,7 +228,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         GroupProjection projection = new GroupProjection(
             keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
 
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(GroupingProjector.class));
 
         // use a topN projection in order to get sorted outputs
@@ -236,7 +239,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             ImmutableList.of(new InputColumn(2, DataTypes.DOUBLE)),
             new boolean[]{false},
             new boolean[]{false});
-        Projector topNProjector = visitor.create(topNProjection, txnCtx, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        Projector topNProjector = visitor.create(topNProjection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
 
         String human = "human";
         String vogon = "vogon";
@@ -274,7 +277,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         FilterProjection projection = new FilterProjection(function,
             Arrays.asList(new InputColumn(0), new InputColumn(1)));
 
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
+        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(FilterProjector.class));
 
         List<Object[]> rows = new ArrayList<>();

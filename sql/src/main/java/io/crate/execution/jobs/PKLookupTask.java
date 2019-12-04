@@ -35,6 +35,7 @@ import io.crate.expression.InputRow;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.symbol.Symbol;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
@@ -58,11 +59,13 @@ public final class PKLookupTask extends AbstractTask {
     private final InputRow inputRow;
     private final List<CollectExpression<Doc, ?>> expressions;
     private final String name;
+    private final MemoryManager memoryManager;
 
     PKLookupTask(UUID jobId,
                  int phaseId,
                  String name,
                  RamAccountingContext ramAccountingContext,
+                 MemoryManager memoryManager,
                  TransactionContext txnCtx,
                  InputFactory inputFactory,
                  PKLookupOperation pkLookupOperation,
@@ -80,6 +83,7 @@ public final class PKLookupTask extends AbstractTask {
         this.idsByShard = idsByShard;
         this.shardProjections = shardProjections;
         this.consumer = consumer;
+        this.memoryManager = memoryManager;
 
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns);
@@ -100,6 +104,7 @@ public final class PKLookupTask extends AbstractTask {
                 jobId,
                 txnCtx,
                 ramAccountingContext,
+                memoryManager,
                 ignoreMissing,
                 idsByShard,
                 shardProjections,

@@ -86,6 +86,7 @@ import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -302,6 +303,7 @@ public class ProjectionToProjectorVisitor
             projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccounting,
+            context.memoryManager,
             indexVersionCreated
         );
     }
@@ -320,6 +322,7 @@ public class ProjectionToProjectorVisitor
             projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccounting,
+            context.memoryManager,
             indexVersionCreated
         );
     }
@@ -636,6 +639,7 @@ public class ProjectionToProjectorVisitor
             inputFactory,
             context.txnCtx,
             context.ramAccounting,
+            context.memoryManager,
             indexVersionCreated,
             ThreadPools.numIdleThreads(searchThreadPool, numProcessors),
             searchThreadPool
@@ -646,8 +650,9 @@ public class ProjectionToProjectorVisitor
     public Projector create(Projection projection,
                             TransactionContext txnCtx,
                             RamAccounting ramAccounting,
+                            MemoryManager memoryManager,
                             UUID jobId) {
-        return process(projection, new Context(txnCtx, ramAccounting, jobId));
+        return process(projection, new Context(txnCtx, ramAccounting, memoryManager, jobId));
     }
 
     @Override
@@ -658,12 +663,17 @@ public class ProjectionToProjectorVisitor
     static class Context {
 
         private final RamAccounting ramAccounting;
+        private final MemoryManager memoryManager;
         private final UUID jobId;
         private final TransactionContext txnCtx;
 
-        public Context(TransactionContext txnCtx, RamAccounting ramAccounting, UUID jobId) {
+        public Context(TransactionContext txnCtx,
+                       RamAccounting ramAccounting,
+                       MemoryManager memoryManager,
+                       UUID jobId) {
             this.txnCtx = txnCtx;
             this.ramAccounting = ramAccounting;
+            this.memoryManager = memoryManager;
             this.jobId = jobId;
         }
     }

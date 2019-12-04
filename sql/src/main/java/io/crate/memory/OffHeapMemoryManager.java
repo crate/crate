@@ -20,24 +20,32 @@
  * agreement.
  */
 
-package io.crate.execution.engine.pipeline;
+package io.crate.memory;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Projector;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.memory.MemoryManager;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
-import java.util.UUID;
+import java.util.ArrayList;
 
-public interface ProjectorFactory {
+public final class OffHeapMemoryManager implements MemoryManager {
 
-    Projector create(Projection projection,
-                     TransactionContext txnCtx,
-                     RamAccounting ramAccounting,
-                     MemoryManager memoryManager,
-                     UUID jobId);
+    private final ArrayList<ByteBuf> allocatedBuffers = new ArrayList<>();
 
-    RowGranularity supportedGranularity();
+    public OffHeapMemoryManager() {
+    }
+
+    @Override
+    public ByteBuf allocate(int capacity) {
+        ByteBuf byteBuf = Unpooled.directBuffer(capacity);
+        allocatedBuffers.add(byteBuf);
+        return byteBuf;
+    }
+
+    @Override
+    public void close() {
+        for (ByteBuf buffer : allocatedBuffers) {
+            buffer.release();
+        }
+        allocatedBuffers.clear();
+    }
 }

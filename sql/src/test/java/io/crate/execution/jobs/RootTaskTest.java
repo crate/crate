@@ -29,6 +29,7 @@ import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -136,6 +137,7 @@ public class RootTaskTest extends CrateUnitTest {
             CoordinatorTxnCtx.systemTransactionContext(),
             mock(MapSideDataCollectOperation.class),
             mock(RamAccountingContext.class),
+            ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
             new TestingRowConsumer(),
             mock(SharedShardContexts.class));
         TestingRowConsumer batchConsumer = new TestingRowConsumer();

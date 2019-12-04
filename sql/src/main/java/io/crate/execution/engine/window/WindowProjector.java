@@ -38,6 +38,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
@@ -66,6 +67,7 @@ public class WindowProjector {
                                            InputFactory inputFactory,
                                            TransactionContext txnCtx,
                                            RamAccounting ramAccounting,
+                                           MemoryManager memoryManager,
                                            Version indexVersionCreated,
                                            IntSupplier numThreads,
                                            Executor executor) {
@@ -85,7 +87,6 @@ public class WindowProjector {
             FunctionImplementation impl = functions.getQualified(
                 windowFunctionContext.function().info().ident());
             if (impl instanceof AggregationFunction) {
-
                 var filterInputFactoryCtx = inputFactory.ctxForInputColumns(txnCtx);
                 //noinspection unchecked
                 Input<Boolean> filterInput =
@@ -100,7 +101,9 @@ public class WindowProjector {
                         (AggregationFunction) impl,
                         filter,
                         indexVersionCreated,
-                        ramAccounting)
+                        ramAccounting,
+                        memoryManager
+                    )
                 );
             } else if (impl instanceof WindowFunction) {
                 windowFunctions.add((WindowFunction) impl);

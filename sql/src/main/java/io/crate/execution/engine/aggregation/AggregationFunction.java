@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
@@ -44,22 +45,29 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      *
      * @param ramAccounting used to account the memory used for the state.
      * @param indexVersionCreated the version the current index was created on, this is useful for BWC
+     * @param memoryManager
      * @return a new state instance or null
      */
     @Nullable
-    public abstract TPartial newState(RamAccounting ramAccounting, Version indexVersionCreated);
+    public abstract TPartial newState(RamAccounting ramAccounting,
+                                      Version indexVersionCreated,
+                                      MemoryManager memoryManager);
 
     /**
      * the "aggregate" function.
      *
      * @param ramAccounting used to account for additional memory usage if the state grows in size
+     * @param memoryManager
      * @param state                the previous aggregation state
      * @param args                 arguments / input values matching the types of FunctionInfo.argumentTypes.
      *                             These are usually used to increment/modify the previous state
      * @return The new/changed state. This might be either a new instance or the same but mutated instance.
      * Users of the AggregationFunction should always use the return value, but must be aware that the input state might have changed too.
      */
-    public abstract TPartial iterate(RamAccounting ramAccounting, TPartial state, Input... args)
+    public abstract TPartial iterate(RamAccounting ramAccounting,
+                                     MemoryManager memoryManager,
+                                     TPartial state,
+                                     Input... args)
         throws CircuitBreakingException;
 
     /**

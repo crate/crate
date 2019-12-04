@@ -34,6 +34,8 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
+import io.crate.memory.MemoryManager;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
@@ -101,7 +103,8 @@ public class GroupingLongCollectorBenchmark {
             .createInjector().getInstance(Functions.class);
         AggregationFunction sumAgg = (AggregationFunction) functions.getQualified(
             new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER)));
-        groupBySumCollector = createGroupBySumCollector(sumAgg);
+        var memoryManager = new OnHeapMemoryManager(bytes -> {});
+        groupBySumCollector = createGroupBySumCollector(sumAgg, memoryManager);
 
         int size = 20_000_000;
         rows = new ArrayList<>(size);
@@ -120,7 +123,7 @@ public class GroupingLongCollectorBenchmark {
         searcher = new IndexSearcher(DirectoryReader.open(iw));
     }
 
-    private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg) {
+    private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg, MemoryManager memoryManager) {
         InputCollectExpression keyInput = new InputCollectExpression(0);
         List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
@@ -132,6 +135,7 @@ public class GroupingLongCollectorBenchmark {
             new Input[][] { new Input[] { keyInput }},
             new Input[] { Literal.BOOLEAN_TRUE },
             RAM_ACCOUNTING_CONTEXT,
+            memoryManager,
             keyInputs.get(0),
             DataTypes.LONG,
             Version.CURRENT

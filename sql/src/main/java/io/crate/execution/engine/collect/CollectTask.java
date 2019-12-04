@@ -33,13 +33,16 @@ import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.Locale;
+import java.util.function.Function;
 
 public class CollectTask extends AbstractTask {
 
@@ -47,11 +50,13 @@ public class CollectTask extends AbstractTask {
     private final TransactionContext txnCtx;
     private final MapSideDataCollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
+    private final Function<RamAccounting, MemoryManager> memoryManagerFactory;
     private final SharedShardContexts sharedShardContexts;
 
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
     private final RowConsumer consumer;
+    private final ArrayList<MemoryManager> memoryManagers = new ArrayList<>();
 
     private BatchIterator<Row> batchIterator = null;
     private long totalBytes = -1;
@@ -60,6 +65,7 @@ public class CollectTask extends AbstractTask {
                        TransactionContext txnCtx,
                        MapSideDataCollectOperation collectOperation,
                        RamAccountingContext queryPhaseRamAccountingContext,
+                       Function<RamAccounting, MemoryManager> memoryManagerFactory,
                        RowConsumer consumer,
                        SharedShardContexts sharedShardContexts) {
         super(collectPhase.phaseId());
@@ -67,6 +73,7 @@ public class CollectTask extends AbstractTask {
         this.txnCtx = txnCtx;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
+        this.memoryManagerFactory = memoryManagerFactory;
         this.sharedShardContexts = sharedShardContexts;
         this.consumer = consumer;
         this.consumer.completionFuture().whenComplete(closeOrKill(this));
@@ -95,6 +102,12 @@ public class CollectTask extends AbstractTask {
         totalBytes = queryPhaseRamAccountingContext.totalBytes();
         closeSearchContexts();
         queryPhaseRamAccountingContext.close();
+        synchronized (memoryManagers) {
+            for (MemoryManager memoryManager : memoryManagers) {
+                memoryManager.close();
+            }
+            memoryManagers.clear();
+        }
     }
 
     @Override
@@ -176,5 +189,13 @@ public class CollectTask extends AbstractTask {
         // If there is no IO involved it is a in-memory system tables. These are usually fast and the overhead
         // of a context switch would be bigger than running this directly.
         return involvedIO ? ThreadPool.Names.SEARCH : ThreadPool.Names.SAME;
+    }
+
+    public MemoryManager memoryManager() {
+        MemoryManager memoryManager = memoryManagerFactory.apply(queryPhaseRamAccountingContext);
+        synchronized (memoryManagers) {
+            memoryManagers.add(memoryManager);
+        }
+        return memoryManager;
     }
 }

@@ -31,6 +31,7 @@ import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
+import io.crate.memory.MemoryManagerFactory;
 import io.crate.statistics.TableStatsService;
 import io.crate.settings.CrateSetting;
 import io.crate.types.ArrayType;
@@ -102,82 +103,84 @@ public final class CrateSettings implements ClusterStateListener {
         UDCService.UDC_ENABLED_SETTING,
         UDCService.UDC_URL_SETTING,
         UDCService.UDC_INITIAL_DELAY_SETTING,
-        UDCService.UDC_INTERVAL_SETTING
+        UDCService.UDC_INTERVAL_SETTING,
+
+        MemoryManagerFactory.MEMORY_ALLOCATION_TYPE
     );
 
     private static final List<CrateSetting> EXPOSED_ES_SETTINGS = List.of(
-            // CLUSTER
-            CrateSetting.of(InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING, DataTypes.STRING),
-            // CLUSTER ROUTING
-            CrateSetting.of(EnableAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING, DataTypes.STRING),
-            CrateSetting.of(EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING, DataTypes.STRING),
-            CrateSetting.of(ClusterRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ALLOW_REBALANCE_SETTING, DataTypes.STRING),
-            CrateSetting.of(ConcurrentRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE_SETTING, DataTypes.INTEGER),
-            CrateSetting.of(ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING, DataTypes.INTEGER),
-            CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING, DataTypes.INTEGER),
-            CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES_SETTING, DataTypes.INTEGER),
-            CrateSetting.of(Setting.simpleString(
+        // CLUSTER
+        CrateSetting.of(InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING, DataTypes.STRING),
+        // CLUSTER ROUTING
+        CrateSetting.of(EnableAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING, DataTypes.STRING),
+        CrateSetting.of(EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING, DataTypes.STRING),
+        CrateSetting.of(ClusterRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ALLOW_REBALANCE_SETTING, DataTypes.STRING),
+        CrateSetting.of(ConcurrentRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE_SETTING, DataTypes.INTEGER),
+        CrateSetting.of(ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING, DataTypes.INTEGER),
+        CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING, DataTypes.INTEGER),
+        CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES_SETTING, DataTypes.INTEGER),
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_ip",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_id",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_host",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_name",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_ip",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_id",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_host",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_name",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_ip",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_id",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_host",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(Setting.simpleString(
+        CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_name",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
-            CrateSetting.of(BalancedShardsAllocator.SHARD_BALANCE_FACTOR_SETTING, DataTypes.FLOAT),
-            CrateSetting.of(BalancedShardsAllocator.INDEX_BALANCE_FACTOR_SETTING, DataTypes.FLOAT),
-            CrateSetting.of(BalancedShardsAllocator.THRESHOLD_SETTING, DataTypes.FLOAT),
-            CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING, DataTypes.BOOLEAN),
-            CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING, DataTypes.STRING),
-            CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING, DataTypes.STRING),
-            CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING, DataTypes.STRING),
-            // DISCOVERY
-            CrateSetting.of(DiscoverySettings.PUBLISH_TIMEOUT_SETTING, DataTypes.STRING),
-            // GATEWAY
-            CrateSetting.of(GatewayService.RECOVER_AFTER_NODES_SETTING, DataTypes.INTEGER),
-            CrateSetting.of(GatewayService.RECOVER_AFTER_TIME_SETTING, DataTypes.STRING),
-            CrateSetting.of(GatewayService.EXPECTED_NODES_SETTING, DataTypes.INTEGER),
-            // INDICES
-            CrateSetting.of(RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING, DataTypes.STRING),
-            CrateSetting.of(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC_SETTING, DataTypes.STRING),
-            CrateSetting.of(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING, DataTypes.STRING),
-            CrateSetting.of(RecoverySettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING, DataTypes.STRING),
-            CrateSetting.of(RecoverySettings.INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT_SETTING, DataTypes.STRING),
-            CrateSetting.of(RecoverySettings.INDICES_RECOVERY_ACTIVITY_TIMEOUT_SETTING, DataTypes.STRING),
-            CrateSetting.of(HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),
-            CrateSetting.of(HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_OVERHEAD_SETTING, DataTypes.DOUBLE),
-            CrateSetting.of(HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),
-            CrateSetting.of(HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_OVERHEAD_SETTING, DataTypes.DOUBLE),
-            CrateSetting.of(HierarchyCircuitBreakerService.TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING)
-        );
+        CrateSetting.of(BalancedShardsAllocator.SHARD_BALANCE_FACTOR_SETTING, DataTypes.FLOAT),
+        CrateSetting.of(BalancedShardsAllocator.INDEX_BALANCE_FACTOR_SETTING, DataTypes.FLOAT),
+        CrateSetting.of(BalancedShardsAllocator.THRESHOLD_SETTING, DataTypes.FLOAT),
+        CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING, DataTypes.BOOLEAN),
+        CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING, DataTypes.STRING),
+        CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING, DataTypes.STRING),
+        CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING, DataTypes.STRING),
+        // DISCOVERY
+        CrateSetting.of(DiscoverySettings.PUBLISH_TIMEOUT_SETTING, DataTypes.STRING),
+        // GATEWAY
+        CrateSetting.of(GatewayService.RECOVER_AFTER_NODES_SETTING, DataTypes.INTEGER),
+        CrateSetting.of(GatewayService.RECOVER_AFTER_TIME_SETTING, DataTypes.STRING),
+        CrateSetting.of(GatewayService.EXPECTED_NODES_SETTING, DataTypes.INTEGER),
+        // INDICES
+        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING, DataTypes.STRING),
+        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC_SETTING, DataTypes.STRING),
+        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING, DataTypes.STRING),
+        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING, DataTypes.STRING),
+        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT_SETTING, DataTypes.STRING),
+        CrateSetting.of(RecoverySettings.INDICES_RECOVERY_ACTIVITY_TIMEOUT_SETTING, DataTypes.STRING),
+        CrateSetting.of(HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),
+        CrateSetting.of(HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_OVERHEAD_SETTING, DataTypes.DOUBLE),
+        CrateSetting.of(HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),
+        CrateSetting.of(HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_OVERHEAD_SETTING, DataTypes.DOUBLE),
+        CrateSetting.of(HierarchyCircuitBreakerService.TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING)
+    );
 
 
     public static final List<CrateSetting> BUILT_IN_SETTINGS = Stream.concat(CRATE_CLUSTER_SETTINGS.stream(), EXPOSED_ES_SETTINGS.stream())

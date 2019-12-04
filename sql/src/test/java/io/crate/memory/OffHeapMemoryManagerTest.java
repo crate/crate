@@ -20,24 +20,22 @@
  * agreement.
  */
 
-package io.crate.execution.engine.pipeline;
+package io.crate.memory;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Projector;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.memory.MemoryManager;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
+import io.netty.buffer.ByteBuf;
+import org.junit.Test;
 
-import java.util.UUID;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-public interface ProjectorFactory {
+public class OffHeapMemoryManagerTest {
 
-    Projector create(Projection projection,
-                     TransactionContext txnCtx,
-                     RamAccounting ramAccounting,
-                     MemoryManager memoryManager,
-                     UUID jobId);
-
-    RowGranularity supportedGranularity();
+    @Test
+    public void test_allocated_buffers_are_released_on_close() {
+        var memoryManager = new OffHeapMemoryManager();
+        ByteBuf buf1 = memoryManager.allocate(20);
+        buf1.retain();
+        memoryManager.close();
+        assertThat("ref count must reach 0 now", buf1.release(), is(true));
+    }
 }

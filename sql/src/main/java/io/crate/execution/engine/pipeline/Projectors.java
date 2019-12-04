@@ -28,6 +28,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
 
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ public final class Projectors {
                       UUID jobId,
                       TransactionContext txnCtx,
                       RamAccounting ramAccounting,
+                      MemoryManager memoryManager,
                       ProjectorFactory projectorFactory) {
         boolean independentScroll = false;
         this.projectors = new ArrayList<>(projections.size());
@@ -55,7 +57,7 @@ public final class Projectors {
             if (projection.requiredGranularity().ordinal() > projectorFactory.supportedGranularity().ordinal()) {
                 continue;
             }
-            Projector projector = projectorFactory.create(projection, txnCtx, ramAccounting, jobId);
+            Projector projector = projectorFactory.create(projection, txnCtx, ramAccounting, memoryManager, jobId);
             projectors.add(projector);
             independentScroll = independentScroll || projector.providesIndependentScroll();
         }
@@ -70,6 +72,7 @@ public final class Projectors {
                                           UUID jobId,
                                           TransactionContext txnCtx,
                                           RamAccounting ramAccounting,
+                                          MemoryManager memoryManager,
                                           ProjectorFactory projectorFactory,
                                           BatchIterator<Row> source) {
         BatchIterator<Row> result = source;
@@ -77,7 +80,7 @@ public final class Projectors {
             if (projection.requiredGranularity().ordinal() > projectorFactory.supportedGranularity().ordinal()) {
                 continue;
             }
-            result = projectorFactory.create(projection, txnCtx, ramAccounting, jobId).apply(result);
+            result = projectorFactory.create(projection, txnCtx, ramAccounting, memoryManager, jobId).apply(result);
         }
         return result;
     }

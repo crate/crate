@@ -28,6 +28,7 @@ import io.crate.data.Row;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -70,6 +71,7 @@ public class CollectTaskTest extends RandomizedTest {
             CoordinatorTxnCtx.systemTransactionContext(),
             mock(MapSideDataCollectOperation.class),
             ramAccountingContext,
+            ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
             new TestingRowConsumer(),
             mock(SharedShardContexts.class));
     }
@@ -115,6 +117,7 @@ public class CollectTaskTest extends RandomizedTest {
             txnCtx,
             collectOperationMock,
             ramAccountingContext,
+            ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
             new TestingRowConsumer(),
             mock(SharedShardContexts.class));
 

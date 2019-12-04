@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
@@ -181,13 +182,17 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     @Nullable
     @Override
     public GeometricMeanState newState(RamAccounting ramAccounting,
-                                       Version indexVersionCreated) {
+                                       Version indexVersionCreated,
+                                       MemoryManager memoryManager) {
         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
         return new GeometricMeanState();
     }
 
     @Override
-    public GeometricMeanState iterate(RamAccounting ramAccounting, GeometricMeanState state, Input... args) throws CircuitBreakingException {
+    public GeometricMeanState iterate(RamAccounting ramAccounting,
+                                      MemoryManager memoryManager,
+                                      GeometricMeanState state,
+                                      Input... args) throws CircuitBreakingException {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {

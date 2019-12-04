@@ -25,6 +25,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.module.EnterpriseFunctionsModule;
@@ -40,7 +41,6 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import io.netty.buffer.Unpooled;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.hash.MurmurHash3;
@@ -85,19 +85,23 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
     @Nullable
     @Override
-    public HllState newState(RamAccounting ramAccounting, Version indexVersionCreated) {
+    public HllState newState(RamAccounting ramAccounting,
+                             Version indexVersionCreated,
+                             MemoryManager memoryManager) {
         return new HllState(dataType);
     }
 
     @Override
-    public HllState iterate(RamAccounting ramAccounting, HllState state, Input... args) throws CircuitBreakingException {
+    public HllState iterate(RamAccounting ramAccounting,
+                            MemoryManager memoryManager,
+                            HllState state,
+                            Input... args) throws CircuitBreakingException {
         if (state.isInitialized() == false) {
             int precision = HyperLogLogPlusPlus.DEFAULT_PRECISION;
             if (args.length > 1) {
                 precision = DataTypes.INTEGER.value(args[1].value());
             }
-            ramAccounting.addBytes(HyperLogLogPlusPlus.memoryUsage(precision));
-            state.init(precision);
+            state.init(memoryManager, precision);
         }
         Object value = args[0].value();
         if (value != null) {
@@ -157,10 +161,10 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             }
         }
 
-        void init(int precision) {
+        void init(MemoryManager memoryManager, int precision) {
             assert hyperLogLogPlusPlus == null : "hyperLogLog algorithm was already initialized";
             try {
-                hyperLogLogPlusPlus = new HyperLogLogPlusPlus(precision, capacity -> Unpooled.wrappedBuffer(new byte[capacity]));
+                hyperLogLogPlusPlus = new HyperLogLogPlusPlus(precision, memoryManager::allocate);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("precision must be >= 4 and <= 18");
             }

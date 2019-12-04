@@ -31,6 +31,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Symbol;
+import io.crate.memory.MemoryManager;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -52,6 +53,7 @@ public class GroupingProjector implements Projector {
                              AggregateMode mode,
                              AggregationContext[] aggregations,
                              RamAccounting ramAccounting,
+                             MemoryManager memoryManager,
                              Version indexVersionCreated) {
         assert keys.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         ensureAllTypesSupported(keys);
@@ -74,6 +76,7 @@ public class GroupingProjector implements Projector {
                 inputs,
                 filters,
                 ramAccounting,
+                memoryManager,
                 keyInputs.get(0),
                 key.valueType(),
                 indexVersionCreated
@@ -87,6 +90,7 @@ public class GroupingProjector implements Projector {
                 inputs,
                 filters,
                 ramAccounting,
+                memoryManager,
                 keyInputs,
                 typeView(keys),
                 indexVersionCreated
