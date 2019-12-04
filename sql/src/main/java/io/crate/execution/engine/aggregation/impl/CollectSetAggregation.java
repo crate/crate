@@ -23,7 +23,6 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
@@ -34,6 +33,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UncheckedObjectType;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
@@ -95,7 +95,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         if (state.put(value, PRESENT) == null) {
             ramAccounting.addBytes(
                 // values size + 32 bytes for entry, 4 bytes for increased capacity
-                RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 36L)
+                RamUsageEstimator.alignObjectSize(innerTypeEstimator.estimateSize(value) + 36L)
             );
         }
         return state;
@@ -105,7 +105,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     @Override
     public Map<Object, Object> newState(RamAccounting ramAccounting,
                                         Version indexVersionCreated) {
-        ramAccounting.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
+        ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
         return new HashMap<>();
     }
 
@@ -122,7 +122,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
             if (state1.put(newValue, PRESENT) == null) {
                 ramAccounting.addBytes(
                     // value size + 32 bytes for entry + 4 bytes for increased capacity
-                    RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(newValue) + 36L)
+                    RamUsageEstimator.alignObjectSize(innerTypeEstimator.estimateSize(newValue) + 36L)
                 );
             }
         }
@@ -168,7 +168,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         @Override
         public Map<Object, Long> newState(RamAccounting ramAccounting,
                                           Version indexVersionCreated) {
-            ramAccounting.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
+            ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
             return new HashMap<>();
         }
 
@@ -194,7 +194,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                     ramAccountingContext.addBytes(
                         // values size + 32 bytes for entry, 4 bytes for increased capacity, 8 bytes for the new array
                         // instance and 4 for the occurrence count we store
-                        RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 48L)
+                        RamUsageEstimator.alignObjectSize(innerTypeEstimator.estimateSize(value) + 48L)
                     );
                     return occurrenceIncrement;
                 } else {
@@ -225,7 +225,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                 ramAccounting.addBytes(
                     // we initially accounted for values size + 32 bytes for entry, 4 bytes for increased capacity
                     // and 12 bytes for the array container and the int value it stored
-                    -RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 48L)
+                    - RamUsageEstimator.alignObjectSize(innerTypeEstimator.estimateSize(value) + 48L)
                 );
             } else {
                 previousAggState.put(value, numTimesValueSeen - 1);

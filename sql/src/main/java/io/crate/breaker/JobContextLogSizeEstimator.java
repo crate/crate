@@ -23,6 +23,7 @@
 package io.crate.breaker;
 
 import io.crate.expression.reference.sys.job.JobContextLog;
+import org.apache.lucene.util.RamUsageEstimator;
 
 import javax.annotation.Nullable;
 
@@ -39,6 +40,6 @@ public class JobContextLogSizeEstimator extends SizeEstimator<JobContextLog> {
         size += 52L; // 24 bytes (ref+headers) + 4 bytes (id) + 8 bytes (started) + 16 bytes (uuid)
         size += value.statement().length();
 
-        return RamAccountingContext.roundUp(size);
+        return RamUsageEstimator.alignObjectSize(size);
     }
 }
