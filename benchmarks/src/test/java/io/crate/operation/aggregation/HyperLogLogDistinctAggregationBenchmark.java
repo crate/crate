@@ -35,10 +35,11 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
+import io.netty.buffer.Unpooled;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
+import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -71,7 +72,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
 
     @Setup
     public void setUp() throws Exception {
-        hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION);
+        hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, capacity -> Unpooled.wrappedBuffer(new byte[capacity]));
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
         Functions functions = new ModulesBuilder()
             .add(new EnterpriseFunctionsModule())
