@@ -281,6 +281,16 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_optimize_for_in_subquery_only_operates_on_primitive_types() {
+        LogicalPlan plan = plan("select array(select {a = x} from t1)");
+        assertThat(plan.dependencies().entrySet().size(), is(1));
+        LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
+        assertThat(subPlan, isPlan("RootBoundary[_map('a', x)]\n" +
+                                   "FetchOrEval[_map('a', x)]\n" +
+                                   "Collect[doc.t1 | [_fetchid] | All]\n"));
+    }
+
+    @Test
     public void testParentQueryIsPushedDownAndMergedIntoSubRelationWhereClause() {
         LogicalPlan plan = plan("select * from " +
                                 " (select a, i from t1 order by a limit 5) t1 " +

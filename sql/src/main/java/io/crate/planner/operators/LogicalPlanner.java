@@ -86,6 +86,7 @@ import io.crate.planner.optimizer.rule.RewriteCollectToGet;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.statistics.TableStats;
+import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 
 import java.util.Collection;
@@ -194,9 +195,10 @@ public class LogicalPlanner {
     private LogicalPlan.Builder tryOptimizeForInSubquery(SelectSymbol selectSymbol, AnalyzedRelation relation, LogicalPlan.Builder planBuilder) {
         if (selectSymbol.getResultType() == SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES) {
             OrderBy relationOrderBy = relation.orderBy();
-            if (relationOrderBy == null ||
-                relationOrderBy.orderBySymbols().get(0).equals(relation.outputs().get(0)) == false) {
-                return Order.create(planBuilder, new OrderBy(relation.outputs()));
+            Symbol firstOutput = relation.outputs().get(0);
+            if ((relationOrderBy == null || relationOrderBy.orderBySymbols().get(0).equals(firstOutput) == false)
+                && DataTypes.PRIMITIVE_TYPES.contains(firstOutput.valueType())) {
+                return Order.create(planBuilder, new OrderBy(Collections.singletonList(firstOutput)));
             }
         }
         return planBuilder;
