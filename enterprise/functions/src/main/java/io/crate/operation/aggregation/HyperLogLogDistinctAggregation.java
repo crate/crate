@@ -45,7 +45,7 @@ import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
+import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

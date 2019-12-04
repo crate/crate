@@ -30,7 +30,7 @@ import io.crate.types.IntegerType;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
+import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import org.junit.Before;
 import org.junit.Test;
 
