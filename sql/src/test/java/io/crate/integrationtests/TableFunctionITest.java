@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -146,6 +147,10 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
             is("fo| [1, 2, 3]\n"));
     }
 
+    /**
+     * Column types are NOT available when using JDBC
+     */
+    @UseJdbc(0)
     @Test
     public void test_unnest_used_in_select_list_with_multi_dimensional_array_has_correct_return_type() {
         execute("select unnest([[1, 2, 3], [1, 2]]) as x");
