@@ -53,6 +53,9 @@ Breaking Changes
   to use ``PgPoint``. (See `Geometric DataTypes in JDBC
   <https://jdbc.postgresql.org/documentation/head/geometric.html>`_)
 
+- Changed the behavior of ``unnest`` to fully unnest multi dimensional arrays
+  to their innermost type to be compatible with PostgreSQL.
+
 Deprecations
 ============
 
@@ -233,6 +236,3 @@ Fixes
 
 - Improved performance of snapshot finalization as https://github.com/crate/crate/pull/9327
   introduced a performance regression on the snapshot process.
-
-- Fixed a ``ClassCastException`` that could occur when using ``unnest`` on
-  multi dimensional arrays.
