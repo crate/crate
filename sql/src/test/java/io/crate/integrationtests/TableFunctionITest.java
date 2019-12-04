@@ -22,6 +22,8 @@
 
 package io.crate.integrationtests;
 
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -142,5 +144,16 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
         execute("select * from substr('foo',1,2), array_cat([1], [2, 3])");
         assertThat(printedTable(response.rows()),
             is("fo| [1, 2, 3]\n"));
+    }
+
+    @Test
+    public void test_unnest_used_in_select_list_with_multi_dimensional_array_has_correct_return_type() {
+        execute("select unnest([[1, 2, 3], [1, 2]]) as x");
+        assertThat(response.columnTypes()[0], is(new ArrayType(DataTypes.LONG)));
+        assertThat(
+            printedTable(response.rows()),
+            is("[1, 2, 3]\n" +
+               "[1, 2]\n")
+        );
     }
 }
