@@ -57,28 +57,4 @@ public class UnnestFunctionTest extends AbstractTableFunctionsTest {
             "NULL| 1\n" +
             "NULL| NULL\n");
     }
-
-    @Test
-    public void test_unnest_flattens_multi_dimensional_arrays() {
-        assertExecute(
-            "unnest([[1, 2], [3, 4, 5]])",
-            "1\n" +
-            "2\n" +
-            "3\n" +
-            "4\n" +
-            "5\n"
-        );
-    }
-
-    @Test
-    public void test_unnest_1st_col_multi_dim_array_and_2nd_col_array() {
-        assertExecute(
-            "unnest([[1, 2], [3, 4, 5]], ['a', 'b'])",
-            "1| a\n" +
-            "2| b\n" +
-            "3| NULL\n" +
-            "4| NULL\n" +
-            "5| NULL\n"
-        );
-    }
 }

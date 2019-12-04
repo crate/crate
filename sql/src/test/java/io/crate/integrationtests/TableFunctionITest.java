@@ -99,11 +99,8 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUnnestUsedInSelectList() {
-        execute("select unnest(col1) * 2, col2 from (select [1, 2, 3, 4], 'foo') tbl (col1, col2) order by 1 desc limit 2");
-        assertThat(
-            printedTable(response.rows()),
-            is("8| foo\n6| foo\n")
-        );
+        execute("select unnest(col1) * 2, col2 from unnest([[1, 2, 3, 4]], ['foo']) order by 1 desc limit 2");
+        assertThat(printedTable(response.rows()), is("8| foo\n6| foo\n"));
     }
 
     @Test
