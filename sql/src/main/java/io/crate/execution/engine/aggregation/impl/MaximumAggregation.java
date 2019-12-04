@@ -26,6 +26,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -68,7 +69,8 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         @Nullable
         @Override
         public Comparable newState(RamAccounting ramAccounting,
-                                   Version indexVersionCreated) {
+                                   Version indexVersionCreated,
+                                   MemoryManager memoryManager) {
             ramAccounting.addBytes(size);
             return null;
         }
@@ -100,7 +102,8 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         @Nullable
         @Override
         public Comparable newState(RamAccounting ramAccounting,
-                                   Version indexVersionCreated) {
+                                   Version indexVersionCreated,
+                                   MemoryManager memoryManager) {
             return null;
         }
 
@@ -138,7 +141,10 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
     }
 
     @Override
-    public Comparable iterate(RamAccounting ramAccounting, Comparable state, Input... args) throws CircuitBreakingException {
+    public Comparable iterate(RamAccounting ramAccounting,
+                              MemoryManager memoryManager,
+                              Comparable state,
+                              Input... args) throws CircuitBreakingException {
         Object value = args[0].value();
         return reduce(ramAccounting, state, (Comparable) value);
     }

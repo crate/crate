@@ -119,6 +119,7 @@ public abstract class ShardCollectorProvider {
             collectPhase.jobId(),
             collectTask.txnCtx(),
             collectTask.getRamAccounting(),
+            collectTask.memoryManager(),
             projectorFactory,
             iterator
         );

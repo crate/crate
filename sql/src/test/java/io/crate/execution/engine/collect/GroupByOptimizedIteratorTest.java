@@ -30,6 +30,7 @@ import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.BatchIteratorTester;
@@ -111,6 +112,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
                 Collections.emptyList(),
                 Collections.singletonList(inExpr),
                 new RamAccountingContext("group", new NoopCircuitBreaker("test")),
+                new OnHeapMemoryManager(usedBytes -> {}),
                 new InputRow(Collections.singletonList(inExpr)),
                 new MatchAllDocsQuery(),
                 new CollectorContext(mappedFieldType -> null),

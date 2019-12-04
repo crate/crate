@@ -26,6 +26,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.exceptions.CircuitBreakingException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.ArrayType;
@@ -70,12 +71,16 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     @Nullable
     @Override
     public TDigestState newState(RamAccounting ramAccounting,
-                                 Version indexVersionCreated) {
+                                 Version indexVersionCreated,
+                                 MemoryManager memoryManager) {
         return TDigestState.createEmptyState();
     }
 
     @Override
-    public TDigestState iterate(RamAccounting ramAccounting, TDigestState state, Input... args) throws CircuitBreakingException {
+    public TDigestState iterate(RamAccounting ramAccounting,
+                                MemoryManager memoryManager,
+                                TDigestState state,
+                                Input... args) throws CircuitBreakingException {
         if (state.isEmpty()) {
             Object fractionValue = args[1].value();
             initState(state, fractionValue);

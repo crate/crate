@@ -33,6 +33,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
@@ -62,10 +63,12 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
     private RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext
         ("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
     private ProjectionToProjectorVisitor projectorFactory;
+    private OnHeapMemoryManager memoryManager;
 
     @Before
     public void prepare() throws Exception {
         Functions functions = getFunctions();
+        memoryManager = new OnHeapMemoryManager(bytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             new NodeJobsCounter(),
@@ -99,6 +102,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
             UUID.randomUUID(),
             CoordinatorTxnCtx.systemTransactionContext(),
             RAM_ACCOUNTING_CONTEXT,
+            memoryManager,
             projectorFactory
         );
 

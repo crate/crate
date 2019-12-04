@@ -899,6 +899,28 @@ Recovery
   <indices.recovery.max_bytes_per_sec>`, but is CPU-bound instead, typically
   when using transport-level security or compression.
 
+Memory management
+-----------------
+
+**memory.allocation.type**
+  | *Default:*  ``on-heap``
+  | *Runtime:*  ``yes``
+
+
+Supported values are ``on-heap`` and ``off-heap``. This influences if memory is
+preferably allocated in the heap space or in the off-heap/direct memory region.
+
+
+Setting this to ``off-heap`` doesn't imply that the heap won't be used anymore.
+Most allocations will still happen in the heap space but some operations will
+be allowed to utilize off heap buffers.
+
+
+.. warning::
+
+    Using ``off-heap`` is considered **experimental**.
+
+
 Query circuit breaker
 ---------------------
 

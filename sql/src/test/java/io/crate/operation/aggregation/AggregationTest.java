@@ -31,6 +31,8 @@ import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.memory.MemoryManager;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
@@ -54,10 +56,12 @@ public abstract class AggregationTest extends CrateUnitTest {
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     protected Functions functions;
+    protected MemoryManager memoryManager;
 
     @Before
     public void prepare() throws Exception {
         functions = getFunctions();
+        memoryManager = new OnHeapMemoryManager(ramAccountingContext::addBytes);
     }
 
     public Object executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
@@ -83,16 +87,16 @@ public abstract class AggregationTest extends CrateUnitTest {
         }
         AggregationFunction impl = (AggregationFunction) functions.getQualified(fi);
         List<Object> states = new ArrayList<>();
-        states.add(impl.newState(ramAccountingContext, Version.CURRENT));
+        states.add(impl.newState(ramAccountingContext, Version.CURRENT, memoryManager));
         for (Row row : new ArrayBucket(data)) {
             for (InputCollectExpression input : inputs) {
                 input.setNextRow(row);
             }
             if (randomIntBetween(1, 4) == 1) {
-                states.add(impl.newState(ramAccountingContext, Version.CURRENT));
+                states.add(impl.newState(ramAccountingContext, Version.CURRENT, memoryManager));
             }
             int idx = states.size() - 1;
-            states.set(idx, impl.iterate(ramAccountingContext, states.get(idx), inputs));
+            states.set(idx, impl.iterate(ramAccountingContext, memoryManager, states.get(idx), inputs));
         }
         Object state = states.get(0);
         for (int i = 1; i < states.size(); i++) {

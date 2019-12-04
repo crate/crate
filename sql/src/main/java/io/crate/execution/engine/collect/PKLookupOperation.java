@@ -36,6 +36,7 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.pipeline.Projectors;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
 import org.apache.lucene.index.Term;
@@ -153,6 +154,7 @@ public final class PKLookupOperation {
     public void runWithShardProjections(UUID jobId,
                                         TransactionContext txnCtx,
                                         RamAccountingContext ramAccountingContext,
+                                        MemoryManager memoryManager,
                                         boolean ignoreMissing,
                                         Map<ShardId, List<PKAndVersion>> idsByShard,
                                         Collection<? extends Projection> projections,
@@ -200,7 +202,7 @@ public final class PKLookupOperation {
                 .map(resultToRow);
 
             Projectors projectors = new Projectors(
-                projections, jobId, txnCtx, ramAccountingContext, shardAndIds.projectorFactory);
+                projections, jobId, txnCtx, ramAccountingContext, memoryManager, shardAndIds.projectorFactory);
             final Iterable<Row> rowIterable;
             if (nodeConsumer.requiresScroll() && !projectors.providesIndependentScroll()) {
                 rowIterable = rowStream.map(row -> new RowN(row.materialize())).collect(Collectors.toList());

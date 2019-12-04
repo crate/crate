@@ -43,6 +43,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
@@ -89,6 +90,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
     private Functions functions;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private InputFactory inputFactory;
+    private OnHeapMemoryManager memoryManager;
 
     public AbstractWindowFunctionTest(AbstractModule... additionalModules) {
         this.additionalModules = additionalModules;
@@ -103,6 +105,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
             clusterService);
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableName), tableRelation);
+        memoryManager = new OnHeapMemoryManager(bytes -> {});
         sqlExpressions = new SqlExpressions(tableSources, tableRelation,
             null, User.CRATE_USER, additionalModules);
         functions = sqlExpressions.functions();
@@ -147,7 +150,8 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
                 (AggregationFunction) impl,
                 new ExpressionsInput<>(Literal.BOOLEAN_TRUE, List.of()),
                 Version.CURRENT,
-                RAM_ACCOUNTING_CONTEXT
+                RAM_ACCOUNTING_CONTEXT,
+                memoryManager
             );
         } else {
             windowFunctionImpl = (WindowFunction) impl;

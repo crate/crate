@@ -20,24 +20,27 @@
  * agreement.
  */
 
-package io.crate.execution.engine.pipeline;
+package io.crate.memory;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Projector;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.memory.MemoryManager;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
+import io.netty.buffer.ByteBuf;
 
-import java.util.UUID;
+/**
+ * Instances of this interface can be used to allocate `ByteBuf` instances.
+ *
+ * <ul>
+ *     <li>Components that create a MemoryManager are responsible for closing it</li>
+ *     <li>Components that use a MemoryManager to allocate ByteBuf instances MUST NOT release them.
+ *     The MemoryManager is responsible for releasing the ByteBuf instances it creates</li>
+ *  </ul>
+ */
+public interface MemoryManager extends AutoCloseable {
 
-public interface ProjectorFactory {
+    /**
+     * @return a new ByteBuf with the given capacity.
+     *         Consumers of this ByteBuf MUST NOT release them and MUST NOT account for the used memory.
+     */
+    ByteBuf allocate(int capacity);
 
-    Projector create(Projection projection,
-                     TransactionContext txnCtx,
-                     RamAccounting ramAccounting,
-                     MemoryManager memoryManager,
-                     UUID jobId);
-
-    RowGranularity supportedGranularity();
+    @Override
+    void close();
 }

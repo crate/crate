@@ -30,6 +30,7 @@ import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -68,9 +69,11 @@ public class AggregateCollectorBenchmark {
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
         SumAggregation sumAggregation = ((SumAggregation) getFunctions().getQualified(
             new FunctionIdent(SumAggregation.NAME, Collections.singletonList(DataTypes.INTEGER))));
+        var memoryManager = new OnHeapMemoryManager(bytes -> {});
         collector = new AggregateCollector(
             Collections.singletonList(inExpr0),
             RAM_ACCOUNTING_CONTEXT,
+            memoryManager,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { sumAggregation },
             Version.CURRENT,

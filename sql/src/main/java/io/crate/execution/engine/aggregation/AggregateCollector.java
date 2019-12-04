@@ -29,6 +29,7 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.memory.MemoryManager;
 import org.elasticsearch.Version;
 
 import java.util.Collections;
@@ -47,6 +48,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
 
     private final List<? extends CollectExpression<Row, ?>> expressions;
     private final RamAccounting ramAccounting;
+    private final MemoryManager memoryManager;
     private final AggregationFunction[] aggregations;
     private final Version indexVersionCreated;
     private final Input<Boolean>[] filters;
@@ -56,6 +58,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
 
     public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
                               RamAccounting ramAccounting,
+                              MemoryManager memoryManager,
                               AggregateMode mode,
                               AggregationFunction[] aggregations,
                               Version indexVersionCreated,
@@ -63,6 +66,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
                               Input<Boolean>[] filters) {
         this.expressions = expressions;
         this.ramAccounting = ramAccounting;
+        this.memoryManager = memoryManager;
         this.aggregations = aggregations;
         this.indexVersionCreated = indexVersionCreated;
         this.filters = filters;
@@ -118,7 +122,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private Object[] prepareState() {
         Object[] states = new Object[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
-            states[i] = aggregations[i].newState(ramAccounting, indexVersionCreated);
+            states[i] = aggregations[i].newState(ramAccounting, indexVersionCreated, memoryManager);
         }
         return states;
     }
@@ -127,7 +131,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
         setRow(row);
         for (int i = 0; i < aggregations.length; i++) {
             if (InputCondition.matches(filters[i])) {
-                state[i] = aggregations[i].iterate(ramAccounting, state[i], inputs[i]);
+                state[i] = aggregations[i].iterate(ramAccounting, memoryManager, state[i], inputs[i]);
             }
         }
     }

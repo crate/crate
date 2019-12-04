@@ -92,11 +92,11 @@ applied cluster settings.
 ::
 
     cr> select settings from sys.cluster;
-    +-----------------------------------------------------------------------------------------------------------------------------------...-+
-    | settings                                                                                                                              |
-    +-----------------------------------------------------------------------------------------------------------------------------------...-+
-    | {"bulk": {...}, "cluster": {...}, "discovery": {...}, "gateway": {...}, "indices": {...}, "logger": [], "stats": {...}, "udc": {...}} |
-    +-----------------------------------------------------------------------------------------------------------------------------------...-+
+    +-------------------------------------------------------...-+
+    | settings                                                  |
+    +-------------------------------------------------------...-+
+    | {"bulk": {...}, "cluster": {...}, "discovery": {...}, ... |
+    +-------------------------------------------------------...-+
     SELECT 1 row in set (... sec)
 
 ::
@@ -183,6 +183,9 @@ applied cluster settings.
     | settings['logger']                                                                | object_array     |
     | settings['logger']['level']                                                       | text             |
     | settings['logger']['name']                                                        | text             |
+    | settings['memory']                                                                | object           |
+    | settings['memory']['allocation']                                                  | object           |
+    | settings['memory']['allocation']['type']                                          | text             |
     | settings['stats']                                                                 | object           |
     | settings['stats']['breaker']                                                      | object           |
     | settings['stats']['breaker']['log']                                               | object           |

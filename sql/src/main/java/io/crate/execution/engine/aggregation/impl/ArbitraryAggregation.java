@@ -26,6 +26,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -68,12 +69,15 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     @Nullable
     @Override
     public Object newState(RamAccounting ramAccounting,
-                           Version indexVersionCreated) {
+                           Version indexVersionCreated, MemoryManager memoryManager) {
         return null;
     }
 
     @Override
-    public Object iterate(RamAccounting ramAccounting, Object state, Input... args) {
+    public Object iterate(RamAccounting ramAccounting,
+                          MemoryManager memoryManager,
+                          Object state,
+                          Input... args) {
         return reduce(ramAccounting, state, args[0].value());
     }
 

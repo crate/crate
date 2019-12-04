@@ -134,7 +134,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
     @Test
     public void testStreaming() throws Exception {
         HyperLogLogDistinctAggregation.HllState hllState1 = new HyperLogLogDistinctAggregation.HllState(DataTypes.IP);
-        hllState1.init(HyperLogLogPlusPlus.DEFAULT_PRECISION);
+        hllState1.init(memoryManager, HyperLogLogPlusPlus.DEFAULT_PRECISION);
         BytesStreamOutput out = new BytesStreamOutput();
         Streamer streamer = HyperLogLogDistinctAggregation.HllStateType.INSTANCE.streamer();
         streamer.writeValueTo(out, hllState1);

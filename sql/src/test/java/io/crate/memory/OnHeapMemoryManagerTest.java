@@ -20,24 +20,28 @@
  * agreement.
  */
 
-package io.crate.execution.engine.pipeline;
+package io.crate.memory;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Projector;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.memory.MemoryManager;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
+import io.netty.buffer.ByteBuf;
+import org.junit.Test;
 
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
-public interface ProjectorFactory {
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.*;
 
-    Projector create(Projection projection,
-                     TransactionContext txnCtx,
-                     RamAccounting ramAccounting,
-                     MemoryManager memoryManager,
-                     UUID jobId);
+public class OnHeapMemoryManagerTest {
 
-    RowGranularity supportedGranularity();
+    @Test
+    public void test_allocated_bytebuffers_are_accounted() {
+        var bytes = new AtomicLong();
+        var memoryManager = new OnHeapMemoryManager(bytes::addAndGet);
+
+        memoryManager.allocate(20);
+        assertThat(bytes.get(), is(20L));
+
+        // Closing the memoryManager doesn't de-account the bytes. That responsibility is delegated to the IntConsumer
+        memoryManager.close();
+        assertThat(bytes.get(), is(20L));
+    }
 }

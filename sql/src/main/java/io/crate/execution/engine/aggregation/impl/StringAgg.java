@@ -27,6 +27,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.breaker.StringSizeEstimator;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
@@ -131,12 +132,16 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
 
     @Override
     public StringAggState newState(RamAccounting ramAccounting,
-                                   Version indexVersionCreated) {
+                                   Version indexVersionCreated,
+                                   MemoryManager memoryManager) {
         return new StringAggState();
     }
 
     @Override
-    public StringAggState iterate(RamAccounting ramAccounting, StringAggState state, Input... args) throws CircuitBreakingException {
+    public StringAggState iterate(RamAccounting ramAccounting,
+                                  MemoryManager memoryManager,
+                                  StringAggState state,
+                                  Input... args) throws CircuitBreakingException {
         String expression = (String) args[0].value();
         if (expression == null) {
             return state;

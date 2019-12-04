@@ -82,6 +82,8 @@ import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.memory.MemoryManager;
+import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TransactionContext;
@@ -128,6 +130,7 @@ public class JobSetup {
     private final ClusterService clusterService;
     private final CrateCircuitBreakerService circuitBreakerService;
     private final CountOperation countOperation;
+    private final MemoryManagerFactory memoryManagerFactory;
     private final DistributingConsumerFactory distributingConsumerFactory;
     private final InnerPreparer innerPreparer;
     private final InputFactory inputFactory;
@@ -150,12 +153,14 @@ public class JobSetup {
                     Functions functions,
                     PageCacheRecycler pageCacheRecycler,
                     SystemCollectSource systemCollectSource,
-                    ShardCollectSource shardCollectSource) {
+                    ShardCollectSource shardCollectSource,
+                    MemoryManagerFactory memoryManagerFactory) {
         this.nodeName = Node.NODE_NAME_SETTING.get(settings);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.circuitBreakerService = circuitBreakerService;
         this.countOperation = countOperation;
+        this.memoryManagerFactory = memoryManagerFactory;
         this.pkLookupOperation = new PKLookupOperation(indicesService, shardCollectSource);
         this.distributingConsumerFactory = distributingConsumerFactory;
         innerPreparer = new InnerPreparer();
@@ -593,12 +598,16 @@ public class JobSetup {
             Collection<? extends Projection> nodeProjections = nodeProjections(pkLookupPhase.projections());
 
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), pkLookupPhase);
+            RowConsumer lastConsumer = context.getRowConsumer(pkLookupPhase, 0);
+            MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
+            lastConsumer.completionFuture().whenComplete((result, error) -> memoryManager.close());
             RowConsumer nodeRowConsumer = ProjectingRowConsumer.create(
-                context.getRowConsumer(pkLookupPhase, 0),
+                lastConsumer,
                 nodeProjections,
                 pkLookupPhase.jobId(),
                 context.txnCtx(),
                 ramAccountingContext,
+                memoryManager,
                 projectorFactory
             );
             context.registerSubContext(new PKLookupTask(
@@ -606,6 +615,7 @@ public class JobSetup {
                 pkLookupPhase.phaseId(),
                 pkLookupPhase.name(),
                 ramAccountingContext,
+                memoryManager,
                 context.transactionContext,
                 inputFactory,
                 pkLookupOperation,
@@ -626,7 +636,8 @@ public class JobSetup {
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
             RowConsumer consumer = context.getRowConsumer(phase, pageSize);
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
-
+            MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
+            consumer.completionFuture().whenComplete((result, error) -> memoryManager.close());
 
             if (upstreamOnSameNode && phase.numInputs() == 1) {
                 consumer = ProjectingRowConsumer.create(
@@ -635,6 +646,7 @@ public class JobSetup {
                     phase.jobId(),
                     context.txnCtx(),
                     ramAccountingContext,
+                    memoryManager,
                     projectorFactory
                 );
                 context.registerBatchConsumer(phase.phaseId(), consumer);
@@ -651,15 +663,24 @@ public class JobSetup {
                     GroupProjection groupProjection = (GroupProjection) firstProjection;
 
                     GroupingProjector groupingProjector = (GroupingProjector) projectorFactory.create(
-                        groupProjection, context.txnCtx(), ramAccountingContext, phase.jobId());
+                        groupProjection,
+                        context.txnCtx(),
+                        ramAccountingContext,
+                        memoryManager,
+                        phase.jobId()
+                    );
                     collector = groupingProjector.getCollector();
                     projections = projections.subList(1, projections.size());
                 } else if (firstProjection instanceof AggregationProjection) {
                     AggregationProjection aggregationProjection = (AggregationProjection) firstProjection;
 
                     AggregationPipe aggregationPipe = (AggregationPipe) projectorFactory.create(
-                        aggregationProjection, context.txnCtx(), ramAccountingContext, phase.jobId());
-
+                        aggregationProjection,
+                        context.txnCtx(),
+                        ramAccountingContext,
+                        memoryManager,
+                        phase.jobId()
+                    );
                     collector = aggregationPipe.getCollector();
                     projections = projections.subList(1, projections.size());
                 }
@@ -671,6 +692,7 @@ public class JobSetup {
                 phase.jobId(),
                 context.txnCtx(),
                 ramAccountingContext,
+                memoryManager,
                 projectorFactory
             );
 
@@ -725,6 +747,7 @@ public class JobSetup {
                 context.txnCtx(),
                 collectOperation,
                 ramAccountingContext,
+                memoryManagerFactory,
                 consumer,
                 context.sharedShardContexts
             ));
@@ -740,6 +763,7 @@ public class JobSetup {
                 context.txnCtx(),
                 collectOperation,
                 ramAccountingContext,
+                memoryManagerFactory,
                 consumer,
                 context.sharedShardContexts
             ));
@@ -779,9 +803,17 @@ public class JobSetup {
         public Boolean visitNestedLoopPhase(NestedLoopPhase phase, Context context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
             RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
-
+            MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
+            lastConsumer.completionFuture().whenComplete((result, error) -> memoryManager.close());
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
-                lastConsumer, phase.projections(), phase.jobId(), context.txnCtx(), ramAccountingContext, projectorFactory);
+                lastConsumer,
+                phase.projections(),
+                phase.jobId(),
+                context.txnCtx(),
+                ramAccountingContext,
+                memoryManager,
+                projectorFactory
+            );
             Predicate<Row> joinCondition = RowFilter.create(context.transactionContext, inputFactory, phase.joinCondition());
 
             NestedLoopOperation joinOperation = new NestedLoopOperation(
@@ -803,7 +835,9 @@ public class JobSetup {
                 (byte) 0,
                 phase.leftMergePhase(),
                 joinOperation.leftConsumer(),
-                ramAccountingContext);
+                ramAccountingContext,
+                memoryManager
+            );
 
             if (left != null) {
                 context.registerSubContext(left);
@@ -815,7 +849,8 @@ public class JobSetup {
                 (byte) 1,
                 phase.rightMergePhase(),
                 joinOperation.rightConsumer(),
-                ramAccountingContext
+                ramAccountingContext,
+                memoryManager
             );
             if (right != null) {
                 context.registerSubContext(right);
@@ -833,9 +868,18 @@ public class JobSetup {
         public Boolean visitHashJoinPhase(HashJoinPhase phase, Context context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
             RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
+            MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
+            lastConsumer.completionFuture().whenComplete((result, error) -> memoryManager.close());
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
-                lastConsumer, phase.projections(), phase.jobId(), context.txnCtx(), ramAccountingContext, projectorFactory);
+                lastConsumer,
+                phase.projections(),
+                phase.jobId(),
+                context.txnCtx(),
+                ramAccountingContext,
+                memoryManager,
+                projectorFactory
+            );
             Predicate<Row> joinCondition = RowFilter.create(context.transactionContext, inputFactory, phase.joinCondition());
 
             HashJoinOperation joinOperation = new HashJoinOperation(
@@ -861,7 +905,9 @@ public class JobSetup {
                 (byte) 0,
                 phase.leftMergePhase(),
                 joinOperation.leftConsumer(),
-                ramAccountingContext);
+                ramAccountingContext,
+                memoryManager
+            );
             if (left != null) {
                 context.registerSubContext(left);
             }
@@ -871,7 +917,8 @@ public class JobSetup {
                 (byte) 1,
                 phase.rightMergePhase(),
                 joinOperation.rightConsumer(),
-                ramAccountingContext
+                ramAccountingContext,
+                memoryManager
             );
             if (right != null) {
                 context.registerSubContext(right);
@@ -891,7 +938,8 @@ public class JobSetup {
                                                                     byte inputId,
                                                                     @Nullable MergePhase mergePhase,
                                                                     RowConsumer rowConsumer,
-                                                                    RamAccountingContext ramAccountingContext) {
+                                                                    RamAccountingContext ramAccountingContext,
+                                                                    MemoryManager memoryManager) {
             if (mergePhase == null) {
                 ctx.consumersByPhaseInputId.put(toKey(nlPhaseId, inputId), rowConsumer);
                 return null;
@@ -905,6 +953,7 @@ public class JobSetup {
                     mergePhase.jobId(),
                     ctx.txnCtx(),
                     ramAccountingContext,
+                    memoryManager,
                     projectorFactory
                 );
             }

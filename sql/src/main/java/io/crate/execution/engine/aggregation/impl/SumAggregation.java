@@ -25,6 +25,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
@@ -85,13 +86,15 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     @Nullable
     @Override
-    public T newState(RamAccounting ramAccounting, Version indexVersionCreated) {
+    public T newState(RamAccounting ramAccounting,
+                      Version indexVersionCreated,
+                      MemoryManager memoryManager) {
         ramAccounting.addBytes(bytesSize);
         return null;
     }
 
     @Override
-    public T iterate(RamAccounting ramAccounting, T state, Input[] args) throws CircuitBreakingException {
+    public T iterate(RamAccounting ramAccounting, MemoryManager memoryManager, T state, Input[] args) throws CircuitBreakingException {
         return reduce(ramAccounting, state, returnType.value(args[0].value()));
     }
 

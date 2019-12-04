@@ -27,6 +27,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.statistics.StandardDeviation;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
@@ -120,13 +121,17 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     @Nullable
     @Override
     public StandardDeviation newState(RamAccounting ramAccounting,
-                                      Version indexVersionCreated) {
+                                      Version indexVersionCreated,
+                                      MemoryManager memoryManager) {
         ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
         return new StandardDeviation();
     }
 
     @Override
-    public StandardDeviation iterate(RamAccounting ramAccounting, StandardDeviation state, Input... args) throws CircuitBreakingException {
+    public StandardDeviation iterate(RamAccounting ramAccounting,
+                                     MemoryManager memoryManager,
+                                     StandardDeviation state,
+                                     Input... args) throws CircuitBreakingException {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {

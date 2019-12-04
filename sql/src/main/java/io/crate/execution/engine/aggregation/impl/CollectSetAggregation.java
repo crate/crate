@@ -27,6 +27,7 @@ import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.ArrayType;
@@ -86,6 +87,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
     @Override
     public Map<Object, Object> iterate(RamAccounting ramAccounting,
+                                       MemoryManager memoryManager,
                                        Map<Object, Object> state,
                                        Input... args) throws CircuitBreakingException {
         Object value = args[0].value();
@@ -104,7 +106,8 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     @Nullable
     @Override
     public Map<Object, Object> newState(RamAccounting ramAccounting,
-                                        Version indexVersionCreated) {
+                                        Version indexVersionCreated,
+                                        MemoryManager memoryManager) {
         ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
         return new HashMap<>();
     }
@@ -167,14 +170,15 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         @Nullable
         @Override
         public Map<Object, Long> newState(RamAccounting ramAccounting,
-                                          Version indexVersionCreated) {
+                                          Version indexVersionCreated,
+                                          MemoryManager memoryManager) {
             ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
             return new HashMap<>();
         }
 
         @Override
         public Map<Object, Long> iterate(RamAccounting ramAccounting,
-                                         Map<Object, Long> state,
+                                         MemoryManager memoryManager, Map<Object, Long> state,
                                          Input... args) throws CircuitBreakingException {
             Object value = args[0].value();
             if (value == null) {
