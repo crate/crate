@@ -831,7 +831,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t2 (x) values (1), (3), (3), (4), (4)");
         execute("refresh table t1, t2");
 
-        configureQueryCircuitBreakerForCluster(20L, 1.0d);
+        configureQueryCircuitBreakerForCluster(6 * 1024 * 1024, 1.0d);
         CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CrateCircuitBreakerService.class).getBreaker(CrateCircuitBreakerService.QUERY);
         randomiseAndConfigureJoinBlockSize("t1", 5L, queryCircuitBreaker);
         randomiseAndConfigureJoinBlockSize("t2", 5L, queryCircuitBreaker);
@@ -845,7 +845,6 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                    "2| 3\n"));
         } finally {
             configureQueryCircuitBreakerForCluster(queryCircuitBreaker.getLimit(), queryCircuitBreaker.getOverhead());
-            Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
             resetTableStats();
         }
     }
@@ -916,7 +915,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (x) values (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)");
         execute("refresh table t1");
 
-        configureQueryCircuitBreakerForCluster(40L, 1.0d);
+        configureQueryCircuitBreakerForCluster(6 * 1024 * 1024, 1.0d);
         CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CrateCircuitBreakerService.class).getBreaker(CrateCircuitBreakerService.QUERY);
         randomiseAndConfigureJoinBlockSize("t1", 10L, queryCircuitBreaker);
 

@@ -22,10 +22,10 @@
 package io.crate.breaker;
 
 import io.crate.execution.dsl.phases.ExecutionPhase;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,8 +47,7 @@ public class RamAccountingContext implements RamAccounting {
     private static final Logger LOGGER = LogManager.getLogger(RamAccountingContext.class);
 
     public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
-        String ramAccountingContextId = executionPhase.name() + ": " + executionPhase.phaseId();
-        return new RamAccountingContext(ramAccountingContextId, breaker);
+        return new RamAccountingContext(executionPhase.label(), breaker);
     }
 
     public RamAccountingContext(String contextId, CircuitBreaker breaker) {

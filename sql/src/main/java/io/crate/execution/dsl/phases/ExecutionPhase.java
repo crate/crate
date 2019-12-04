@@ -74,4 +74,8 @@ public interface ExecutionPhase extends Writeable {
     Collection<String> nodeIds();
 
     <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context);
+
+    default String label() {
+        return name() + ": " + phaseId();
+    }
 }

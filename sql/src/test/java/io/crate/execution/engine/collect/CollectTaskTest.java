@@ -21,26 +21,7 @@
 
 package io.crate.execution.engine.collect;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -52,6 +33,23 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.testing.TestingRowConsumer;
+import org.elasticsearch.Version;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class CollectTaskTest extends RandomizedTest {
 
@@ -77,7 +75,8 @@ public class CollectTaskTest extends RandomizedTest {
             ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
             new TestingRowConsumer(),
             mock(SharedShardContexts.class),
-            Version.CURRENT
+            Version.CURRENT,
+            4096
         );
     }
 
@@ -124,7 +123,8 @@ public class CollectTaskTest extends RandomizedTest {
             ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
             new TestingRowConsumer(),
             mock(SharedShardContexts.class),
-            Version.CURRENT
+            Version.CURRENT,
+            4096
         );
 
         jobCtx.addSearcher(1, mock1);

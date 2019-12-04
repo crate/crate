@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -35,7 +36,6 @@ import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -57,6 +57,7 @@ public class CollectTask extends AbstractTask {
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
     private final RowConsumer consumer;
+    private final int ramAccountingBlockSizeInBytes;
     private final ArrayList<MemoryManager> memoryManagers = new ArrayList<>();
     private final Version minNodeVersion;
 
@@ -70,7 +71,8 @@ public class CollectTask extends AbstractTask {
                        Function<RamAccounting, MemoryManager> memoryManagerFactory,
                        RowConsumer consumer,
                        SharedShardContexts sharedShardContexts,
-                       Version minNodeVersion) {
+                       Version minNodeVersion,
+                       int ramAccountingBlockSizeInBytes) {
         super(collectPhase.phaseId());
         this.collectPhase = collectPhase;
         this.txnCtx = txnCtx;
@@ -79,6 +81,7 @@ public class CollectTask extends AbstractTask {
         this.memoryManagerFactory = memoryManagerFactory;
         this.sharedShardContexts = sharedShardContexts;
         this.consumer = consumer;
+        this.ramAccountingBlockSizeInBytes = ramAccountingBlockSizeInBytes;
         this.consumer.completionFuture().whenComplete(closeOrKill(this));
         this.minNodeVersion = minNodeVersion;
     }
@@ -172,7 +175,9 @@ public class CollectTask extends AbstractTask {
     }
 
     public RamAccounting getRamAccounting() {
-        return ramAccounting;
+        // No tracking/close of BlockBasedRamAccounting
+        // to avoid double-release of bytes when the parent instance (`ramAccounting`) is closed.
+        return new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes);
     }
 
     public SharedShardContexts sharedShardContexts() {

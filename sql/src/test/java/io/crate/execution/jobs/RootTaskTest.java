@@ -143,7 +143,8 @@ public class RootTaskTest extends CrateUnitTest {
             ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
             new TestingRowConsumer(),
             mock(SharedShardContexts.class),
-            Version.CURRENT
+            Version.CURRENT,
+            4096
         );
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
 
