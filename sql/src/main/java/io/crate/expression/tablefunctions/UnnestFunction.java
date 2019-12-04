@@ -33,17 +33,18 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
@@ -202,7 +203,14 @@ public class UnnestFunction {
 
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                DataType returnType = dataTypes.size() == 1 ? CollectionType.unnest(dataTypes.get(0)) : ObjectType.untyped();
+                DataType<?> returnType;
+                if (dataTypes.size() == 1) {
+                    DataType<?> argType = dataTypes.get(0);
+                    assert argType instanceof ArrayType : "Arguments to unnest must be arrays due to FuncParams type signature";
+                    returnType = ((ArrayType) argType).innerType();
+                } else {
+                    returnType = ObjectType.untyped();
+                }
                 return new UnnestTableFunctionImplementation(
                     new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.TABLE));
             }
