@@ -225,9 +225,12 @@ public class AlterTableOperation {
                         analysis.tableParameter().settings(),
                         supportedSettings);
 
+                    // update possible existing partitions
                     String[] indices = Stream.of(table.concreteIndices()).toArray(String[]::new);
-                    results.add(updateMapping(analysis.tableParameter().mappings(), indices));
-                    results.add(updateSettings(parameterWithFilteredSettings, indices));
+                    if (indices.length > 0) {
+                        results.add(updateMapping(analysis.tableParameter().mappings(), indices));
+                        results.add(updateSettings(parameterWithFilteredSettings, indices));
+                    }
                 }
             }
         } else {
@@ -341,7 +344,7 @@ public class AlterTableOperation {
                                                " Use 'ALTER table ... set (\"blocks.write\"=true)' and retry");
         }
     }
-    
+
     private CompletableFuture<Long> resizeIndex(IndexMetaData sourceIndex,
                                                 @Nullable String sourceIndexAlias,
                                                 String targetIndexName,

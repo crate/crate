@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Fixed an issue which may result in an ``ArrayIndexOutOfBoundsException`` while
+  altering an empty partitioned table.
+
 - Fixed a regression introduced in ``2.3.2`` which optimizes subqueries when
   used inside multi-value producing functions and operators like ``IN()``,
   ``ANY()`` or ``ARRAY()`` by applying an implicit ordering. When using data
