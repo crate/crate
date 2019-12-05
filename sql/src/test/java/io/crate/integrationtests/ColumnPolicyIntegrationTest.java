@@ -517,6 +517,21 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into dynamic_table (id, score, new_col) values (2, 4656234.345, 'hello')");
     }
 
+    /**
+     * Ensures that altering an empty partitioned table will succeed.
+     * (We had a bug resulting in an OutOfBoundException as mapping request builder logic
+     * was called with an empty indices list)
+     */
+    @Test
+    public void testAlterEmptyPartitionedTable() {
+        execute("create table t1 (" +
+                "  id integer, " +
+                "  p int" +
+                ") partitioned by (p) with (number_of_replicas=0, column_policy='strict')");
+        // must not throw an exception
+        execute("alter table t1 set (column_policy = 'dynamic')");
+    }
+
     @Test
     public void testResetColumnPolicy() throws Exception {
         execute("create table dynamic_table (" +
