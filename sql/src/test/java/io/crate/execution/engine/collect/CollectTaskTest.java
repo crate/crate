@@ -103,7 +103,6 @@ public class CollectTaskTest extends RandomizedTest {
 
         verify(mock1, times(1)).close();
         verify(mock2, times(1)).close();
-        verify(ramAccountingContext, times(1)).close();
     }
 
     @Test
@@ -132,7 +131,9 @@ public class CollectTaskTest extends RandomizedTest {
 
         verify(batchIterator, times(1)).kill(any(JobKilledException.class));
         verify(mock1, times(1)).close();
-        verify(ramAccountingContext, times(1)).close();
+
+        // CollectTask receives the RamAccountingContext from outside and is not responsible for closing it
+        verify(ramAccountingContext, times(0)).close();
     }
 
     @Test

@@ -228,10 +228,5 @@ public class RowsBatchIteratorBenchmark {
         public void release() {
 
         }
-
-        @Override
-        public void close() {
-
-        }
     }
 }

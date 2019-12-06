@@ -71,10 +71,4 @@ public class RowAccountingWithEstimators implements RowAccounting<Row> {
     public void release() {
         ramAccounting.release();
     }
-
-    @Override
-    public void close() {
-        ramAccounting.close();
-    }
-
 }

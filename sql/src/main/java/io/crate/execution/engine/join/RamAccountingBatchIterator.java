@@ -27,8 +27,6 @@ import io.crate.data.BatchIterator;
 import io.crate.data.ForwardingBatchIterator;
 import io.crate.data.Row;
 
-import javax.annotation.Nonnull;
-
 /**
  * Wraps a {@link BatchIterator} and uses {@link io.crate.breaker.RamAccountingContext}
  * to apply the circuit breaking logic by calculating memory occupied for all rows of the iterator.
@@ -59,18 +57,6 @@ public class RamAccountingBatchIterator<T extends Row> extends ForwardingBatchIt
             rowAccounting.accountForAndMaybeBreak(delegateBatchIterator.currentElement());
         }
         return result;
-    }
-
-    @Override
-    public void close() {
-        rowAccounting.close();
-        super.close();
-    }
-
-    @Override
-    public void kill(@Nonnull Throwable throwable) {
-        rowAccounting.close();
-        super.kill(throwable);
     }
 
     /**
