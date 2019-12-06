@@ -600,7 +600,10 @@ public class JobSetup {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), pkLookupPhase);
             RowConsumer lastConsumer = context.getRowConsumer(pkLookupPhase, 0);
             MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
-            lastConsumer.completionFuture().whenComplete((result, error) -> memoryManager.close());
+            lastConsumer.completionFuture().whenComplete((result, error) -> {
+                memoryManager.close();
+                ramAccountingContext.close();
+            });
             RowConsumer nodeRowConsumer = ProjectingRowConsumer.create(
                 lastConsumer,
                 nodeProjections,
