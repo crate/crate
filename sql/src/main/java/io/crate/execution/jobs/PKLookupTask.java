@@ -110,6 +110,11 @@ public final class PKLookupTask extends AbstractTask {
         close();
     }
 
+    @Override
+    protected void innerClose() {
+        ramAccountingContext.close();
+    }
+
     private Row resultToRow(Doc getResult) {
         for (int i = 0; i < expressions.size(); i++) {
             expressions.get(i).setNextRow(getResult);

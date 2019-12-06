@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed a potential memory accounting leak for queries with ``WHERE`` clauses
+  on primary keys. This could lead to a node eventually rejecting all further
+  queries with a ``CircuitBreakingException``.
+
 - Improved snapshot error handling by assuring a snapshot is declared as failed
   when a shard or node failure happens during the snapshot process.
 
