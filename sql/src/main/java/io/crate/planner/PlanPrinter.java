@@ -35,6 +35,7 @@ import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.JoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
+import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.phases.UpstreamPhase;
 import io.crate.execution.dsl.projection.Projection;
@@ -43,6 +44,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -129,6 +131,22 @@ public final class PlanPrinter {
             if (orderBy != null) {
                 builder.put("orderBy", orderBy.explainRepresentation());
             }
+            return createMap(phase, builder);
+        }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitPKLookup(PKLookupPhase phase, Void context) {
+            ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
+            builder.put("toCollect", ExplainLeaf.printList(phase.toCollect()));
+            dqlPlanNode(phase, builder);
+            Map<String, List<String>> shardsByNode = new HashMap<>();
+            for (String nodeId : phase.nodeIds()) {
+                for (ShardId shardId : phase.getIdsByShardId(nodeId).keySet()) {
+                    List<String> shards = shardsByNode.computeIfAbsent(nodeId, k -> new ArrayList<>());
+                    shards.add(shardId.toString());
+                }
+            }
+            builder.put("shardsByNode", shardsByNode);
             return createMap(phase, builder);
         }
 
