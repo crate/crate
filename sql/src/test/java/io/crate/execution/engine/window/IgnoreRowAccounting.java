@@ -29,16 +29,9 @@ public class IgnoreRowAccounting implements RowAccounting<Row> {
 
     @Override
     public void accountForAndMaybeBreak(Row row) {
-
     }
 
     @Override
     public void release() {
-
-    }
-
-    @Override
-    public void close() {
-
     }
 }

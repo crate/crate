@@ -81,15 +81,12 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
             result.complete(finishBuilder());
         } catch (IOException e) {
             result.completeExceptionally(e);
-        } finally {
-            rowAccounting.close();
         }
     }
 
     @Override
     public void fail(@Nonnull Throwable t) {
         result.completeExceptionally(t);
-        rowAccounting.close();
     }
 
     XContentBuilder finishBuilder() throws IOException {

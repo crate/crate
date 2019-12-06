@@ -28,16 +28,9 @@ public class IgnoreRowCellsAccounting implements RowAccounting<Object[]> {
 
     @Override
     public void accountForAndMaybeBreak(Object[] cells) {
-
     }
 
     @Override
     public void release() {
-
-    }
-
-    @Override
-    public void close() {
-
     }
 }

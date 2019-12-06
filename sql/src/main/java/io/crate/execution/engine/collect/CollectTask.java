@@ -25,7 +25,6 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -49,7 +48,7 @@ public class CollectTask extends AbstractTask {
     private final CollectPhase collectPhase;
     private final TransactionContext txnCtx;
     private final MapSideDataCollectOperation collectOperation;
-    private final RamAccountingContext queryPhaseRamAccountingContext;
+    private final RamAccounting ramAccounting;
     private final Function<RamAccounting, MemoryManager> memoryManagerFactory;
     private final SharedShardContexts sharedShardContexts;
 
@@ -64,7 +63,7 @@ public class CollectTask extends AbstractTask {
     public CollectTask(final CollectPhase collectPhase,
                        TransactionContext txnCtx,
                        MapSideDataCollectOperation collectOperation,
-                       RamAccountingContext queryPhaseRamAccountingContext,
+                       RamAccounting ramAccounting,
                        Function<RamAccounting, MemoryManager> memoryManagerFactory,
                        RowConsumer consumer,
                        SharedShardContexts sharedShardContexts) {
@@ -72,7 +71,7 @@ public class CollectTask extends AbstractTask {
         this.collectPhase = collectPhase;
         this.txnCtx = txnCtx;
         this.collectOperation = collectOperation;
-        this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
+        this.ramAccounting = ramAccounting;
         this.memoryManagerFactory = memoryManagerFactory;
         this.sharedShardContexts = sharedShardContexts;
         this.consumer = consumer;
@@ -99,9 +98,8 @@ public class CollectTask extends AbstractTask {
 
     @Override
     protected void innerClose() {
-        totalBytes = queryPhaseRamAccountingContext.totalBytes();
+        totalBytes = ramAccounting.totalBytes();
         closeSearchContexts();
-        queryPhaseRamAccountingContext.close();
         synchronized (memoryManagers) {
             for (MemoryManager memoryManager : memoryManagers) {
                 memoryManager.close();
@@ -113,7 +111,7 @@ public class CollectTask extends AbstractTask {
     @Override
     public long bytesUsed() {
         if (totalBytes == -1) {
-            return queryPhaseRamAccountingContext.totalBytes();
+            return ramAccounting.totalBytes();
         } else {
             return totalBytes;
         }
@@ -169,7 +167,7 @@ public class CollectTask extends AbstractTask {
     }
 
     public RamAccounting getRamAccounting() {
-        return queryPhaseRamAccountingContext;
+        return ramAccounting;
     }
 
     public SharedShardContexts sharedShardContexts() {
@@ -192,7 +190,7 @@ public class CollectTask extends AbstractTask {
     }
 
     public MemoryManager memoryManager() {
-        MemoryManager memoryManager = memoryManagerFactory.apply(queryPhaseRamAccountingContext);
+        MemoryManager memoryManager = memoryManagerFactory.apply(ramAccounting);
         synchronized (memoryManagers) {
             memoryManagers.add(memoryManager);
         }

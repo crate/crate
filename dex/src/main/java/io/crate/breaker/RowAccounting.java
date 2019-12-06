@@ -40,9 +40,4 @@ public interface RowAccounting<T> {
      * Stops accounting for previously accounted rows.
      */
     void release();
-
-    /**
-     * Closes this accounting and prevents further use.
-     */
-    void close();
 }

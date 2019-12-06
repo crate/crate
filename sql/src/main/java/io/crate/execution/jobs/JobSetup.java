@@ -437,7 +437,6 @@ public class JobSetup {
          * from toKey(phaseId, inputId) to BatchConsumer.
          */
         private final LongObjectMap<RowConsumer> consumersByPhaseInputId = new LongObjectHashMap<>();
-        private final LongObjectMap<RamAccountingContext> ramAccountingContextByPhaseInputId = new LongObjectHashMap<>();
         private final IntObjectMap<RowConsumer> handlerConsumersByPhaseId = new IntObjectHashMap<>();
 
         private final SharedShardContexts sharedShardContexts;
@@ -474,12 +473,11 @@ public class JobSetup {
         /**
          * Retrieve the rowReceiver of the downstream of phase
          */
-        RowConsumer getRowConsumer(UpstreamPhase phase, int pageSize) {
+        RowConsumer getRowConsumer(UpstreamPhase phase, int pageSize, RamAccounting ramAccounting) {
             NodeOperation nodeOperation = opCtx.nodeOperationByPhaseId.get(phase.phaseId());
             if (nodeOperation == null) {
                 return handlerPhaseConsumer(phase.phaseId());
             }
-
             long phaseIdKey = toKey(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.downstreamExecutionPhaseInputId());
             RowConsumer rowConsumer = consumersByPhaseInputId.get(phaseIdKey);
             if (rowConsumer != null) {
@@ -491,17 +489,8 @@ public class JobSetup {
             switch (distributionType) {
                 case BROADCAST:
                 case MODULO:
-                    RamAccountingContext ramAccounting = getRamAccountingContext(phase);
-                    RowConsumer consumer;
-                    if (ramAccounting == null) {
-                        RamAccounting accounting = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-                        consumer = distributingConsumerFactory.create(
-                            nodeOperation, accounting, phase.distributionInfo(), jobId(), pageSize);
-                        consumer.completionFuture().whenComplete((res, err) -> accounting.close());
-                    } else {
-                        consumer = distributingConsumerFactory.create(
-                            nodeOperation, ramAccounting, phase.distributionInfo(), jobId(), pageSize);
-                    }
+                    RowConsumer consumer = distributingConsumerFactory.create(
+                        nodeOperation, ramAccounting, phase.distributionInfo(), jobId(), pageSize);
                     if (logger.isTraceEnabled()) {
                         logger.trace(
                             "action=getRowReceiver, distributionType={}, phase={}, targetConsumer={}, target={}/{},",
@@ -540,22 +529,6 @@ public class JobSetup {
             consumersByPhaseInputId.put(toKey(phaseId, (byte) 0), consumer);
         }
 
-        void registerRamAccountingContext(int phaseId, RamAccountingContext ramAccountingContext) {
-            long key = toKey(phaseId, (byte) 0);
-            ramAccountingContextByPhaseInputId.put(key, ramAccountingContext);
-        }
-
-        @Nullable
-        RamAccountingContext getRamAccountingContext(UpstreamPhase phase) {
-            NodeOperation nodeOperation = opCtx.nodeOperationByPhaseId.get(phase.phaseId());
-            if (nodeOperation == null) {
-                return null;
-            }
-
-            long phaseIdKey = toKey(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.downstreamExecutionPhaseInputId());
-            return ramAccountingContextByPhaseInputId.get(phaseIdKey);
-        }
-
         void registerSubContext(Task subContext) {
             taskBuilder.addTask(subContext);
         }
@@ -580,8 +553,9 @@ public class JobSetup {
             if (indexShardMap == null) {
                 throw new IllegalArgumentException("The routing of the countPhase doesn't contain the current nodeId");
             }
-
-            RowConsumer consumer = context.getRowConsumer(phase, 0);
+            var ramAccounting = RamAccountingContext.forExecutionPhase(breaker(), phase);
+            RowConsumer consumer = context.getRowConsumer(phase, 0, ramAccounting);
+            consumer.completionFuture().whenComplete((result, error) -> ramAccounting.close());
             context.registerSubContext(new CountTask(
                 phase,
                 context.transactionContext,
@@ -598,7 +572,7 @@ public class JobSetup {
             Collection<? extends Projection> nodeProjections = nodeProjections(pkLookupPhase.projections());
 
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), pkLookupPhase);
-            RowConsumer lastConsumer = context.getRowConsumer(pkLookupPhase, 0);
+            RowConsumer lastConsumer = context.getRowConsumer(pkLookupPhase, 0, ramAccountingContext);
             MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
             lastConsumer.completionFuture().whenComplete((result, error) -> {
                 memoryManager.close();
@@ -633,15 +607,15 @@ public class JobSetup {
 
         @Override
         public Boolean visitMergePhase(final MergePhase phase, final Context context) {
-
             boolean upstreamOnSameNode = context.opCtx.upstreamsAreOnSameNode(phase.phaseId());
-
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
-            RowConsumer consumer = context.getRowConsumer(phase, pageSize);
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
+            RowConsumer consumer = context.getRowConsumer(phase, pageSize, ramAccountingContext);
             MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
-            consumer.completionFuture().whenComplete((result, error) -> memoryManager.close());
-
+            consumer.completionFuture().whenComplete((result, error) -> {
+                memoryManager.close();
+                ramAccountingContext.close();
+            });
             if (upstreamOnSameNode && phase.numInputs() == 1) {
                 consumer = ProjectingRowConsumer.create(
                     consumer,
@@ -653,7 +627,6 @@ public class JobSetup {
                     projectorFactory
                 );
                 context.registerBatchConsumer(phase.phaseId(), consumer);
-                context.registerRamAccountingContext(phase.phaseId(), ramAccountingContext);
                 return true;
             }
 
@@ -737,19 +710,18 @@ public class JobSetup {
 
         @Override
         public Boolean visitRoutedCollectPhase(final RoutedCollectPhase phase, final Context context) {
-            RowConsumer consumer = context.getRowConsumer(phase,
-                MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE));
-
-            RamAccountingContext ramAccountingContext = context.getRamAccountingContext(phase);
-            if (ramAccountingContext == null) {
-                ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
-            }
-
+            var ramAccounting = RamAccountingContext.forExecutionPhase(breaker(), phase);
+            RowConsumer consumer = context.getRowConsumer(
+                phase,
+                MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE),
+                ramAccounting
+            );
+            consumer.completionFuture().whenComplete((result, error) -> ramAccounting.close());
             context.registerSubContext(new CollectTask(
                 phase,
                 context.txnCtx(),
                 collectOperation,
-                ramAccountingContext,
+                ramAccounting,
                 memoryManagerFactory,
                 consumer,
                 context.sharedShardContexts
@@ -760,7 +732,8 @@ public class JobSetup {
         @Override
         public Boolean visitCollectPhase(CollectPhase phase, Context context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
-            RowConsumer consumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
+            RowConsumer consumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingContext);
+            consumer.completionFuture().whenComplete((result, error) -> ramAccountingContext.close());
             context.registerSubContext(new CollectTask(
                 phase,
                 context.txnCtx(),
@@ -805,9 +778,12 @@ public class JobSetup {
         @Override
         public Boolean visitNestedLoopPhase(NestedLoopPhase phase, Context context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
-            RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
+            RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingContext);
             MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
-            lastConsumer.completionFuture().whenComplete((result, error) -> memoryManager.close());
+            lastConsumer.completionFuture().whenComplete((result, error) -> {
+                memoryManager.close();
+                ramAccountingContext.close();
+            });
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
                 lastConsumer,
                 phase.projections(),
@@ -870,9 +846,12 @@ public class JobSetup {
         @Override
         public Boolean visitHashJoinPhase(HashJoinPhase phase, Context context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
-            RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
+            RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingContext);
             MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
-            lastConsumer.completionFuture().whenComplete((result, error) -> memoryManager.close());
+            lastConsumer.completionFuture().whenComplete((result, error) -> {
+                memoryManager.close();
+                ramAccountingContext.close();
+            });
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
                 lastConsumer,

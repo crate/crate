@@ -253,16 +253,20 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (resultFields == null) {
             resultReceiver = new RestRowCountReceiver(JsonXContent.contentBuilder(), startTimeInNs, includeTypes);
         } else {
+            RamAccountingContext ramAccounting = new RamAccountingContext(
+                "http-result",
+                circuitBreakerProvider.apply(CrateCircuitBreakerService.QUERY));
             resultReceiver = new RestResultSetReceiver(
                 JsonXContent.contentBuilder(),
                 resultFields,
                 startTimeInNs,
                 new RowAccountingWithEstimators(
                     Symbols.typeView(resultFields),
-                    new RamAccountingContext("http-result", circuitBreakerProvider.apply(CrateCircuitBreakerService.QUERY))
+                    ramAccounting
                 ),
                 includeTypes
             );
+            resultReceiver.completionFuture().whenComplete((result, error) -> ramAccounting.close());
         }
         session.execute(UNNAMED, 0, resultReceiver);
         return session.sync()

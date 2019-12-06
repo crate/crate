@@ -54,7 +54,6 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
         this.ramAccounting = ramAccounting;
         this.completionFuture = pageBucketReceiver.completionFuture().handle((result, ex) -> {
             totalBytesUsed = ramAccounting.totalBytes();
-            ramAccounting.close();
             if (ex instanceof IllegalStateException) {
                 kill(ex);
             }

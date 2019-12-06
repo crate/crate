@@ -228,27 +228,15 @@ public class CrossJoinBlockNLBatchIteratorTest {
 
         int numRows;
         int numReleaseCalled;
-        boolean closed;
 
         @Override
         public void accountForAndMaybeBreak(Row row) {
-            if (closed) {
-                throw new RuntimeException("Already closed!");
-            }
             numRows++;
         }
 
         @Override
         public void release() {
-            if (closed) {
-                throw new RuntimeException("Already closed!");
-            }
             numReleaseCalled++;
-        }
-
-        @Override
-        public void close() {
-            closed = true;
         }
     }
 }
