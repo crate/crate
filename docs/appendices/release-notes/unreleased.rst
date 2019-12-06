@@ -209,6 +209,10 @@ Changes
 Fixes
 =====
 
+- Fixed a potential memory accounting leak for queries with ``WHERE`` clauses
+  on primary keys. This could lead to a node eventually rejecting all further
+  queries with a ``CircuitBreakingException``.
+
 - Fixed a regression introduced in ``2.3.2`` which optimizes subqueries when
   used inside multi-value producing functions and operators like ``IN()``,
   ``ANY()`` or ``ARRAY()`` by applying an implicit ordering. When using data
