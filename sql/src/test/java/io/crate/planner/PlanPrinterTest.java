@@ -30,6 +30,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
@@ -44,6 +46,19 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     private Map<String, Object> printPlan(String stmt) {
         return PlanPrinter.objectMap(e.plan(stmt));
+    }
+
+    @Test
+    public void test_explain_for_pk_lookup() {
+        Map<String, Object> output = printPlan("select name from users where id = 1 limit 4");
+        assertThat(
+            output.toString(),
+            allOf(
+                containsString("toCollect"),
+                containsString("shardsByNode"),
+                containsString("projections")
+            )
+        );
     }
 
     @Test
