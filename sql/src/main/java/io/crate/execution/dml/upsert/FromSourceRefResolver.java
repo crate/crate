@@ -26,19 +26,37 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 
+import java.util.List;
 import java.util.Map;
 
 class FromSourceRefResolver implements ReferenceResolver<CollectExpression<Map<String, Object>, ?>> {
 
-    static final FromSourceRefResolver INSTANCE = new FromSourceRefResolver();
+    static final FromSourceRefResolver WITHOUT_PARTITIONED_BY_REFS = new FromSourceRefResolver(List.of(), "");
 
-    private FromSourceRefResolver() {
+    private final List<Reference> partitionedBy;
+    private final PartitionName partitionName;
+
+    FromSourceRefResolver(List<Reference> partitionedBy,
+                          String indexName) {
+        this.partitionedBy = partitionedBy;
+        this.partitionName = partitionedBy.isEmpty()
+            ? null
+            : PartitionName.fromIndexOrTemplate(indexName);
     }
 
     @Override
     public CollectExpression<Map<String, Object>, Object> getImplementation(Reference ref) {
-        return NestableCollectExpression.forFunction(ValueExtractors.fromMap(ref.column(), ref.valueType()));
+        int partitionPos = partitionedBy.indexOf(ref);
+        if (partitionPos >= 0 && !(ref instanceof GeneratedReference)) {
+            return NestableCollectExpression
+                .constant(partitionName.values().get(partitionPos));
+        } else {
+            return NestableCollectExpression
+                .forFunction(ValueExtractors.fromMap(ref.column(), ref.valueType()));
+        }
     }
 }
