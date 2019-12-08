@@ -34,10 +34,7 @@ import java.util.List;
 
 public interface InsertSourceGen {
 
-    void checkConstraints(Object[] values);
-
-    BytesReference generateSource(Object[] values) throws IOException;
-
+    BytesReference generateSourceAndCheckConstraints(Object[] values) throws IOException;
 
     static InsertSourceGen of(TransactionContext txnCtx,
                               Functions functions,

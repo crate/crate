@@ -25,6 +25,7 @@ package io.crate.execution.dml.upsert;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
+import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
@@ -33,6 +34,7 @@ import io.crate.metadata.doc.DocTableInfo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public final class CheckConstraints<T, E extends CollectExpression<T, ?>> {
 
@@ -40,10 +42,10 @@ public final class CheckConstraints<T, E extends CollectExpression<T, ?>> {
     private final List<E> expressions;
     private final List<ColumnIdent> notNullColumns;
 
-    public CheckConstraints(TransactionContext txnCtx,
-                            InputFactory inputFactory,
-                            ReferenceResolver<E> refResolver,
-                            DocTableInfo table) {
+    CheckConstraints(TransactionContext txnCtx,
+                     InputFactory inputFactory,
+                     ReferenceResolver<E> refResolver,
+                     DocTableInfo table) {
         InputFactory.Context<E> ctx = inputFactory.ctxForRefs(txnCtx, refResolver);
         notNullColumns = new ArrayList<>(table.notNullColumns());
         for (int i = 0; i < notNullColumns.size(); i++) {
@@ -53,6 +55,11 @@ public final class CheckConstraints<T, E extends CollectExpression<T, ?>> {
         expressions = ctx.expressions();
     }
 
+    /**
+     * The method must be called on {@code T values}, e.g. source maps,
+     * rows that already contain values of evaluated generated column
+     * expressions.
+     */
     public void validate(T values) {
         for (int i = 0; i < expressions.size(); i++) {
             expressions.get(i).setNextRow(values);
@@ -61,6 +68,21 @@ public final class CheckConstraints<T, E extends CollectExpression<T, ?>> {
             Object val = inputs.get(i).value();
             if (val == null) {
                 throw new IllegalArgumentException("\"" + notNullColumns.get(i) + "\" must not be null");
+            }
+        }
+    }
+
+    public void validate(ColumnIdent column, Object columnValue) {
+        if (notNullColumns.contains(column)) {
+            Object value;
+            if (columnValue instanceof Map) {
+                //noinspection unchecked
+                value = ValueExtractors.fromMap((Map<String, Object>) columnValue, column);
+            } else {
+                value = columnValue;
+            }
+            if (value == null) {
+                throw new IllegalArgumentException("\"" + column + "\" must not be null");
             }
         }
     }

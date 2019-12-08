@@ -55,7 +55,7 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
                                      List<Reference> defaultExpressionColumns) {
         InputFactory inputFactory = new InputFactory(functions);
         InputFactory.Context<CollectExpression<Map<String, Object>, ?>> ctx =
-            inputFactory.ctxForRefs(txnCtx, FromSourceRefResolver.INSTANCE);
+            inputFactory.ctxForRefs(txnCtx, FromSourceRefResolver.WITHOUT_PARTITIONED_BY_REFS);
         this.generatedCols = new HashMap<>(generatedColumns.size());
         generatedColumns.forEach(r -> generatedCols.put(r.column(), ctx.add(r.generatedExpression())));
         expressions = ctx.expressions();
@@ -63,11 +63,7 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
     }
 
     @Override
-    public void checkConstraints(Object[] values) {
-    }
-
-    @Override
-    public BytesReference generateSource(Object[] values) throws IOException {
+    public BytesReference generateSourceAndCheckConstraints(Object[] values) throws IOException {
         String rawSource = (String) values[0];
         Map<String, Object> source = XContentHelper.convertToMap(new BytesArray(rawSource), false, XContentType.JSON).v2();
         mixinDefaults(source, defaults);

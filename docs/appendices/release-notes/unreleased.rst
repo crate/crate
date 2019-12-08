@@ -209,6 +209,17 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that would lead to incorrect behaviour of the insert from
+  sub query statement for the scenario when the target table contains a
+  :ref:`generated column <sql-ddl-generated-columns>` with the
+  :ref:`not_null_constraint` constraint and a value for the
+  :ref:`generated column <sql-ddl-generated-columns>` is not provided
+  explicitly. For example, the insert statement below failed due to the
+  :ref:`not_null_constraint` constraint violation::
+
+     CREATE TABLE t (x INT, y AS x + 1 NOT NULL)
+     INSERT INTO t (x) (SELECT 1)
+
 - Fixed a potential memory accounting leak for queries with ``WHERE`` clauses
   on primary keys. This could lead to a node eventually rejecting all further
   queries with a ``CircuitBreakingException``.
