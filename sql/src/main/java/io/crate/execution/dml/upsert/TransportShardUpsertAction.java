@@ -287,8 +287,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
             primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
             try {
-                insertSourceGen.checkConstraints(item.insertValues());
-                item.source(insertSourceGen.generateSource(item.insertValues()));
+                item.source(insertSourceGen.generateSourceAndCheckConstraints(item.insertValues()));
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToElastic(e);
             }

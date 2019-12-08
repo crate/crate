@@ -689,7 +689,6 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         );
     }
 
-
     @Test
     public void testInsertFromQueryOnDuplicateKey() throws Exception {
         setup.setUpCharacters();

@@ -35,6 +35,7 @@ import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -55,7 +56,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
 
     private final List<Reference> targets;
     private final BiArrayRow row = new BiArrayRow();
-    private final CheckConstraints<Row, CollectExpression<Row, ?>> checks;
+    private final CheckConstraints<Map<String, Object>, CollectExpression<Map<String, Object>, ?>> checks;
     private final GeneratedColumns<Row> generatedColumns;
     private final Object[] defaultValues;
 
@@ -83,18 +84,15 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                 table.generatedColumns()
             );
         }
-        checks = new CheckConstraints<>(txnCtx, inputFactory, referenceResolver, table);
+        checks = new CheckConstraints<>(
+            txnCtx,
+            inputFactory,
+            new FromSourceRefResolver(table.partitionedByColumns(), indexName),
+            table);
     }
 
     @Override
-    public void checkConstraints(Object[] values) {
-        row.firstCells(values);
-        row.secondCells(defaultValues);
-        checks.validate(row);
-    }
-
-    @Override
-    public BytesReference generateSource(Object[] values) throws IOException {
+    public BytesReference generateSourceAndCheckConstraints(Object[] values) throws IOException {
         HashMap<String, Object> source = new HashMap<>();
 
         row.firstCells(values);
@@ -108,6 +106,11 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             if (target.granularity() == RowGranularity.DOC) {
                 ColumnIdent column = target.column();
                 Maps.mergeInto(source, column.name(), column.path(), value, Map::putIfAbsent);
+            } else if (target.granularity() == RowGranularity.PARTITION &&
+                       !(target instanceof GeneratedReference)) {
+                // values for columns used as partitioning criteria are not part of the source map;
+                // separate validation is necessary.
+                checks.validate(target.column(), value);
             }
         }
 
@@ -118,6 +121,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             ColumnIdent column = entry.getKey().column();
             Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
         }
+        checks.validate(source);
 
         return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
     }
