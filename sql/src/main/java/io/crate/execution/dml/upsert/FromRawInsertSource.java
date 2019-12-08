@@ -30,12 +30,7 @@ import java.io.IOException;
 public class FromRawInsertSource implements InsertSourceGen {
 
     @Override
-    public void checkConstraints(Object[] values) {
-
-    }
-
-    @Override
-    public BytesReference generateSource(Object[] values) throws IOException {
+    public BytesReference generateSourceAndCheckConstraints(Object[] values) throws IOException {
         return new BytesArray(((String) values[0]));
     }
 }
