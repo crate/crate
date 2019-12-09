@@ -86,7 +86,7 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  *  Instead it may choose to output {@link DocSysColumns#FETCHID} + {@code usedColumns}.
  *
  *  {@link FetchOrEval} will then later use {@code fetchId} to fetch the values for the columns which are "unused".
- *  See also {@link LogicalPlan.Builder#build(TableStats, Set, Set)}
+ *  See also {@link LogicalPlan.Builder#build(TableStats, Set, Set, Row)}
  */
 public class Collect implements LogicalPlan {
 
@@ -128,7 +128,7 @@ public class Collect implements LogicalPlan {
             generateOutputs(toCollect, relation, usedBeforeNextFetch, where),
             where,
             SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
-            stats.sizeInBytes()
+            stats.averageSizePerRowInBytes()
         );
     }
 

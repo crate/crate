@@ -72,11 +72,7 @@ public class TableStats {
      * Returns -1 if the table isn't in the cache
      */
     public long estimatedSizePerRow(RelationName relationName) {
-        long numDocs = numDocs(relationName);
-        if (numDocs <= 0) {
-            return numDocs;
-        }
-        return sizeInBytes(relationName) / numDocs(relationName);
+        return tableStats.getOrDefault(relationName, Stats.EMPTY).averageSizePerRowInBytes();
     }
 
     public Iterable<ColumnStatsEntry> statsEntries() {
