@@ -114,6 +114,8 @@ public class LegacyUpsertByIdTask {
             upsertById.numBulkResponses() > 0 || items.size() > 1,
             upsertById.updateColumns(),
             upsertById.insertColumns(),
+            null,
+            null,
             jobId,
             false
         );
@@ -326,7 +328,10 @@ public class LegacyUpsertByIdTask {
                                                     item.insertValues(),
                                                     item.version(),
                                                     item.seqNo(),
-                                                    item.primaryTerm()));
+                                                    item.primaryTerm(),
+                                                    null,
+                                                    null
+                        ));
         }
         return requestsByShard;
     }

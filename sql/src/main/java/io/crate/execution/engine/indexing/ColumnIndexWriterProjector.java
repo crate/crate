@@ -101,13 +101,15 @@ public class ColumnIndexWriterProjector implements Projector {
             true, // continueOnErrors
             updateColumnNames,
             columnReferences.toArray(new Reference[columnReferences.size()]),
+            null,
+            null,
             jobId,
             true
         );
 
         InputRow insertValues = new InputRow(insertInputs);
         Function<String, ShardUpsertRequest.Item> itemFactory =
-            id -> new ShardUpsertRequest.Item(id, assignments, insertValues.materialize(), null, null, null);
+            id -> new ShardUpsertRequest.Item(id, assignments, insertValues.materialize(), null, null, null, null, null);
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,

@@ -70,6 +70,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import com.google.common.collect.Multimap;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.singletonList;
@@ -88,7 +89,7 @@ public final class UpdatePlanner {
         Plan plan;
         if (table instanceof DocTableRelation) {
             DocTableRelation docTable = (DocTableRelation) table;
-            plan = plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx);
+            plan = plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx, update.returningClause());
         } else {
             plan = new Update((plannerContext, params, subQueryValues) ->
                 sysUpdate(
@@ -109,14 +110,15 @@ public final class UpdatePlanner {
                              Map<Reference, Symbol> assignmentByTargetCol,
                              Symbol query,
                              Functions functions,
-                             PlannerContext plannerCtx) {
+                             PlannerContext plannerCtx,
+                             Multimap<String, Symbol> returningClause) {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         DocTableInfo tableInfo = docTable.tableInfo();
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
             normalizer, query, tableInfo, plannerCtx.transactionContext());
 
         if (detailedQuery.docKeys().isPresent()) {
-            return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get());
+            return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get(), returningClause);
         }
 
         return new Update((plannerContext, params, subQueryValues) ->
@@ -197,7 +199,12 @@ public final class UpdatePlanner {
         Assignments assignments = Assignments.convert(assignmentByTargetCol);
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
         UpdateProjection updateProjection = new UpdateProjection(
-            new InputColumn(0, idReference.valueType()), assignments.targetNames(), assignmentSources, null);
+            new InputColumn(0, idReference.valueType()),
+            assignments.targetNames(),
+            assignmentSources,
+            null,
+            null,
+            null);
 
         WhereClause where = detailedQuery.toBoundWhereClause(
             tableInfo, functions, params, subQueryResults, plannerCtx.transactionContext());

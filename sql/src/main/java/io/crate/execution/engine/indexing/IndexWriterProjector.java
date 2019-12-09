@@ -107,11 +107,13 @@ public class IndexWriterProjector implements Projector {
             true,
             null,
             new Reference[]{rawSourceReference},
+            null,
+            null,
             jobId,
             false);
 
         Function<String, ShardUpsertRequest.Item> itemFactory =
-            id -> new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null);
+            id -> new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null, null, null);
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,

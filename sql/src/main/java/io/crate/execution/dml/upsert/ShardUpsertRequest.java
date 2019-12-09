@@ -73,6 +73,21 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     @Nullable
     private Streamer[] insertValuesStreamer;
 
+    /**
+     * List of return values used on update
+     */
+    @Nullable
+    private Symbol[] returnValues;
+
+    /**
+     * List of return value names used on update
+     */
+    @Nullable
+    private String[] returnValueNames;
+
+
+
+
     ShardUpsertRequest() {
     }
 
@@ -80,6 +95,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                                ShardId shardId,
                                @Nullable String[] updateColumns,
                                @Nullable Reference[] insertColumns,
+                               @Nullable Symbol[] returnValues,
+                               @Nullable String[] returnValueNames,
                                UUID jobId) {
         super(shardId, jobId);
         assert updateColumns != null || insertColumns != null
@@ -93,15 +110,29 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 insertValuesStreamer[i] = insertColumns[i].valueType().streamer();
             }
         }
+        this.returnValues = returnValues;
+        this.returnValueNames = returnValueNames;
     }
 
     public SessionSettings sessionSettings() {
         return sessionSettings;
     }
 
+
+    @Nullable
+    public Symbol[] getReturnValues() {
+        return returnValues;
+    }
+
+    @Nullable
+    public String[] getReturnValueNames() {
+        return returnValueNames;
+    }
+
     String[] updateColumns() {
         return updateColumns;
     }
+
 
     @Nullable
     Reference[] insertColumns() {
@@ -161,6 +192,23 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
         int numItems = in.readVInt();
         readItems(in, numItems);
+
+        int returnValuesSize = in.readVInt();
+        if (returnValuesSize > 0) {
+            returnValues = new Symbol[returnValuesSize];
+            for (int i = 0; i < returnValuesSize; i++) {
+                returnValues[i] = Symbols.fromStream(in);
+            }
+        }
+
+        int returnValueNamesSize = in.readVInt();
+        if (returnValueNamesSize > 0) {
+            returnValueNames = new String[returnValueNamesSize];
+            for (int i = 0; i < returnValueNamesSize; i++) {
+                returnValueNames[i] = in.readString();
+            }
+        }
+
     }
 
     @Override
@@ -192,6 +240,24 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         out.writeVInt(items.size());
         for (Item item : items) {
             item.writeTo(out, insertValuesStreamer);
+        }
+
+        if (returnValues != null) {
+            out.writeVInt(returnValues.length);
+            for (Symbol returnValue : returnValues) {
+                returnValue.writeTo(out);
+            }
+        } else {
+            out.writeVInt(0);
+        }
+
+        if (returnValueNames != null) {
+            out.writeVInt(returnValueNames.length);
+            for (String returnValueName : returnValueNames) {
+                out.writeString(returnValueName);
+            }
+        } else {
+            out.writeVInt(0);
         }
     }
 
@@ -239,12 +305,20 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         @Nullable
         private Object[] insertValues;
 
+        @Nullable
+        private Symbol[] returnValues;
+        @Nullable
+        private String[] returnValueNames;
+
         public Item(String id,
                     @Nullable Symbol[] updateAssignments,
                     @Nullable Object[] insertValues,
                     @Nullable Long version,
                     @Nullable Long seqNo,
-                    @Nullable Long primaryTerm) {
+                    @Nullable Long primaryTerm,
+                    @Nullable Symbol[] returnValues,
+                    @Nullable String[] returnValueNames
+                    ) {
             super(id);
             this.updateAssignments = updateAssignments;
             if (version != null) {
@@ -257,6 +331,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 this.primaryTerm = primaryTerm;
             }
             this.insertValues = insertValues;
+            this.returnValues = returnValues;
+            this.returnValueNames = returnValueNames;
         }
 
         @Nullable
@@ -302,6 +378,18 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             if (in.readBoolean()) {
                 source = in.readBytesReference();
             }
+            if (in.readBoolean()) {
+                int returnValueSize = in.readVInt();
+                for (int i = 0; i < returnValueSize; i++) {
+                    returnValues[i] = Symbols.fromStream(in);
+                }
+            }
+            if (in.readBoolean()) {
+                int returnValueNameSize = in.readVInt();
+                for (int i = 0; i < returnValueNameSize; i++) {
+                    returnValueNames[i] = in.readString();
+                }
+            }
         }
 
         public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers) throws IOException {
@@ -331,6 +419,25 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             if (sourceAvailable) {
                 out.writeBytesReference(source);
             }
+            if (returnValues != null) {
+                out.writeBoolean(true);
+                out.writeVInt(returnValues.length);
+                for (Symbol returnValue : returnValues) {
+                    Symbols.toStream(returnValue, out);
+                }
+            } else {
+                out.writeBoolean(false);
+            }
+
+            if (returnValueNames != null) {
+                out.writeBoolean(true);
+                out.writeVInt(returnValueNames.length);
+                for (String returnValueName : returnValueNames) {
+                    out.writeString(returnValueName);
+                }
+            } else {
+                out.writeBoolean(false);
+            }
         }
     }
 
@@ -346,6 +453,11 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         private final Reference[] missingAssignmentsColumns;
         private final UUID jobId;
         private boolean validateGeneratedColumns;
+        @Nullable
+        private final Symbol[] returnValues;
+        @Nullable
+        private final String[] returnValueNames;
+
 
         public Builder(SessionSettings sessionSettings,
                        TimeValue timeout,
@@ -353,6 +465,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
                        @Nullable Reference[] missingAssignmentsColumns,
+                       @Nullable Symbol[] returnValue,
+                       @Nullable String[] returnValueNames,
                        UUID jobId,
                        boolean validateGeneratedColumns) {
             this.sessionSettings = sessionSettings;
@@ -363,6 +477,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             this.missingAssignmentsColumns = missingAssignmentsColumns;
             this.jobId = jobId;
             this.validateGeneratedColumns = validateGeneratedColumns;
+            this.returnValues = returnValue;
+            this.returnValueNames = returnValueNames;
         }
 
         public ShardUpsertRequest newRequest(ShardId shardId) {
@@ -371,6 +487,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 shardId,
                 assignmentsColumns,
                 missingAssignmentsColumns,
+                returnValues,
+                returnValueNames,
                 jobId)
                 .timeout(timeout)
                 .continueOnError(continueOnError)

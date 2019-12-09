@@ -63,7 +63,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         null);
 
     @Test
-    public void testStreaming() throws Exception {
+    public void test_streaming_without_returnvalues_without_returnnames() throws Exception {
         ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
@@ -75,6 +75,8 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             false,
             assignmentColumns,
             missingAssignmentColumns,
+            null,
+            null,
             jobId,
             false
         ).newRequest(shardId);
@@ -86,11 +88,15 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             new Object[]{99, "Marvin"},
             null,
             null,
+            null,
+            null,
             null));
         request.add(42, new ShardUpsertRequest.Item(
             "99",
             new Symbol[0],
             new Object[]{99, "Marvin"},
+            null,
+            null,
             null,
             null,
             null));
@@ -100,7 +106,9 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             null,
             2L,
             1L,
-            5L));
+            5L,
+            null,
+            null));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
@@ -110,5 +118,14 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
 
         assertThat(request, equalTo(request2));
     }
+
+    @Test
+    public void test_streaming_with_returnvalues_with_returnnames() throws Exception {
+    }
+
+    @Test
+    public void test_streaming_without_returnvalues_with_returnnames() throws Exception {
+    }
+
 
 }

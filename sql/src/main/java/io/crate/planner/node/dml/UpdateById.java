@@ -23,6 +23,7 @@
 package io.crate.planner.node.dml;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Multimap;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -51,12 +52,17 @@ public final class UpdateById implements Plan {
     private final Map<Reference, Symbol> assignmentByTargetCol;
     private final DocKeys docKeys;
     private final Assignments assignments;
+    private final Multimap<String, Symbol> returningClause;
 
-    public UpdateById(DocTableInfo table, Map<Reference, Symbol> assignmentByTargetCol, DocKeys docKeys) {
+    public UpdateById(DocTableInfo table,
+                      Map<Reference, Symbol> assignmentByTargetCol,
+                      DocKeys docKeys,
+                      Multimap<String, Symbol> returningClause) {
         this.table = table;
         this.assignments = Assignments.convert(assignmentByTargetCol);
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.docKeys = docKeys;
+        this.returningClause = returningClause;
     }
 
     @VisibleForTesting
@@ -105,6 +111,8 @@ public final class UpdateById implements Plan {
             true,
             assignments.targetNames(),
             null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
+            returningClause.values().toArray(new Symbol[]{}),
+            returningClause.keySet().toArray(new String[]{}),
             plannerContext.jobId(),
             false
         );
@@ -127,6 +135,8 @@ public final class UpdateById implements Plan {
         private final Assignments assignments;
 
         private Symbol[] assignmentSources;
+        private Symbol[] returnValues;
+        private String[] returnValuesNames;
 
         UpdateRequests(ShardUpsertRequest.Builder requestBuilder, DocTableInfo table, Assignments assignments) {
             this.requestBuilder = requestBuilder;
@@ -136,7 +146,8 @@ public final class UpdateById implements Plan {
 
         @Override
         public ShardUpsertRequest newRequest(ShardId shardId) {
-            return requestBuilder.newRequest(shardId);
+            ShardUpsertRequest items = requestBuilder.newRequest(shardId);
+            return items;
         }
 
         @Override
@@ -156,7 +167,9 @@ public final class UpdateById implements Plan {
                                                                        null,
                                                                        version,
                                                                        seqNo,
-                                                                       primaryTerm);
+                                                                       primaryTerm,
+                                                                       request.getReturnValues(),
+                                                                       request.getReturnValueNames());
             request.add(location, item);
         }
     }

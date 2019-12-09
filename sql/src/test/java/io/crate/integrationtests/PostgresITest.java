@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.action.sql.SQLOperations;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -62,6 +63,8 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
+@UseJdbc(1)
+@Seed("EE7FFF366F24AE1:67D9488791AE29A1")
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class PostgresITest extends SQLTransportIntegrationTest {
 

@@ -37,14 +37,22 @@ public class UpdateProjection extends DMLProjection {
     private String[] assignmentsColumns;
     @Nullable
     private Long requiredVersion;
+    @Nullable
+    private Symbol[] returnValues;
+    @Nullable
+    private String[] returnValueNames;
 
     public UpdateProjection(Symbol uidSymbol,
                             String[] assignmentsColumns,
                             Symbol[] assignments,
+                            @Nullable Symbol[] returnValues,
+                            @Nullable String[] returnValueNames,
                             @Nullable Long requiredVersion) {
         super(uidSymbol);
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
+        this.returnValues = returnValues;
+        this.returnValueNames = returnValueNames;
         this.requiredVersion = requiredVersion;
     }
 
@@ -64,6 +72,30 @@ public class UpdateProjection extends DMLProjection {
         if (requiredVersion == 0) {
             requiredVersion = null;
         }
+        int returnValuesSize = in.readVInt();
+        if (returnValuesSize > 0) {
+            returnValues = new Symbol[assignmentsSize];
+            for (int i = 0; i < returnValuesSize; i++) {
+                returnValues[i] = Symbols.fromStream(in);
+            }
+        }
+        int returnValueNamesSize = in.readVInt();
+        if (returnValueNamesSize > 0) {
+            returnValueNames = new String[returnValueNamesSize];
+            for (int i = 0; i < returnValueNamesSize; i++) {
+                returnValueNames[i] = in.readString();
+            }
+        }
+    }
+
+    @Nullable
+    public Symbol[] returnValues() {
+        return returnValues;
+    }
+
+    @Nullable
+    public String[] returnValueNames() {
+        return returnValueNames;
     }
 
     public String[] assignmentsColumns() {
@@ -101,6 +133,8 @@ public class UpdateProjection extends DMLProjection {
         if (requiredVersion != null ? !requiredVersion.equals(that.requiredVersion) : that.requiredVersion != null)
             return false;
         if (!uidSymbol.equals(that.uidSymbol)) return false;
+        if (!Arrays.equals(returnValues, that.returnValues)) return false;
+        if (!Arrays.equals(returnValueNames, that.returnValueNames)) return false;
 
         return true;
     }
@@ -112,6 +146,9 @@ public class UpdateProjection extends DMLProjection {
         result = 31 * result + Arrays.hashCode(assignmentsColumns);
         result = 31 * result + (requiredVersion != null ? requiredVersion.hashCode() : 0);
         result = 31 * result + uidSymbol.hashCode();
+        result = 31 * result + Arrays.hashCode(returnValues);
+        result = 31 * result + Arrays.hashCode(returnValueNames);
+
         return result;
     }
 
@@ -131,6 +168,22 @@ public class UpdateProjection extends DMLProjection {
             out.writeVLong(0);
         } else {
             out.writeVLong(requiredVersion);
+        }
+        if (returnValues != null) {
+            out.writeVInt(returnValues.length);
+            for (int i = 0; i < returnValues.length; i++) {
+                Symbols.toStream(returnValues[i], out);
+            }
+        } else {
+            out.writeVInt(0);
+        }
+        if (returnValueNames != null) {
+            out.writeVInt(returnValueNames.length);
+            for (int i = 0; i < returnValueNames.length; i++) {
+                out.writeString(returnValueNames[i]);
+            }
+        } else {
+            out.writeVInt(0);
         }
     }
 }

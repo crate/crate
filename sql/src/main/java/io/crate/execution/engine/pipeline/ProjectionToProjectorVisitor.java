@@ -503,6 +503,8 @@ public class ProjectionToProjectorVisitor
             false,
             projection.assignmentsColumns(),
             null,
+            projection.returnValues(),
+            projection.returnValueNames(),
             context.jobId,
             true
         );
@@ -514,7 +516,14 @@ public class ProjectionToProjectorVisitor
             clusterService,
             nodeJobsCounter,
             () -> builder.newRequest(shardId),
-            id -> new ShardUpsertRequest.Item(id, projection.assignments(), null, projection.requiredVersion(), null, null),
+            id -> new ShardUpsertRequest.Item(id,
+                                              projection.assignments(),
+                                              null,
+                                              projection.requiredVersion(),
+                                              null,
+                                              null,
+                                              projection.returnValues(),
+                                              projection.returnValueNames()),
             transportActionProvider.transportShardUpsertAction()::execute
         );
 
