@@ -32,7 +32,6 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.data.RowN;
 import io.crate.data.SkippingBatchIterator;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
@@ -78,10 +77,7 @@ public class RowsBatchIteratorBenchmark {
 
     // use materialize to not have shared row instances
     // this is done in the startup, otherwise the allocation costs will make up the majority of the benchmark.
-    private List<Row> rows = StreamSupport.stream(RowGenerator.range(0, 10_000_000).spliterator(), false)
-        .map(Row::materialize)
-        .map(RowN::new)
-        .collect(Collectors.toList());
+    private Iterable<Row> rows = () -> StreamSupport.stream(RowGenerator.range(0, 10_000_000).spliterator(), false).iterator();
 
     // used with  RowsBatchIterator without any state/error handling to establish a performance baseline.
     private final List<Row1> oneThousandRows = IntStream.range(0, 1000).mapToObj(Row1::new).collect(Collectors.toList());
