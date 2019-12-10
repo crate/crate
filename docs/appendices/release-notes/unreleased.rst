@@ -209,45 +209,4 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that would lead to incorrect behaviour of the insert from
-  sub query statement for the scenario when the target table contains a
-  :ref:`generated column <sql-ddl-generated-columns>` with the
-  :ref:`not_null_constraint` constraint and a value for the
-  :ref:`generated column <sql-ddl-generated-columns>` is not provided
-  explicitly. For example, the insert statement below failed due to the
-  :ref:`not_null_constraint` constraint violation::
-
-     CREATE TABLE t (x INT, y AS x + 1 NOT NULL)
-     INSERT INTO t (x) (SELECT 1)
-
-- Fixed a potential memory accounting leak for queries with ``WHERE`` clauses
-  on primary keys. This could lead to a node eventually rejecting all further
-  queries with a ``CircuitBreakingException``.
-
-- Fixed a regression introduced in ``2.3.2`` which optimizes subqueries when
-  used inside multi-value producing functions and operators like ``IN()``,
-  ``ANY()`` or ``ARRAY()`` by applying an implicit ordering. When using data
-  types (e.g. like an object: ``select array(select {a = col} from test)`` which
-  do not support ordering, an NPE was raised.
-
-- Fixed a possible OutOfMemory issue which may happen on ``GROUP BY`` statement
-  using a group key of type ``TEXT`` on tables containing at least one shard
-  with a low to medium cardinality on the group key.
-
-- Improved snapshot error handling by assuring a snapshot is declared as failed
-  when a shard or node failure happens during the snapshot process.
-
-- Fixed an issue that caused an error when using ``ALTER TABLE .. ADD`` on a
-  table which contains nested primary key columns.
-
-- Fixed issues that would prevent usage or lead to incorrect behaviour
-  of the client that use PostgreSQL Wire Protocol when inserting arrays
-  of certain types:
-
-  - Insertion of the PostgreSQL ``point`` arrays was not possible.
-
-  - Insertion of the PostgreSQL ``varchar`` arrays that contain the ``,``
-    in its items would have led to incorrect results.
-
-- Improved performance of snapshot finalization as https://github.com/crate/crate/pull/9327
-  introduced a performance regression on the snapshot process.
+None
