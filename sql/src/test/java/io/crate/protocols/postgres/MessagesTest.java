@@ -22,7 +22,6 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.data.Buckets;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.test.integration.CrateUnitTest;
@@ -40,7 +39,6 @@ import java.util.Collections;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,11 +63,6 @@ public class MessagesTest extends CrateUnitTest {
                     @Override
                     public Object get(int index) {
                         throw new IllegalArgumentException("Dummy");
-                    }
-
-                    @Override
-                    public Object[] materialize() {
-                        return Buckets.materialize(this);
                     }
                 },
                 Collections.singletonList(DataTypes.INTEGER),

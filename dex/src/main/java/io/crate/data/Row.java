@@ -70,5 +70,11 @@ public interface Row {
     /**
      * Returns a materialized view of this row.
      */
-    Object[] materialize();
+    default Object[] materialize() {
+        Object[] result = new Object[numColumns()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = get(i);
+        }
+        return result;
+    }
 }
