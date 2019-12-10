@@ -27,6 +27,7 @@ import com.google.common.collect.Maps;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
@@ -88,10 +89,20 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
             this.primaryKeySymbols = Collections.emptyList();
         } else {
             this.primaryKeySymbols = symbolsFromTargetColumnPositionOrGeneratedExpression(
-                columnPositions, targetColumns, tableInfo.primaryKey(), generatedColumns, defaultExpressionColumns);
+                columnPositions,
+                targetColumns,
+                tableInfo.primaryKey(),
+                generatedColumns,
+                defaultExpressionColumns,
+                true);
         }
         this.partitionedBySymbols = symbolsFromTargetColumnPositionOrGeneratedExpression(
-            columnPositions, targetColumns, tableInfo.partitionedBy(), generatedColumns, defaultExpressionColumns);
+            columnPositions,
+            targetColumns,
+            tableInfo.partitionedBy(),
+            generatedColumns,
+            defaultExpressionColumns,
+            false);
     }
 
     private static Map<ColumnIdent, Integer> toPositionMap(List<Reference> targetColumns) {
@@ -110,7 +121,8 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
                                                                               List<Reference> targetColumns,
                                                                               List<ColumnIdent> columns,
                                                                               Map<ColumnIdent, GeneratedReference> generatedColumns,
-                                                                              Map<ColumnIdent, Reference> defaultExpressionColumns) {
+                                                                              Map<ColumnIdent, Reference> defaultExpressionColumns,
+                                                                              boolean alwaysRequireColumn) {
         if (columns.isEmpty()) {
             return Collections.emptyList();
         }
@@ -134,11 +146,20 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
                         symbol = InputColumns.create(generatedRef.generatedExpression(), sourceSymbols);
                     }
                 }
-                symbols.add(symbol);
+
                 if (SymbolVisitors.any(Symbols.IS_COLUMN, symbol)) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "Column \"%s\" is required but is missing from the insert statement", column.sqlFqn()));
+                    if (alwaysRequireColumn) {
+                        throw new IllegalArgumentException(String.format(
+                            Locale.ENGLISH,
+                            "Column \"%s\" is required but is missing from the insert statement", column.sqlFqn()));
+                    } else {
+                        symbols.add(Literal.NULL);
+                    }
+                } else {
+                    symbols.add(symbol);
                 }
+
+
             } else {
                 symbols.add(new InputColumn(position, targetColumns.get(position).valueType()));
             }

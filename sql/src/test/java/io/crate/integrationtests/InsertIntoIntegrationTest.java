@@ -24,6 +24,8 @@ package io.crate.integrationtests;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersioninigValidationException;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -33,6 +35,7 @@ import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -491,6 +494,36 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(((String) response.rows()[1][0]), is("Arthur"));
         assertThat(((String) response.rows()[2][0]), is("Marvin"));
         assertThat(((String) response.rows()[3][0]), is("Trillian"));
+    }
+
+    @Test
+    public void test_insert_from_values_with_some_missing_partitioned_columns() {
+        execute("CREATE TABLE PARTED (id INT, name TEXT, date TIMESTAMPTZ)" +
+                "PARTITIONED BY (name, date)");
+
+        execute("INSERT INTO parted (id, name) VALUES (?, ?)", new Object[]{1, "Trillian"});
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        execute("SELECT table_name, partition_ident, values " +
+                "FROM information_schema.table_partitions");
+        assertThat(printedTable(response.rows()),
+                   is("parted| 084l8sj9dhm6iobe00| {date=NULL, name=Trillian}\n"));
+    }
+
+    @Test
+    public void test_insert_from_subquery_with_some_missing_partitioned_columns() {
+        execute("CREATE TABLE parted (id INT, name TEXT, date TIMESTAMPTZ)" +
+                "partitioned by (name, date)");
+
+        execute("INSERT INTO parted (id, name) (SELECT ?, ?)", new Object[]{1, "Trillian"});
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        execute("SELECT table_name, partition_ident, values " +
+                "FROM information_schema.table_partitions");
+        assertThat(printedTable(response.rows()),
+                   is("parted| 084l8sj9dhm6iobe00| {date=NULL, name=Trillian}\n"));
     }
 
     @Test

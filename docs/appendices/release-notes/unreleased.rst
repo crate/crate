@@ -209,4 +209,6 @@ Changes
 Fixes
 =====
 
-None
+- Fixed an issue that caused a ``INSERT INTO ... (SELECT ... FROM ..)``
+  statement to fail if not all columns of a ``PARTITIONED BY`` clause
+  appeared in the target list of the ``INSERT INTO`` statement.
