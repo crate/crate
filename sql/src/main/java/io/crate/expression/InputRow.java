@@ -22,7 +22,6 @@
 
 package io.crate.expression;
 
-import io.crate.data.Buckets;
 import io.crate.data.Input;
 import io.crate.data.Row;
 
@@ -45,11 +44,6 @@ public class InputRow implements Row {
     @Override
     public Object get(int index) {
         return inputs.get(index).value();
-    }
-
-    @Override
-    public Object[] materialize() {
-        return Buckets.materialize(this);
     }
 
     @Override

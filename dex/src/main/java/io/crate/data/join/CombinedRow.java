@@ -22,7 +22,6 @@
 
 package io.crate.data.join;
 
-import io.crate.data.Buckets;
 import io.crate.data.Row;
 
 public class CombinedRow implements Row, ElementCombiner<Row, Row, Row> {
@@ -55,11 +54,6 @@ public class CombinedRow implements Row, ElementCombiner<Row, Row, Row> {
             return null;
         }
         return right.get(index);
-    }
-
-    @Override
-    public Object[] materialize() {
-        return Buckets.materialize(this);
     }
 
     @Override
