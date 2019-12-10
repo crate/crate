@@ -432,31 +432,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    public void testInsertPartitionedTableSomePartitionedColumns() {
-        // insert only some partitioned column values
-        execute("create table parted (id integer, name string, date timestamp with time zone)" +
-                "partitioned by (name, date)");
-        ensureYellow();
-
-        execute("insert into parted (id, name) values (?, ?)",
-            new Object[]{1, "Trillian"});
-        assertThat(response.rowCount(), is(1L));
-        ensureYellow();
-        refresh();
-        String partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
-            Arrays.asList("Trillian", null)).asIndexName();
-        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-            .getState().metaData().indices().get(partitionName).getAliases().get(getFqn("parted")));
-
-        execute("select id, name, date from parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((String) response.rows()[0][1], is("Trillian"));
-        assertNull(response.rows()[0][2]);
-    }
-
-    @Test
     public void testInsertPartitionedTableReversedPartitionedColumns() {
         execute(
             "create table parted (" +
