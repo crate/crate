@@ -78,6 +78,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public static final int ES_V_7_0_8_ID = 7_00_08_99;
     public static final int ES_V_7_0_9_ID = 7_00_09_99;
     public static final int ES_V_7_0_10_ID = 7_00_10_99;
+    public static final int ES_V_7_0_11_ID = 7_00_11_99;
     public static final Version V_4_0_0 = new Version(ES_V_7_0_0_ID, ES_V_7_0_0_ID - INTERNAL_OFFSET, org.apache.lucene.util.Version.LUCENE_8_0_0);
     public static final Version V_4_0_1 = new Version(ES_V_7_0_1_ID, ES_V_7_0_1_ID - INTERNAL_OFFSET, org.apache.lucene.util.Version.LUCENE_8_0_0);
     public static final Version V_4_0_2 = new Version(ES_V_7_0_2_ID, ES_V_7_0_2_ID - INTERNAL_OFFSET, org.apache.lucene.util.Version.LUCENE_8_0_0);
@@ -89,8 +90,9 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public static final Version V_4_0_8 = new Version(ES_V_7_0_8_ID, ES_V_7_0_8_ID - INTERNAL_OFFSET, org.apache.lucene.util.Version.LUCENE_8_0_0);
     public static final Version V_4_0_9 = new Version(ES_V_7_0_9_ID, ES_V_7_0_9_ID - INTERNAL_OFFSET, org.apache.lucene.util.Version.LUCENE_8_0_0);
     public static final Version V_4_0_10 = new Version(ES_V_7_0_10_ID, ES_V_7_0_10_ID - INTERNAL_OFFSET, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_11 = new Version(ES_V_7_0_11_ID, ES_V_7_0_11_ID - INTERNAL_OFFSET, true, org.apache.lucene.util.Version.LUCENE_8_0_0);
 
-    public static final Version CURRENT = V_4_0_10;
+    public static final Version CURRENT = V_4_0_11;
 
     static {
         assert CURRENT.luceneVersion.equals(org.apache.lucene.util.Version.LATEST) : "Version must be upgraded to ["
@@ -129,6 +131,8 @@ public class Version implements Comparable<Version>, ToXContentFragment {
                 return V_4_0_9;
             case ES_V_7_0_10_ID:
                 return V_4_0_10;
+            case ES_V_7_0_11_ID:
+                return V_4_0_11;
             case V_EMPTY_ID:
                 return V_EMPTY;
             default:
