@@ -1,0 +1,96 @@
+.. _version_4.0.10:
+
+==============
+Version 4.0.10
+==============
+
+Released on 2019/12/10.
+
+.. NOTE::
+
+    Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading from
+    CrateDB 3.x or earlier.
+    Before upgrading to 4.0.10 you should be running a CrateDB cluster that is
+    at least on 3.0.7.
+
+    We recommend that you upgrade to the latest 3.3 release before moving to
+    4.0.10.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_4.0.2`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+    When restarting, CrateDB will migrate indexes to a newer format. Depending
+    on the amount of data, this may delay node start-up time.
+
+.. WARNING::
+
+    Tables that were created prior CrateDB 3.x will not function with 4.x
+    and must be recreated before moving to 4.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.0.0` release notes for a full list of changes in the
+4.0 series.
+
+Fixes
+=====
+
+- Fixed an issue that would lead to incorrect behaviour of the insert from
+  sub query statement for the scenario when the target table contains a
+  :ref:`generated column <sql-ddl-generated-columns>` with the
+  :ref:`not_null_constraint` constraint and a value for the
+  :ref:`generated column <sql-ddl-generated-columns>` is not provided
+  explicitly. For example, the insert statement below failed due to the
+  :ref:`not_null_constraint` constraint violation::
+
+     CREATE TABLE t (x INT, y AS x + 1 NOT NULL)
+     INSERT INTO t (x) (SELECT 1)
+
+- Fixed a potential memory accounting leak for queries with ``WHERE`` clauses
+  on primary keys. This could lead to a node eventually rejecting all further
+  queries with a ``CircuitBreakingException``.
+
+- Improved snapshot error handling by assuring a snapshot is declared as failed
+  when a shard or node failure happens during the snapshot process.
+
+- Fixed an issue which may result in an ``ArrayIndexOutOfBoundsException`` while
+  altering an empty partitioned table.
+
+- Fixed a regression introduced in ``2.3.2`` which optimizes subqueries when
+  used inside multi-value producing functions and operators like ``IN()``,
+  ``ANY()`` or ``ARRAY()`` by applying an implicit ordering. When using data
+  types (e.g. like an object: ``select array(select {a = col} from test)`` which
+  do not support ordering, an NPE was raised.
+
+- Fixed a possible OutOfMemory issue which may happen on ``GROUP BY`` statement
+  using a group key of type ``TEXT`` on tables containing at least one shard
+  with a low to medium cardinality on the group key.
+
+- Fixed an issue that caused an error when using ``ALTER TABLE .. ADD`` on a
+  table which contains nested primary key columns.
+
+- Fixed an issue where values of type ``array(varchar)`` were decoded
+  incorrectly if they contained a ``,`` character. This occurred when
+  the PostgreSQL wire protocol was used in ``text`` mode.
+
+- Improved performance of snapshot finalization as https://github.com/crate/crate/pull/9327
+  introduced a performance regression on the snapshot process.
+
+- Fixed a ``ClassCastException`` that could occur when using ``unnest`` on
+  multi dimensional arrays.
