@@ -23,6 +23,7 @@ package io.crate.execution.dsl.projection;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -42,6 +43,8 @@ public class UpdateProjection extends DMLProjection {
     @Nullable
     private String[] returnValueNames;
 
+    private boolean allOn4_1;
+
     public UpdateProjection(Symbol uidSymbol,
                             String[] assignmentsColumns,
                             Symbol[] assignments,
@@ -51,13 +54,20 @@ public class UpdateProjection extends DMLProjection {
         super(uidSymbol);
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
+        this.allOn4_1 = true;
         this.returnValues = returnValues;
         this.returnValueNames = returnValueNames;
         this.requiredVersion = requiredVersion;
+
     }
 
     public UpdateProjection(StreamInput in) throws IOException {
         super(in);
+        if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
+            this.allOn4_1 = in.readBoolean();
+        } else {
+            this.allOn4_1 = false;
+        }
         int assignmentColumnsSize = in.readVInt();
         assignmentsColumns = new String[assignmentColumnsSize];
         for (int i = 0; i < assignmentColumnsSize; i++) {
@@ -72,18 +82,20 @@ public class UpdateProjection extends DMLProjection {
         if (requiredVersion == 0) {
             requiredVersion = null;
         }
-        int returnValuesSize = in.readVInt();
-        if (returnValuesSize > 0) {
-            returnValues = new Symbol[assignmentsSize];
-            for (int i = 0; i < returnValuesSize; i++) {
-                returnValues[i] = Symbols.fromStream(in);
+        if (allOn4_1) {
+            int returnValuesSize = in.readVInt();
+            if (returnValuesSize > 0) {
+                returnValues = new Symbol[assignmentsSize];
+                for (int i = 0; i < returnValuesSize; i++) {
+                    returnValues[i] = Symbols.fromStream(in);
+                }
             }
-        }
-        int returnValueNamesSize = in.readVInt();
-        if (returnValueNamesSize > 0) {
-            returnValueNames = new String[returnValueNamesSize];
-            for (int i = 0; i < returnValueNamesSize; i++) {
-                returnValueNames[i] = in.readString();
+            int returnValueNamesSize = in.readVInt();
+            if (returnValueNamesSize > 0) {
+                returnValueNames = new String[returnValueNamesSize];
+                for (int i = 0; i < returnValueNamesSize; i++) {
+                    returnValueNames[i] = in.readString();
+                }
             }
         }
     }
@@ -156,6 +168,9 @@ public class UpdateProjection extends DMLProjection {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+            out.writeBoolean(allOn4_1);
+        }
         out.writeVInt(assignmentsColumns.length);
         for (int i = 0; i < assignmentsColumns.length; i++) {
             out.writeString(assignmentsColumns[i]);
@@ -169,21 +184,23 @@ public class UpdateProjection extends DMLProjection {
         } else {
             out.writeVLong(requiredVersion);
         }
-        if (returnValues != null) {
-            out.writeVInt(returnValues.length);
-            for (int i = 0; i < returnValues.length; i++) {
-                Symbols.toStream(returnValues[i], out);
+        if (allOn4_1) {
+            if (returnValues != null) {
+                out.writeVInt(returnValues.length);
+                for (int i = 0; i < returnValues.length; i++) {
+                    Symbols.toStream(returnValues[i], out);
+                }
+            } else {
+                out.writeVInt(0);
             }
-        } else {
-            out.writeVInt(0);
-        }
-        if (returnValueNames != null) {
-            out.writeVInt(returnValueNames.length);
-            for (int i = 0; i < returnValueNames.length; i++) {
-                out.writeString(returnValueNames[i]);
+            if (returnValueNames != null) {
+                out.writeVInt(returnValueNames.length);
+                for (int i = 0; i < returnValueNames.length; i++) {
+                    out.writeString(returnValueNames[i]);
+                }
+            } else {
+                out.writeVInt(0);
             }
-        } else {
-            out.writeVInt(0);
         }
     }
 }
