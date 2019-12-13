@@ -46,7 +46,6 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -70,10 +69,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
+import static io.crate.execution.dml.upsert.UpdateSourceGen.toByteReference;
 
 /**
  * Realizes Upserts of tables which either results in an Insert or an Update.
@@ -122,6 +123,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
         Reference[] insertColumns = request.insertColumns();
+
         GeneratedColumns.Validation valueValidation = request.validateConstraints()
             ? GeneratedColumns.Validation.VALUE_MATCH
             : GeneratedColumns.Validation.NONE;
@@ -133,7 +135,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         UpdateSourceGen updateSourceGen = request.updateColumns() == null
             ? null
-            : new UpdateSourceGen(functions, txnCtx, tableInfo, request.updateColumns());
+            : new UpdateSourceGen(functions,
+                                  txnCtx,
+                                  tableInfo,
+                                  request.updateColumns(),
+                                  request.getReturnValues(),
+                                  request.getReturnValueNames());
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
@@ -301,12 +308,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         } else {
             Doc currentDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
-            BytesReference updatedSource = updateSourceGen.generateSource(
+
+            Map<String, Object> updatedSource = updateSourceGen.generateSource(
                 currentDoc,
                 item.updateAssignments(),
                 item.insertValues()
             );
-            item.source(updatedSource);
+            Map<String, Object> returnValues = updateSourceGen.generateReturnValues(updatedSource,
+                                                                                       item.returnValues(),
+                                                                                       item.returnValueNames());
+
+            item.source(toByteReference(updatedSource));
             seqNo = item.seqNo();
             primaryTerm = item.primaryTerm();
             version = Versions.MATCH_ANY;
