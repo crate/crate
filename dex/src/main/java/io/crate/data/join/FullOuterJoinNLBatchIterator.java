@@ -24,6 +24,7 @@ package io.crate.data.join;
 
 import io.crate.data.BatchIterator;
 
+import java.util.BitSet;
 import java.util.function.Predicate;
 
 /**
@@ -49,7 +50,7 @@ import java.util.function.Predicate;
  */
 class FullOuterJoinNLBatchIterator<L, R, C> extends JoinBatchIterator<L, R, C> {
 
-    private final LuceneLongBitSetWrapper matchedRows = new LuceneLongBitSetWrapper();
+    private final BitSet matchedRows = new BitSet();
     private final Predicate<C> joinCondition;
 
     private boolean postNL = false;
