@@ -38,6 +38,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
@@ -82,8 +83,17 @@ final class UpdateSourceGen {
     private final GeneratedColumns<Doc> generatedColumns;
     private final ArrayList<Reference> updateColumns;
     private final CheckConstraints<Doc, CollectExpression<Doc, ?>> checks;
+    @Nullable
+    private final Symbol[] returnValues;
+    @Nullable
+    private final String[] returnValueNames;
 
-    UpdateSourceGen(Functions functions, TransactionContext txnCtx, DocTableInfo table, String[] updateColumns) {
+    UpdateSourceGen(Functions functions,
+                    TransactionContext txnCtx,
+                    DocTableInfo table,
+                    String[] updateColumns,
+                    @Nullable Symbol[] returnValues,
+                    @Nullable String[] returnValueNames) {
         DocRefResolver refResolver = new DocRefResolver(table.partitionedBy());
         this.eval = new Evaluator(functions, txnCtx, refResolver);
         InputFactory inputFactory = new InputFactory(functions);
@@ -106,9 +116,11 @@ final class UpdateSourceGen {
                 table.generatedColumns()
             );
         }
+        this.returnValues = returnValues;
+        this.returnValueNames = returnValueNames;
     }
 
-    BytesReference generateSource(Doc result, Symbol[] updateAssignments, Object[] insertValues) throws IOException {
+    Map<String, Object> generateSource(Doc result, Symbol[] updateAssignments, Object[] insertValues) {
         /* We require a new HashMap because all evaluations of the updateAssignments need to be based on the
          * values *before* the update. For example:
          *
@@ -130,7 +142,15 @@ final class UpdateSourceGen {
         generatedColumns.validateValues(updatedSource);
         injectGeneratedColumns(updatedSource);
         checks.validate(updatedDoc);
-        return BytesReference.bytes(XContentFactory.jsonBuilder().map(updatedSource));
+        return updatedSource;
+    }
+
+    Map<String, Object> generateReturnValues(Map<String, Object> doc, Symbol[] returnValues, String[] returnValueNames) {
+        throw new UnsupportedOperationException("Implement Return values");
+    }
+
+    static BytesReference toByteReference(Map<String, Object> source) throws IOException {
+        return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
     }
 
     private void injectGeneratedColumns(HashMap<String, Object> updatedSource) {
