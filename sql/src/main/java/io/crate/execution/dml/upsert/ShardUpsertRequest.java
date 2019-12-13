@@ -358,6 +358,16 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             return insertValues;
         }
 
+        @Nullable
+        public Symbol[] returnValues() {
+            return returnValues;
+        }
+
+        @Nullable
+        public String[] returnValueNames() {
+            return returnValueNames;
+        }
+
         public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super(in);
             if (in.readBoolean()) {
