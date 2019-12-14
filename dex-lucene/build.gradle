@@ -1,0 +1,13 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+archivesBaseName = 'crate-dex-lucene'
+
+dependencies {
+    implementation project(':dex')
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "org.apache.lucene:lucene-core:${versions.lucene}"
+
+    testImplementation "junit:junit:${versions.junit}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
+}

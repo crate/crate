@@ -22,23 +22,35 @@
 
 package io.crate.data.vectorized;
 
-import java.io.IOException;
+import org.junit.Test;
 
-public interface Block {
+public class PageTest {
 
-    // breaks lazy lucene query evaluation
-    int size();
 
-    IntValues getIntValues(int column);
+    @Test
+    public void test_foo() {
+        Page page = new Page() {
 
-    LongValues getLongValues(int column);
+            @Override
+            public int numColumns() {
+                return 1;
+            }
 
-    // ... for all types; generics/use primitives/support off-heap?
+            @Override
+            public int numRecords() {
+                return 500;
+            }
 
-    interface IntValues {}
+            @Override
+            public Vec getColumn(int ord) {
+                return new LongVec(numRecords(), new LuceneLongValues(null, null));
+            }
+        };
 
-    interface LongValues {
-
-        long getLong(int position) throws IOException;
+        Vec column = page.getColumn(0);
+        Block.LongValues longValues = column.longValues();
+        for (int i = 0; i < column.numValues(); i++) {
+            long value = longValues.getLong(i);
+        }
     }
 }

@@ -22,23 +22,11 @@
 
 package io.crate.data.vectorized;
 
-import java.io.IOException;
+public interface Page {
 
-public interface Block {
+    int numColumns();
 
-    // breaks lazy lucene query evaluation
-    int size();
+    int numRecords();
 
-    IntValues getIntValues(int column);
-
-    LongValues getLongValues(int column);
-
-    // ... for all types; generics/use primitives/support off-heap?
-
-    interface IntValues {}
-
-    interface LongValues {
-
-        long getLong(int position) throws IOException;
-    }
+    Vec getColumn(int ord);
 }

@@ -22,23 +22,28 @@
 
 package io.crate.data.vectorized;
 
-import java.io.IOException;
+public final class LongVec implements Vec {
 
-public interface Block {
+    private final int size;
+    private final Block.LongValues longValues;
 
-    // breaks lazy lucene query evaluation
-    int size();
+    public LongVec(int size, Block.LongValues longValues) {
+        this.size = size;
+        this.longValues = longValues;
+    }
 
-    IntValues getIntValues(int column);
+    @Override
+    public int numValues() {
+        return size;
+    }
 
-    LongValues getLongValues(int column);
+    @Override
+    public Block.IntValues intValues() {
+        throw new UnsupportedOperationException(getClass().getSimpleName() + ": Only supports longValues");
+    }
 
-    // ... for all types; generics/use primitives/support off-heap?
-
-    interface IntValues {}
-
-    interface LongValues {
-
-        long getLong(int position) throws IOException;
+    @Override
+    public Block.LongValues longValues() {
+        return longValues;
     }
 }

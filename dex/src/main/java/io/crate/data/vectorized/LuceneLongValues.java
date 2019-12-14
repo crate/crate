@@ -22,23 +22,27 @@
 
 package io.crate.data.vectorized;
 
+import org.apache.lucene.index.NumericDocValues;
+
 import java.io.IOException;
 
-public interface Block {
+public final class LuceneLongValues implements Block.LongValues {
 
-    // breaks lazy lucene query evaluation
-    int size();
+    private final int[] docIds;
+    private final NumericDocValues docValues;
 
-    IntValues getIntValues(int column);
+    public LuceneLongValues(int[] docIds, NumericDocValues docValues) {
+        this.docIds = docIds;
+        this.docValues = docValues;
+    }
 
-    LongValues getLongValues(int column);
-
-    // ... for all types; generics/use primitives/support off-heap?
-
-    interface IntValues {}
-
-    interface LongValues {
-
-        long getLong(int position) throws IOException;
+    @Override
+    public long getLong(int position) throws IOException {
+        int docId = docIds[position];
+        if (docValues.advanceExact(docId)) {
+            return docValues.longValue();
+        } else {
+            return -1;
+        }
     }
 }
