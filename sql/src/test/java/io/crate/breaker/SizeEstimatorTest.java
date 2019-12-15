@@ -22,9 +22,13 @@
 package io.crate.breaker;
 
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import java.util.List;
+
+import static io.crate.breaker.SizeEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
 import static org.hamcrest.Matchers.is;
 
 public class SizeEstimatorTest extends CrateUnitTest {
@@ -51,5 +55,30 @@ public class SizeEstimatorTest extends CrateUnitTest {
         assertThat(sizeEstimator.estimateSize(null), is(8L));
         assertThat(sizeEstimator.estimateSize(new Double[]{1.0d, 2.0d}), is(40L));
         assertThat(sizeEstimator.estimateSizeDelta(new Double[]{1.0d, 2.0d}, null), is(-32L));
+    }
+
+    public void test_undefined_type_estimate_size_for_null_value() {
+        var sizeEstimator = SizeEstimatorFactory.create(DataTypes.UNDEFINED);
+        assertThat(sizeEstimator.estimateSize(null), is(8L));
+    }
+
+    public void test_undefined_type_estimate_size_for_object() {
+        var sizeEstimator = SizeEstimatorFactory.create(DataTypes.UNDEFINED);
+        assertThat(
+            sizeEstimator.estimateSize(""),
+            is(UNKNOWN_DEFAULT_RAM_BYTES_USED));
+    }
+
+    public void test_undefined_array_type_estimate_size_for_null_value() {
+        var sizeEstimator = SizeEstimatorFactory.create(new ArrayType(DataTypes.UNDEFINED));
+        assertThat(sizeEstimator.estimateSize(null), is(8L));
+    }
+
+    public void test_undefined_array_type_estimate_size_for_object() {
+        var sizeEstimator = SizeEstimatorFactory.create(new ArrayType(DataTypes.UNDEFINED));
+        assertThat(
+            sizeEstimator.estimateSize(new Object[]{"", ""}),
+            // 16 bytes for the list memory overhead
+            is(UNKNOWN_DEFAULT_RAM_BYTES_USED * 2L + 16L));
     }
 }
