@@ -37,6 +37,12 @@ import javax.annotation.Nullable;
  */
 public abstract class SizeEstimator<T> {
 
+    /**
+     * The value corresponds to {@code RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED}
+     * in the lucene versions > 8.0.0
+     */
+    public static final long UNKNOWN_DEFAULT_RAM_BYTES_USED = 256L;
+
     public abstract long estimateSize(@Nullable T value);
 
     public long estimateSizeDelta(@Nullable T oldValue, @Nullable T newValue) {

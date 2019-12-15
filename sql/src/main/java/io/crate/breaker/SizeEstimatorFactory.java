@@ -32,13 +32,15 @@ import io.crate.types.UndefinedType;
 
 import java.util.Locale;
 
+import static io.crate.breaker.SizeEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
+
 public class SizeEstimatorFactory {
 
     @SuppressWarnings("unchecked")
     public static <T> SizeEstimator<T> create(DataType type) {
         switch (type.id()) {
             case UndefinedType.ID:
-                return (SizeEstimator<T>) new ConstSizeEstimator(0);
+                return (SizeEstimator<T>) new ConstSizeEstimator(UNKNOWN_DEFAULT_RAM_BYTES_USED);
             case StringType.ID:
             case IpType.ID:
                 return (SizeEstimator<T>) StringSizeEstimator.INSTANCE;
