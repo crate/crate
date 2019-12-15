@@ -209,6 +209,10 @@ Changes
 Fixes
 =====
 
+- Fixed the memory accounting of the circuit breaker for values which
+  types cannot be defined. Previously, the memory for such data types
+  was not accounted which could potentially lead to out of memory errors.
+
 - Fixed an issue that caused a ``INSERT INTO ... (SELECT ... FROM ..)``
   statement to fail if not all columns of a ``PARTITIONED BY`` clause
   appeared in the target list of the ``INSERT INTO`` statement.
