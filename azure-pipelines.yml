@@ -16,7 +16,7 @@ jobs:
           javaHomeOption: 'JDKVersion'
           jdkVersionOption: '1.11'
           jdkArchitectureOption: 'x64'
-          publishJUnitResults: true
+          publishJUnitResults: false
           testResultsFiles: '**/TEST-*.xml'
           tasks: ':sql:test'
 
@@ -34,6 +34,6 @@ jobs:
           javaHomeOption: 'JDKVersion'
           jdkVersionOption: '1.11'
           jdkArchitectureOption: 'x64'
-          publishJUnitResults: true
+          publishJUnitResults: false
           testResultsFiles: '**/TEST-*.xml'
           tasks: ':sql:test'
