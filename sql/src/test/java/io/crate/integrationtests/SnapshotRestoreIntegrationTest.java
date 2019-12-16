@@ -73,6 +73,10 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("CREATE REPOSITORY " + REPOSITORY_NAME + " TYPE \"fs\" with (location=?, compress=True)",
             new Object[]{defaultRepositoryLocation.getAbsolutePath()});
         assertThat(response.rowCount(), is(1L));
+        execute(
+            "CREATE REPOSITORY my_repo_ro TYPE \"fs\" with (location=?, compress=true, readonly=true)",
+            new Object[]{defaultRepositoryLocation.getAbsolutePath()}
+        );
     }
 
     private void createTableAndSnapshot(String tableName, String snapshotName) {
@@ -146,9 +150,14 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("CREATE SNAPSHOT " + snapshotName() + " TABLE backmeup WITH (wait_for_completion=true)");
         assertThat(response.rowCount(), is(1L));
 
-        execute("select name, \"repository\", concrete_indices, state from sys.snapshots");
+        execute("select name, \"repository\", concrete_indices, state from sys.snapshots order by 2");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is(String.format("my_snapshot| my_repo| [%s.backmeup]| SUCCESS\n", sqlExecutor.getCurrentSchema())));
+            is(String.format(
+                "my_snapshot| my_repo| [%s.backmeup]| SUCCESS\n" +
+                // shows up twice because both repos have the same data path
+                "my_snapshot| my_repo_ro| [%s.backmeup]| SUCCESS\n",
+                sqlExecutor.getCurrentSchema(),
+                sqlExecutor.getCurrentSchema())));
     }
 
     @Test
@@ -187,9 +196,11 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 " TABLE custom.backmeup PARTITION (date='1970-01-01')  WITH (wait_for_completion=true)");
         assertThat(response.rowCount(), is(1L));
 
-        execute("select name, \"repository\", concrete_indices, state from sys.snapshots");
+        execute("select name, \"repository\", concrete_indices, state from sys.snapshots order by 2");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| SUCCESS\n"));
+            is("my_snapshot| my_repo| [custom..partitioned.backmeup.04130]| SUCCESS\n" +
+               // shows up twice because the repos have the same fs path.
+               "my_snapshot| my_repo_ro| [custom..partitioned.backmeup.04130]| SUCCESS\n"));
     }
 
     @Test
@@ -484,5 +495,11 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
         ensureYellow();
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE employees with (wait_for_completion=true)");
+    }
+
+    @Test
+    public void test_cannot_create_snapshot_in_read_only_repo() {
+        expectedException.expectMessage("cannot create snapshot in a readonly repository");
+        execute("create snapshot my_repo_ro.s1 ALL WITH (wait_for_completion=true)");
     }
 }

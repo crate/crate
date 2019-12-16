@@ -46,6 +46,8 @@ None
 Fixes
 =====
 
+- Fixed the support for the ``readonly`` property in ``CREATE REPOSITORY``.
+
 - Fixed an issue that may cause a ``SELECT`` query to hang on multiple nodes
   cluster if a resource error like a ``CircuitBreakingException`` occurs.
 

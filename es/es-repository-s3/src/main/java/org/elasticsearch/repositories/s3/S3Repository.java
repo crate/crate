@@ -44,6 +44,7 @@ import static org.elasticsearch.repositories.s3.S3RepositorySettings.CHUNK_SIZE_
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.ENDPOINT_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_RETRIES_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.PROTOCOL_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.READONLY_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.SECRET_KEY_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.SERVER_SIDE_ENCRYPTION_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.STORAGE_CLASS_SETTING;
@@ -84,7 +85,8 @@ public class S3Repository extends BlobStoreRepository {
                        ENDPOINT_SETTING,
                        PROTOCOL_SETTING,
                        MAX_RETRIES_SETTING,
-                       USE_THROTTLE_RETRIES_SETTING);
+                       USE_THROTTLE_RETRIES_SETTING,
+                       READONLY_SETTING);
     }
 
     private final S3Service service;

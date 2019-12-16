@@ -43,7 +43,11 @@ public class TypeSettings {
     TypeSettings(Map<String, Setting<?>> required,
                  Map<String, Setting<?>> optional) {
         this.required = required;
-        this.all = ImmutableMap.<String, Setting<?>>builder().putAll(required).putAll(optional).putAll(GENERIC).build();
+        this.all = ImmutableMap.<String, Setting<?>>builder()
+            .putAll(required)
+            .putAll(optional)
+            .putAll(GENERIC)
+            .build();
     }
 
     public Map<String, Setting<?>> required() {
