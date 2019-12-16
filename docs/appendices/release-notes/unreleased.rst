@@ -46,6 +46,11 @@ None
 Fixes
 =====
 
+- Improved the memory accounting for values of type ``geo_shape``, ``object``
+  or ``undefined``. Previously an arbitrary fixed value was used for memory
+  accounting. If the actual payloads are large, this could have led to out of
+  memory errors as the memory usage was under-estimated.
+
 - Fixed the type information of the ``fs['data']`` and ``fs['disks']`` column
   in the ``sys.nodes`` table. Querying those columns could have resulted in
   serialization errors.
@@ -54,10 +59,6 @@ Fixes
 
 - Fixed an issue that may cause a ``SELECT`` query to hang on multiple nodes
   cluster if a resource error like a ``CircuitBreakingException`` occurs.
-
-- Fixed the memory accounting of the circuit breaker for values which
-  types cannot be defined. Previously, the memory for such data types
-  was not accounted which could potentially lead to out of memory errors.
 
 - Fixed an issue that caused a ``INSERT INTO ... (SELECT ... FROM ..)``
   statement to fail if not all columns of a ``PARTITIONED BY`` clause
