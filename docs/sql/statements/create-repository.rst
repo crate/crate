@@ -288,7 +288,7 @@ A repository that stores its snapshot on the Amazon S3 service.
 
   Whether retries should be throttled (ie use backoff).
 
-**read_only**
+**readonly**
   | *Type:*    ``boolean``
   | *Default:* ``false``
 
@@ -422,7 +422,7 @@ A read-only repository that points to the location of a
 
 .. rubric:: Parameters
 
-**read_only**
+**readonly**
   | *Type:*    ``text``
 
   This url must point to the root of the shared
