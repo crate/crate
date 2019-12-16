@@ -35,6 +35,8 @@ import java.util.Locale;
 
 class S3RepositorySettings {
 
+    static final Setting<Boolean> READONLY_SETTING = Setting.boolSetting("readonly", false);
+
     /**
      * The access key to authenticate with s3.
      */
