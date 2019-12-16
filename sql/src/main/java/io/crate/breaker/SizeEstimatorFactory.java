@@ -36,24 +36,26 @@ import static org.apache.lucene.util.RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES
 
 public class SizeEstimatorFactory {
 
+    private static final int SAMPLE_EVERY_NTH = 100;
+
     @SuppressWarnings("unchecked")
-    public static <T> SizeEstimator<T> create(DataType type) {
+    public static <T> SizeEstimator<T> create(DataType<?> type) {
         switch (type.id()) {
             case UndefinedType.ID:
                 return (SizeEstimator<T>) new ConstSizeEstimator(UNKNOWN_DEFAULT_RAM_BYTES_USED);
+
+            case ObjectType.ID:
+            case GeoShapeType.ID:
+                return (SizeEstimator<T>) new SamplingSizeEstimator<>(SAMPLE_EVERY_NTH, MapSizeEstimator.INSTANCE);
+
             case StringType.ID:
             case IpType.ID:
                 return (SizeEstimator<T>) StringSizeEstimator.INSTANCE;
-            case ObjectType.ID:
-                // no type info for inner types so we just use an arbitrary constant size for now
-                return (SizeEstimator<T>) new ConstSizeEstimator(60);
-            case GeoShapeType.ID:
-                // no type info for inner types so we just use an arbitrary constant size for now
-                // geo_shapes are usually large objects, so estimated greater than regular object type
-                return (SizeEstimator<T>) new ConstSizeEstimator(120);
+
             case ArrayType.ID:
                 var innerEstimator = create(((ArrayType<?>) type).innerType());
                 return (SizeEstimator<T>) ArraySizeEstimator.create(innerEstimator);
+
             default:
                 if (type instanceof FixedWidthType) {
                     return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWidthType) type).fixedSize());
