@@ -212,6 +212,8 @@ Changes
 Fixes
 =====
 
+- Fixed the support for the ``readonly`` property in ``CREATE REPOSITORY``.
+
 - Improved the memory accounting for values of type ``geo_shape``, ``object``
   or ``undefined``. Previously an arbitrary fixed value was used for memory
   accounting. If the actual payloads are large, this could have led to out of

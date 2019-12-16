@@ -149,6 +149,7 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
             "   buffer_size='5mb'," +
             "   max_retries=2," +
             "   use_throttle_retries=false," +
+            "   readonly=false, " +
             "   canned_acl=false)");
         assertThat(request.name(), is("foo"));
         assertThat(request.type(), is("s3"));
@@ -167,7 +168,9 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                 hasEntry("use_throttle_retries", "false"),
                 hasEntry("protocol", "http"),
                 hasEntry("secret_key", "0xCAFEE"),
-                hasEntry("server_side_encryption", "false"))
+                hasEntry("server_side_encryption", "false"),
+                hasEntry("readonly", "false")
+            )
         );
     }
 
