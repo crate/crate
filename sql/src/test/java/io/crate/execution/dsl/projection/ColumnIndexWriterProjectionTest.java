@@ -69,21 +69,25 @@ public class ColumnIndexWriterProjectionTest {
         Reference hRef = ref(h, DataTypes.INTEGER);
         List<ColumnIdent> primaryKeys = Arrays.asList(ymd, domain, area, isp);
         List<Reference> targetColumns = Arrays.asList(ymdRef, domainRef, areaRef, ispRef, hRef);
+        List<Reference> targetColumnsExclPartitionColumns = Arrays.asList(domainRef, areaRef, hRef);
         InputColumns.SourceSymbols targetColsCtx = new InputColumns.SourceSymbols(targetColumns);
         List<Symbol> primaryKeySymbols = InputColumns.create(
             Arrays.asList(ymdRef, domainRef, areaRef, ispRef), targetColsCtx);
-        List<ColumnIdent> partitionedByColumns = Arrays.asList(ymd, isp);
         List<Symbol> partitionedBySymbols = InputColumns.create(Arrays.asList(ymdRef, ispRef), targetColsCtx);
+        List<Symbol> columnSymbols = InputColumns.create(
+            targetColumnsExclPartitionColumns,
+            targetColsCtx);
 
         ColumnIndexWriterProjection projection = new ColumnIndexWriterProjection(
             relationName,
             null,
             primaryKeys,
             targetColumns,
+            targetColumnsExclPartitionColumns,
+            columnSymbols,
             false,
             null,
             primaryKeySymbols,
-            partitionedByColumns,
             partitionedBySymbols,
             null,
             null,
@@ -91,10 +95,10 @@ public class ColumnIndexWriterProjectionTest {
             true
         );
 
-        assertThat(projection.columnReferences(), Matchers.is(Arrays.asList(
+        assertThat(projection.columnReferencesExclPartition(), Matchers.is(Arrays.asList(
             domainRef, areaRef, hRef)
         ));
-        assertThat(projection.columnSymbols(), Matchers.is(Arrays.asList(
+        assertThat(projection.columnSymbolsExclPartition(), Matchers.is(Arrays.asList(
             new InputColumn(1, DataTypes.STRING),
             new InputColumn(2, DataTypes.STRING),
             new InputColumn(4, DataTypes.INTEGER))));

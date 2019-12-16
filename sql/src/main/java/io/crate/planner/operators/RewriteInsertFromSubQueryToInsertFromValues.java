@@ -60,7 +60,9 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
         var relation = collect.relation();
         if (relation instanceof TableFunctionRelation
             && relation.getQualifiedName().toString().equals(ValuesFunction.NAME)) {
-            return new InsertFromValues((TableFunctionRelation) collect.relation(), plan.columnIndexWriterProjection());
+            return new InsertFromValues(
+                (TableFunctionRelation) collect.relation(),
+                plan.columnIndexWriterProjection());
         } else {
             return null;
         }

@@ -136,8 +136,8 @@ public class InsertFromValues implements LogicalPlan {
         InputFactory.Context<CollectExpression<Row, ?>> context = inputFactory.ctxForInputColumns(plannerContext.transactionContext());
 
         var columnSymbols = InputColumns.create(
-            writerProjection.allTargetReferences(),
-            new InputColumns.SourceSymbols(writerProjection.allTargetReferences()));
+            writerProjection.targetColumns(),
+            new InputColumns.SourceSymbols(writerProjection.targetColumns()));
         ArrayList<Input<?>> insertInputs = new ArrayList<>(columnSymbols.size());
         for (Symbol symbol : columnSymbols) {
             insertInputs.add(context.add(symbol));
@@ -147,7 +147,7 @@ public class InsertFromValues implements LogicalPlan {
             partitionedByInputs.add(context.add(partitionedBySymbol));
         }
 
-        ArrayList<Input<?>> primaryKeys = new ArrayList<>(writerProjection.columnSymbols().size());
+        ArrayList<Input<?>> primaryKeys = new ArrayList<>(writerProjection.columnSymbolsExclPartition().size());
         for (Symbol symbol : writerProjection.ids()) {
             primaryKeys.add(context.add(symbol));
         }
@@ -206,7 +206,7 @@ public class InsertFromValues implements LogicalPlan {
             evaluateValueTableFunction(
                 tableFunctionRelation.functionImplementation(),
                 tableFunctionRelation.function().arguments(),
-                writerProjection.allTargetReferences(),
+                writerProjection.targetColumns(),
                 tableInfo,
                 params,
                 plannerContext,
@@ -221,7 +221,7 @@ public class InsertFromValues implements LogicalPlan {
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             rows.size() > 1, // continueOnErrors
             updateColumnNames,
-            writerProjection.allTargetReferences().toArray(new Reference[0]),
+            writerProjection.targetColumns().toArray(new Reference[0]),
             plannerContext.jobId(),
             false);
         var shardedRequests = new ShardedRequests<>(builder::newRequest);
@@ -248,7 +248,7 @@ public class InsertFromValues implements LogicalPlan {
                     tableInfo,
                     index,
                     GeneratedColumns.Validation.VALUE_MATCH,
-                    writerProjection.allTargetReferences(),
+                    writerProjection.targetColumns(),
                     true));
 
             var cells = row.materialize();
@@ -307,7 +307,7 @@ public class InsertFromValues implements LogicalPlan {
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors
             updateColumnNames,
-            writerProjection.allTargetReferences().toArray(new Reference[0]),
+            writerProjection.targetColumns().toArray(new Reference[0]),
             plannerContext.jobId(),
             true);
         var shardedRequests = new ShardedRequests<>(builder::newRequest);
@@ -323,8 +323,8 @@ public class InsertFromValues implements LogicalPlan {
             inputFactory.ctxForInputColumns(plannerContext.transactionContext());
 
         var columnSymbols = InputColumns.create(
-            writerProjection.allTargetReferences(),
-            new InputColumns.SourceSymbols(writerProjection.allTargetReferences()));
+            writerProjection.targetColumns(),
+            new InputColumns.SourceSymbols(writerProjection.targetColumns()));
         ArrayList<Input<?>> insertInputs = new ArrayList<>(columnSymbols.size());
         for (Symbol symbol : columnSymbols) {
             insertInputs.add(context.add(symbol));
@@ -333,7 +333,7 @@ public class InsertFromValues implements LogicalPlan {
         for (Symbol partitionedBySymbol : writerProjection.partitionedBySymbols()) {
             partitionedByInputs.add(context.add(partitionedBySymbol));
         }
-        ArrayList<Input<?>> primaryKeys = new ArrayList<>(writerProjection.columnSymbols().size());
+        ArrayList<Input<?>> primaryKeys = new ArrayList<>(writerProjection.columnSymbolsExclPartition().size());
         for (Symbol symbol : writerProjection.ids()) {
             primaryKeys.add(context.add(symbol));
         }
@@ -392,7 +392,7 @@ public class InsertFromValues implements LogicalPlan {
             Iterable<Row> rows = evaluateValueTableFunction(
                 tableFunctionRelation.functionImplementation(),
                 tableFunctionRelation.function().arguments(),
-                writerProjection.allTargetReferences(),
+                writerProjection.targetColumns(),
                 tableInfo,
                 param,
                 plannerContext,
@@ -418,7 +418,7 @@ public class InsertFromValues implements LogicalPlan {
                         tableInfo,
                         index,
                         GeneratedColumns.Validation.VALUE_MATCH,
-                        writerProjection.allTargetReferences(),
+                        writerProjection.targetColumns(),
                         true));
 
                 var cells = row.materialize();
