@@ -65,6 +65,9 @@ Deprecations
 Changes
 =======
 
+- Added support for casting values of type ``object`` to ``text``. This will
+  cause the object to be converted to a JSON string.
+
 - Optimized ``SELECT DISTINCT .. LIMIT n`` queries. On high cardinality
   columns this type of queries can now execute up to 200% faster and use
   less memory.

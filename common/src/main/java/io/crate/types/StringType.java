@@ -24,9 +24,11 @@ package io.crate.types;
 import com.google.common.collect.Ordering;
 import io.crate.Streamer;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -82,13 +84,20 @@ public class StringType extends DataType<String> implements Streamer<String> {
                 return F;
             }
         }
-        if (value instanceof Map || value instanceof Collection) {
+        if (value instanceof Map) {
+            try {
+                return Strings.toString(XContentFactory.jsonBuilder().map((Map) value));
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Cannot cast `" + value + "` to type TEXT", e);
+            }
+        }
+        if (value instanceof Collection) {
             throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Cannot cast %s to type string", value));
+                String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", value));
         }
         if (value.getClass().isArray()) {
             throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Cannot cast %s to type string", Arrays.toString((Object[]) value)));
+                String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", Arrays.toString((Object[]) value)));
         }
         if (value instanceof TimeValue) {
             return ((TimeValue) value).getStringRep();

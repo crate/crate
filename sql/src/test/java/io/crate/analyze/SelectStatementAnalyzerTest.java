@@ -1179,8 +1179,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testMatchPredicateWithWrongQueryTerm() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast {} to type text");
-        analyze("select name from users order by match(name, {})");
+        expectedException.expectMessage("Cannot cast [10, 20] to type text");
+        analyze("select name from users order by match(name, [10, 20])");
     }
 
     @Test

@@ -82,6 +82,11 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void test_object_cast_to_text_results_in_json_string() {
+        assertEvaluate("cast({x=10, y=20} as text)", "{\"x\":10,\"y\":20}");
+    }
+
+    @Test
     public void testPrecedenceOfDoubleColonCastIsHigherThanArithmetic() {
         // used to result in 2.0 as the precedence was like this: ((x::double) / a)::double
         assertEvaluate("x::double / a::double", 2.5, Literal.of(5), Literal.of(2L));
