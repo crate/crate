@@ -212,6 +212,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that may cause a ``SELECT`` query to hang on multiple nodes
+  cluster if a resource error like a ``CircuitBreakingException`` occurs.
+
 - Fixed the memory accounting of the circuit breaker for values which
   types cannot be defined. Previously, the memory for such data types
   was not accounted which could potentially lead to out of memory errors.
