@@ -165,7 +165,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
                 try {
                     pagingIterator.merge(buckets);
                     executor.execute(this::consumeRows);
-                } catch (RejectedExecutionException e) {
+                } catch (Throwable e) {
                     consumer.accept(null, e);
                     throwable = e;
                 }
