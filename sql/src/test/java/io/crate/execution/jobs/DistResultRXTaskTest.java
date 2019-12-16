@@ -244,7 +244,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
     }
 
     @Test
-    public void testBatchIteratorIsCompletedExceptionallyIfMergeBucketFails() throws Exception {
+    public void test_batch_iterator_is_completed_exceptionally_if_merge_buckets_on_next_page_fails() throws Exception {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
 
         DistResultRXTask ctx = getPageDownstreamContext(batchConsumer, new FailOnMergePagingIterator<>(2), 2);
@@ -257,6 +257,23 @@ public class DistResultRXTaskTest extends CrateUnitTest {
         bucketReceiver.setBucket(1, bucket, false, pageResultListener);
         bucketReceiver.setBucket(0, bucket, true, pageResultListener);
         bucketReceiver.setBucket(1, bucket, true, pageResultListener);
+
+        expectedException.expect(RuntimeException.class);
+        expectedException.expectMessage("raised on merge");
+        batchConsumer.getResult();
+    }
+
+    @Test
+    public void test_batch_iterator_is_completed_exceptionally_if_first_merge_buckets_fails() throws Exception {
+        TestingRowConsumer batchConsumer = new TestingRowConsumer();
+
+        DistResultRXTask ctx = getPageDownstreamContext(batchConsumer, new FailOnMergePagingIterator<>(1), 1);
+        PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
+        assertThat(bucketReceiver, notNullValue());
+
+        PageResultListener pageResultListener = mock(PageResultListener.class);
+        Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
+        bucketReceiver.setBucket(0, bucket, true, pageResultListener);
 
         expectedException.expect(RuntimeException.class);
         expectedException.expectMessage("raised on merge");
