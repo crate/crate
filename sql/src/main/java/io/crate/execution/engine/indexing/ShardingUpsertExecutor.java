@@ -350,16 +350,41 @@ public class ShardingUpsertExecutor
 
         private final Runtime rt;
         private final long maxBytesUsableByShardedRequests;
+        private final boolean traceEnabled;
 
         IsUsedBytesOverThreshold() {
             rt = Runtime.getRuntime();
             maxBytesUsableByShardedRequests = (long) (rt.maxMemory() * HEAP_PERCENTAGE);
+            traceEnabled = LOGGER.isTraceEnabled();
         }
 
         @Override
         public final boolean test(ShardedRequests<?, ?> shardedRequests) {
-            return shardedRequests.usedMemoryEstimate() > maxBytesUsableByShardedRequests
-                   || shardedRequests.usedMemoryEstimate() > (rt.freeMemory() * MAX_FREE_MEM_USAGE_PERCENT);
+            long memoryEstimate = shardedRequests.usedMemoryEstimate();
+            if (memoryEstimate > maxBytesUsableByShardedRequests) {
+                if (traceEnabled) {
+                    LOGGER.trace(
+                        "ShardedRequests.memoryEstimate={} is bigger than maxBytesUsableByShardedRequests={}; sending requests",
+                        memoryEstimate,
+                        maxBytesUsableByShardedRequests
+                    );
+                }
+                return true;
+            }
+
+            double freeMemoryRemaining = rt.freeMemory() * MAX_FREE_MEM_USAGE_PERCENT;
+            if (memoryEstimate > freeMemoryRemaining) {
+                if (traceEnabled) {
+                    LOGGER.trace(
+                        "ShardedRequests.memoryEstimate={} is bigger than 70% of the freeMemory={}; sending requests",
+                        memoryEstimate,
+                        freeMemoryRemaining
+                    );
+                }
+                return true;
+            }
+
+            return false;
         }
     }
 }
