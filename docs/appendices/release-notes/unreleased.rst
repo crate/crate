@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed the type information of the ``fs['data']`` and ``fs['disks']`` column
+  in the ``sys.nodes`` table. Querying those columns could have resulted in
+  serialization errors.
+
 - Fixed the support for the ``readonly`` property in ``CREATE REPOSITORY``.
 
 - Fixed an issue that may cause a ``SELECT`` query to hang on multiple nodes
