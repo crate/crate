@@ -27,9 +27,11 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.data.RowN;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -44,6 +46,7 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +100,22 @@ public class ShardRequestExecutor<Req> {
         this.docKeys = docKeys;
     }
 
+    public void executeReturnValues(RowConsumer consumer, Row parameters, SubQueryResults subQueryResults) {
+        HashMap<ShardId, Req> requestsByShard = new HashMap<>();
+        grouper.bind(parameters, subQueryResults);
+        addRequests(0, parameters, requestsByShard, subQueryResults);
+        MultiActionListener<ShardResponse, List<Symbol>, ? super Row> listener = new MultiActionListener<>(
+            requestsByShard.size(),
+            () -> new ArrayList<>(),
+            ShardRequestExecutor::updateValuesOrFail,
+            result -> new RowN(result.toArray()),
+            new OneRowActionListener<>(consumer, Function.identity())
+        );
+        for (Req request : requestsByShard.values()) {
+            transportAction.accept(request, listener);
+        }
+    }
+
     public void execute(RowConsumer consumer, Row parameters, SubQueryResults subQueryResults) {
         HashMap<ShardId, Req> requestsByShard = new HashMap<>();
         grouper.bind(parameters, subQueryResults);
@@ -112,6 +131,7 @@ public class ShardRequestExecutor<Req> {
             transportAction.accept(request, listener);
         }
     }
+
 
     public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, SubQueryResults subQueryResults) {
         HashMap<ShardId, Req> requests = new HashMap<>();
@@ -200,4 +220,19 @@ public class ShardRequestExecutor<Req> {
             }
         }
     }
+
+    private static void updateValuesOrFail(List<Symbol> values, ShardResponse response) {
+        Exception exception = response.failure();
+        if (exception != null) {
+            Throwable t = SQLExceptions.unwrap(exception, e -> e instanceof RuntimeException);
+            if (!(t instanceof DocumentMissingException) && !(t instanceof VersionConflictEngineException)) {
+                throw new RuntimeException(t);
+            }
+        }
+        if (response.getValues() != null) {
+            values.addAll(response.getValues());
+        }
+    }
+
+
 }

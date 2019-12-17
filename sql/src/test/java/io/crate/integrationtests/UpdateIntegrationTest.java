@@ -62,19 +62,6 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void test_update_returning_id() throws Exception {
-        execute("create table test (id int primary key, message string) clustered into 2 shards");
-        execute("insert into test values(1, 'hello');");
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        execute("update test set message='b' where id = 1 returning id");
-
-        assertEquals(1, response.rowCount());
-        refresh();
-    }
-
-    @Test
     public void testUpdateByPrimaryKeyUnknownDocument() {
         execute("create table test (id int primary key, message string)");
         execute("update test set message='b' where id = 1");
@@ -905,4 +892,18 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is("1| Slartibartfast\n" +
                                                      "2| Trillian\n"));
     }
+
+    @Test
+    public void test_update_returning_id() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(2, 'hello');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='b' where id = 2 returning id");
+
+        assertEquals(2, response.rows()[0][0]);
+        refresh();
+    }
+
 }

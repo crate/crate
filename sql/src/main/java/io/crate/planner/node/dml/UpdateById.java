@@ -86,8 +86,13 @@ public final class UpdateById implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        createExecutor(dependencies, plannerContext)
-            .execute(consumer, params, subQueryResults);
+        ShardRequestExecutor<ShardUpsertRequest> executor = createExecutor(dependencies, plannerContext);
+
+        if(returningClause == null) {
+            executor.execute(consumer, params, subQueryResults);
+        } else {
+            executor.executeReturnValues(consumer, params, subQueryResults);
+        }
     }
 
 

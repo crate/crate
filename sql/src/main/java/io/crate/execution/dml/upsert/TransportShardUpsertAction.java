@@ -69,6 +69,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -140,7 +141,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                   tableInfo,
                                   request.updateColumns(),
                                   request.getReturnValues(),
-                                  request.getReturnValueNames());
+                                  request.getReturnValueNames()
+        );
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
@@ -153,7 +155,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 break;
             }
             try {
-                translogLocation = indexItem(
+                IndexItemResponse indexItemResponse = indexItem(
                     request,
                     item,
                     indexShard,
@@ -161,8 +163,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     updateSourceGen,
                     insertSourceGen
                 );
-                if (translogLocation != null) {
+                if (indexItemResponse != null) {
                     shardResponse.add(location);
+                    if (indexItemResponse.returnValues != null) {
+                        shardResponse.getValues().addAll(List.of(indexItemResponse.returnValues));
+                    }
                 }
             } catch (Exception e) {
                 if (retryPrimaryException(e)) {
@@ -236,7 +241,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Nullable
-    private Translog.Location indexItem(ShardUpsertRequest request,
+    private IndexItemResponse indexItem(ShardUpsertRequest request,
                                         ShardUpsertRequest.Item item,
                                         IndexShard indexShard,
                                         boolean tryInsertFirst,
@@ -283,8 +288,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         throw lastException;
     }
 
+    public static class IndexItemResponse {
+        final Translog.Location translog;
+        @Nullable
+        final Symbol[] returnValues;
+        public IndexItemResponse(Translog.Location translog,  @Nullable Symbol[] returnValues) {
+            this.translog = translog;
+            this.returnValues = returnValues;
+        }
+    }
+
     @VisibleForTesting
-    protected Translog.Location indexItem(ShardUpsertRequest request,
+    protected IndexItemResponse indexItem(ShardUpsertRequest request,
                                           ShardUpsertRequest.Item item,
                                           IndexShard indexShard,
                                           boolean tryInsertFirst,
@@ -294,6 +309,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         final long seqNo;
         final long primaryTerm;
         final long version;
+        Symbol[] returnValues =  null;
         if (tryInsertFirst) {
             version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
                 ? Versions.MATCH_ANY
@@ -314,10 +330,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 item.updateAssignments(),
                 item.insertValues()
             );
-            Map<String, Object> returnValues = updateSourceGen.generateReturnValues(updatedSource,
-                                                                                       item.returnValues(),
-                                                                                       item.returnValueNames());
 
+            returnValues = updateSourceGen.generateReturnValues(currentDoc.withUpdatedSource(updatedSource), item.returnValues());
             item.source(toByteReference(updatedSource));
             seqNo = item.seqNo();
             primaryTerm = item.primaryTerm();
@@ -347,7 +361,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 // update the seqNo and version on request for the replicas
                 item.seqNo(indexResult.getSeqNo());
                 item.version(indexResult.getVersion());
-                return indexResult.getTranslogLocation();
+                return new IndexItemResponse(indexResult.getTranslogLocation(), returnValues);
 
             case FAILURE:
                 Exception failure = indexResult.getFailure();

@@ -25,6 +25,8 @@ package io.crate.execution.dml;
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.MoreObjects;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import org.elasticsearch.action.support.WriteResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -47,6 +49,8 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         private final String id;
         private final String message;
         private final boolean versionConflict;
+
+
 
         public Failure(String id, String message, boolean versionConflict) {
             this.id = id;
@@ -91,6 +95,10 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
     private IntArrayList locations = new IntArrayList();
     private List<Failure> failures = new ArrayList<>();
+
+    @Nullable
+    private List<Symbol> values = new ArrayList<>();
+
     @Nullable
     private Exception failure;
 
@@ -105,6 +113,11 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     public void add(int location, Failure failure) {
         locations.add(location);
         failures.add(failure);
+    }
+
+    @Nullable
+    public List<Symbol> getValues() {
+        return values;
     }
 
     public IntArrayList itemIndices() {
@@ -139,6 +152,13 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         if (in.readBoolean()) {
             failure = in.readException();
         }
+        int valueSize = in.readVInt();
+        if (valueSize > 0) {
+            values = new ArrayList<>();
+            for (int i = 0; i < valueSize; i++) {
+                values.add(Symbols.fromStream(in));
+            }
+        }
     }
 
     @Override
@@ -159,6 +179,15 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             out.writeException(failure);
         } else {
             out.writeBoolean(false);
+        }
+
+        if (values != null) {
+            out.writeVInt(values.size());
+            for (int i = 0; i < values.size(); i++) {
+               Symbols.toStream(values.get(i), out);
+            }
+        } else {
+            out.writeVInt(0);
         }
     }
 

@@ -26,6 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.ParamTypeHints;
@@ -41,6 +42,7 @@ import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
@@ -64,6 +66,7 @@ import org.elasticsearch.common.Randomness;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -590,6 +593,13 @@ public class Session implements AutoCloseable {
     public List<? extends DataType> getOutputTypes(String portalName) {
         Portal portal = getSafePortal(portalName);
         AnalyzedStatement analyzedStatement = portal.boundOrUnboundStatement();
+        //TODO hack
+        if (analyzedStatement instanceof AnalyzedUpdateStatement) {
+            Collection<Symbol> values = ((AnalyzedUpdateStatement) analyzedStatement).returningClause().values();
+            if (!values.isEmpty()) {
+                return Symbols.typeView(new ArrayList<>(values));
+            }
+        }
         if (analyzedStatement instanceof AnalyzedRelation) {
             return Symbols.typeView(((AnalyzedRelation) analyzedStatement).fields());
         } else {

@@ -119,7 +119,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         @Nullable
         @Override
-        protected Translog.Location indexItem(ShardUpsertRequest request,
+        protected IndexItemResponse indexItem(ShardUpsertRequest request,
                                               ShardUpsertRequest.Item item,
                                               IndexShard indexShard,
                                               boolean tryInsertFirst,

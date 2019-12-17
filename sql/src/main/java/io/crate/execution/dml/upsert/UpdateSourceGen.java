@@ -30,6 +30,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -80,6 +81,7 @@ import java.util.Map;
 final class UpdateSourceGen {
 
     private final Evaluator eval;
+    private final ReturnEvaluator returnEval;
     private final GeneratedColumns<Doc> generatedColumns;
     private final ArrayList<Reference> updateColumns;
     private final CheckConstraints<Doc, CollectExpression<Doc, ?>> checks;
@@ -96,6 +98,7 @@ final class UpdateSourceGen {
                     @Nullable String[] returnValueNames) {
         DocRefResolver refResolver = new DocRefResolver(table.partitionedBy());
         this.eval = new Evaluator(functions, txnCtx, refResolver);
+        this.returnEval = new ReturnEvaluator(functions, txnCtx);
         InputFactory inputFactory = new InputFactory(functions);
         this.checks = new CheckConstraints<>(txnCtx, inputFactory, refResolver, table);
         this.updateColumns = new ArrayList<>(updateColumns.length);
@@ -145,8 +148,14 @@ final class UpdateSourceGen {
         return updatedSource;
     }
 
-    Map<String, Object> generateReturnValues(Map<String, Object> doc, Symbol[] returnValues, String[] returnValueNames) {
-        throw new UnsupportedOperationException("Implement Return values");
+    Symbol[] generateReturnValues(Doc doc, Symbol[] returnValues) {
+        ArrayList<Symbol> result = new ArrayList<>();
+        for (int i = 0; i < returnValues.length; i++) {
+            Symbol returnValue = returnValues[i];
+            Input<?> value = returnValue.accept(returnEval, doc);
+            result.add((Symbol) value);
+        }
+        return result.toArray(new Symbol[]{});
     }
 
     static BytesReference toByteReference(Map<String, Object> source) throws IOException {
@@ -172,7 +181,19 @@ final class UpdateSourceGen {
         }
     }
 
-    private static class Evaluator extends BaseImplementationSymbolVisitor<Values> {
+    private static class ReturnEvaluator extends BaseImplementationSymbolVisitor<Doc> {
+
+        private ReturnEvaluator(Functions functions, TransactionContext txnCtx) {
+            super(txnCtx, functions);
+        }
+
+        @Override
+        public Input<?> visitField(Field field, Doc context) {
+            return Literal.of(field.valueType(), context.getSource().get(field.path().name()));
+        }
+    }
+
+        private static class Evaluator extends BaseImplementationSymbolVisitor<Values> {
 
         private final ReferenceResolver<CollectExpression<Doc, ?>> refResolver;
 
