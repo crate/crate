@@ -149,7 +149,7 @@ public class ColumnRegistrar<T> {
     }
 
     public ColumnRegistrar<T> register(ColumnIdent column,
-                                       DataType type,
+                                       DataType<?> type,
                                        boolean nullable,
                                        @Nullable RowCollectExpressionFactory<T> expression) {
         Reference ref = new Reference(
@@ -182,13 +182,13 @@ public class ColumnRegistrar<T> {
         if (dataType.id() != ObjectType.ID) {
             return;
         }
-        Map<String, DataType> innerTypes = ((ObjectType) dataType).innerTypes();
+        Map<String, DataType<?>> innerTypes = ((ObjectType) dataType).innerTypes();
         int pos = 0;
-        for (Map.Entry<String, DataType> entry : innerTypes.entrySet()) {
+        for (Map.Entry<String, DataType<?>> entry : innerTypes.entrySet()) {
             List<String> subPath = new ArrayList<>(path);
             subPath.add(entry.getKey());
             ColumnIdent ci = new ColumnIdent(topLevelName, subPath);
-            DataType innerType = entry.getValue();
+            DataType<?> innerType = entry.getValue();
             Reference ref = new Reference(
                 new ReferenceIdent(relationName, ci),
                 rowGranularity,

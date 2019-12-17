@@ -212,6 +212,10 @@ Changes
 Fixes
 =====
 
+- Fixed the type information of the ``fs['data']`` and ``fs['disks']`` column
+  in the ``sys.nodes`` table. Querying those columns could have resulted in
+  serialization errors.
+
 - Fixed the support for the ``readonly`` property in ``CREATE REPOSITORY``.
 
 - Improved the memory accounting for values of type ``geo_shape``, ``object``

@@ -66,12 +66,12 @@ import org.elasticsearch.threadpool.ThreadPoolStats;
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.DOUBLE;
-import static io.crate.types.DataTypes.SHORT;
-import static io.crate.types.DataTypes.TIMESTAMPZ;
 import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 public class SysNodesTableInfo extends StaticTableInfo<NodeStatsContext> {
 
@@ -230,7 +230,7 @@ public class SysNodesTableInfo extends StaticTableInfo<NodeStatsContext> {
                 }
             })
 
-            .register("thread_pools", new ArrayType(ObjectType.untyped()), NodeThreadPoolsExpression::new)
+            .register("thread_pools", new ArrayType<>(ObjectType.untyped()), NodeThreadPoolsExpression::new)
 
             .register("thread_pools", "active", INTEGER, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
@@ -363,13 +363,13 @@ public class SysNodesTableInfo extends StaticTableInfo<NodeStatsContext> {
                     .setInnerType("writes", LONG)
                     .setInnerType("bytes_written", LONG)
                     .build())
-                .setInnerType("disks", new ArrayType(ObjectType.builder()
+                .setInnerType("disks", new ArrayType<>(ObjectType.builder()
                                                          .setInnerType("dev", STRING)
                                                          .setInnerType("size", LONG)
                                                          .setInnerType("used", LONG)
                                                          .setInnerType("available", LONG)
                                                          .build()))
-                .setInnerType("data", new ArrayType(ObjectType.builder()
+                .setInnerType("data", new ArrayType<>(ObjectType.builder()
                                                         .setInnerType("dev", STRING)
                                                         .setInnerType("path", STRING)
                                                         .build()))
@@ -390,39 +390,39 @@ public class SysNodesTableInfo extends StaticTableInfo<NodeStatsContext> {
                 () -> forFunction((NodeStatsContext r) -> r.isComplete() ? FsInfoHelpers.Stats.writeOperations(r.fsInfo().getIoStats()) : null))
             .register("fs", ImmutableList.of("total", "bytes_written"), LONG,
                 () -> forFunction((NodeStatsContext r) -> r.isComplete() ? FsInfoHelpers.Stats.bytesWritten(r.fsInfo().getIoStats()) : null))
-            .register("fs", ImmutableList.of("disks"), ObjectType.untyped(), NodeStatsFsDisksExpression::new)
-            .register("fs", ImmutableList.of("disks", "dev"), ObjectType.untyped(), () -> new NodeStatsFsArrayExpression<String>() {
+            .register("fs", ImmutableList.of("disks"), new ArrayType<>(ObjectType.untyped()), NodeStatsFsDisksExpression::new)
+            .register("fs", ImmutableList.of("disks", "dev"), DataTypes.STRING, () -> new NodeStatsFsArrayExpression<String>() {
                 @Override
                 protected String valueForItem(FsInfo.Path input) {
                     return FsInfoHelpers.Path.dev(input);
                 }
             })
-            .register("fs", ImmutableList.of("disks", "size"), ObjectType.untyped(), () -> new NodeStatsFsArrayExpression<Long>() {
+            .register("fs", ImmutableList.of("disks", "size"), LONG, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return FsInfoHelpers.Path.size(input);
                 }
             })
-            .register("fs", ImmutableList.of("disks", "used"), ObjectType.untyped(), () -> new NodeStatsFsArrayExpression<Long>() {
+            .register("fs", ImmutableList.of("disks", "used"), LONG, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return FsInfoHelpers.Path.used(input);
                 }
             })
-            .register("fs", ImmutableList.of("disks", "available"), ObjectType.untyped(), () -> new NodeStatsFsArrayExpression<Long>() {
+            .register("fs", ImmutableList.of("disks", "available"), LONG, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return FsInfoHelpers.Path.available(input);
                 }
             })
-            .register("fs","data", ObjectType.untyped(), NodeStatsFsDataExpression::new)
-            .register("fs", ImmutableList.of("data", "dev"), ObjectType.untyped(), () -> new NodeStatsFsArrayExpression<String>() {
+            .register("fs","data", new ArrayType<>(ObjectType.untyped()), NodeStatsFsDataExpression::new)
+            .register("fs", ImmutableList.of("data", "dev"), DataTypes.STRING, () -> new NodeStatsFsArrayExpression<String>() {
                 @Override
                 protected String valueForItem(FsInfo.Path input) {
                     return FsInfoHelpers.Path.dev(input);
                 }
             })
-            .register("fs", ImmutableList.of("data", "path"), ObjectType.untyped(), () -> new NodeStatsFsArrayExpression<String>() {
+            .register("fs", ImmutableList.of("data", "path"), DataTypes.STRING, () -> new NodeStatsFsArrayExpression<String>() {
                 @Override
                 protected String valueForItem(FsInfo.Path input) {
                     return input.getPath();

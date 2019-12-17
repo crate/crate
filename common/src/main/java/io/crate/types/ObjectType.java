@@ -48,9 +48,9 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public static class Builder {
 
-        ImmutableMap.Builder<String, DataType> innerTypesBuilder = ImmutableMap.builder();
+        ImmutableMap.Builder<String, DataType<?>> innerTypesBuilder = ImmutableMap.builder();
 
-        public Builder setInnerType(String key, DataType innerType) {
+        public Builder setInnerType(String key, DataType<?> innerType) {
             innerTypesBuilder.put(key, innerType);
             return this;
         }
@@ -64,7 +64,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return new Builder();
     }
 
-    private ImmutableMap<String, DataType> innerTypes;
+    private ImmutableMap<String, DataType<?>> innerTypes;
 
     /**
      * Constructor used for the {@link org.elasticsearch.common.io.stream.Streamable}
@@ -74,15 +74,15 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         this(ImmutableMap.of());
     }
 
-    private ObjectType(ImmutableMap<String, DataType> innerTypes) {
+    private ObjectType(ImmutableMap<String, DataType<?>> innerTypes) {
         this.innerTypes = innerTypes;
     }
 
-    public Map<String, DataType> innerTypes() {
+    public Map<String, DataType<?>> innerTypes() {
         return innerTypes;
     }
 
-    public DataType innerType(String key) {
+    public DataType<?> innerType(String key) {
         return innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
     }
 
@@ -198,10 +198,10 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public ObjectType(StreamInput in) throws IOException {
         int typesSize = in.readVInt();
-        ImmutableMap.Builder<String, DataType> builder = ImmutableMap.builderWithExpectedSize(typesSize);
+        ImmutableMap.Builder<String, DataType<?>> builder = ImmutableMap.builderWithExpectedSize(typesSize);
         for (int i = 0; i < typesSize; i++) {
             String key = in.readString();
-            DataType type = DataTypes.fromStream(in);
+            DataType<?> type = DataTypes.fromStream(in);
             builder.put(key, type);
         }
         innerTypes = builder.build();
@@ -210,7 +210,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(innerTypes.size());
-        for (Map.Entry<String, DataType> entry : innerTypes.entrySet()) {
+        for (Map.Entry<String, DataType<?>> entry : innerTypes.entrySet()) {
             out.writeString(entry.getKey());
             DataTypes.toStream(entry.getValue(), out);
         }

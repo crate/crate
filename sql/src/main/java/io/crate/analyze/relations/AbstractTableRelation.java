@@ -173,10 +173,10 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
             );
     }
 
-    private static DataType makeArray(DataType valueType, int numArrayDimensions) {
-        DataType arrayType = valueType;
+    private static DataType<?> makeArray(DataType<?> valueType, int numArrayDimensions) {
+        DataType<?> arrayType = valueType;
         for (int i = 0; i < numArrayDimensions; i++) {
-            arrayType = new ArrayType(arrayType);
+            arrayType = new ArrayType<>(arrayType);
         }
         return arrayType;
     }
