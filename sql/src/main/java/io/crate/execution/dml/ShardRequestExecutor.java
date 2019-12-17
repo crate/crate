@@ -31,7 +31,6 @@ import io.crate.data.RowN;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -104,9 +103,9 @@ public class ShardRequestExecutor<Req> {
         HashMap<ShardId, Req> requestsByShard = new HashMap<>();
         grouper.bind(parameters, subQueryResults);
         addRequests(0, parameters, requestsByShard, subQueryResults);
-        MultiActionListener<ShardResponse, List<Symbol>, ? super Row> listener = new MultiActionListener<>(
+        MultiActionListener<ShardResponse, List<Object>, ? super Row> listener = new MultiActionListener<>(
             requestsByShard.size(),
-            () -> new ArrayList<>(),
+            ArrayList::new,
             ShardRequestExecutor::updateValuesOrFail,
             result -> new RowN(result.toArray()),
             new OneRowActionListener<>(consumer, Function.identity())
@@ -221,7 +220,7 @@ public class ShardRequestExecutor<Req> {
         }
     }
 
-    private static void updateValuesOrFail(List<Symbol> values, ShardResponse response) {
+    private static void updateValuesOrFail(List<Object> values, ShardResponse response) {
         Exception exception = response.failure();
         if (exception != null) {
             Throwable t = SQLExceptions.unwrap(exception, e -> e instanceof RuntimeException);

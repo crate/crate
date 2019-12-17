@@ -148,14 +148,14 @@ final class UpdateSourceGen {
         return updatedSource;
     }
 
-    Symbol[] generateReturnValues(Doc doc, Symbol[] returnValues) {
-        ArrayList<Symbol> result = new ArrayList<>();
+    Object[] generateReturnValues(Doc doc, Symbol[] returnValues) {
+        ArrayList<Object> result = new ArrayList<>();
         for (int i = 0; i < returnValues.length; i++) {
             Symbol returnValue = returnValues[i];
-            Input<?> value = returnValue.accept(returnEval, doc);
-            result.add((Symbol) value);
+            Object value = returnValue.accept(returnEval, doc).value();
+            result.add(value);
         }
-        return result.toArray(new Symbol[]{});
+        return result.toArray();
     }
 
     static BytesReference toByteReference(Map<String, Object> source) throws IOException {

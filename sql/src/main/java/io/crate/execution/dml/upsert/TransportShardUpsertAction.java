@@ -288,11 +288,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         throw lastException;
     }
 
-    public static class IndexItemResponse {
+    static class IndexItemResponse {
         final Translog.Location translog;
         @Nullable
-        final Symbol[] returnValues;
-        public IndexItemResponse(Translog.Location translog,  @Nullable Symbol[] returnValues) {
+        final Object[] returnValues;
+        public IndexItemResponse(Translog.Location translog,  @Nullable Object[] returnValues) {
             this.translog = translog;
             this.returnValues = returnValues;
         }
@@ -309,7 +309,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         final long seqNo;
         final long primaryTerm;
         final long version;
-        Symbol[] returnValues =  null;
+        Object[] returnValues =  null;
         if (tryInsertFirst) {
             version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
                 ? Versions.MATCH_ANY

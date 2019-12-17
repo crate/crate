@@ -95,9 +95,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
     private IntArrayList locations = new IntArrayList();
     private List<Failure> failures = new ArrayList<>();
-
-    @Nullable
-    private List<Symbol> values = new ArrayList<>();
+    private List<Object> values = new ArrayList<>();
 
     @Nullable
     private Exception failure;
@@ -116,7 +114,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     }
 
     @Nullable
-    public List<Symbol> getValues() {
+    public List<Object> getValues() {
         return values;
     }
 
@@ -156,7 +154,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         if (valueSize > 0) {
             values = new ArrayList<>();
             for (int i = 0; i < valueSize; i++) {
-                values.add(Symbols.fromStream(in));
+                values.add(in.readGenericValue());
             }
         }
     }
@@ -184,7 +182,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         if (values != null) {
             out.writeVInt(values.size());
             for (int i = 0; i < values.size(); i++) {
-               Symbols.toStream(values.get(i), out);
+               out.writeGenericValue(values.get(i));
             }
         } else {
             out.writeVInt(0);

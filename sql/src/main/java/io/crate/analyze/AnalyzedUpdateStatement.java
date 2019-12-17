@@ -24,9 +24,14 @@ package io.crate.analyze;
 
 import com.google.common.collect.Multimap;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -59,6 +64,15 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         return query;
     }
 
+    public List<Field> outputFields() {
+        ArrayList<Field> result = new ArrayList<>();
+        for (Symbol value : returningClause.values()) {
+            if(value instanceof Field) {
+                result.add((Field) value);
+            }
+        }
+        return result;
+    }
     public Multimap<String, Symbol> returningClause() {
         return returningClause;
     }

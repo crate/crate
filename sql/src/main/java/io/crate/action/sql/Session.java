@@ -42,6 +42,7 @@ import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -365,6 +366,13 @@ public class Session implements AutoCloseable {
                     AnalyzedRelation relation = (AnalyzedRelation) analyzedStatement;
                     return new DescribeResult(relation.fields(), parameterSymbols);
                 }
+                if (analyzedStatement instanceof AnalyzedUpdateStatement) {
+                    AnalyzedUpdateStatement update = (AnalyzedUpdateStatement) analyzedStatement;
+                    List<Field> fields = update.outputFields();
+                    if(!fields.isEmpty()) {
+                        return new DescribeResult(fields, parameterSymbols);
+                    }
+                }
                 return new DescribeResult(null, parameterSymbols);
             default:
                 throw new AssertionError("Unsupported type: " + type);
@@ -593,7 +601,6 @@ public class Session implements AutoCloseable {
     public List<? extends DataType> getOutputTypes(String portalName) {
         Portal portal = getSafePortal(portalName);
         AnalyzedStatement analyzedStatement = portal.boundOrUnboundStatement();
-        //TODO hack
         if (analyzedStatement instanceof AnalyzedUpdateStatement) {
             Collection<Symbol> values = ((AnalyzedUpdateStatement) analyzedStatement).returningClause().values();
             if (!values.isEmpty()) {
