@@ -706,7 +706,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.rowCount(), is(2L));
     }
 
-    @UseJdbc(0) // copy from returning does not support unbound analysis (prepared statements)
     @Test
     public void testCopyFromReturnSummaryWithFailedRows() throws Exception {
         execute("create table t1 (id int primary key, ts timestamp with time zone)");
@@ -745,7 +744,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(result, containsString("data4.json| 1| 1| {JSON parser error: "));
     }
 
-    @UseJdbc(0) // copy from returning does not support unbound analysis (prepared statements)
     @Test
     public void testCopyFromReturnSummaryWithFailedURI() throws Exception {
         execute("create table t1 (id int primary key, ts timestamp with time zone)");
