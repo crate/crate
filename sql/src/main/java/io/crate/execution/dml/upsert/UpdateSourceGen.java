@@ -30,7 +30,6 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -39,11 +38,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -81,24 +76,16 @@ import java.util.Map;
 final class UpdateSourceGen {
 
     private final Evaluator eval;
-    private final ReturnEvaluator returnEval;
     private final GeneratedColumns<Doc> generatedColumns;
     private final ArrayList<Reference> updateColumns;
     private final CheckConstraints<Doc, CollectExpression<Doc, ?>> checks;
-    @Nullable
-    private final Symbol[] returnValues;
-    @Nullable
-    private final String[] returnValueNames;
 
     UpdateSourceGen(Functions functions,
                     TransactionContext txnCtx,
                     DocTableInfo table,
-                    String[] updateColumns,
-                    @Nullable Symbol[] returnValues,
-                    @Nullable String[] returnValueNames) {
+                    String[] updateColumns) {
         DocRefResolver refResolver = new DocRefResolver(table.partitionedBy());
         this.eval = new Evaluator(functions, txnCtx, refResolver);
-        this.returnEval = new ReturnEvaluator(functions, txnCtx);
         InputFactory inputFactory = new InputFactory(functions);
         this.checks = new CheckConstraints<>(txnCtx, inputFactory, refResolver, table);
         this.updateColumns = new ArrayList<>(updateColumns.length);
@@ -119,8 +106,6 @@ final class UpdateSourceGen {
                 table.generatedColumns()
             );
         }
-        this.returnValues = returnValues;
-        this.returnValueNames = returnValueNames;
     }
 
     Map<String, Object> generateSource(Doc result, Symbol[] updateAssignments, Object[] insertValues) {
@@ -148,20 +133,6 @@ final class UpdateSourceGen {
         return updatedSource;
     }
 
-    Object[] generateReturnValues(Doc doc, Symbol[] returnValues) {
-        ArrayList<Object> result = new ArrayList<>();
-        for (int i = 0; i < returnValues.length; i++) {
-            Symbol returnValue = returnValues[i];
-            Object value = returnValue.accept(returnEval, doc).value();
-            result.add(value);
-        }
-        return result.toArray();
-    }
-
-    static BytesReference toByteReference(Map<String, Object> source) throws IOException {
-        return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
-    }
-
     private void injectGeneratedColumns(HashMap<String, Object> updatedSource) {
         for (Map.Entry<Reference, Input<?>> entry : generatedColumns.generatedToInject()) {
             ColumnIdent column = entry.getKey().column();
@@ -181,19 +152,7 @@ final class UpdateSourceGen {
         }
     }
 
-    private static class ReturnEvaluator extends BaseImplementationSymbolVisitor<Doc> {
-
-        private ReturnEvaluator(Functions functions, TransactionContext txnCtx) {
-            super(txnCtx, functions);
-        }
-
-        @Override
-        public Input<?> visitField(Field field, Doc context) {
-            return Literal.of(field.valueType(), context.getSource().get(field.path().name()));
-        }
-    }
-
-        private static class Evaluator extends BaseImplementationSymbolVisitor<Values> {
+    private static class Evaluator extends BaseImplementationSymbolVisitor<Values> {
 
         private final ReferenceResolver<CollectExpression<Doc, ?>> refResolver;
 

@@ -46,9 +46,11 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
@@ -75,7 +77,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
-import static io.crate.execution.dml.upsert.UpdateSourceGen.toByteReference;
 
 /**
  * Realizes Upserts of tables which either results in an Insert or an Update.
@@ -139,10 +140,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             : new UpdateSourceGen(functions,
                                   txnCtx,
                                   tableInfo,
-                                  request.updateColumns(),
-                                  request.getReturnValues(),
-                                  request.getReturnValueNames()
-        );
+                                  request.updateColumns());
+
+        ReturnValueGen returnValueGen = request.getReturnValues() == null
+            ? null
+            : new ReturnValueGen(txnCtx, functions);
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
@@ -161,7 +163,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     indexShard,
                     item.insertValues() != null, // try insert first
                     updateSourceGen,
-                    insertSourceGen
+                    insertSourceGen,
+                    returnValueGen
                 );
                 if (indexItemResponse != null) {
                     shardResponse.add(location);
@@ -246,7 +249,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                         IndexShard indexShard,
                                         boolean tryInsertFirst,
                                         @Nullable UpdateSourceGen updateSourceGen,
-                                        @Nullable InsertSourceGen insertSourceGen) throws Exception {
+                                        @Nullable InsertSourceGen insertSourceGen,
+                                        @Nullable ReturnValueGen returnValueGen) throws Exception {
         VersionConflictEngineException lastException = null;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
@@ -257,6 +261,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     tryInsertFirst,
                     updateSourceGen,
                     insertSourceGen,
+                    returnValueGen,
                     retryCount > 0
                 );
             } catch (VersionConflictEngineException e) {
@@ -292,7 +297,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         final Translog.Location translog;
         @Nullable
         final Object[] returnValues;
-        public IndexItemResponse(Translog.Location translog,  @Nullable Object[] returnValues) {
+
+        IndexItemResponse(Translog.Location translog, @Nullable Object[] returnValues) {
             this.translog = translog;
             this.returnValues = returnValues;
         }
@@ -305,11 +311,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           boolean tryInsertFirst,
                                           UpdateSourceGen updateSourceGen,
                                           InsertSourceGen insertSourceGen,
+                                          ReturnValueGen returnGen,
                                           boolean isRetry) throws Exception {
         final long seqNo;
         final long primaryTerm;
         final long version;
-        Object[] returnValues =  null;
+        Object[] returnValues = null;
         if (tryInsertFirst) {
             version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
                 ? Versions.MATCH_ANY
@@ -331,8 +338,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 item.insertValues()
             );
 
-            returnValues = updateSourceGen.generateReturnValues(currentDoc.withUpdatedSource(updatedSource), item.returnValues());
-            item.source(toByteReference(updatedSource));
+            returnValues = returnGen.generateReturnValues(currentDoc.withUpdatedSource(updatedSource), item.returnValues());
+
+            item.source(BytesReference.bytes(XContentFactory.jsonBuilder().map(updatedSource)));
             seqNo = item.seqNo();
             primaryTerm = item.primaryTerm();
             version = Versions.MATCH_ANY;

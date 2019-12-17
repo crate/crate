@@ -69,9 +69,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             e.functions(),
             txnCtx,
             table,
-            assignments.targetNames(),
-            null,
-            null
+            assignments.targetNames()
         );
 
         Map<String, Object> source = singletonMap("x", 1);
@@ -110,9 +108,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             e.functions(),
             txnCtx,
             table,
-            assignments.targetNames(),
-            null,
-            null
+            assignments.targetNames()
         );
 
         BytesReference source = BytesReference.bytes(XContentFactory.jsonBuilder()
@@ -148,9 +144,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             e.functions(),
             txnCtx,
             table,
-            assignments.targetNames(),
-            null,
-            null
+            assignments.targetNames()
         );
         Map<String, Object> updatedSource = updateSourceGen.generateSource(
             new Doc(
@@ -182,9 +176,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             e.functions(),
             TransactionContext.of(DUMMY_SESSION_INFO),
             table,
-            assignments.targetNames(),
-            null,
-            null
+            assignments.targetNames()
         );
 
         Map<String, Object> source = sourceGen.generateSource(
@@ -208,9 +200,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             e.functions(),
             txnCtx,
             table,
-            assignments.targetNames(),
-            null,
-            null
+            assignments.targetNames()
         );
 
         expectedException.expect(IllegalArgumentException.class);
@@ -243,9 +233,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             e.functions(),
             txnCtx,
             table,
-            assignments.targetNames(),
-            null,
-            null
+            assignments.targetNames()
         );
         Map<String, Object> updatedSource = updateSourceGen.generateSource(
             new Doc(
@@ -276,9 +264,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             e.functions(),
             txnCtx,
             table,
-            assignments.targetNames(),
-            null,
-            null
+            assignments.targetNames()
         );
         Map<String, Object> updatedSource = updateSourceGen.generateSource(
             new Doc(

@@ -25,8 +25,6 @@ package io.crate.execution.dml;
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.MoreObjects;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import org.elasticsearch.action.support.WriteResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -182,7 +180,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         if (values != null) {
             out.writeVInt(values.size());
             for (int i = 0; i < values.size(); i++) {
-               out.writeGenericValue(values.get(i));
+                out.writeGenericValue(values.get(i));
             }
         } else {
             out.writeVInt(0);

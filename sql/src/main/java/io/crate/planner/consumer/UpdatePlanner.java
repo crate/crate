@@ -37,6 +37,7 @@ import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.SysUpdateProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -112,6 +113,11 @@ public final class UpdatePlanner {
                              Functions functions,
                              PlannerContext plannerCtx,
                              Multimap<String, Symbol> returningClause) {
+
+
+        Symbol symbol = InputColumns.create(returningClause.values().iterator().next(),
+                                            new InputColumns.SourceSymbols(docTable.fields()));
+
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         DocTableInfo tableInfo = docTable.tableInfo();
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(

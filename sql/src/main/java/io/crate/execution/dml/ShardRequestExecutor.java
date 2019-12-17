@@ -99,7 +99,7 @@ public class ShardRequestExecutor<Req> {
         this.docKeys = docKeys;
     }
 
-    public void executeReturnValues(RowConsumer consumer, Row parameters, SubQueryResults subQueryResults) {
+    public void executeWithValues(RowConsumer consumer, Row parameters, SubQueryResults subQueryResults) {
         HashMap<ShardId, Req> requestsByShard = new HashMap<>();
         grouper.bind(parameters, subQueryResults);
         addRequests(0, parameters, requestsByShard, subQueryResults);
@@ -130,7 +130,6 @@ public class ShardRequestExecutor<Req> {
             transportAction.accept(request, listener);
         }
     }
-
 
     public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, SubQueryResults subQueryResults) {
         HashMap<ShardId, Req> requests = new HashMap<>();

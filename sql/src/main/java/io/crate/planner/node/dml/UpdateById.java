@@ -88,10 +88,10 @@ public final class UpdateById implements Plan {
                               SubQueryResults subQueryResults) {
         ShardRequestExecutor<ShardUpsertRequest> executor = createExecutor(dependencies, plannerContext);
 
-        if(returningClause == null) {
+        if (returningClause == null) {
             executor.execute(consumer, params, subQueryResults);
         } else {
-            executor.executeReturnValues(consumer, params, subQueryResults);
+            executor.executeWithValues(consumer, params, subQueryResults);
         }
     }
 

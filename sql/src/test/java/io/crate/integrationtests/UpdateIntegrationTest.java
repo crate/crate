@@ -906,4 +906,17 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
     }
 
+    @Test
+    public void test_update_returning_multiple_items() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(2, 'foo');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='bar' where id = 2 returning message");
+
+        assertEquals("bar", response.rows()[0][0]);
+        refresh();
+    }
+
 }

@@ -130,7 +130,7 @@ public final class UpdateAnalyzer {
 
         ArrayList<Field> outputFields = new ArrayList<>();
         for (Symbol outputSymbol : selectAnalysis.outputSymbols()) {
-            if(outputSymbol instanceof Field) {
+            if (outputSymbol instanceof Field) {
                 outputFields.add((Field) outputSymbol);
             }
         }

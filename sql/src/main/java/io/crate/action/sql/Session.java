@@ -367,7 +367,7 @@ public class Session implements AutoCloseable {
                 if (analyzedStatement instanceof AnalyzedUpdateStatement) {
                     AnalyzedUpdateStatement update = (AnalyzedUpdateStatement) analyzedStatement;
                     List<Field> fields = update.fields();
-                    if(!fields.isEmpty()) {
+                    if (!fields.isEmpty()) {
                         return new DescribeResult(fields, parameterSymbols);
                     }
                 }

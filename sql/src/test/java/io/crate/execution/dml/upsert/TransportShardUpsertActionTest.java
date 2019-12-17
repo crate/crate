@@ -125,6 +125,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                               boolean tryInsertFirst,
                                               UpdateSourceGen updateSourceGen,
                                               InsertSourceGen insertSourceGen,
+                                              ReturnValueGen returnValueGen,
                                               boolean isRetry) throws Exception {
              throw new VersionConflictEngineException(
                 indexShard.shardId(),
