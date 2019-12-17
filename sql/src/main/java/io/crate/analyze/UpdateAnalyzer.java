@@ -35,6 +35,7 @@ import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -52,6 +53,7 @@ import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -126,7 +128,13 @@ public final class UpdateAnalyzer {
                                                                           sourceExprAnalyzer,
                                                                           exprCtx);
 
-        return new AnalyzedUpdateStatement(table, assignmentByTargetCol, normalizedQuery, selectAnalysis.outputMultiMap());
+        ArrayList<Field> outputFields = new ArrayList<>();
+        for (Symbol outputSymbol : selectAnalysis.outputSymbols()) {
+            if(outputSymbol instanceof Field) {
+                outputFields.add((Field) outputSymbol);
+            }
+        }
+        return new AnalyzedUpdateStatement(table, assignmentByTargetCol, normalizedQuery, outputFields, selectAnalysis.outputMultiMap());
     }
 
     private HashMap<Reference, Symbol> getAssignments(List<Assignment<Expression>> assignments,

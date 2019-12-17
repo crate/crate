@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
+import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,15 +41,21 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     private final AbstractTableRelation table;
     private final Map<Reference, Symbol> assignmentByTargetCol;
     private final Symbol query;
+
+    @Nullable
+    private final List<Field> fields;
+    @Nullable
     private final Multimap<String, Symbol> returningClause;
 
     public AnalyzedUpdateStatement(AbstractTableRelation table,
                                    Map<Reference, Symbol> assignmentByTargetCol,
                                    Symbol query,
-                                   Multimap<String, Symbol> returningClause) {
+                                   @Nullable List<Field> fields,
+                                   @Nullable Multimap<String, Symbol> returningClause) {
         this.table = table;
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.query = query;
+        this.fields = fields;
         this.returningClause = returningClause;
     }
 
@@ -64,15 +71,10 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         return query;
     }
 
-    public List<Field> outputFields() {
-        ArrayList<Field> result = new ArrayList<>();
-        for (Symbol value : returningClause.values()) {
-            if(value instanceof Field) {
-                result.add((Field) value);
-            }
-        }
-        return result;
+    public List<Field> fields() {
+        return fields;
     }
+    
     public Multimap<String, Symbol> returningClause() {
         return returningClause;
     }

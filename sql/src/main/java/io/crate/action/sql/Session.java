@@ -43,7 +43,6 @@ import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
@@ -67,7 +66,6 @@ import org.elasticsearch.common.Randomness;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -368,7 +366,7 @@ public class Session implements AutoCloseable {
                 }
                 if (analyzedStatement instanceof AnalyzedUpdateStatement) {
                     AnalyzedUpdateStatement update = (AnalyzedUpdateStatement) analyzedStatement;
-                    List<Field> fields = update.outputFields();
+                    List<Field> fields = update.fields();
                     if(!fields.isEmpty()) {
                         return new DescribeResult(fields, parameterSymbols);
                     }
@@ -602,9 +600,10 @@ public class Session implements AutoCloseable {
         Portal portal = getSafePortal(portalName);
         AnalyzedStatement analyzedStatement = portal.boundOrUnboundStatement();
         if (analyzedStatement instanceof AnalyzedUpdateStatement) {
-            Collection<Symbol> values = ((AnalyzedUpdateStatement) analyzedStatement).returningClause().values();
-            if (!values.isEmpty()) {
-                return Symbols.typeView(new ArrayList<>(values));
+            AnalyzedUpdateStatement update = (AnalyzedUpdateStatement) analyzedStatement;
+            List<Field> fields = update.fields();
+            if (!fields.isEmpty()) {
+                return Symbols.typeView(fields);
             }
         }
         if (analyzedStatement instanceof AnalyzedRelation) {
