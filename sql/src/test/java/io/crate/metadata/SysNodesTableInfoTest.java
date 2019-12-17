@@ -22,20 +22,27 @@
 
 package io.crate.metadata;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Iterator;
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
-public class SysNodesTableInfoTest extends CrateUnitTest {
+public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     /**
      * Ensures that all columns registered in SysNodesTableInfo can actually be resolved
@@ -60,5 +67,23 @@ public class SysNodesTableInfoTest extends CrateUnitTest {
 
         assertThat(sysNodeTableStatws.create().getChild("minimum_wire_compatibility_version").value(),
                    is(Version.CURRENT.minimumCompatibilityVersion().externalNumber()));
+    }
+
+    @Test
+    public void test_column_that_is_a_child_of_an_array_has_array_type_on_select() {
+        SysNodesTableInfo table = new SysNodesTableInfo();
+        Reference ref = table.getReference(new ColumnIdent("fs", List.of("data", "path")));
+        assertThat(ref.valueType(), is(DataTypes.STRING));
+
+        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+        AnalyzedRelation statement = e.analyze("select fs['data']['path'] from sys.nodes");
+        assertThat(statement.fields().get(0).valueType(), is(new ArrayType(DataTypes.STRING)));
+    }
+
+    @Test
+    public void test_fs_data_is_a_object_array() {
+        SysNodesTableInfo table = new SysNodesTableInfo();
+        Reference ref = table.getReference(new ColumnIdent("fs", "data"));
+        assertThat(ref.valueType(), Matchers.is(new ArrayType(ObjectType.untyped())));
     }
 }
