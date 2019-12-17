@@ -688,7 +688,7 @@ public class JobSetup {
                         phase.orderByPositions(),
                         () -> new RowAccountingWithEstimators(
                             phase.inputTypes(),
-                            RamAccountingContext.forExecutionPhase(breaker(), phase))),
+                            ramAccountingContext)),
                     phase.numUpstreams());
             } else {
                 pageBucketReceiver = new IncrementalPageBucketReceiver<>(
@@ -797,13 +797,28 @@ public class JobSetup {
 
         @Override
         public Boolean visitNestedLoopPhase(NestedLoopPhase phase, Context context) {
+            MergePhase leftMerge = phase.leftMergePhase();
+            MergePhase rightMerge = phase.rightMergePhase();
+            RamAccountingContext ramAccountingLeft = leftMerge == null ? null :
+                RamAccountingContext.forExecutionPhase(breaker(), leftMerge);
+            RamAccountingContext ramAccountingRight = rightMerge == null ? null :
+                RamAccountingContext.forExecutionPhase(breaker(), rightMerge);
+
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
             RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingContext);
             MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
+
             lastConsumer.completionFuture().whenComplete((result, error) -> {
                 memoryManager.close();
                 ramAccountingContext.close();
+                if (ramAccountingLeft != null) {
+                    ramAccountingLeft.close();
+                }
+                if (ramAccountingRight != null) {
+                    ramAccountingRight.close();
+                }
             });
+
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
                 lastConsumer,
                 phase.projections(),
@@ -832,9 +847,9 @@ public class JobSetup {
                 phase.phaseId(),
                 context,
                 (byte) 0,
-                phase.leftMergePhase(),
+                leftMerge,
                 joinOperation.leftConsumer(),
-                ramAccountingContext,
+                ramAccountingLeft,
                 memoryManager
             );
 
@@ -846,9 +861,9 @@ public class JobSetup {
                 phase.phaseId(),
                 context,
                 (byte) 1,
-                phase.rightMergePhase(),
+                rightMerge,
                 joinOperation.rightConsumer(),
-                ramAccountingContext,
+                ramAccountingRight,
                 memoryManager
             );
             if (right != null) {
@@ -865,12 +880,25 @@ public class JobSetup {
 
         @Override
         public Boolean visitHashJoinPhase(HashJoinPhase phase, Context context) {
+            MergePhase leftMerge = phase.leftMergePhase();
+            MergePhase rightMerge = phase.rightMergePhase();
+            RamAccountingContext ramAccountingLeft = leftMerge == null ? null :
+                RamAccountingContext.forExecutionPhase(breaker(), leftMerge);
+            RamAccountingContext ramAccountingRight = rightMerge == null ? null :
+                RamAccountingContext.forExecutionPhase(breaker(), rightMerge);
+
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
             RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingContext);
             MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
             lastConsumer.completionFuture().whenComplete((result, error) -> {
                 memoryManager.close();
                 ramAccountingContext.close();
+                if (ramAccountingLeft != null) {
+                    ramAccountingLeft.close();
+                }
+                if (ramAccountingRight != null) {
+                    ramAccountingRight.close();
+                }
             });
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
@@ -905,9 +933,9 @@ public class JobSetup {
                 phase.phaseId(),
                 context,
                 (byte) 0,
-                phase.leftMergePhase(),
+                leftMerge,
                 joinOperation.leftConsumer(),
-                ramAccountingContext,
+                ramAccountingLeft,
                 memoryManager
             );
             if (left != null) {
@@ -917,9 +945,9 @@ public class JobSetup {
                 phase.phaseId(),
                 context,
                 (byte) 1,
-                phase.rightMergePhase(),
+                rightMerge,
                 joinOperation.rightConsumer(),
-                ramAccountingContext,
+                ramAccountingRight,
                 memoryManager
             );
             if (right != null) {
@@ -972,7 +1000,7 @@ public class JobSetup {
                     mergePhase.orderByPositions(),
                     () -> new RowAccountingWithEstimators(
                         mergePhase.inputTypes(),
-                        RamAccountingContext.forExecutionPhase(breaker(), mergePhase))),
+                        ramAccountingContext)),
                 mergePhase.numUpstreams());
 
             return new DistResultRXTask(
