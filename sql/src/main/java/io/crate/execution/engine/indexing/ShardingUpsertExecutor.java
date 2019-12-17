@@ -346,20 +346,17 @@ public class ShardingUpsertExecutor
     private static class IsUsedBytesOverThreshold implements Predicate<ShardedRequests<?, ?>> {
 
         private static final double HEAP_PERCENTAGE = 0.30d;
-        private static final double MAX_FREE_MEM_USAGE_PERCENT = 0.70d;
 
-        private final Runtime rt;
         private final long maxBytesUsableByShardedRequests;
 
         IsUsedBytesOverThreshold() {
-            rt = Runtime.getRuntime();
+            var rt = Runtime.getRuntime();
             maxBytesUsableByShardedRequests = (long) (rt.maxMemory() * HEAP_PERCENTAGE);
         }
 
         @Override
         public final boolean test(ShardedRequests<?, ?> shardedRequests) {
-            return shardedRequests.usedMemoryEstimate() > maxBytesUsableByShardedRequests
-                   || shardedRequests.usedMemoryEstimate() > (rt.freeMemory() * MAX_FREE_MEM_USAGE_PERCENT);
+            return shardedRequests.usedMemoryEstimate() > maxBytesUsableByShardedRequests;
         }
     }
 }
