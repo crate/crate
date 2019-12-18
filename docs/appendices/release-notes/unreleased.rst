@@ -217,6 +217,10 @@ Changes
 Fixes
 =====
 
+- Fixed a ``NullPointerException`` that could prevent a node from starting up.
+  This could occur if the node crashed or disconnected while a user deleted a
+  table.
+
 - Fixed the type information of the ``fs['data']`` and ``fs['disks']`` column
   in the ``sys.nodes`` table. Querying those columns could have resulted in
   serialization errors.
