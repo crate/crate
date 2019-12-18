@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed a ``NullPointerException`` that could prevent a node from starting up.
+  This could occur if the node crashed or disconnected while a user deleted a
+  table.
+
 - Improved the memory accounting for values of type ``geo_shape``, ``object``
   or ``undefined``. Previously an arbitrary fixed value was used for memory
   accounting. If the actual payloads are large, this could have led to out of
