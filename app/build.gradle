@@ -305,6 +305,7 @@ jar {
         }
     }
 
+    archiveFileName = 'crate-app.jar'
     from(configurations.compileNotTransitive.collect { it.isDirectory() ? it : zipTree(it) }) {
         exclude 'META-INF/**' // Don't let Gradle merge service files
     }
