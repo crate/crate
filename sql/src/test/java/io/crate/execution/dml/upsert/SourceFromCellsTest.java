@@ -296,4 +296,23 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(source.utf8ToString(), is("{\"x\":\"test\"}"));
     }
+
+    @Test
+    public void test_can_insert_not_null_value_on_child_of_object_array_with_not_null_constraint() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (payloads array(object(strict) as (x integer not null)) not null)")
+            .build();
+        DocTableInfo tableInfo = e.resolveTableInfo("tbl");
+        InsertSourceGen sourceGen = InsertSourceGen.of(
+            txnCtx,
+            e.functions(),
+            tableInfo,
+            tableInfo.concreteIndices()[0],
+            GeneratedColumns.Validation.VALUE_MATCH,
+            List.copyOf(tableInfo.columns())
+        );
+        var payloads = List.of(Map.of("x", 10), Map.of("x", 20));
+        var source = sourceGen.generateSourceAndCheckConstraints(new Object[] { payloads });
+        assertThat(source.utf8ToString(), is("{\"payloads\":[{\"x\":10},{\"x\":20}]}"));
+    }
 }

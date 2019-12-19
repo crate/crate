@@ -205,7 +205,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testInSelfJoinCaseFunctionsThatLookTheSameMustNotReuseFunctionAllocation() throws Exception {
         TableInfo tableInfo = mock(TableInfo.class);
-        when(tableInfo.getReference(new ColumnIdent("id"))).thenReturn(
+        when(tableInfo.getReadReference(new ColumnIdent("id"))).thenReturn(
             new Reference(new ReferenceIdent(new RelationName("doc", "t"), "id"),
                           RowGranularity.DOC,
                           DataTypes.INTEGER,

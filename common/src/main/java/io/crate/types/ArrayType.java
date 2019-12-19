@@ -51,6 +51,14 @@ public class ArrayType<T> extends DataType<List<T>> {
             "Inner type must not be null.");
     }
 
+    public static DataType<?> makeArray(DataType<?> valueType, int numArrayDimensions) {
+        DataType<?> arrayType = valueType;
+        for (int i = 0; i < numArrayDimensions; i++) {
+            arrayType = new ArrayType<>(arrayType);
+        }
+        return arrayType;
+    }
+
     /**
      * Defaults to the {@link ArrayStreamer} but subclasses may override this method.
      */
