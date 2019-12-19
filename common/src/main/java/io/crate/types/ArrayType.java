@@ -29,6 +29,14 @@ public class ArrayType extends CollectionType {
     public static final String NAME = "array";
     public static final int ID = 100;
 
+    public static DataType<?> makeArray(DataType<?> valueType, int numArrayDimensions) {
+        DataType<?> arrayType = valueType;
+        for (int i = 0; i < numArrayDimensions; i++) {
+            arrayType = new ArrayType(arrayType);
+        }
+        return arrayType;
+    }
+
     public ArrayType(DataType<?> innerType) {
         super(innerType);
     }
