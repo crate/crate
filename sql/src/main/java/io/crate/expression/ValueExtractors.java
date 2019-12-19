@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.types.DataType;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -43,6 +44,18 @@ public final class ValueExtractors {
         if (o instanceof Map) {
             //noinspection unchecked
             return getByPath((Map) o, column.path());
+        }
+        if (o instanceof List) {
+            List<?> values = (List<?>) o;
+            ArrayList<Object> extractedValues = new ArrayList<>(values.size());
+            for (Object value : values) {
+                if (value instanceof Map) {
+                    extractedValues.add(getByPath((Map) value, column.path()));
+                } else {
+                    extractedValues.add(value);
+                }
+            }
+            return extractedValues;
         }
         return o;
     }

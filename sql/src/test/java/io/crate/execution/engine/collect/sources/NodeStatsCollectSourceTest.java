@@ -68,13 +68,13 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
         // build where clause with id = ?
         SysNodesTableInfo tableInfo = mock(SysNodesTableInfo.class);
         when(tableInfo.ident()).thenReturn(new RelationName("sys", "nodes"));
-        when(tableInfo.getReference(new ColumnIdent("id"))).thenReturn(
+        when(tableInfo.getReadReference(new ColumnIdent("id"))).thenReturn(
             new Reference(new ReferenceIdent(new RelationName("sys", "nodes"), "id"),
                           RowGranularity.DOC,
                           DataTypes.STRING,
                           null,
                           null));
-        when(tableInfo.getReference(SysNodesTableInfo.Columns.NAME)).thenReturn(
+        when(tableInfo.getReadReference(SysNodesTableInfo.Columns.NAME)).thenReturn(
             new Reference(
                 new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.NAME),
                 RowGranularity.DOC,
@@ -83,7 +83,7 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
                 null
             )
         );
-        when(tableInfo.getReference(SysNodesTableInfo.Columns.HOSTNAME)).thenReturn(
+        when(tableInfo.getReadReference(SysNodesTableInfo.Columns.HOSTNAME)).thenReturn(
             new Reference(
                 new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
                 RowGranularity.DOC,

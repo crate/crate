@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused a type cast error in ``INSERT`` statements if the
+  target table contained a ``array(object() as (...)`` column where a child of
+  the object array contained a ``NOT NULL`` constraint.
+
 - Fixed a ``NullPointerException`` that could prevent a node from starting up.
   This could occur if the node crashed or disconnected while a user deleted a
   table.

@@ -57,7 +57,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         if (operation == Operation.UPDATE) {
             ensureColumnCanBeUpdated(path);
         }
-        Reference reference = tableInfo.getReference(path);
+        Reference reference = tableInfo.getReadReference(path);
         if (reference == null) {
             reference = tableInfo.indexColumn(path);
             if (reference == null) {
@@ -70,7 +70,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
                 }
             }
         }
-        return allocate(path, makeArrayIfContainedInObjectArray(reference));
+        return allocate(path, reference);
     }
 
     /**
