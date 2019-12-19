@@ -30,10 +30,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -41,14 +38,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 
 public abstract class AbstractTableRelation<T extends TableInfo> implements AnalyzedRelation, FieldResolver {
-
-    private static final Predicate<Reference> IS_OBJECT_ARRAY =
-        input -> input != null
-        && input.valueType().id() == ArrayType.ID
-        && ((ArrayType) input.valueType()).innerType().id() == ObjectType.ID;
 
     protected final T tableInfo;
     private final Map<ColumnIdent, Reference> allocatedFields = new HashMap<>();
@@ -130,55 +121,11 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
 
     @Nullable
     public Field getField(ColumnIdent path) {
-        Reference reference = tableInfo.getReference(path);
+        Reference reference = tableInfo.getReadReference(path);
         if (reference == null) {
             return null;
         }
-        return allocate(path, makeArrayIfContainedInObjectArray(reference));
-    }
-
-    /**
-     * Changes the type of a reference to be an array if the reference is the child of an object array
-     *
-     * <pre>
-     * {@code
-     *      CREATE TABLE t (addresses array(object as (street string)))
-     *      -> `street` isolated within a single object is a string
-     *      -> Accessed via `addresses['street']` (E.g. in a SELECT) it becomes an ARRAY because `addresses` is
-     * }
-     * </pre>
-     */
-    Reference makeArrayIfContainedInObjectArray(Reference reference) {
-        Reference rootRef = reference;
-        int numArrayDimensions = 0;
-        while ((!rootRef.column().isTopLevel())) {
-            rootRef = tableInfo.getReference(rootRef.column().getParent());
-            assert rootRef != null : "The parent column of a nested object column must always exist";
-            if (IS_OBJECT_ARRAY.test(rootRef)) {
-                numArrayDimensions++;
-            }
-        }
-        return numArrayDimensions == 0
-            ? reference
-            : new Reference(
-                reference.ident(),
-                reference.granularity(),
-                makeArray(reference.valueType(), numArrayDimensions),
-                reference.columnPolicy(),
-                reference.indexType(),
-                reference.isNullable(),
-                reference.isColumnStoreDisabled(),
-                reference.position(),
-                reference.defaultExpression()
-            );
-    }
-
-    private static DataType<?> makeArray(DataType<?> valueType, int numArrayDimensions) {
-        DataType<?> arrayType = valueType;
-        for (int i = 0; i < numArrayDimensions; i++) {
-            arrayType = new ArrayType<>(arrayType);
-        }
-        return arrayType;
+        return allocate(path, reference);
     }
 
     protected Field allocate(ColumnIdent path, Reference reference) {

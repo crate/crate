@@ -106,8 +106,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             if (target.granularity() == RowGranularity.DOC) {
                 ColumnIdent column = target.column();
                 Maps.mergeInto(source, column.name(), column.path(), value, Map::putIfAbsent);
-            } else if (target.granularity() == RowGranularity.PARTITION &&
-                       !(target instanceof GeneratedReference)) {
+            } else if (target.granularity() == RowGranularity.PARTITION && !(target instanceof GeneratedReference)) {
                 // values for columns used as partitioning criteria are not part of the source map;
                 // separate validation is necessary.
                 checks.validate(target.column(), value);
@@ -126,10 +125,10 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
     }
 
-    private Tuple<List<Reference>, Object[]> addDefaults(List<Reference> targets,
-                                                         DocTableInfo table,
-                                                         TransactionContext txnCtx,
-                                                         Functions functions) {
+    private static Tuple<List<Reference>, Object[]> addDefaults(List<Reference> targets,
+                                                                DocTableInfo table,
+                                                                TransactionContext txnCtx,
+                                                                Functions functions) {
         ArrayList<Reference> defaultColumns = new ArrayList<>(table.defaultExpressionColumns().size());
         ArrayList<Object> defaultValues = new ArrayList<>();
         for (Reference ref : table.defaultExpressionColumns()) {
