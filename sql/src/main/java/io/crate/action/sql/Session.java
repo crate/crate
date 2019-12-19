@@ -316,6 +316,8 @@ public class Session implements AutoCloseable {
                 AnalyzedStatement analyzedStmt = portal.boundOrUnboundStatement();
                 if (analyzedStmt instanceof AnalyzedRelation) {
                     return new DescribeResult(((AnalyzedRelation) analyzedStmt).fields());
+                } else if (analyzedStmt instanceof AnalyzedUpdateStatement) {
+                    return new DescribeResult(((AnalyzedUpdateStatement) analyzedStmt).fields());
                 } else {
                     return new DescribeResult(null);
                 }
@@ -367,9 +369,7 @@ public class Session implements AutoCloseable {
                 if (analyzedStatement instanceof AnalyzedUpdateStatement) {
                     AnalyzedUpdateStatement update = (AnalyzedUpdateStatement) analyzedStatement;
                     List<Field> fields = update.fields();
-                    if (!fields.isEmpty()) {
-                        return new DescribeResult(fields, parameterSymbols);
-                    }
+                    return new DescribeResult(fields, parameterSymbols);
                 }
                 return new DescribeResult(null, parameterSymbols);
             default:

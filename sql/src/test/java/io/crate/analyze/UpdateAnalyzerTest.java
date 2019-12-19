@@ -566,7 +566,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returningClause().size(), is(17));
+        assertThat(stmt.returnValues().size(), is(17));
     }
 
     @Test
@@ -576,8 +576,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returningClause().size(), is(1));
-        assertThat(stmt.returningClause().get("foo"), contains(isField("id")));
+        assertThat(stmt.returnValues().size(), is(1));
+        assertThat(stmt.returnNames().size(), is(1));
+        assertThat(stmt.returnNames(), contains("foo"));
+        assertThat(stmt.returnValues(), contains(isField("id")));
     }
 
     @Test
@@ -587,9 +589,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returningClause().size(), is(2));
-        assertThat(stmt.returningClause().get("foo"), contains(isField("id")));
-        assertThat(stmt.returningClause().get("bar"), contains(isField("name")));
+        assertThat(stmt.returnValues().size(), is(2));
+        assertThat(stmt.returnNames().size(), is(2));
+        assertThat(stmt.returnNames(), contains("foo", "bar"));
+        assertThat(stmt.returnValues(), contains(isField("id"), isField("name")));
     }
 
     @Test
@@ -607,8 +610,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returningClause().size(), is(1));
-        assertThat(stmt.returningClause().get("foo"), contains(isFunction("add")));
+        assertThat(stmt.returnNames().size(), is(1));
+        assertThat(stmt.returnValues().size(), is(1));
+        assertThat(stmt.returnNames(), contains("foo"));
+        assertThat(stmt.returnValues(), contains(isFunction("add")));
     }
 
     @Test
@@ -618,9 +623,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returningClause().size(), is(2));
-        assertThat(stmt.returningClause().get("foo"), contains(isFunction("add")));
-        assertThat(stmt.returningClause().get("bar"), contains(isFunction("subtract")));
+        assertThat(stmt.returnNames().size(), is(2));
+        assertThat(stmt.returnValues().size(), is(2));
+        assertThat(stmt.returnNames(), contains("foo", "bar"));
+        assertThat(stmt.returnValues(), contains(isFunction("add"), isFunction("subtract")));
     }
 
     private List<Object[]> execute(Plan plan, Row params) throws Exception {

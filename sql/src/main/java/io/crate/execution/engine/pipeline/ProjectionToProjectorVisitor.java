@@ -503,8 +503,8 @@ public class ProjectionToProjectorVisitor
             false,
             projection.assignmentsColumns(),
             null,
-            projection.returnValues(),
             projection.returnValueNames(),
+            projection.returnValues(),
             context.jobId,
             true
         );

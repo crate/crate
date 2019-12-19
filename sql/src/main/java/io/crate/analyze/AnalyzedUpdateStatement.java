@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.Multimap;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
@@ -42,18 +41,23 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     @Nullable
     private final List<Field> fields;
     @Nullable
-    private final Multimap<String, Symbol> returningClause;
+    private final List<String> returnNames;
+    @Nullable
+    private final List<Symbol> returnValues;
 
     public AnalyzedUpdateStatement(AbstractTableRelation table,
                                    Map<Reference, Symbol> assignmentByTargetCol,
                                    Symbol query,
                                    @Nullable List<Field> fields,
-                                   @Nullable Multimap<String, Symbol> returningClause) {
+                                   @Nullable List<String> returnNames,
+                                   @Nullable List<Symbol> returnValues
+                                   ) {
         this.table = table;
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.query = query;
         this.fields = fields;
-        this.returningClause = returningClause;
+        this.returnNames = returnNames;
+        this.returnValues = returnValues;
     }
 
     public AbstractTableRelation table() {
@@ -72,8 +76,12 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         return fields;
     }
 
-    public Multimap<String, Symbol> returningClause() {
-        return returningClause;
+    public List<String> returnNames() {
+        return returnNames;
+    }
+
+    public List<Symbol> returnValues() {
+        return returnValues;
     }
 
     @Override
@@ -92,7 +100,7 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         for (Symbol sourceExpr : assignmentByTargetCol.values()) {
             consumer.accept(sourceExpr);
         }
-        for (Symbol returningSymbol : returningClause.values()) {
+        for (Symbol returningSymbol : returnValues) {
             consumer.accept(returningSymbol);
         }
     }

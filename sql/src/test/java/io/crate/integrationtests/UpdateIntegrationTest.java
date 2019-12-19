@@ -39,7 +39,6 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
-@UseJdbc(1)
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -907,15 +906,16 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void test_update_returning_multiple_items() throws Exception {
+    public void test_update_returning_multiple_fields() throws Exception {
         execute("create table test (id int primary key, message string) clustered into 2 shards");
-        execute("insert into test values(2, 'foo');");
+        execute("insert into test values(1, 'hello');");
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("update test set message='bar' where id = 2 returning message");
+        execute("update test set message='b' where id = 1 returning id, message");
 
-        assertEquals("bar", response.rows()[0][0]);
+        assertEquals(1, response.rows()[0][0]);
+        assertEquals("b", response.rows()[0][1]);
         refresh();
     }
 

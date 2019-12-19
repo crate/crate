@@ -37,7 +37,6 @@ import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.SysUpdateProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
-import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -71,7 +70,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import com.google.common.collect.Multimap;
+import org.elasticsearch.common.Nullable;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.singletonList;
@@ -90,7 +89,7 @@ public final class UpdatePlanner {
         Plan plan;
         if (table instanceof DocTableRelation) {
             DocTableRelation docTable = (DocTableRelation) table;
-            plan = plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx, update.returningClause());
+            plan = plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx, update.returnValues(), update.returnNames());
         } else {
             plan = new Update((plannerContext, params, subQueryValues) ->
                 sysUpdate(
@@ -112,19 +111,15 @@ public final class UpdatePlanner {
                              Symbol query,
                              Functions functions,
                              PlannerContext plannerCtx,
-                             Multimap<String, Symbol> returningClause) {
-
-
-        Symbol symbol = InputColumns.create(returningClause.values().iterator().next(),
-                                            new InputColumns.SourceSymbols(docTable.fields()));
-
+                             @Nullable List<Symbol> returnValues,
+                             @Nullable List<String> returnNames) {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         DocTableInfo tableInfo = docTable.tableInfo();
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
             normalizer, query, tableInfo, plannerCtx.transactionContext());
 
         if (detailedQuery.docKeys().isPresent()) {
-            return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get(), returningClause);
+            return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get(), returnNames, returnValues);
         }
 
         return new Update((plannerContext, params, subQueryValues) ->

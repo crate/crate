@@ -25,10 +25,10 @@ package io.crate.execution.dml.upsert;
 import io.crate.data.Input;
 import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.reference.Doc;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 
 import java.util.ArrayList;
@@ -45,8 +45,11 @@ final class ReturnValueGen {
         ArrayList<Object> result = new ArrayList<>();
         for (int i = 0; i < returnValues.length; i++) {
             Symbol returnValue = returnValues[i];
-            Object value = returnValue.accept(returnEval, doc).value();
-            result.add(value);
+            Input<?> accept = returnValue.accept(returnEval, doc);
+            Object value = accept.value();
+            if (value != null) {
+                result.add(value);
+            }
         }
         return result.toArray();
     }
@@ -58,8 +61,8 @@ final class ReturnValueGen {
         }
 
         @Override
-        public Input<?> visitField(Field field, Doc context) {
-            return Literal.of(field.valueType(), context.getSource().get(field.path().name()));
+        public Input<?> visitReference(Reference symbol, Doc context) {
+            return Literal.of(symbol.valueType(), context.getSource().get(symbol.column().name()));
         }
     }
 }

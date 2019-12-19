@@ -245,7 +245,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         if (returnValues != null) {
             out.writeVInt(returnValues.length);
             for (Symbol returnValue : returnValues) {
-                returnValue.writeTo(out);
+                Symbols.toStream(returnValue, out);
             }
         } else {
             out.writeVInt(0);
@@ -388,14 +388,18 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             if (in.readBoolean()) {
                 source = in.readBytesReference();
             }
-            if (in.readBoolean()) {
-                int returnValueSize = in.readVInt();
+
+            int returnValueSize = in.readVInt();
+            if (returnValueSize > 0) {
+                returnValues = new Symbol[returnValueSize];
                 for (int i = 0; i < returnValueSize; i++) {
                     returnValues[i] = Symbols.fromStream(in);
                 }
             }
-            if (in.readBoolean()) {
-                int returnValueNameSize = in.readVInt();
+
+            int returnValueNameSize = in.readVInt();
+            if (returnValueNameSize > 0) {
+                returnValueNames = new String[returnValueNameSize];
                 for (int i = 0; i < returnValueNameSize; i++) {
                     returnValueNames[i] = in.readString();
                 }
@@ -430,23 +434,21 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 out.writeBytesReference(source);
             }
             if (returnValues != null) {
-                out.writeBoolean(true);
                 out.writeVInt(returnValues.length);
                 for (Symbol returnValue : returnValues) {
                     Symbols.toStream(returnValue, out);
                 }
             } else {
-                out.writeBoolean(false);
+                out.writeVInt(0);
             }
 
             if (returnValueNames != null) {
-                out.writeBoolean(true);
                 out.writeVInt(returnValueNames.length);
                 for (String returnValueName : returnValueNames) {
                     out.writeString(returnValueName);
                 }
             } else {
-                out.writeBoolean(false);
+                out.writeVInt(0);
             }
         }
     }
@@ -475,8 +477,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
                        @Nullable Reference[] missingAssignmentsColumns,
-                       @Nullable Symbol[] returnValue,
                        @Nullable String[] returnValueNames,
+                       @Nullable Symbol[] returnValue,
                        UUID jobId,
                        boolean validateGeneratedColumns) {
             this.sessionSettings = sessionSettings;
@@ -487,8 +489,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             this.missingAssignmentsColumns = missingAssignmentsColumns;
             this.jobId = jobId;
             this.validateGeneratedColumns = validateGeneratedColumns;
-            this.returnValues = returnValue;
             this.returnValueNames = returnValueNames;
+            this.returnValues = returnValue;
         }
 
         public ShardUpsertRequest newRequest(ShardId shardId) {

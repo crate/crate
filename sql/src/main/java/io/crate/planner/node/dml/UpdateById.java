@@ -23,7 +23,6 @@
 package io.crate.planner.node.dml;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Multimap;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -42,6 +41,7 @@ import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -52,17 +52,22 @@ public final class UpdateById implements Plan {
     private final Map<Reference, Symbol> assignmentByTargetCol;
     private final DocKeys docKeys;
     private final Assignments assignments;
-    private final Multimap<String, Symbol> returningClause;
+    @Nullable
+    private final List<String> returnNames;
+    @Nullable
+    private final List<Symbol> returnValues;
 
     public UpdateById(DocTableInfo table,
                       Map<Reference, Symbol> assignmentByTargetCol,
                       DocKeys docKeys,
-                      Multimap<String, Symbol> returningClause) {
+                      List<String> returnNames,
+                      List<Symbol> returnValues) {
         this.table = table;
         this.assignments = Assignments.convert(assignmentByTargetCol);
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.docKeys = docKeys;
-        this.returningClause = returningClause;
+        this.returnNames = returnNames;
+        this.returnValues = returnValues;
     }
 
     @VisibleForTesting
@@ -88,7 +93,7 @@ public final class UpdateById implements Plan {
                               SubQueryResults subQueryResults) {
         ShardRequestExecutor<ShardUpsertRequest> executor = createExecutor(dependencies, plannerContext);
 
-        if (returningClause == null) {
+        if (returnValues == null) {
             executor.execute(consumer, params, subQueryResults);
         } else {
             executor.executeWithValues(consumer, params, subQueryResults);
@@ -116,8 +121,8 @@ public final class UpdateById implements Plan {
             true,
             assignments.targetNames(),
             null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
-            returningClause.values().toArray(new Symbol[]{}),
-            returningClause.keySet().toArray(new String[]{}),
+            returnNames == null ? null : returnNames.toArray(new String[]{}),
+            returnValues == null ? null : returnValues.toArray(new Symbol[]{}),
             plannerContext.jobId(),
             false
         );
@@ -140,8 +145,6 @@ public final class UpdateById implements Plan {
         private final Assignments assignments;
 
         private Symbol[] assignmentSources;
-        private Symbol[] returnValues;
-        private String[] returnValuesNames;
 
         UpdateRequests(ShardUpsertRequest.Builder requestBuilder, DocTableInfo table, Assignments assignments) {
             this.requestBuilder = requestBuilder;
