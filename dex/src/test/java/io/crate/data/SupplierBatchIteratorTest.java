@@ -20,36 +20,21 @@
  * agreement.
  */
 
-package io.crate.data.vectorized;
+package io.crate.data;
 
 import org.junit.Test;
 
-public class PageTest {
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.*;
+
+public final class SupplierBatchIteratorTest {
 
     @Test
-    public void test_foo() throws Exception {
-        Page page = new Page() {
+    public void test_infinite_supplier_batch_iterator() {
+        var bi = new SupplierBatchIterator<>(() -> 10L, false, () -> {});
 
-            @Override
-            public int numColumns() {
-                return 1;
-            }
-
-            @Override
-            public int numRecords() {
-                return 500;
-            }
-
-            @Override
-            public Vec getColumn(int ord) {
-                return new LongVec(numRecords(), new LuceneLongValues(null, null));
-            }
-        };
-
-        Vec column = page.getColumn(0);
-        Block.LongValues longValues = column.longValues();
-        for (int i = 0; i < column.numValues(); i++) {
-            long value = longValues.getLong(i);
-        }
+        assertThat(bi.moveNext(), is(true));
+        assertThat(bi.currentElement(), is(10L));
+        assertThat(bi.allLoaded(), is(true));
     }
 }
