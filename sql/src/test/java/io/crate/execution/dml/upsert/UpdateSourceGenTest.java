@@ -95,7 +95,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.sources(),
             new Object[0]
         );
-        assertThat(updatedSource, is("{\"x\":2}"));
+        assertThat(updatedSource, is(Map.of("x", 2)));
     }
 
     @Test
@@ -166,7 +166,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.sources(),
             new Object[0]
         );
-        assertThat(updatedSource, is(Map.of("obj", Map.of("y", 5, "x", 4))));
+        assertThat(updatedSource, is(Map.of("obj", Map.of("y", 5), "x", 4)));
     }
 
 
@@ -193,7 +193,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             new Object[0]
         );
 
-        assertThat(source, is(Map.of("gen", Map.of("dummySchema",Map.of("x", 1)))));
+        assertThat(source, is(Map.of("gen","dummySchema","x", 1)));
     }
 
     @Test
