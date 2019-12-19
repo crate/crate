@@ -100,8 +100,10 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         for (Symbol sourceExpr : assignmentByTargetCol.values()) {
             consumer.accept(sourceExpr);
         }
-        for (Symbol returningSymbol : returnValues) {
-            consumer.accept(returningSymbol);
+        if (returnValues != null) {
+            for (Symbol returningSymbol : returnValues) {
+                consumer.accept(returningSymbol);
+            }
         }
     }
 

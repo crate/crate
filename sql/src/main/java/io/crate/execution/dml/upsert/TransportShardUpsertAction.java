@@ -338,7 +338,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 item.insertValues()
             );
 
-            returnValues = returnGen.generateReturnValues(currentDoc.withUpdatedSource(updatedSource), item.returnValues());
+            if (item.returnValues() != null) {
+                returnValues = returnGen.generateReturnValues(currentDoc.withUpdatedSource(updatedSource),
+                                                              item.returnValues());
+            }
 
             item.source(BytesReference.bytes(XContentFactory.jsonBuilder().map(updatedSource)));
             seqNo = item.seqNo();

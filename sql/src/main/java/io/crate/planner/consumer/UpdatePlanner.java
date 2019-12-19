@@ -236,7 +236,7 @@ public final class UpdatePlanner {
             where.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
         );
-        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, -1, -1, null);
+        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
         return Merge.ensureOnHandler(collect, plannerCtx, singletonList(MergeCountProjection.INSTANCE));
     }
 }

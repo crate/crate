@@ -576,10 +576,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returnValues().size(), is(1));
-        assertThat(stmt.returnNames().size(), is(1));
         assertThat(stmt.returnNames(), contains("foo"));
-        assertThat(stmt.returnValues(), contains(isField("id")));
+        assertThat(stmt.returnValues(), contains(isReference("id")));
     }
 
     @Test
@@ -589,18 +587,16 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returnValues().size(), is(2));
-        assertThat(stmt.returnNames().size(), is(2));
+        assertThat(stmt.fields(), is(contains()));
         assertThat(stmt.returnNames(), contains("foo", "bar"));
-        assertThat(stmt.returnValues(), contains(isField("id"), isField("name")));
+        assertThat(stmt.returnValues(), contains(isReference("id"), isReference("name")));
     }
 
     @Test
     public void test_updat_returning_with_invalid_column_returning_error() {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column invalid unknown");
-        AnalyzedUpdateStatement stmt = e.analyze(
-            "UPDATE users SET name='noam' RETURNING invalid");
+        e.analyze("UPDATE users SET name='noam' RETURNING invalid");
     }
 
     @Test
@@ -610,8 +606,6 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returnNames().size(), is(1));
-        assertThat(stmt.returnValues().size(), is(1));
         assertThat(stmt.returnNames(), contains("foo"));
         assertThat(stmt.returnValues(), contains(isFunction("add")));
     }
@@ -623,8 +617,6 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returnNames().size(), is(2));
-        assertThat(stmt.returnValues().size(), is(2));
         assertThat(stmt.returnNames(), contains("foo", "bar"));
         assertThat(stmt.returnValues(), contains(isFunction("add"), isFunction("subtract")));
     }

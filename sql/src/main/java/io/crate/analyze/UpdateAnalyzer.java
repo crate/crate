@@ -125,18 +125,24 @@ public final class UpdateAnalyzer {
 
         Symbol normalizedQuery = normalizer.normalize(query, txnCtx);
 
-        SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(update.returningClause(),
-                                                                          relCtx.sources(),
-                                                                          sourceExprAnalyzer,
-                                                                          exprCtx);
+        List<Symbol> outputSymbol = null;
+        List<String> outputNames = null;
+        List<Field> outputFields = null;
 
-        List<Symbol> outputSymbol = Lists2.map(selectAnalysis.outputSymbols(), x -> normalizer.normalize(x, txnCtx));
-        List<String> outputNames = Lists2.map(selectAnalysis.outputNames(), ColumnIdent::name);
+        if (!update.returningClause().isEmpty()) {
+            SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(update.returningClause(),
+                                                                              relCtx.sources(),
+                                                                              sourceExprAnalyzer,
+                                                                              exprCtx);
 
-        ArrayList<Field> outputFields = new ArrayList<>();
-        for (Symbol symbol : selectAnalysis.outputSymbols()) {
-            if (symbol instanceof Field) {
-                outputFields.add((Field) symbol);
+            outputSymbol = Lists2.map(selectAnalysis.outputSymbols(), x -> normalizer.normalize(x, txnCtx));
+            outputNames = Lists2.map(selectAnalysis.outputNames(), ColumnIdent::name);
+
+            outputFields = new ArrayList<>();
+            for (Symbol symbol : selectAnalysis.outputSymbols()) {
+                if (symbol instanceof Field) {
+                    outputFields.add((Field) symbol);
+                }
             }
         }
 
