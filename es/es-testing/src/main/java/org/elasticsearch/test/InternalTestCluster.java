@@ -50,7 +50,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.component.LifecycleListener;
@@ -96,6 +95,7 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportSettings;
 
+import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -2209,6 +2209,20 @@ public final class InternalTestCluster extends TestCluster {
                     });
                 } catch (Exception e) {
                     throw new AssertionError("Exception during check for request breaker reset to 0", e);
+                }
+
+                // RamAccounting release operations can run asynchronous after clients already received results.
+                try {
+                    assertBusy(() -> {
+                        CircuitBreaker crateQueryBreaker = breakerService.getBreaker("query");
+                        if (crateQueryBreaker != null) {
+                            assertThat("Query breaker not reset to 0 on node: " + name,
+                                       crateQueryBreaker.getUsed(),
+                                       equalTo(0L));
+                        }
+                    });
+                } catch (Exception e) {
+                    throw new AssertionError("Exception during check for query breaker reset to 0", e);
                 }
             }
         }
