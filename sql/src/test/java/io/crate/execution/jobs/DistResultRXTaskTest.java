@@ -27,7 +27,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
@@ -39,8 +39,6 @@ import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -62,9 +60,6 @@ import static org.mockito.Mockito.verify;
 
 public class DistResultRXTaskTest extends CrateUnitTest {
 
-    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
-
     private DistResultRXTask getPageDownstreamContext(TestingRowConsumer batchConsumer,
                                                       PagingIterator<Integer, Row> pagingIterator,
                                                       int numBuckets) {
@@ -82,7 +77,7 @@ public class DistResultRXTaskTest extends CrateUnitTest {
             1,
             "dummy",
             pageBucketReceiver,
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             numBuckets
         );
     }

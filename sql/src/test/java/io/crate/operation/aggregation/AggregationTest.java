@@ -23,7 +23,7 @@ package io.crate.operation.aggregation;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -40,8 +40,6 @@ import io.crate.metadata.SearchPath;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Before;
 
 import java.util.ArrayList;
@@ -52,8 +50,7 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 
 public abstract class AggregationTest extends CrateUnitTest {
 
-    protected static final RamAccountingContext ramAccountingContext =
-        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
+    protected static final RamAccounting RAM_ACCOUNTING = RamAccounting.NO_ACCOUNTING;
 
     protected Functions functions;
     protected MemoryManager memoryManager;
@@ -61,7 +58,7 @@ public abstract class AggregationTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         functions = getFunctions();
-        memoryManager = new OnHeapMemoryManager(ramAccountingContext::addBytes);
+        memoryManager = new OnHeapMemoryManager(RAM_ACCOUNTING::addBytes);
     }
 
     public Object executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
@@ -90,22 +87,22 @@ public abstract class AggregationTest extends CrateUnitTest {
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
-        states.add(impl.newState(ramAccountingContext, Version.CURRENT, minNodeVersion, memoryManager));
+        states.add(impl.newState(RAM_ACCOUNTING, Version.CURRENT, minNodeVersion, memoryManager));
         for (Row row : new ArrayBucket(data)) {
             for (InputCollectExpression input : inputs) {
                 input.setNextRow(row);
             }
             if (randomIntBetween(1, 4) == 1) {
-                states.add(impl.newState(ramAccountingContext, Version.CURRENT, minNodeVersion, memoryManager));
+                states.add(impl.newState(RAM_ACCOUNTING, Version.CURRENT, minNodeVersion, memoryManager));
             }
             int idx = states.size() - 1;
-            states.set(idx, impl.iterate(ramAccountingContext, memoryManager, states.get(idx), inputs));
+            states.set(idx, impl.iterate(RAM_ACCOUNTING, memoryManager, states.get(idx), inputs));
         }
         Object state = states.get(0);
         for (int i = 1; i < states.size(); i++) {
-            state = impl.reduce(ramAccountingContext, state, states.get(i));
+            state = impl.reduce(RAM_ACCOUNTING, state, states.get(i));
         }
-        return impl.terminatePartial(ramAccountingContext, state);
+        return impl.terminatePartial(RAM_ACCOUNTING, state);
     }
 
     protected Symbol normalize(String functionName, Object value, DataType type) {

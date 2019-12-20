@@ -23,7 +23,7 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.data.BatchIterator;
@@ -42,8 +42,6 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
@@ -54,18 +52,6 @@ import static org.hamcrest.core.Is.is;
 public class SortingProjectorTest extends CrateUnitTest {
 
     private TestingRowConsumer consumer = new TestingRowConsumer();
-    private long originalRamAccountingBufferSize;
-
-    @Before
-    public void reduceFlushBufferSize() throws Exception {
-        originalRamAccountingBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
-        RamAccountingContext.FLUSH_BUFFER_SIZE = 20;
-    }
-
-    @After
-    public void resetFlushBufferSize() throws Exception {
-        RamAccountingContext.FLUSH_BUFFER_SIZE = originalRamAccountingBufferSize;
-    }
 
     private SortingProjector createProjector(RowAccounting<Object[]> rowAccounting, int numOutputs, int offset) {
         InputCollectExpression input = new InputCollectExpression(0);
@@ -127,9 +113,10 @@ public class SortingProjectorTest extends CrateUnitTest {
                                                                        LogManager.getLogger(SortingProjectorTest.class)
         );
         RowCellsAccountingWithEstimators rowAccounting =
-            new RowCellsAccountingWithEstimators(List.of(DataTypes.LONG, DataTypes.BOOLEAN),
-                                                 new RamAccountingContext("testContext", circuitBreaker),
-                                                 0);
+            new RowCellsAccountingWithEstimators(
+                List.of(DataTypes.LONG, DataTypes.BOOLEAN),
+                ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker),
+                0);
 
         Projector projector = createProjector(rowAccounting, 1, 0);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);

@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -61,6 +61,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -153,8 +154,8 @@ public final class PKLookupOperation {
 
     public void runWithShardProjections(UUID jobId,
                                         TransactionContext txnCtx,
-                                        RamAccountingContext ramAccountingContext,
-                                        MemoryManager memoryManager,
+                                        Supplier<RamAccounting> ramAccountingSupplier,
+                                        Supplier<MemoryManager> memoryManagerSupplier,
                                         boolean ignoreMissing,
                                         Map<ShardId, List<PKAndVersion>> idsByShard,
                                         Collection<? extends Projection> projections,
@@ -202,7 +203,12 @@ public final class PKLookupOperation {
                 .map(resultToRow);
 
             Projectors projectors = new Projectors(
-                projections, jobId, txnCtx, ramAccountingContext, memoryManager, shardAndIds.projectorFactory);
+                projections,
+                jobId,
+                txnCtx,
+                ramAccountingSupplier.get(),
+                memoryManagerSupplier.get(),
+                shardAndIds.projectorFactory);
             final Iterable<Row> rowIterable;
             if (nodeConsumer.requiresScroll() && !projectors.providesIndependentScroll()) {
                 rowIterable = rowStream.map(row -> new RowN(row.materialize())).collect(Collectors.toList());

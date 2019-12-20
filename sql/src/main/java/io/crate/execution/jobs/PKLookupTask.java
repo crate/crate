@@ -22,7 +22,8 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.BlockBasedRamAccounting;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
@@ -41,15 +42,17 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
 import org.elasticsearch.index.shard.ShardId;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 
 public final class PKLookupTask extends AbstractTask {
 
     private final UUID jobId;
-    private final RamAccountingContext ramAccountingContext;
+    private final RamAccounting ramAccounting;
     private final TransactionContext txnCtx;
     private final PKLookupOperation pkLookupOperation;
     private final boolean ignoreMissing;
@@ -59,13 +62,17 @@ public final class PKLookupTask extends AbstractTask {
     private final InputRow inputRow;
     private final List<CollectExpression<Doc, ?>> expressions;
     private final String name;
-    private final MemoryManager memoryManager;
+    private final Function<RamAccounting, MemoryManager> memoryManagerFactory;
+    private final int ramAccountingBlockSizeInBytes;
+    private final ArrayList<MemoryManager> memoryManagers = new ArrayList<>();
+    private long totalBytes = -1;
 
     PKLookupTask(UUID jobId,
                  int phaseId,
                  String name,
-                 RamAccountingContext ramAccountingContext,
-                 MemoryManager memoryManager,
+                 RamAccounting ramAccounting,
+                 Function<RamAccounting, MemoryManager> memoryManagerFactory,
+                 int ramAccountingBlockSizeInBytes,
                  TransactionContext txnCtx,
                  InputFactory inputFactory,
                  PKLookupOperation pkLookupOperation,
@@ -77,13 +84,14 @@ public final class PKLookupTask extends AbstractTask {
         super(phaseId);
         this.jobId = jobId;
         this.name = name;
-        this.ramAccountingContext = ramAccountingContext;
+        this.ramAccounting = ramAccounting;
         this.txnCtx = txnCtx;
         this.pkLookupOperation = pkLookupOperation;
         this.idsByShard = idsByShard;
         this.shardProjections = shardProjections;
         this.consumer = consumer;
-        this.memoryManager = memoryManager;
+        this.memoryManagerFactory = memoryManagerFactory;
+        this.ramAccountingBlockSizeInBytes = ramAccountingBlockSizeInBytes;
 
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns);
@@ -103,8 +111,8 @@ public final class PKLookupTask extends AbstractTask {
             pkLookupOperation.runWithShardProjections(
                 jobId,
                 txnCtx,
-                ramAccountingContext,
-                memoryManager,
+                this::getRamAccounting,
+                this::getMemoryManager,
                 ignoreMissing,
                 idsByShard,
                 shardProjections,
@@ -128,7 +136,36 @@ public final class PKLookupTask extends AbstractTask {
     }
 
     @Override
+    protected void innerClose() {
+        totalBytes = ramAccounting.totalBytes();
+        synchronized (memoryManagers) {
+            for (MemoryManager memoryManager : memoryManagers) {
+                memoryManager.close();
+            }
+            memoryManagers.clear();
+        }
+    }
+
+    @Override
     public long bytesUsed() {
-        return ramAccountingContext.totalBytes();
+        if (totalBytes == -1) {
+            return ramAccounting.totalBytes();
+        } else {
+            return totalBytes;
+        }
+    }
+
+    public RamAccounting getRamAccounting() {
+        // No tracking/close of BlockBasedRamAccounting
+        // to avoid double-release of bytes when the parent instance (`ramAccounting`) is closed.
+        return new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes);
+    }
+
+    public MemoryManager getMemoryManager() {
+        MemoryManager memoryManager = memoryManagerFactory.apply(ramAccounting);
+        synchronized (memoryManagers) {
+            memoryManagers.add(memoryManager);
+        }
+        return memoryManager;
     }
 }

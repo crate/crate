@@ -23,9 +23,9 @@
 package io.crate.statistics;
 
 import io.crate.Streamer;
+import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
@@ -58,6 +58,7 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
@@ -72,6 +73,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
+
+import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 
 public final class ReservoirSampler {
 
@@ -110,10 +113,10 @@ public final class ReservoirSampler {
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         List<Streamer> streamers = Arrays.asList(Symbols.streamerArray(columns));
         List<Engine.Searcher> searchersToRelease = new ArrayList<>();
-        RamAccountingContext ramAccounting = new RamAccountingContext(
-            "Reservoir-sampling",
-            circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY)
-        );
+        CircuitBreaker breaker = circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+        RamAccounting ramAccounting = new BlockBasedRamAccounting(
+            b -> breaker.addEstimateBytesAndMaybeBreak(b, "Reservoir-sampling"),
+            MAX_BLOCK_SIZE_IN_BYTES);
         try {
             return getSamples(
                 columns,

@@ -23,7 +23,8 @@
 package io.crate.execution.engine.window;
 
 import com.google.common.collect.Lists;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
@@ -41,7 +42,6 @@ import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -62,16 +62,10 @@ import static org.hamcrest.Matchers.is;
 
 public class WindowBatchIteratorTest {
 
-    private RamAccountingContext ramAccountingContext;
     private Input[][] args = {new Input[0]};
 
     private List<Object[]> expectedRowNumberResult = IntStream.range(0, 10)
         .mapToObj(l -> new Object[]{l, l + 1}).collect(Collectors.toList());
-
-    @Before
-    public void setUp() {
-        ramAccountingContext = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
-    }
 
     @Test
     public void testWindowBatchIterator() throws Exception {
@@ -340,9 +334,10 @@ public class WindowBatchIteratorTest {
 
     @Test
     public void testWindowBatchIteratorAccountsUsedMemory() {
+        RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("test", new NoopCircuitBreaker("dummy"));
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
-            new RowAccountingWithEstimators(List.of(DataTypes.INTEGER), ramAccountingContext, 32),
+            new RowAccountingWithEstimators(List.of(DataTypes.INTEGER), ramAccounting, 32),
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
             null,
@@ -357,7 +352,7 @@ public class WindowBatchIteratorTest {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         // should've accounted for 10 integers of 48 bytes each (16 for the integer, 32 for the ArrayList element)
-        assertThat(ramAccountingContext.totalBytes(), is(480L));
+        assertThat(ramAccounting.totalBytes(), is(480L));
     }
 
     @Test

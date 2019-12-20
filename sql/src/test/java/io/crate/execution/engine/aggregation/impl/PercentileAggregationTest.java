@@ -22,7 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
@@ -31,7 +31,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -197,12 +196,12 @@ public class PercentileAggregationTest extends AggregationTest {
         AggregationFunction impl = (AggregationFunction<?, ?>) functions.getQualified(
             new FunctionIdent(NAME, Arrays.asList(DataTypes.LONG, doubleArray)));
 
-        RamAccountingContext memoryCtx = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
-        Object state = impl.newState(memoryCtx, Version.CURRENT, Version.CURRENT, memoryManager);
+        RamAccounting ramAccounting = RamAccounting.NO_ACCOUNTING;
+        Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), doubleArray);
-        impl.iterate(memoryCtx, memoryManager, state, Literal.of(10L), fractions);
-        impl.iterate(memoryCtx, memoryManager, state, Literal.of(20L), fractions);
-        Object result = impl.terminatePartial(memoryCtx, state);
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of(10L), fractions);
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of(20L), fractions);
+        Object result = impl.terminatePartial(ramAccounting, state);
 
         assertThat("result must be an array", result, instanceOf(List.class));
     }

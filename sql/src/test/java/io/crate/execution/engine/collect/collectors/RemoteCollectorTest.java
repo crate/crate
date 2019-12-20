@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.WhereClause;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -116,7 +116,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             transportKillJobsNodeAction,
             MoreExecutors.directExecutor(),
             tasksService,
-            mock(RamAccountingContext.class),
+            RamAccounting.NO_ACCOUNTING,
             consumer,
             collectPhase
         );

@@ -35,8 +35,9 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
+import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Field;
@@ -75,6 +76,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import static io.crate.action.sql.Session.UNNAMED;
+import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static io.crate.protocols.http.Headers.isCloseConnection;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -251,9 +253,10 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (resultFields == null) {
             resultReceiver = new RestRowCountReceiver(JsonXContent.contentBuilder(), startTimeInNs, includeTypes);
         } else {
-            RamAccountingContext ramAccounting = new RamAccountingContext(
-                "http-result",
-                circuitBreakerProvider.apply(CrateCircuitBreakerService.QUERY));
+            CircuitBreaker breaker = circuitBreakerProvider.apply(CrateCircuitBreakerService.QUERY);
+            RamAccounting ramAccounting = new BlockBasedRamAccounting(
+                b -> breaker.addEstimateBytesAndMaybeBreak(b, "http-result"),
+                MAX_BLOCK_SIZE_IN_BYTES);
             resultReceiver = new RestResultSetReceiver(
                 JsonXContent.contentBuilder(),
                 resultFields,

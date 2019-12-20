@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.AggregationContext;
@@ -47,7 +47,6 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
@@ -98,9 +97,9 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
     private Supplier<BatchIterator<Row>> createBatchIterator(Runnable onOrdinalsValues) {
         return () -> GroupByOptimizedIterator.getIterator(
-                BigArrays.NON_RECYCLING_INSTANCE,
-                indexSearcher,
-                leaf -> {
+            BigArrays.NON_RECYCLING_INSTANCE,
+            indexSearcher,
+            leaf -> {
                     try {
                         onOrdinalsValues.run();
                         return DocValues.getSortedSet(leaf.reader(), columnName);
@@ -108,17 +107,17 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
                         throw new RuntimeException(e);
                     }
                 },
-                columnName,
-                aggregationContexts,
-                Collections.emptyList(),
-                Collections.singletonList(inExpr),
-                new RamAccountingContext("group", new NoopCircuitBreaker("test")),
-                new OnHeapMemoryManager(usedBytes -> {}),
-                Version.CURRENT,
-                new InputRow(Collections.singletonList(inExpr)),
-                new MatchAllDocsQuery(),
-                new CollectorContext(mappedFieldType -> null),
-                AggregateMode.ITER_FINAL
+            columnName,
+            aggregationContexts,
+            Collections.emptyList(),
+            Collections.singletonList(inExpr),
+            RamAccounting.NO_ACCOUNTING,
+            new OnHeapMemoryManager(usedBytes -> {}),
+            Version.CURRENT,
+            new InputRow(Collections.singletonList(inExpr)),
+            new MatchAllDocsQuery(),
+            new CollectorContext(mappedFieldType -> null),
+            AggregateMode.ITER_FINAL
             );
     }
 

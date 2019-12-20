@@ -23,7 +23,7 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
@@ -33,7 +33,6 @@ import io.crate.execution.support.Transports;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
@@ -75,7 +74,7 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
         );
 
         StreamBucket.Builder builder = new StreamBucket.Builder(
-            new Streamer[0], new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")));
+            new Streamer[0], RamAccounting.NO_ACCOUNTING);
         try {
             transportDistributedResultAction.nodeOperation(
                 new DistributedResultRequest(UUID.randomUUID(), 0, (byte) 0, 0, builder.build(), true)

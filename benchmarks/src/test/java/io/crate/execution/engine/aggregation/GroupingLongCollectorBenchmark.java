@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterators;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
@@ -58,8 +58,6 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -87,9 +85,6 @@ import static io.crate.data.SentinelRow.SENTINEL;
 @Fork(value = 2)
 @Warmup(iterations = 2)
 public class GroupingLongCollectorBenchmark {
-
-    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private GroupingCollector groupBySumCollector;
     private List<Row> rows;
@@ -134,7 +129,7 @@ public class GroupingLongCollectorBenchmark {
             new AggregationFunction[] { sumAgg },
             new Input[][] { new Input[] { keyInput }},
             new Input[] { Literal.BOOLEAN_TRUE },
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             memoryManager,
             Version.CURRENT,
             keyInputs.get(0),

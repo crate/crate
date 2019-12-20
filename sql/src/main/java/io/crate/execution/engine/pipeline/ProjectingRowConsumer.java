@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -74,7 +74,7 @@ public class ProjectingRowConsumer implements RowConsumer {
      * @param lastConsumer The {@link RowConsumer} so far in the pipeline
      * @param projections The projections that we try to apply
      * @param jobId The jobId of the job being executing
-     * @param ramAccountingContext The {@link RamAccountingContext} used for memory calculation for the {@link CircuitBreaker}
+     * @param ramAccounting The {@link RamAccounting} used for memory calculation for the {@link CircuitBreaker}
      * @param projectorFactory The {@link ProjectorFactory} that will create the appropriate projectors from the {@param projections}
      * @return the {@link ProjectingRowConsumer} wrapping the existing {@param lastConsumer}
      */
@@ -82,24 +82,24 @@ public class ProjectingRowConsumer implements RowConsumer {
                                      Collection<? extends Projection> projections,
                                      UUID jobId,
                                      TransactionContext txnCtx,
-                                     RamAccountingContext ramAccountingContext,
+                                     RamAccounting ramAccounting,
                                      MemoryManager memoryManager,
                                      ProjectorFactory projectorFactory) {
         if (projections.isEmpty()) {
             return lastConsumer;
         }
-        return new ProjectingRowConsumer(lastConsumer, projections, jobId, txnCtx, ramAccountingContext, memoryManager, projectorFactory);
+        return new ProjectingRowConsumer(lastConsumer, projections, jobId, txnCtx, ramAccounting, memoryManager, projectorFactory);
     }
 
     private ProjectingRowConsumer(RowConsumer consumer,
                                   Collection<? extends Projection> projections,
                                   UUID jobId,
                                   TransactionContext txnCtx,
-                                  RamAccountingContext ramAccountingContext,
+                                  RamAccounting ramAccounting,
                                   MemoryManager memoryManager,
                                   ProjectorFactory projectorFactory) {
         this.consumer = consumer;
-        this.projectors = new Projectors(projections, jobId, txnCtx, ramAccountingContext, memoryManager, projectorFactory);
+        this.projectors = new Projectors(projections, jobId, txnCtx, ramAccounting, memoryManager, projectorFactory);
     }
 
     @Override

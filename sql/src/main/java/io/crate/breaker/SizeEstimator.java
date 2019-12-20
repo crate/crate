@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
  * Component to estimate the memory-requirement for a value.
  * This is mainly used for circuit-breaking.
  * See
- *  - {@link RamAccountingContext} and
+ *  - {@link RamAccounting} and
  *  - {@link org.elasticsearch.common.breaker.CircuitBreaker}
  *
  * This is best effort. the Actual size varies from JVM to JVM (32-bit vs 64-bit, compressed oop, etc.).

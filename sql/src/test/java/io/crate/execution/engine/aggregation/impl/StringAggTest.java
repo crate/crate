@@ -68,16 +68,16 @@ public class StringAggTest extends AggregationTest {
     @Test
     public void testMergeOf2States() throws Exception {
         var stringAgg = new StringAgg();
-        var state1 = stringAgg.newState(ramAccountingContext, Version.CURRENT, Version.CURRENT, memoryManager);
-        stringAgg.iterate(ramAccountingContext, memoryManager, state1, Literal.of("a"), Literal.of(","));
-        stringAgg.iterate(ramAccountingContext, memoryManager, state1, Literal.of("b"), Literal.of(";"));
+        var state1 = stringAgg.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
+        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state1, Literal.of("a"), Literal.of(","));
+        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state1, Literal.of("b"), Literal.of(";"));
 
-        var state2 = stringAgg.newState(ramAccountingContext, Version.CURRENT, Version.CURRENT, memoryManager);
-        stringAgg.iterate(ramAccountingContext, memoryManager, state2, Literal.of("c"), Literal.of(","));
-        stringAgg.iterate(ramAccountingContext, memoryManager, state2, Literal.of("d"), Literal.of(";"));
+        var state2 = stringAgg.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
+        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state2, Literal.of("c"), Literal.of(","));
+        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state2, Literal.of("d"), Literal.of(";"));
 
-        var mergedState = stringAgg.reduce(ramAccountingContext, state1, state2);
-        var result = stringAgg.terminatePartial(ramAccountingContext, mergedState);
+        var mergedState = stringAgg.reduce(RAM_ACCOUNTING, state1, state2);
+        var result = stringAgg.terminatePartial(RAM_ACCOUNTING, mergedState);
 
         assertThat(result, is("a;b,c;d"));
     }

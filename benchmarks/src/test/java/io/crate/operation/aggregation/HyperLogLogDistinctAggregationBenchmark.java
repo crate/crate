@@ -22,7 +22,7 @@
 
 package io.crate.operation.aggregation;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -39,7 +39,6 @@ import io.crate.metadata.Functions;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -69,8 +68,6 @@ import java.util.stream.IntStream;
 @State(Scope.Benchmark)
 public class HyperLogLogDistinctAggregationBenchmark {
 
-    private final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-        new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
     private final List<Row> rows = IntStream.range(0, 10_000).mapToObj(i -> new Row1(String.valueOf(i))).collect(Collectors.toList());
 
     private HyperLogLogPlusPlus hyperLogLogPlusPlus;
@@ -94,7 +91,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
         hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, onHeapMemoryManager::allocate);
         onHeapCollector = new AggregateCollector(
             Collections.singletonList(inExpr0),
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             onHeapMemoryManager,
             Version.CURRENT,
             AggregateMode.ITER_FINAL,
@@ -105,7 +102,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
         );
         offHeapCollector = new AggregateCollector(
             Collections.singletonList(inExpr0),
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             offHeapMemoryManager,
             Version.CURRENT,
             AggregateMode.ITER_FINAL,

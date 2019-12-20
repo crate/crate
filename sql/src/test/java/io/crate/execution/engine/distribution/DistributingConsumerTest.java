@@ -24,7 +24,6 @@ package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
@@ -42,7 +41,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -197,7 +195,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
             1,
             "dummy",
             pageBucketReceiver,
-            new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
+            RamAccounting.NO_ACCOUNTING,
             1
         );
     }

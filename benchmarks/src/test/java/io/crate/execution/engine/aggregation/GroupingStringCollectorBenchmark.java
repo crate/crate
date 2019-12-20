@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.InMemoryBatchIterator;
@@ -40,8 +40,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -65,9 +63,6 @@ import static io.crate.data.SentinelRow.SENTINEL;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class GroupingStringCollectorBenchmark {
-
-    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private GroupingCollector groupByMinCollector;
     private BatchIterator<Row> rowsIterator;
@@ -105,7 +100,7 @@ public class GroupingStringCollectorBenchmark {
             new AggregationFunction[] { minAgg },
             new Input[][] { new Input[] { keyInput }},
             new Input[] { Literal.BOOLEAN_TRUE },
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             memoryManager,
             Version.CURRENT,
             keyInputs.get(0),

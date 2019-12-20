@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.breaker.RamAccountingContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.IntegerColumnReference;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -34,7 +33,6 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;

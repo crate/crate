@@ -100,7 +100,7 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
     public void testFixedSizeRamAccountingQueueSink() throws Exception {
         BlockingEvictingQueue<NoopLog> q = new BlockingEvictingQueue<>(15_000);
         RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker(), NOOP_ESTIMATOR);
-        logSink = new QueueSink<>(ramAccountingQueue, ramAccountingQueue::close);
+        logSink = new QueueSink<>(ramAccountingQueue, ramAccountingQueue::release);
 
         int THREADS = 50;
         final CountDownLatch latch = new CountDownLatch(THREADS);
@@ -158,7 +158,7 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
         ScheduledFuture<?> task = TimeBasedQEviction.scheduleTruncate(1000L, 1000L, q, scheduler, timeValue);
         logSink = new QueueSink<>(ramAccountingQueue, () -> {
             task.cancel(false);
-            ramAccountingQueue.close();
+            ramAccountingQueue.release();
         });
 
         for (int j = 0; j < 100; j++) {

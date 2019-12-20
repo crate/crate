@@ -26,7 +26,6 @@ package io.crate.execution.engine.collect.collectors;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
@@ -55,8 +54,6 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -80,8 +77,9 @@ import static org.mockito.Mockito.mock;
 
 public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
 
-    private static final RowAccounting ROW_ACCOUNTING = new RowAccountingWithEstimators(Collections.singleton(LongType.INSTANCE),
-        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA))
+    private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(
+        Collections.singleton(LongType.INSTANCE),
+        RamAccounting.NO_ACCOUNTING
     );
 
     private String columnName = "x";

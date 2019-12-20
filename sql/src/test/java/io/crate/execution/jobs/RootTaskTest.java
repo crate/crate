@@ -21,33 +21,9 @@
 
 package io.crate.execution.jobs;
 
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.lang.reflect.Field;
-import java.util.Collections;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
-
 import com.google.common.util.concurrent.MoreExecutors;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
@@ -61,6 +37,28 @@ import io.crate.profile.ProfilingContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.IntegerType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentMap;
+
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class RootTaskTest extends CrateUnitTest {
 
@@ -139,7 +137,7 @@ public class RootTaskTest extends CrateUnitTest {
             collectPhase,
             CoordinatorTxnCtx.systemTransactionContext(),
             mock(MapSideDataCollectOperation.class),
-            mock(RamAccountingContext.class),
+            RamAccounting.NO_ACCOUNTING,
             ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
             new TestingRowConsumer(),
             mock(SharedShardContexts.class),
@@ -160,7 +158,7 @@ public class RootTaskTest extends CrateUnitTest {
             2,
             "dummy",
             pageBucketReceiver,
-            mock(RamAccountingContext.class),
+            RamAccounting.NO_ACCOUNTING,
             1));
 
         builder.addTask(collectChildTask);

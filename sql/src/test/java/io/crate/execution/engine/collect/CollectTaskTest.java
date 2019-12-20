@@ -22,7 +22,7 @@
 package io.crate.execution.engine.collect;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.exceptions.JobKilledException;
@@ -57,8 +57,6 @@ public class CollectTaskTest extends RandomizedTest {
     private RoutedCollectPhase collectPhase;
     private String localNodeId;
 
-    private RamAccountingContext ramAccountingContext = mock(RamAccountingContext.class);
-
     @Before
     public void setUp() throws Exception {
         localNodeId = "dummyLocalNodeId";
@@ -71,7 +69,7 @@ public class CollectTaskTest extends RandomizedTest {
             collectPhase,
             CoordinatorTxnCtx.systemTransactionContext(),
             mock(MapSideDataCollectOperation.class),
-            ramAccountingContext,
+            RamAccounting.NO_ACCOUNTING,
             ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
             new TestingRowConsumer(),
             mock(SharedShardContexts.class),
@@ -114,13 +112,14 @@ public class CollectTaskTest extends RandomizedTest {
         Engine.Searcher mock1 = mock(Engine.Searcher.class);
         MapSideDataCollectOperation collectOperationMock = mock(MapSideDataCollectOperation.class);
 
+        var ramAccounting = mock(RamAccounting.class);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         CollectTask jobCtx = new CollectTask(
             collectPhase,
             txnCtx,
             collectOperationMock,
-            ramAccountingContext,
-            ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
+            ramAccounting,
+            ramAcc -> new OnHeapMemoryManager(ramAcc::addBytes),
             new TestingRowConsumer(),
             mock(SharedShardContexts.class),
             Version.CURRENT,
@@ -140,7 +139,7 @@ public class CollectTaskTest extends RandomizedTest {
         verify(mock1, times(1)).close();
 
         // CollectTask receives the RamAccountingContext from outside and is not responsible for closing it
-        verify(ramAccountingContext, times(0)).close();
+        verify(ramAccounting, times(0)).close();
     }
 
     @Test

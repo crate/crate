@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -34,7 +34,6 @@ import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -58,8 +57,6 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 @State(Scope.Benchmark)
 public class AggregateCollectorBenchmark {
 
-    private final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-        new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
     private final List<Row> rows = IntStream.range(0, 10_000).mapToObj(Row1::new).collect(Collectors.toList());
 
     private AggregateCollector collector;
@@ -72,7 +69,7 @@ public class AggregateCollectorBenchmark {
         var memoryManager = new OnHeapMemoryManager(bytes -> {});
         collector = new AggregateCollector(
             Collections.singletonList(inExpr0),
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             memoryManager,
             Version.CURRENT,
             AggregateMode.ITER_FINAL,

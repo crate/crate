@@ -27,7 +27,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.auth.user.User;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -56,8 +56,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.hamcrest.Matcher;
 import org.junit.Before;
@@ -78,9 +76,6 @@ import static io.crate.execution.engine.sort.Comparators.createComparator;
 import static org.hamcrest.Matchers.instanceOf;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
-
-    private RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext
-        ("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -150,7 +145,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
                 (AggregationFunction) impl,
                 new ExpressionsInput<>(Literal.BOOLEAN_TRUE, List.of()),
                 Version.CURRENT,
-                RAM_ACCOUNTING_CONTEXT,
+                RamAccounting.NO_ACCOUNTING,
                 memoryManager,
                 Version.CURRENT
             );
