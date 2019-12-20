@@ -26,7 +26,7 @@ import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
 
 /**
- * Wraps a PagingIterator and uses {@link io.crate.breaker.RamAccountingContext} to apply the circuit breaking logic
+ * Wraps a PagingIterator and uses {@link io.crate.breaker.RamAccounting} to apply the circuit breaking logic
  */
 public class RamAccountingPageIterator<TKey> implements PagingIterator<TKey, Row> {
 

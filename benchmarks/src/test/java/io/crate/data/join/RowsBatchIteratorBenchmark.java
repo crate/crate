@@ -22,7 +22,7 @@
 
 package io.crate.data.join;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
@@ -45,7 +45,6 @@ import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.testing.RowGenerator;
 import io.crate.types.DataTypes;
 import io.crate.window.NthValueFunctions;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -71,10 +70,8 @@ import static io.crate.data.SentinelRow.SENTINEL;
 @State(Scope.Benchmark)
 public class RowsBatchIteratorBenchmark {
 
-    private static NoopCircuitBreaker NOOP_CIRCUIT_BREAKER = new NoopCircuitBreaker("dummy");
-
-    private final RamAccountingContext ramAccountingContext = new RamAccountingContext("test", NOOP_CIRCUIT_BREAKER);
-    private final RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(Collections.singleton(DataTypes.INTEGER), ramAccountingContext);
+    private final RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(
+        Collections.singleton(DataTypes.INTEGER), RamAccounting.NO_ACCOUNTING);
 
     // use materialize to not have shared row instances
     // this is done in the startup, otherwise the allocation costs will make up the majority of the benchmark.

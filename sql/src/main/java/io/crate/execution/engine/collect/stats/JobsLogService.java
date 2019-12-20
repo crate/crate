@@ -302,7 +302,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
 
         RamAccountingQueue<E> accountingQueue = new RamAccountingQueue<>(q, breakerService.getBreaker(breaker), sizeEstimator);
         return new QueueSink<>(accountingQueue, () -> {
-            accountingQueue.close();
+            accountingQueue.release();
             onClose.run();
         });
     }

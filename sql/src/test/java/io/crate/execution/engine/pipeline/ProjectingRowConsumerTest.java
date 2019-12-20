@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -48,19 +48,12 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -72,7 +65,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -81,8 +73,6 @@ import static org.mockito.Mockito.mock;
 
 public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
     private Functions functions;
     private ProjectorFactory projectorFactory;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
@@ -153,7 +143,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             Collections.singletonList(filterProjection),
             UUID.randomUUID(),
             txnCtx,
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             memoryManager,
             projectorFactory
         );
@@ -173,7 +163,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             Collections.singletonList(groupProjection),
             UUID.randomUUID(),
             txnCtx,
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             memoryManager,
             projectorFactory
         );
@@ -192,7 +182,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             Collections.singletonList(groupProjection),
             UUID.randomUUID(),
             txnCtx,
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             memoryManager,
             projectorFactory
         );
@@ -216,7 +206,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             Collections.singletonList(writerProjection),
             UUID.randomUUID(),
             txnCtx,
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             memoryManager,
             projectorFactory
         );

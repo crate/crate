@@ -40,7 +40,6 @@ import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -94,6 +93,7 @@ import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
+import io.crate.planner.operators.PKAndVersion;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -105,6 +105,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -278,7 +279,14 @@ public class JobSetup {
             }
             if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
                 var executionPhase = nodeOperation.executionPhase();
-                var ramAccounting = RamAccountingContext.forExecutionPhase(breaker(), executionPhase);
+                CircuitBreaker breaker = breaker();
+                int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.calculateBlockSizeInBytes(
+                    breaker.getLimit(),
+                    1
+                );
+                var ramAccounting = new BlockBasedRamAccounting(
+                    b -> breaker.addEstimateBytesAndMaybeBreak(b, executionPhase.label()),
+                    ramAccountingBlockSizeInBytes);
                 Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(executionPhase);
                 SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers, ramAccounting);
                 context.directResponseFutures.add(bucketBuilder.completionFuture().whenComplete((res, err) -> ramAccounting.close()));
@@ -560,8 +568,16 @@ public class JobSetup {
             if (indexShardMap == null) {
                 throw new IllegalArgumentException("The routing of the countPhase doesn't contain the current nodeId");
             }
-            var ramAccounting = RamAccountingContext.forExecutionPhase(breaker(), phase);
-            RowConsumer consumer = context.getRowConsumer(phase, 0, ramAccounting);
+            CircuitBreaker breaker = breaker();
+            int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.calculateBlockSizeInBytes(
+                breaker.getLimit(),
+                1
+            );
+            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
+            RowConsumer consumer = context.getRowConsumer(
+                phase,
+                0,
+                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes));
             consumer.completionFuture().whenComplete((result, error) -> ramAccounting.close());
             context.registerSubContext(new CountTask(
                 phase,
@@ -578,34 +594,47 @@ public class JobSetup {
             Collection<? extends Projection> shardProjections = shardProjections(pkLookupPhase.projections());
             Collection<? extends Projection> nodeProjections = nodeProjections(pkLookupPhase.projections());
 
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), pkLookupPhase);
-            RowConsumer lastConsumer = context.getRowConsumer(pkLookupPhase, 0, ramAccountingContext);
-            MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
+            Map<ShardId, List<PKAndVersion>> idsByShardId =
+                pkLookupPhase.getIdsByShardId(clusterService.localNode().getId());
+
+            CircuitBreaker breaker = breaker();
+            int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.calculateBlockSizeInBytes(
+                breaker.getLimit(),
+                idsByShardId.size()
+            );
+            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(pkLookupPhase.label(), breaker);
+            var consumerRamAccounting = new BlockBasedRamAccounting(
+                ramAccounting::addBytes,
+                ramAccountingBlockSizeInBytes);
+            var consumerMemoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
+
+            RowConsumer lastConsumer = context.getRowConsumer(pkLookupPhase, 0, consumerRamAccounting);
             lastConsumer.completionFuture().whenComplete((result, error) -> {
-                memoryManager.close();
-                ramAccountingContext.close();
+                consumerMemoryManager.close();
+                ramAccounting.close();
             });
             RowConsumer nodeRowConsumer = ProjectingRowConsumer.create(
                 lastConsumer,
                 nodeProjections,
                 pkLookupPhase.jobId(),
                 context.txnCtx(),
-                ramAccountingContext,
-                memoryManager,
+                consumerRamAccounting,
+                consumerMemoryManager,
                 projectorFactory
             );
             context.registerSubContext(new PKLookupTask(
                 pkLookupPhase.jobId(),
                 pkLookupPhase.phaseId(),
                 pkLookupPhase.name(),
-                ramAccountingContext,
-                memoryManager,
+                ramAccounting,
+                memoryManagerFactory,
+                ramAccountingBlockSizeInBytes,
                 context.transactionContext,
                 inputFactory,
                 pkLookupOperation,
                 pkLookupPhase.partitionedByColumns(),
                 pkLookupPhase.toCollect(),
-                pkLookupPhase.getIdsByShardId(clusterService.localNode().getId()),
+                idsByShardId,
                 shardProjections,
                 nodeRowConsumer
             ));
@@ -616,23 +645,34 @@ public class JobSetup {
         public Boolean visitMergePhase(final MergePhase phase, final Context context) {
             boolean upstreamOnSameNode = context.opCtx.upstreamsAreOnSameNode(phase.phaseId());
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
-            RowConsumer consumer = context.getRowConsumer(phase, pageSize, ramAccountingContext);
-            MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
-            consumer.completionFuture().whenComplete((result, error) -> {
-                memoryManager.close();
-                ramAccountingContext.close();
-            });
+
+            CircuitBreaker breaker = breaker();
+            int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.calculateBlockSizeInBytes(
+                breaker.getLimit(),
+                1
+            );
+            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
+            var ramAccountingForMerge = new BlockBasedRamAccounting(
+                ramAccounting::addBytes,
+                ramAccountingBlockSizeInBytes);
+
+            RowConsumer consumer = context.getRowConsumer(phase, pageSize, ramAccountingForMerge);
+            MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
+
             if (upstreamOnSameNode && phase.numInputs() == 1) {
                 consumer = ProjectingRowConsumer.create(
                     consumer,
                     phase.projections(),
                     phase.jobId(),
                     context.txnCtx(),
-                    ramAccountingContext,
+                    ramAccountingForMerge,
                     memoryManager,
                     projectorFactory
                 );
+                consumer.completionFuture().whenComplete((result, error) -> {
+                    memoryManager.close();
+                    ramAccounting.close();
+                });
                 context.registerBatchConsumer(phase.phaseId(), consumer);
                 return true;
             }
@@ -648,7 +688,7 @@ public class JobSetup {
                     GroupingProjector groupingProjector = (GroupingProjector) projectorFactory.create(
                         groupProjection,
                         context.txnCtx(),
-                        ramAccountingContext,
+                        ramAccountingForMerge,
                         memoryManager,
                         phase.jobId()
                     );
@@ -660,7 +700,7 @@ public class JobSetup {
                     AggregationPipe aggregationPipe = (AggregationPipe) projectorFactory.create(
                         aggregationProjection,
                         context.txnCtx(),
-                        ramAccountingContext,
+                        ramAccountingForMerge,
                         memoryManager,
                         phase.jobId()
                     );
@@ -674,10 +714,14 @@ public class JobSetup {
                 projections,
                 phase.jobId(),
                 context.txnCtx(),
-                ramAccountingContext,
+                ramAccountingForMerge,
                 memoryManager,
                 projectorFactory
             );
+            consumer.completionFuture().whenComplete((result, error) -> {
+                memoryManager.close();
+                ramAccounting.close();
+            });
 
             PageBucketReceiver pageBucketReceiver;
             if (collector == null) {
@@ -693,7 +737,7 @@ public class JobSetup {
                         phase.orderByPositions(),
                         () -> new RowAccountingWithEstimators(
                             phase.inputTypes(),
-                            ramAccountingContext)),
+                            new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes))),
                     phase.numUpstreams());
             } else {
                 pageBucketReceiver = new IncrementalPageBucketReceiver<>(
@@ -708,7 +752,7 @@ public class JobSetup {
                 phase.phaseId(),
                 phase.name(),
                 pageBucketReceiver,
-                ramAccountingContext,
+                ramAccounting,
                 phase.numUpstreams()
             ));
             return true;
@@ -750,7 +794,7 @@ public class JobSetup {
                 breaker.getLimit(),
                 1
             );
-            RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker());
+            RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
             RowConsumer consumer = context.getRowConsumer(
                 phase,
                 Paging.PAGE_SIZE,
@@ -803,26 +847,20 @@ public class JobSetup {
 
         @Override
         public Boolean visitNestedLoopPhase(NestedLoopPhase phase, Context context) {
-            MergePhase leftMerge = phase.leftMergePhase();
-            MergePhase rightMerge = phase.rightMergePhase();
-            RamAccountingContext ramAccountingLeft = leftMerge == null ? null :
-                RamAccountingContext.forExecutionPhase(breaker(), leftMerge);
-            RamAccountingContext ramAccountingRight = rightMerge == null ? null :
-                RamAccountingContext.forExecutionPhase(breaker(), rightMerge);
-
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
-            RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingContext);
-            MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
-
+            CircuitBreaker breaker = breaker();
+            int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.calculateBlockSizeInBytes(
+                breaker.getLimit(),
+                1
+            );
+            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
+            var ramAccountingOfOperation = new BlockBasedRamAccounting(
+                ramAccounting::addBytes,
+                ramAccountingBlockSizeInBytes);
+            RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingOfOperation);
+            var memoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
             lastConsumer.completionFuture().whenComplete((result, error) -> {
                 memoryManager.close();
-                ramAccountingContext.close();
-                if (ramAccountingLeft != null) {
-                    ramAccountingLeft.close();
-                }
-                if (ramAccountingRight != null) {
-                    ramAccountingRight.close();
-                }
+                ramAccounting.close();
             });
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
@@ -830,7 +868,7 @@ public class JobSetup {
                 phase.projections(),
                 phase.jobId(),
                 context.txnCtx(),
-                ramAccountingContext,
+                ramAccountingOfOperation,
                 memoryManager,
                 projectorFactory
             );
@@ -843,7 +881,7 @@ public class JobSetup {
                 joinCondition,
                 phase.joinType(),
                 breaker(),
-                ramAccountingContext,
+                phase.blockNestedLoop ? ramAccounting : ramAccountingOfOperation,
                 phase.leftSideColumnTypes,
                 phase.estimatedRowsSizeLeft,
                 phase.estimatedNumberOfRowsLeft,
@@ -853,9 +891,9 @@ public class JobSetup {
                 phase.phaseId(),
                 context,
                 (byte) 0,
-                leftMerge,
+                phase.leftMergePhase(),
                 joinOperation.leftConsumer(),
-                ramAccountingLeft,
+                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes),
                 memoryManager
             );
 
@@ -867,9 +905,9 @@ public class JobSetup {
                 phase.phaseId(),
                 context,
                 (byte) 1,
-                rightMerge,
+                phase.rightMergePhase(),
                 joinOperation.rightConsumer(),
-                ramAccountingRight,
+                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes),
                 memoryManager
             );
             if (right != null) {
@@ -886,25 +924,20 @@ public class JobSetup {
 
         @Override
         public Boolean visitHashJoinPhase(HashJoinPhase phase, Context context) {
-            MergePhase leftMerge = phase.leftMergePhase();
-            MergePhase rightMerge = phase.rightMergePhase();
-            RamAccountingContext ramAccountingLeft = leftMerge == null ? null :
-                RamAccountingContext.forExecutionPhase(breaker(), leftMerge);
-            RamAccountingContext ramAccountingRight = rightMerge == null ? null :
-                RamAccountingContext.forExecutionPhase(breaker(), rightMerge);
-
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(breaker(), phase);
-            RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingContext);
-            MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccountingContext);
+            CircuitBreaker breaker = breaker();
+            int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.calculateBlockSizeInBytes(
+                breaker.getLimit(),
+                1
+            );
+            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
+            var ramAccountingOfOperation = new BlockBasedRamAccounting(
+                ramAccounting::addBytes,
+                ramAccountingBlockSizeInBytes);
+            RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingOfOperation);
+            var memoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
             lastConsumer.completionFuture().whenComplete((result, error) -> {
                 memoryManager.close();
-                ramAccountingContext.close();
-                if (ramAccountingLeft != null) {
-                    ramAccountingLeft.close();
-                }
-                if (ramAccountingRight != null) {
-                    ramAccountingRight.close();
-                }
+                ramAccounting.close();
             });
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
@@ -912,7 +945,7 @@ public class JobSetup {
                 phase.projections(),
                 phase.jobId(),
                 context.txnCtx(),
-                ramAccountingContext,
+                ramAccountingOfOperation,
                 memoryManager,
                 projectorFactory
             );
@@ -929,7 +962,7 @@ public class JobSetup {
                 //    96 bytes for each ArrayList +
                 //    7 bytes per key for the IntHashObjectHashMap  (should be 4 but the map pre-allocates more)
                 //    7 bytes perv value (pointer from the map to the list) (should be 4 but the map pre-allocates more)
-                new RowAccountingWithEstimators(phase.leftOutputTypes(), ramAccountingContext, 110),
+                new RowAccountingWithEstimators(phase.leftOutputTypes(), ramAccounting, 110),
                 context.transactionContext,
                 inputFactory,
                 breaker(),
@@ -939,9 +972,9 @@ public class JobSetup {
                 phase.phaseId(),
                 context,
                 (byte) 0,
-                leftMerge,
+                phase.leftMergePhase(),
                 joinOperation.leftConsumer(),
-                ramAccountingLeft,
+                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes),
                 memoryManager
             );
             if (left != null) {
@@ -951,9 +984,9 @@ public class JobSetup {
                 phase.phaseId(),
                 context,
                 (byte) 1,
-                rightMerge,
+                phase.rightMergePhase(),
                 joinOperation.rightConsumer(),
-                ramAccountingRight,
+                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes),
                 memoryManager
             );
             if (right != null) {
@@ -974,7 +1007,7 @@ public class JobSetup {
                                                                     byte inputId,
                                                                     @Nullable MergePhase mergePhase,
                                                                     RowConsumer rowConsumer,
-                                                                    RamAccountingContext ramAccountingContext,
+                                                                    RamAccounting ramAccounting,
                                                                     MemoryManager memoryManager) {
             if (mergePhase == null) {
                 ctx.consumersByPhaseInputId.put(toKey(nlPhaseId, inputId), rowConsumer);
@@ -988,7 +1021,7 @@ public class JobSetup {
                     mergePhase.projections(),
                     mergePhase.jobId(),
                     ctx.txnCtx(),
-                    ramAccountingContext,
+                    ramAccounting,
                     memoryManager,
                     projectorFactory
                 );
@@ -1006,14 +1039,14 @@ public class JobSetup {
                     mergePhase.orderByPositions(),
                     () -> new RowAccountingWithEstimators(
                         mergePhase.inputTypes(),
-                        ramAccountingContext)),
+                        ramAccounting)),
                 mergePhase.numUpstreams());
 
             return new DistResultRXTask(
                 mergePhase.phaseId(),
                 mergePhase.name(),
                 pageBucketReceiver,
-                ramAccountingContext,
+                ramAccounting,
                 mergePhase.numUpstreams()
             );
         }

@@ -66,7 +66,7 @@ public class CollectSetAggregationTest extends AggregationTest {
         AggregationFunction impl = (AggregationFunction) functions.get(
                 null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
 
-        Object state = impl.newState(ramAccountingContext, Version.CURRENT, Version.CURRENT, memoryManager);
+        Object state = impl.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
 
         BytesStreamOutput streamOutput = new BytesStreamOutput();
         impl.partialType().streamer().writeValueTo(streamOutput, state);
@@ -81,14 +81,14 @@ public class CollectSetAggregationTest extends AggregationTest {
             null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
         AggregationFunction aggregationFunction = impl.optimizeForExecutionAsWindowFunction();
 
-        Object state = aggregationFunction.newState(ramAccountingContext, Version.CURRENT, Version.CURRENT, memoryManager);
-        state = aggregationFunction.iterate(ramAccountingContext, memoryManager, state, Literal.of(10));
-        state = aggregationFunction.iterate(ramAccountingContext, memoryManager, state, Literal.of(10));
+        Object state = aggregationFunction.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
+        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10));
+        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10));
 
-        aggregationFunction.removeFromAggregatedState(ramAccountingContext, state, new Input[] { Literal.of(10) });
-        aggregationFunction.removeFromAggregatedState(ramAccountingContext, state, new Input[] { Literal.of(10) });
+        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10) });
+        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10) });
 
-        Object values = aggregationFunction.terminatePartial(ramAccountingContext, state);
+        Object values = aggregationFunction.terminatePartial(RAM_ACCOUNTING, state);
         assertThat((List<Object>) values, Matchers.empty());
     }
 

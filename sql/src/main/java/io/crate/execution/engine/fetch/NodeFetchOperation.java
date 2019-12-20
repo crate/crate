@@ -26,7 +26,9 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.BlockBasedRamAccounting;
+import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.StreamBucket;
@@ -74,7 +76,7 @@ public class NodeFetchOperation {
             this.streamers = Symbols.streamerArray(refs);
         }
 
-        FetchCollector createCollector(int readerId, RamAccountingContext ramAccountingContext) {
+        FetchCollector createCollector(int readerId, RamAccounting ramAccounting) {
             IndexService indexService = fetchTask.indexService(readerId);
             var mapperService = indexService.mapperService();
             LuceneReferenceResolver resolver = new LuceneReferenceResolver(
@@ -91,7 +93,7 @@ public class NodeFetchOperation {
                 streamers,
                 fetchTask.searcher(readerId),
                 indexService.fieldData(),
-                ramAccountingContext,
+                ramAccounting,
                 readerId
             );
         }
@@ -176,10 +178,10 @@ public class NodeFetchOperation {
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>(null);
         final AtomicInteger threadLatch = new AtomicInteger(toFetch.size());
 
-        // RamAccountingContext is per doFetch call instead of per FetchTask/fetchPhase
+        // RamAccounting is per doFetch call instead of per FetchTask/fetchPhase
         // To be able to free up the memory count when the operation is complete
-        RamAccountingContext ramAccountingContext = new RamAccountingContext("fetch-" + fetchTask.id(), circuitBreaker);
-        resultFuture.whenComplete((r, f) -> ramAccountingContext.close());
+        var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("fetch-" + fetchTask.id(), circuitBreaker);
+        resultFuture.whenComplete((r, f) -> ramAccounting.close());
 
         ArrayList<Supplier<Void>> collectors = new ArrayList<>();
         for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
@@ -191,7 +193,11 @@ public class NodeFetchOperation {
             assert tfi != null : "tfi must not be null";
 
             CollectRunnable collectRunnable = new CollectRunnable(
-                tfi.createCollector(readerId, ramAccountingContext),
+                tfi.createCollector(
+                    readerId,
+                    new BlockBasedRamAccounting(
+                        ramAccounting::addBytes,
+                        BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES)),
                 docIds,
                 fetched,
                 readerId,

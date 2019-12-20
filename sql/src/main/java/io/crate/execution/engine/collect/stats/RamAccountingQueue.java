@@ -23,11 +23,12 @@
 package io.crate.execution.engine.collect.stats;
 
 import com.google.common.collect.ForwardingQueue;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.apache.logging.log4j.LogManager;
 
 import java.util.Locale;
 import java.util.Queue;
@@ -39,7 +40,7 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
     private static final Logger LOGGER = LogManager.getLogger(RamAccountingQueue.class);
 
     private final Queue<T> delegate;
-    private RamAccountingContext context;
+    private final RamAccounting ramAccounting;
     private final SizeEstimator<T> sizeEstimator;
     private final CircuitBreaker breaker;
     private final AtomicBoolean exceeded;
@@ -48,7 +49,11 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
         this.delegate = delegate;
         this.breaker = breaker;
         this.sizeEstimator = sizeEstimator;
-        this.context = new RamAccountingContext(contextId(), breaker);
+        // create a non-breaking (thread-safe) instance as this component will check the breaker limits by itself
+        this.ramAccounting = new ConcurrentRamAccounting(
+            breaker::addWithoutBreaking,
+            bytes -> breaker.addWithoutBreaking(- bytes)
+        );
         this.exceeded = new AtomicBoolean(false);
     }
 
@@ -58,16 +63,13 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
 
     @Override
     public boolean offer(T o) {
-        context.addBytesWithoutBreaking(sizeEstimator.estimateSize(o));
-        if (context.exceededBreaker() && exceeded.compareAndSet(false, true)) {
+        ramAccounting.addBytes(sizeEstimator.estimateSize(o));
+        if (exceededBreaker() && exceeded.compareAndSet(false, true)) {
             if (LOGGER.isWarnEnabled()) {
-                LOGGER.warn("Memory limit for breaker [{}] was exceeded. Queue [{}] is cleared.", breaker.getName(), context.contextId());
+                LOGGER.warn("Memory limit for breaker [{}] was exceeded. Queue [{}] is cleared.", breaker.getName(), contextId());
             }
-            // clear queue, close context and create new one
-            close();
-            context = new RamAccountingContext(contextId(), breaker);
-            // add bytes to new context
-            context.addBytesWithoutBreaking(sizeEstimator.estimateSize(o));
+            release();
+            ramAccounting.addBytes(sizeEstimator.estimateSize(o));
             exceeded.set(false);
         }
         return delegate.offer(o);
@@ -78,8 +80,16 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
         return delegate;
     }
 
-    public void close() {
+    public void release() {
         delegate.clear();
-        context.close();
+        ramAccounting.release();
+    }
+
+    /**
+     * Returns true if the limit of the breaker was already reached
+     * but the breaker did not trip (e.g. when adding bytes without breaking)
+     */
+    public boolean exceededBreaker() {
+        return breaker.getUsed() >= breaker.getLimit();
     }
 }

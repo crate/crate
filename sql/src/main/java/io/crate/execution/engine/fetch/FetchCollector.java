@@ -25,7 +25,7 @@ package io.crate.execution.engine.fetch;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -44,19 +44,19 @@ class FetchCollector {
     private final InputRow row;
     private final Streamer<?>[] streamers;
     private final List<LeafReaderContext> readerContexts;
-    private final RamAccountingContext ramAccountingContext;
+    private final RamAccounting ramAccounting;
 
     FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
                    Streamer<?>[] streamers,
                    Engine.Searcher searcher,
                    IndexFieldDataService indexFieldDataService,
-                   RamAccountingContext ramAccountingContext,
+                   RamAccounting ramAccounting,
                    int readerId) {
         // use toArray to avoid iterator allocations in docIds loop
         this.collectorExpressions = collectorExpressions.toArray(new LuceneCollectorExpression[0]);
         this.streamers = streamers;
         this.readerContexts = searcher.searcher().getIndexReader().leaves();
-        this.ramAccountingContext = ramAccountingContext;
+        this.ramAccounting = ramAccounting;
         CollectorContext collectorContext = new CollectorContext(indexFieldDataService::getForField, readerId);
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
@@ -73,7 +73,7 @@ class FetchCollector {
     }
 
     public StreamBucket collect(IntContainer docIds) throws IOException {
-        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccountingContext);
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
         for (IntCursor cursor : docIds) {
             int docId = cursor.value;
             int readerIndex = ReaderUtil.subIndex(docId, readerContexts);

@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
@@ -39,8 +39,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.ShardId;
@@ -60,8 +58,6 @@ import static org.mockito.Mockito.mock;
 
 public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
 
-    private RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext
-        ("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
     private ProjectionToProjectorVisitor projectorFactory;
     private OnHeapMemoryManager memoryManager;
 
@@ -101,7 +97,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
             Arrays.asList(filterProjection, groupProjection),
             UUID.randomUUID(),
             CoordinatorTxnCtx.systemTransactionContext(),
-            RAM_ACCOUNTING_CONTEXT,
+            RamAccounting.NO_ACCOUNTING,
             memoryManager,
             projectorFactory
         );

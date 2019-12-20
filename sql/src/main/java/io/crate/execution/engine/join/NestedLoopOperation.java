@@ -22,7 +22,7 @@
 package io.crate.execution.engine.join;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
@@ -55,7 +55,7 @@ public class NestedLoopOperation implements CompletionListenable {
                                Predicate<Row> joinPredicate,
                                JoinType joinType,
                                CircuitBreaker circuitBreaker,
-                               RamAccountingContext ramAccountingContext,
+                               RamAccounting ramAccounting,
                                List<DataType> leftSideColumnTypes,
                                long estimatedRowsSizeLeft,
                                long estimatedNumberOfRowsLeft,
@@ -74,7 +74,7 @@ public class NestedLoopOperation implements CompletionListenable {
                         joinType,
                         joinPredicate,
                         circuitBreaker,
-                        ramAccountingContext,
+                        ramAccounting,
                         leftSideColumnTypes,
                         estimatedRowsSizeLeft,
                         estimatedNumberOfRowsLeft,
@@ -108,7 +108,7 @@ public class NestedLoopOperation implements CompletionListenable {
                                                        JoinType joinType,
                                                        Predicate<Row> joinCondition,
                                                        CircuitBreaker circuitBreaker,
-                                                       RamAccountingContext ramAccountingContext,
+                                                       RamAccounting ramAccounting,
                                                        List<DataType> leftSideColumnTypes,
                                                        long estimatedRowsSizeLeft,
                                                        long estimatedNumberOfRowsLeft,
@@ -117,13 +117,13 @@ public class NestedLoopOperation implements CompletionListenable {
         switch (joinType) {
             case CROSS:
                 return buildCrossJoinBatchIterator(left, right, combiner,
-                    circuitBreaker, ramAccountingContext, leftSideColumnTypes,
+                    circuitBreaker, ramAccounting, leftSideColumnTypes,
                     estimatedRowsSizeLeft, estimatedNumberOfRowsLeft, blockNestedLoop);
 
             case INNER:
                 return new FilteringBatchIterator<>(
                     buildCrossJoinBatchIterator(left, right, combiner,
-                        circuitBreaker, ramAccountingContext, leftSideColumnTypes,
+                        circuitBreaker, ramAccounting, leftSideColumnTypes,
                         estimatedRowsSizeLeft, estimatedNumberOfRowsLeft, blockNestedLoop),
                     joinCondition);
 
@@ -151,7 +151,7 @@ public class NestedLoopOperation implements CompletionListenable {
                                                                   BatchIterator<Row> right,
                                                                   CombinedRow combiner,
                                                                   CircuitBreaker circuitBreaker,
-                                                                  RamAccountingContext ramAccountingContext,
+                                                                  RamAccounting ramAccounting,
                                                                   List<DataType> leftSideColumnTypes,
                                                                   long estimatedRowsSizeLeft,
                                                                   long estimatedNumberOfRowsLeft,
@@ -159,7 +159,7 @@ public class NestedLoopOperation implements CompletionListenable {
         if (blockNestedLoop) {
             IntSupplier blockSizeCalculator = new RamBlockSizeCalculator(
                 Paging.PAGE_SIZE, circuitBreaker, estimatedRowsSizeLeft, estimatedNumberOfRowsLeft);
-            RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(leftSideColumnTypes, ramAccountingContext);
+            RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(leftSideColumnTypes, ramAccounting);
             return JoinBatchIterators.crossJoinBlockNL(left, right, combiner, blockSizeCalculator, rowAccounting);
         } else {
             return JoinBatchIterators.crossJoinNL(left, right, combiner);

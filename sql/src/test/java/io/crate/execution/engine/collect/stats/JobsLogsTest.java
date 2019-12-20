@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.auth.user.User;
 import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.breaker.RamAccountingContext;
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
@@ -74,7 +73,6 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     private ScheduledExecutorService scheduler;
     private CrateCircuitBreakerService breakerService;
-    private RamAccountingContext ramAccountingContext;
     private ClusterSettings clusterSettings;
 
     @Before
@@ -83,8 +81,6 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, clusterSettings);
         breakerService = new CrateCircuitBreakerService(Settings.EMPTY, clusterSettings, esBreakerService);
         scheduler = Executors.newSingleThreadScheduledExecutor();
-        ramAccountingContext = new RamAccountingContext("testRamAccountingContext",
-            breakerService.getBreaker(CrateCircuitBreakerService.JOBS_LOG));
     }
 
     @After
@@ -394,7 +390,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         User user = User.of("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
 
-        jobsLogs.updateJobsLog(new QueueSink<>(q, ramAccountingContext::close));
+        jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
         jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
 
         List<JobContextLog> jobsLogEntries = ImmutableList.copyOf(jobsLogs.jobsLog().iterator());
@@ -411,7 +407,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         User user = User.of("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
 
-        jobsLogs.updateJobsLog(new QueueSink<>(q, ramAccountingContext::close));
+        jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
         jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
 
         List<MetricsView> metrics = ImmutableList.copyOf(jobsLogs.metrics().iterator());
@@ -425,7 +421,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     public void testUniqueOperationIdsInOperationsTable() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
         Queue<OperationContextLog> q = new BlockingEvictingQueue<>(10);
-        jobsLogs.updateOperationsLog(new QueueSink<>(q, ramAccountingContext::close));
+        jobsLogs.updateOperationsLog(new QueueSink<>(q, () -> {}));
 
         OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L, () -> -1);
         jobsLogs.operationStarted(ctxA.id, ctxA.jobId, ctxA.name, () -> -1);

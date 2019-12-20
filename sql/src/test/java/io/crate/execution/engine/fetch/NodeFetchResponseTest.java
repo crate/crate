@@ -28,7 +28,8 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.google.common.collect.Iterables;
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.distribution.StreamBucket;
@@ -37,12 +38,10 @@ import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,28 +51,19 @@ public class NodeFetchResponseTest extends CrateUnitTest {
 
     private IntObjectMap<Streamer[]> streamers;
     private IntObjectMap<StreamBucket> fetched;
-    private long originalFlushBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
-    private RamAccountingContext ramAccountingContext = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
 
     @Before
     public void setUpStreamBucketsAndStreamer() throws Exception {
-        originalFlushBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
-        RamAccountingContext.FLUSH_BUFFER_SIZE = 2;
         streamers = new IntObjectHashMap<>(1);
         streamers.put(1, new Streamer[]{DataTypes.BOOLEAN.streamer()});
 
         IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>();
         IntHashSet docIds = new IntHashSet(3);
         toFetch.put(1, docIds);
-        StreamBucket.Builder builder = new StreamBucket.Builder(streamers.get(1), ramAccountingContext);
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers.get(1), RamAccounting.NO_ACCOUNTING);
         builder.add(new RowN(new Object[]{true}));
         fetched = new IntObjectHashMap<>(1);
         fetched.put(1, builder.build());
-    }
-
-    @After
-    public void reset() throws Exception {
-        RamAccountingContext.FLUSH_BUFFER_SIZE = originalFlushBufferSize;
     }
 
     @Test
@@ -86,7 +76,7 @@ public class NodeFetchResponseTest extends CrateUnitTest {
         StreamInput in = out.bytes().streamInput();
 
         // receiving side is required to set the streamers
-        NodeFetchResponse streamed = new NodeFetchResponse(in, streamers, ramAccountingContext);
+        NodeFetchResponse streamed = new NodeFetchResponse(in, streamers, RamAccounting.NO_ACCOUNTING);
 
         assertThat((Row) Iterables.getOnlyElement(streamed.fetched().get(1)), isRow(true));
     }
@@ -102,9 +92,12 @@ public class NodeFetchResponseTest extends CrateUnitTest {
         new NodeFetchResponse(
             in,
             streamers,
-            new RamAccountingContext("test",
+            ConcurrentRamAccounting.forCircuitBreaker(
+                "test",
                 new MemoryCircuitBreaker(
-                    new ByteSizeValue(2, ByteSizeUnit.BYTES), 1.0, LogManager.getLogger(NodeFetchResponseTest.class))));
+                    new ByteSizeValue(2, ByteSizeUnit.BYTES),
+                    1.0,
+                    LogManager.getLogger(NodeFetchResponseTest.class))));
 
     }
 }

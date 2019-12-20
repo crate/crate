@@ -24,11 +24,9 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.breaker.RamAccountingContext;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -36,17 +34,8 @@ import static org.hamcrest.Matchers.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false, numClientNodes = 0)
 public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
 
-    private long originalBufferSize;
-
-    @Before
-    public void reduceFlushBufferSize() {
-        originalBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
-        RamAccountingContext.FLUSH_BUFFER_SIZE = 10;
-    }
-
     @After
-    public void resetFlushBufferSize() {
-        RamAccountingContext.FLUSH_BUFFER_SIZE = originalBufferSize;
+    public void resetBreakerLimit() {
         execute("reset global \"indices.breaker.query.limit\"");
     }
 

@@ -22,37 +22,8 @@
 
 package io.crate.execution.engine.pipeline;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.testing.TestingHelpers.getFunctions;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
 import com.google.common.collect.ImmutableList;
-
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Answers;
-import org.mockito.MockitoAnnotations;
-
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
@@ -93,18 +64,36 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Answers;
+import org.mockito.MockitoAnnotations;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
 
 public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
     private ProjectionToProjectorVisitor visitor;
     private FunctionInfo countInfo;
     private FunctionInfo avgInfo;
     private Functions functions;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
-    private ThreadPool threadPool;
     private OnHeapMemoryManager memoryManager;
 
     @Before
@@ -138,7 +127,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
     public void testSimpleTopNProjection() throws Exception {
         TopNProjection projection = new TopNProjection(10, 2, Collections.singletonList(DataTypes.LONG));
 
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
+        Projector projector = visitor.create(
+            projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
         TestingRowConsumer consumer = new TestingRowConsumer();
@@ -157,7 +147,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
             new boolean[]{false, false},
             new boolean[]{false, false}
         );
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
+        Projector projector = visitor.create(
+            projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingTopNProjector.class));
     }
 
@@ -169,7 +160,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
             new boolean[]{false, false},
             new boolean[]{false, false}
         );
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
+        Projector projector = visitor.create(
+            projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingProjector.class));
     }
 
@@ -185,7 +177,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
                 countInfo.returnType(),
                 Collections.singletonList(new InputColumn(0)))
         ), RowGranularity.SHARD, AggregateMode.ITER_FINAL);
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
+        Projector projector = visitor.create(
+            projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
 
         assertThat(projector, instanceOf(AggregationPipe.class));
 
@@ -222,7 +215,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         GroupProjection projection = new GroupProjection(
             keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
 
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
+        Projector projector = visitor.create(
+            projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(GroupingProjector.class));
 
         // use a topN projection in order to get sorted outputs
@@ -233,7 +227,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
             ImmutableList.of(new InputColumn(2, DataTypes.DOUBLE)),
             new boolean[]{false},
             new boolean[]{false});
-        Projector topNProjector = visitor.create(topNProjection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
+        Projector topNProjector = visitor.create(
+            topNProjection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
 
         String human = "human";
         String vogon = "vogon";
@@ -271,7 +266,8 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         FilterProjection projection = new FilterProjection(function,
             Arrays.asList(new InputColumn(0), new InputColumn(1)));
 
-        Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, memoryManager, UUID.randomUUID());
+        Projector projector = visitor.create(
+            projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(FilterProjector.class));
 
         List<Object[]> rows = new ArrayList<>();

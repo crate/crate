@@ -23,7 +23,8 @@
 package io.crate.execution.engine.join;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.breaker.RowAccountingWithEstimatorsTest;
 import io.crate.data.BatchIterator;
@@ -35,32 +36,14 @@ import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 
 public class RamAccountingBatchIteratorTest extends CrateUnitTest {
-
-    private static NoopCircuitBreaker NOOP_CIRCUIT_BREAKER = new NoopCircuitBreaker("dummy");
-
-    private long originalBufferSize;
-
-    @Before
-    public void reduceFlushBufferSize() {
-        originalBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
-        RamAccountingContext.FLUSH_BUFFER_SIZE = 10;
-    }
-
-    @After
-    public void resetFlushBufferSize() {
-        RamAccountingContext.FLUSH_BUFFER_SIZE = originalBufferSize;
-    }
 
     @Test
     public void testNoCircuitBreaking() throws Exception {
@@ -68,7 +51,7 @@ public class RamAccountingBatchIteratorTest extends CrateUnitTest {
             TestingBatchIterators.ofValues(Arrays.asList("a", "b", "c")),
             new RowAccountingWithEstimators(
                 ImmutableList.of(DataTypes.STRING),
-                new RamAccountingContext("test", NOOP_CIRCUIT_BREAKER)));
+                RamAccounting.NO_ACCOUNTING));
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
@@ -84,7 +67,7 @@ public class RamAccountingBatchIteratorTest extends CrateUnitTest {
             TestingBatchIterators.ofValues(Arrays.asList("aaa", "bbb", "ccc", "ddd", "eee", "fff")),
             new RowAccountingWithEstimators(
                 ImmutableList.of(DataTypes.STRING),
-                new RamAccountingContext(
+                ConcurrentRamAccounting.forCircuitBreaker(
                     "test",
                     new MemoryCircuitBreaker(
                         new ByteSizeValue(34, ByteSizeUnit.BYTES),

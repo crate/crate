@@ -23,7 +23,7 @@
 package io.crate.rest.action;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -36,7 +36,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyRelation;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
@@ -93,7 +92,7 @@ public class RestActionReceiversTest extends CrateUnitTest {
             JsonXContent.contentBuilder(),
             fields,
             0L,
-            new RowAccountingWithEstimators(Symbols.typeView(fields), new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"))),
+            new RowAccountingWithEstimators(Symbols.typeView(fields), RamAccounting.NO_ACCOUNTING),
             true
         );
         for (Row row : rows) {

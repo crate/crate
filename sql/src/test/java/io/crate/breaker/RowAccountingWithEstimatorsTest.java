@@ -30,8 +30,6 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -39,24 +37,11 @@ import java.util.stream.IntStream;
 
 public class RowAccountingWithEstimatorsTest extends CrateUnitTest {
 
-    private long originalBufferSize;
-
-    @Before
-    public void reduceFlushBufferSize() throws Exception {
-        originalBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
-        RamAccountingContext.FLUSH_BUFFER_SIZE = 20;
-    }
-
-    @After
-    public void resetFlushBufferSize() throws Exception {
-        RamAccountingContext.FLUSH_BUFFER_SIZE = originalBufferSize;
-    }
-
     @Test
     public void testCircuitBreakingWorks() throws Exception {
-        RowAccounting rowAccounting = new RowAccountingWithEstimators(
+        RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(
             Collections.singletonList(DataTypes.INTEGER),
-            new RamAccountingContext(
+            ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
                 new MemoryCircuitBreaker(
                     new ByteSizeValue(10, ByteSizeUnit.BYTES),
@@ -70,12 +55,13 @@ public class RowAccountingWithEstimatorsTest extends CrateUnitTest {
 
     @Test
     public void testRowCellsAccountingCircuitBreakingWorks() throws Exception {
-        RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(Collections.singletonList(DataTypes.INTEGER),
-                                                                      new RamAccountingContext(
-                                                                          "test",
-                                                                          new MemoryCircuitBreaker(
-                                                                              new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
-                                                                      ), 0);
+        RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(
+            Collections.singletonList(DataTypes.INTEGER),
+            ConcurrentRamAccounting.forCircuitBreaker(
+                "test",
+                new MemoryCircuitBreaker(
+                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
+            ), 0);
 
         expectedException.expect(CircuitBreakingException.class);
         IntStream.range(0, 3).forEach(i -> rowAccounting.accountForAndMaybeBreak(new Object[]{i}));
@@ -83,8 +69,9 @@ public class RowAccountingWithEstimatorsTest extends CrateUnitTest {
 
     @Test
     public void testCircuitBreakingWorksWithExtraSizePerRow() throws Exception {
-        RowAccounting rowAccounting = new RowAccountingWithEstimators(Collections.singletonList(DataTypes.INTEGER),
-            new RamAccountingContext(
+        RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(
+            Collections.singletonList(DataTypes.INTEGER),
+            ConcurrentRamAccounting.forCircuitBreaker(
                 "test",
                 new MemoryCircuitBreaker(
                     new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class))

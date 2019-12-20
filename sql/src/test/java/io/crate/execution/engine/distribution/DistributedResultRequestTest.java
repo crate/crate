@@ -23,11 +23,10 @@
 package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.RowN;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -48,7 +47,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         Streamer<?>[] streamers = new Streamer[]{DataTypes.STRING.streamer()};
 
         UUID uuid = UUID.randomUUID();
-        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")));
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, RamAccounting.NO_ACCOUNTING);
         builder.add(new RowN(new Object[] {"ab"}));
         builder.add(new RowN(new Object[] {null}));
         builder.add(new RowN(new Object[] {"cd"}));

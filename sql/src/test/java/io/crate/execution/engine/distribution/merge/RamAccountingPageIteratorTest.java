@@ -24,7 +24,8 @@ package io.crate.execution.engine.distribution.merge;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.OrderBy;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.breaker.RowAccountingWithEstimatorsTest;
 import io.crate.data.Row;
@@ -37,11 +38,8 @@ import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -51,24 +49,10 @@ import static org.hamcrest.Matchers.instanceOf;
 
 public class RamAccountingPageIteratorTest extends CrateUnitTest {
 
-    private static NoopCircuitBreaker NOOP_CIRCUIT_BREAKER = new NoopCircuitBreaker("dummy");
     private static RowN[] TEST_ROWS = new RowN[]{
         new RowN("a", "b", "c"),
         new RowN("d", "e", "f")
     };
-
-    private long originalBufferSize;
-
-    @Before
-    public void reduceFlushBufferSize() throws Exception {
-        originalBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
-        RamAccountingContext.FLUSH_BUFFER_SIZE = 20;
-    }
-
-    @After
-    public void resetFlushBufferSize() throws Exception {
-        RamAccountingContext.FLUSH_BUFFER_SIZE = originalBufferSize;
-    }
 
     @Test
     public void testNoRamAccountingWrappingAppliedForNullOrderByAndNonRepeat() {
@@ -126,7 +110,7 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
             true,
             null,
             () -> new RowAccountingWithEstimators(ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING),
-                                    new RamAccountingContext("test", NOOP_CIRCUIT_BREAKER)));
+                                                  RamAccounting.NO_ACCOUNTING));
         assertThat(pagingIterator, instanceOf(RamAccountingPageIterator.class));
         assertThat(((RamAccountingPageIterator) pagingIterator).delegatePagingIterator,
                    instanceOf(PassThroughPagingIterator.class));
@@ -147,13 +131,14 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
             2,
             true,
             null,
-            () -> new RowAccountingWithEstimators(ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING),
-                                    new RamAccountingContext(
-                                        "test",
-                                        new MemoryCircuitBreaker(
-                                            new ByteSizeValue(197, ByteSizeUnit.BYTES),
-                                            1,
-                                            LogManager.getLogger(RowAccountingWithEstimatorsTest.class)))));
+            () -> new RowAccountingWithEstimators(
+                ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING),
+                ConcurrentRamAccounting.forCircuitBreaker(
+                    "test",
+                    new MemoryCircuitBreaker(
+                        new ByteSizeValue(197, ByteSizeUnit.BYTES),
+                        1,
+                        LogManager.getLogger(RowAccountingWithEstimatorsTest.class)))));
 
         expectedException.expect(CircuitBreakingException.class);
         expectedException.expectMessage(

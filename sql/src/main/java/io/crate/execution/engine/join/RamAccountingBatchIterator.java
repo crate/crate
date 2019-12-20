@@ -28,7 +28,7 @@ import io.crate.data.ForwardingBatchIterator;
 import io.crate.data.Row;
 
 /**
- * Wraps a {@link BatchIterator} and uses {@link io.crate.breaker.RamAccountingContext}
+ * Wraps a {@link BatchIterator} and uses {@link io.crate.breaker.RamAccounting}
  * to apply the circuit breaking logic by calculating memory occupied for all rows of the iterator.
  * <p>
  * This wrapper can be typically used when the BatchIterator consumer "reads" all

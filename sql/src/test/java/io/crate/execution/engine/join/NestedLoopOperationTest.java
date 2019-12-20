@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.join;
 
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.join.CrossJoinBlockNLBatchIterator;
@@ -61,7 +61,7 @@ public class NestedLoopOperationTest {
             JoinType.CROSS,
             row -> false,
             noopCircuitBreaker,
-            new RamAccountingContext("test", noopCircuitBreaker),
+            RamAccounting.NO_ACCOUNTING,
             Collections.emptyList(),
             64L,
             9L,
