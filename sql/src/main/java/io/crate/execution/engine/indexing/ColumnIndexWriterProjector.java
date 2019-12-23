@@ -102,7 +102,6 @@ public class ColumnIndexWriterProjector implements Projector {
             updateColumnNames,
             columnReferences.toArray(new Reference[columnReferences.size()]),
             null,
-            null,
             jobId,
             true
         );

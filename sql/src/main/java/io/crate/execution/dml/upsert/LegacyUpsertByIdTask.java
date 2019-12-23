@@ -115,7 +115,6 @@ public class LegacyUpsertByIdTask {
             upsertById.updateColumns(),
             upsertById.insertColumns(),
             null,
-            null,
             jobId,
             false
         );

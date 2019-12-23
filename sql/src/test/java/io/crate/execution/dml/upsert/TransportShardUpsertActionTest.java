@@ -185,7 +185,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             new Reference[]{ID_REF},
             null,
-            null,
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
@@ -207,7 +206,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             true,
             null,
             new Reference[]{ID_REF},
-            null,
             null,
             UUID.randomUUID(),
             false
@@ -251,7 +249,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             new Reference[]{ID_REF},
             null,
-            null,
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
@@ -273,7 +270,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             false,
             null,
             new Reference[]{ID_REF},
-            null,
             null,
             UUID.randomUUID(),
             false

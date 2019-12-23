@@ -576,7 +576,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returnNames(), contains("foo"));
+        assertThat(stmt.fields(), contains(isField("foo")));
         assertThat(stmt.returnValues(), contains(isReference("id")));
     }
 
@@ -587,8 +587,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.fields(), is(contains(isField("id"), isField("name"))));
-        assertThat(stmt.returnNames(), contains("foo", "bar"));
+        assertThat(stmt.fields(), is(contains(isField("foo"), isField("bar"))));
         assertThat(stmt.returnValues(), contains(isReference("id"), isReference("name")));
     }
 
@@ -606,8 +605,19 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.fields(), is(contains(isField("id"))));
-        assertThat(stmt.returnNames(), contains("foo"));
+        assertThat(stmt.fields(), is(contains(isField("foo"))));
+        assertThat(stmt.returnValues(), contains(isFunction("add")));
+    }
+
+
+    @Test
+    public void test_update_returning() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING id + id AS foo");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.fields(), is(contains(isField("foo"))));
         assertThat(stmt.returnValues(), contains(isFunction("add")));
     }
 
@@ -618,8 +628,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.fields(), is(contains(isField("id"), isField("id"))));
-        assertThat(stmt.returnNames(), contains("foo", "bar"));
+        assertThat(stmt.fields(), is(contains(isField("foo"), isField("bar"))));
         assertThat(stmt.returnValues(), contains(isFunction("add"), isFunction("subtract")));
     }
 

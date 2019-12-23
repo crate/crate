@@ -108,7 +108,6 @@ public class IndexWriterProjector implements Projector {
             null,
             new Reference[]{rawSourceReference},
             null,
-            null,
             jobId,
             false);
 

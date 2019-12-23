@@ -53,20 +53,16 @@ public final class UpdateById implements Plan {
     private final DocKeys docKeys;
     private final Assignments assignments;
     @Nullable
-    private final List<String> returnNames;
-    @Nullable
     private final List<Symbol> returnValues;
 
     public UpdateById(DocTableInfo table,
                       Map<Reference, Symbol> assignmentByTargetCol,
                       DocKeys docKeys,
-                      List<String> returnNames,
                       List<Symbol> returnValues) {
         this.table = table;
         this.assignments = Assignments.convert(assignmentByTargetCol);
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.docKeys = docKeys;
-        this.returnNames = returnNames;
         this.returnValues = returnValues;
     }
 
@@ -121,7 +117,6 @@ public final class UpdateById implements Plan {
             true,
             assignments.targetNames(),
             null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
-            returnNames == null ? null : returnNames.toArray(new String[]{}),
             returnValues == null ? null : returnValues.toArray(new Symbol[]{}),
             plannerContext.jobId(),
             false

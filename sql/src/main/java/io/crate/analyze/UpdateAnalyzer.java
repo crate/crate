@@ -35,6 +35,7 @@ import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.common.collections.Lists2;
+import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
@@ -43,6 +44,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
@@ -54,8 +56,8 @@ import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
@@ -126,8 +128,7 @@ public final class UpdateAnalyzer {
         Symbol normalizedQuery = normalizer.normalize(query, txnCtx);
 
         List<Symbol> outputSymbol = null;
-        List<String> outputNames = null;
-        List<Field> outputFields = null;
+        Fields outputFields = null;
 
         if (!update.returningClause().isEmpty()) {
             SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(update.returningClause(),
@@ -136,13 +137,11 @@ public final class UpdateAnalyzer {
                                                                               exprCtx);
 
             outputSymbol = Lists2.map(selectAnalysis.outputSymbols(), x -> normalizer.normalize(x, txnCtx));
-            outputNames = Lists2.map(selectAnalysis.outputNames(), ColumnIdent::name);
 
-            outputFields = new ArrayList<>();
-            for (Symbol symbol : selectAnalysis.outputSymbols()) {
-                if (symbol instanceof Field) {
-                    outputFields.add((Field) symbol);
-                }
+            outputFields = new Fields(selectAnalysis.outputNames().size());
+            Iterator<Symbol> outputsIterator = outputSymbol.iterator();
+            for (ColumnIdent path : selectAnalysis.outputNames()) {
+                outputFields.add(new Field(relation, path, outputsIterator.next()));
             }
         }
 
@@ -150,7 +149,6 @@ public final class UpdateAnalyzer {
                                            assignmentByTargetCol,
                                            normalizedQuery,
                                            outputFields,
-                                           outputNames,
                                            outputSymbol);
     }
 
@@ -231,5 +229,15 @@ public final class UpdateAnalyzer {
             }
             return null;
         }
+    }
+
+    private static class FieldValidator extends BaseImplementationSymbolVisitor {
+
+        public FieldValidator(TransactionContext txnCtx,
+                              Functions functions) {
+            super(txnCtx, functions);
+        }
+
+
     }
 }

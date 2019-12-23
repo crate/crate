@@ -96,7 +96,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                                @Nullable String[] updateColumns,
                                @Nullable Reference[] insertColumns,
                                @Nullable Symbol[] returnValues,
-                               @Nullable String[] returnValueNames,
                                UUID jobId) {
         super(shardId, jobId);
         assert updateColumns != null || insertColumns != null
@@ -111,7 +110,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
         }
         this.returnValues = returnValues;
-        this.returnValueNames = returnValueNames;
     }
 
     public SessionSettings sessionSettings() {
@@ -200,15 +198,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 returnValues[i] = Symbols.fromStream(in);
             }
         }
-
-        int returnValueNamesSize = in.readVInt();
-        if (returnValueNamesSize > 0) {
-            returnValueNames = new String[returnValueNamesSize];
-            for (int i = 0; i < returnValueNamesSize; i++) {
-                returnValueNames[i] = in.readString();
-            }
-        }
-
     }
 
     @Override
@@ -246,15 +235,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             out.writeVInt(returnValues.length);
             for (Symbol returnValue : returnValues) {
                 Symbols.toStream(returnValue, out);
-            }
-        } else {
-            out.writeVInt(0);
-        }
-
-        if (returnValueNames != null) {
-            out.writeVInt(returnValueNames.length);
-            for (String returnValueName : returnValueNames) {
-                out.writeString(returnValueName);
             }
         } else {
             out.writeVInt(0);
@@ -307,8 +287,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
         @Nullable
         private Symbol[] returnValues;
-        @Nullable
-        private String[] returnValueNames;
 
         public Item(String id,
                     @Nullable Symbol[] updateAssignments,
@@ -332,7 +310,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
             this.insertValues = insertValues;
             this.returnValues = returnValues;
-            this.returnValueNames = returnValueNames;
         }
 
         @Nullable
@@ -363,11 +340,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             return returnValues;
         }
 
-        @Nullable
-        public String[] returnValueNames() {
-            return returnValueNames;
-        }
-
         public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super(in);
             if (in.readBoolean()) {
@@ -394,14 +366,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 returnValues = new Symbol[returnValueSize];
                 for (int i = 0; i < returnValueSize; i++) {
                     returnValues[i] = Symbols.fromStream(in);
-                }
-            }
-
-            int returnValueNameSize = in.readVInt();
-            if (returnValueNameSize > 0) {
-                returnValueNames = new String[returnValueNameSize];
-                for (int i = 0; i < returnValueNameSize; i++) {
-                    returnValueNames[i] = in.readString();
                 }
             }
         }
@@ -441,15 +405,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             } else {
                 out.writeVInt(0);
             }
-
-            if (returnValueNames != null) {
-                out.writeVInt(returnValueNames.length);
-                for (String returnValueName : returnValueNames) {
-                    out.writeString(returnValueName);
-                }
-            } else {
-                out.writeVInt(0);
-            }
         }
     }
 
@@ -467,9 +422,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         private boolean validateGeneratedColumns;
         @Nullable
         private final Symbol[] returnValues;
-        @Nullable
-        private final String[] returnValueNames;
-
 
         public Builder(SessionSettings sessionSettings,
                        TimeValue timeout,
@@ -477,7 +429,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
                        @Nullable Reference[] missingAssignmentsColumns,
-                       @Nullable String[] returnValueNames,
                        @Nullable Symbol[] returnValue,
                        UUID jobId,
                        boolean validateGeneratedColumns) {
@@ -489,7 +440,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             this.missingAssignmentsColumns = missingAssignmentsColumns;
             this.jobId = jobId;
             this.validateGeneratedColumns = validateGeneratedColumns;
-            this.returnValueNames = returnValueNames;
             this.returnValues = returnValue;
         }
 
@@ -500,7 +450,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 assignmentsColumns,
                 missingAssignmentsColumns,
                 returnValues,
-                returnValueNames,
                 jobId)
                 .timeout(timeout)
                 .continueOnError(continueOnError)

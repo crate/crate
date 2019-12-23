@@ -39,24 +39,21 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     private final Symbol query;
 
     @Nullable
-    private final List<Field> fields;
-    @Nullable
-    private final List<String> returnNames;
+    private final Fields fields;
+
     @Nullable
     private final List<Symbol> returnValues;
 
     public AnalyzedUpdateStatement(AbstractTableRelation table,
                                    Map<Reference, Symbol> assignmentByTargetCol,
                                    Symbol query,
-                                   @Nullable List<Field> fields,
-                                   @Nullable List<String> returnNames,
+                                   @Nullable Fields fields,
                                    @Nullable List<Symbol> returnValues
                                    ) {
         this.table = table;
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.query = query;
         this.fields = fields;
-        this.returnNames = returnNames;
         this.returnValues = returnValues;
     }
 
@@ -73,12 +70,9 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     }
 
     public List<Field> fields() {
-        return fields;
+        return fields == null ? null : fields.asList();
     }
 
-    public List<String> returnNames() {
-        return returnNames;
-    }
 
     public List<Symbol> returnValues() {
         return returnValues;
@@ -103,6 +97,11 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         if (returnValues != null) {
             for (Symbol returningSymbol : returnValues) {
                 consumer.accept(returningSymbol);
+            }
+        }
+        if (fields != null) {
+            for (Field field : fields.asList()) {
+                consumer.accept(field);
             }
         }
     }

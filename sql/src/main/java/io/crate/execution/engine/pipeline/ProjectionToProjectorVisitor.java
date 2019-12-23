@@ -503,7 +503,6 @@ public class ProjectionToProjectorVisitor
             false,
             projection.assignmentsColumns(),
             null,
-            projection.returnValueNames(),
             projection.returnValues(),
             context.jobId,
             true

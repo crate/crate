@@ -40,7 +40,6 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 
-@UseJdbc(1)
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -895,7 +894,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void test_update_returning_id() throws Exception {
+    public void test_update_by_id_returning_id() throws Exception {
         execute("create table test (id int primary key, message string) clustered into 2 shards");
         execute("insert into test values(2, 'hello');");
         assertEquals(1, response.rowCount());
@@ -903,12 +902,53 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("update test set message='b' where id = 2 returning id");
 
-        assertEquals(2, response.rows()[0][0]);
+        assertThat(printedTable(response.rows()), is("2\n" ));
         refresh();
     }
 
     @Test
-    public void test_update_returning_multiple_fields() throws Exception {
+    public void test_update_by_id_returning_function() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(2, 'hello');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='b' where id = 2 returning id + 1");
+
+        assertThat(printedTable(response.rows()), is("3\n" ));
+        refresh();
+    }
+
+    @Test
+    public void test_update_by_id_returning_function_with_outputname() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(2, 'hello');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='b' where id = 2 returning id + 1 as foo");
+
+        assertThat((response.cols()[0]), is("foo" ));
+        assertThat(printedTable(response.rows()), is("3\n" ));
+        refresh();
+    }
+
+    @Test
+    public void test_update_by_id_returning_id_with_outputname() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(2, 'hello');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='b' where id = 2 returning id as foo");
+
+        assertThat((response.cols()[0]), is("foo" ));
+        assertThat(printedTable(response.rows()), is("2\n" ));
+        refresh();
+    }
+
+    @Test
+    public void test_update_by_id_returning_multiple_fields() throws Exception {
         execute("create table test (id int primary key, message string) clustered into 2 shards");
         execute("insert into test values(1, 'hello');");
         assertEquals(1, response.rowCount());
@@ -916,8 +956,20 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("update test set message='b' where id = 1 returning id, message");
 
-        assertEquals(1, response.rows()[0][0]);
-        assertEquals("b", response.rows()[0][1]);
+        assertThat(printedTable(response.rows()), is("1| b\n" ));
+        refresh();
+    }
+
+    @Test
+    public void test_update_by_id_returning_multiple_fields_with_outputnames() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'hello');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='b' where id = 1 returning id as foo, message bar");
+
+        assertThat(printedTable(response.rows()), is("1| b\n" ));
         refresh();
     }
 

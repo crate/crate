@@ -89,7 +89,7 @@ public final class UpdatePlanner {
         Plan plan;
         if (table instanceof DocTableRelation) {
             DocTableRelation docTable = (DocTableRelation) table;
-            plan = plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx, update.returnValues(), update.returnNames());
+            plan = plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx, update.returnValues());
         } else {
             plan = new Update((plannerContext, params, subQueryValues) ->
                 sysUpdate(
@@ -111,15 +111,14 @@ public final class UpdatePlanner {
                              Symbol query,
                              Functions functions,
                              PlannerContext plannerCtx,
-                             @Nullable List<Symbol> returnValues,
-                             @Nullable List<String> returnNames) {
+                             @Nullable List<Symbol> returnValues) {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         DocTableInfo tableInfo = docTable.tableInfo();
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
             normalizer, query, tableInfo, plannerCtx.transactionContext());
 
         if (detailedQuery.docKeys().isPresent()) {
-            return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get(), returnNames, returnValues);
+            return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get(), returnValues);
         }
 
         return new Update((plannerContext, params, subQueryValues) ->
