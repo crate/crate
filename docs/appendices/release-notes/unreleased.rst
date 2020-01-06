@@ -217,6 +217,9 @@ Changes
 Fixes
 =====
 
+- Fixed the data type of the ``sys.jobs_metrics.classification['labels']``
+  column, should be ``text_array`` instead of an ``undefined`` type.
+
 - Fixed an issue that caused a type cast error in ``INSERT`` statements if the
   target table contained a ``array(object() as (...)`` column where a child of
   the object array contained a ``NOT NULL`` constraint.
