@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Fixed an NPE which occurred when using the ``current_timestamp`` inside the
+  ``WHERE`` clause on a **view** relation.
+
 - Fixed the data type of the ``sys.jobs_metrics.classification['labels']``
   column, should be ``text_array`` instead of an ``undefined`` type.
 

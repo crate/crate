@@ -206,7 +206,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, RelationContext context) {
+        public Void visitQueriedSelectRelation(QueriedSelectRelation<?> relation, RelationContext context) {
             return process(relation.subRelation(), context);
         }
 

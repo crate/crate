@@ -23,7 +23,6 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
@@ -66,7 +65,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSimpleSubSelect() throws Exception {
-        QueriedSelectRelation relation = analyze(
+        QueriedSelectRelation<?> relation = analyze(
             "select aliased_sub.x / aliased_sub.i from (select x, i from t1) as aliased_sub");
         assertThat(relation.fields(), contains(isField("(x / i)")));
         assertThat(relation.subRelation().fields(), contains(isField("x"), isField("i")));
@@ -89,7 +88,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSubSelectWithNestedAlias() throws Exception {
-        QueriedSelectRelation relation = analyze(
+        QueriedSelectRelation<?> relation = analyze(
             "select tt.aa, (tt.xi + 1)" +
             " from (select (x + i) as xi, concat(a, a) as aa, i from t1) as tt");
         assertThat(relation.fields().size(), is(2));
@@ -113,7 +112,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSubSelectWithJoins() throws Exception {
-        QueriedSelectRelation relation = analyze(
+        QueriedSelectRelation<?> relation = analyze(
             "select aliased_sub.a, aliased_sub.b from (select t1.a, t2.b from t1, t2) as aliased_sub");
         AliasedAnalyzedRelation aliasRel = (AliasedAnalyzedRelation) relation.subRelation();
         MultiSourceSelect mss = (MultiSourceSelect) aliasRel.relation();
@@ -247,7 +246,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPreserveAliasOnSubSelectInSelectList() throws Exception {
-        QueriedSelectRelation relation = analyze("SELECT " +
+        QueriedSelectRelation<?> relation = analyze("SELECT " +
                                                  "   (select min(t1.x) from t1) as min_col," +
                                                  "   (select 10) + (select 20) as add_subquery "+
                                                  "FROM (select * from t1) tt1");
@@ -260,7 +259,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPreserveAliasesOnSubSelect() throws Exception {
-        QueriedSelectRelation relation = analyze("SELECT tt1.x as a1, min(tt1.x) as a2 " +
+        QueriedSelectRelation<?> relation = analyze("SELECT tt1.x as a1, min(tt1.x) as a2 " +
                                                  "FROM (select * from t1) as tt1 " +
                                                  "GROUP BY a1");
         assertThat(relation.fields().size(), is(2));
