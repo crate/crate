@@ -66,13 +66,20 @@ public final class RelationNormalizer {
         }
 
         @Override
-        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, CoordinatorTxnCtx context) {
-            AnalyzedRelation subRelation = relation.subRelation();
+        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation<?> relation, CoordinatorTxnCtx context) {
             AnalyzedRelation normalizedSubRelation = process(relation.subRelation(), context);
-            if (subRelation == normalizedSubRelation) {
-                return relation;
+            FieldResolver fieldResolver = null;
+            if (normalizedSubRelation instanceof FieldResolver) {
+                fieldResolver = (FieldResolver) normalizedSubRelation;
             }
-            return relation.replaceSubRelation(normalizedSubRelation);
+            EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
+                functions, RowGranularity.CLUSTER, null, fieldResolver);
+            QueriedSelectRelation<?> newRelation = relation
+                .replaceSubRelation(normalizedSubRelation)
+                .map(s -> evalNormalizer.normalize(s, context));
+
+            WhereClauseValidator.validate(newRelation.where().queryOrFallback());
+            return newRelation;
         }
 
         @Override

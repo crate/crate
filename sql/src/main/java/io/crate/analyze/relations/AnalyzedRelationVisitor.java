@@ -67,7 +67,7 @@ public abstract class AnalyzedRelationVisitor<C, R> {
         return visitAnalyzedRelation(tableFunctionRelation, context);
     }
 
-    public R visitQueriedSelectRelation(QueriedSelectRelation relation, C context) {
+    public R visitQueriedSelectRelation(QueriedSelectRelation<?> relation, C context) {
         return visitAnalyzedRelation(relation, context);
     }
 

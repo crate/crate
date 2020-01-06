@@ -175,7 +175,7 @@ public class Relations {
         }
 
         @Override
-        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, Consumer<? super Symbol> consumer) {
+        public Void visitQueriedSelectRelation(QueriedSelectRelation<?> relation, Consumer<? super Symbol> consumer) {
             relation.visitSymbols(consumer);
             process(relation.subRelation(), consumer);
             return null;

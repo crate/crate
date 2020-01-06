@@ -184,7 +184,7 @@ public class TableIdentsExtractor {
         }
 
         @Override
-        public Collection<RelationName> visitQueriedSelectRelation(QueriedSelectRelation relation, Void context) {
+        public Collection<RelationName> visitQueriedSelectRelation(QueriedSelectRelation<?> relation, Void context) {
             return process(relation.subRelation(), context);
         }
     }

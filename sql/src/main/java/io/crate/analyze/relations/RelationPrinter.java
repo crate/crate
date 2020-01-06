@@ -53,7 +53,7 @@ public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
     }
 
     @Override
-    public String visitQueriedSelectRelation(QueriedSelectRelation relation, Void context) {
+    public String visitQueriedSelectRelation(QueriedSelectRelation<?> relation, Void context) {
         return relation.getQualifiedName().toString();
     }
 
