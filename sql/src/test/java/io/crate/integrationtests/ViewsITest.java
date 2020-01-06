@@ -163,4 +163,11 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         execute("select a['b'], c['d']['e'] from v1");
         assertThat(printedTable(response.rows()), is("1| 2\n"));
     }
+
+    @Test
+    public void test_where_clause_on_view_normalized_on_coordinator_node() {
+        execute("create table test (x timestamp, y int)");
+        execute("create view v_test as select * from test");
+        execute("select * from v_test where x > current_timestamp - 1000 * 60 * 60 * 24");
+    }
 }
