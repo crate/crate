@@ -40,11 +40,10 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.DOUBLE;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
-import static io.crate.types.DataTypes.UNDEFINED;
 
 public class SysMetricsTableInfo extends StaticTableInfo<MetricsView> {
 
@@ -103,7 +102,7 @@ public class SysMetricsTableInfo extends StaticTableInfo<MetricsView> {
 
             ))
             .register("classification", "type", STRING, () -> forFunction(h -> h.classification().type().name()))
-            .register("classification", "labels", UNDEFINED, () -> forFunction(h -> h.classification().labels().toArray(new String[0])));
+            .register("classification", "labels", STRING_ARRAY, () -> forFunction(h -> h.classification().labels().toArray(new String[0])));
     }
 
     SysMetricsTableInfo(Supplier<DiscoveryNode> localNode) {
