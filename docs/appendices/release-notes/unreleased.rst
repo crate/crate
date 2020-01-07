@@ -65,13 +65,27 @@ Deprecations
 Changes
 =======
 
-- Added support for type interval in ``offset PRECEDING/FOLLOWING``, in
-  RANGE mode of window functions. When the ordering column is of type
-  :ref:`timestamp <timestamp_data_type>`, the ``offset`` expression can
-  be an :ref:`interval <interval_data_type>`.
 
-- Added support for casting values of type ``object`` to ``text``. This will
-  cause the object to be converted to a JSON string.
+Resiliency improvements
+-----------------------
+
+- Some ``ALTER TABLE`` operations now internally invoke a single cluster state
+  update instead of multiple cluster state updates, making it more resilient as
+  there is no longer a window where the cluster state could be inconsistent.
+
+- Changed the default garbage collector that is being used from Concurrent Mark
+  Sweep to G1GC. This should lead to shorter GC pauses.
+
+- Added a dynamic bulk sizing mechanism that should prevent ``INSERT INTO ...
+  FROM query`` operations to run into out of memory errors if the individual
+  records of a table are large.
+
+- Added the :ref:`cluster.routing.allocation.total_shards_per_node
+  <cluster.routing.allocation.total_shards_per_node>` setting.
+
+
+Performance improvements
+------------------------
 
 - Optimized ``SELECT DISTINCT .. LIMIT n`` queries. On high cardinality
   columns this type of queries can now execute up to 200% faster and use
@@ -81,19 +95,78 @@ Changes
   rows returned by various parts of a query plan. This should result in more
   efficient execution plans for joins.
 
-- Added a :ref:`ANALYZE <analyze>` command that can be used to update
-  statistical data about the contents of the tables in the CrateDB cluster.
-  This data is visible in a newly added :ref:`pg_stats <pg_stats>` table.
+- Reduced recovery time by sending file-chunks concurrently. It applies
+  only for when transport communication is secured or compressed. The number of
+  chunks is controlled by the :ref:`indices.recovery.max_concurrent_file_chunks
+  <indices.recovery.max_concurrent_file_chunks>` setting.
+
+- Added an optimization that allows to run `WHERE` clauses on top of
+  derived tables containing :ref:`table functions <ref-table-functions>`
+  more efficiently in some cases.
+
+- Allow user to control how table data is stored and accessed on a disk
+  via the :ref:`store.type <table_parameter.store_type>` table parameter and
+  :ref:`node.store.allow_mmap <node.store_allow_mmap>` node setting.
+
+- Changed the default table data store type from ``mmapfs`` to ``hybridfs``.
+
+
+SQL Standard and PostgreSQL compatibility improvements
+------------------------------------------------------
+
+Window function extensions
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Added support for the :ref:`lag <window-function-lag>` and :ref:`lead
+  <window-function-lead>` window functions as enterprise features.
+
+- Added support for ``ROWS`` frame definitions in the context of window
+  functions :ref:`window definitions <window-definition>`.
+
+- Added support for the :ref:`named window definition <named-windows>`.
+  It allows a user to define a list of window definitions in the
+  :ref:`sql_reference_window` clause that can be referenced in :ref:`over`
+  clauses.
+
+- Added support for `offset PRECEDING` and `offset FOLLOWING`
+  :ref:`window definitions <window-definition>`.
+
+
+
+Scalar functions and operators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Extended :ref:`CONCAT <scalar_concat>` to do implicit casts, so that calls
+  like ``SELECT 't' || 5`` are supported.
+
+- Added support for casting values of type ``object`` to ``text``. This will
+  cause the object to be converted to a JSON string.
 
 - Added support for casting to :ref:`geo_point_data_type`,
   :ref:`geo_shape_data_type` and :ref:`object_data_type` array data types.
   For example: ``cast(['POINT(2 3)','POINT(1 3)'] AS array(geo_point))``
 
-- Added a ``failures`` column to the :ref:`sys.snapshots <sys-snapshots>`
-  table.
+- Added the :ref:`PG_TYPEOF <pg_typeof>` system function.
 
-- Changed the default garbage collector that is being used from Concurrent Mark
-  Sweep to G1GC.
+- Added the :ref:`INTERVAL <interval_data_type>` datatype and extended
+  :ref:`table-functions-generate-series` to work with timestamps and the
+  new :ref:`INTERVAL <interval_data_type>` type
+
+- Added :ref:`LPAD <scalar-lpad>` and :ref:`RPAD <scalar-rpad>` scalar
+  functions.
+
+- Added the :ref:`LTRIM <scalar-ltrim>` and :ref:`RTRIM <scalar-rtrim>` scalar
+  functions.
+
+- Added :ref:`LEFT <scalar-left>` and :ref:`RIGHT <scalar-right>` scalar
+  functions.
+
+- Added :ref:`TIMEZONE <scalar-timezone>` scalar function.
+
+- Added :ref:`AT TIME ZONE <timestamp-at-time-zone>` syntax.
+
+- Added support for the operator :ref:`ILIKE <sql_dql_like>`, the case
+  insensitive complement to ``LIKE``.
 
 - Added support for CIDR notation comparisons through special purpose
   operator ``<<`` associated with type ip.
@@ -101,7 +174,30 @@ Changes
   ``select ip from ips_table where ip << 192.168.0.1/24`` returns
   matching :ref:`ip <ip-type>` addresses.
 
-- Added the ``ltrim`` and ``rtrim`` scalar functions.
+
+New statements and clauses
+--------------------------
+
+- Added a :ref:`ANALYZE <analyze>` command that can be used to update
+  statistical data about the contents of the tables in the CrateDB cluster.
+  This data is visible in a newly added :ref:`pg_stats <pg_stats>` table.
+
+- Added a :ref:`PROMOTE REPLICA <alter_table_reroute>` sub command to
+  :ref:`ref-alter-table`.
+
+- Added support for the filter clause in
+  :ref:`aggregate expressions <aggregate-expressions>` and
+  :ref:`window functions <window-function-call>` that are
+  :ref:`aggregates <aggregation>`.
+
+- Added support for using :ref:`ref-values` as top-level relation.
+
+
+Observability improvements
+--------------------------
+
+- Added a ``failures`` column to the :ref:`sys.snapshots <sys-snapshots>`
+  table.
 
 - Improved the error messages that were returned if a relation or schema is not
   found. They now may include suggestions for similarly named tables. This
@@ -116,19 +212,17 @@ Changes
 
 - Added a ``node`` column to :ref:`sys.jobs_log <sys-logs>`.
 
-- Added support for the operator :ref:`ILIKE <sql_dql_like>`, the case
-  insensitive complement to ``LIKE``.
+- Statements containing limits, filters, window functions or table functions
+  will now be labelled accordingly in :ref:`sys-jobs-metrics`.
 
-- Reduced recovery time by sending file-chunks concurrently. It applies
-  only for when transport communication is secured or compressed. The number of
-  chunks is controlled by the :ref:`indices.recovery.max_concurrent_file_chunks
-  <indices.recovery.max_concurrent_file_chunks>` setting.
 
-- Allow user to control how table data is stored and accessed on a disk
-  via the :ref:`store.type <table_parameter.store_type>` table parameter and
-  :ref:`node.store.allow_mmap <node.store_allow_mmap>` node setting.
+Others
+------
 
-- Changed the default table data store type from ``mmapfs`` to ``hybridfs``.
+- Changed the default for :ref:`sql_ref_write_wait_for_active_shards` from
+  ``ALL`` to ``1``. This will improve the out of box experience as it allows a
+  subset of nodes to become unavailable without blocking write operations. See
+  the documentation for more details about the implications.
 
 - Added ``phonetic`` token filter with following encoders: ``metaphone``,
   ``double_metaphone``, ``soundex``, ``refined_soundex``, ``caverphone1``,
@@ -140,79 +234,16 @@ Changes
   message ``logical conjunction of the conditions in the WHERE clause which
   involve partitioned columns led to a query that can't be executed``.
 
-- Added a dynamic bulk sizing mechanism that should prevent ``INSERT INTO ...
-  FROM query`` operations to run into out of memory errors if the individual
-  records of a table are very large.
-
-- Improved resiliency of ``ALTER TABLE ADD`` operation.
-
-- Improved resiliency of ``ALTER TABLE`` operation.
-
-- Extended :ref:`CONCAT <scalar_concat>` to do implicit casts, so that calls
-  like ``SELECT 't' || 5`` are supported.
-
-- Added the :ref:`INTERVAL <interval_data_type>` datatype and extended
-  :ref:`table-functions-generate-series` to work with timestamps and the
-  new :ref:`INTERVAL <interval_data_type>` type
-
-- Added the :ref:`PG_TYPEOF <pg_typeof>` system function.
-
 - Support implicit object creation in update statements. E.g. ``UPDATE t SET
   obj['x'] = 10`` will now implicitly set ``obj`` to ``{obj: {x: 10}}`` on rows
-  where ``obj`` was previously ``null``.
-
-- Added :ref:`LPAD <scalar-lpad>` and :ref:`RPAD <scalar-rpad>` scalar functions.
+  where ``obj`` was ``null``.
 
 - Added the :ref:`table_parameter.codec` parameter to :ref:`ref-create-table`
   to control the compression algorithm used to store data.
 
-- Added :ref:`AT TIME ZONE <timestamp-at-time-zone>` syntax.
-
-- Added the :ref:`cluster.routing.allocation.total_shards_per_node
-  <cluster.routing.allocation.total_shards_per_node>` setting.
-
-- Added :ref:`TIMEZONE <scalar-timezone>` scalar function.
-
-- Added support for the filter clause in
-  :ref:`aggregate expressions <aggregate-expressions>` and
-  :ref:`window functions <window-function-call>` that are
-  :ref:`aggregates <aggregation>`.
-
-- Added support for `offset PRECEDING` and `offset FOLLOWING`
-  :ref:`window definitions <window-definition>`.
-
-- Added support for using :ref:`ref-values` as top-level relation.
-
-- Added an optimization that allows to run `WHERE` clauses on top of
-  derived tables containing :ref:`table functions <ref-table-functions>`
-  more efficiently in some cases.
-
-- Statements containing limits, filters, window functions or table functions
-  will now be labelled accordingly in :ref:`sys-jobs-metrics`.
-
-- Added support for the :ref:`named window definition <named-windows>`.
-  It allows a user to define a list of window definitions in the
-  :ref:`sql_reference_window` clause that can be referenced in :ref:`over`
-  clauses.
-
-- Add support for ``ROWS`` frame definitions in the context of window functions
-  :ref:`window definitions <window-definition>`.
-
 - The ``node`` argument of the :ref:`REROUTE <alter_table_reroute>` commands of
   :ref:`ref-alter-table` can now either be the id or the name of a node.
 
-- Added a :ref:`PROMOTE REPLICA <alter_table_reroute>` sub command to
-  :ref:`ref-alter-table`.
-
-- Added support for the :ref:`lag <window-function-lag>` and
-  :ref:`lead <window-function-lead>` window functions as enterprise features.
-
-- Changed the default for :ref:`sql_ref_write_wait_for_active_shards` from
-  ``ALL`` to ``1``. This will improve the out of box experience as it allows a
-  subset of nodes to become unavailable without blocking write operations. See
-  the documentation for more details about the implications.
-
-- Added left and right scalar functions.
 
 Fixes
 =====
