@@ -7,7 +7,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'de.thetaphi:forbiddenapis:2.6'
+        classpath 'de.thetaphi:forbiddenapis:2.7'
     }
 }
 
@@ -94,7 +94,7 @@ allprojects {
     }
 
     jacoco {
-        toolVersion = "0.8.3"
+        toolVersion = "0.8.5"
     }
 
     group = 'io.crate'
