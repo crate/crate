@@ -189,24 +189,24 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
                 "using best_fields with (analyzer='english') order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("End of the Galaxy| 0.74187315\n" +
-               "Altair| 0.6301338\n" +
-               "Outer Eastern Rim| 0.3922684\n" +
-               "North West Ripple| 0.3824922\n"));
+               "Altair| 0.63013375\n" +
+               "Outer Eastern Rim| 0.39226836\n" +
+               "North West Ripple| 0.38249224\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (fuzziness=0.5) order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("End of the Galaxy| 0.74187315\n" +
-               "Altair| 0.6301338\n" +
-               "Outer Eastern Rim| 0.3922684\n" +
-               "North West Ripple| 0.3824922\n"));
+               "Altair| 0.63013375\n" +
+               "Outer Eastern Rim| 0.39226836\n" +
+               "North West Ripple| 0.38249224\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galay') " +
                 "using best_fields with (fuzziness='AUTO') order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("End of the Galaxy| 0.5934985\n" +
                "Altair| 0.504107\n" +
-               "Outer Eastern Rim| 0.31381473\n" +
+               "Outer Eastern Rim| 0.3138147\n" +
                "North West Ripple| 0.3059938\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'gala') " +
@@ -217,28 +217,28 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
         execute("select name, _score from locations where match((kind, name_description_ft), 'gala') " +
                 "using phrase_prefix with (slop=1) order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Outer Eastern Rim| 1.1364497\n" +
+            is("Outer Eastern Rim| 1.1364496\n" +
                "Algol| 0.8532188\n" +
                "Galactic Sector QQ7 Active J Gamma| 0.7837707\n" +
                "End of the Galaxy| 0.74187315\n" +
-               "Altair| 0.6301338\n" +
-               "North West Ripple| 0.3824922\n"));
+               "Altair| 0.63013375\n" +
+               "North West Ripple| 0.38249224\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using phrase with (tie_breaker=1.0) order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("End of the Galaxy| 0.74187315\n" +
-               "Altair| 0.6301338\n" +
-               "Outer Eastern Rim| 0.3922684\n" +
-               "North West Ripple| 0.3824922\n"));
+               "Altair| 0.63013375\n" +
+               "Outer Eastern Rim| 0.39226836\n" +
+               "North West Ripple| 0.38249224\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (zero_terms_query='all') order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("End of the Galaxy| 0.74187315\n" +
-               "Altair| 0.6301338\n" +
-               "Outer Eastern Rim| 0.3922684\n" +
-               "North West Ripple| 0.3824922\n"));
+               "Altair| 0.63013375\n" +
+               "Outer Eastern Rim| 0.39226836\n" +
+               "North West Ripple| 0.38249224\n"));
     }
 
     @Test
@@ -250,18 +250,18 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
                 "using best_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("Alpha Centauri| 0.62114334\n" +
-               "Bartledan| 0.45822042\n" +
-               "| 0.21206422\n" +
+               "Bartledan| 0.45822048\n" +
+               "| 0.2120642\n" +
                "Allosimanius Syneca| 0.1592113\n" +
                "Galactic Sector QQ7 Active J Gamma| 0.12744746\n"));
 
         execute("select name, _score from locations where match((kind 0.6, name_description_ft 0.8), 'planet earth') using most_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 0.8281911\nBartledan| 0.6109606\n| 0.28275228\nAllosimanius Syneca| 0.21228172\nGalactic Sector QQ7 Active J Gamma| 0.16992994\n"));
+            is("Alpha Centauri| 0.8281911\nBartledan| 0.6109606\n| 0.28275228\nAllosimanius Syneca| 0.21228172\nGalactic Sector QQ7 Active J Gamma| 0.16992995\n"));
 
         execute("select name, _score from locations where match((kind 0.4, name_description_ft 1.0), 'planet earth') using cross_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 1.0352389\nBartledan| 0.7637007\n| 0.35344034\nAllosimanius Syneca| 0.26535213\nGalactic Sector QQ7 Active J Gamma| 0.21241242\n"));
+            is("Alpha Centauri| 1.0352387\nBartledan| 0.7637007\n| 0.35344034\nAllosimanius Syneca| 0.26535213\nGalactic Sector QQ7 Active J Gamma| 0.21241242\n"));
 
         execute("select name, _score from locations where match((kind 1.0, name_description_ft 0.4), 'Alpha Centauri') using phrase");
         assertThat(TestingHelpers.printedTable(response.rows()),
@@ -269,7 +269,7 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
 
         execute("select name, _score from locations where match(name_description_ft, 'Alpha Centauri') using phrase_prefix");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 2.0704777\n"));
+            is("Alpha Centauri| 2.0704775\n"));
     }
 
     @Test
@@ -280,7 +280,7 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
                 "where match((kind, name_description_ft 0.5), 'Planet earth') using most_fields with (analyzer='english') order by _score desc");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.51761943\n" +
+            is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.5176194\n" +
                "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.38185036\n" +
                "| This Planet doesn't really exist| Planet| 0.17672017\n" +
                "Allosimanius Syneca| Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold.| Planet| 0.13267606\n" +
@@ -290,7 +290,7 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
                 "where match((kind, name_description_ft 0.5), 'Planet earth') using cross_fields order by _score desc");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 1.0352389\n" +
+            is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 1.0352387\n" +
                "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.7637007\n" +
                "| This Planet doesn't really exist| Planet| 0.35344034\n" +
                "Allosimanius Syneca| Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold.| Planet| 0.26535213\n" +
