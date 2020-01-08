@@ -126,6 +126,11 @@ public class InformationPartitionsTableInfo extends InformationTableInfo<Partiti
                         .setInnerType("limit", INTEGER)
                         .build())
                     .build())
+                .setInnerType("merge", ObjectType.builder()
+                    .setInnerType("scheduler", ObjectType.builder()
+                        .setInnerType("max_thread_count", INTEGER)
+                        .build())
+                    .build())
                 .setInnerType("write", ObjectType.builder()
                     .setInnerType("wait_for_active_shards", STRING).build())
                 .build(), PartitionsSettingsExpression::new);

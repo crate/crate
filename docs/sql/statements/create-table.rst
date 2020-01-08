@@ -648,3 +648,14 @@ the NGramTokenizer or the NGramTokenFilter. The default is 1.
 
 Specifies the maximum difference between min_shingle_size and max_shingle_size
 when using the ShingleTokenFilter. The default is 3.
+
+
+.. _merge.scheduler.max_thread_count:
+
+``merge.scheduler.max_thread_count``
+------------------------------------
+
+The maximum number of threads on a single shard that may be merging at once.
+Defaults to ``Math.max(1, Math.min(4, Runtime.getRuntime().availableProcessors() / 2))``
+which works well for a good solid-state-disk (SSD). If your index is on
+spinning platter drives instead, decrease this to 1.

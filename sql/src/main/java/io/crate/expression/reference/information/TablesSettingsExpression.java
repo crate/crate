@@ -38,6 +38,8 @@ import java.util.Map;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static org.elasticsearch.index.IndexModule.INDEX_STORE_TYPE_SETTING;
 import static org.elasticsearch.index.IndexSettings.INDEX_REFRESH_INTERVAL_SETTING;
+import static org.elasticsearch.index.MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING;
+import static org.elasticsearch.index.MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 import static org.elasticsearch.index.mapper.MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING;
 
@@ -64,6 +66,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
                 forFunction((RelationInfo row) -> row.parameters().get(INDEX_STORE_TYPE_SETTING.getKey()))))
         );
         childImplementations.put(TablesSettingsMappingExpression.NAME, new TablesSettingsMappingExpression());
+        childImplementations.put(TablesSettingsMergeExpression.NAME, new TablesSettingsMergeExpression());
         childImplementations.put(TablesSettingsRoutingExpression.NAME, new TablesSettingsRoutingExpression());
         childImplementations.put(TablesSettingsWarmerExpression.NAME, new TablesSettingsWarmerExpression());
         childImplementations.put(TablesSettingsTranslogExpression.NAME, new TablesSettingsTranslogExpression());
@@ -291,6 +294,27 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(DELAYED_TIMEOUT, new TableParameterExpression(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey()));
+        }
+    }
+
+    static class TablesSettingsMergeExpression extends AbstractTablesSettingsExpression {
+
+        public static final String NAME = "merge";
+
+        TablesSettingsMergeExpression() {
+            childImplementations.put(TablesSettingsMergeSchedulerExpression.NAME, new TablesSettingsMergeSchedulerExpression());
+        }
+    }
+
+    static class TablesSettingsMergeSchedulerExpression extends AbstractTablesSettingsExpression {
+
+        public static final String NAME = "scheduler";
+        public static final String MAX_THREAD_COUNT = "max_thread_count";
+        public static final String MAX_MERGE_COUNT = "max_merge_count";
+
+        TablesSettingsMergeSchedulerExpression() {
+            childImplementations.put(MAX_THREAD_COUNT, new TableParameterExpression(MAX_THREAD_COUNT_SETTING.getKey()));
+            childImplementations.put(MAX_MERGE_COUNT, new TableParameterExpression(MAX_MERGE_COUNT_SETTING.getKey()));
         }
     }
 }

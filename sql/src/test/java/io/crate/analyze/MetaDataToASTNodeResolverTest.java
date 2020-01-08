@@ -56,7 +56,10 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                       " )" +
                       ") " +
                       "clustered into 5 shards " +
-                      "with (number_of_replicas = '0-all')")
+                      "with (" +
+                      " number_of_replicas = '0-all'," +
+                      " \"merge.scheduler.max_thread_count\" = 1" +
+                      ")")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("doc.test");
 
@@ -96,6 +99,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
+                     "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
@@ -120,7 +124,11 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                       " primary key (pk_col_one, pk_col_two)" +
                       ") " +
                       "clustered into 5 shards " +
-                      "with (number_of_replicas = '0-all', column_policy = 'strict')")
+                      "with (" +
+                      " number_of_replicas = '0-all'," +
+                      " column_policy = 'strict'," +
+                      " \"merge.scheduler.max_thread_count\" = 1" +
+                      ")")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
@@ -143,6 +151,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
+                     "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
@@ -167,7 +176,11 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                       " primary key (col_a)" +
                       ") " +
                       "clustered into 5 shards " +
-                      "with (number_of_replicas = '0-all', column_policy = 'strict')")
+                      "with (" +
+                      " number_of_replicas = '0-all'," +
+                      " column_policy = 'strict'," +
+                      " \"merge.scheduler.max_thread_count\" = 1" +
+                      ")")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
@@ -192,6 +205,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
+                     "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
@@ -217,7 +231,10 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                       ") " +
                       "partitioned by (partition_column) " +
                       "clustered by (cluster_column) into 5 shards " +
-                      "with (number_of_replicas = '0-all')")
+                      "with (" +
+                      " number_of_replicas = '0-all'," +
+                      " \"merge.scheduler.max_thread_count\" = 1" +
+                      ")")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
@@ -241,6 +258,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
+                     "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
@@ -277,7 +295,10 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                       " index col_a_col_b_plain using plain (col_a, col_b)" +
                       ") " +
                       "clustered into 5 shards " +
-                      "with (number_of_replicas = '0-all')")
+                      "with (" +
+                      " number_of_replicas = '0-all'," +
+                      " \"merge.scheduler.max_thread_count\" = 1" +
+                      ")")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
@@ -315,6 +336,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
+                     "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
@@ -337,7 +359,11 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                       " s string storage with (columnstore =false)" +
                       ") " +
                       "clustered into 5 shards " +
-                      "with (number_of_replicas = '0-all', column_policy = 'strict')")
+                      "with (" +
+                      " number_of_replicas = '0-all'," +
+                      " column_policy = 'strict'," +
+                      " \"merge.scheduler.max_thread_count\" = 1" +
+                      ")")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
@@ -360,6 +386,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
+                     "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-all',\n" +
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
@@ -383,6 +410,8 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                       "   col2 INTEGER DEFAULT 1 + 1," +
                       "   col3 TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP(3)," +
                       "   col4 TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP(3)" +
+                      ") with (" +
+                      " \"merge.scheduler.max_thread_count\" = 1" +
                       ")")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("test");
@@ -406,6 +435,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
+                     "   \"merge.scheduler.max_thread_count\" = 1,\n" +
                      "   number_of_replicas = '0-1',\n" +
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
