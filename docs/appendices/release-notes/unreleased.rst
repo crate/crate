@@ -248,6 +248,9 @@ Others
 Fixes
 =====
 
+- Fixed an issue that prevented statements from showing up in ``sys.jobs_log``
+  if they run into an error.
+
 - Fixed an NPE which occurred when using the ``current_timestamp`` inside the
   ``WHERE`` clause on a **view** relation.
 

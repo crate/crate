@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import java.util.Iterator;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
@@ -153,5 +154,22 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from sys.jobs_log where stmt like 'insert into%' or stmt like 'delete%'");
         assertThat(response.rowCount(), is(2L));
+    }
+
+    @Test
+    public void test_relation_unknown_error_shows_up_in_sys_jobs_log() throws Exception {
+        try {
+            execute("select * from relation_not_known");
+            fail("SELECT Should fail with a relation not known error");
+        } catch (Exception ignored) {
+            // expected -> ignored
+        }
+        assertBusy(() -> {
+            execute("select stmt from sys.jobs_log where error is not null order by ended desc limit 1");
+            assertThat(
+                printedTable(response.rows()),
+                is("select * from relation_not_known\n")
+            );
+        });
     }
 }
