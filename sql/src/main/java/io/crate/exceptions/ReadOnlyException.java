@@ -24,10 +24,10 @@ package io.crate.exceptions;
 
 public class ReadOnlyException extends RuntimeException implements ClusterScopeException {
 
-    private static final String MESSAGE = "Only read operations are allowed on this node";
-
-    public ReadOnlyException() {
-        super(MESSAGE);
+    public ReadOnlyException(String statement) {
+        super("Only read operations allowed on this node. Statement: `" +
+              statement.substring(0, Math.max(20, statement.length())) +
+              "` is a write-operation");
     }
 
     @Override
