@@ -119,7 +119,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
 
     private void assertReadOnly(String stmt, Object[] args) throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Only read operations are allowed on this node");
+        expectedException.expectMessage("Only read operations allowed on this node");
         execute(stmt, args);
     }
 

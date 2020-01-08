@@ -375,7 +375,7 @@ public class Session implements AutoCloseable {
         Portal portal = getSafePortal(portalName);
         AnalyzedStatement analyzedStmt = portal.boundOrUnboundStatement();
         if (isReadOnly && analyzedStmt.isWriteOperation()) {
-            throw new ReadOnlyException();
+            throw new ReadOnlyException(portal.preparedStmt().rawStatement());
         }
         if (analyzedStmt instanceof AnalyzedBegin) {
             resultReceiver.allFinished(false);
