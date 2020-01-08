@@ -25,9 +25,9 @@ package io.crate.action.sql;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedBegin;
+import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.Relations;
@@ -286,11 +286,17 @@ public class Session implements AutoCloseable {
         final AnalyzedStatement maybeBoundStatement;
         if (unboundStatement == null || !unboundStatement.isUnboundPlanningSupported()) {
             ParameterContext parameterContext = new ParameterContext(new RowN(params.toArray()), List.of());
-            Analysis analysis = analyzer.boundAnalyze(
-                preparedStmt.parsedStatement(),
-                currentTxnCtx,
-                parameterContext);
-            maybeBoundStatement = analysis.analyzedStatement();
+            try {
+                Analysis analysis = analyzer.boundAnalyze(
+                    preparedStmt.parsedStatement(),
+                    currentTxnCtx,
+                    parameterContext);
+                maybeBoundStatement = analysis.analyzedStatement();
+            } catch (Throwable t) {
+                jobsLogs.logPreExecutionFailure(
+                    UUID.randomUUID(), preparedStmt.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
+                throw t;
+            }
         } else {
             maybeBoundStatement = unboundStatement;
         }
@@ -346,7 +352,13 @@ public class Session implements AutoCloseable {
                 if (preparedStmt.isRelationInitialized()) {
                     analyzedStatement = preparedStmt.unboundStatement();
                 } else {
-                    analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
+                    try {
+                        analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
+                    } catch (Throwable t) {
+                        jobsLogs.logPreExecutionFailure(
+                            UUID.randomUUID(), preparedStmt.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
+                        throw t;
+                    }
                     preparedStmt.unboundStatement(analyzedStatement);
                 }
                 if (analyzedStatement == null) {
