@@ -11,11 +11,11 @@ Show Create Table
     ...     key text,
     ...     value text
     ...   )
-    ... ) clustered by (first_column) into 5 shards;
+    ... ) clustered by (first_column) into 5 shards with ("merge.scheduler.max_thread_count" = 1);
     CREATE OK, 1 row affected (... sec)
 
-The ``SHOW CREATE TABLE`` statement can be used to print the DDL statement of
-already existing user-created doc tables in the cluster::
+The ``SHOW CREATE TABLE`` statement prints the ``CREATE TABLE`` statement of an
+existing user-created doc table in the cluster::
 
     cr> show create table my_table;
     +-----------------------------------------------------+
@@ -44,6 +44,7 @@ already existing user-created doc tables in the cluster::
     |    "mapping.total_fields.limit" = 1000,             |
     |    max_ngram_diff = 1,                              |
     |    max_shingle_diff = 3,                            |
+    |    "merge.scheduler.max_thread_count" = 1,          |
     |    number_of_replicas = '0-1',                      |
     |    refresh_interval = 1000,                         |
     |    "routing.allocation.enable" = 'all',             |

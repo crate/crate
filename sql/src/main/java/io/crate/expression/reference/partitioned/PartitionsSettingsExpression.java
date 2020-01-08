@@ -36,6 +36,8 @@ import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static org.elasticsearch.index.IndexModule.INDEX_STORE_TYPE_SETTING;
+import static org.elasticsearch.index.MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING;
+import static org.elasticsearch.index.MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 
 public class PartitionsSettingsExpression extends ObjectCollectExpression<PartitionInfo> {
@@ -54,6 +56,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
                     forFunction((PartitionInfo row) -> row.tableParameters().get(INDEX_STORE_TYPE_SETTING.getKey()))))
             ),
             Map.entry(PartitionSettingsMappingExpression.NAME, new PartitionSettingsMappingExpression()),
+            Map.entry(PartitionSettingsMergeExpression.NAME, new PartitionSettingsMergeExpression()),
             Map.entry(PartitionsSettingsRoutingExpression.NAME, new PartitionsSettingsRoutingExpression()),
             Map.entry(PartitionsSettingsWarmerExpression.NAME, new PartitionsSettingsWarmerExpression()),
             Map.entry(PartitionsSettingsTranslogExpression.NAME, new PartitionsSettingsTranslogExpression()),
@@ -238,6 +241,27 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
 
         private void addChildImplementations() {
             childImplementations.put(DELAYED_TIMEOUT, new PartitionTableParameterExpression(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey()));
+        }
+    }
+
+    static class PartitionSettingsMergeExpression extends ObjectCollectExpression<PartitionInfo> {
+
+        public static final String NAME = "merge";
+
+        PartitionSettingsMergeExpression() {
+            childImplementations.put(PartitionSettingsMergeSchedulerExpression.NAME, new PartitionSettingsMergeSchedulerExpression());
+        }
+    }
+
+    static class PartitionSettingsMergeSchedulerExpression extends ObjectCollectExpression<PartitionInfo> {
+
+        public static final String NAME = "scheduler";
+        public static final String MAX_THREAD_COUNT = "max_thread_count";
+        public static final String MAX_MERGE_COUNT = "max_merge_count";
+
+        PartitionSettingsMergeSchedulerExpression() {
+            childImplementations.put(MAX_THREAD_COUNT, new PartitionTableParameterExpression(MAX_THREAD_COUNT_SETTING.getKey()));
+            childImplementations.put(MAX_MERGE_COUNT, new PartitionTableParameterExpression(MAX_MERGE_COUNT_SETTING.getKey()));
         }
     }
 }

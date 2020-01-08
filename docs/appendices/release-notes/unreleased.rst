@@ -69,6 +69,10 @@ Changes
 Resiliency improvements
 -----------------------
 
+- Allow user to limit the number of threads on a single shard that may be
+  merging at once via the :ref:`merge.scheduler.max_thread_count
+  <merge.scheduler.max_thread_count>` table parameter.
+
 - Some ``ALTER TABLE`` operations now internally invoke a single cluster state
   update instead of multiple cluster state updates, making it more resilient as
   there is no longer a window where the cluster state could be inconsistent.
