@@ -99,6 +99,11 @@ public abstract class DisruptableMockTransport extends MockTransport {
                     throws TransportException {
                     onSendRequest(requestId, action, request, matchingTransport.get());
                 }
+
+                @Override
+                public String toString() {
+                    return "DisruptableMockTransportConnection{node=" + node + '}';
+                }
             };
         } else {
             throw new ConnectTransportException(node, "node " + node + " does not exist");
