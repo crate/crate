@@ -113,6 +113,10 @@ test {
         }
     }
 
+    filter {
+        setFailOnNoMatchingTests(false)
+    }
+
     jacoco {
         enabled = true;
     }
