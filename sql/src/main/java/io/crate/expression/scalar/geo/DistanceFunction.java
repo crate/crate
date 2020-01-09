@@ -109,20 +109,20 @@ public class DistanceFunction extends Scalar<Double, Point> {
             arg1IsReference = false;
             if (!arg1Type.equals(DataTypes.GEO_POINT)) {
                 literalConverted = true;
-                arg1 = Literal.convert(arg1, DataTypes.GEO_POINT);
+                arg1 = arg1.cast(DataTypes.GEO_POINT);
             }
         } else {
-            validateType(arg1, arg1Type);
+            ensureGeoPoint(arg1, arg1Type);
         }
 
         if (arg2.symbolType().isValueSymbol()) {
             numLiterals++;
             if (!arg2Type.equals(DataTypes.GEO_POINT)) {
                 literalConverted = true;
-                arg2 = Literal.convert(arg2, DataTypes.GEO_POINT);
+                arg2 = arg2.cast(DataTypes.GEO_POINT);
             }
         } else {
-            validateType(arg2, arg2Type);
+            ensureGeoPoint(arg2, arg2Type);
         }
 
         if (numLiterals == 2) {
@@ -139,7 +139,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
         return symbol;
     }
 
-    private void validateType(Symbol symbol, DataType dataType) {
+    private static void ensureGeoPoint(Symbol symbol, DataType dataType) {
         if (!dataType.equals(DataTypes.GEO_POINT)) {
             throw new IllegalArgumentException(SymbolFormatter.format(
                 "Cannot convert %s to a geo point", symbol));

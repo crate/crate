@@ -415,33 +415,9 @@ public class ExpressionAnalyzer {
         int size = symbolsToCast.size();
         List<Symbol> castList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            castList.add(cast(symbolsToCast.get(i), targetTypes.get(i), false));
+            castList.add(symbolsToCast.get(i).cast(targetTypes.get(i), false));
         }
         return castList;
-    }
-
-    /**
-     * Explicitly cast a Symbol to a given target type.
-     * @param sourceSymbol The Symbol to cast.
-     * @param targetType The type to cast to.
-     * @return The Symbol wrapped into a cast function for the given {@code targetType}.
-     */
-    public static Symbol cast(Symbol sourceSymbol, DataType targetType) {
-        return cast(sourceSymbol, targetType, false);
-    }
-
-    /**
-     * Explicitly cast a Symbol to a given target type.
-     * @param sourceSymbol The Symbol to cast.
-     * @param targetType The type to cast to.
-     * @param tryCast True if a try-cast should be attempted. Try casts return null if the cast fails.
-     * @return The Symbol wrapped into a cast function for the given {@code targetType}.
-     */
-    private static Symbol cast(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
-        if (sourceSymbol.valueType().equals(targetType)) {
-            return sourceSymbol;
-        }
-        return sourceSymbol.cast(targetType, tryCast);
     }
 
     @Nullable
@@ -595,7 +571,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
             DataType returnType = DataTypeAnalyzer.convert(node.getType());
-            return cast(node.getExpression().accept(this, context), returnType, false);
+            return node.getExpression().accept(this, context).cast(returnType, false);
         }
 
         @Override
@@ -604,7 +580,7 @@ public class ExpressionAnalyzer {
 
             if (CastFunctionResolver.supportsExplicitConversion(returnType)) {
                 try {
-                    return cast(node.getExpression().accept(this, context), returnType, true);
+                    return node.getExpression().accept(this, context).cast(returnType, true);
                 } catch (ConversionException e) {
                     return Literal.NULL;
                 }
@@ -985,7 +961,7 @@ public class ExpressionAnalyzer {
             assert columnType != null : "columnType must not be null";
             verifyTypesForMatch(identBoostMap.keySet(), columnType);
 
-            Symbol queryTerm = cast(node.value().accept(this, context), columnType);
+            Symbol queryTerm = node.value().accept(this, context).cast(columnType);
             String matchType = io.crate.expression.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
 
             List<Symbol> mapArgs = new ArrayList<>(node.properties().size() * 2);

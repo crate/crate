@@ -152,7 +152,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 Symbol valueSymbol = exprAnalyzer.convert(valueExpr, exprCtx);
                 Reference targetCol = targetCols.get(i);
 
-                valueSymbol = ExpressionAnalyzer.cast(valueSymbol, targetCol.valueType());
+                valueSymbol = valueSymbol.cast(targetCol.valueType());
                 rowSymbols.add(valueSymbol);
             }
             rows.add(rowSymbols);

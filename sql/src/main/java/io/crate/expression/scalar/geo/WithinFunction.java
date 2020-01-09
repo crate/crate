@@ -142,14 +142,14 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
         if (left.symbolType().isValueSymbol()) {
             numLiterals++;
-            Symbol converted = convertTo(DataTypes.GEO_POINT, (Literal) left);
+            Symbol converted = left.cast(DataTypes.GEO_POINT);
             literalConverted = converted != right;
             left = converted;
         }
 
         if (right.symbolType().isValueSymbol()) {
             numLiterals++;
-            Symbol converted = convertTo(DataTypes.GEO_SHAPE, (Literal) right);
+            Symbol converted = right.cast(DataTypes.GEO_SHAPE);
             literalConverted = literalConverted || converted != right;
             right = converted;
         }
@@ -163,12 +163,5 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         }
 
         return symbol;
-    }
-
-    private static Symbol convertTo(DataType toType, Literal convertMe) {
-        if (convertMe.valueType().equals(toType)) {
-            return convertMe;
-        }
-        return Literal.convert(convertMe, toType);
     }
 }

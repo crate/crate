@@ -63,11 +63,11 @@ public final class ValueNormalizer {
 
         DataType<?> targetType = getTargetType(valueSymbol, reference);
         if (!(valueSymbol instanceof Literal)) {
-            return ExpressionAnalyzer.cast(valueSymbol, targetType);
+            return valueSymbol.cast(targetType);
         }
-        Literal literal = (Literal) valueSymbol;
+        Literal<?> literal;
         try {
-            literal = Literal.convert(literal, reference.valueType());
+            literal = (Literal<?>) valueSymbol.cast(reference.valueType());
         } catch (ConversionException e) {
             throw new ColumnValidationException(
                 reference.column().name(),

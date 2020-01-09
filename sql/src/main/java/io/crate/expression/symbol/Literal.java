@@ -139,8 +139,15 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     }
 
     @Override
-    public Symbol cast(DataType newDataType, boolean tryCast) {
-        return Literal.convert(this, newDataType);
+    public Symbol cast(DataType<?> targetType, boolean tryCast) {
+        if (type.equals(targetType)) {
+            return this;
+        }
+        try {
+            return new Literal<>(targetType, targetType.value(value));
+        } catch (IllegalArgumentException | ClassCastException e) {
+            throw new ConversionException(this, targetType);
+        }
     }
 
     /**
@@ -266,28 +273,6 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
 
     public static Literal<Map<String, Object>> newGeoShape(String value) {
         return new Literal<>(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value(value));
-    }
-
-    /**
-     * convert the given symbol to a literal with the given type, unless the type already matches,
-     * in which case the symbol will be returned as is.
-     *
-     * @param symbol that is expected to be a literal
-     * @param type   type that the literal should have
-     * @return converted literal
-     * @throws ConversionException if symbol cannot be converted to the given type
-     */
-    public static Literal convert(Symbol symbol, DataType type) throws ConversionException {
-        assert symbol instanceof Literal : "expected a parameter or literal symbol";
-        Literal literal = (Literal) symbol;
-        if (literal.valueType().equals(type)) {
-            return literal;
-        }
-        try {
-            return of(type, type.value(literal.value()));
-        } catch (IllegalArgumentException | ClassCastException e) {
-            throw new ConversionException(symbol, type);
-        }
     }
 
     @Override
