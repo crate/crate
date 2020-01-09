@@ -43,22 +43,25 @@ public abstract class Symbol implements FuncArg, Writeable, ExplainLeaf {
     /**
      * Casts this Symbol to a new {@link DataType} by wrapping a cast function around it.
      * Subclasses of this class may provide another cast methods.
-     * @param newDataType The resulting data type after applying the cast
+     * @param targetType The resulting data type after applying the cast
      * @return An instance of {@link Function} which casts this symbol.
      */
-    public final Symbol cast(DataType newDataType) {
-        return cast(newDataType, false);
+    public final Symbol cast(DataType<?> targetType) {
+        return cast(targetType, false);
     }
 
     /**
      * Casts this Symbol to a new {@link DataType} by wrapping a cast function around it.
      * Subclasses of this class may provide another cast methods.
-     * @param newDataType The resulting data type after applying the cast
+     * @param targetType The resulting data type after applying the cast
      * @param tryCast If set to true, will return null the symbol cannot be casted.
      * @return An instance of {@link Function} which casts this symbol.
      */
-    public Symbol cast(DataType newDataType, boolean tryCast) {
-        return CastFunctionResolver.generateCastFunction(this, newDataType, tryCast);
+    public Symbol cast(DataType<?> targetType, boolean tryCast) {
+        if (targetType.equals(valueType())) {
+            return this;
+        }
+        return CastFunctionResolver.generateCastFunction(this, targetType, tryCast);
     }
 
     @Override

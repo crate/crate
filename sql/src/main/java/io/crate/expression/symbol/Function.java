@@ -104,8 +104,8 @@ public class Function extends Symbol implements Cloneable {
     }
 
     @Override
-    public Symbol cast(DataType newDataType, boolean tryCast) {
-        if (newDataType instanceof ArrayType && info.ident().name().equals(ArrayFunction.NAME)) {
+    public Symbol cast(DataType<?> targetType, boolean tryCast) {
+        if (targetType instanceof ArrayType && info.ident().name().equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
              * This allows us to do proper type inference for inserts/updates where there are assignments like
              *
@@ -113,9 +113,9 @@ public class Function extends Symbol implements Cloneable {
              * or
              *      some_array = array_cat([?, ?], [1, 2])
              */
-            return castArrayElements(newDataType, tryCast);
+            return castArrayElements(targetType, tryCast);
         } else {
-            return super.cast(newDataType, tryCast);
+            return super.cast(targetType, tryCast);
         }
     }
 

@@ -415,7 +415,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                            ExpressionAnalysisContext expressionAnalysisContext) {
         if (optExpression.isPresent()) {
             Symbol symbol = expressionAnalyzer.convert(optExpression.get(), expressionAnalysisContext);
-            return ExpressionAnalyzer.cast(symbol, DataTypes.LONG);
+            return symbol.cast(DataTypes.LONG);
         }
         return null;
     }
@@ -531,8 +531,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
         }
         Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-        if (symbol.symbolType().isValueSymbol()) {
-            symbol = getByPosition(selectAnalysis.outputSymbols(), symbol, clause);
+        if (symbol instanceof Literal) {
+            symbol = getByPosition(selectAnalysis.outputSymbols(), (Literal<?>) symbol, clause);
         }
         return symbol;
     }
@@ -563,8 +563,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                                                      ExpressionAnalysisContext expressionAnalysisContext) {
         try {
             Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-            if (symbol.symbolType().isValueSymbol()) {
-                return getByPosition(selectAnalysis.outputSymbols(), symbol, clause);
+            if (symbol instanceof Literal) {
+                return getByPosition(selectAnalysis.outputSymbols(), (Literal<?>) symbol, clause);
             }
             return symbol;
         } catch (ColumnUnknownException e) {
@@ -578,22 +578,23 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
     }
 
-    private static Symbol getByPosition(List<Symbol> outputSymbols, Symbol ordinal, String clause) {
-        Literal literal;
+    private static Symbol getByPosition(List<Symbol> outputSymbols, Literal<?> ordinal, String clause) {
+        Literal<Integer> intOrdinal;
         try {
-            literal = io.crate.expression.symbol.Literal.convert(ordinal, DataTypes.INTEGER);
+            //noinspection unchecked
+            intOrdinal = (Literal<Integer>) ordinal.cast(DataTypes.INTEGER);
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(ordinal), clause));
         }
-        Object ord = literal.value();
+        Integer ord = intOrdinal.value();
         if (ord == null) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(ordinal), clause));
         }
-        return ordinalOutputReference(outputSymbols, (int) ord, clause);
+        return ordinalOutputReference(outputSymbols, ord, clause);
     }
 
     private static Symbol ordinalOutputReference(List<Symbol> outputSymbols, int ordinal, String clauseName) {
