@@ -22,8 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.metadata.RelationName;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -40,9 +38,6 @@ public class AnalyzeITest extends SQLTransportIntegrationTest{
         execute("insert into doc.tbl (x) values (1), (2), (3), (null), (3), (3)");
         execute("refresh table doc.tbl");
         execute("analyze");
-        for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
-            assertThat(tableStats.numDocs(new RelationName("doc", "tbl")), is(6L));
-        }
         execute("select reltuples from pg_class where relname = 'tbl'");
         assertThat(response.rows()[0][0], is(6.0f));
 
