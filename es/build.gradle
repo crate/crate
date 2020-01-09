@@ -29,6 +29,10 @@ subprojects {
         jacoco {
             enabled = false
         }
+
+        filter {
+            setFailOnNoMatchingTests(false)
+        }
     }
 
 
