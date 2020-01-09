@@ -175,6 +175,11 @@ public class MockTransport implements Transport, LifecycleComponent {
                 requests.put(requestId, Tuple.tuple(node, action));
                 onSendRequest(requestId, action, request, node);
             }
+
+            @Override
+            public String toString() {
+                return "MockTransportConnection{node=" + node + ", requests=" + requests + '}';
+            }
         };
     }
 
