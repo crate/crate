@@ -602,48 +602,41 @@ public final class MockTransportService extends TransportService {
         }
     }
 
-    public Transport getOriginalTransport() {
-        Transport transport = transport();
-        while (transport instanceof StubbableTransport) {
-            transport = ((StubbableTransport) transport).getDelegate();
-        }
-        return transport;
-    }
-
     @Override
     public Transport.Connection openConnection(DiscoveryNode node, ConnectionProfile profile) throws IOException {
         Transport.Connection connection = super.openConnection(node, profile);
 
         synchronized (openConnections) {
-            List<Transport.Connection> connections = openConnections.computeIfAbsent(node,
-                (n) -> new CopyOnWriteArrayList<>());
-            connections.add(connection);
-        }
-
-        connection.addCloseListener(ActionListener.wrap(() -> {
-            synchronized (openConnections) {
-                List<Transport.Connection> connections = openConnections.get(node);
-                boolean remove = connections.remove(connection);
-                assert remove : "Should have removed connection";
-                if (connections.isEmpty()) {
-                    openConnections.remove(node);
+            openConnections.computeIfAbsent(node, n -> new CopyOnWriteArrayList<>()).add(connection);
+            connection.addCloseListener(ActionListener.wrap(() -> {
+                synchronized (openConnections) {
+                    List<Transport.Connection> connections = openConnections.get(node);
+                    boolean remove = connections.remove(connection);
+                    assert remove : "Should have removed connection";
+                    if (connections.isEmpty()) {
+                        openConnections.remove(node);
+                    }
+                    if (openConnections.isEmpty()) {
+                        openConnections.notifyAll();
+                    }
                 }
-            }
-        }));
-
+            }));
+        }
         return connection;
     }
 
     @Override
     protected void doClose() throws IOException {
         super.doClose();
-        synchronized (openConnections) {
-            assert openConnections.size() == 0 : "still open connections: " + openConnections;
+        try {
+            synchronized (openConnections) {
+                if (!openConnections.isEmpty()) {
+                    openConnections.wait(TimeUnit.SECONDS.toMillis(30L));
+                }
+                assert openConnections.size() == 0 : "still open connections: " + openConnections;
+            }
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
         }
     }
-
-    public DiscoveryNode getLocalDiscoNode() {
-        return this.getLocalNode();
-    }
-
 }
