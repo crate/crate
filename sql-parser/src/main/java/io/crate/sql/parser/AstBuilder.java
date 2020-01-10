@@ -1149,14 +1149,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitTable(SqlBaseParser.TableContext context) {
-        if (context.qname() != null) {
-            var assignments = Lists2.map(context.valueExpression(), x -> (Assignment<Expression>) visit(x));
-            return new Table<>(getQualifiedName(context.qname()), assignments);
-        }
-        FunctionCall fc = new FunctionCall(
-            getQualifiedName(context.ident()), visitCollection(context.valueExpression(), Expression.class));
-        return new TableFunction(fc);
+    public Node visitTableName(SqlBaseParser.TableNameContext ctx) {
+        return new Table<>(getQualifiedName(ctx.qname()), false);
+    }
+
+    @Override
+    public Node visitTableFunction(SqlBaseParser.TableFunctionContext ctx) {
+        QualifiedName qualifiedName = getQualifiedName(ctx.qname());
+        List<Expression> arguments = visitCollection(ctx.valueExpression(), Expression.class);
+        return new TableFunction(new FunctionCall(qualifiedName, arguments));
     }
 
     // Boolean expressions
