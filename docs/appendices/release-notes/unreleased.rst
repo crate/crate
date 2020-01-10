@@ -137,8 +137,10 @@ Window function extensions
 
 
 
-Scalar functions and operators
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Functions and operators
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- Added a :ref:`PG_GET_KEYWORDS <pg_catalog.pg_get_keywords>` table function.
 
 - Extended :ref:`CONCAT <scalar_concat>` to do implicit casts, so that calls
   like ``SELECT 't' || 5`` are supported.

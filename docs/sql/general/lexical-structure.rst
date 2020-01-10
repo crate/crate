@@ -106,39 +106,110 @@ Key words and identifiers
 =========================
 
 The table bellow lists all **reserved key words** in CrateDB. These need to be
-quoted if used as identifiers.
+quoted if used as identifiers::
 
-.. csv-table::
-   :widths: 10, 10, 10, 10
+    cr> SELECT word FROM pg_catalog.pg_get_keywords() WHERE catcode = 'R' ORDER BY 1;
+    +-------------------+
+    | word              |
+    +-------------------+
+    | add               |
+    | all               |
+    | alter             |
+    | and               |
+    | any               |
+    | array             |
+    | as                |
+    | asc               |
+    | between           |
+    | by                |
+    | called            |
+    | case              |
+    | cast              |
+    | column            |
+    | constraint        |
+    | create            |
+    | cross             |
+    | current_date      |
+    | current_schema    |
+    | current_time      |
+    | current_timestamp |
+    | current_user      |
+    | default           |
+    | delete            |
+    | deny              |
+    | desc              |
+    | describe          |
+    | directory         |
+    | distinct          |
+    | drop              |
+    | else              |
+    | end               |
+    | escape            |
+    | except            |
+    | exists            |
+    | extract           |
+    | false             |
+    | first             |
+    | for               |
+    | from              |
+    | full              |
+    | function          |
+    | grant             |
+    | group             |
+    | having            |
+    | if                |
+    | in                |
+    | index             |
+    | inner             |
+    | input             |
+    | insert            |
+    | intersect         |
+    | into              |
+    | is                |
+    | join              |
+    | last              |
+    | left              |
+    | like              |
+    | limit             |
+    | match             |
+    | natural           |
+    | not               |
+    | null              |
+    | nulls             |
+    | object            |
+    | offset            |
+    | on                |
+    | or                |
+    | order             |
+    | outer             |
+    | persistent        |
+    | recursive         |
+    | reset             |
+    | returns           |
+    | revoke            |
+    | right             |
+    | select            |
+    | session_user      |
+    | set               |
+    | some              |
+    | stratify          |
+    | substring         |
+    | table             |
+    | then              |
+    | transient         |
+    | true              |
+    | try_cast          |
+    | unbounded         |
+    | union             |
+    | update            |
+    | user              |
+    | using             |
+    | when              |
+    | where             |
+    | with              |
+    +-------------------+
+    SELECT 95 rows in set (... sec)
 
-    ADD, ALL, ALTER, AND
-    ANY, ARRAY, AS, ASC
-    BETWEEN, BOOLEAN, BOTH, BY
-    BYTE, CALLED, CASE, CAST
-    COLUMN, CONSTRAINT, CREATE, CROSS
-    CURRENT_DATE, CURRENT_SCHEMA, CURRENT_TIME, CURRENT_TIMESTAMP
-    CURRENT_USER, DEFAULT, DELETE, DENY
-    DESC, DESCRIBE, DIRECTORY, DISTINCT
-    DOUBLE, DROP, ELSE, END
-    ESCAPE, EXCEPT, EXISTS, EXTRACT
-    FALSE, FIRST, FLOAT, FOR
-    FROM, FULL, FUNCTION, GRANT
-    GROUP, HAVING, IF, IN
-    INDEX, INNER, INPUT, INSERT
-    INT, INTEGER, INTERSECT, INTO
-    IP, IS, JOIN, LAST
-    LEADING, LICENSE, LIKE, ILIKE
-    LIMIT, LONG, MATCH, NATURAL
-    NOT, NULL, NULLS, OBJECT
-    OFFSET, ON, OR, ORDER
-    OUTER, PERSISTENT, PRIMARY, RECURSIVE
-    REPLACE, RESET, RETURNS, REVOKE
-    SELECT, SESSION_USER, SET, SHORT
-    SOME, STRATIFY, STRING, SUBSTRING
-    TABLE, THEN, TRAILING, TRANSIENT
-    TRIM, TRUE, TRY_CAST, UNBOUNDED
-    UNION, UPDATE, USER, USING
-    WHEN, WHERE, WITH
 
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example below
 are **identifiers**, which identify names of tables, columns, and other
@@ -179,7 +250,7 @@ lowercase, such as
 
   INSERT INTO foo (id, name) VALUES (1, 'bar');
 
-Quoted identifiers can contain an arbitrary sequence of charactes enclosed by
+Quoted identifiers can contain an arbitrary sequence of characters enclosed by
 double quotes (``"``). Quoted identifiers are never keywords, so you can use
 ``"update"`` as a table or column name.
 

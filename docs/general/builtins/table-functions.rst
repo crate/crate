@@ -145,3 +145,40 @@ The return value always matches the ``start`` / ``stop`` types.
     | 1546516800000 | 2019-01-03, 12:00                 |
     +---------------+-----------------------------------+
     SELECT 3 rows in set (... sec)
+
+
+.. _pg_catalog.pg_get_keywords:
+
+
+``pg_catalog.pg_get_keywords()``
+================================
+
+Returns a list of SQL keywords and their categories.
+
+The result rows have three columns:
+
+.. list-table::
+    :header-rows: 1
+
+    * - Column name
+      - Description
+    * - word
+      - The SQL keyword
+    * - catcode
+      - Code for the category (`R` for reserved keywords, `U` for unreserved
+        keywords)
+    * - catdesc
+      - The description of the category
+
+::
+
+    cr> SELECT * FROM pg_catalog.pg_get_keywords() ORDER BY 1 LIMIT 4;
+    +----------+---------+------------+
+    | word     | catcode | catdesc    |
+    +----------+---------+------------+
+    | add      | R       | reserved   |
+    | alias    | U       | unreserved |
+    | all      | R       | reserved   |
+    | allocate | U       | unreserved |
+    +----------+---------+------------+
+    SELECT 4 rows in set (... sec)

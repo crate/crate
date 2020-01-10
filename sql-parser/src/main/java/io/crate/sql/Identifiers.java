@@ -28,6 +28,7 @@ import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.tree.QualifiedNameReference;
 import org.antlr.v4.runtime.Vocabulary;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -41,10 +42,30 @@ public class Identifiers {
     private static final Pattern ESCAPE_REPLACE_RE = Pattern.compile("\"", Pattern.LITERAL);
     private static final String ESCAPE_REPLACEMENT = Matcher.quoteReplacement("\"\"");
 
-    static final Set<String> KEYWORDS = identifierCandidates().stream()
-        .filter(Identifiers::reserved)
-        .collect(Collectors.toSet());
+    public static class Keyword {
+        private final String word;
+        private final boolean reserved;
 
+        public Keyword(String word, boolean reserved) {
+            this.word = word;
+            this.reserved = reserved;
+        }
+
+        public String getWord() {
+            return word;
+        }
+
+        public boolean isReserved() {
+            return reserved;
+        }
+    }
+
+    public static final Collection<Keyword> KEYWORDS = identifierCandidates();
+
+    static final Set<String> RESERVED_KEYWORDS = KEYWORDS.stream()
+        .filter(Keyword::isReserved)
+        .map(Keyword::getWord)
+        .collect(Collectors.toSet());
 
     /**
      * quote and escape the given identifier
@@ -69,7 +90,7 @@ public class Identifiers {
     }
 
     public static boolean isKeyWord(String identifier) {
-        return KEYWORDS.contains(identifier.toUpperCase(Locale.ENGLISH));
+        return RESERVED_KEYWORDS.contains(identifier.toUpperCase(Locale.ENGLISH));
     }
 
     private static boolean reserved(String expression) {
@@ -80,8 +101,8 @@ public class Identifiers {
         }
     }
 
-    private static Set<String> identifierCandidates() {
-        HashSet<String> candidates = new HashSet<>();
+    private static Set<Keyword> identifierCandidates() {
+        HashSet<Keyword> candidates = new HashSet<>();
         Vocabulary vocabulary = SqlBaseLexer.VOCABULARY;
         for (int i = 0; i < vocabulary.getMaxTokenType(); i++) {
             String literal = vocabulary.getLiteralName(i);
@@ -92,7 +113,7 @@ public class Identifiers {
 
             Matcher matcher = IDENTIFIER.matcher(literal.toLowerCase(Locale.ENGLISH));
             if (matcher.matches()) {
-                candidates.add(literal);
+                candidates.add(new Keyword(literal, reserved(literal)));
             }
         }
         return candidates;
