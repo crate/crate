@@ -73,7 +73,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         );
 
         Map<String, Object> source = singletonMap("x", 1);
-        BytesReference updatedSource = updateSourceGen.generateSource(
+        Map<String, Object> updatedSource = updateSourceGen.generateSource(
             new Doc(
                 1,
                 table.concreteIndices()[0],
@@ -93,7 +93,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.sources(),
             new Object[0]
         );
-        assertThat(updatedSource.utf8ToString(), is("{\"x\":2}"));
+        assertThat(updatedSource, is(Map.of("x", 2)));
     }
 
     @Test
@@ -115,7 +115,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             .startObject()
             .field("y", 100)
             .endObject());
-        BytesReference updatedSource = updateSourceGen.generateSource(
+        Map<String, Object> updatedSource = updateSourceGen.generateSource(
             new Doc(
                 1,
                 table.concreteIndices()[0],
@@ -129,7 +129,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.sources(),
             new Object[0]
         );
-        assertThat(updatedSource.utf8ToString(), is("{\"y\":8}"));
+        assertThat(updatedSource, is(Map.of("y", 8)));
     }
 
     @Test
@@ -146,7 +146,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             table,
             assignments.targetNames()
         );
-        BytesReference updatedSource = updateSourceGen.generateSource(
+        Map<String, Object> updatedSource = updateSourceGen.generateSource(
             new Doc(
                 1,
                 table.concreteIndices()[0],
@@ -160,7 +160,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.sources(),
             new Object[0]
         );
-        assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"y\":5},\"x\":4}"));
+        assertThat(updatedSource, is(Map.of("obj", Map.of("y", 5), "x", 4)));
     }
 
 
@@ -179,13 +179,13 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.targetNames()
         );
 
-        BytesReference source = sourceGen.generateSource(
+        Map<String, Object> source = sourceGen.generateSource(
             new Doc(1, table.concreteIndices()[0], "1", 1, 1, 1, emptyMap(), () -> "{}"),
             assignments.sources(),
             new Object[0]
         );
 
-        assertThat(source.utf8ToString(), is("{\"gen\":\"dummySchema\",\"x\":1}"));
+        assertThat(source, is(Map.of("gen","dummySchema","x", 1)));
     }
 
     @Test
@@ -235,7 +235,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             table,
             assignments.targetNames()
         );
-        BytesReference updatedSource = updateSourceGen.generateSource(
+        Map<String, Object> updatedSource = updateSourceGen.generateSource(
             new Doc(
                 1,
                 table.concreteIndices()[0],
@@ -249,7 +249,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.sources(),
             new Object[0]
         );
-        assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"y\":\"foo\"},\"x\":4}"));
+        assertThat(updatedSource, is(Map.of("obj", Map.of("y", "foo"), "x", 4)));
     }
 
     @Test
@@ -266,7 +266,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             table,
             assignments.targetNames()
         );
-        BytesReference updatedSource = updateSourceGen.generateSource(
+        Map<String, Object> updatedSource = updateSourceGen.generateSource(
             new Doc(
                 1,
                 table.concreteIndices()[0],
@@ -280,6 +280,6 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.sources(),
             new Object[0]
         );
-        assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"x\":10}}"));
+        assertThat(updatedSource, is(Map.of("obj", Map.of("x", 10))));
     }
 }

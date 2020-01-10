@@ -24,9 +24,11 @@ package io.crate.execution.dml;
 
 import com.carrotsearch.hppc.IntArrayList;
 import io.crate.analyze.where.DocKeys;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.data.RowN;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
@@ -44,12 +46,16 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 /**
  * Utility class to group requests by shardId and execute them.
@@ -98,16 +104,21 @@ public class ShardRequestExecutor<Req> {
     }
 
     public void execute(RowConsumer consumer, Row parameters, SubQueryResults subQueryResults) {
+        execute(consumer, parameters, subQueryResults, this::rowCountListener);
+    }
+
+    public void executeCollectValues(RowConsumer consumer, Row parameters, SubQueryResults subQueryResults) {
+        execute(consumer, parameters, subQueryResults, this::resultSetListener);
+    }
+
+    private void execute(RowConsumer consumer,
+                         Row parameters,
+                         SubQueryResults subQueryResults,
+                         BiFunction<RowConsumer, Integer, ActionListener<ShardResponse>> f) {
         HashMap<ShardId, Req> requestsByShard = new HashMap<>();
         grouper.bind(parameters, subQueryResults);
         addRequests(0, parameters, requestsByShard, subQueryResults);
-        MultiActionListener<ShardResponse, long[], ? super Row> listener = new MultiActionListener<>(
-            requestsByShard.size(),
-            () -> new long[]{0},
-            ShardRequestExecutor::updateRowCountOrFail,
-            rowCount -> new Row1(rowCount[0]),
-            new OneRowActionListener<>(consumer, Function.identity())
-        );
+        ActionListener<ShardResponse> listener = f.apply(consumer, requestsByShard.size());
         for (Req request : requestsByShard.values()) {
             transportAction.accept(request, listener);
         }
@@ -183,7 +194,49 @@ public class ShardRequestExecutor<Req> {
         ).shardId();
     }
 
-    private static void updateRowCountOrFail(long[] rowCount, ShardResponse response) {
+    private ActionListener<ShardResponse> rowCountListener(RowConsumer consumer, int numberResponse) {
+        return new MultiActionListener<>(
+            numberResponse,
+            () -> new long[]{0},
+            this::countRows,
+            rowCount -> new Row1(rowCount[0]),
+            new OneRowActionListener<>(consumer, Function.identity())
+        );
+    }
+
+    private ActionListener<ShardResponse> resultSetListener(RowConsumer consumer, int numberResponse) {
+        return new MultiActionListener<>(
+            numberResponse,
+            ArrayList::new,
+            this::collectResults,
+            Function.identity(),
+            new ActionListener<List<Row>>() {
+                @Override
+                public void onResponse(List<Row> rows) {
+                    consumer.accept(InMemoryBatchIterator.of(rows, SENTINEL, false), null);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    consumer.accept(null, e);
+                }
+            }
+        );
+    }
+
+    private void countRows(long[] rowCount, ShardResponse response) {
+        updateOrFail(rowCount, response, (a,b) -> a[0] += 1);
+    }
+
+    private void collectResults(List<Row> values, ShardResponse response) {
+        updateOrFail(values, response, (a,b) -> {
+            for (Object[] value : b.getResultRows()) {
+                a.add(new RowN(value));
+            }
+        });
+    }
+
+    private static <A> void updateOrFail(A acc, ShardResponse response, BiConsumer<A, ShardResponse> f) {
         Exception exception = response.failure();
         if (exception != null) {
             Throwable t = SQLExceptions.unwrap(exception, e -> e instanceof RuntimeException);
@@ -194,7 +247,7 @@ public class ShardRequestExecutor<Req> {
         for (int i = 0; i < response.itemIndices().size(); i++) {
             ShardResponse.Failure failure = response.failures().get(i);
             if (failure == null) {
-                rowCount[0] += 1;
+                f.accept(acc, response);
             } else if (!failure.versionConflict() && !(failure.message().contains("Document not found") || failure.message().contains("document missing"))) {
                 throw new RuntimeException(failure.message());
             }

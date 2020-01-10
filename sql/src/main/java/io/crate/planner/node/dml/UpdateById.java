@@ -38,9 +38,11 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -51,12 +53,18 @@ public final class UpdateById implements Plan {
     private final Map<Reference, Symbol> assignmentByTargetCol;
     private final DocKeys docKeys;
     private final Assignments assignments;
+    @Nullable
+    private final Symbol[] returnValues;
 
-    public UpdateById(DocTableInfo table, Map<Reference, Symbol> assignmentByTargetCol, DocKeys docKeys) {
+    public UpdateById(DocTableInfo table,
+                      Map<Reference, Symbol> assignmentByTargetCol,
+                      DocKeys docKeys,
+                      @Nullable List<Symbol> returnValues) {
         this.table = table;
         this.assignments = Assignments.convert(assignmentByTargetCol);
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.docKeys = docKeys;
+        this.returnValues = returnValues != null ? returnValues.toArray(new Symbol[]{}) : null;
     }
 
     @VisibleForTesting
@@ -80,10 +88,14 @@ public final class UpdateById implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        createExecutor(dependencies, plannerContext)
-            .execute(consumer, params, subQueryResults);
-    }
+        ShardRequestExecutor<ShardUpsertRequest> executor = createExecutor(dependencies, plannerContext);
 
+        if (returnValues == null) {
+            executor.execute(consumer, params, subQueryResults);
+        } else {
+            executor.executeCollectValues(consumer, params, subQueryResults);
+        }
+    }
 
     @Override
     public List<CompletableFuture<Long>> executeBulk(DependencyCarrier dependencies,
@@ -105,8 +117,10 @@ public final class UpdateById implements Plan {
             true,
             assignments.targetNames(),
             null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
+            returnValues,
             plannerContext.jobId(),
-            false
+            false,
+            Version.CURRENT
         );
         UpdateRequests updateRequests = new UpdateRequests(requestBuilder, table, assignments);
         return new ShardRequestExecutor<>(
@@ -156,7 +170,8 @@ public final class UpdateById implements Plan {
                                                                        null,
                                                                        version,
                                                                        seqNo,
-                                                                       primaryTerm);
+                                                                       primaryTerm,
+                                                                       request.getReturnValues());
             request.add(location, item);
         }
     }

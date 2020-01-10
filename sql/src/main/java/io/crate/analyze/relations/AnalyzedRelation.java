@@ -43,8 +43,6 @@ public interface AnalyzedRelation extends AnalyzedStatement {
 
     Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException;
 
-    List<Field> fields();
-
     QualifiedName getQualifiedName();
 
     /** * @return The outputs of the relation */

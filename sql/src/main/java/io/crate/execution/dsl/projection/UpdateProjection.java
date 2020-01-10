@@ -23,6 +23,7 @@ package io.crate.execution.dsl.projection;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -37,19 +38,33 @@ public class UpdateProjection extends DMLProjection {
     private String[] assignmentsColumns;
     @Nullable
     private Long requiredVersion;
+    @Nullable
+    private Symbol[] returnValues;
+
+    private boolean allOn4_1;
 
     public UpdateProjection(Symbol uidSymbol,
                             String[] assignmentsColumns,
                             Symbol[] assignments,
+                            Version version,
+                            @Nullable Symbol[] returnValues,
                             @Nullable Long requiredVersion) {
         super(uidSymbol);
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
+        this.allOn4_1 = version.onOrAfter(Version.V_4_1_0);
+        this.returnValues = returnValues;
         this.requiredVersion = requiredVersion;
+
     }
 
     public UpdateProjection(StreamInput in) throws IOException {
         super(in);
+        if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
+            this.allOn4_1 = in.readBoolean();
+        } else {
+            this.allOn4_1 = false;
+        }
         int assignmentColumnsSize = in.readVInt();
         assignmentsColumns = new String[assignmentColumnsSize];
         for (int i = 0; i < assignmentColumnsSize; i++) {
@@ -64,6 +79,20 @@ public class UpdateProjection extends DMLProjection {
         if (requiredVersion == 0) {
             requiredVersion = null;
         }
+        if (allOn4_1) {
+            int returnValuesSize = in.readVInt();
+            if (returnValuesSize > 0) {
+                returnValues = new Symbol[assignmentsSize];
+                for (int i = 0; i < returnValuesSize; i++) {
+                    returnValues[i] = Symbols.fromStream(in);
+                }
+            }
+        }
+    }
+
+    @Nullable
+    public Symbol[] returnValues() {
+        return returnValues;
     }
 
     public String[] assignmentsColumns() {
@@ -101,6 +130,7 @@ public class UpdateProjection extends DMLProjection {
         if (requiredVersion != null ? !requiredVersion.equals(that.requiredVersion) : that.requiredVersion != null)
             return false;
         if (!uidSymbol.equals(that.uidSymbol)) return false;
+        if (!Arrays.equals(returnValues, that.returnValues)) return false;
 
         return true;
     }
@@ -112,6 +142,8 @@ public class UpdateProjection extends DMLProjection {
         result = 31 * result + Arrays.hashCode(assignmentsColumns);
         result = 31 * result + (requiredVersion != null ? requiredVersion.hashCode() : 0);
         result = 31 * result + uidSymbol.hashCode();
+        result = 31 * result + Arrays.hashCode(returnValues);
+
         return result;
     }
 
@@ -119,6 +151,9 @@ public class UpdateProjection extends DMLProjection {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+            out.writeBoolean(allOn4_1);
+        }
         out.writeVInt(assignmentsColumns.length);
         for (int i = 0; i < assignmentsColumns.length; i++) {
             out.writeString(assignmentsColumns[i]);
@@ -131,6 +166,16 @@ public class UpdateProjection extends DMLProjection {
             out.writeVLong(0);
         } else {
             out.writeVLong(requiredVersion);
+        }
+        if (allOn4_1) {
+            if (returnValues != null) {
+                out.writeVInt(returnValues.length);
+                for (int i = 0; i < returnValues.length; i++) {
+                    Symbols.toStream(returnValues[i], out);
+                }
+            } else {
+                out.writeVInt(0);
+            }
         }
     }
 }

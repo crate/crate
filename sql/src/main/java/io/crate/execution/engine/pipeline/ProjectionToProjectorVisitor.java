@@ -503,8 +503,10 @@ public class ProjectionToProjectorVisitor
             false,
             projection.assignmentsColumns(),
             null,
+            projection.returnValues(),
             context.jobId,
-            true
+            true,
+            Version.CURRENT
         );
         ShardDMLExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
@@ -514,7 +516,13 @@ public class ProjectionToProjectorVisitor
             clusterService,
             nodeJobsCounter,
             () -> builder.newRequest(shardId),
-            id -> new ShardUpsertRequest.Item(id, projection.assignments(), null, projection.requiredVersion(), null, null),
+            id -> new ShardUpsertRequest.Item(id,
+                                              projection.assignments(),
+                                              null,
+                                              projection.requiredVersion(),
+                                              null,
+                                              null,
+                                              projection.returnValues()),
             transportActionProvider.transportShardUpsertAction()::execute
         );
 

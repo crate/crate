@@ -31,7 +31,6 @@ import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.Relations;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.AccessControl;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -41,6 +40,7 @@ import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
@@ -312,11 +312,7 @@ public class Session implements AutoCloseable {
             case 'P':
                 Portal portal = getSafePortal(portalOrStatement);
                 AnalyzedStatement analyzedStmt = portal.boundOrUnboundStatement();
-                if (analyzedStmt instanceof AnalyzedRelation) {
-                    return new DescribeResult(((AnalyzedRelation) analyzedStmt).fields());
-                } else {
-                    return new DescribeResult(null);
-                }
+                return new DescribeResult(analyzedStmt.fields());
             case 'S':
                 /*
                  * describe might be called without prior bind call.
@@ -358,11 +354,7 @@ public class Session implements AutoCloseable {
                 if (parameterSymbols.length > 0) {
                     preparedStmt.setDescribedParameters(parameterSymbols);
                 }
-                if (analyzedStatement instanceof AnalyzedRelation) {
-                    AnalyzedRelation relation = (AnalyzedRelation) analyzedStatement;
-                    return new DescribeResult(relation.fields(), parameterSymbols);
-                }
-                return new DescribeResult(null, parameterSymbols);
+                return new DescribeResult(analyzedStatement.fields(), parameterSymbols);
             default:
                 throw new AssertionError("Unsupported type: " + type);
         }
@@ -590,11 +582,11 @@ public class Session implements AutoCloseable {
     public List<? extends DataType> getOutputTypes(String portalName) {
         Portal portal = getSafePortal(portalName);
         AnalyzedStatement analyzedStatement = portal.boundOrUnboundStatement();
-        if (analyzedStatement instanceof AnalyzedRelation) {
-            return Symbols.typeView(((AnalyzedRelation) analyzedStatement).fields());
-        } else {
-            return null;
+        List<Field> fields = analyzedStatement.fields();
+        if (fields != null) {
+            return Symbols.typeView(fields);
         }
+        return null;
     }
 
     public String getQuery(String portalName) {

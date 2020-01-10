@@ -23,6 +23,7 @@ package io.crate.execution.dsl.projection;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -33,10 +34,10 @@ public class UpdateProjectionTest {
     @Test
     public void testEquals() throws Exception {
         UpdateProjection u1 = new UpdateProjection(
-            Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)}, null);
+            Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)}, Version.CURRENT, null, null);
 
         UpdateProjection u2 = new UpdateProjection(
-            Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)}, null);
+            Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)}, Version.CURRENT,null, null);
 
         assertThat(u2.equals(u1), is(true));
         assertThat(u1.equals(u2), is(true));

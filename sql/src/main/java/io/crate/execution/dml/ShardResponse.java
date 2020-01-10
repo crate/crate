@@ -24,7 +24,11 @@ package io.crate.execution.dml;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.MoreObjects;
+import io.crate.Streamer;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.WriteResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -91,10 +95,32 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
     private IntArrayList locations = new IntArrayList();
     private List<Failure> failures = new ArrayList<>();
+
+    /**
+     * Result rows are used to return values from updated rows.
+     */
+    @Nullable
+    private List<Object[]> resultRows;
+
+    /**
+     * Result columns describe the types of the result rows.
+     */
+    @Nullable
+    private Symbol[] resultColumns;
+
+
     @Nullable
     private Exception failure;
 
-    public ShardResponse() {
+    private boolean allOn4_1;
+
+    public ShardResponse(Version version) {
+        this.allOn4_1 = version.onOrAfter(Version.V_4_1_0);
+    }
+
+    public ShardResponse(Version version, @Nullable Symbol[] resultColumns) {
+        this.allOn4_1 = version.onOrAfter(Version.V_4_1_0);
+        this.resultColumns = resultColumns;
     }
 
     public void add(int location) {
@@ -105,6 +131,18 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     public void add(int location, Failure failure) {
         locations.add(location);
         failures.add(failure);
+    }
+
+    public void addResultRows(Object[] rows) {
+        if (resultRows == null) {
+            resultRows = new ArrayList<>();
+        }
+        resultRows.add(rows);
+    }
+
+    @Nullable
+    public List<Object[]> getResultRows() {
+        return resultRows;
     }
 
     public IntArrayList itemIndices() {
@@ -125,6 +163,11 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
     public ShardResponse(StreamInput in) throws IOException {
         super(in);
+        if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
+            this.allOn4_1 = in.readBoolean();
+        } else {
+            this.allOn4_1 = false;
+        }
         int size = in.readVInt();
         locations = new IntArrayList(size);
         failures = new ArrayList<>(size);
@@ -139,11 +182,37 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         if (in.readBoolean()) {
             failure = in.readException();
         }
+        if (allOn4_1) {
+            int resultColumnsSize = in.readVInt();
+            if (resultColumnsSize > 0) {
+                resultColumns = new Symbol[resultColumnsSize];
+                for (int i = 0; i < resultColumnsSize; i++) {
+                    Symbol symbol = Symbols.fromStream(in);
+                    resultColumns[i] = symbol;
+                }
+                Streamer[] resultRowStreamers = Symbols.streamerArray(List.of(resultColumns));
+                int resultRowsSize = in.readVInt();
+                if (resultRowsSize > 0) {
+                    resultRows = new ArrayList<>(resultRowsSize);
+                    int rowLength = in.readVInt();
+                    for (int i = 0; i < resultRowsSize; i++) {
+                        Object[] row = new Object[rowLength];
+                        for (int j = 0; j < rowLength; j++) {
+                            row[j] = resultRowStreamers[j].readValueFrom(in);
+                        }
+                        resultRows.add(row);
+                    }
+                }
+            }
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+            out.writeBoolean(allOn4_1);
+        }
         out.writeVInt(locations.size());
         for (int i = 0; i < locations.size(); i++) {
             out.writeVInt(locations.get(i));
@@ -159,6 +228,26 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             out.writeException(failure);
         } else {
             out.writeBoolean(false);
+        }
+        if (allOn4_1) {
+            if (resultRows != null) {
+                assert resultColumns != null : "Result columns are required when writing result rows";
+                Streamer[] resultRowStreamers = Symbols.streamerArray(List.of(resultColumns));
+                out.writeVInt(resultColumns.length);
+                for (int i = 0; i < resultColumns.length; i++) {
+                    Symbols.toStream(resultColumns[i], out);
+                }
+                out.writeVInt(resultRows.size());
+                int rowLength = resultRows.get(0).length;
+                out.writeVInt(rowLength);
+                for (Object[] row : resultRows) {
+                    for (int j = 0; j < rowLength; j++) {
+                        resultRowStreamers[j].writeValueTo(out, row[j]);
+                    }
+                }
+            } else {
+                out.writeVInt(0);
+            }
         }
     }
 
