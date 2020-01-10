@@ -989,6 +989,7 @@ public class TestStatementBuilder {
         printStatement("select * from unnest([1, 2], ['Arthur', 'Marvin'])");
         printStatement("select * from unnest(?, ?)");
         printStatement("select * from open('/tmp/x')");
+        printStatement("select * from x.y()");
     }
 
     @Test

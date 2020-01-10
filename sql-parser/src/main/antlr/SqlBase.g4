@@ -166,7 +166,7 @@ aliasedRelation
     ;
 
 relationPrimary
-    : table                                                                          #tableName
+    : table                                                                          #tableRelation
     | '(' query ')'                                                                  #subqueryRelation
     | '(' relation ')'                                                               #parenthesizedRelation
     ;
@@ -176,8 +176,8 @@ tableWithPartition
     ;
 
 table
-    : qname
-    | ident '(' valueExpression? (',' valueExpression)* ')'
+    : qname                                                                          #tableName
+    | qname '(' valueExpression? (',' valueExpression)* ')'                          #tableFunction
     ;
 
 aliasedColumns
