@@ -33,7 +33,7 @@ public class RowN implements Row {
         this.size = size;
     }
 
-    public RowN(Object[] cells) {
+    public RowN(Object ... cells) {
         this(cells.length);
         this.cells = cells;
     }

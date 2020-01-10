@@ -25,6 +25,7 @@ package io.crate.metadata.table;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -111,5 +112,10 @@ public abstract class StaticTableInfo<T> implements TableInfo {
     @Override
     public RelationType relationType() {
         return RelationType.BASE_TABLE;
+    }
+
+    @Override
+    public RowGranularity rowGranularity() {
+        return RowGranularity.DOC;
     }
 }

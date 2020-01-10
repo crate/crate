@@ -22,17 +22,31 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import org.junit.Test;
 
-public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
-    @Override
-    public void configureFunctions() {
-        UnnestFunction.register(this);
-        EmptyRowTableFunction.register(this);
-        GenerateSeries.register(this);
-        ValuesFunction.register(this);
-        PgGetKeywordsFunction.register(this);
+import static org.hamcrest.Matchers.is;
+
+public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
+
+    @Test
+    public void test_pg_get_keywords() {
+        var it = execute("pg_catalog.pg_get_keywords()").iterator();
+        List<Row> rows = new ArrayList<>();
+        while (it.hasNext()) {
+            rows.add(new RowN(it.next().materialize()));
+        }
+        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
+        assertThat(rows.size(), is(234));
+        Row row = rows.get(0);
+
+        assertThat(row.get(0), is("add"));
+        assertThat(row.get(1), is("R"));
+        assertThat(row.get(2), is("reserved"));
     }
 }

@@ -142,7 +142,7 @@ public class Functions {
      */
     @Nullable
     private FunctionImplementation getBuiltin(FunctionName functionName, List<DataType> dataTypes) {
-        FunctionResolver resolver = lookupBuiltinFunctionResolver(functionName);
+        FunctionResolver resolver = functionResolvers.get(functionName);
         if (resolver == null) {
             return null;
         }
@@ -161,7 +161,7 @@ public class Functions {
     private FunctionImplementation getBuiltinByArgs(FunctionName functionName,
                                                     List<? extends FuncArg> argumentsTypes,
                                                     SearchPath searchPath) {
-        FunctionResolver resolver = lookupFunctionResolver(functionName, searchPath, this::lookupBuiltinFunctionResolver);
+        FunctionResolver resolver = lookupFunctionResolver(functionName, searchPath, functionResolvers::get);
         if (resolver == null) {
             return null;
         }
@@ -178,7 +178,7 @@ public class Functions {
     @Nullable
     private FunctionImplementation getUserDefined(FunctionName functionName,
                                                   List<DataType> argTypes) throws UnsupportedOperationException {
-        FunctionResolver resolver = lookupUdfFunctionResolver(functionName);
+        FunctionResolver resolver = udfResolvers.get(functionName);
         if (resolver == null) {
             return null;
         }
@@ -199,21 +199,11 @@ public class Functions {
     private FunctionImplementation resolveUserDefinedByArgs(FunctionName functionName,
                                                             List<? extends FuncArg> arguments,
                                                             SearchPath searchPath) throws UnsupportedOperationException {
-        FunctionResolver resolver = lookupFunctionResolver(functionName, searchPath, this::lookupUdfFunctionResolver);
+        FunctionResolver resolver = lookupFunctionResolver(functionName, searchPath, udfResolvers::get);
         if (resolver == null) {
             return null;
         }
         return resolveFunctionForArgumentTypes(arguments, resolver);
-    }
-
-    @Nullable
-    private FunctionResolver lookupBuiltinFunctionResolver(FunctionName functionName) {
-        return functionResolvers.get(functionName);
-    }
-
-    @Nullable
-    private FunctionResolver lookupUdfFunctionResolver(FunctionName functionName) {
-        return udfResolvers.get(functionName);
     }
 
     @Nullable

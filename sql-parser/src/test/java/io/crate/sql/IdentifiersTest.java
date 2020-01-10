@@ -25,6 +25,8 @@ package io.crate.sql;
 
 import org.junit.Test;
 
+import java.util.stream.Collectors;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
@@ -34,7 +36,10 @@ public class IdentifiersTest {
     public void test_number_of_keywords() {
         // If this test is failing you are introducing a new reserved keyword which is a breaking change.
         // Either add the new term to `nonReserved` in `SqlBase.4g` or add a breaking changes entry and adapt this test.
-        assertThat(Identifiers.KEYWORDS.size(), is(95));
+        assertThat(
+            (int) Identifiers.KEYWORDS.stream().filter(Identifiers.Keyword::isReserved).count(),
+            is(95)
+        );
     }
 
     @Test
