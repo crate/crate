@@ -58,7 +58,6 @@ import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -119,12 +118,13 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         @Nullable
         @Override
-        protected Translog.Location indexItem(ShardUpsertRequest request,
+        protected IndexItemResponse indexItem(ShardUpsertRequest request,
                                               ShardUpsertRequest.Item item,
                                               IndexShard indexShard,
                                               boolean tryInsertFirst,
                                               UpdateSourceGen updateSourceGen,
                                               InsertSourceGen insertSourceGen,
+                                              ReturnValueGen returnValueGen,
                                               boolean isRetry) throws Exception {
              throw new VersionConflictEngineException(
                 indexShard.shardId(),
@@ -183,10 +183,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             false,
             null,
             new Reference[]{ID_REF},
+            null,
             UUID.randomUUID(),
-            false
+            false,
+            Version.CURRENT
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -204,10 +206,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             true,
             null,
             new Reference[]{ID_REF},
+            null,
             UUID.randomUUID(),
-            false
+            false,
+            Version.CURRENT
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -245,10 +249,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             false,
             null,
             new Reference[]{ID_REF},
+            null,
             UUID.randomUUID(),
-            false
+            false,
+            Version.CURRENT
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -266,10 +272,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             false,
             null,
             new Reference[]{ID_REF},
+            null,
             UUID.randomUUID(),
-            false
+            false,
+            Version.CURRENT
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
         reset(indexShard);
 

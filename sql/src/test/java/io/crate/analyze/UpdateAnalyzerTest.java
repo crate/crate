@@ -53,6 +53,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.ObjectType;
+import org.hamcrest.core.Is;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -566,7 +567,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returningClause().size(), is(17));
+        assertThat(stmt.returnValues().size(), is(17));
     }
 
     @Test
@@ -576,8 +577,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returningClause().size(), is(1));
-        assertThat(stmt.returningClause().get("foo"), contains(isField("id")));
+        assertThat(stmt.fields(), contains(isField("foo")));
+        assertThat(stmt.returnValues(), contains(isReference("id")));
     }
 
     @Test
@@ -587,17 +588,15 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returningClause().size(), is(2));
-        assertThat(stmt.returningClause().get("foo"), contains(isField("id")));
-        assertThat(stmt.returningClause().get("bar"), contains(isField("name")));
+        assertThat(stmt.fields(), is(contains(isField("foo"), isField("bar"))));
+        assertThat(stmt.returnValues(), contains(isReference("id"), isReference("name")));
     }
 
     @Test
     public void test_updat_returning_with_invalid_column_returning_error() {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column invalid unknown");
-        AnalyzedUpdateStatement stmt = e.analyze(
-            "UPDATE users SET name='noam' RETURNING invalid");
+        e.analyze("UPDATE users SET name='noam' RETURNING invalid");
     }
 
     @Test
@@ -607,8 +606,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returningClause().size(), is(1));
-        assertThat(stmt.returningClause().get("foo"), contains(isFunction("add")));
+        assertThat(stmt.fields(), is(contains(isField("foo"))));
+        assertThat(stmt.returnValues(), contains(isFunction("add")));
     }
 
     @Test
@@ -618,9 +617,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
             contains(isReference("name", DataTypes.STRING)));
-        assertThat(stmt.returningClause().size(), is(2));
-        assertThat(stmt.returningClause().get("foo"), contains(isFunction("add")));
-        assertThat(stmt.returningClause().get("bar"), contains(isFunction("subtract")));
+        assertThat(stmt.fields(), is(contains(isField("foo"), isField("bar"))));
+        assertThat(stmt.returnValues(), contains(isFunction("add"), isFunction("subtract")));
     }
 
     private List<Object[]> execute(Plan plan, Row params) throws Exception {

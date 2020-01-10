@@ -34,6 +34,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -63,7 +64,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         null);
 
     @Test
-    public void testStreaming() throws Exception {
+    public void test_streaming_without_returnvalues() throws Exception {
         ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
@@ -75,8 +76,10 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             false,
             assignmentColumns,
             missingAssignmentColumns,
+            null,
             jobId,
-            false
+            false,
+            Version.CURRENT
         ).newRequest(shardId);
         request.validateConstraints(false);
 
@@ -86,11 +89,13 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             new Object[]{99, "Marvin"},
             null,
             null,
+            null,
             null));
         request.add(42, new ShardUpsertRequest.Item(
             "99",
             new Symbol[0],
             new Object[]{99, "Marvin"},
+            null,
             null,
             null,
             null));
@@ -100,7 +105,8 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             null,
             2L,
             1L,
-            5L));
+            5L,
+            null));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
@@ -111,4 +117,57 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         assertThat(request, equalTo(request2));
     }
 
+    @Test
+    public void test_streaming_with_returnvalues() throws Exception {
+        ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
+        String[] assignmentColumns = new String[]{"id", "name"};
+        UUID jobId = UUID.randomUUID();
+        Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
+            TimeValue.timeValueSeconds(30),
+            DuplicateKeyAction.UPDATE_OR_FAIL,
+            false,
+            assignmentColumns,
+            missingAssignmentColumns,
+            null,
+            jobId,
+            false,
+            Version.CURRENT
+        ).newRequest(shardId);
+        request.validateConstraints(false);
+
+        request.add(123, new ShardUpsertRequest.Item(
+            "99",
+            null,
+            new Object[]{99, "Marvin"},
+            null,
+            null,
+            null,
+            new Symbol[0]));
+        request.add(42, new ShardUpsertRequest.Item(
+            "99",
+            new Symbol[0],
+            new Object[]{99, "Marvin"},
+            null,
+            null,
+            null,
+            new Symbol[0]));
+        request.add(5, new ShardUpsertRequest.Item(
+            "42",
+            new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
+            null,
+            2L,
+            1L,
+            5L,
+            new Symbol[0]));
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        request.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        ShardUpsertRequest request2 = new ShardUpsertRequest(in);
+
+        assertThat(request, equalTo(request2));
+    }
 }

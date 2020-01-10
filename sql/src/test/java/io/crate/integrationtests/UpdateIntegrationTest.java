@@ -892,4 +892,55 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is("1| Slartibartfast\n" +
                                                      "2| Trillian\n"));
     }
+
+    @Test
+    public void test_update_by_id_returning_id() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='msg' where id = 1 returning id");
+
+        assertThat((response.cols()[0]), is("id" ));
+        assertThat(printedTable(response.rows()), is("1\n" ));
+    }
+
+    @Test
+    public void test_update_by_id_returning_id_with_outputname() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='msg' where id = 1 returning id as renamed");
+
+        assertThat((response.cols()[0]), is("renamed" ));
+        assertThat(printedTable(response.rows()), is("1\n" ));
+    }
+
+    @Test
+    public void test_update_by_id_with_subquery_returning_id() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='updated' where id = (select 1) returning id");
+
+        assertThat(printedTable(response.rows()), is("1\n" ));
+    }
+
+    @Test
+    public void test_update_by_id_where_no_row_is_matching() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='updated' where id = 99 returning id");
+
+        assertThat(response.cols()[0], is("id"));
+        assertThat(response.rowCount(), is(0L));
+    }
 }

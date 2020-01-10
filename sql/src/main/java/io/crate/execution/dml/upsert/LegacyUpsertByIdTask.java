@@ -38,6 +38,7 @@ import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dml.UpdateById;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
@@ -114,8 +115,10 @@ public class LegacyUpsertByIdTask {
             upsertById.numBulkResponses() > 0 || items.size() > 1,
             upsertById.updateColumns(),
             upsertById.insertColumns(),
+            null,
             jobId,
-            false
+            false,
+            Version.CURRENT
         );
     }
 
@@ -326,7 +329,9 @@ public class LegacyUpsertByIdTask {
                                                     item.insertValues(),
                                                     item.version(),
                                                     item.seqNo(),
-                                                    item.primaryTerm()));
+                                                    item.primaryTerm(),
+                                                    null
+                        ));
         }
         return requestsByShard;
     }
