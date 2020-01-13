@@ -34,9 +34,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 
 /**
  * <pre>
@@ -84,8 +84,8 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
      * Used to avoid instantiating multiple times RowN in {@link #findMatchingRows()}
      */
     private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
-    private final Function<Row, Integer> hashBuilderForLeft;
-    private final Function<Row, Integer> hashBuilderForRight;
+    private final ToIntFunction<Row> hashBuilderForLeft;
+    private final ToIntFunction<Row> hashBuilderForRight;
     private final IntSupplier calculateBlockSize;
     private final IntObjectHashMap<List<Object[]>> buffer;
 
@@ -100,8 +100,8 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
                                       BatchIterator<Row> right,
                                       CombinedRow combiner,
                                       Predicate<Row> joinCondition,
-                                      Function<Row, Integer> hashBuilderForLeft,
-                                      Function<Row, Integer> hashBuilderForRight,
+                                      ToIntFunction<Row> hashBuilderForLeft,
+                                      ToIntFunction<Row> hashBuilderForRight,
                                       IntSupplier calculateBlockSize) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
@@ -179,7 +179,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         if (activeIt == left) {
             while (leftBatchHasItems = left.moveNext()) {
                 Object[] currentRow = left.currentElement().materialize();
-                int hash = hashBuilderForLeft.apply(left.currentElement());
+                int hash = hashBuilderForLeft.applyAsInt(left.currentElement());
                 addToBuffer(currentRow, hash);
                 if (numberOfRowsInBuffer == blockSize) {
                     break;
@@ -202,7 +202,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         }
         leftMatchingRowsIterator = null;
         while (right.moveNext()) {
-            int rightHash = hashBuilderForRight.apply(right.currentElement());
+            int rightHash = hashBuilderForRight.applyAsInt(right.currentElement());
             List<Object[]> leftMatchingRows = buffer.get(rightHash);
             if (leftMatchingRows != null) {
                 leftMatchingRowsIterator = leftMatchingRows.iterator();
