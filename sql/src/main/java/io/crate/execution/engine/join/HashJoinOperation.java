@@ -37,10 +37,9 @@ import io.crate.metadata.TransactionContext;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 
 public class HashJoinOperation implements CompletionListenable {
 
@@ -103,20 +102,22 @@ public class HashJoinOperation implements CompletionListenable {
         return rightConsumer;
     }
 
-    private static Function<Row, Integer> getHashBuilderFromSymbols(TransactionContext txnCtx,
-                                                                    InputFactory inputFactory,
-                                                                    List<Symbol> inputs) {
+    private static ToIntFunction<Row> getHashBuilderFromSymbols(TransactionContext txnCtx,
+                                                                InputFactory inputFactory,
+                                                                List<Symbol> inputs) {
         InputFactory.Context<? extends CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx, inputs);
-        Object[] values = new Object[ctx.topLevelInputs().size()];
-
+        var topLevelInputs = ctx.topLevelInputs();
+        var expressions = ctx.expressions();
         return row -> {
-            for (int i = 0; i < ctx.expressions().size(); i++) {
-                ctx.expressions().get(i).setNextRow(row);
+            for (int i = 0; i < expressions.size(); i++) {
+                expressions.get(i).setNextRow(row);
             }
-            for (int i = 0; i < ctx.topLevelInputs().size(); i++) {
-                values[i] = ctx.topLevelInputs().get(i).value();
+            int hash = 0;
+            for (int i = 0; i < topLevelInputs.size(); i++) {
+                Object value = topLevelInputs.get(i).value();
+                hash = 31 * hash + (value == null ? 0 : value.hashCode());
             }
-            return Objects.hash(values);
+            return hash;
         };
     }
 
@@ -125,8 +126,8 @@ public class HashJoinOperation implements CompletionListenable {
                                                              BatchIterator<Row> right,
                                                              int rightNumCols,
                                                              Predicate<Row> joinCondition,
-                                                             Function<Row, Integer> hashBuilderForLeft,
-                                                             Function<Row, Integer> hashBuilderForRight,
+                                                             ToIntFunction<Row> hashBuilderForLeft,
+                                                             ToIntFunction<Row> hashBuilderForRight,
                                                              RowAccounting<Row> rowAccounting,
                                                              RamBlockSizeCalculator blockSizeCalculator) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
