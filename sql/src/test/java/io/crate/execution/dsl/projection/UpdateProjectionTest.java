@@ -21,12 +21,20 @@
 
 package io.crate.execution.dsl.projection;
 
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+
+import java.util.List;
+
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 public class UpdateProjectionTest {
@@ -34,13 +42,66 @@ public class UpdateProjectionTest {
     @Test
     public void testEquals() throws Exception {
         UpdateProjection u1 = new UpdateProjection(
-            Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)}, Version.CURRENT, null, null);
+            Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)}, Version.CURRENT, new Symbol[]{new InputColumn(0, DataTypes.STRING)}, null, null);
 
         UpdateProjection u2 = new UpdateProjection(
-            Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)}, Version.CURRENT,null, null);
+            Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)}, Version.CURRENT,new Symbol[]{new InputColumn(0, DataTypes.STRING)}, null, null);
 
         assertThat(u2.equals(u1), is(true));
         assertThat(u1.equals(u2), is(true));
         assertThat(u1.hashCode(), is(u2.hashCode()));
+
+    }
+
+    @Test
+    public void test_serialization() throws Exception {
+
+        UpdateProjection expected = new UpdateProjection(
+            Literal.of(1),
+            new String[]{"foo"},
+            new Symbol[]{Literal.of(1)},
+            Version.CURRENT,
+            new Symbol[]{new InputColumn(0, DataTypes.STRING)},
+            new Symbol[]{Literal.of(1)},
+            null);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        expected.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        UpdateProjection result = new UpdateProjection(in);
+
+        assertThat(result, equalTo(expected));
+    }
+
+    @Test
+    public void test_serialization_backward_compatibility() throws Exception {
+
+        UpdateProjection expected = new UpdateProjection(
+            Literal.of(1),
+            new String[]{"foo"},
+            new Symbol[]{Literal.of(1)},
+            Version.CURRENT,
+            new Symbol[]{},
+            new Symbol[]{Literal.of(1)},
+            null);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_4_0_0);
+        expected.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        in.setVersion(Version.V_4_0_0);
+        UpdateProjection result = new UpdateProjection(in);
+
+        assertThat(result.uidSymbol, equalTo(expected.uidSymbol));
+        assertThat(result.assignments(), equalTo(expected.assignments()));
+        assertThat(result.assignmentsColumns(), equalTo(expected.assignmentsColumns()));
+        assertThat(result.requiredVersion(), equalTo(expected.requiredVersion()));
+
+        //Pre 4.1 versions of UpdateProjection have default output fields set to a long representing
+        //a count which need to set when reading from an pre 4.1 node.
+        assertThat(result.outputs(), equalTo(List.of(new InputColumn(0, DataTypes.LONG))));
+        assertThat(result.returnValues(), equalTo(null));
     }
 }

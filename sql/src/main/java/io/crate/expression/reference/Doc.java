@@ -90,6 +90,18 @@ public final class Doc {
         return index;
     }
 
+    public Doc withVersionAndSeqNo(long version, long seqNo) {
+        return new Doc(
+            docId,
+            index,
+            id,
+            version,
+            seqNo,
+            primaryTerm,
+            source,
+            raw);
+    }
+
     public Doc withUpdatedSource(Map<String, Object> updatedSource) {
         return new Doc(
             docId,

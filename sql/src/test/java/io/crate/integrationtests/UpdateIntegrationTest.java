@@ -40,6 +40,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 
+
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -942,5 +943,62 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         assertThat(response.cols()[0], is("id"));
         assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void test_update_by_query_returning_single_field_with_outputputname() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='updated' where message='msg' returning message as message_renamed");
+
+        assertThat((response.rowCount()), is(1L));
+        assertThat((response.cols()[0]), is("message_renamed"));
+        assertThat(response.rows()[0][0], is("updated"));
+    }
+
+
+    @Test
+    public void test_update_by_query_with_subquery_returning_multiple_fields() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='updated' where message= (select 'msg') returning id, message");
+
+        assertThat((response.rowCount()), is(1L));
+        assertThat((response.cols()[0]), is("id"));
+        assertThat((response.cols()[1]), is("message"));
+        assertThat(response.rows()[0][0], is(1));
+        assertThat(response.rows()[0][1], is("updated"));
+
+    }
+
+    @Test
+    public void test_update_by_query_returning_multiple_results() throws Exception {
+        execute("create table test (id int primary key, x int, message string) clustered into 2 shards");
+        execute("insert into test values(1, 1, 'msg');");
+        execute("insert into test values(2, 1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='updated' where message='msg' and x > 0 " +
+                "returning _docid, _seq_no as seq, message as message_renamed");
+
+        assertThat((response.rowCount()), is(2L));
+        assertThat((response.cols()[0]), is("_docid"));
+        assertThat((response.cols()[1]), is("seq"));
+        assertThat((response.cols()[2]), is("message_renamed"));
+
+        assertThat(response.rows()[0][0], is(0));
+        assertThat(response.rows()[0][1], is(2L));
+        assertThat(response.rows()[0][2], is("updated"));
+
+        assertThat(response.rows()[1][0], is(1));
+        assertThat(response.rows()[1][1], is(3L));
+        assertThat(response.rows()[1][2], is("updated"));
     }
 }

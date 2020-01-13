@@ -27,6 +27,7 @@ import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
+import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.dml.ShardRequest;
@@ -41,19 +42,23 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
 
 import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
-public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
+public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
+                              TItem extends ShardRequest.Item,
+                              TAcc,
+                              TResult extends Iterable<? extends Row>>
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
 
     private static final Logger LOGGER = LogManager.getLogger(ShardDMLExecutor.class);
@@ -70,7 +75,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     private final Function<String, TItem> itemFactory;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> operation;
     private final String localNodeId;
-
+    private final Collector<ShardResponse, TAcc, TResult> collector;
     private int numItems = -1;
 
     public ShardDMLExecutor(int bulkSize,
@@ -81,7 +86,9 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
                             NodeJobsCounter nodeJobsCounter,
                             Supplier<TReq> requestFactory,
                             Function<String, TItem> itemFactory,
-                            BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
+                            BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
+                            Collector<ShardResponse, TAcc, TResult> collector
+                            ) {
         this.bulkSize = bulkSize;
         this.scheduler = scheduler;
         this.executor = executor;
@@ -91,6 +98,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         this.itemFactory = itemFactory;
         this.operation = transportAction;
         this.localNodeId = getLocalNodeId(clusterService);
+        this.collector = collector;
     }
 
     private void addRowToRequest(TReq req, Row row) {
@@ -99,15 +107,20 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         req.add(numItems, itemFactory.apply((String) uidExpression.value()));
     }
 
-    private CompletableFuture<Long> executeBatch(TReq request) {
-        FutureActionListener<ShardResponse, Long> listener = new FutureActionListener<>(ShardDMLExecutor::processShardResponse);
+    private CompletableFuture<TAcc> executeBatch(TReq request) {
+        FutureActionListener<ShardResponse, TAcc> listener = new FutureActionListener<>((a) -> {
+            TAcc acc = collector.supplier().get();
+            collector.accumulator().accept(acc, a);
+            return acc;
+        });
+
         nodeJobsCounter.increment(localNodeId);
-        CompletableFuture<Long> result = listener.whenComplete((r, f) -> nodeJobsCounter.decrement(localNodeId));
+        CompletableFuture<TAcc> result = listener.whenComplete((r, f) -> nodeJobsCounter.decrement(localNodeId));
         operation.accept(request, withRetry(request, listener));
         return result;
     }
 
-    private RetryListener<ShardResponse> withRetry(TReq request, FutureActionListener<ShardResponse, Long> listener) {
+    private RetryListener<ShardResponse> withRetry(TReq request, FutureActionListener<ShardResponse, TAcc> listener) {
         return new RetryListener<>(
             scheduler,
             l -> operation.accept(request, l),
@@ -117,12 +130,9 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     }
 
     @Override
-    public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
+    public CompletableFuture<TResult> apply(BatchIterator<Row> batchIterator) {
         BatchIterator<TReq> reqBatchIterator =
             BatchIterators.partition(batchIterator, bulkSize, requestFactory, this::addRowToRequest, r -> false);
-        BinaryOperator<Long> combinePartialResult = (a, b) -> a + b;
-        long initialResult = 0L;
-
         // If the source batch iterator does not involve IO, mostly in-memory structures are used which we want to free
         // as soon as possible. We do not want to throttle based on the targets node counter in such cases.
         Predicate<TReq> shouldPause = ignored -> true;
@@ -136,12 +146,12 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
             executor,
             reqBatchIterator,
             this::executeBatch,
-            combinePartialResult,
-            initialResult,
+            collector.combiner(),
+            collector.supplier().get(),
             shouldPause,
             BACKOFF_POLICY
         ).consumeIteratorAndExecute()
-            .thenApply(rowCount -> Collections.singletonList(new Row1(rowCount == null ? 0L : rowCount)));
+            .thenApply(collector.finisher());
     }
 
     @Nullable
@@ -155,12 +165,41 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         return nodeId;
     }
 
-    private static long processShardResponse(ShardResponse shardResponse) {
+    private static <A> A processResponse(ShardResponse shardResponse, Function<ShardResponse, A> f) {
         Exception failure = shardResponse.failure();
         if (failure != null) {
             Throwables.throwIfUnchecked(failure);
             throw new RuntimeException(failure);
         }
-        return shardResponse.successRowCount();
+        return f.apply(shardResponse);
     }
+
+    private static Long toRowCount(ShardResponse shardResponse) {
+        return Long.valueOf(processResponse(shardResponse, ShardResponse::successRowCount));
+    }
+
+    private static List<Object[]> toResultRows(ShardResponse shardResponse) {
+        List<Object[]> result = processResponse(shardResponse, ShardResponse::getResultRows);
+        return result == null ? List.of() : result;
+    }
+
+    public static final Collector<ShardResponse, long[], Iterable<Row>> ROW_COUNT_COLLECTOR = Collector.of(
+        () -> new long[]{0L},
+        (a, b) -> a[0] += toRowCount(b),
+        (a, b) -> {
+            a[0] += b[0];
+            return a;
+        },
+        a -> List.of(new Row1(a[0]))
+    );
+
+    public static final Collector<ShardResponse, List<Object[]>, Iterable<Row>> RESULT_ROW_COLLECTOR = Collector.of(
+        ArrayList::new,
+        (a, b) -> a.addAll(toResultRows(b)),
+        (a, b) -> {
+            a.addAll(b);
+            return a;
+        },
+        CollectionBucket::new
+    );
 }
