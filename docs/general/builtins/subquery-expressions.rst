@@ -117,3 +117,47 @@ The result of the ``ANY`` construct yields ``null`` if:
       e.g. ``(x,y) = ANY (select x, y from t)``
 
       Only single-column subqueries are supported
+
+
+``ALL (subquery)``
+------------------
+
+Syntax:
+
+.. code-block:: sql
+
+    value operator ALL (subquery)
+
+
+This is like :ref:`ALL for array comparisons <all_array_comparison>` except for
+subqueries.
+
+The left-hand expression is evaluated and compared against each row of the
+right-hand subquery using the supplied operator. The result of ``ALL`` is ``true``
+if all comparisons yield ``true``. The result is ``false`` if the comparison of
+at least one element does not match.
+
+The result is ``NULL`` if either the value or the array is ``NULL`` or if no
+comparison is ``false`` and at least one comparison returns ``NULL``.
+
+The subquery must return a single column.
+
+::
+
+    cr> select 100 <> ALL (select height from sys.summits) AS x;
+    +------+
+    | x    |
+    +------+
+    | TRUE |
+    +------+
+    SELECT 1 row in set (... sec)
+
+
+Supported operators are:
+
+- ``=``
+- ``>=``
+- ``>``
+- ``<=``
+- ``<``
+- ``<>``
