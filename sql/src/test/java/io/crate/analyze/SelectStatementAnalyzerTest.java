@@ -899,9 +899,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testArrayCompareAll() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("ALL is not supported");
-        analyze("select * from users where 0 = ALL (counters)");
+        AnalyzedRelation relation = analyze("select * from users where 0 = ALL (counters)");
+        assertThat(relation.where().query(), isFunction("_all_="));
     }
 
     @Test

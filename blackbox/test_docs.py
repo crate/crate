@@ -494,6 +494,7 @@ def load_tests(loader, suite, ignore):
                             'general/ddl/partitioned-tables.rst',
                             'general/builtins/arithmetic.rst',
                             'general/builtins/table-functions.rst',
+                            'general/builtins/array-comparisons.rst',
                             'general/dql/selects.rst',
                             'interfaces/postgres.rst',
                             'general/ddl/views.rst',

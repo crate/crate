@@ -140,6 +140,9 @@ Window function extensions
 Functions and operators
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+- Added support for the :ref:`ALL <all_array_comparison>` clause for array and
+  subquery comparisons.
+
 - Added a :ref:`PG_GET_KEYWORDS <pg_catalog.pg_get_keywords>` table function.
 
 - Extended :ref:`CONCAT <scalar_concat>` to do implicit casts, so that calls
