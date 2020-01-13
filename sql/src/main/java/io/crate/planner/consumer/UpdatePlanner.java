@@ -41,6 +41,7 @@ import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Assignments;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -71,6 +72,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.Nullable;
 
@@ -91,7 +93,7 @@ public final class UpdatePlanner {
         Plan plan;
         if (table instanceof DocTableRelation) {
             DocTableRelation docTable = (DocTableRelation) table;
-            plan = plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx, update.returnValues());
+            plan = plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx, update.returnValues(), update.fields());
         } else {
             plan = new Update((plannerContext, params, subQueryValues) ->
                 sysUpdate(
@@ -113,7 +115,8 @@ public final class UpdatePlanner {
                              Symbol query,
                              Functions functions,
                              PlannerContext plannerCtx,
-                             @Nullable List<Symbol> returnValues) {
+                             @Nullable List<Symbol> returnValues,
+                             @Nullable List<Field> outputFields) {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         DocTableInfo tableInfo = docTable.tableInfo();
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
@@ -124,7 +127,7 @@ public final class UpdatePlanner {
         }
 
         return new Update((plannerContext, params, subQueryValues) ->
-            updateByQuery(functions, plannerContext, docTable, assignmentByTargetCol, detailedQuery, params, subQueryValues));
+            updateByQuery(functions, plannerContext, docTable, assignmentByTargetCol, detailedQuery, params, subQueryValues, returnValues, outputFields));
     }
 
     @FunctionalInterface
@@ -186,7 +189,14 @@ public final class UpdatePlanner {
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
         SysUpdateProjection updateProjection = new SysUpdateProjection(idReference.valueType(), assignmentByTargetCol);
         WhereClause where = new WhereClause(SubQueryAndParamBinder.convert(query, params, subQueryResults));
-        return createCollectAndMerge(plannerContext, tableInfo, idReference, updateProjection, where);
+        return createCollectAndMerge(plannerContext,
+                                     tableInfo,
+                                     idReference,
+                                     updateProjection,
+                                     where,
+                                     1,
+                                     1,
+                                     MergeCountProjection.INSTANCE);
     }
 
     private static ExecutionPlan updateByQuery(Functions functions,
@@ -195,17 +205,31 @@ public final class UpdatePlanner {
                                                Map<Reference, Symbol> assignmentByTargetCol,
                                                WhereClauseOptimizer.DetailedQuery detailedQuery,
                                                Row params,
-                                               SubQueryResults subQueryResults) {
+                                               SubQueryResults subQueryResults,
+                                               @Nullable List<Symbol> returnValues,
+                                               @Nullable List<Field> outputFields) {
         DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
+        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
+                                               "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol);
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
+        Symbol[] outputSymbols;
+        if (returnValues == null) {
+            //When return values are null, set the output to a long representing the count of updated rows
+            outputSymbols = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
+        } else {
+            outputSymbols = new Symbol[outputFields.size()];
+            for (int i = 0; i < outputFields.size(); i++) {
+                outputSymbols[i] = new InputColumn(i, outputFields.get(i).valueType());
+            }
+        }
         UpdateProjection updateProjection = new UpdateProjection(
             new InputColumn(0, idReference.valueType()),
             assignments.targetNames(),
             assignmentSources,
             Version.CURRENT,
-            null,
+            outputSymbols,
+            returnValues == null ? null : returnValues.toArray(new Symbol[]{}),
             null);
 
         WhereClause where = detailedQuery.toBoundWhereClause(
@@ -215,14 +239,37 @@ public final class UpdatePlanner {
         } else if (where.hasSeqNoAndPrimaryTerm()) {
             throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
         }
-        return createCollectAndMerge(plannerCtx, tableInfo, idReference, updateProjection, where);
+
+        if (returnValues == null) {
+            return createCollectAndMerge(plannerCtx,
+                                         tableInfo,
+                                         idReference,
+                                         updateProjection,
+                                         where,
+                                         1,
+                                         1,
+                                         MergeCountProjection.INSTANCE);
+        } else {
+            return createCollectAndMerge(plannerCtx,
+                                         tableInfo,
+                                         idReference,
+                                         updateProjection,
+                                         where,
+                                         updateProjection.outputs().size(),
+                                         -1
+                                         );
+        }
     }
 
     private static ExecutionPlan createCollectAndMerge(PlannerContext plannerCtx,
                                                        TableInfo tableInfo,
                                                        Reference idReference,
                                                        Projection updateProjection,
-                                                       WhereClause where) {
+                                                       WhereClause where,
+                                                       int numOutPuts,
+                                                       int maxRowsPerNode,
+                                                       Projection ... mergeProjections
+                                                       ) {
         SessionContext sessionContext = plannerCtx.transactionContext().sessionContext();
         Routing routing = plannerCtx.allocateRouting(
             tableInfo, where, RoutingProvider.ShardSelection.PRIMARIES, sessionContext);
@@ -237,7 +284,7 @@ public final class UpdatePlanner {
             where.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
         );
-        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
-        return Merge.ensureOnHandler(collect, plannerCtx, singletonList(MergeCountProjection.INSTANCE));
+        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, numOutPuts, maxRowsPerNode, null);
+        return Merge.ensureOnHandler(collect, plannerCtx, List.of(mergeProjections));
     }
 }

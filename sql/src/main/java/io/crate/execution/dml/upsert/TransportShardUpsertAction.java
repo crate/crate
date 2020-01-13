@@ -316,12 +316,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           boolean tryInsertFirst,
                                           UpdateSourceGen updateSourceGen,
                                           InsertSourceGen insertSourceGen,
-                                          ReturnValueGen returnGen,
+                                          @Nullable ReturnValueGen returnGen,
                                           boolean isRetry) throws Exception {
         final long seqNo;
         final long primaryTerm;
         final long version;
-        Object[] returnValues = null;
+        Doc updatedDoc = null;
         if (tryInsertFirst) {
             version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
                 ? Versions.MATCH_ANY
@@ -344,7 +344,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             );
 
             if (item.returnValues() != null) {
-                returnValues = returnGen.generateReturnValues(currentDoc.withUpdatedSource(updatedSource));
+                updatedDoc = currentDoc.withUpdatedSource(updatedSource);
             }
 
             item.source(BytesReference.bytes(XContentFactory.jsonBuilder().map(updatedSource)));
@@ -376,7 +376,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 // update the seqNo and version on request for the replicas
                 item.seqNo(indexResult.getSeqNo());
                 item.version(indexResult.getVersion());
-                return new IndexItemResponse(indexResult.getTranslogLocation(), returnValues);
+                return new IndexItemResponse(indexResult.getTranslogLocation(),
+                                             getReturnValues(indexResult, returnGen, updatedDoc));
 
             case FAILURE:
                 Exception failure = indexResult.getFailure();
@@ -426,5 +427,16 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
         return columnsNotUsed;
+    }
+
+    @Nullable
+    private static Object[] getReturnValues(Engine.IndexResult indexResult,
+                                            @Nullable ReturnValueGen returnGen,
+                                            @Nullable Doc doc) {
+        if (doc != null && returnGen != null) {
+            return returnGen.generateReturnValues(doc.withVersionAndSeqNo(indexResult.getVersion(),
+                                                                          indexResult.getSeqNo()));
+        }
+        return null;
     }
 }
