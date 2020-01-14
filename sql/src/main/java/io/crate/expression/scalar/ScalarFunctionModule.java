@@ -34,7 +34,6 @@ import io.crate.expression.scalar.arithmetic.RoundFunction;
 import io.crate.expression.scalar.arithmetic.SquareRootFunction;
 import io.crate.expression.scalar.arithmetic.TrigonometricFunctions;
 import io.crate.expression.scalar.cast.CastFunction;
-import io.crate.expression.scalar.cast.TryCastScalarFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.scalar.conditional.GreatestFunction;
 import io.crate.expression.scalar.conditional.IfFunction;
@@ -130,7 +129,6 @@ public class ScalarFunctionModule extends AbstractModule {
         TimezoneFunction.register(this);
         DateFormatFunction.register(this);
         CastFunction.register(this);
-        TryCastScalarFunction.register(this);
 
         StringCaseFunction.register(this);
         StringLeftRightFunction.register(this);
