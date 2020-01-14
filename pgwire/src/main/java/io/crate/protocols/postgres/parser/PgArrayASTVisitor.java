@@ -50,7 +50,29 @@ class PgArrayASTVisitor extends PgArrayBaseVisitor<Object> {
 
     @Override
     public Object visitValue(PgArrayParser.ValueContext ctx) {
-        return convert.apply(processArrayItem(ctx.getText().getBytes(UTF_8)));
+        PgArrayParser.StringContext stringContext = ctx.string();
+        if (stringContext == null) {
+            return convert.apply(processArrayItem(ctx.getText().getBytes(UTF_8)));
+        }
+        Object value = visit(stringContext);
+        if (value == null) {
+            return null;
+        } else {
+            return convert.apply(processArrayItem(((String) value).getBytes(UTF_8)));
+        }
+    }
+
+    @Override
+    public Object visitQuotedString(PgArrayParser.QuotedStringContext ctx) {
+        String text = ctx.getText();
+        // Drop the quotes
+        return text.substring(1, text.length() - 1);
+    }
+
+    @Override
+    public Object visitUnquotedString(PgArrayParser.UnquotedStringContext ctx) {
+        String text = ctx.getText();
+        return "null".equalsIgnoreCase(text) ? null : text;
     }
 
     @Override
@@ -67,11 +89,6 @@ class PgArrayASTVisitor extends PgArrayBaseVisitor<Object> {
     private static byte[] processArrayItem(byte[] bytes) {
         var itemBytes = new ByteArrayList();
         int start = 0, end = bytes.length - 1;
-        if (bytes[start] == '"') {
-            start += 1;
-            end -= 1;
-        }
-
         for (int i = start; i <= end; i++) {
             if (i < end && (char) bytes[i] == '\\'
                 && ((char) bytes[i + 1] == '\\' || (char) bytes[i + 1] == '\"')) {
@@ -79,7 +96,6 @@ class PgArrayASTVisitor extends PgArrayBaseVisitor<Object> {
             }
             itemBytes.add(bytes[i]);
         }
-
         return itemBytes.toArray();
     }
 }

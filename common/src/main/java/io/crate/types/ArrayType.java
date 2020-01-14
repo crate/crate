@@ -23,10 +23,12 @@ package io.crate.types;
 
 import com.google.common.base.Preconditions;
 import io.crate.Streamer;
+import io.crate.protocols.postgres.parser.PgArrayParser;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -110,6 +112,12 @@ public class ArrayType<T> extends DataType<List<T>> {
             for (Object o : values) {
                 result.add(innerType.value(o));
             }
+        } else if (value instanceof String) {
+            //noinspection unchecked
+            return (List<T>) PgArrayParser.parse(
+                ((String) value).getBytes(StandardCharsets.UTF_8),
+                bytes -> innerType.value(new String(bytes, StandardCharsets.UTF_8))
+            );
         } else {
             Object[] values = (Object[]) value;
             result = new ArrayList<>(values.length);

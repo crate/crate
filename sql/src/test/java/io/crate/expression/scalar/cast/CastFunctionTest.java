@@ -82,6 +82,11 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void test_str_value_to_text_array() {
+        assertEvaluate("cast('{a,abc}' as array(text))", List.of("a", "abc"));
+    }
+
+    @Test
     public void test_object_cast_to_text_results_in_json_string() {
         assertEvaluate("cast({x=10, y=20} as text)", "{\"x\":10,\"y\":20}");
     }
