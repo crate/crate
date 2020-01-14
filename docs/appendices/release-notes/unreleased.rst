@@ -52,6 +52,9 @@ None
 Changes
 =======
 
+- Added support for the PostgreSQL notation to refer to array types. For
+  example, it is now possible to use ``text[]`` instead of ``array(test)``.
+
 None
 
 Fixes

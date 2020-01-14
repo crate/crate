@@ -404,13 +404,18 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableWithArray() {
         BoundCreateTable analysis = analyze(
-            "create table foo (id integer primary key, details array(string))");
+            "create table foo (id integer primary key, details array(string), more_details text[])");
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> details = (Map<String, Object>) mappingProperties.get("details");
-
         assertThat(details.get("type"), is("array"));
         Map<String, Object> inner = (Map<String, Object>) details.get("inner");
         assertThat(inner.get("type"), is("keyword"));
+
+
+        Map<String, Object> moreDetails = (Map<String, Object>) mappingProperties.get("more_details");
+        assertThat(moreDetails.get("type"), is("array"));
+        Map<String, Object> moreDetailsInner = (Map<String, Object>) details.get("inner");
+        assertThat(moreDetailsInner.get("type"), is("keyword"));
     }
 
     @Test
