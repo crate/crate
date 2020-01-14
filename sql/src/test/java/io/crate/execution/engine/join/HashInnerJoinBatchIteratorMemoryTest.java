@@ -33,8 +33,8 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.junit.Test;
 
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -49,11 +49,11 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         return row -> Objects.equals(row.get(0), row.get(1));
     }
 
-    private static Function<Row, Integer> getHashForLeft() {
+    private static ToIntFunction<Row> getHashForLeft() {
         return row -> Objects.hash(row.get(0));
     }
 
-    private static Function<Row, Integer> getHashForRight() {
+    private static ToIntFunction<Row> getHashForRight() {
         return row -> Objects.hash(row.get(0));
     }
 

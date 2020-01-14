@@ -40,9 +40,9 @@ import org.junit.runner.RunWith;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.mockito.Mockito.mock;
@@ -61,15 +61,15 @@ public class HashInnerJoinBatchIteratorTest {
         return row -> Objects.equals(row.get(0), row.get(1));
     }
 
-    private static Function<Row, Integer> getHashForLeft() {
+    private static ToIntFunction<Row> getHashForLeft() {
         return row -> Objects.hash(row.get(0));
     }
 
-    private static Function<Row, Integer> getHashForRight() {
+    private static ToIntFunction<Row> getHashForRight() {
         return row -> Objects.hash(row.get(0));
     }
 
-    private static Function<Row, Integer> getHashWithCollisions() {
+    private static ToIntFunction<Row> getHashWithCollisions() {
         return row -> (Integer) row.get(0) % 3;
     }
 
