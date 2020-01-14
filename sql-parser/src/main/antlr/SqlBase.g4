@@ -239,6 +239,7 @@ primaryExpression
     | ident ('.' ident)*                                                             #dereference
     | primaryExpression CAST_OPERATOR dataType                                       #doubleColonCast
     | timestamp=primaryExpression AT TIME ZONE zone=primaryExpression                #atTimezone
+    | 'ARRAY'? '[]'                                                                  #emptyArray
     ;
 
 explicitFunction
@@ -267,9 +268,9 @@ subqueryExpression
     ;
 
 parameterOrLiteral
-    : parameterOrSimpleLiteral
-    | arrayLiteral
-    | objectLiteral
+    : parameterOrSimpleLiteral                            #simpleLiteral
+    | ARRAY? '[' (expr (',' expr)*)? ']'                  #arrayLiteral
+    | '{' (objectKeyValue (',' objectKeyValue)*)? '}'     #objectLiteral
     ;
 
 parameterOrSimpleLiteral
@@ -429,14 +430,6 @@ integerLiteral
     : INTEGER_VALUE
     ;
 
-arrayLiteral
-    : ARRAY? '[' (expr (',' expr)*)? ']'
-    ;
-
-objectLiteral
-    : '{' (objectKeyValue (',' objectKeyValue)*)? '}'
-    ;
-
 objectKeyValue
     : key=ident EQ value=expr
     ;
@@ -538,7 +531,8 @@ dataType
     : definedDataType           #definedDataTypeDefault
     | ident                     #dataTypeIdent
     | objectTypeDefinition      #objectDataType
-    | arrayTypeDefinition       #arrayDataType
+    | ARRAY '(' dataType ')'    #arrayDataType
+    | dataType '[]'             #arrayDataType
     ;
 
 definedDataType
@@ -550,10 +544,6 @@ definedDataType
 objectTypeDefinition
     : OBJECT ('(' type=(DYNAMIC | STRICT | IGNORED) ')')?
         (AS '(' columnDefinition ( ',' columnDefinition )* ')')?
-    ;
-
-arrayTypeDefinition
-    : ARRAY '(' dataType ')'
     ;
 
 columnConstraint

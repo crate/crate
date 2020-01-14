@@ -931,6 +931,14 @@ Array types are defined as follows::
     ... );
     CREATE OK, 1 row affected (... sec)
 
+
+An alternative is the following syntax to refer to arrays::
+
+    <typeName>[]
+
+This means ``text[]`` is equivalent to ``array(text)``.
+
+
 .. NOTE::
 
     Currently arrays cannot be nested. Something like array(array(text))

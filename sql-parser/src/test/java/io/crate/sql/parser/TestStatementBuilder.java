@@ -963,6 +963,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_cast_with_pg_array_type_definition() {
+        printStatement("SELECT '{a,b,c}'::text[]");
+    }
+
+    @Test
     public void testArrayConstructorSubSelectBuilder() {
         printStatement("select array(select foo from f1) from f2");
         printStatement("select array(select * from f1) as array1 from f2");

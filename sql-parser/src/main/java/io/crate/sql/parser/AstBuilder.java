@@ -1680,6 +1680,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitEmptyArray(SqlBaseParser.EmptyArrayContext ctx) {
+        return new ArrayLiteral(List.of());
+    }
+
+    @Override
     public Node visitObjectLiteral(SqlBaseParser.ObjectLiteralContext context) {
         Multimap<String, Expression> objAttributes = LinkedListMultimap.create();
         context.objectKeyValue().forEach(attr ->
@@ -1709,8 +1714,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitArrayTypeDefinition(SqlBaseParser.ArrayTypeDefinitionContext context) {
-        return new CollectionColumnType((ColumnType) visit(context.dataType()));
+    public Node visitArrayDataType(SqlBaseParser.ArrayDataTypeContext ctx) {
+        return new CollectionColumnType<>((ColumnType<?>) visit(ctx.dataType()));
     }
 
     @Override
