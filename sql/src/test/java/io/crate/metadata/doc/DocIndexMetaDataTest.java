@@ -1465,4 +1465,38 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             "create table t1 (x string STORAGE WITH (columnstore = false))");
         assertThat(md.columns().iterator().next().isColumnStoreDisabled(), is(true));
     }
+
+    @Test
+    public void test_resolve_inner_object_types() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+        .startObject()
+            .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("properties")
+                    .startObject("object")
+                        .field("type", "object")
+                            .startObject("properties")
+                                .startObject("nestedObject")
+                                    .field("type", "object")
+                                    .startObject("properties")
+                                        .startObject("nestedNestedString")
+                                            .field("type", "string")
+                                        .endObject()
+                                    .endObject()
+                                .endObject()
+                                .startObject("nestedString")
+                                    .field("type", "string")
+                                .endObject()
+                             .endObject()
+                    .endObject()
+                .endObject()
+            .endObject()
+        .endObject();
+        IndexMetaData metaData = getIndexMetaData("test", builder);
+        DocIndexMetaData md = newMeta(metaData, "test");
+
+        ObjectType objectType = (ObjectType) md.references().get(new ColumnIdent("object")).valueType();
+        assertThat(objectType.resolveInnerType(List.of("nestedString")), is(DataTypes.STRING));
+        assertThat(objectType.resolveInnerType(List.of("nestedObject")).id(), is(ObjectType.ID));
+        assertThat(objectType.resolveInnerType(List.of("nestedObject", "nestedNestedString")), is(DataTypes.STRING));
+    }
 }
