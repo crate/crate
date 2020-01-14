@@ -285,7 +285,7 @@ public class DocIndexMetaData {
         DataType type;
         String typeName = (String) columnProperties.get("type");
 
-        if (typeName == null) {
+        if (typeName == null || ObjectType.NAME.equals(typeName)) {
             Map<String, Object> innerProperties = (Map<String, Object>) columnProperties.get("properties");
             if (innerProperties != null) {
                 ObjectType.Builder builder = ObjectType.builder();
@@ -294,7 +294,7 @@ public class DocIndexMetaData {
                 }
                 type = builder.build();
             } else {
-                type = DataTypes.NOT_SUPPORTED;
+                type = MoreObjects.firstNonNull(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
             }
         } else if (typeName.equalsIgnoreCase("array")) {
 
