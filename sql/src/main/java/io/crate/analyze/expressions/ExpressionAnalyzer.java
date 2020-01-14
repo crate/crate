@@ -42,8 +42,8 @@ import io.crate.analyze.relations.OrderyByAnalyzer;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
+import io.crate.expression.operator.AllOperator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
@@ -735,17 +735,23 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitArrayComparisonExpression(ArrayComparisonExpression node, ExpressionAnalysisContext context) {
-            if (node.quantifier().equals(ArrayComparisonExpression.Quantifier.ALL)) {
-                throw new UnsupportedFeatureException("ALL is not supported");
-            }
-
             context.registerArrayChild(node.getRight());
-
             Symbol leftSymbol = node.getLeft().accept(this, context);
             Symbol arraySymbol = node.getRight().accept(this, context);
-
             ComparisonExpression.Type operationType = node.getType();
-            String operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
+            final String operatorName;
+            switch (node.quantifier()) {
+                case ANY:
+                    operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
+                    break;
+
+                case ALL:
+                    operatorName = AllOperator.OPERATOR_PREFIX + operationType.getValue();
+                    break;
+
+                default:
+                    throw new IllegalStateException("Expected comparison quantifier ALL or ANY, got " + node.quantifier());
+            }
             return allocateFunction(
                 operatorName,
                 ImmutableList.of(leftSymbol, arraySymbol),

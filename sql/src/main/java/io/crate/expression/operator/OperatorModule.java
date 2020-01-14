@@ -66,6 +66,7 @@ public class OperatorModule extends AbstractModule {
         RegexpMatchCaseInsensitiveOperator.register(this);
 
         AnyOperators.register(this);
+        AllOperator.register(this);
         LikeOperators.register(this);
 
         // bind all registered functions and resolver

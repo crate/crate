@@ -71,11 +71,11 @@ comparison.
 For example::
 
     cr> select 1 = any ([1,2,3]), 4 = any ([1,2,3]);
-    +------------------+------------------+
-    | 1 = ANY([1,2,3]) | 4 = ANY([1,2,3]) |
-    +------------------+------------------+
-    | TRUE             | FALSE            |
-    +------------------+------------------+
+    +--------------------+--------------------+
+    | 1 = ANY([1, 2, 3]) | 4 = ANY([1, 2, 3]) |
+    +--------------------+--------------------+
+    | TRUE               | FALSE              |
+    +--------------------+--------------------+
     SELECT 1 row in set (... sec)
 
 
@@ -101,6 +101,46 @@ The result of the ``ANY`` construct yields ``null`` if:
     could be quite bad, because special handling is required to implement the
     `3-valued logic`_. To achieve better performance, consider using the
     :ref:`ignore3vl function<ignore3vl>`.
+
+
+.. _all_array_comparison:
+
+``ALL (array expression)``
+--------------------------
+
+Syntax:
+
+.. code-block:: sql
+
+    value operator ALL (array)
+
+The left-hand expression is evaluated and compared against each element of the
+right-hand array using the supplied operator. The result of ``ALL`` is ``true``
+if all comparisons yield ``true``. The result is ``false`` if the comparison of
+at least one element does not match.
+
+The result is ``NULL`` if either the value or the array is ``NULL`` or if no
+comparison is ``false`` and at least one comparison returns ``NULL``.
+
+::
+
+    cr> SELECT 1 <> ALL(ARRAY[2, 3, 4]) AS x;
+    +------+
+    | x    |
+    +------+
+    | TRUE |
+    +------+
+    SELECT 1 row in set (... sec)
+
+
+Supported operators are:
+
+- ``=``
+- ``>=``
+- ``>``
+- ``<=``
+- ``<``
+- ``<>``
 
 
 .. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
