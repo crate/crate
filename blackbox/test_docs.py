@@ -490,7 +490,6 @@ def load_tests(loader, suite, ignore):
                             'admin/optimization.rst',
                             'general/dql/fulltext.rst',
                             'general/ddl/data-types.rst',
-                            'general/occ.rst',
                             'general/ddl/partitioned-tables.rst',
                             'general/builtins/arithmetic.rst',
                             'general/builtins/table-functions.rst',
@@ -502,6 +501,9 @@ def load_tests(loader, suite, ignore):
                             'sql/general/lexical-structure.rst',
                             'sql/statements/values.rst'):
         tests.append(docsuite(fn, setUp=setUpLocationsAndQuotes))
+
+    for fn in doctest_files('general/occ.rst'):
+        tests.append(docsuite(fn, setUp=setUp))
 
     for fn in doctest_files('general/dql/geo.rst',):
         tests.append(docsuite(fn, setUp=setUpCountries))

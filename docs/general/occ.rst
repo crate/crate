@@ -26,31 +26,33 @@ most up to date cluster configuration.
 
 .. Hidden: update some documents to raise their ``_seq_no`` values.::
 
-    cr> update locations set date = 0
-    ... where name < 'Altair' and kind = 'Star System';
-    UPDATE OK, 3 rows affected (... sec)
+    cr> CREATE TABLE sensors (
+    ...   id text primary key,
+    ...   type text,
+    ...   last_verification timestamp
+    ... );
+    CREATE OK, 1 row affected  (... sec)
 
-    cr> update locations set date = 2
-    ... where name < 'Altair' and kind = 'Star System';
-    UPDATE OK, 3 rows affected (... sec)
+    cr> INSERT INTO sensors (id, type, last_verification) VALUES ('ID1', 'DHT11', null);
+    INSERT OK, 1 row affected (... sec)
 
-    cr> refresh table locations;
+    cr> INSERT INTO sensors (id, type, last_verification) VALUES ('ID2', 'DHT21', null);
+    INSERT OK, 1 row affected (... sec)
+
+    cr> refresh table sensors;
     REFRESH OK, 1 row affected (... sec)
 
 It's possible to fetch the ``_seq_no`` and ``_primary_term`` by selecting
 them::
 
-    cr> select name, id, _seq_no, _primary_term from locations
-    ... where kind = 'Star System' order by name asc;
-    +----------------+----+---------+---------------+
-    | name           | id | _seq_no | _primary_term |
-    +----------------+----+---------+---------------+
-    | Aldebaran      | 4  |      11 |             1 |
-    | Algol          | 5  |      12 |             1 |
-    | Alpha Centauri | 6  |      13 |             1 |
-    | Altair         | 7  |       1 |             1 |
-    +----------------+----+---------+---------------+
-    SELECT 4 rows in set (... sec)
+    cr> SELECT id, type, _seq_no, _primary_term FROM sensors ORDER BY 1;
+    +-----+-------+---------+---------------+
+    | id  | type  | _seq_no | _primary_term |
+    +-----+-------+---------+---------------+
+    | ID1 | DHT11 |       0 |             1 |
+    | ID2 | DHT21 |       0 |             1 |
+    +-----+-------+---------+---------------+
+    SELECT 2 rows in set (... sec)
 
 These ``_seq_no`` and ``_primary_term`` values can now be used on updates
 and deletes.
@@ -67,15 +69,21 @@ Optimistic update
 Querying for the correct ``_seq_no`` and ``_primary_term`` ensures that no
 concurrent update and cluster configuration change has taken place::
 
-    cr> update locations set description = 'Updated description'
-    ... where id=5 and "_seq_no" = 12 and "_primary_term" = 1;
+    cr> UPDATE sensors SET last_verification = '2020-01-10 09:40'
+    ... WHERE 
+    ...   id = 'ID1'
+    ...   AND "_seq_no" = 0 
+    ...   AND "_primary_term" = 1;
     UPDATE OK, 1 row affected (... sec)
 
 Updating a row with a wrong or outdated sequence number or primary term will
 not execute the update and results in 0 affected rows::
 
-    cr> update locations set description = 'Updated description'
-    ... where id=5 and "_seq_no" = 222 and "_primary_term" = 1;
+    cr> UPDATE sensors SET last_verification = '2020-01-10 09:40'
+    ... WHERE 
+    ...   id = 'ID1'
+    ...   AND "_seq_no" = 42
+    ...   AND "_primary_term" = 5;
     UPDATE OK, 0 rows affected (... sec)
 
 Optimistic delete
@@ -83,8 +91,9 @@ Optimistic delete
 
 The same can be done when deleting a row::
 
-    cr> delete from locations where id = '6' and "_seq_no" = 13
-    ... and "_primary_term" = 1;
+    cr> DELETE FROM sensors WHERE id = 'ID2' 
+    ...   AND "_seq_no" = 0
+    ...   AND "_primary_term" = 1;
     DELETE OK, 1 row affected (... sec)
 
 Known limitations
@@ -92,11 +101,12 @@ Known limitations
 
  - The ``_seq_no`` and ``_primary_term`` columns can only be used when
    specifying the whole primary key in a query. For example, the query below is
-   not possible with our used testing data because ``name`` is not declared as
+   not possible with our used testing data because ``type`` is not declared as
    a primary key and results in an error::
 
-    cr> delete from locations where name = 'Aldebaran' and "_seq_no" = 3
-    ... and "_primary_term" = 1;
+    cr> DELETE FROM sensors WHERE type = 'DHT11' 
+    ...   AND "_seq_no" = 3
+    ...   AND "_primary_term" = 1;
     SQLActionException... "_seq_no" and "_primary_term" columns can only be used together in the WHERE clause with equals comparisons ...
 
  - In order to use the optimistic concurrency control mechanism both the
@@ -104,7 +114,7 @@ Known limitations
    possible to only specify one of them. For example, the query below will
    result in an error::
 
-    cr> delete from locations where name = 'Aldebaran' and "_seq_no" = 3;
+    cr> DELETE FROM sensors WHERE id = 'ID1' AND "_seq_no" = 3;
     SQLActionException... "_seq_no" and "_primary_term" columns can only be used together in the WHERE clause with equals comparisons ...
 
 .. NOTE::
