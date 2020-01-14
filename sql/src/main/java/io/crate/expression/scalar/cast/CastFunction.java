@@ -33,17 +33,19 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
+import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_SIGNATURES;
+import static io.crate.expression.scalar.cast.CastFunctionResolver.TRY_CAST_PREFIX;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
 
@@ -52,23 +54,28 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
     private static final String TRY_CAST_SQL_NAME = "try_cast";
     private static final String CAST_SQL_NAME = "cast";
 
-    protected final DataType returnType;
-    protected final FunctionInfo info;
+    private final DataType returnType;
+    private final FunctionInfo info;
+    private final BiFunction<Symbol, DataType, Symbol> onNormalizeException;
+    private final BiFunction<Object, DataType, Object> onEvaluateException;
 
-    CastFunction(FunctionInfo info) {
+    private CastFunction(FunctionInfo info,
+                           BiFunction<Symbol, DataType, Symbol> onNormalizeException,
+                           BiFunction<Object, DataType, Object> onEvaluateException) {
         this.info = info;
         this.returnType = info.returnType();
+        this.onNormalizeException = onNormalizeException;
+        this.onEvaluateException = onEvaluateException;
     }
 
-    @SafeVarargs
     @Override
-    public final Object evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         assert args.length == 1 : "Number of arguments must be 1";
         Object value = args[0].value();
         try {
             return returnType.value(value);
         } catch (ClassCastException | IllegalArgumentException e) {
-            return onEvaluateException(value);
+            return onEvaluateException.apply(value, returnType);
         }
     }
 
@@ -86,23 +93,15 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
             try {
                 return Literal.of(returnType, returnType.value(value));
             } catch (ClassCastException | IllegalArgumentException e) {
-                return onNormalizeException(argument);
+                return onNormalizeException.apply(argument, returnType);
             }
         }
         return symbol;
     }
 
-    protected Symbol onNormalizeException(Symbol argument) {
-        throw new ConversionException(argument, returnType);
-    }
-
-    protected Object onEvaluateException(Object argument) {
-        throw new ConversionException(argument, returnType);
-    }
-
     @Override
     public String beforeArgs(Function function) {
-        if (function.info().ident().name().startsWith(CastFunctionResolver.TRY_CAST_PREFIX)) {
+        if (function.info().ident().name().startsWith(TRY_CAST_PREFIX)) {
             return TRY_CAST_SQL_NAME + PAREN_OPEN;
         } else {
             return CAST_SQL_NAME + PAREN_OPEN;
@@ -126,13 +125,27 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         return true;
     }
 
-    private static class Resolver extends BaseFunctionResolver {
+    private static final BiFunction<Symbol, DataType, Symbol> CAST_ON_NORMALIZE_EXCEPTION =
+        (argument, returnType) -> {
+            throw new ConversionException(argument, returnType);
+        };
+    private static final BiFunction<Object, DataType, Object> CAST_ON_EVALUATE_EXCEPTION =
+        (argument, returnType) -> {
+            throw new ConversionException(argument, returnType);
+        };
+    private static final BiFunction<Symbol, DataType, Symbol> TRY_CAST_ON_NORMALIZE_EXCEPTION =
+        (argument, returnType) -> Literal.NULL;
+    private static final BiFunction<Object, DataType, Object> TRY_CAST_ON_EVALUATE_EXCEPTION =
+        (argument, returnType) -> null;
+
+
+    private static class CastResolver extends BaseFunctionResolver {
 
         private final String name;
         private final DataType targetType;
 
-        Resolver(DataType targetType, String name) {
-            super(FuncParams.builder(Param.ANY).build());
+        CastResolver(DataType targetType, String name) {
+            super(FuncParams.SINGLE_ANY);
             this.name = name;
             this.targetType = targetType;
         }
@@ -147,13 +160,46 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) {
             checkPreconditions(dataTypes);
-            return new CastFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), targetType));
+            return new CastFunction(
+                new FunctionInfo(new FunctionIdent(name, dataTypes), targetType),
+                CAST_ON_NORMALIZE_EXCEPTION,
+                CAST_ON_EVALUATE_EXCEPTION
+            );
+        }
+    }
+
+    private static class TryCastResolver extends BaseFunctionResolver {
+
+        private final String name;
+        private final DataType targetType;
+
+
+        TryCastResolver(DataType targetType, String name) {
+            super(FuncParams.SINGLE_ANY);
+            this.name = name;
+            this.targetType = targetType;
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) {
+            return new CastFunction(
+                new FunctionInfo(new FunctionIdent(name, dataTypes), targetType),
+                TRY_CAST_ON_NORMALIZE_EXCEPTION,
+                TRY_CAST_ON_EVALUATE_EXCEPTION
+            );
         }
     }
 
     public static void register(ScalarFunctionModule module) {
-        for (Map.Entry<String, DataType> function : CastFunctionResolver.CAST_SIGNATURES.entrySet()) {
-            module.register(function.getKey(), new Resolver(function.getValue(), function.getKey()));
+        for (Map.Entry<String, DataType> function : CAST_SIGNATURES.entrySet()) {
+            module.register(
+                function.getKey(),
+                new CastResolver(function.getValue(), function.getKey()));
+
+            var tryCastFunctionName = TRY_CAST_PREFIX + function.getKey();
+            module.register(
+                tryCastFunctionName,
+                new TryCastResolver(function.getValue(), tryCastFunctionName));
         }
     }
 }
