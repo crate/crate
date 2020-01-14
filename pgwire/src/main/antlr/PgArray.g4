@@ -22,11 +22,11 @@ array
    ;
 
 item
-   : STRING         #value
+   : NULL           #null
+   | string         #value
    | NUMBER         #value
    | bool           #value
    | array          #noop
-   | NULL           #null
    ;
 
 bool
@@ -34,9 +34,20 @@ bool
     | 'false'
     ;
 
+
+string
+    : STRING        #quotedString
+    | CHAR+         #unquotedString
+    ;
+
 STRING
     : '"' (ESC | ~["\\])* '"'
     ;
+
+CHAR
+    : [0-9a-zA-Z]
+    ;
+
 
 NUMBER
     : '-'? DIGIT '.' DIGIT EXP?

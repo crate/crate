@@ -39,6 +39,16 @@ import static org.hamcrest.core.Is.is;
 public class ArrayTypeTest extends CrateUnitTest {
 
     @Test
+    public void test_pg_string_array_literal_can_be_converted_to_values() {
+        ArrayType<String> strArray = new ArrayType<>(DataTypes.STRING);
+        List<String> values = strArray.value("{a,abc,A,ABC,null,\"null\",NULL,\"NULL\"}");
+        assertThat(
+            values,
+            contains("a", "abc", "A", "ABC", null, "null", null, "NULL")
+        );
+    }
+
+    @Test
     public void testArrayTypeSerialization() throws Exception {
         // nested string array: [ ["x"], ["y"] ]
         ArrayType arrayType = new ArrayType<>(new ArrayType<>(StringType.INSTANCE));

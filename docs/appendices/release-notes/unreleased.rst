@@ -253,6 +253,8 @@ Others
 - The ``node`` argument of the :ref:`REROUTE <alter_table_reroute>` commands of
   :ref:`ref-alter-table` can now either be the id or the name of a node.
 
+- Added support for the PostgreSQL array string literal notation.
+
 
 Fixes
 =====

@@ -5,6 +5,7 @@ archivesBaseName = 'crate-common'
 
 dependencies {
     compile project(':shared')
+    implementation project(':pgwire')
     implementation project(':es:es-server')
     implementation "com.google.guava:guava:${versions.guava}"
     testImplementation project(':integration-testing')

@@ -967,6 +967,33 @@ Some valid arrays are::
     ARRAY[column_a, column_b]
     ARRAY[ARRAY[1, 2, 1 + 2], ARRAY[3, 4, 3 + 4]]
 
+
+An alternative way to define arrays is to use string literals and casts to
+arrays. This requires a string literal that contains the elements separated by
+comma and enclosed with curly braces::
+
+    '{ val1, val2, val3 }'
+
+::
+
+    cr> SELECT '{ab, CD, "CD", null, "null"}'::array(text) AS arr;
+    +----------------------------------+
+    | arr                              |
+    +----------------------------------+
+    | ["ab", "CD", "CD", null, "null"] |
+    +----------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+``null`` elements are interpreted as ``NULL`` (none, absent), if you want the
+literal ``null`` string, it has to be enclosed in double quotes.
+
+
+This variant primarily exists for compatibility with PostgreSQL. The ``Array
+constructor`` syntax explained further above is the preferred way to define
+constant array values.
+
+
 Array representation
 ....................
 
