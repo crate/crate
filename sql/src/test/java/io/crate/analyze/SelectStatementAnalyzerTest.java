@@ -84,7 +84,6 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -1475,21 +1474,24 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testCastExpression() {
         AnalyzedRelation relation = analyze("select cast(other_id as text) from users");
         assertThat(relation.outputs().get(0),
-            isFunction("to_text", singletonList(DataTypes.LONG)));
+            isFunction("to_text", List.of(DataTypes.LONG, DataTypes.UNDEFINED)));
 
         relation = analyze("select cast(1+1 as string) from users");
         assertThat(relation.outputs().get(0), isLiteral("2", DataTypes.STRING));
 
         relation = analyze("select cast(friends['id'] as array(text)) from users");
-        assertThat(relation.outputs().get(0), isFunction(
-            "to_text_array", singletonList(new ArrayType(DataTypes.LONG))));
+        assertThat(
+            relation.outputs().get(0),
+            isFunction(
+                "to_text_array",
+                List.of(new ArrayType(DataTypes.LONG), DataTypes.UNDEFINED)));
     }
 
     @Test
     public void testTryCastExpression() {
         AnalyzedRelation relation = analyze("select try_cast(other_id as text) from users");
         assertThat(relation.outputs().get(0), isFunction(
-            "try_to_text", singletonList(DataTypes.LONG)));
+            "try_to_text", List.of(DataTypes.LONG, DataTypes.UNDEFINED)));
 
         relation = analyze("select try_cast(1+1 as string) from users");
         assertThat(relation.outputs().get(0), isLiteral("2", DataTypes.STRING));
@@ -1498,9 +1500,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.outputs().get(0), isLiteral(null, DataTypes.STRING));
 
         relation = analyze("select try_cast(counters as array(boolean)) from users");
-        assertThat(relation.outputs().get(0), isFunction(
-            "try_to_boolean_array",
-            singletonList(new ArrayType(DataTypes.LONG))));
+        assertThat(
+            relation.outputs().get(0),
+            isFunction(
+                "try_to_boolean_array",
+                List.of(new ArrayType(DataTypes.LONG), DataTypes.UNDEFINED)));
     }
 
     @Test

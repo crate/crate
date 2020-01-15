@@ -29,6 +29,7 @@ import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.MatchPredicate;
 import io.crate.expression.scalar.SubscriptFunction;
+import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;
@@ -143,6 +144,21 @@ public final class SymbolPrinter {
                 printMatchPredicate(function, context);
             } else if (functionName.equals(SubscriptFunction.NAME)) {
                 printSubscriptFunction(function, context);
+            } else if (CastFunctionResolver.isCastFunction(functionName)) {
+                FunctionFormatSpec formatter;
+                if (functions != null) {
+                    formatter = (FunctionFormatSpec) functions.getQualified(function.info().ident());
+                } else {
+                    formatter = FunctionFormatSpec.NAME_PARENTHESISED_ARGS;
+                }
+                context.builder.append(formatter.beforeArgs(function));
+                if (formatter.formatArgs(function)) {
+                    // do not print the second argument such as it always null.
+                    // we use only the function info of the second argument to
+                    // resolve a cast function.
+                    printArgs(List.of(function.arguments().get(0)), context);
+                }
+                context.builder.append(formatter.afterArgs(function));
             } else {
                 printGenericFunction(function, context);
             }
@@ -301,7 +317,6 @@ public final class SymbolPrinter {
         }
 
         private void printFunction(Function function, FunctionFormatSpec formatter, SymbolPrinterContext context) {
-
             context.builder.append(formatter.beforeArgs(function));
             if (formatter.formatArgs(function)) {
                 printArgs(function.arguments(), context);

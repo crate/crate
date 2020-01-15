@@ -24,15 +24,19 @@ package io.crate.expression.scalar.cast;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.FunctionIdent;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
+import static org.hamcrest.Matchers.is;
 
 // cast is just a wrapper around  DataType.value(val) which is why here are just a few tests
 public class CastFunctionTest extends AbstractScalarFunctionsTest {
@@ -141,5 +145,18 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void test_try_cast_invalid_timestamp_returns_null() {
         assertEvaluate("try_cast('0000:00:00' as timestamp)", null);
+    }
+
+    @Test
+    public void test_resolve_cast_with_correct_return_type_based_on_function_argument() {
+        var returnType = ObjectType.builder()
+            .setInnerType("field", DataTypes.STRING)
+            .build();
+        var ident = new FunctionIdent(
+            CastFunctionResolver.castFuncName(ObjectType.untyped()),
+            List.of(ObjectType.untyped(), returnType));
+
+        var functionImpl = functions.getQualified(ident);
+        assertThat(functionImpl.info().returnType(), is(returnType));
     }
 }
