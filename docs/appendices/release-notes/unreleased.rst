@@ -259,37 +259,4 @@ Others
 Fixes
 =====
 
-- Fixed an issue that prevented statements from showing up in ``sys.jobs_log``
-  if they run into an error.
-
-- Fixed an NPE which occurred when using the ``current_timestamp`` inside the
-  ``WHERE`` clause on a **view** relation.
-
-- Fixed the data type of the ``sys.jobs_metrics.classification['labels']``
-  column, should be ``text_array`` instead of an ``undefined`` type.
-
-- Fixed an issue that caused a type cast error in ``INSERT`` statements if the
-  target table contained a ``array(object() as (...)`` column where a child of
-  the object array contained a ``NOT NULL`` constraint.
-
-- Fixed a ``NullPointerException`` that could prevent a node from starting up.
-  This could occur if the node crashed or disconnected while a user deleted a
-  table.
-
-- Fixed the type information of the ``fs['data']`` and ``fs['disks']`` column
-  in the ``sys.nodes`` table. Querying those columns could have resulted in
-  serialization errors.
-
-- Fixed the support for the ``readonly`` property in ``CREATE REPOSITORY``.
-
-- Improved the memory accounting for values of type ``geo_shape``, ``object``
-  or ``undefined``. Previously an arbitrary fixed value was used for memory
-  accounting. If the actual payloads are large, this could have led to out of
-  memory errors as the memory usage was under-estimated.
-
-- Fixed an issue that may cause a ``SELECT`` query to hang on multiple nodes
-  cluster if a resource error like a ``CircuitBreakingException`` occurs.
-
-- Fixed an issue that caused a ``INSERT INTO ... (SELECT ... FROM ..)``
-  statement to fail if not all columns of a ``PARTITIONED BY`` clause
-  appeared in the target list of the ``INSERT INTO`` statement.
+None
