@@ -1,0 +1,87 @@
+.. _version_4.0.11:
+
+==============
+Version 4.0.11
+==============
+
+Released on 2020/01/15.
+
+.. NOTE::
+
+    Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading from
+    CrateDB 3.x or earlier.
+    Before upgrading to 4.0.11 you should be running a CrateDB cluster that is
+    at least on 3.0.7.
+
+    We recommend that you upgrade to the latest 3.3 release before moving to
+    4.0.11.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_4.0.2`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+    When restarting, CrateDB will migrate indexes to a newer format. Depending
+    on the amount of data, this may delay node start-up time.
+
+.. WARNING::
+
+    Tables that were created prior CrateDB 3.x will not function with 4.x
+    and must be recreated before moving to 4.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.0.0` release notes for a full list of changes in the
+4.0 series.
+
+Fixes
+=====
+
+- Fixed an issue that prevented statements from showing up in ``sys.jobs_log``
+  if they run into an error.
+
+- Fixed an NPE which occurred when using the ``current_timestamp`` inside the
+  ``WHERE`` clause on a **view** relation.
+
+- Fixed the data type of the ``sys.jobs_metrics.classification['labels']``
+  column, should be ``text_array`` instead of an ``undefined`` type.
+
+- Fixed an issue that caused a type cast error in ``INSERT`` statements if the
+  target table contained a ``array(object() as (...)`` column where a child of
+  the object array contained a ``NOT NULL`` constraint.
+
+- Fixed a ``NullPointerException`` that could prevent a node from starting up.
+  This could occur if the node crashed or disconnected while a user deleted a
+  table.
+
+- Improved the memory accounting for values of type ``geo_shape``, ``object``
+  or ``undefined``. Previously an arbitrary fixed value was used for memory
+  accounting. If the actual payloads are large, this could have led to out of
+  memory errors as the memory usage was under-estimated.
+
+- Fixed the type information of the ``fs['data']`` and ``fs['disks']`` column
+  in the ``sys.nodes`` table. Querying those columns could have resulted in
+  serialization errors.
+
+- Fixed the support for the ``readonly`` property in ``CREATE REPOSITORY``.
+
+- Fixed an issue that may cause a ``SELECT`` query to hang on multiple nodes
+  cluster if a resource error like a ``CircuitBreakingException`` occurs.
+
+- Fixed an issue that caused a ``INSERT INTO ... (SELECT ... FROM ..)``
+  statement to fail if not all columns of a ``PARTITIONED BY`` clause
+  appeared in the target list of the ``INSERT INTO`` statement.
