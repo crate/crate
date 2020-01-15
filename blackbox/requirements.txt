@@ -12,7 +12,7 @@ zope.testrunner==4.7.0
 
 # packages for local dev
 
-sphinx-autobuild==0.6.0
+sphinx-autobuild==0.7.1
 
 # the next section should mirror the RTD environment
 
