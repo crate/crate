@@ -16,7 +16,7 @@ Java_ (needed for the doctests_). Make sure that ``python3`` is on your
 
 You can run the sphinx build as a development server, like so::
 
-    $ ./gradlew blackbox:developDocs
+    $ ./gradlew :blackbox:developDocs
 
 Once the web server running, you can view your local copy of the docs by
 visiting http://127.0.0.1:8000 in a web browser.
@@ -27,7 +27,7 @@ you.
 
 Alternatively, you can just build the docs without starting the web server::
 
-    $ ./gradlew blackbox:buildDocs
+    $ ./gradlew :blackbox:buildDocs
 
 
 Many of the examples in the documentation are executable and function as
@@ -35,7 +35,7 @@ doctests_.
 
 You can run the doctests like so::
 
-    $ ./gradlew blackbox:itest
+    $ ./gradlew :blackbox:itest
 
 *Note*: Your network connection should be up and running, or some of the tests
 will fail.
