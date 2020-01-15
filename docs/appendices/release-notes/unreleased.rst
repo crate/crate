@@ -46,6 +46,12 @@ None
 Fixes
 =====
 
+- Fixed a bug that would lead to insertion of records via ``INSERT INTO ...
+  (SELECT ... FROM ..)`` and ``INSERT INTO ... VALUES (...)`` into different
+  partitions while using the same partition by value. This occurs only when
+  the partition key is an object field of the :ref:`timestamp
+  <timestamp_data_type>` data type.
+
 - Fixed an issue that caused queries on more than one relation and a literal
   ``FALSE`` in the ``WHERE`` clause to match all rows instead of no rows.
 

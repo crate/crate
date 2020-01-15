@@ -2275,4 +2275,27 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                "{\"pk\":{\"id\":\"2\"}}| {id=2, part=x}| 2| x\n")
         );
     }
+
+    @Test
+    public void test_insert_from_subquery_and_values_into_same_partition_for_object_ts_field_as_partition_key() {
+        execute(
+            "CREATE TABLE test (" +
+            "   id INT," +
+            "   metadata OBJECT AS (date TIMESTAMP WITHOUT TIME ZONE)" +
+            ") CLUSTERED INTO 1 SHARDS " +
+            "PARTITIONED BY (metadata['date'])");
+
+        execute("INSERT INTO test (id, metadata) (SELECT ?, ?)", new Object[]{1, Map.of("date", "2014-05-28")});
+        execute("INSERT INTO test (id, metadata) VALUES (?, ?)", new Object[]{2, Map.of("date", "2014-05-28")});
+        refresh();
+
+        execute(
+            "SELECT table_name, partition_ident, values " +
+            "FROM information_schema.table_partitions " +
+            "ORDER BY table_name, partition_ident");
+        assertThat(
+            printedTable(response.rows()),
+            is("test| 04732d1g64p36d9i60o30c1g| {metadata['date']=1401235200000}\n"));
+        assertThat(printedTable(execute("SELECT count(*) FROM test").rows()), is("2\n"));
+    }
 }
