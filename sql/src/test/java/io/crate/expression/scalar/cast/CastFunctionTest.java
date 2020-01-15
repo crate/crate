@@ -27,9 +27,11 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.geo.GeoJSONUtils;
+import io.crate.metadata.FunctionIdent;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -201,5 +203,18 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
                 "try_cast(" + SymbolPrinter.INSTANCE.printQualified(val) + " as " + dataType.getName() + ")",
                 anyOf(notNullValue(), nullValue()));
         }
+    }
+
+    @Test
+    public void test_resolve_cast_with_correct_return_type_based_on_function_argument() {
+        var returnType = ObjectType.builder()
+            .setInnerType("field", DataTypes.STRING)
+            .build();
+        var ident = new FunctionIdent(
+            CastFunctionResolver.castFuncName(ObjectType.untyped()),
+            List.of(ObjectType.untyped(), returnType));
+
+        var functionImpl = functions.getQualified(ident);
+        assertThat(functionImpl.info().returnType(), is(returnType));
     }
 }
