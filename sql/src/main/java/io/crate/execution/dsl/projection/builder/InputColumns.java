@@ -25,6 +25,7 @@ import com.google.common.base.MoreObjects;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.FetchReference;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
@@ -207,25 +208,39 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         }
         InputColumn inputColumn = sourceSymbols.inputs.get(ref);
         if (inputColumn == null) {
-            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref, sourceSymbols.inputs);
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref, ref.column(), sourceSymbols.inputs);
             return subscriptOnRoot == null ? ref : subscriptOnRoot;
         }
         return visitSymbol(ref, sourceSymbols);
     }
 
+    @Override
+    public Symbol visitField(Field field, SourceSymbols sourceSymbols) {
+        InputColumn inputColumn = sourceSymbols.inputs.get(field);
+        if (inputColumn == null) {
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(field, field.path(), sourceSymbols.inputs);
+            if (subscriptOnRoot == null) {
+                throw new IllegalArgumentException("Couldn't find " + field + " in " + sourceSymbols);
+            } else {
+                return subscriptOnRoot;
+            }
+        }
+        return inputColumn;
+    }
+
     @Nullable
-    private static Symbol tryCreateSubscriptOnRoot(Reference ref, HashMap<Symbol, InputColumn> inputs) {
-        if (ref.column().isTopLevel()) {
+    private static Symbol tryCreateSubscriptOnRoot(Symbol symbol, ColumnIdent column, HashMap<Symbol, InputColumn> inputs) {
+        if (column.isTopLevel()) {
             return null;
         }
-        ColumnIdent root = ref.column().getRoot();
+        ColumnIdent root = column.getRoot();
         InputColumn rootIC = lookupValueByColumn(inputs, root);
         if (rootIC == null) {
-            return ref;
+            return symbol;
         }
 
-        DataType returnType = ref.valueType();
-        List<String> path = ref.column().path();
+        DataType<?> returnType = symbol.valueType();
+        List<String> path = column.path();
 
         List<Symbol> arguments = mapTail(rootIC, path, Literal::of);
         List<DataType> argumentTypes = Symbols.typeView(arguments);

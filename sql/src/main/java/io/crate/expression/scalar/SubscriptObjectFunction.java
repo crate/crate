@@ -50,7 +50,7 @@ import java.util.Map;
  */
 public class SubscriptObjectFunction extends Scalar<Object, Map> {
 
-    private static final String NAME = "subscript_obj";
+    public static final String NAME = "subscript_obj";
     private static final FuncParams FUNCTION_PARAMS = FuncParams
         .builder(Param.of(ObjectType.untyped()), Param.of(StringType.INSTANCE))
         .withVarArgs(Param.of(StringType.INSTANCE))

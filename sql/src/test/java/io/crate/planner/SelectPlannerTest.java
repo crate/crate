@@ -877,4 +877,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = (Collect) merge.subPlan();
         assertThat(((RoutedCollectPhase) collect.collectPhase()).where(), isFunction("match"));
     }
+
+    @Test
+    public void test_group_by_on_subscript_on_obj_output_of_sub_relation() {
+        String stmt = "SELECT address['postcode'] FROM (SELECT address FROM users) AS u GROUP BY 1";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[address['postcode']]\n" +
+            "GroupBy[address['postcode'] | ]\n" +
+            "Boundary[address]\n" +
+            "Boundary[address]\n" +
+            "Collect[doc.users | [address] | All]\n"
+        ));
+    }
 }
