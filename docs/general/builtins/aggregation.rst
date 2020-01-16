@@ -373,7 +373,7 @@ If all input values are null, null is returned as a result.
 
 ::
 
-   cr> select string_agg(col1, ', ') from unnest(['a', 'b', 'c']);
+   cr> select string_agg(col1, ', ') from (values('a'), ('b'), ('c')) as t;
    +------------------------+
    | string_agg(col1, ', ') |
    +------------------------+

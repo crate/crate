@@ -293,7 +293,7 @@ could be used in multiple :ref:`over` clauses. For instance
    ...   x,
    ...   FIRST_VALUE(x) OVER (w) AS "first",
    ...   LAST_VALUE(x) OVER (w) AS "last"
-   ... FROM unnest([1, 2, 3, 4]) as t(x)
+   ... FROM (VALUES (1), (2), (3), (4)) as t(x)
    ... WINDOW w AS (ORDER BY x)
    +---+-------+------+
    | x | first | last |
@@ -318,9 +318,11 @@ then it can only add clauses from the referenced window, but not overwrite them.
    cr> SELECT
    ...   x,
    ...   LAST_VALUE(x) OVER (w ORDER BY x)
-   ... FROM unnest(
-   ...      [1, 2, 3, 4],
-   ...      [1, 1, 2, 2]) as t(x, y)
+   ... FROM (VALUES
+   ...      (1, 1),
+   ...      (2, 1),
+   ...      (3, 2),
+   ...      (4, 2) ) as t(x, y)
    ... WINDOW w AS (PARTITION BY y)
    +---+---+
    | x | y |
@@ -339,7 +341,7 @@ by the window definition of the :ref:`OVER` clause will result in failure.
 
    cr> SELECT
    ...   FIRST_VALUE(x) OVER (w ORDER BY x)
-   ... FROM unnest([1, 2, 3, 4]) as t(x)
+   ... FROM (VALUES(1), (2), (3), (4)) as t(x)
    ... WINDOW w AS (ORDER BY x)
    SQLActionException[SQLParseException: Cannot override ORDER BY clause of window w]
 
@@ -362,7 +364,10 @@ in the ``WINDOW`` clause permits only backward references.
    cr> SELECT
    ...   x,
    ...   ROW_NUMBER() OVER (w)
-   ... FROM unnest([1, 2, 3], [1, 1, 2]) as t(x, y)
+   ... FROM (VALUES
+   ...      (1, 1),
+   ...      (3, 2),
+   ...      (2, 1)) as t(x, y)
    ... WINDOW p AS (PARTITION BY y),
    ...        w AS (p ORDER BY x)
    +---+---+
@@ -386,7 +391,7 @@ Returns the number of the current row within its window.
 
 Example::
 
-   cr> SELECT col1, ROW_NUMBER() OVER(ORDER BY col1) FROM unnest(['x','y','z']);
+   cr> SELECT col1, ROW_NUMBER() OVER(ORDER BY col1) FROM (VALUES('x'), ('y'), ('z')) as t;
    +------+-----------------------------------------+
    | col1 | row_number() OVER (ORDER BY "col1" ASC) |
    +------+-----------------------------------------+
@@ -412,7 +417,7 @@ Its return type is the type of its argument.
 
 Example::
 
-   cr> SELECT col1, FIRST_VALUE(col1) OVER(ORDER BY col1) FROM unnest(['x','y', 'y', 'z']);
+   cr> SELECT col1, FIRST_VALUE(col1) OVER(ORDER BY col1) FROM (VALUES('x'), ('y'), ('y'), ('z')) as t;
    +------+----------------------------------------------+
    | col1 | first_value(col1) OVER (ORDER BY "col1" ASC) |
    +------+----------------------------------------------+
@@ -439,7 +444,7 @@ Its return type is the type of its argument.
 
 Example::
 
-   cr> SELECT col1, LAST_VALUE(col1) OVER(ORDER BY col1) FROM unnest(['x','y', 'y', 'z']);
+   cr> SELECT col1, LAST_VALUE(col1) OVER(ORDER BY col1) FROM (VALUES('x'), ('y'), ('y'), ('z')) as t;
    +------+---------------------------------------------+
    | col1 | last_value(col1) OVER (ORDER BY "col1" ASC) |
    +------+---------------------------------------------+
@@ -467,7 +472,7 @@ Its return type is the type of its first argument.
 
 Example::
 
-   cr> SELECT col1, NTH_VALUE(col1, 3) OVER(ORDER BY col1) FROM unnest(['x','y', 'y', 'z']);
+   cr> SELECT col1, NTH_VALUE(col1, 3) OVER(ORDER BY col1) FROM (VALUES('x'), ('y'), ('y'), ('z')) as t;
    +------+-----------------------------------------------+
    | col1 | nth_value(col1, 3) OVER (ORDER BY "col1" ASC) |
    +------+-----------------------------------------------+
@@ -514,11 +519,13 @@ Example::
    ...   budget,
    ...   LAG(budget) OVER(
    ...      PARTITION BY dept_id) prev_budget
-   ... FROM unnest(
-   ...   [1, 1, 2, 2, 2],
-   ...   [2017, 2018, 2017, 2018, 2019],
-   ...   [45000, 35000, 15000, 65000, 12000]
-   ... ) as t (dept_id, year, budget);
+   ... FROM (VALUES
+   ...      (1, 2017, 45000),
+   ...      (1, 2018, 35000),
+   ...      (2, 2017, 15000),
+   ...      (2, 2018, 65000),
+   ...      (2, 2019, 12000))
+   ... as t (dept_id, year, budget);
    +---------+------+--------+-------------+
    | dept_id | year | budget | prev_budget |
    +---------+------+--------+-------------+
@@ -569,11 +576,13 @@ Example::
    ...   budget,
    ...   LEAD(budget) OVER(
    ...      PARTITION BY dept_id) next_budget
-   ... FROM unnest(
-   ...   [1, 1, 2, 2, 2],
-   ...   [2017, 2018, 2017, 2018, 2019],
-   ...   [45000, 35000, 15000, 65000, 12000]
-   ... ) as t (dept_id, year, budget);
+   ... FROM (VALUES
+   ...      (1, 2017, 45000),
+   ...      (1, 2018, 35000),
+   ...      (2, 2017, 15000),
+   ...      (2, 2018, 65000),
+   ...      (2, 2019, 12000))
+   ... as t (dept_id, year, budget);
    +---------+------+--------+-------------+
    | dept_id | year | budget | next_budget |
    +---------+------+--------+-------------+
