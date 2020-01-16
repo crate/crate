@@ -67,6 +67,9 @@ public class Symbols {
             if (key instanceof Reference && ((Reference) key).column().equals(column)) {
                 return entry.getValue();
             }
+            if (key instanceof Field && ((Field) key).path().equals(column)) {
+                return entry.getValue();
+            }
         }
         return null;
     }

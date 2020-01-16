@@ -26,17 +26,23 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Paging;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Map;
+
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.isIn;
+import static org.hamcrest.Matchers.not;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
@@ -1269,5 +1275,14 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                         "5| [5]\n" +
                         "NULL| []\n")
         );
+    }
+
+    @Test
+    public void test_group_by_on_subscript_on_object_of_sub_relation() {
+        execute("create table tbl (obj object as (x int))");
+        execute("insert into tbl (obj) values ({x=10})");
+        execute("refresh table tbl");
+        execute("select obj['x'] from (select obj from tbl) as t group by obj['x']");
+        assertThat(printedTable(response.rows()), Is.is("10\n"));
     }
 }
