@@ -57,6 +57,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused subscript expressions on top of child relations in
+  which an object column is selected to fail.
+
 - Fixed an issue in :ref:`ref-values` that would not allow combining expressions
   that can be explicitly casted or `NULL` literals in the same column.
 
