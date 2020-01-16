@@ -17,7 +17,7 @@ pipeline {
           agent { label 'medium' }
           steps {
             sh 'cd ./blackbox/ && ./bootstrap.sh'
-            sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E blackbox/docs/ docs/out/html'
+            sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E docs/ docs/out/html'
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
           }
         }
