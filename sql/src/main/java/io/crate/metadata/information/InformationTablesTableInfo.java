@@ -178,7 +178,7 @@ public class InformationTablesTableInfo extends InformationTableInfo<RelationInf
                     .build())
                 .setInnerType("mapping", ObjectType.builder()
                     .setInnerType("total_fields", ObjectType.builder()
-                        .setInnerType("limit", INTEGER)
+                        .setInnerType("limit", LONG)
                         .build())
                     .build())
                 .build(), TablesSettingsExpression::new);

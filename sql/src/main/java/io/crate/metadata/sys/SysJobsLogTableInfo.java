@@ -37,6 +37,7 @@ import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -72,7 +73,7 @@ public class SysJobsLogTableInfo extends StaticTableInfo<JobContextLog> {
             .register("classification","type", STRING,
                 () -> withNullableProperty(JobContextLog::classification, c -> c.type().name()))
             .register("classification", "labels", STRING_ARRAY,
-                () -> withNullableProperty(JobContextLog::classification, c -> c.labels().toArray(new String[0])))
+                () -> withNullableProperty(JobContextLog::classification, c -> new ArrayList<>(c.labels())))
             .register("node", ObjectType.builder()
                 .setInnerType("id", STRING)
                 .setInnerType("name", STRING)
