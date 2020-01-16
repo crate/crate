@@ -112,6 +112,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+
 @Singleton
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
@@ -230,9 +231,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         List<Symbol> leftOutputs = left.outputs();
         List<Symbol> rightOutputs = right.outputs();
         for (int i = 0; i < leftOutputs.size(); i++) {
-            if (!leftOutputs.get(i).valueType().equals(rightOutputs.get(i).valueType())) {
-                throw new UnsupportedOperationException("Corresponding output columns at position: " + (i + 1) +
-                                                        " must be compatible for all parts of a UNION");
+            var leftType = leftOutputs.get(i).valueType();
+            var rightType = rightOutputs.get(i).valueType();
+            if (!DataTypes.compareTypesById(leftType, rightType)) {
+                throw new UnsupportedOperationException(
+                    "Corresponding output columns at position: " + (i + 1) +
+                    " must be compatible for all parts of a UNION");
             }
         }
     }

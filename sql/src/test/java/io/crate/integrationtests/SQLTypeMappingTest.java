@@ -180,11 +180,12 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInvalidInsertIntoObject() throws Exception {
+        setUpObjectTable();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Validation failed for object_field['created']: Invalid timestamp");
-
-        setUpObjectTable();
+        expectedException.expectMessage(
+            "Validation failed for object_field:" +
+            " Cannot cast {\"created\"=true, \"size\"=127} to type object");
         execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
             new HashMap<String, Object>() {{
                 put("created", true);
@@ -194,7 +195,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 put("path", "/dev/null");
                 put("created", 0);
             }}
-
         });
     }
 
@@ -302,8 +302,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("insert into t1 values ({a='abc'})");
         waitForMappingUpdateOnAll("t1", "o.a");
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Validation failed for o['a']: Invalid text");
+        expectedException.expectMessage("Cannot cast {\"a\"=['123', '456']} to type object");
         execute("insert into t1 values ({a=['123', '456']})");
     }
 
