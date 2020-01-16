@@ -1243,8 +1243,15 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                                                                "    quote string index using fulltext" +
                                                                "  ))" +
                                                                ")");
-        assertThat(md.references().get(ColumnIdent.fromPath("tags")).valueType(),
-            is(new ArrayType(ObjectType.untyped())));
+        assertThat(
+            md.references().get(ColumnIdent.fromPath("tags")).valueType(),
+            is(new ArrayType<>(
+                ObjectType.builder()
+                    .setInnerType("size", DataTypes.DOUBLE)
+                    .setInnerType("numbers", DataTypes.INTEGER_ARRAY)
+                    .setInnerType("quote", DataTypes.STRING)
+                    .build()))
+        );
         assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy(),
             is(ColumnPolicy.STRICT));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).valueType(),
@@ -1252,7 +1259,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).indexType(),
             is(Reference.IndexType.NO));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.numbers")).valueType(),
-            is(new ArrayType(DataTypes.INTEGER)));
+            is(new ArrayType<>(DataTypes.INTEGER)));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).valueType(),
             is(DataTypes.STRING));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).indexType(),
