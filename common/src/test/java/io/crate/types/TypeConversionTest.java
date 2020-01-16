@@ -21,11 +21,13 @@
 
 package io.crate.types;
 
+import io.crate.common.collections.Lists2;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -183,14 +185,17 @@ public class TypeConversionTest extends CrateUnitTest {
 
     @Test
     public void selfConversionTest() throws Exception {
-        for (DataType type : com.google.common.collect.Iterables.concat(
+        for (DataType<?> type : Lists2.concat(
             DataTypes.PRIMITIVE_TYPES,
-            Arrays.asList(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, ObjectType.untyped()))) {
+            List.of(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, ObjectType.untyped()))) {
+            assertThat(
+                "type '" + type + "' is not self convertible",
+                type.isConvertableTo(type), is(true));
 
-            assertTrue(type.isConvertableTo(type));
-
-            ArrayType arrayType = new ArrayType(type);
-            assertTrue(arrayType.isConvertableTo(arrayType));
+            ArrayType<?> arrayType = new ArrayType<>(type);
+            assertThat(
+                "type '" +  arrayType + "' is not self convertible",
+                arrayType.isConvertableTo(arrayType), is(true));
         }
     }
 
@@ -215,7 +220,7 @@ public class TypeConversionTest extends CrateUnitTest {
 
     @Test
     public void testGeoPointConversion() throws Exception {
-        assertThat(DataTypes.GEO_POINT.isConvertableTo(new ArrayType(DataTypes.DOUBLE)), is(true));
+        assertThat(DataTypes.GEO_POINT.isConvertableTo(new ArrayType<>(DataTypes.DOUBLE)), is(true));
         assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_POINT), is(true));
     }
 
@@ -233,5 +238,30 @@ public class TypeConversionTest extends CrateUnitTest {
         assertThat(TimestampType.INSTANCE_WITHOUT_TZ.isConvertableTo(DoubleType.INSTANCE),
             is(true));
 
+    }
+
+    @Test
+    public void test_object_to_object_conversion_when_either_has_no_inner_types() {
+        var objectTypeWithInner = ObjectType.builder().setInnerType("field", DataTypes.STRING).build();
+        var objectTypeWithoutInner = ObjectType.untyped();
+
+        assertThat(objectTypeWithInner.isConvertableTo(objectTypeWithoutInner), is(true));
+        assertThat(objectTypeWithoutInner.isConvertableTo(objectTypeWithInner), is(true));
+    }
+
+    @Test
+    public void test_object_to_object_conversion_with_not_convertible_inner_types() {
+        var thisObj = ObjectType.builder().setInnerType("field", DataTypes.GEO_POINT).build();
+        var thatObj = ObjectType.builder().setInnerType("field", DataTypes.INTEGER).build();
+
+        assertThat(thisObj.isConvertableTo(thatObj), is(false));
+    }
+
+    @Test
+    public void test_object_to_object_conversion_with_different_inner_fields() {
+        var thisObj = ObjectType.builder().setInnerType("field1", DataTypes.INTEGER).build();
+        var thatObj = ObjectType.builder().setInnerType("field2", DataTypes.INTEGER).build();
+
+        assertThat(thisObj.isConvertableTo(thatObj), is(false));
     }
 }
