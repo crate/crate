@@ -34,6 +34,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
@@ -61,7 +62,6 @@ public class SysAllocationsTableInfo extends StaticTableInfo<SysAllocation> {
         return columnRegistrar().expressions();
     }
 
-    @SuppressWarnings({"unchecked"})
     private static ColumnRegistrar<SysAllocation> columnRegistrar() {
         return new ColumnRegistrar<SysAllocation>(IDENT, GRANULARITY)
             .register("table_schema", STRING, () -> forFunction(SysAllocation::tableSchema))
@@ -72,20 +72,24 @@ public class SysAllocationsTableInfo extends StaticTableInfo<SysAllocation> {
             .register("primary", BOOLEAN, () -> forFunction(SysAllocation::primary))
             .register("current_state", STRING, () -> forFunction(s -> s.currentState().toString()))
             .register("explanation", STRING, () -> forFunction(SysAllocation::explanation))
-            .register("decisions", ObjectType.builder()
-                .setInnerType("node_id", STRING)
-                .setInnerType("node_name", STRING)
-                .setInnerType("explanations", STRING_ARRAY)
-            .build(), () -> new SysAllocationDecisionsExpression<Map<String, Object>>() {
-                @Override
-                protected Map<String, Object> valueForItem(SysAllocation.SysAllocationNodeDecision input) {
-                    var decision = new HashMap<String, Object>(3);
-                    decision.put(Columns.DECISIONS_NODE_ID.path().get(0), input.nodeId());
-                    decision.put(Columns.DECISIONS_NODE_NAME.path().get(0), input.nodeName());
-                    decision.put(Columns.DECISIONS_EXPLANATIONS.path().get(0), input.explanations());
-                    return decision;
+            .register(
+                "decisions",
+                new ArrayType<>(ObjectType.builder()
+                                    .setInnerType("node_id", STRING)
+                                    .setInnerType("node_name", STRING)
+                                    .setInnerType("explanations", STRING_ARRAY)
+                                    .build()),
+                () -> new SysAllocationDecisionsExpression<Map<String, Object>>() {
+                    @Override
+                    protected Map<String, Object> valueForItem(SysAllocation.SysAllocationNodeDecision input) {
+                        var decision = new HashMap<String, Object>(3);
+                        decision.put(Columns.DECISIONS_NODE_ID.path().get(0), input.nodeId());
+                        decision.put(Columns.DECISIONS_NODE_NAME.path().get(0), input.nodeName());
+                        decision.put(Columns.DECISIONS_EXPLANATIONS.path().get(0), input.explanations());
+                        return decision;
+                    }
                 }
-            })
+            )
             .register("decisions","node_id", STRING, () -> new SysAllocationDecisionsExpression<String>() {
 
                 @Override
