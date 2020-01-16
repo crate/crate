@@ -39,6 +39,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.sql.Array;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -50,8 +51,10 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.StringJoiner;
 import java.util.UUID;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
@@ -823,6 +826,49 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             assertThat(result.length, is(2));
             assertThat(result[0], is(1));
             assertThat(result[1], is(0));
+        }
+    }
+
+    @Test
+    public void test_all_system_columns_can_be_queried_via_postgres() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW))) {
+            // Create a table to also have some shards and sys.allocations, sys.heatlh, sys.shards, etc are not empty.
+            conn.prepareStatement("create table tbl (x int)").execute();
+
+            ResultSet result = conn.prepareStatement(
+                "SELECT " +
+                "   table_schema, " +
+                "   table_name," +
+                "   collect_set(column_name) as columns " +
+                "FROM " +
+                "   information_schema.columns " +
+                "WHERE " +
+                "   table_schema IN ('sys', 'pg_catalog', 'information_schema') " +
+                "GROUP BY " +
+                "   1, 2").executeQuery();
+            while (result.next()) {
+                String schema = result.getString(1);
+                String table = result.getString(2);
+
+                Array columns = result.getArray(3);
+                StringJoiner columnList = new StringJoiner(", ");
+                for (String column : ((String[]) columns.getArray())) {
+                    if (column.contains("[")) {
+                        columnList.add(column);
+                    } else {
+                        columnList.add('"' + column + '"');
+                    }
+                }
+                String statement = String.format(
+                    Locale.ENGLISH,
+                    "SELECT %s FROM \"%s\".\"%s\"",
+                    columnList.toString(),
+                    schema,
+                    table
+                );
+                // This must not throw a ClassCastException
+                conn.prepareStatement(statement).executeQuery();
+            }
         }
     }
 
