@@ -45,6 +45,7 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -151,7 +152,8 @@ public class Union implements LogicalPlan {
 
         ResultDescription leftResultDesc = left.resultDescription();
         ResultDescription rightResultDesc = right.resultDescription();
-        assert leftResultDesc.streamOutputs().equals(rightResultDesc.streamOutputs())
+
+        assert DataTypes.compareTypesById(leftResultDesc.streamOutputs(), rightResultDesc.streamOutputs())
             : "Left and right must output the same types, got " +
               "lhs=" + leftResultDesc.streamOutputs() + ", rhs=" + rightResultDesc.streamOutputs();
 

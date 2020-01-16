@@ -150,6 +150,29 @@ public class PGTypesTest extends CrateUnitTest {
                             VarCharType.INSTANCE);
     }
 
+    @Test
+    public void test_map_object_and_object_with_inner_types_to_pg_json_type() {
+        assertThat(PGTypes.get(ObjectType.untyped()), instanceOf(JsonType.class));
+        assertThat(
+            PGTypes.get(
+                ObjectType.builder()
+                    .setInnerType("test", DataTypes.STRING)
+                    .build()),
+            instanceOf(JsonType.class));
+    }
+
+    @Test
+    public void test_map_array_object_and_array_object_with_inner_types_to_pg_json_type() {
+        assertThat(PGTypes.get(new ArrayType(ObjectType.untyped())), instanceOf(JsonType.class));
+        assertThat(
+            PGTypes.get(
+                new ArrayType(
+                    ObjectType.builder()
+                        .setInnerType("test", DataTypes.STRING)
+                        .build())),
+            instanceOf(JsonType.class));
+    }
+
     private void assertEntryOfPgType(Entry entry, PGType pgType) {
         Object streamedValue = writeAndReadBinary(entry, pgType);
         assertThat(streamedValue, is(entry.value));

@@ -158,7 +158,7 @@ public class TableElementsAnalyzer {
                     Reference parentRef = context.tableInfo.getReference(parent.ident());
                     if (parentRef != null) {
                         parent.position = parentRef.column().isTopLevel() ? parentRef.position() : null;
-                        if (parentRef.valueType().equals(new ArrayType(ObjectType.untyped()))) {
+                        if (parentRef.valueType().id() == ArrayType.ID) {
                             parent.collectionType(ArrayType.NAME);
                         } else {
                             parent.objectType(parentRef.columnPolicy());

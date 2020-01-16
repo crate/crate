@@ -39,16 +39,21 @@ public class ColumnRegistrarTest {
 
     @Test
     public void test_array_within_object_has_array_type() {
+        var fsDataDataType = new ArrayType(
+            ObjectType.builder()
+                .setInnerType("path", DataTypes.STRING)
+                .build()
+        );
         var columns = new ColumnRegistrar<>(new RelationName("doc", "dummy"), RowGranularity.DOC);
         columns.register(
             "fs",
             ObjectType.builder()
                 .setInnerType("total", ObjectType.builder().setInnerType("size", LONG).build())
-                .setInnerType("data", new ArrayType(ObjectType.builder().setInnerType("path", DataTypes.STRING).build()))
+                .setInnerType("data", fsDataDataType)
                 .build(),
             () -> null
         );
         Reference reference = columns.infos().get(new ColumnIdent("fs", "data"));
-        assertThat(reference.valueType(), Matchers.is(new ArrayType(ObjectType.untyped())));
+        assertThat(reference.valueType(), Matchers.is(fsDataDataType));
     }
 }

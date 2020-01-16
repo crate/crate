@@ -103,17 +103,21 @@ public class PGTypes {
     public static PGType get(DataType type) {
         if (type instanceof CollectionType) {
             DataType<?> innerType = ((CollectionType) type).innerType();
-            if (innerType instanceof CollectionType) {
+            if (DataTypes.isCollectionType(innerType) || innerType.id() == ObjectType.ID) {
                 // if this is a nested collection stream it as JSON because
-                // postgres binary format doesn't support multidimensional arrays with sub-arrays of different length
+                // postgres binary format doesn't support multidimensional arrays
+                // with sub-arrays of different length
                 // (something like [ [1, 2], [3] ] is not supported)
                 return JsonType.INSTANCE;
             }
+        } else if (type.id() == ObjectType.ID) {
+            return JsonType.INSTANCE;
         }
+
         PGType pgType = CRATE_TO_PG_TYPES.get(type);
         if (pgType == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "No type mapping from '%s' to pg_type", type.getName()));
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "No type mapping from '%s' to pg_type", type.getName()));
         }
         return pgType;
     }

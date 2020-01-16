@@ -97,31 +97,6 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         if (value == null) {
             return true;
         }
-        if (type.equals(DataTypes.STRING) && (value instanceof BytesRef || value instanceof String)) {
-            return true;
-        }
-        if (type instanceof ArrayType) {
-            DataType innerType = ((ArrayType) type).innerType();
-            while (innerType instanceof ArrayType && value.getClass().isArray()) {
-                type = innerType;
-                innerType = ((ArrayType) innerType).innerType();
-                value = ((Object[]) value)[0];
-            }
-            if (innerType.equals(DataTypes.STRING)) {
-                for (Object o : ((Object[]) value)) {
-                    if (o != null && !(o instanceof String || o instanceof BytesRef)) {
-                        return false;
-                    }
-                }
-                return true;
-            } else {
-                return Arrays.equals((Object[]) value, ((ArrayType) type).value(value));
-            }
-        }
-        // types like GeoPoint are represented as arrays
-        if (value.getClass().isArray() && Objects.deepEquals(value, type.value(value))) {
-            return true;
-        }
         if (type.id() == ObjectType.ID) {
             //noinspection unchecked
             Map<String, Object> mapValue = (Map<String, Object>) value;
@@ -135,9 +110,17 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
             // lets do the expensive "deep" map value conversion only after everything else succeeded
             Map<String, Object> safeValue = objectType.value(value);
             return safeValue.size() == mapValue.size();
+        } else if (type instanceof ArrayType) {
+            DataType innerType = ((ArrayType) type).innerType();
+            for (Object object : ((Object[]) value)) {
+                if (typeMatchesValue(innerType, object) == false) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return Objects.equals(type.value(value), value);
         }
-
-        return Objects.equals(type.value(value), value);
     }
 
     @Override

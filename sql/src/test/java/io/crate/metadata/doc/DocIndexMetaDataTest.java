@@ -1230,8 +1230,15 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                                                                "    quote string index using fulltext" +
                                                                "  ))" +
                                                                ")");
-        assertThat(md.references().get(ColumnIdent.fromPath("tags")).valueType(),
-            is(new ArrayType(ObjectType.untyped())));
+        assertThat(
+            md.references().get(ColumnIdent.fromPath("tags")).valueType(),
+            is(new ArrayType(
+                ObjectType.builder()
+                    .setInnerType("size", DataTypes.DOUBLE)
+                    .setInnerType("numbers", DataTypes.INTEGER_ARRAY)
+                    .setInnerType("quote", DataTypes.STRING)
+                    .build()))
+        );
         assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy(),
             is(ColumnPolicy.STRICT));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).valueType(),

@@ -31,9 +31,7 @@ import io.crate.metadata.Schemas;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -292,6 +290,6 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             "function f(a) { return Array.prototype.join.call(a, '.'); }");
         assertEvaluate("f(['a', 'b'])", is("a.b"));
         assertEvaluate("f(['a', 'b'])", is("a.b"),
-            Literal.of(new BytesRef[]{BytesRefs.toBytesRef("a"), BytesRefs.toBytesRef("b")}, DataTypes.STRING_ARRAY));
+            Literal.of(new String[]{"a", "b"}, DataTypes.STRING_ARRAY));
     }
 }

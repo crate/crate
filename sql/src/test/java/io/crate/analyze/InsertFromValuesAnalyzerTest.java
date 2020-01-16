@@ -418,7 +418,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertInvalidObjectArrayInObject() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for details: invalid value for object array type");
+        expectedException.expectMessage(
+            "Validation failed for details: " +
+            "Cannot cast {\"arguments\"=[1, 2, 3], \"awesome\"=true} to type object");
         e.analyze("insert into deeply_nested (details) " +
                 "values (" +
                 "  {awesome=true, arguments=[1,2,3]}" +
@@ -428,7 +430,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertInvalidObjectArrayFieldInObjectArray() {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags['metadata']['id']: Invalid bigint");
+        expectedException.expectMessage(
+            "Validation failed for tags: Cannot cast [{\"metadata\"=[{\"id\"=1}, " +
+            "{\"id\"=2}], \"name\"='right'}, {\"metadata\"=[{\"id\"='foo'}], \"name\"='wrong'}] to type object_array");
         e.analyze("insert into deeply_nested (tags) " +
                 "values (" +
                 "  [" +

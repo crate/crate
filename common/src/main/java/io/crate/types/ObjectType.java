@@ -38,6 +38,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import static io.crate.types.DataTypes.ALLOWED_CONVERSIONS;
+import static io.crate.types.DataTypes.UNDEFINED;
 
 public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
@@ -69,10 +74,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     private ImmutableMap<String, DataType<?>> innerTypes;
 
-    /**
-     * Constructor used for the {@link org.elasticsearch.common.io.stream.Streamable}
-     * interface which initializes the fields after object creation.
-     */
     private ObjectType() {
         this(ImmutableMap.of());
     }
@@ -211,6 +212,46 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return m;
         }
         return null;
+    }
+
+    @Override
+    public boolean isConvertableTo(DataType o) {
+        Set<DataType> conversions = ALLOWED_CONVERSIONS.getOrDefault(id(), Set.of());
+        if (conversions.contains(o)) {
+            return true;
+        }
+
+        if (o.id() != id() || o.id() == UNDEFINED.id()) {
+            return false;
+        }
+        ObjectType that = (ObjectType) o;
+        if (innerTypes.isEmpty() || that.innerTypes().isEmpty()) {
+            return true;
+        } else {
+            for (var thisInnerField : this.innerTypes.entrySet()) {
+                var thisInnerType = thisInnerField.getValue();
+                var thatInnerType = that.innerTypes().get(thisInnerField.getKey());
+                if (thatInnerType == null
+                    || !thisInnerType.isConvertableTo(thatInnerType)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!super.equals(o)) {
+            return false;
+        }
+        ObjectType that = (ObjectType) o;
+        return Objects.equals(innerTypes, that.innerTypes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), innerTypes);
     }
 
     @Override

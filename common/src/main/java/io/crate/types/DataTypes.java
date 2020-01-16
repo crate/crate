@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.RandomAccess;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -397,6 +398,32 @@ public final class DataTypes {
             idx++;
         }
         return streamer;
+    }
+
+    public static boolean compareTypesById(DataType<?> left, DataType<?> right) {
+        if (left.id() != right.id()) {
+            return false;
+        } else if (isCollectionType(left)) {
+            return compareTypesById(
+                ((ArrayType) left).innerType(),
+                ((ArrayType) right).innerType());
+        } else {
+            return true;
+        }
+    }
+
+    public static boolean compareTypesById(List<DataType> left, List<DataType> right) {
+        if (left.size() != right.size()) {
+            return false;
+        }
+        assert left instanceof RandomAccess && right instanceof RandomAccess
+            : "data type lists should support RandomAccess for fast lookups";
+        for (int i = 0; i < left.size(); i++) {
+            if (!compareTypesById(left.get(i), right.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

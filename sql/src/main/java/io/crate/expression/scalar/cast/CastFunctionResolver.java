@@ -44,19 +44,19 @@ public class CastFunctionResolver {
     static final String TRY_CAST_PREFIX = "try_";
     private static final String TO_PREFIX = "to_";
 
-    static final Map<DataType, String> CAST_SIGNATURES; // data type -> name
+    static final Map<String, DataType> CAST_SIGNATURES; // cast function name -> data type
 
     static {
-        CAST_SIGNATURES = new HashMap<>((PRIMITIVE_TYPES.size()) * 3 + 3);
-        for (var type : PRIMITIVE_TYPES) {
-            CAST_SIGNATURES.put(type, castFuncName(type));
+        CAST_SIGNATURES = new HashMap<>((PRIMITIVE_TYPES.size()) * 2 + 3);
+        for (DataType type : PRIMITIVE_TYPES) {
+            CAST_SIGNATURES.put(castFuncName(type), type);
 
             var arrayType = new ArrayType(type);
-            CAST_SIGNATURES.put(arrayType, castFuncName(arrayType));
+            CAST_SIGNATURES.put(castFuncName(arrayType), arrayType);
         }
-        CAST_SIGNATURES.put(ObjectType.untyped(), castFuncName(ObjectType.untyped()));
-        CAST_SIGNATURES.put(GEO_POINT, castFuncName(GEO_POINT));
-        CAST_SIGNATURES.put(GEO_SHAPE, castFuncName(GEO_SHAPE));
+        CAST_SIGNATURES.put(castFuncName(ObjectType.untyped()), ObjectType.untyped());
+        CAST_SIGNATURES.put(castFuncName(GEO_POINT), GEO_POINT);
+        CAST_SIGNATURES.put(castFuncName(GEO_SHAPE), GEO_SHAPE);
     }
 
     private static String castFuncName(DataType type) {
@@ -73,18 +73,18 @@ public class CastFunctionResolver {
      * resolve the needed conversion function info based on the wanted return data type
      */
     @VisibleForTesting
-    static FunctionInfo functionInfo(DataType dataType, DataType returnType, boolean tryCast) {
-        String functionName = CAST_SIGNATURES.get(returnType);
-        if (functionName == null) {
+    private static FunctionInfo functionInfo(DataType dataType, DataType returnType, boolean tryCast) {
+        String castFunctionName = castFuncName(returnType);
+        if (CAST_SIGNATURES.get(castFunctionName) == null) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "No cast function found for return type %s",
                     returnType.getName()));
         }
-        functionName = tryCast ? TRY_CAST_PREFIX + functionName : functionName;
-        return new FunctionInfo(new FunctionIdent(functionName, List.of(dataType)), returnType);
+        castFunctionName = tryCast ? TRY_CAST_PREFIX + castFunctionName : castFunctionName;
+        return new FunctionInfo(new FunctionIdent(castFunctionName, List.of(dataType)), returnType);
     }
 
     public static boolean supportsExplicitConversion(DataType returnType) {
-        return CAST_SIGNATURES.containsKey(returnType);
+        return CAST_SIGNATURES.containsKey(castFuncName(returnType));
     }
 }

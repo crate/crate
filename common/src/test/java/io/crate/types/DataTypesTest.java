@@ -22,17 +22,15 @@
 package io.crate.types;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+import static io.crate.types.DataTypes.compareTypesById;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNot.not;
@@ -290,6 +288,39 @@ public class DataTypesTest extends CrateUnitTest {
     @Test
     public void testInt8IsAliasedToLong() {
         assertThat(DataTypes.ofName("int8"), is(DataTypes.LONG));
+    }
+
+    @Test
+    public void test_compare_by_id_primitive_types() {
+        assertThat(compareTypesById(DataTypes.STRING, DataTypes.STRING), is(true));
+        assertThat(compareTypesById(DataTypes.INTEGER, DataTypes.DOUBLE), is(false));
+    }
+
+    @Test
+    public void test_compare_by_id_complex_types() {
+        assertThat(compareTypesById(ObjectType.untyped(), DataTypes.INTEGER_ARRAY), is(false));
+        assertThat(compareTypesById(ObjectType.untyped(), DataTypes.GEO_POINT), is(false));
+    }
+
+    @Test
+    public void test_compare_by_id_primitive_and_complex_types() {
+        assertThat(compareTypesById(DataTypes.STRING_ARRAY, DataTypes.STRING), is(false));
+        assertThat(compareTypesById(ObjectType.untyped(), DataTypes.DOUBLE), is(false));
+    }
+
+    @Test
+    public void test_compare_by_id_array_types_of_the_same_dimension() {
+        assertThat(compareTypesById(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY), is(true));
+        assertThat(compareTypesById(DataTypes.STRING_ARRAY, DataTypes.INTEGER_ARRAY), is(false));
+    }
+
+    @Test
+    public void test_compare_by_id_array_types_of_not_equal_dimension_and_same_inner_type() {
+        assertThat(
+            compareTypesById(
+                new ArrayType(DataTypes.STRING_ARRAY),
+                DataTypes.STRING_ARRAY),
+            is(false));
     }
 
     private static void assertCompareValueTo(Object val1, Object val2, int expected) {
