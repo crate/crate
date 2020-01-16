@@ -23,9 +23,9 @@
 package io.crate.expression.reference.sys;
 
 
+import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public abstract class ArrayTypeNestableContextCollectExpression<RowType, IterType, ReturnType>
@@ -39,20 +39,12 @@ public abstract class ArrayTypeNestableContextCollectExpression<RowType, IterTyp
 
     @Override
     public void setNextRow(RowType rowType) {
-        computeValue(items(rowType));
+        List<IterType> items = items(rowType);
+        value = items == null ? null : Lists2.map(items, this::valueForItem);
     }
 
     @Override
     public List<ReturnType> value() {
         return value;
-    }
-
-    protected void computeValue(List<IterType> items) {
-        int size = items.size();
-        ArrayList<ReturnType> result = new ArrayList<>(size);
-        for (int idx = 0; idx < size; idx++) {
-            result.add(valueForItem(items.get(idx)));
-        }
-        value = result;
     }
 }
