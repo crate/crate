@@ -82,7 +82,14 @@ public class QueriedSelectRelation<T extends AnalyzedRelation> implements Analyz
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on QueriedSelectRelation is only supported for READ operations");
         }
-        return fields.getWithSubscriptFallback(path, this, subRelation);
+        Field field = fields.getWithSubscriptFallback(path, this, subRelation);
+        // Dynamic allocated subscript fields must be added to the output so upper relations can resolve them correctly
+        if (field != null
+            && field.path().isTopLevel() == false
+            && querySpec.outputs().contains(field) == false) {
+            querySpec.outputs().add(field.pointer());
+        }
+        return field;
     }
 
     @Override

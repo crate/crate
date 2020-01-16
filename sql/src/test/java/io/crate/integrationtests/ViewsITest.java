@@ -170,4 +170,30 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         execute("create view v_test as select * from test");
         execute("select * from v_test where x > current_timestamp - 1000 * 60 * 60 * 24");
     }
+
+    @Test
+    public void test_subscript_on_views_supported_in_order_by() {
+        execute("create table t1 (x object as (a int), y text)");
+        execute("insert into t1 (x, y) values ({a = 2}, '2'), ({a = 1}, '1')");
+        execute("refresh table t1");
+        execute("create view v1 as select x, y from t1");
+        // must not throw an exception, subscript must be resolved (converted into subscript function)
+        execute("select x['a'], y from v1 order by 1");
+        assertThat(printedTable(response.rows()), is(
+            "1| 1\n" +
+            "2| 2\n"));
+    }
+
+    @Test
+    public void test_subscript_on_views_supported_in_group_by() {
+        execute("create table t1 (x object as (a int))");
+        execute("insert into t1 (x) values ({a = 2}), ({a = 1}), ({a = 1})");
+        execute("refresh table t1");
+        execute("create view v1 as select * from t1");
+        // must not throw an exception, subscript must be resolved (converted into subscript function)
+        execute("select x['a'], count(*) from v1 group by 1 order by 2 desc");
+        assertThat(printedTable(response.rows()), is(
+            "1| 2\n" +
+            "2| 1\n"));
+    }
 }

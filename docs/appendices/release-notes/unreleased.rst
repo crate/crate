@@ -57,4 +57,6 @@ None
 Fixes
 =====
 
-None
+- Fixed support for using subscript expressions on sub-relations as ordering or
+  grouping symbols, an exception was raised before.
+  Example: ``SELECT ... FROM (SELECT a FROM t1) ORDER BY a['b']``

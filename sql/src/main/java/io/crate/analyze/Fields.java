@@ -71,7 +71,9 @@ public class Fields {
             if (childField == null) {
                 return null;
             }
-            return new Field(scope, column, childField);
+            field = new Field(scope, column, childField);
+            // Add this new dynamic allocated field so upper relations can resolve/map it correctly
+            add(field);
         }
         return field;
     }
