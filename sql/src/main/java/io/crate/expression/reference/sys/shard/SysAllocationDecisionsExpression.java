@@ -32,13 +32,4 @@ public abstract class SysAllocationDecisionsExpression<ReturnType> extends Array
     protected List<SysAllocation.SysAllocationNodeDecision> items(SysAllocation row) {
         return row.decisions();
     }
-
-    @Override
-    public void setNextRow(SysAllocation sysAllocation) {
-        value = null;
-        List<SysAllocation.SysAllocationNodeDecision> decisions = items(sysAllocation);
-        if (decisions != null) {
-            computeValue(decisions);
-        }
-    }
 }
