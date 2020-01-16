@@ -35,6 +35,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.protocols.postgres.parser.PgArrayParsingException;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -68,7 +69,7 @@ public final class ValueNormalizer {
         Literal<?> literal;
         try {
             literal = (Literal<?>) valueSymbol.cast(reference.valueType());
-        } catch (ConversionException e) {
+        } catch (PgArrayParsingException | ConversionException e) {
             throw new ColumnValidationException(
                 reference.column().name(),
                 tableInfo.ident(),
@@ -86,7 +87,7 @@ public final class ValueNormalizer {
             } else if (isObjectArray(targetType)) {
                 normalizeObjectArrayValue((List<Map<String, Object>>) value, reference, tableInfo);
             }
-        } catch (ConversionException e) {
+        } catch (PgArrayParsingException | ConversionException e) {
             throw new ColumnValidationException(
                 reference.column().name(),
                 tableInfo.ident(),

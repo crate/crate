@@ -21,7 +21,6 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.reference.ReferenceResolver;
@@ -35,11 +34,10 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.GeoPointType;
+import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
@@ -56,7 +54,7 @@ import static io.crate.types.ArrayType.unnest;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
-    private static final Set<DataType<?>> NO_FIELD_TYPES = ImmutableSet.of(ObjectType.untyped(), DataTypes.GEO_SHAPE);
+    private static final Set<Integer> NO_FIELD_TYPES_IDS = Set.of(ObjectType.ID, GeoShapeType.ID);
     private final FieldTypeLookup fieldTypeLookup;
 
     public LuceneReferenceResolver(FieldTypeLookup fieldTypeLookup) {
@@ -109,7 +107,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         String fqn = ref.column().fqn();
         MappedFieldType fieldType = fieldTypeLookup.get(fqn);
         if (fieldType == null) {
-            return NO_FIELD_TYPES.contains(unnest(ref.valueType())) || isIgnoredDynamicReference(ref)
+            return NO_FIELD_TYPES_IDS.contains(unnest(ref.valueType()).id()) || isIgnoredDynamicReference(ref)
                 ? DocCollectorExpression.create(toSourceLookup(ref))
                 : new NullValueCollectorExpression();
         }

@@ -42,9 +42,9 @@ public class TryCastScalarFunction extends CastFunction {
     }
 
     public static void register(ScalarFunctionModule module) {
-        for (Map.Entry<DataType, String> function : CastFunctionResolver.CAST_SIGNATURES.entrySet()) {
-            String name = CastFunctionResolver.TRY_CAST_PREFIX + function.getValue();
-            module.register(name, new Resolver(function.getKey(), name));
+        for (Map.Entry<String, DataType> function : CastFunctionResolver.CAST_SIGNATURES.entrySet()) {
+            String name = CastFunctionResolver.TRY_CAST_PREFIX + function.getKey();
+            module.register(name, new Resolver(function.getValue(), name));
         }
     }
 
