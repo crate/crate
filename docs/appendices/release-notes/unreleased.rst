@@ -57,4 +57,5 @@ None
 Fixes
 =====
 
-None
+- Fixed a regression introduced in ``4.0.11`` which caused a
+  ``ClassCastException`` when querying ``sys.allocations``.
