@@ -46,5 +46,9 @@ None
 Fixes
 =====
 
+- Fixed a `ClassCastException` that occurred when querying certain columns from
+  ``information_schema.tables``, ``sys.jobs_log`` or ``sys.jobs_metrics`` with
+  a client connected via PostgreSQL wire protocol.
+
 - Fixed a regression introduced in ``4.0.11`` which caused a
   ``ClassCastException`` when querying ``sys.allocations``.
