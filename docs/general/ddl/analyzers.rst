@@ -110,6 +110,16 @@ This is the same as the `standard-analyzer`_ analyzer.
 
 Uses the :ref:`lowercase-tokenizer` tokenizer.
 
+.. _plain-analyzer:
+
+``plain``
+----------
+
+``type='plain'``
+
+The plain analyzer is an alias for the keyword_ analyzer and cannot be extended.
+You must extend the keyword_ analyzer instead.
+
 .. _whitespace-analyzer:
 
 ``whitespace``
@@ -144,7 +154,7 @@ stopwords_path
 ``keyword``
 -----------
 
-``type=keyword``
+``type='keyword'``
 
 Creates one single token from the field-contents.
 
