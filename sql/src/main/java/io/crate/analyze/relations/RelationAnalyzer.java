@@ -91,6 +91,13 @@ import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
+<<<<<<< HEAD
+=======
+import io.crate.sql.tree.Values;
+import io.crate.sql.tree.ValuesList;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+>>>>>>> b992c4df50... Allow more lenient column type validation in VALUES.
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
@@ -707,4 +714,96 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         return super.visitTableSubquery(node, context);
     }
+<<<<<<< HEAD
+=======
+
+    @Override
+    public AnalyzedRelation visitValues(Values values, StatementAnalysisContext context) {
+        var expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            context.transactionContext(),
+            context.convertParamFunction(),
+            FieldProvider.UNSUPPORTED,
+            new SubqueryAnalyzer(this, context)
+        );
+        var expressionAnalysisContext = new ExpressionAnalysisContext();
+        java.util.function.Function<Expression, Symbol> expressionToSymbol =
+            e -> expressionAnalyzer.convert(e, expressionAnalysisContext);
+
+        // There is a first pass to convert expressions from row oriented format:
+        // `[[1, a], [2, b]]` to columns `[[1, 2], [a, b]]`
+        //
+        // At the same time we determine the column type with the highest precedence,
+        // so that we don't fail with slight type miss-matches (long vs. int)
+        List<ValuesList> rows = values.rows();
+        assert rows.size() > 0 : "Parser grammar enforces at least 1 row";
+        ValuesList firstRow = rows.get(0);
+        int numColumns = firstRow.values().size();
+
+        ArrayList<List<Symbol>> columns = new ArrayList<>();
+        ArrayList<DataType<?>> targetTypes = new ArrayList<>(numColumns);
+        for (int c = 0; c < numColumns; c++) {
+            ArrayList<Symbol> columnValues = new ArrayList<>();
+            DataType<?> targetType = DataTypes.UNDEFINED;
+            for (int r = 0; r < rows.size(); r++) {
+                List<Expression> row = rows.get(r).values();
+                if (row.size() != numColumns) {
+                    throw new IllegalArgumentException(
+                        "VALUES lists must all be the same length. " +
+                        "Found row with " + numColumns + " items and another with " + columns.size() + " items");
+                }
+                Symbol cell = expressionToSymbol.apply(row.get(c));
+                columnValues.add(cell);
+
+                var cellType = cell.valueType();
+                if (r > 0 // skip first cell, we don't have to check for self-conversion
+                    && !cellType.isConvertableTo(targetType)
+                    && targetType.id() != DataTypes.UNDEFINED.id()) {
+                    throw new IllegalArgumentException(
+                        "The types of the columns within VALUES lists must match. " +
+                        "Found `" + targetType + "` and `" + cellType + "` at position: " + c);
+                }
+                if (cellType.precedes(targetType)) {
+                    targetType = cellType;
+                }
+            }
+            targetTypes.add(targetType);
+            columns.add(columnValues);
+        }
+
+        ArrayList<Symbol> arrays = new ArrayList<>(columns.size());
+        for (int c = 0; c < numColumns; c++) {
+            DataType<?> targetType = targetTypes.get(c);
+            ArrayType<?> arrayType = new ArrayType<>(targetType);
+            List<Symbol> columnValues = Lists2.map(columns.get(c), s -> s.cast(targetType));
+            arrays.add(new Function(
+                new FunctionInfo(new FunctionIdent(ArrayFunction.NAME, Symbols.typeView(columnValues)), arrayType),
+                columnValues
+            ));
+        }
+        Function function = new Function(
+            new FunctionInfo(
+                new FunctionIdent(ValuesFunction.NAME, Symbols.typeView(arrays)),
+                ObjectType.untyped(),
+                FunctionInfo.Type.TABLE
+            ),
+            arrays
+        );
+        FunctionImplementation implementation = functions.getQualified(function.info().ident());
+        TableFunctionImplementation tableFunc = TableFunctionFactory.from(implementation);
+        TableInfo tableInfo = tableFunc.createTableInfo();
+        Operation.blockedRaiseException(tableInfo, context.currentOperation());
+        QualifiedName qualifiedName = new QualifiedName(ValuesFunction.NAME);
+        TableFunctionRelation relation = new TableFunctionRelation(
+            tableInfo,
+            tableFunc,
+            function,
+            qualifiedName
+        );
+        context.startRelation();
+        context.currentRelationContext().addSourceRelation(qualifiedName, relation);
+        context.endRelation();
+        return relation;
+    }
+>>>>>>> b992c4df50... Allow more lenient column type validation in VALUES.
 }
