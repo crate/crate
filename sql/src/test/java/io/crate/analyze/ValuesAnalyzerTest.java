@@ -23,12 +23,15 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 
 public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -50,8 +53,8 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_error_is_raised_if_the_types_of_the_rows_are_not_compatible() {
-        expectedException.expectMessage(
-            "The types of the columns within VALUES lists must match. Found `bigint` and `text` at position: 0");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot cast 'foo' to type bigint");
         e.analyze("VALUES (1), ('foo')");
     }
 
@@ -62,5 +65,23 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             SymbolMatchers.isField("x"),
             SymbolMatchers.isField("y")
         ));
+    }
+
+    @Test
+    public void test_nulls_in_column_values_must_not_fail_type_validation() {
+        AnalyzedRelation relation = e.analyze("VALUES (1), (null), (2), (null)");
+        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.LONG)));
+    }
+
+    @Test
+    public void test_implicitly_convertible_column_values_must_not_fail_type_validation() {
+        AnalyzedRelation relation = e.analyze("VALUES (1), (1.0)");
+        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.DOUBLE)));
+    }
+
+    @Test
+    public void test_highest_precedence_type_is_chosen_as_target_column_type() {
+        AnalyzedRelation relation = e.analyze("VALUES (null), (1.0), (1), ('1')");
+        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.DOUBLE)));
     }
 }
