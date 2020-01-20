@@ -2402,6 +2402,33 @@ Example:
     +--------------+
     SELECT 1 row in set (... sec)
 
+.. _version:
+
+``version``
+-----------
+
+Returns the CrateDB version information.
+
+Returns: ``text``
+
+Synopsis::
+
+  version()
+
+Example:
+
+::
+
+    cr> select version();
+    +---------...-+
+    | version()   |
+    +---------...-+
+    | CrateDB ... |
+    +---------...-+
+    SELECT 1 row in set (... sec)
+
+
+
 Special functions
 =================
 
