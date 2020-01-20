@@ -53,8 +53,8 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
 
     private static NoopCircuitBreaker NOOP_CIRCUIT_BREAKER = new NoopCircuitBreaker("dummy");
     private static RowN[] TEST_ROWS = new RowN[]{
-        new RowN(new String[]{"a", "b", "c"}),
-        new RowN(new String[]{"d", "e", "f"})
+        new RowN("a", "b", "c"),
+        new RowN("d", "e", "f")
     };
 
     private long originalBufferSize;
