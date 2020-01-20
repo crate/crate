@@ -63,6 +63,7 @@ import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.systeminformation.PgTypeofFunction;
+import io.crate.expression.scalar.systeminformation.VersionFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.scalar.timestamp.TimezoneFunction;
 import io.crate.metadata.FunctionIdent;
@@ -171,6 +172,7 @@ public class ScalarFunctionModule extends AbstractModule {
         PgGetUserByIdFunction.register(this);
         PgTypeofFunction.register(this);
         register(new CurrentDatabaseFunction());
+        VersionFunction.register(this);
 
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the
