@@ -64,7 +64,7 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOrderByOnColumnNotPresentInDistinctOutputsIsNotAllowed() {
-        expectedException.expectMessage("Cannot order by \"id\"");
+        expectedException.expectMessage("Cannot ORDER BY `id`");
         e.plan("select distinct name from users order by id");
     }
 

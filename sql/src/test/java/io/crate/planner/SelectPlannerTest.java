@@ -39,6 +39,7 @@ import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
@@ -889,5 +890,24 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Boundary[address]\n" +
             "Collect[doc.users | [address] | All]\n"
         ));
+    }
+
+    @Test
+    public void test_order_by_on_subscript_on_obj_output_of_sub_relation() {
+        String stmt = "SELECT address['postcode'] FROM (SELECT address FROM users) AS u ORDER BY 1";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[address['postcode']]\n" +
+            "FetchOrEval[address['postcode']]\n" +
+            "Boundary[address, subscript_obj(address, 'postcode')]\n" +
+            "Boundary[address, subscript_obj(address, 'postcode')]\n" +
+            "OrderBy[subscript_obj(address, 'postcode') ASC]\n" +
+            "Collect[doc.users | [address] | All]\n"
+        ));
+
+        Merge merge = e.plan(stmt);
+        Collect collect = (Collect) merge.subPlan();
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
+        assertThat(collectPhase.projections(), contains(instanceOf(OrderedTopNProjection.class)));
     }
 }
