@@ -28,6 +28,8 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.planner.ExecutionPlan;
@@ -39,8 +41,7 @@ import javax.annotation.Nullable;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
+import java.util.function.Consumer;
 
 public class Order extends ForwardingLogicalPlan {
 
@@ -90,16 +91,17 @@ public class Order extends ForwardingLogicalPlan {
             plan = Merge.ensureOnHandler(plan, plannerContext);
         }
         InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(source.outputs());
-        ensureOrderByColumnsArePresentInOutputs(source.outputs(), orderBy.orderBySymbols());
+        List<Symbol> orderByInputColumns = InputColumns.create(this.orderBy.orderBySymbols(), ctx);
+        ensureOrderByColumnsArePresentInOutputs(orderByInputColumns);
         OrderedTopNProjection topNProjection = new OrderedTopNProjection(
             Limit.limitAndOffset(limit, offset),
             0,
             InputColumns.create(outputs, ctx),
-            InputColumns.create(orderBy.orderBySymbols(), ctx),
-            orderBy.reverseFlags(),
-            orderBy.nullsFirst()
+            orderByInputColumns,
+            this.orderBy.reverseFlags(),
+            this.orderBy.nullsFirst()
         );
-        PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(orderBy, outputs);
+        PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(this.orderBy, outputs);
         plan.addProjection(
             topNProjection,
             limit,
@@ -107,6 +109,19 @@ public class Order extends ForwardingLogicalPlan {
             positionalOrderBy
         );
         return plan;
+    }
+
+    private static void ensureOrderByColumnsArePresentInOutputs(List<Symbol> orderByInputColumns) {
+        Consumer<? super Symbol> raiseExpressionMissingInOutputsError = symbol -> {
+            throw new UnsupportedOperationException(
+                SymbolFormatter.format(
+                    "Cannot ORDER BY `%s`, the column does not appear in the outputs of the underlying relation",
+                    symbol));
+        };
+        for (Symbol orderByInputColumn : orderByInputColumns) {
+            FieldsVisitor.visitFields(orderByInputColumn, raiseExpressionMissingInOutputsError);
+            RefVisitor.visitRefs(orderByInputColumn, raiseExpressionMissingInOutputsError);
+        }
     }
 
     @Override
@@ -117,17 +132,6 @@ public class Order extends ForwardingLogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new Order(Lists2.getOnlyElement(sources), orderBy);
-    }
-
-    private static void ensureOrderByColumnsArePresentInOutputs(List<Symbol> outputs, List<Symbol> orderBySymbols) {
-        Set<Symbol> columnsInOutputs = extractColumns(outputs);
-        for (Symbol columnInOrderBy : extractColumns(orderBySymbols)) {
-            if (!columnsInOutputs.contains(columnInOrderBy)) {
-                throw new UnsupportedOperationException(SymbolFormatter.format(
-                    "Cannot order by \"%s\", as the column does not appear in the outputs of the underlying relation",
-                    columnInOrderBy));
-            }
-        }
     }
 
     @Override

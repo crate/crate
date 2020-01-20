@@ -128,11 +128,12 @@ public final class OperatorUtils {
                  */
                 if (mappedSymbol == null && !f.path().isTopLevel()) {
                     ColumnIdent root = f.path().getRoot();
-                    for (Symbol symbol : mapping.keySet()) {
+                    for (var entry : mapping.entrySet()) {
+                        Symbol symbol = entry.getKey();
                         if (symbol instanceof Field) {
                             Field field = (Field) symbol;
                             if (f.relation().getQualifiedName().equals(field.relation().getQualifiedName()) && field.path().equals(root)) {
-                                List<Symbol> arguments = mapTail(symbol, f.path().path(), Literal::of);
+                                List<Symbol> arguments = mapTail(entry.getValue(), f.path().path(), Literal::of);
                                 return new io.crate.expression.symbol.Function(
                                     new FunctionInfo(
                                         new FunctionIdent(SubscriptObjectFunction.NAME, Symbols.typeView(arguments)),
