@@ -93,7 +93,13 @@ public final class UpdatePlanner {
         Plan plan;
         if (table instanceof DocTableRelation) {
             DocTableRelation docTable = (DocTableRelation) table;
-            plan = plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx, update.returnValues(), update.fields());
+            plan = plan(docTable,
+                        update.assignmentByTargetCol(),
+                        update.query(),
+                        functions,
+                        plannerCtx,
+                        update.returnValues(),
+                        update.fields());
         } else {
             plan = new Update((plannerContext, params, subQueryValues) ->
                 sysUpdate(
@@ -102,7 +108,9 @@ public final class UpdatePlanner {
                     update.assignmentByTargetCol(),
                     update.query(),
                     params,
-                    subQueryValues
+                    subQueryValues,
+                    update.returnValues(),
+                    update.fields()
                 )
             );
         }
@@ -127,7 +135,15 @@ public final class UpdatePlanner {
         }
 
         return new Update((plannerContext, params, subQueryValues) ->
-            updateByQuery(functions, plannerContext, docTable, assignmentByTargetCol, detailedQuery, params, subQueryValues, returnValues, outputFields));
+                              updateByQuery(functions,
+                                            plannerContext,
+                                            docTable,
+                                            assignmentByTargetCol,
+                                            detailedQuery,
+                                            params,
+                                            subQueryValues,
+                                            returnValues,
+                                            outputFields));
     }
 
     @FunctionalInterface
@@ -184,19 +200,48 @@ public final class UpdatePlanner {
                                            Map<Reference, Symbol> assignmentByTargetCol,
                                            Symbol query,
                                            Row params,
-                                           SubQueryResults subQueryResults) {
+                                           SubQueryResults subQueryResults,
+                                           @Nullable List<Symbol> returnValues,
+                                           @Nullable List<Field> outputFields) {
         TableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
-        SysUpdateProjection updateProjection = new SysUpdateProjection(idReference.valueType(), assignmentByTargetCol);
+        Symbol[] outputSymbols;
+        if (returnValues == null) {
+            outputSymbols = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
+        } else {
+            outputSymbols = new Symbol[outputFields.size()];
+            for (int i = 0; i < outputFields.size(); i++) {
+                outputSymbols[i] = new InputColumn(i, outputFields.get(i).valueType());
+            }
+        }
+        SysUpdateProjection updateProjection = new SysUpdateProjection(
+            new InputColumn(0, idReference.valueType()),
+            assignmentByTargetCol,
+            Version.CURRENT,
+            outputSymbols,
+            returnValues == null ? null : returnValues.toArray(new Symbol[]{})
+        );
         WhereClause where = new WhereClause(SubQueryAndParamBinder.convert(query, params, subQueryResults));
-        return createCollectAndMerge(plannerContext,
-                                     tableInfo,
-                                     idReference,
-                                     updateProjection,
-                                     where,
-                                     1,
-                                     1,
-                                     MergeCountProjection.INSTANCE);
+
+        if (returnValues == null) {
+            return createCollectAndMerge(plannerContext,
+                                         tableInfo,
+                                         idReference,
+                                         updateProjection,
+                                         where,
+                                         1,
+                                         1,
+                                         MergeCountProjection.INSTANCE);
+        } else {
+            return createCollectAndMerge(plannerContext,
+                                         tableInfo,
+                                         idReference,
+                                         updateProjection,
+                                         where,
+                                         updateProjection.outputs().size(),
+                                         -1
+            );
+        }
     }
 
     private static ExecutionPlan updateByQuery(Functions functions,

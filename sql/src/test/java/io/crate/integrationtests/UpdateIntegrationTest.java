@@ -26,6 +26,7 @@ import io.crate.exceptions.VersioninigValidationException;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.hamcrest.core.IsNull;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -1000,5 +1001,23 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[1][0], is(1));
         assertThat(response.rows()[1][1], is(3L));
         assertThat(response.rows()[1][2], is("updated"));
+    }
+
+    @Test
+    public void test_update_sys_tables_returning_values_with_expressions_and_outputnames() throws Exception {
+        execute("update sys.node_checks set acknowledged = true where id = 1 " +
+                "returning id, UPPER(description) as description, acknowledged as ack");
+
+        long numberOfNodes = this.clusterService().state().getNodes().getSize();
+
+        assertThat((response.rowCount()), is(numberOfNodes));
+        assertThat((response.cols()[0]), is("id"));
+        assertThat((response.cols()[1]), is("description"));
+        assertThat((response.cols()[2]), is("ack"));
+        for (int i = 0; i < numberOfNodes; i++) {
+            assertThat(response.rows()[i][0], is(1));
+            assertThat(response.rows()[i][1], is(IsNull.notNullValue()));
+            assertThat(response.rows()[i][2], is(true));
+        }
     }
 }

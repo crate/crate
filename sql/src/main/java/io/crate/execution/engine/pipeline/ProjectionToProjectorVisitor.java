@@ -35,6 +35,7 @@ import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.SysUpdateProjector;
+import io.crate.execution.dml.SysUpdateResultSetProjector;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dsl.projection.AggregationProjection;
@@ -83,7 +84,9 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableDefinition;
+import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.SysRowUpdater;
+import io.crate.expression.reference.sys.check.node.SysNodeCheck;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -93,6 +96,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
@@ -628,7 +632,19 @@ public class ProjectionToProjectorVisitor
         assert readCtx != null : "readCtx must not be null";
         assert rowUpdater != null : "row updater needs to exist";
         Consumer<Object> rowWriter = rowUpdater.newRowWriter(assignmentCols, valueInputs, readCtx.expressions());
-        return new SysUpdateProjector(rowWriter);
+
+        if (projection.returnValues() == null) {
+            return new SysUpdateProjector(rowWriter);
+        } else {
+            InputFactory.Context<NestableCollectExpression<SysNodeCheck, ?>> cntx = new InputFactory(
+                functions).ctxForRefs(
+                context.txnCtx, new StaticTableReferenceResolver<>(SysNodeChecksTableInfo.expressions()));
+            cntx.add(List.of(projection.returnValues()));
+            return new SysUpdateResultSetProjector(rowUpdater,
+                                                   rowWriter,
+                                                   cntx.expressions(),
+                                                   cntx.topLevelInputs());
+        }
     }
 
     @Override
