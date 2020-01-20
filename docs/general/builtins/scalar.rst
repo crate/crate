@@ -528,6 +528,51 @@ Example::
    In both cases, the scalar functions lpad and rpad, do now accept a len
    greater than 50000.
 
+.. _scalar-encode:
+
+``encode(bytea, format)``
+-------------------------
+
+Encode takes a binary string in hex format and returns a textual representation
+into the specified format. Supported formats are base64, hex, and escape. The
+escape format represents unprintable characters with an octal sequence `\nnn`.
+
+Synopsis::
+
+    encode(string1, format)
+
+Example::
+
+    cr> select encode(E'123\b\t56', 'base64');
+    +--------------------------------+
+    | encode(E'123\b\t56', 'base64') |
+    +--------------------------------+
+    | MTIzCAk1Ng==                   |
+    +--------------------------------+
+    SELECT 1 row in set (... sec)
+
+.. _scalar-decode:
+
+``decode(text, format)``
+-------------------------
+
+Decodes text encoded in the given format, which are listed in the `encode`
+documentation. Returns a binary string in the hex format.
+
+Synopsis::
+
+    decode(text1, format)
+
+Example::
+
+    cr> select decode('T\214', 'escape');
+    +---------------------------+
+    | decode('T\214', 'escape') |
+    +---------------------------+
+    | \x548c                    |
+    +---------------------------+
+    SELECT 1 row in set (... sec)
+
 Date and time functions
 =======================
 
