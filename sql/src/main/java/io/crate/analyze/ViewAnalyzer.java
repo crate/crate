@@ -56,12 +56,17 @@ public final class ViewAnalyzer {
             throw new UnsupportedOperationException("Creating a view in the \"blob\" schema is not supported");
         }
         AnalyzedRelation query;
+        String formattedQuery;
         try {
-            String formattedQuery = SqlFormatter.formatSql(createView.query());
+            formattedQuery = SqlFormatter.formatSql(createView.query());
+        } catch (Exception e) {
+            throw new UnsupportedOperationException("Invalid query used in CREATE VIEW. Query: " + createView.query());
+        }
+        try {
             // Analyze the formatted Query to make sure the formatting didn't mess it up in any way.
             query = relationAnalyzer.analyzeUnbound((Query) SqlParser.createStatement(formattedQuery), txnCtx, ParamTypeHints.EMPTY);
         } catch (Exception e) {
-            throw new UnsupportedOperationException("Query cannot be used in a VIEW: " + createView.query());
+            throw new UnsupportedOperationException("Invalid query used in CREATE VIEW. " + e.getMessage() + ". Query: " + formattedQuery);
         }
 
         // We do not bother with exists checks here because it wouldn't be "atomic" as it might be based
