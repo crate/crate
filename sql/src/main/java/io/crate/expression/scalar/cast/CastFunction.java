@@ -40,10 +40,14 @@ import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.UndefinedType;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
+import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_SIGNATURES;
+import static io.crate.expression.scalar.cast.CastFunctionResolver.TRY_CAST_PREFIX;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
 
@@ -52,23 +56,27 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
     private static final String TRY_CAST_SQL_NAME = "try_cast";
     private static final String CAST_SQL_NAME = "cast";
 
-    protected final DataType returnType;
-    protected final FunctionInfo info;
+    private final DataType<?> returnType;
+    private final FunctionInfo info;
+    private final BiFunction<Symbol, DataType<?>, Symbol> onNormalizeException;
+    private final BiFunction<Object, DataType<?>, Object> onEvaluateException;
 
-    CastFunction(FunctionInfo info) {
+    private CastFunction(FunctionInfo info,
+                         BiFunction<Symbol, DataType<?>, Symbol> onNormalizeException,
+                         BiFunction<Object, DataType<?>, Object> onEvaluateException) {
         this.info = info;
         this.returnType = info.returnType();
+        this.onNormalizeException = onNormalizeException;
+        this.onEvaluateException = onEvaluateException;
     }
 
-    @SafeVarargs
     @Override
-    public final Object evaluate(TransactionContext txnCtx, Input<Object>... args) {
-        assert args.length == 1 : "Number of arguments must be 1";
+    public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         Object value = args[0].value();
         try {
             return returnType.value(value);
         } catch (ClassCastException | IllegalArgumentException e) {
-            return onEvaluateException(value);
+            return onEvaluateException.apply(value, returnType);
         }
     }
 
@@ -79,30 +87,21 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
 
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
-        assert symbol.arguments().size() == 1 : "Number of arguments must be 1";
         Symbol argument = symbol.arguments().get(0);
         if (argument.symbolType().isValueSymbol()) {
             Object value = ((Input) argument).value();
             try {
                 return Literal.of(returnType, returnType.value(value));
             } catch (ClassCastException | IllegalArgumentException e) {
-                return onNormalizeException(argument);
+                return onNormalizeException.apply(argument, returnType);
             }
         }
         return symbol;
     }
 
-    protected Symbol onNormalizeException(Symbol argument) {
-        throw new ConversionException(argument, returnType);
-    }
-
-    protected Object onEvaluateException(Object argument) {
-        throw new ConversionException(argument, returnType);
-    }
-
     @Override
     public String beforeArgs(Function function) {
-        if (function.info().ident().name().startsWith(CastFunctionResolver.TRY_CAST_PREFIX)) {
+        if (function.info().ident().name().startsWith(TRY_CAST_PREFIX)) {
             return TRY_CAST_SQL_NAME + PAREN_OPEN;
         } else {
             return CAST_SQL_NAME + PAREN_OPEN;
@@ -126,34 +125,105 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         return true;
     }
 
-    private static class Resolver extends BaseFunctionResolver {
+    private static class CastResolver extends BaseFunctionResolver {
 
+        private final DataType<?> type;
         private final String name;
-        private final DataType targetType;
 
-        Resolver(DataType targetType, String name) {
-            super(FuncParams.builder(Param.ANY).build());
+        private final BiFunction<Symbol, DataType<?>, Symbol> castOnNormalizeException =
+            (argument, returnType) -> {
+                throw new ConversionException(argument, returnType);
+            };
+        private final BiFunction<Object, DataType<?>, Object> castOnEvaluateException =
+            (argument, returnType) -> {
+                throw new ConversionException(argument, returnType);
+            };
+
+        CastResolver(DataType type, String name) {
+            super(FuncParams.builder(Param.ANY)
+                      .withVarArgs(Param.ANY)
+                      .limitVarArgOccurrences(1)
+                      .build());
+            this.type = type;
             this.name = name;
-            this.targetType = targetType;
-        }
-
-        void checkPreconditions(List<DataType> dataTypes) {
-            DataType convertFrom = dataTypes.get(0);
-            if (!convertFrom.isConvertableTo(targetType)) {
-                throw new ConversionException(convertFrom, targetType);
-            }
         }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) {
-            checkPreconditions(dataTypes);
-            return new CastFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), targetType));
+            DataType<?> targetType;
+            if (dataTypes.size() > 1) {
+                var targetTypeViaArg = dataTypes.get(1);
+                targetType = targetTypeViaArg.id() != UndefinedType.ID ? targetTypeViaArg : type;
+            } else {
+                targetType = type;
+            }
+
+            DataType<?> sourceType = dataTypes.get(0);
+            if (!sourceType.isConvertableTo(targetType)) {
+                throw new ConversionException(sourceType, targetType);
+            }
+
+            return new CastFunction(
+                new FunctionInfo(new FunctionIdent(name, dataTypes), targetType),
+                castOnNormalizeException,
+                castOnEvaluateException
+            );
+        }
+    }
+
+    private static class TryCastResolver extends BaseFunctionResolver {
+
+        private final DataType<?> type;
+        private final String name;
+
+        private final BiFunction<Symbol, DataType<?>, Symbol> castOnNormalizeException =
+            (argument, returnType) -> Literal.NULL;
+        private final BiFunction<Object, DataType<?>, Object> castOnEvaluateException =
+            (argument, returnType) -> null;
+
+        TryCastResolver(DataType type, String name) {
+            super(FuncParams.builder(Param.ANY)
+                      .withVarArgs(Param.ANY)
+                      .limitVarArgOccurrences(1)
+                      .build());
+            this.type = type;
+            this.name = name;
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) {
+            DataType<?> targetType;
+            if (dataTypes.size() > 1) {
+                var targetTypeViaArg = dataTypes.get(1);
+                targetType = targetTypeViaArg.id() != UndefinedType.ID ? targetTypeViaArg : type;
+            } else {
+                targetType = type;
+            }
+
+            return new CastFunction(
+                new FunctionInfo(new FunctionIdent(name, dataTypes), targetType),
+                castOnNormalizeException,
+                castOnEvaluateException
+            );
         }
     }
 
     public static void register(ScalarFunctionModule module) {
-        for (Map.Entry<DataType, String> function : CastFunctionResolver.CAST_SIGNATURES.entrySet()) {
-            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
+        // We still maintain the cast function to type mapping to stay
+        // bwc by keeping the old `to_<type>` and `try_<type>` function signatures.
+        //
+        // We can drop the per type cast function already in 4.2. This change
+        // would require handling the metadata for the places where the old
+        // signature of the cast function were used, e.g. generated columns.
+        for (Map.Entry<String, DataType> function : CAST_SIGNATURES.entrySet()) {
+            module.register(
+                function.getKey(),
+                new CastResolver(function.getValue(), function.getKey()));
+
+            var tryCastFunctionName = TRY_CAST_PREFIX + function.getKey();
+            module.register(
+                tryCastFunctionName,
+                new TryCastResolver(function.getValue(), tryCastFunctionName));
         }
     }
 }

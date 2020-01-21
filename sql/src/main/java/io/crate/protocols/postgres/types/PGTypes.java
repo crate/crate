@@ -86,7 +86,7 @@ public class PGTypes {
         }
         PG_TYPES_TO_CRATE_TYPE.put(0, DataTypes.UNDEFINED);
         PG_TYPES_TO_CRATE_TYPE.put(TEXT_OID, DataTypes.STRING);
-        PG_TYPES_TO_CRATE_TYPE.put(TEXT_ARRAY_OID, new ArrayType(DataTypes.STRING));
+        PG_TYPES_TO_CRATE_TYPE.put(TEXT_ARRAY_OID, new ArrayType<>(DataTypes.STRING));
         TYPES = new HashSet<>(CRATE_TO_PG_TYPES.values()); // some pgTypes are used multiple times, de-dup them
         // the below is added manually as currently we do not want to expose this type to crateDB
         // we merely need this type information in 'pg_types' static table for postgres compatibility
@@ -102,19 +102,25 @@ public class PGTypes {
     }
 
     public static PGType get(DataType type) {
-        if (type instanceof ArrayType) {
+        if (type.id() == ArrayType.ID) {
             DataType<?> innerType = ((ArrayType) type).innerType();
-            if (innerType instanceof ArrayType) {
+            if (innerType.id() == ArrayType.ID) {
                 // if this is a nested collection stream it as JSON because
-                // postgres binary format doesn't support multidimensional arrays with sub-arrays of different length
+                // postgres binary format doesn't support multidimensional arrays
+                // with sub-arrays of different length
                 // (something like [ [1, 2], [3] ] is not supported)
                 return JsonType.INSTANCE;
+            } else if (innerType.id() == ObjectType.ID) {
+                return PGArray.JSON_ARRAY;
             }
+        } else if (type.id() == ObjectType.ID) {
+            return JsonType.INSTANCE;
         }
+
         PGType pgType = CRATE_TO_PG_TYPES.get(type);
         if (pgType == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "No type mapping from '%s' to pg_type", type.getName()));
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "No type mapping from '%s' to pg_type", type.getName()));
         }
         return pgType;
     }

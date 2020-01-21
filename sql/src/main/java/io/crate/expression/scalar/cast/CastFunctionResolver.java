@@ -23,6 +23,7 @@ package io.crate.expression.scalar.cast;
 
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -44,7 +45,7 @@ public class CastFunctionResolver {
     static final String TRY_CAST_PREFIX = "try_";
     private static final String TO_PREFIX = "to_";
 
-    static final Map<DataType, String> CAST_SIGNATURES; // data type -> name
+    static final Map<String, DataType> CAST_SIGNATURES; // cast function name -> data type
 
     static {
         List<DataType> CAST_FUNC_TYPES = Lists2.concat(
@@ -53,38 +54,50 @@ public class CastFunctionResolver {
 
         CAST_SIGNATURES = new HashMap<>((CAST_FUNC_TYPES.size()) * 2);
         for (var type : CAST_FUNC_TYPES) {
-            CAST_SIGNATURES.put(type, castFuncName(type));
+            CAST_SIGNATURES.put(castFuncName(type), type);
 
             var arrayType = new ArrayType<>(type);
-            CAST_SIGNATURES.put(arrayType, castFuncName(arrayType));
+            CAST_SIGNATURES.put(castFuncName(arrayType), arrayType);
         }
     }
 
-    private static String castFuncName(DataType type) {
+    static String castFuncName(DataType type) {
         return TO_PREFIX + type.getName();
     }
 
     public static Symbol generateCastFunction(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
         DataType sourceType = sourceSymbol.valueType();
-        FunctionInfo functionInfo = functionInfo(sourceType, targetType, tryCast);
-        return new Function(functionInfo, List.of(sourceSymbol));
+        // Currently, it is not possible to resolve a function based on
+        // its return type. For instance, it is not possible to generate
+        // an object cast function with the object return type which inner
+        // types have to be considered as well. Therefore, to bypass this
+        // limitation we encode the return type info as the second function
+        // argument.
+        return new Function(
+            functionInfo(List.of(sourceType, targetType), targetType, tryCast),
+            // the null literal is passed as an argument to match the method signature
+            List.of(sourceSymbol, Literal.NULL));
     }
 
     /**
      * resolve the needed conversion function info based on the wanted return data type
      */
-    private static FunctionInfo functionInfo(DataType dataType, DataType returnType, boolean tryCast) {
-        String functionName = CAST_SIGNATURES.get(returnType);
-        if (functionName == null) {
+    private static FunctionInfo functionInfo(List<DataType> dataTypes, DataType returnType, boolean tryCast) {
+        var castFunctionName = castFuncName(returnType);
+        if (CAST_SIGNATURES.get(castFunctionName) == null) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "No cast function found for return type %s",
                     returnType.getName()));
         }
-        functionName = tryCast ? TRY_CAST_PREFIX + functionName : functionName;
-        return new FunctionInfo(new FunctionIdent(functionName, List.of(dataType)), returnType);
+        castFunctionName = tryCast ? TRY_CAST_PREFIX + castFunctionName : castFunctionName;
+        return new FunctionInfo(new FunctionIdent(castFunctionName, dataTypes), returnType);
     }
 
     public static boolean supportsExplicitConversion(DataType returnType) {
-        return CAST_SIGNATURES.containsKey(returnType);
+        return CAST_SIGNATURES.containsKey(castFuncName(returnType));
+    }
+
+    public static boolean isCastFunction(String name) {
+        return name.startsWith(TRY_CAST_PREFIX) || name.startsWith(TO_PREFIX);
     }
 }
