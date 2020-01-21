@@ -61,7 +61,7 @@ Fixes
 =====
 
 - Fixed a bug that would lead to insertion of records via ``INSERT INTO ...
-  (SELECT ... FROM ..)`` and ``INSERT INTO ... VALUES (...)``  into different
+  (SELECT ... FROM ..)`` and ``INSERT INTO ... VALUES (...)`` into different
   partitions while using the same partition by value. This occurs only when
   the partition key is an object field of the :ref:`timestamp
   <timestamp_data_type>` data type.
