@@ -66,8 +66,8 @@ Changes
 - Added the :ref:`obj_description(integer, text) <obj_description>` scalar
   function for improved PostgreSQL compatibility.
 
-- Added support for using columns of type ``long`` inside subscript
-  expressions. (``array_expr[column]``).
+- Added support for using columns of type ``long`` inside subscript expressions
+  (e.g., ``array_expr[column]``).
 
 - Made :ref:`generate_series <table-functions-generate-series>` addressable by
   specifying the ``pg_catalog`` schema explicitly. So, for example, both
