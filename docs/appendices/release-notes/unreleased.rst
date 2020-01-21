@@ -52,6 +52,9 @@ None
 Changes
 =======
 
+- Added support for using columns of type ``long`` inside subscript
+  expressions. (``array_expr[column]``).
+
 - Made :ref:`generate_series <table-functions-generate-series>` addressable by
   specifying the ``pg_catalog`` schema explicitly. So both ``generate_series(1,
   2)`` and ``pg_catalog.generate_series(1, 2)`` are valid.
@@ -60,6 +63,7 @@ Changes
 
 - Added support for the PostgreSQL notation to refer to array types. For
   example, it is now possible to use ``text[]`` instead of ``array(test)``.
+
 
 Fixes
 =====
