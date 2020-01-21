@@ -53,8 +53,8 @@ Changes
 =======
 
 - Made :ref:`generate_series <table-functions-generate-series>` addressable by
-  specifying the ``pg_catalog`` schema explicitly. So both ``generate_series(1,
-  2)`` and ``pg_catalog.generate_series(1, 2)`` are valid.
+  specifying the ``pg_catalog`` schema explicitly. So, for example, both
+  ``generate_series(1, 2)`` and ``pg_catalog.generate_series(1, 2)`` are valid.
 
 - Added the :ref:`version() <version>` system information function.
 
