@@ -2307,6 +2307,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(
             printedTable(response.rows()),
             is("test| 04732d1g64p36d9i60o30c1g| {metadata['date']=1401235200000}\n"));
-        assertThat(printedTable(execute("SELECT count(*) FROM test").rows()), is("2\n"));
+        assertThat(
+            printedTable(execute("SELECT * FROM test").rows()),
+            is("1| {date=1401235200000}\n" +
+               "2| {date=1401235200000}\n"));
     }
 }

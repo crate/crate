@@ -24,8 +24,6 @@ package io.crate.integrationtests;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersioninigValidationException;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -710,7 +708,21 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(4L));
         assertThat((int) response.rows()[3][0], is(4));
         assertThat((String) response.rows()[3][1], is("Arthur"));
+    }
 
+    @Test
+    public void test_insert_from_values_into_table_partitioned_by_object_field() {
+        execute(
+            "CREATE TABLE t (o object as (x int, y text)) " +
+            "PARTITIONED BY (o['x'])");
+        execute(
+            "INSERT INTO t (o) (select ?)",
+            new Object[]{Map.of("x", 2, "y", "test")});
+        refresh();
+
+        assertThat(
+            printedTable(execute("SELECT * FROM t").rows()),
+            is("{x=2, y=test}\n"));
     }
 
     @Test

@@ -70,6 +70,9 @@ Changes
 Fixes
 =====
 
+- Fixed a bug that would not allow a user to select nested object's column
+  values if it is used in the :ref:`partitioned_by_clause` clause.
+
 - Fixed a bug that would lead to insertion of records via ``INSERT INTO ...
   (SELECT ... FROM ..)`` and ``INSERT INTO ... VALUES (...)`` into different
   partitions while using the same partition by value. This occurs only when

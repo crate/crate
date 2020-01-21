@@ -59,7 +59,6 @@ import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.ValuesList;
 import io.crate.types.DataType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
@@ -507,20 +506,16 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
             for (ColumnIdent partitionIdent : context.tableInfo().partitionedBy()) {
                 if (partitionIdent.getRoot().equals(columnIdent)) {
-                    Object nestedValue = mapValue.remove(String.join(".", partitionIdent.path()));
-                    if (nestedValue instanceof BytesRef) {
-                        nestedValue = ((BytesRef) nestedValue).utf8ToString();
-                    }
+                    Object nestedValue = mapValue.get(String.join(".", partitionIdent.path()));
                     if (partitionMap != null) {
-                        partitionMap.put(partitionIdent.fqn(), BytesRefs.toString(nestedValue));
+                        partitionMap.put(partitionIdent.fqn(), String.valueOf(nestedValue));
                     }
                 }
             }
-
-            // put the rest into source
-            return mapValue;
+            // put into source
+            return columnValue;
         } else if (partitionMap != null) {
-            partitionMap.put(columnIdent.name(), BytesRefs.toString(columnValue));
+            partitionMap.put(columnIdent.name(), String.valueOf(columnValue));
             return columnValue;
         }
         return null;
