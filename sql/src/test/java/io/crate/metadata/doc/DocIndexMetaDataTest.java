@@ -1243,8 +1243,15 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                                                                "    quote string index using fulltext" +
                                                                "  ))" +
                                                                ")");
-        assertThat(md.references().get(ColumnIdent.fromPath("tags")).valueType(),
-            is(new ArrayType(ObjectType.untyped())));
+        assertThat(
+            md.references().get(ColumnIdent.fromPath("tags")).valueType(),
+            is(new ArrayType<>(
+                ObjectType.builder()
+                    .setInnerType("size", DataTypes.DOUBLE)
+                    .setInnerType("numbers", DataTypes.INTEGER_ARRAY)
+                    .setInnerType("quote", DataTypes.STRING)
+                    .build()))
+        );
         assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy(),
             is(ColumnPolicy.STRICT));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).valueType(),
@@ -1252,7 +1259,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).indexType(),
             is(Reference.IndexType.NO));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.numbers")).valueType(),
-            is(new ArrayType(DataTypes.INTEGER)));
+            is(new ArrayType<>(DataTypes.INTEGER)));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).valueType(),
             is(DataTypes.STRING));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).indexType(),
@@ -1464,5 +1471,39 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = getDocIndexMetaDataFromStatement(
             "create table t1 (x string STORAGE WITH (columnstore = false))");
         assertThat(md.columns().iterator().next().isColumnStoreDisabled(), is(true));
+    }
+
+    @Test
+    public void test_resolve_inner_object_types() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+        .startObject()
+            .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("properties")
+                    .startObject("object")
+                        .field("type", "object")
+                            .startObject("properties")
+                                .startObject("nestedObject")
+                                    .field("type", "object")
+                                    .startObject("properties")
+                                        .startObject("nestedNestedString")
+                                            .field("type", "string")
+                                        .endObject()
+                                    .endObject()
+                                .endObject()
+                                .startObject("nestedString")
+                                    .field("type", "string")
+                                .endObject()
+                             .endObject()
+                    .endObject()
+                .endObject()
+            .endObject()
+        .endObject();
+        IndexMetaData metaData = getIndexMetaData("test", builder);
+        DocIndexMetaData md = newMeta(metaData, "test");
+
+        ObjectType objectType = (ObjectType) md.references().get(new ColumnIdent("object")).valueType();
+        assertThat(objectType.resolveInnerType(List.of("nestedString")), is(DataTypes.STRING));
+        assertThat(objectType.resolveInnerType(List.of("nestedObject")).id(), is(ObjectType.ID));
+        assertThat(objectType.resolveInnerType(List.of("nestedObject", "nestedNestedString")), is(DataTypes.STRING));
     }
 }
