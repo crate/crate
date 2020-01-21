@@ -36,6 +36,7 @@ import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -58,20 +59,23 @@ public class SysMetricsTableInfo extends StaticTableInfo<MetricsView> {
             .register("stdev", DOUBLE, () -> forFunction(MetricsView::stdDeviation))
             .register("max", LONG, () -> forFunction(MetricsView::maxValue))
             .register("min", LONG, () -> forFunction(MetricsView::minValue))
-            .register("percentiles", ObjectType.builder()
-                .setInnerType("25", LONG)
-                .setInnerType("50", LONG)
-                .setInnerType("75", LONG)
-                .setInnerType("90", LONG)
-                .setInnerType("95", LONG)
-                .setInnerType("99", LONG)
-                .build(), () -> forFunction(m -> Map.of(
-                "25", m.getValueAtPercentile(25.0),
-                "50", m.getValueAtPercentile(50.0),
-                "75", m.getValueAtPercentile(75.0),
-                "90", m.getValueAtPercentile(90.0),
-                "95", m.getValueAtPercentile(95.0),
-                "99", m.getValueAtPercentile(99.0)
+            .register(
+                "percentiles",
+                ObjectType.builder()
+                    .setInnerType("25", LONG)
+                    .setInnerType("50", LONG)
+                    .setInnerType("75", LONG)
+                    .setInnerType("90", LONG)
+                    .setInnerType("95", LONG)
+                    .setInnerType("99", LONG)
+                    .build(),
+                () -> forFunction(m -> Map.of(
+                    "25", m.getValueAtPercentile(25.0),
+                    "50", m.getValueAtPercentile(50.0),
+                    "75", m.getValueAtPercentile(75.0),
+                    "90", m.getValueAtPercentile(90.0),
+                    "95", m.getValueAtPercentile(95.0),
+                    "99", m.getValueAtPercentile(99.0)
                 )
             ))
             .register("percentiles", "25", LONG, () -> forFunction(m -> m.getValueAtPercentile(25.0)))
@@ -92,17 +96,13 @@ public class SysMetricsTableInfo extends StaticTableInfo<MetricsView> {
             ))
             .register("node", "id", STRING, () -> forFunction(ignored -> localNode.get().getId()))
             .register("node", "name", STRING, () -> forFunction(ignored -> localNode.get().getName()))
-            .register("classification", ObjectType.builder()
-                .setInnerType("type", STRING)
-                .setInnerType("labels", STRING_ARRAY)
-                .build(), () -> forFunction(h -> Map.of(
-                 "type", h.classification().type().name(),
-                 "labels", h.classification().labels().toArray(new String[0])
+            .register(
+                "classification",
+                ColumnRegistrar.object(
+                    ColumnRegistrar.entry("type", STRING, x -> x.classification().type().name()),
+                    ColumnRegistrar.entry("labels", STRING_ARRAY, x -> List.copyOf(x.classification().labels())
                 )
-
-            ))
-            .register("classification", "type", STRING, () -> forFunction(h -> h.classification().type().name()))
-            .register("classification", "labels", STRING_ARRAY, () -> forFunction(h -> h.classification().labels().toArray(new String[0])));
+            ));
     }
 
     SysMetricsTableInfo(Supplier<DiscoveryNode> localNode) {

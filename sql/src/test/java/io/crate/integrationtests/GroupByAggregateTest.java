@@ -1299,4 +1299,13 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         Object secondId = response.rows()[1][0];
         assertThat(firstId, not(is(secondId)));
     }
+
+    @Test
+    public void test_group_by_on_subscript_on_object_of_sub_relation() {
+        execute("create table tbl (obj object as (x int))");
+        execute("insert into tbl (obj) values ({x=10})");
+        execute("refresh table tbl");
+        execute("select obj['x'] from (select obj from tbl) as t group by obj['x']");
+        assertThat(printedTable(response.rows()), Is.is("10\n"));
+    }
 }

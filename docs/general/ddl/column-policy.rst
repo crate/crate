@@ -48,8 +48,8 @@ Note that adding new columns to a table with a ``dynamic`` policy will affect
 the schema of the table. Once a column is added, it shows up in the
 ``information_schema.columns`` table and its type and attributes are fixed. It
 will have the type that was guessed by its inserted/updated value and they will
-always be ``not_indexed`` which means they are analyzed with the ``plain``
-analyzer, which means as-is.
+be analyzed as ``plain`` with the :ref:`plain <plain-analyzer>` analyzer,
+which means as-is.
 
 .. NOTE::
 

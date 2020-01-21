@@ -95,7 +95,8 @@ characters are allowed. Example::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-Columns of type text can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
+Columns of type text can also be analyzed. By default the :ref:`plain
+<plain-analyzer>` analyzer is used. See :ref:`sql_ddl_index_fulltext`.
 
 .. NOTE::
 
@@ -761,7 +762,8 @@ the schema of the table. Once a column is added, it shows up in the
 ``information_schema.columns`` table and its type and attributes are fixed.
 They will have the type that was guessed by their inserted/updated value and
 they will always be ``not_indexed`` which means they are analyzed with the
-``plain`` analyzer, which means as-is.
+:ref:`plain <plain-analyzer>`, which means as-is.
+
 
 If a new column ``a`` was added with type ``integer``, adding strings to this
 column will result in an error.

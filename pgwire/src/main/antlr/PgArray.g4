@@ -45,7 +45,7 @@ STRING
     ;
 
 CHAR
-    : [0-9a-zA-Z]
+    : [!-z]
     ;
 
 

@@ -34,6 +34,7 @@ import java.util.function.Function;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.fail;
 
 public class PgArrayParserTest {
@@ -50,8 +51,8 @@ public class PgArrayParserTest {
         }
     };
 
-    private static Object parse(String array, Function<byte[], Object> convert) {
-        return PgArrayParser.parse(array.getBytes(UTF_8), convert);
+    private static <T> T parse(String array, Function<byte[], Object> convert) {
+        return (T) PgArrayParser.parse(array.getBytes(UTF_8), convert);
     }
 
     @Test
@@ -67,6 +68,11 @@ public class PgArrayParserTest {
     @Test
     public void test_string_array_with_null_items() {
         assertThat(parse("{\"a\", NULL, NULL}", String::new), is(Arrays.asList("a", null, null)));
+    }
+
+    @Test
+    public void test_dash_and_underline_are_allowed_in_unquoted_strings() {
+        assertThat(parse("{catalog_name,end-exec}", String::new), contains("catalog_name","end-exec"));
     }
 
     @Test

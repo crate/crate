@@ -25,6 +25,7 @@ package io.crate.metadata.sys;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
+import io.crate.types.ArrayType;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,6 +65,8 @@ public class SysAllocationsTest extends SQLTransportIntegrationTest {
                 "FROM sys.allocations " +
                 "WHERE table_name = 't1' " +
                 "ORDER BY primary, shard_id");
+
+        assertThat(response.columnTypes()[0].id(), is(ArrayType.ID));
         assertThat(response.rowCount(), is(2L));
 
         Object[] row;

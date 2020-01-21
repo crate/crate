@@ -97,6 +97,12 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_create_view_with_query_with_invalid_column_results_in_userfriendly_error_message() {
+        expectedException.expectMessage("Invalid query used in CREATE VIEW. Column invalid unknown. Query: SELECT \"invalid\"");
+        e.analyze("create view v1 as select invalid from t1");
+    }
+
+    @Test
     public void testAliasCanBeUsedToAvoidDuplicateColumnNamesInQuery() {
         CreateViewStmt createView = e.analyze("create view v1 as select x, x as y from t1");
         assertThat(createView.analyzedQuery().fields(), contains(isField("x"), isField("y")));

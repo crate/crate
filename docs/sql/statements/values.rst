@@ -40,4 +40,5 @@ An example::
 It is commonly used in :ref:`ref-insert` to provide values to insert into a
 table.
 
-All expressions within the same column must have the same type.
+All expressions within the same column must have the same type or its types
+can be implicitly converted.
