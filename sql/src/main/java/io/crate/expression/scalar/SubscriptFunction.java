@@ -57,24 +57,18 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     @Override
     public Object evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 2 : "invalid number of arguments";
-        return evaluate(args[0].value(), args[1].value());
-    }
-
-    private static Object evaluate(Object element, Object index) {
+        Object element = args[0].value();
+        Object index = args[1].value();
         if (element == null || index == null) {
             return null;
         }
-        assert (element instanceof Object[] || element instanceof List)
-            : "first argument must be of type array or list";
+        assert element instanceof List : "first argument is typed as array and must be a List";
         assert index instanceof Number : "second argument must be of type integer";
 
         // 1 based arrays as SQL standard says
         int idx = DataTypes.INTEGER.value(index) - 1;
         try {
-            if (element instanceof List) {
-                return ((List) element).get(idx);
-            }
-            return ((Object[]) element)[idx];
+            return ((List<?>) element).get(idx);
         } catch (IndexOutOfBoundsException e) {
             return null;
         }
