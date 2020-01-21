@@ -33,6 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -42,6 +43,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -81,8 +83,8 @@ import java.util.stream.Collectors;
  */
 public final class GenerateSeries<T extends Number> extends TableFunctionImplementation<T> {
 
-    public static final String NAME = "generate_series";
-    private static final RelationName RELATION_NAME = new RelationName("", NAME);
+    public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "generate_series");
+    private static final RelationName RELATION_NAME = new RelationName(PgCatalogSchemaInfo.NAME, NAME.name());
     private final FunctionInfo info;
     private final T defaultStep;
     private final BinaryOperator<T> minus;

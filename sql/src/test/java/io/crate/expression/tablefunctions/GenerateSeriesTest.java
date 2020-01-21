@@ -36,6 +36,15 @@ public class GenerateSeriesTest extends AbstractTableFunctionsTest {
     }
 
     @Test
+    public void test_generate_series_can_be_addressed_via_pg_catalog_schema() {
+        assertExecute(
+            "pg_catalog.generate_series(3, 4)",
+            "3\n" +
+            "4\n"
+        );
+    }
+
+    @Test
     public void from2To8With2AsStep() {
         assertExecute(
             "generate_series(2, 8, 2)",

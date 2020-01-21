@@ -52,6 +52,10 @@ None
 Changes
 =======
 
+- Made :ref:`generate_series <table-functions-generate-series>` addressable by
+  specifying the ``pg_catalog`` schema explicitly. So both ``generate_series(1,
+  2)`` and ``pg_catalog.generate_series(1, 2)`` are valid.
+
 - Added the :ref:`version() <version>` system information function.
 
 - Added support for the PostgreSQL notation to refer to array types. For
