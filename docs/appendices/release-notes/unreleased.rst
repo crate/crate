@@ -52,6 +52,9 @@ None
 Changes
 =======
 
+- Added the :ref:`obj_description(integer, text) <obj_description>` scalar
+  function for improved PostgreSQL compatibility.
+
 - Added support for using columns of type ``long`` inside subscript
   expressions. (``array_expr[column]``).
 
@@ -63,7 +66,6 @@ Changes
 
 - Added support for the PostgreSQL notation to refer to array types. For
   example, it is now possible to use ``text[]`` instead of ``array(test)``.
-
 
 Fixes
 =====

@@ -61,6 +61,7 @@ import io.crate.expression.scalar.string.StringPaddingFunction;
 import io.crate.expression.scalar.string.TrimFunctions;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
+import io.crate.expression.scalar.systeminformation.ObjDescriptionFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.systeminformation.PgTypeofFunction;
 import io.crate.expression.scalar.systeminformation.VersionFunction;
@@ -173,6 +174,7 @@ public class ScalarFunctionModule extends AbstractModule {
         PgTypeofFunction.register(this);
         register(new CurrentDatabaseFunction());
         VersionFunction.register(this);
+        ObjDescriptionFunction.register(this);
 
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the
