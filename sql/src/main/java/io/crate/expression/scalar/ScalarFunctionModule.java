@@ -34,7 +34,6 @@ import io.crate.expression.scalar.arithmetic.RoundFunction;
 import io.crate.expression.scalar.arithmetic.SquareRootFunction;
 import io.crate.expression.scalar.arithmetic.TrigonometricFunctions;
 import io.crate.expression.scalar.cast.CastFunction;
-import io.crate.expression.scalar.cast.TryCastScalarFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.scalar.conditional.GreatestFunction;
 import io.crate.expression.scalar.conditional.IfFunction;
@@ -61,6 +60,7 @@ import io.crate.expression.scalar.string.StringPaddingFunction;
 import io.crate.expression.scalar.string.TrimFunctions;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
+import io.crate.expression.scalar.systeminformation.ObjDescriptionFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.systeminformation.PgTypeofFunction;
 import io.crate.expression.scalar.systeminformation.VersionFunction;
@@ -131,7 +131,6 @@ public class ScalarFunctionModule extends AbstractModule {
         TimezoneFunction.register(this);
         DateFormatFunction.register(this);
         CastFunction.register(this);
-        TryCastScalarFunction.register(this);
 
         StringCaseFunction.register(this);
         StringLeftRightFunction.register(this);
@@ -173,6 +172,7 @@ public class ScalarFunctionModule extends AbstractModule {
         PgTypeofFunction.register(this);
         register(new CurrentDatabaseFunction());
         VersionFunction.register(this);
+        ObjDescriptionFunction.register(this);
 
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the

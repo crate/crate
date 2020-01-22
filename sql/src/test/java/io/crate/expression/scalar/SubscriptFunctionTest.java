@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -28,6 +29,11 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
 public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
+
+    @Test
+    public void test_long_can_be_used_as_array_index() {
+        assertEvaluate("['Youri', 'Ruben'][x]", "Youri", Literal.of(1L));
+    }
 
     @Test
     public void testEvaluate() throws Exception {

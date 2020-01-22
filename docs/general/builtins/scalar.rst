@@ -2428,6 +2428,30 @@ Example:
     SELECT 1 row in set (... sec)
 
 
+.. _obj_description:
+
+``obj_description(integer, text)``
+----------------------------------
+
+This function exists mainly for compatibility with PostgreSQL. In PostgreSQL,
+the function returns the comment for a database object. CrateDB doesn't support
+user defined comments for database objects, so it always returns ``null``.
+
+
+Returns: ``text``
+
+Example:
+
+::
+
+    cr> SELECT pg_catalog.obj_description(1, 'pg_type') AS comment;
+    +---------+
+    | comment |
+    +---------+
+    |    NULL |
+    +---------+
+    SELECT 1 row in set (... sec)
+
 
 Special functions
 =================

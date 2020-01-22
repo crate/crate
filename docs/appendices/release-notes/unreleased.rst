@@ -52,6 +52,12 @@ None
 Changes
 =======
 
+- Added the :ref:`obj_description(integer, text) <obj_description>` scalar
+  function for improved PostgreSQL compatibility.
+
+- Added support for using columns of type ``long`` inside subscript
+  expressions. (``array_expr[column]``).
+
 - Made :ref:`generate_series <table-functions-generate-series>` addressable by
   specifying the ``pg_catalog`` schema explicitly. So, for example, both
   ``generate_series(1, 2)`` and ``pg_catalog.generate_series(1, 2)`` are valid.
@@ -63,6 +69,12 @@ Changes
 
 Fixes
 =====
+
+- Fixed a bug that would lead to insertion of records via ``INSERT INTO ...
+  (SELECT ... FROM ..)`` and ``INSERT INTO ... VALUES (...)`` into different
+  partitions while using the same partition by value. This occurs only when
+  the partition key is an object field of the :ref:`timestamp
+  <timestamp_data_type>` data type.
 
 - Fixed an issue that caused subscript expressions on top of child relations in
   which an object column is selected to fail.

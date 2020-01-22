@@ -26,16 +26,15 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.List;
-
-import static io.crate.metadata.functions.params.Param.INTEGER;
 
 public class SubscriptFunction extends Scalar<Object, Object[]> {
 
@@ -58,24 +57,18 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     @Override
     public Object evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 2 : "invalid number of arguments";
-        return evaluate(args[0].value(), args[1].value());
-    }
-
-    private Object evaluate(Object element, Object index) {
+        Object element = args[0].value();
+        Object index = args[1].value();
         if (element == null || index == null) {
             return null;
         }
-        assert (element instanceof Object[] || element instanceof List)
-            : "first argument must be of type array or list";
-        assert index instanceof Integer : "second argument must be of type integer";
+        assert element instanceof List : "first argument is typed as array and must be a List";
+        assert index instanceof Number : "second argument must be of type integer";
 
         // 1 based arrays as SQL standard says
-        int idx = (int) index - 1;
+        int idx = DataTypes.INTEGER.value(index) - 1;
         try {
-            if (element instanceof List) {
-                return ((List) element).get(idx);
-            }
-            return ((Object[]) element)[idx];
+            return ((List<?>) element).get(idx);
         } catch (IndexOutOfBoundsException e) {
             return null;
         }
@@ -88,12 +81,12 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         }
 
         protected Resolver() {
-            super(FuncParams.builder(Param.ANY_ARRAY, INTEGER).build());
+            super(FuncParams.builder(Param.ANY_ARRAY, Param.of(DataTypes.INTEGER, DataTypes.LONG)).build());
         }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            DataType returnType = ((ArrayType) dataTypes.get(0)).innerType();
+            DataType<?> returnType = ((ArrayType<?>) dataTypes.get(0)).innerType();
             return new SubscriptFunction(createInfo(dataTypes, returnType));
         }
     }
