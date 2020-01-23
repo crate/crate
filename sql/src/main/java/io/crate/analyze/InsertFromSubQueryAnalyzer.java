@@ -148,46 +148,6 @@ class InsertFromSubQueryAnalyzer {
             onDuplicateKeyAssignments);
     }
 
-    public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
-            node.table().getName(),
-            Operation.INSERT,
-            analysis.sessionContext().user(),
-            analysis.sessionContext().searchPath()
-        );
-
-        AnalyzedRelation source = relationAnalyzer.analyze(
-            node.subQuery(), analysis.transactionContext(), analysis.parameterContext());
-
-        List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo));
-
-        ensureClusteredByPresentOrNotRequired(targetColumns, tableInfo);
-        checkSourceAndTargetColsForLengthAndTypesCompatibility(targetColumns, source.outputs());
-
-        verifyOnConflictTargets(node.getDuplicateKeyContext(), tableInfo);
-
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-        FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
-        Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
-            tableRelation,
-            targetColumns,
-            analysis.parameterContext(),
-            analysis.transactionContext(),
-            fieldProvider,
-            node.getDuplicateKeyContext()
-        );
-
-        final boolean ignoreDuplicateKeys =
-            node.getDuplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
-
-        return new InsertFromSubQueryAnalyzedStatement(
-            source,
-            tableInfo,
-            targetColumns,
-            ignoreDuplicateKeys,
-            onDuplicateKeyAssignments);
-    }
-
     private static void verifyOnConflictTargets(Insert.DuplicateKeyContext duplicateKeyContext, DocTableInfo docTableInfo) {
         List<String> constraintColumns = duplicateKeyContext.getConstraintColumns();
         if (constraintColumns.isEmpty()) {
