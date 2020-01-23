@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
@@ -51,7 +50,6 @@ import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.data.Row;
-import io.crate.data.RowN;
 import io.crate.data.Rows;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -692,27 +690,16 @@ public class SQLExecutor {
         return fulltextAnalyzerResolver;
     }
 
-    private <T extends AnalyzedStatement> T analyzeInternal(String stmt, ParameterContext parameterContext) {
-        Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(stmt), coordinatorTxnCtx, parameterContext);
-        //noinspection unchecked
-        return (T) analysis.analyzedStatement();
-    }
-
     private <T extends AnalyzedStatement> T analyze(String stmt, ParameterContext parameterContext) {
-        return analyzeInternal(stmt, parameterContext);
+        //noinspection unchecked
+        return (T) analyzer.analyze(
+            SqlParser.createStatement(stmt),
+            coordinatorTxnCtx.sessionContext(),
+            parameterContext.typeHints());
     }
 
     public <T extends AnalyzedStatement> T analyze(String statement) {
         return analyze(statement, ParameterContext.EMPTY);
-    }
-
-    public <T extends AnalyzedStatement> T analyze(String statement, Object[] arguments) {
-        return analyze(
-            statement,
-            arguments.length == 0
-                ? ParameterContext.EMPTY
-                : new ParameterContext(new RowN(arguments), Collections.emptyList()));
     }
 
     public <T extends AnalyzedStatement> T analyze(String statement, Object[][] bulkArgs) {

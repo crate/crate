@@ -50,6 +50,7 @@ import io.crate.expression.scalar.regex.MatchesFunction;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
@@ -64,7 +65,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
@@ -73,7 +73,6 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -117,13 +116,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             sqlExecutor.analyze(statement),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext())
         );
-    }
-
-    private AnalyzedRelation analyze(String statement, Object[] arguments) {
-        return sqlExecutor.normalize(
-                sqlExecutor.analyze(statement, arguments),
-                new CoordinatorTxnCtx(SessionContext.systemSessionContext())
-            );
     }
 
     @Test
@@ -269,16 +261,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testSelectWithParameters() throws Exception {
-        AnalyzedRelation relation = analyze("select load from sys.nodes " +
-                                            "where load['1'] = ? or load['5'] <= ? or load['15'] >= ? or load['1'] = ? " +
-                                            "or load['1'] = ? or name = ?", new Object[]{
-            1.2d,
-            2.4f,
-            2L,
-            3,
-            new Short("1"),
-            "node 1"
-        });
+        AnalyzedRelation relation = analyze(
+            "select load from sys.nodes " +
+            "where load['1'] = ? or load['5'] <= ? or load['15'] >= ? or load['1'] = ? " +
+            "or load['1'] = ? or name = ?");
         Function whereClause = (Function) relation.where().query();
         assertThat(whereClause.info().ident().name(), is(OrOperator.NAME));
         assertThat(whereClause.info().type() == FunctionInfo.Type.AGGREGATE, is(false));
@@ -287,12 +273,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(function.info().ident().name(), is(OrOperator.NAME));
         function = (Function) function.arguments().get(1);
         assertThat(function.info().ident().name(), is(EqOperator.NAME));
-        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(ParameterSymbol.class));
         assertThat(function.arguments().get(1).valueType(), is(DataTypes.DOUBLE));
 
         function = (Function) whereClause.arguments().get(1);
         assertThat(function.info().ident().name(), is(EqOperator.NAME));
-        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(ParameterSymbol.class));
         assertThat(function.arguments().get(1).valueType(), is(DataTypes.STRING));
     }
 
@@ -568,15 +554,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testSelectWithObjectLiteral() throws Exception {
-        Map<String, Object> map = new HashMap<>();
-        map.put("1", 1.0);
-        map.put("5", 2.5);
-        map.put("15", 8.0);
-        AnalyzedRelation relation = analyze("select id from sys.nodes where load=?",
-            new Object[]{map});
+        AnalyzedRelation relation = analyze("select id from sys.nodes where load={\"1\"=1.0}");
         Function whereClause = (Function) relation.where().query();
-        assertThat(whereClause.arguments().get(1), instanceOf(Literal.class));
-        assertThat(((Literal) whereClause.arguments().get(1)).value().equals(map), is(true));
+        assertThat(whereClause.arguments(), hasItem(isLiteral(Map.of("1", 1.0))));
     }
 
     @Test
@@ -695,13 +675,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void test2From() throws Exception {
         AnalyzedRelation relation = analyze("select a.name from users a, users b");
         assertThat(relation, instanceOf(MultiSourceSelect.class));
-    }
-
-    @Test
-    public void testLimitWithWrongArgument() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast 'invalid' to type bigint");
-        analyze("select * from sys.shards limit ?", new Object[]{"invalid"});
     }
 
     @Test
@@ -865,9 +838,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testArrayCompareObjectArray() throws Exception {
-        AnalyzedRelation relation = analyze("select * from users where ? = ANY (friends)", new Object[]{
-            new MapBuilder<String, Object>().put("id", 1L).map()
-        });
+        AnalyzedRelation relation = analyze("select * from users where {id=1} = ANY (friends)");
         assertThat(relation.where().queryOrFallback(), is(isFunction("any_=")));
     }
 
@@ -888,8 +859,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testArrayCompareAnyNeq() throws Exception {
-        AnalyzedRelation relation = analyze("select * from users where ? != ANY (counters)",
-            new Object[]{4.3F});
+        AnalyzedRelation relation = analyze("select * from users where 4.3 != ANY (counters)");
         assertThat(relation.where().hasQuery(), is(true));
 
         FunctionInfo anyInfo = ((Function) relation.where().query()).info();
@@ -1473,16 +1443,14 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testParameterSubcriptColumn() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Parameter substitution is not supported in subscript");
-        analyze("select friends[?] from users",
-            new Object[]{"id"});
+        analyze("select friends[?] from users");
     }
 
     @Test
     public void testParameterSubscriptLiteral() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Parameter substitution is not supported in subscript");
-        analyze("select ['a','b','c'][?] from users",
-            new Object[2]);
+        analyze("select ['a','b','c'][?] from users");
     }
 
     @Test

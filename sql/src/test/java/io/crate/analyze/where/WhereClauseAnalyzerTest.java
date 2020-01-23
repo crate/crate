@@ -141,9 +141,9 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         return e.analyze(stmt);
     }
 
-    private WhereClause analyzeSelect(String stmt, Object... args) {
+    private WhereClause analyzeSelectWhere(String stmt) {
         AnalyzedRelation rel = e.normalize(
-            e.analyze(stmt, args),
+            e.analyze(stmt),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext())
         );
         if (rel instanceof QueriedSelectRelation && ((QueriedSelectRelation) rel).subRelation() instanceof DocTableRelation) {
@@ -163,10 +163,6 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             );
         }
         return rel.where();
-    }
-
-    private WhereClause analyzeSelectWhere(String stmt) {
-        return analyzeSelect(stmt);
     }
 
     @Test

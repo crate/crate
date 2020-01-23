@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.auth.user.UserManager;
 import io.crate.execution.ddl.RepositoryService;
@@ -70,7 +69,6 @@ import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.KillStatement;
-import io.crate.sql.tree.Node;
 import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RefreshStatement;
@@ -91,8 +89,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
-
-import java.util.Locale;
 
 @Singleton
 public class Analyzer {
@@ -121,7 +117,6 @@ public class Analyzer {
     private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
     private final CreateSnapshotAnalyzer createSnapshotAnalyzer;
     private final RestoreSnapshotAnalyzer restoreSnapshotAnalyzer;
-    private final UnboundAnalyzer unboundAnalyzer;
     private final CreateFunctionAnalyzer createFunctionAnalyzer;
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final PrivilegesAnalyzer privilegesAnalyzer;
@@ -182,53 +177,17 @@ public class Analyzer {
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.setStatementAnalyzer = new SetStatementAnalyzer(functions);
         this.resetStatementAnalyzer = new ResetStatementAnalyzer(functions);
-        this.unboundAnalyzer = new UnboundAnalyzer(
-            relationAnalyzer,
-            showStatementAnalyzer,
-            deleteAnalyzer,
-            updateAnalyzer,
-            insertFromSubQueryAnalyzer,
-            explainStatementAnalyzer,
-            createTableStatementAnalyzer,
-            alterTableAnalyzer,
-            alterTableAddColumnAnalyzer,
-            optimizeTableAnalyzer,
-            createRepositoryAnalyzer,
-            dropRepositoryAnalyzer,
-            createSnapshotAnalyzer,
-            dropSnapshotAnalyzer,
-            userAnalyzer,
-            createBlobTableAnalyzer,
-            createFunctionAnalyzer,
-            dropFunctionAnalyzer,
-            dropTableAnalyzer,
-            refreshTableAnalyzer,
-            restoreSnapshotAnalyzer,
-            createAnalyzerStatementAnalyzer,
-            dropAnalyzerStatementAnalyzer,
-            decommissionNodeAnalyzer,
-            killAnalyzer,
-            alterTableRerouteAnalyzer,
-            privilegesAnalyzer,
-            copyAnalyzer,
-            viewAnalyzer,
-            swapTableAnalyzer,
-            setStatementAnalyzer,
-            resetStatementAnalyzer
-        );
     }
 
-    public Analysis boundAnalyze(Statement statement, CoordinatorTxnCtx coordinatorTxnCtx, ParameterContext parameterContext) {
-        Analysis analysis = new Analysis(coordinatorTxnCtx, parameterContext, ParamTypeHints.EMPTY);
-        AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
-        SessionContext sessionContext = coordinatorTxnCtx.sessionContext();
-        userManager.getAccessControl(sessionContext).ensureMayExecute(analyzedStatement);
-        analysis.analyzedStatement(analyzedStatement);
-        return analysis;
-    }
-
-    public AnalyzedStatement unboundAnalyze(Statement statement, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
-        var analyzedStatement = unboundAnalyzer.analyze(statement, sessionContext, paramTypeHints);
+    public AnalyzedStatement analyze(Statement statement,
+                                     SessionContext sessionContext,
+                                     ParamTypeHints paramTypeHints) {
+        var analyzedStatement = statement.accept(
+            dispatcher,
+            new Analysis(
+                new CoordinatorTxnCtx(sessionContext),
+                ParameterContext.EMPTY,
+                paramTypeHints));
         userManager.getAccessControl(sessionContext).ensureMayExecute(analyzedStatement);
         return analyzedStatement;
     }
@@ -242,33 +201,88 @@ public class Analyzer {
     private class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
 
         @Override
-        protected AnalyzedStatement visitQuery(Query node, Analysis analysis) {
-            AnalyzedRelation relation = relationAnalyzer.analyze(
-                node,
-                analysis.transactionContext(),
-                analysis.parameterContext());
-            analysis.rootRelation(relation);
-            return relation;
+        public AnalyzedStatement visitAlterBlobTable(AlterBlobTable<?> node, Analysis context) {
+            return alterTableAnalyzer.analyze(
+                (AlterBlobTable<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
         }
 
         @Override
-        public AnalyzedStatement visitAnalyze(AnalyzeStatement analyzeStatement, Analysis context) {
+        public AnalyzedStatement visitAlterClusterDecommissionNode(DecommissionNodeStatement<?> node,
+                                                                   Analysis context) {
+            return decommissionNodeAnalyzer.analyze(
+                (DecommissionNodeStatement<Expression>) node,
+                context.transactionContext(),
+                context.paramTypeHints());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterClusterRerouteRetryFailed(AlterClusterRerouteRetryFailed node,
+                                                                     Analysis context) {
+            return new AnalyzedRerouteRetryFailed();
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTable(AlterTable<?> node, Analysis context) {
+            return alterTableAnalyzer.analyze(
+                (AlterTable<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn<?> node, Analysis context) {
+            return alterTableAddColumnAnalyzer.analyze(
+                (AlterTableAddColumn<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableOpenClose(AlterTableOpenClose<?> node, Analysis context) {
+            return alterTableAnalyzer.analyze(
+                (AlterTableOpenClose<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableRename(AlterTableRename<?> node, Analysis context) {
+            return alterTableAnalyzer.analyze(
+                (AlterTableRename<Expression>) node,
+                context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableReroute(AlterTableReroute<?> node, Analysis context) {
+            return alterTableRerouteAnalyzer.analyze(
+                (AlterTableReroute<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterUser(AlterUser<?> node, Analysis context) {
+            return userAnalyzer.analyze(
+                (AlterUser<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAnalyze(AnalyzeStatement analyzeStatement, Analysis analysis) {
             return new AnalyzedAnalyze();
         }
 
         @Override
-        public AnalyzedStatement visitDelete(Delete node, Analysis context) {
-            return deleteAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
+        public AnalyzedStatement visitBegin(BeginStatement node, Analysis context) {
+            return new AnalyzedBegin();
         }
 
         @Override
-        public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis context) {
-            return insertFromSubQueryAnalyzer.analyze(node, context);
-        }
-
-        @Override
-        public AnalyzedStatement visitUpdate(Update node, Analysis context) {
-            return updateAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
+        public AnalyzedStatement visitCommit(CommitStatement node, Analysis context) {
+            return new AnalyzedCommit();
         }
 
         @Override
@@ -288,46 +302,6 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitDropTable(DropTable<?> node, Analysis context) {
-            return dropTableAnalyzer.analyze(node, context.sessionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitCreateTable(CreateTable<?> node, Analysis analysis) {
-            return createTableStatementAnalyzer.analyze((CreateTable<Expression>) node, analysis.paramTypeHints(), analysis.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis analysis) {
-            return showStatementAnalyzer.analyzeShowCreateTable(node.table(), analysis);
-        }
-
-        @Override
-        public AnalyzedStatement visitShowSchemas(ShowSchemas node, Analysis analysis) {
-            return showStatementAnalyzer.analyze(node, analysis);
-        }
-
-        @Override
-        public AnalyzedStatement visitShowTransaction(ShowTransaction showTransaction, Analysis context) {
-            return showStatementAnalyzer.analyzeShowTransaction(context);
-        }
-
-        @Override
-        public AnalyzedStatement visitShowTables(ShowTables node, Analysis analysis) {
-            return showStatementAnalyzer.analyze(node, analysis);
-        }
-
-        @Override
-        protected AnalyzedStatement visitShowColumns(ShowColumns node, Analysis context) {
-            return showStatementAnalyzer.analyze(node, context);
-        }
-
-        @Override
-        public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
-            return showStatementAnalyzer.analyze(node, context);
-        }
-
-        @Override
         public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer<?> node, Analysis context) {
             return createAnalyzerStatementAnalyzer.analyze(
                 (CreateAnalyzer<Expression>) node,
@@ -336,113 +310,10 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitDropAnalyzer(DropAnalyzer node, Analysis context) {
-            return dropAnalyzerStatementAnalyzer.analyze(node.name());
-        }
-
-        @Override
-        public AnalyzedStatement visitCreateBlobTable(CreateBlobTable<?> node, Analysis context) {
+        public AnalyzedStatement visitCreateBlobTable(CreateBlobTable<?> node,
+                                                      Analysis context) {
             return createBlobTableAnalyzer.analyze(
-                (CreateBlobTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitDropBlobTable(DropBlobTable<?> node, Analysis context) {
-            return dropTableAnalyzer.analyze(node, context.sessionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitAlterBlobTable(AlterBlobTable<?> node, Analysis context) {
-            return alterTableAnalyzer.analyze(
-                (AlterBlobTable<Expression>) node,
-                context.paramTypeHints(),
-                context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitRefreshStatement(RefreshStatement<?> node, Analysis context) {
-            return refreshTableAnalyzer.analyze(
-                (RefreshStatement<Expression>) node,
-                context.paramTypeHints(),
-                context.transactionContext()
-            );
-        }
-
-        @Override
-        public AnalyzedStatement visitAlterTable(AlterTable<?> node, Analysis context) {
-            return alterTableAnalyzer.analyze(
-                (AlterTable<Expression>) node, context.paramTypeHints(), context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitAlterClusterRerouteRetryFailed(AlterClusterRerouteRetryFailed node, Analysis context) {
-            return new AnalyzedRerouteRetryFailed();
-        }
-
-        @Override
-        public AnalyzedStatement visitAlterTableRename(AlterTableRename<?> node, Analysis context) {
-            return alterTableAnalyzer.analyze((AlterTableRename<Expression>) node, context.sessionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn<?> node, Analysis analysis) {
-            return alterTableAddColumnAnalyzer.analyze(
-                (AlterTableAddColumn<Expression>) node,
-                analysis.paramTypeHints(),
-                analysis.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitAlterTableOpenClose(AlterTableOpenClose<?> node, Analysis context) {
-            return alterTableAnalyzer.analyze((AlterTableOpenClose<Expression>) node,
-                                              context.paramTypeHints(),
-                                              context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitAlterTableReroute(AlterTableReroute<?> node, Analysis context) {
-            return alterTableRerouteAnalyzer.analyze(
-                (AlterTableReroute<Expression>) node,
-                context.paramTypeHints(),
-                context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitSetStatement(SetStatement<?> node, Analysis context) {
-            return setStatementAnalyzer.analyze((SetStatement<Expression>)node,
-                                                context.paramTypeHints(),
-                                                context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitResetStatement(ResetStatement<?> node, Analysis context) {
-            return resetStatementAnalyzer.analyze((ResetStatement<Expression>) node,
-                                                context.paramTypeHints(),
-                                                context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitKillStatement(KillStatement<?> node, Analysis context) {
-            return killAnalyzer.analyze(
-                (KillStatement<Expression>) node,
-                context.paramTypeHints(),
-                context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitDeallocateStatement(DeallocateStatement node, Analysis context) {
-            return DeallocateAnalyzer.analyze(node);
-        }
-
-        @Override
-        public AnalyzedStatement visitDropRepository(DropRepository node, Analysis context) {
-            return dropRepositoryAnalyzer.analyze(node);
-        }
-
-        @Override
-        public AnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
-            return createRepositoryAnalyzer.analyze(
-                (CreateRepository<Expression>) node,
+                (CreateBlobTable<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
         }
@@ -457,65 +328,11 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitDropFunction(DropFunction node, Analysis context) {
-            return dropFunctionAnalyzer.analyze(node, context.sessionContext().searchPath());
-        }
-
-        @Override
-        public AnalyzedStatement visitCreateUser(CreateUser<?> node, Analysis context) {
-            return userAnalyzer.analyze(
-                (CreateUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitDropUser(DropUser node, Analysis context) {
-            return new AnalyzedDropUser(
-                node.name(),
-                node.ifExists()
-            );
-        }
-
-        @Override
-        public AnalyzedStatement visitAlterUser(AlterUser<?> node, Analysis context) {
-            return userAnalyzer.analyze(
-                (AlterUser<Expression>) node, context.paramTypeHints(), context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeGrant(
-                node,
-                context.sessionContext().user(),
-                context.sessionContext().searchPath());
-        }
-
-        @Override
-        public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeDeny(
-                node,
-                context.sessionContext().user(),
-                context.sessionContext().searchPath());
-        }
-
-        @Override
-        public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeRevoke(
-                node,
-                context.sessionContext().user(),
-                context.sessionContext().searchPath());
-        }
-
-        @Override
-        public AnalyzedStatement visitOptimizeStatement(OptimizeStatement<?> node, Analysis context) {
-            return optimizeTableAnalyzer.analyze(
-                (OptimizeStatement<Expression>) node,
+        public AnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
+            return createRepositoryAnalyzer.analyze(
+                (CreateRepository<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitDropSnapshot(DropSnapshot node, Analysis context) {
-            return dropSnapshotAnalyzer.analyze(node);
         }
 
         @Override
@@ -527,31 +344,19 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitRestoreSnapshot(RestoreSnapshot node, Analysis context) {
-            return restoreSnapshotAnalyzer.analyze(
-                (RestoreSnapshot<Expression>) node,
+        public AnalyzedStatement visitCreateTable(CreateTable node, Analysis analysis) {
+            return createTableStatementAnalyzer.analyze(
+                (CreateTable<Expression>) node,
+                analysis.paramTypeHints(),
+                analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateUser(CreateUser<?> node, Analysis context) {
+            return userAnalyzer.analyze(
+                (CreateUser<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext());
-        }
-
-        @Override
-        protected AnalyzedStatement visitExplain(Explain node, Analysis context) {
-            return explainStatementAnalyzer.analyze(node, context);
-        }
-
-        @Override
-        public AnalyzedStatement visitBegin(BeginStatement node, Analysis context) {
-            return new AnalyzedBegin();
-        }
-
-        @Override
-        public AnalyzedStatement visitCommit(CommitStatement node, Analysis context) {
-            return new AnalyzedCommit();
-        }
-
-        @Override
-        protected AnalyzedStatement visitNode(Node node, Analysis context) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "cannot analyze statement: '%s'", node));
         }
 
         @Override
@@ -560,12 +365,69 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitSwapTable(SwapTable<?> swapTable, Analysis analysis) {
-            return swapTableAnalyzer.analyze(
-                (SwapTable<Expression>) swapTable,
-                analysis.transactionContext(),
-                analysis.paramTypeHints()
-            );
+        public AnalyzedStatement visitDeallocateStatement(DeallocateStatement node, Analysis context) {
+            return DeallocateAnalyzer.analyze(node);
+        }
+
+        @Override
+        public AnalyzedStatement visitDelete(Delete node, Analysis analysis) {
+            return deleteAnalyzer.analyze(
+                node,
+                analysis.paramTypeHints(),
+                analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeDeny(
+                node,
+                context.sessionContext().user(),
+                context.sessionContext().searchPath());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropAnalyzer(DropAnalyzer node, Analysis context) {
+            return dropAnalyzerStatementAnalyzer.analyze(node.name());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropBlobTable(DropBlobTable<?> node, Analysis context) {
+            return dropTableAnalyzer.analyze(node, context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropFunction(DropFunction node, Analysis context) {
+            return dropFunctionAnalyzer.analyze(node, context.sessionContext().searchPath());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropRepository(DropRepository node, Analysis context) {
+            return dropRepositoryAnalyzer.analyze(node);
+        }
+
+        @Override
+        public AnalyzedStatement visitDropSnapshot(DropSnapshot node, Analysis context) {
+            return dropSnapshotAnalyzer.analyze(node);
+        }
+
+        @Override
+        public AnalyzedDropTable visitDropTable(DropTable<?> node, Analysis context) {
+            return dropTableAnalyzer.analyze(node, context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropUser(DropUser node, Analysis context) {
+            return new AnalyzedDropUser(node.name(), node.ifExists());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropView(DropView node, Analysis context) {
+            return viewAnalyzer.analyze(node, context.transactionContext());
+        }
+
+        @Override
+        protected AnalyzedStatement visitExplain(Explain node, Analysis context) {
+            return explainStatementAnalyzer.analyze(node, context);
         }
 
         @Override
@@ -574,17 +436,150 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterClusterDecommissionNode(DecommissionNodeStatement<?> node,
-                                                                   Analysis context) {
-            return decommissionNodeAnalyzer.analyze(
-                (DecommissionNodeStatement<Expression>) node,
+        public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeGrant(
+                node,
+                context.sessionContext().user(),
+                context.sessionContext().searchPath());
+        }
+
+        @Override
+        public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis analysis) {
+            return insertFromSubQueryAnalyzer.analyze(
+                node,
+                analysis.paramTypeHints(),
+                analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitKillStatement(KillStatement<?> node, Analysis context) {
+            return killAnalyzer.analyze(
+                (KillStatement<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitOptimizeStatement(OptimizeStatement<?> node, Analysis context) {
+            return optimizeTableAnalyzer.analyze(
+                (OptimizeStatement<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext()
+            );
+        }
+
+        @Override
+        protected AnalyzedStatement visitQuery(Query node, Analysis context) {
+            return relationAnalyzer.analyzeUnbound(
+                node,
                 context.transactionContext(),
                 context.paramTypeHints());
         }
 
         @Override
-        public AnalyzedStatement visitDropView(DropView node, Analysis context) {
-            return viewAnalyzer.analyze(node, context.transactionContext());
+        public AnalyzedStatement visitRefreshStatement(RefreshStatement<?> node, Analysis context) {
+            return refreshTableAnalyzer.analyze(
+                (RefreshStatement<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext()
+            );
+        }
+
+        public AnalyzedStatement visitResetStatement(ResetStatement<?> node, Analysis context) {
+            return resetStatementAnalyzer.analyze(
+                (ResetStatement<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitRestoreSnapshot(RestoreSnapshot<?> node, Analysis context) {
+            return restoreSnapshotAnalyzer.analyze(
+                (RestoreSnapshot<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeRevoke(
+                node,
+                context.sessionContext().user(),
+                context.sessionContext().searchPath());
+        }
+
+        public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
+            return setStatementAnalyzer.analyze(
+                (SetStatement<Expression>) node,
+                context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        protected AnalyzedStatement visitShowColumns(ShowColumns node, Analysis context) {
+            var coordinatorTxnCtx = context.transactionContext();
+            Query query = showStatementAnalyzer.rewriteShowColumns(
+                node,
+                coordinatorTxnCtx.sessionContext().searchPath().currentSchema());
+            return relationAnalyzer.analyzeUnbound(
+                query,
+                coordinatorTxnCtx,
+                context.parameterContext().typeHints());
+        }
+
+        @Override
+        public AnalyzedStatement visitShowCreateTable(ShowCreateTable<?> node, Analysis context) {
+            return showStatementAnalyzer.analyzeShowCreateTable(node.table(), context);
+        }
+
+        @Override
+        protected AnalyzedStatement visitShowSchemas(ShowSchemas node, Analysis context) {
+            Query query = showStatementAnalyzer.rewriteShowSchemas(node);
+            return relationAnalyzer.analyzeUnbound(
+                query,
+                context.transactionContext(),
+                context.parameterContext().typeHints());
+        }
+
+        @Override
+        public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
+            ShowStatementAnalyzer.validateSessionSetting(node.parameter());
+            Query query = ShowStatementAnalyzer.rewriteShowSessionParameter(node);
+            return relationAnalyzer.analyzeUnbound(
+                query,
+                context.transactionContext(),
+                context.parameterContext().typeHints());
+        }
+
+        @Override
+        protected AnalyzedStatement visitShowTables(ShowTables node, Analysis context) {
+            Query query = showStatementAnalyzer.rewriteShowTables(node);
+            return relationAnalyzer.analyzeUnbound(
+                query,
+                context.transactionContext(),
+                context.parameterContext().typeHints());
+        }
+
+        @Override
+        public AnalyzedStatement visitShowTransaction(ShowTransaction showTransaction, Analysis context) {
+            return showStatementAnalyzer.analyzeShowTransaction(context);
+        }
+
+        @Override
+        public AnalyzedStatement visitSwapTable(SwapTable<?> node, Analysis analysis) {
+            return swapTableAnalyzer.analyze(
+                (SwapTable<Expression>) node,
+                analysis.transactionContext(),
+                analysis.paramTypeHints()
+            );
+        }
+
+        @Override
+        public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
+            return updateAnalyzer.analyze(
+                node,
+                analysis.paramTypeHints(),
+                analysis.transactionContext());
         }
     }
 }
