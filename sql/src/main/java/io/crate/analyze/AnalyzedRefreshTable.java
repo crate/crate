@@ -40,11 +40,6 @@ public class AnalyzedRefreshTable implements DDLStatement {
     }
 
     @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
-    @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitRefreshTableStatement(this, context);
     }

@@ -129,11 +129,6 @@ public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelat
     }
 
     @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
-    @Override
     public boolean isDistinct() {
         return false;
     }

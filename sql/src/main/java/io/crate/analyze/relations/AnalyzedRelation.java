@@ -124,10 +124,5 @@ public interface AnalyzedRelation extends AnalyzedStatement {
         return false;
     }
 
-    @Override
-    default boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
     boolean isDistinct();
 }

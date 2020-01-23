@@ -59,9 +59,4 @@ public class AnalyzedCreateRepository implements DDLStatement {
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitCreateRepositoryAnalyzedStatement(this, context);
     }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
 }

@@ -31,9 +31,4 @@ public final class AnalyzedAnalyze implements DDLStatement {
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitAnalyze(this, context);
     }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
 }

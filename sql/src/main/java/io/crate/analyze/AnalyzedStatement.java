@@ -53,14 +53,6 @@ public interface AnalyzedStatement {
     }
 
     /**
-     * Defines if an unbound analyzed statement (no parameter are bound yet) can be used
-     * to create execution plans.
-     */
-    default boolean isUnboundPlanningSupported() {
-        return false;
-    }
-
-    /**
      * Defines the columns for the result set or null if not present.
      */
     @Nullable

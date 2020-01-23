@@ -118,9 +118,4 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
             }
         }
     }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
 }

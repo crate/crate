@@ -65,11 +65,6 @@ public class AnalyzedSetStatement implements AnalyzedStatement {
     }
 
     @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
-    @Override
     public boolean isWriteOperation() {
         return SetStatement.Scope.GLOBAL.equals(scope);
     }

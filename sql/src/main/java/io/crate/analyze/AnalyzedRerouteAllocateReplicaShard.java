@@ -45,11 +45,6 @@ public class AnalyzedRerouteAllocateReplicaShard extends RerouteAnalyzedStatemen
     }
 
     @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
-    @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitRerouteAllocateReplicaShard(this, context);
     }

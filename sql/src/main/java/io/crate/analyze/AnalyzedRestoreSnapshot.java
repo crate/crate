@@ -77,9 +77,4 @@ public class AnalyzedRestoreSnapshot implements DDLStatement {
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitRestoreSnapshotAnalyzedStatement(this, context);
     }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
 }

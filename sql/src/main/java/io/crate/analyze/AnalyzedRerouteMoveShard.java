@@ -45,11 +45,6 @@ public class AnalyzedRerouteMoveShard extends RerouteAnalyzedStatement {
     }
 
     @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
-    @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitRerouteMoveShard(this, context);
     }

@@ -26,7 +26,7 @@ public class AnalyzedDropRepository implements DDLStatement {
 
     private final String name;
 
-    public AnalyzedDropRepository(String name) {
+    AnalyzedDropRepository(String name) {
         this.name = name;
     }
 
@@ -37,10 +37,5 @@ public class AnalyzedDropRepository implements DDLStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitDropRepositoryAnalyzedStatement(this, context);
-    }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
     }
 }
