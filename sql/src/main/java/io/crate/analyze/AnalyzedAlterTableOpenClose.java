@@ -58,9 +58,4 @@ public class AnalyzedAlterTableOpenClose implements DDLStatement {
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitAnalyzedAlterTableOpenClose(this, context);
     }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
 }

@@ -139,11 +139,6 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     }
 
     @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
-    @Override
     public boolean isDistinct() {
         return false;
     }

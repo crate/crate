@@ -64,9 +64,4 @@ public class AnalyzedOptimizeTable implements DDLStatement {
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitOptimizeTableStatement(this, context);
     }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
 }

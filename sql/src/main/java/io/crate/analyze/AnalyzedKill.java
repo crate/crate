@@ -41,11 +41,6 @@ public class AnalyzedKill implements AnalyzedStatement {
     }
 
     @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
-    @Override
     public boolean isWriteOperation() {
         return true;
     }

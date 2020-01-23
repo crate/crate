@@ -81,11 +81,6 @@ public class AnalyzedCreateTable implements DDLStatement {
     }
 
     @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
-    @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitCreateTable(this, context);
     }

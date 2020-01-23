@@ -32,7 +32,7 @@ public final class AnalyzedDeleteStatement implements AnalyzedStatement {
     private final DocTableRelation relation;
     private final Symbol query;
 
-    public AnalyzedDeleteStatement(DocTableRelation relation, Symbol query) {
+    AnalyzedDeleteStatement(DocTableRelation relation, Symbol query) {
         this.relation = relation;
         this.query = query;
     }
@@ -58,10 +58,5 @@ public final class AnalyzedDeleteStatement implements AnalyzedStatement {
 
     public Symbol query() {
         return query;
-    }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
     }
 }

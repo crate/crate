@@ -50,9 +50,4 @@ public final class AnalyzedDropTable<T extends TableInfo> implements DDLStatemen
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitDropTable(this, context);
     }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
 }

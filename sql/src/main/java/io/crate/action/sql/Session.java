@@ -153,8 +153,6 @@ public class Session implements AutoCloseable {
      * Execute a query in one step, avoiding the parse/bind/execute/sync procedure.
      * Opposed to using parse/bind/execute/sync this method is thread-safe.
      *
-     * This only works for statements that support unbound analyze
-     *
      * @param parse A function to parse the statement; This can be used to cache the parsed statement.
      *              Use {@link #quickExec(String, ResultReceiver, Row)} to use the regular parser
      */
@@ -162,8 +160,6 @@ public class Session implements AutoCloseable {
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionContext);
         Statement parsedStmt = parse.apply(statement);
         AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
-        assert analyzedStatement.isUnboundPlanningSupported()
-            : "quickExec can only be used with statements supporting unbound planning";
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         UUID jobId = UUID.randomUUID();
         ClusterState clusterState = planner.currentClusterState();
