@@ -115,8 +115,6 @@ class InsertFromSubQueryAnalyzer {
             txnCtx.sessionContext().user(),
             txnCtx.sessionContext().searchPath()
         );
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-
         List<Reference> targetColumns =
             new ArrayList<>(resolveTargetColumns(insert.columns(), tableInfo));
 
@@ -127,6 +125,9 @@ class InsertFromSubQueryAnalyzer {
         ensureClusteredByPresentOrNotRequired(targetColumns, tableInfo);
         checkSourceAndTargetColsForLengthAndTypesCompatibility(targetColumns, subQueryRelation.outputs());
 
+        verifyOnConflictTargets(insert.getDuplicateKeyContext(), tableInfo);
+
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
             tableRelation,
             targetColumns,
