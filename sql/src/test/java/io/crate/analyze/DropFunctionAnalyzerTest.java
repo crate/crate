@@ -29,8 +29,6 @@ package io.crate.analyze;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.user.User;
-import io.crate.data.Row;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -38,8 +36,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Collections;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -68,10 +64,10 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropFunctionWithSessionSetSchema() throws Exception {
-        AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.boundAnalyze(
+        AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.analyze(
             SqlParser.createStatement("DROP FUNCTION bar(long, object)"),
-            new CoordinatorTxnCtx(new SessionContext(Option.NONE, User.CRATE_USER, "my_schema")),
-            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
+            new SessionContext(Option.NONE, User.CRATE_USER, "my_schema"),
+            ParamTypeHints.EMPTY);
 
         assertThat(analysis.schema(), is("my_schema"));
         assertThat(analysis.name(), is("bar"));
@@ -79,10 +75,10 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropFunctionExplicitSchemaSupersedesSessionSchema() throws Exception {
-        AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.boundAnalyze(
+        AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.analyze(
             SqlParser.createStatement("DROP FUNCTION my_other_schema.bar(long, object)"),
-            new CoordinatorTxnCtx(new SessionContext(Option.NONE, User.CRATE_USER, "my_schema")),
-            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
+            new SessionContext(Option.NONE, User.CRATE_USER, "my_schema"),
+            ParamTypeHints.EMPTY);
 
         assertThat(analysis.schema(), is("my_other_schema"));
         assertThat(analysis.name(), is("bar"));

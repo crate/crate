@@ -159,7 +159,7 @@ public class Session implements AutoCloseable {
     public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver resultReceiver, Row params) {
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionContext);
         Statement parsedStmt = parse.apply(statement);
-        AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
+        AnalyzedStatement analyzedStatement = analyzer.analyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         UUID jobId = UUID.randomUUID();
         ClusterState clusterState = planner.currentClusterState();
@@ -276,7 +276,7 @@ public class Session implements AutoCloseable {
         AnalyzedStatement analyzedStatement;
         if (unboundStatement == null) {
             try {
-                analyzedStatement = analyzer.unboundAnalyze(
+                analyzedStatement = analyzer.analyze(
                     preparedStmt.parsedStatement(),
                     sessionContext,
                     preparedStmt.paramTypes());
@@ -346,7 +346,7 @@ public class Session implements AutoCloseable {
                     analyzedStatement = preparedStmt.unboundStatement();
                 } else {
                     try {
-                        analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
+                        analyzedStatement = analyzer.analyze(statement, sessionContext, preparedStmt.paramTypes());
                     } catch (Throwable t) {
                         jobsLogs.logPreExecutionFailure(
                             UUID.randomUUID(), preparedStmt.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
@@ -476,7 +476,7 @@ public class Session implements AutoCloseable {
         var unboundStatement = firstPreparedStatement.unboundStatement();
         AnalyzedStatement analyzedStatement;
         if (unboundStatement == null) {
-            analyzedStatement = analyzer.unboundAnalyze(
+            analyzedStatement = analyzer.analyze(
                 statement,
                 sessionContext,
                 firstPreparedStatement.paramTypes());

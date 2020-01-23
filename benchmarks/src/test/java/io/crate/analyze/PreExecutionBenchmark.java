@@ -24,7 +24,6 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -65,7 +64,7 @@ public class PreExecutionBenchmark {
     private TestThreadPool threadPool;
     private SQLExecutor e;
     private Statement selectStatement;
-    private Analysis selectAnalysis;
+    private AnalyzedStatement analyzedStatement;
     private PlannerContext plannerContext;
 
     @Setup
@@ -78,8 +77,8 @@ public class PreExecutionBenchmark {
             .addTable("create table users (id int primary key, name string, date timestamp, text string index using fulltext)")
             .build();
         selectStatement = SqlParser.createStatement("select name from users");
-        selectAnalysis =
-            e.analyzer.boundAnalyze(selectStatement, new CoordinatorTxnCtx(SessionContext.systemSessionContext()), ParameterContext.EMPTY);
+        analyzedStatement =
+            e.analyzer.analyze(selectStatement, SessionContext.systemSessionContext(), ParamTypeHints.EMPTY);
         plannerContext = e.getPlannerContext(clusterService.state(), new Random(dummySeed));
     }
 
@@ -105,13 +104,13 @@ public class PreExecutionBenchmark {
     }
 
     @Benchmark
-    public Analysis measureAnalyzeSimpleSelect() {
-        return e.analyzer.boundAnalyze(selectStatement, new CoordinatorTxnCtx(SessionContext.systemSessionContext()), ParameterContext.EMPTY);
+    public AnalyzedStatement measureAnalyzeSimpleSelect() {
+        return e.analyzer.analyze(selectStatement, SessionContext.systemSessionContext(), ParamTypeHints.EMPTY);
     }
 
     @Benchmark
     public ExecutionPlan measurePlanSimpleSelect() {
-        return ((LogicalPlan) e.planner.plan(selectAnalysis.analyzedStatement(), e.getPlannerContext(ClusterState.EMPTY_STATE)))
+        return ((LogicalPlan) e.planner.plan(analyzedStatement, e.getPlannerContext(ClusterState.EMPTY_STATE)))
             .build(plannerContext, null, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
     }
 

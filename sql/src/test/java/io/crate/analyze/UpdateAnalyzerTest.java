@@ -121,10 +121,6 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         return e.analyze(statement);
     }
 
-    protected AnalyzedUpdateStatement analyze(String statement, Object[] params) {
-        return (AnalyzedUpdateStatement) e.analyze(statement, params);
-    }
-
     @Test
     public void testUpdateAnalysis() throws Exception {
         AnalyzedStatement analyzedStatement = analyze("update users set name='Ford Prefect'");
@@ -167,9 +163,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow UPDATE " +
                                         "operations, as it is read-only.");
-        analyze("update sys.nodes set fs=?", new Object[]{new HashMap<String, Object>() {{
-            put("free", 0);
-        }}});
+        analyze("update sys.nodes set fs={\"free\"=0}");
     }
 
     @Test
@@ -235,8 +229,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateMuchAssignments() throws Exception {
         AnalyzedUpdateStatement update = analyze(
-            "update users set other_id=9.9, name='Trillian', details=?, stuff=true, foo='bar'",
-            new Object[]{new HashMap<String, Object>()});
+            "update users set other_id=9.9, name='Trillian', details={}, stuff=true, foo='bar'");
         assertThat(update.assignmentByTargetCol().size(), is(5));
     }
 
@@ -267,16 +260,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateWithParameter() throws Exception {
-        Map[] friends = new Map[]{
-            new HashMap<String, Object>() {{
-                put("name", "Slartibartfast");
-            }},
-            new HashMap<String, Object>() {{
-                put("name", "Marvin");
-            }}
-        };
-        AnalyzedUpdateStatement update = analyze("update users set name=?, other_id=?, friends=? where id=?",
-            new Object[]{"Jeltz", 0, friends, "9"});
+        AnalyzedUpdateStatement update = analyze("update users set name=?, other_id=?, friends=? where id=?");
 
         RelationName usersRelation = new RelationName("doc", "users");
         assertThat(update.assignmentByTargetCol().size(), is(3));
@@ -290,7 +274,6 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(update.query(), isFunction(EqOperator.NAME, isReference("id"), instanceOf(ParameterSymbol.class)));
     }
-
 
     @Test
     public void testUpdateWithWrongParameters() throws Exception {

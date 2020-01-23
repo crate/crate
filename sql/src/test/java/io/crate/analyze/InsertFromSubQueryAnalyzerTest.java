@@ -26,6 +26,7 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.expression.scalar.SubstrFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.sql.parser.ParsingException;
@@ -192,13 +193,13 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         var insert = "insert into users (id, name) (select id, name from users) " +
                      "on conflict (id) do update set name = ?";
 
-        InsertFromSubQueryAnalyzedStatement statement = e.analyze(insert, new Object[]{"Arthur"});
+        InsertFromSubQueryAnalyzedStatement statement = e.analyze(insert);
 
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
         for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
             assertThat(entry.getKey(), isReference("name"));
-            assertThat(entry.getValue(), isLiteral("Arthur", StringType.INSTANCE));
+            assertThat(entry.getValue(), instanceOf(ParameterSymbol.class));
         }
     }
 

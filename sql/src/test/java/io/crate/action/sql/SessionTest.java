@@ -149,7 +149,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractTypesFromDelete() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
-        AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
+        AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("delete from users where name = ?"),
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
@@ -163,7 +163,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractTypesFromUpdate() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
-        AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
+        AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("update users set name = ? || '_updated' where id = ?"),
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
@@ -177,7 +177,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractTypesFromInsertValues() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).addTable(TableDefinitions.USER_TABLE_DEFINITION).build();
-        AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
+        AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?)"),
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
@@ -193,7 +193,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .build();
-        AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
+        AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
                                       "WHERE name = ?)"),
             SessionContext.systemSessionContext(),
@@ -210,7 +210,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .build();
-        AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
+        AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?) " +
                                       "ON CONFLICT (id) DO UPDATE SET name = ?"),
             SessionContext.systemSessionContext(),
@@ -221,7 +221,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.LONG, DataTypes.STRING, DataTypes.STRING}));
 
-        analyzedStatement = e.analyzer.unboundAnalyze(
+        analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
                                       "WHERE name = ?) ON CONFLICT (id) DO UPDATE SET name = ?"),
             SessionContext.systemSessionContext(),
@@ -237,7 +237,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void testTypesCanBeResolvedIfParametersAreInSubRelation() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
 
-        AnalyzedStatement stmt = e.analyzer.unboundAnalyze(
+        AnalyzedStatement stmt = e.analyzer.analyze(
             SqlParser.createStatement("select * from (select $1::int + $2) t"),
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
@@ -253,7 +253,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x int)")
             .build();
 
-        AnalyzedStatement stmt = e.analyzer.unboundAnalyze(
+        AnalyzedStatement stmt = e.analyzer.analyze(
             SqlParser.createStatement("insert into t (x) (select * from (select $1::int + $2) t)"),
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
@@ -269,7 +269,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x int)")
             .build();
 
-        AnalyzedStatement stmt = e.analyzer.unboundAnalyze(
+        AnalyzedStatement stmt = e.analyzer.analyze(
             SqlParser.createStatement("delete from t where x = (select $1::long)"),
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
