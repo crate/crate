@@ -70,6 +70,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -1506,4 +1507,13 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(objectType.resolveInnerType(List.of("nestedObject")).id(), is(ObjectType.ID));
         assertThat(objectType.resolveInnerType(List.of("nestedObject", "nestedNestedString")), is(DataTypes.STRING));
     }
+
+    @Test
+    public void test_nested_geo_shape_column_is_not_added_as_top_level_column() throws Exception {
+        DocIndexMetaData md = getDocIndexMetaDataFromStatement(
+            "create table tbl (x int, y object as (z geo_shape))");
+        assertThat(md.columns(), contains(isReference("x"), isReference("y")));
+        assertThat(md.references(), hasKey(new ColumnIdent("y", "z")));
+    }
+
 }
