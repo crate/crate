@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused ``SELECT *`` to include nested columns of type
+  ``geo_shape`` instead of only selecting top-level columns.
+
 - Fixed an issue that caused subscript expressions on top of child relations in
   which an object column is selected to fail.
 

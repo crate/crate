@@ -205,7 +205,8 @@ public class DocIndexMetaData {
         }
     }
 
-    private void addGeoReference(Integer position, ColumnIdent column,
+    private void addGeoReference(Integer position,
+                                 ColumnIdent column,
                                  @Nullable String tree,
                                  @Nullable String precision,
                                  @Nullable Integer treeLevels,
@@ -217,7 +218,11 @@ public class DocIndexMetaData {
             precision,
             treeLevels,
             distanceErrorPct);
-        columnsBuilder.add(info);
+        if (column.isTopLevel()) {
+            columnsBuilder.add(info);
+        } else {
+            nestedColumns.add(info);
+        }
     }
 
     private ReferenceIdent refIdent(ColumnIdent column) {
