@@ -157,9 +157,17 @@ public final class ReservoirSampler {
             if (indexService == null) {
                 continue;
             }
-            FieldTypeLookup fieldTypeLookup = indexService.mapperService()::fullName;
+            var mapperService = indexService.mapperService();
+            FieldTypeLookup fieldTypeLookup = mapperService::fullName;
             var ctx = new DocInputFactory(
-                functions, fieldTypeLookup, new LuceneReferenceResolver(fieldTypeLookup)).getCtx(coordinatorTxnCtx);
+                functions,
+                fieldTypeLookup,
+                new LuceneReferenceResolver(
+                    indexService.index().getName(),
+                    fieldTypeLookup,
+                    docTable.partitionedByColumns()
+                )
+            ).getCtx(coordinatorTxnCtx);
             ctx.add(columns);
             List<Input<?>> inputs = ctx.topLevelInputs();
             List<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();

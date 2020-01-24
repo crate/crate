@@ -21,12 +21,26 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import static io.crate.metadata.DocReferences.toSourceLookup;
+import static io.crate.types.ArrayType.unnest;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.Scorable;
+import org.elasticsearch.index.mapper.MappedFieldType;
+
+import io.crate.common.collections.Maps;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
@@ -45,27 +59,27 @@ import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.elasticsearch.index.mapper.MappedFieldType;
-
-import java.util.Set;
-
-import static io.crate.metadata.DocReferences.toSourceLookup;
-import static io.crate.types.ArrayType.unnest;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
     private static final Set<Integer> NO_FIELD_TYPES_IDS = Set.of(ObjectType.ID, GeoShapeType.ID);
     private final FieldTypeLookup fieldTypeLookup;
+    private final List<Reference> partitionColumns;
+    private final String indexName;
 
-    public LuceneReferenceResolver(FieldTypeLookup fieldTypeLookup) {
+    public LuceneReferenceResolver(final String indexName,
+                                   final FieldTypeLookup fieldTypeLookup,
+                                   final List<Reference> partitionColumns) {
+        this.indexName = indexName;
         this.fieldTypeLookup = fieldTypeLookup;
+        this.partitionColumns = partitionColumns;
     }
 
     @Override
-    public LuceneCollectorExpression<?> getImplementation(Reference ref) {
+    public LuceneCollectorExpression<?> getImplementation(final Reference ref) {
         assert ref.granularity() == RowGranularity.DOC : "lucene collector expressions are required to be on DOC granularity";
 
-        ColumnIdent column = ref.column();
+        final ColumnIdent column = ref.column();
         switch (column.name()) {
             case DocSysColumns.Names.RAW:
                 if (column.isTopLevel()) {
@@ -76,9 +90,6 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case DocSysColumns.Names.UID:
             case DocSysColumns.Names.ID:
                 return new IdCollectorExpression();
-
-            case DocSysColumns.Names.DOC:
-                return DocCollectorExpression.create(ref);
 
             case DocSysColumns.Names.FETCHID:
                 return new FetchIdCollectorExpression();
@@ -98,14 +109,49 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case DocSysColumns.Names.PRIMARY_TERM:
                 return new PrimaryTermCollectorExpression();
 
-            default:
-                return typeSpecializedExpression(fieldTypeLookup, ref);
+            case DocSysColumns.Names.DOC: {
+                var result = DocCollectorExpression.create(ref);
+                return maybeInjectPartitionValue(
+                    result,
+                    indexName,
+                    partitionColumns,
+                    column.isTopLevel() ? column : column.shiftRight()  // Remove `_doc` prefix so that it can match the column against partitionColumns
+                );
+            }
+
+            default: {
+                return maybeInjectPartitionValue(
+                    typeSpecializedExpression(fieldTypeLookup, ref),
+                    indexName,
+                    partitionColumns,
+                    column
+                );
+            }
         }
     }
 
-    private static LuceneCollectorExpression<?> typeSpecializedExpression(FieldTypeLookup fieldTypeLookup, Reference ref) {
-        String fqn = ref.column().fqn();
-        MappedFieldType fieldType = fieldTypeLookup.get(fqn);
+    private static LuceneCollectorExpression<?> maybeInjectPartitionValue(LuceneCollectorExpression<?> result,
+                                                                          String indexName,
+                                                                          List<Reference> partitionColumns,
+                                                                          ColumnIdent column) {
+        for (int i = 0; i < partitionColumns.size(); i++) {
+            final Reference partitionColumn = partitionColumns.get(i);
+            final var partitionColumnIdent = partitionColumn.column();
+            if (partitionColumnIdent.isChildOf(column)) {
+                return new PartitionValueInjectingExpression(
+                    PartitionName.fromIndexOrTemplate(indexName),
+                    i,
+                    partitionColumnIdent.shiftRight(),
+                    result
+                );
+            }
+        }
+        return result;
+    }
+
+    private static LuceneCollectorExpression<?> typeSpecializedExpression(final FieldTypeLookup fieldTypeLookup, final Reference ref) {
+        final String fqn = ref.column().fqn();
+        final MappedFieldType fieldType = fieldTypeLookup.get(fqn);
         if (fieldType == null) {
             return NO_FIELD_TYPES_IDS.contains(unnest(ref.valueType()).id()) || isIgnoredDynamicReference(ref)
                 ? DocCollectorExpression.create(toSourceLookup(ref))
@@ -144,7 +190,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
     }
 
-    private static boolean isIgnoredDynamicReference(Reference ref) {
+    private static boolean isIgnoredDynamicReference(final Reference ref) {
         return ref.symbolType() == SymbolType.DYNAMIC_REFERENCE && ref.columnPolicy() == ColumnPolicy.IGNORED;
     }
 
@@ -153,6 +199,53 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         @Override
         public Void value() {
             return null;
+        }
+    }
+
+    static class PartitionValueInjectingExpression extends LuceneCollectorExpression<Object> {
+
+        private final LuceneCollectorExpression<?> inner;
+        private final ColumnIdent partitionPath;
+        private final int partitionPos;
+        private final PartitionName partitionName;
+
+        public PartitionValueInjectingExpression(PartitionName partitionName,
+                                                 int partitionPos,
+                                                 ColumnIdent partitionPath,
+                                                 LuceneCollectorExpression<?> inner) {
+            this.inner = inner;
+            this.partitionName = partitionName;
+            this.partitionPos = partitionPos;
+            this.partitionPath = partitionPath;
+        }
+
+        @Override
+        public Object value() {
+            final var object = (Map<String, Object>) inner.value();
+            final var partitionValue = partitionName.values().get(partitionPos);
+            Maps.mergeInto(
+                object,
+                partitionPath.name(),
+                partitionPath.path(),
+                partitionValue
+            );
+            return object;
+        }
+
+        public void startCollect(final CollectorContext context) {
+            inner.startCollect(context);
+        }
+
+        public void setNextDocId(final int doc) throws IOException {
+            inner.setNextDocId(doc);
+        }
+
+        public void setNextReader(final LeafReaderContext context) throws IOException {
+            inner.setNextReader(context);
+        }
+
+        public void setScorer(final Scorable scorer) {
+            inner.setScorer(scorer);
         }
     }
 }

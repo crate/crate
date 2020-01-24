@@ -24,6 +24,8 @@ package io.crate.testing;
 
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -88,11 +90,11 @@ public final class IndexEnv implements AutoCloseable {
     private final IndexWriter writer;
 
     public IndexEnv(ThreadPool threadPool,
-                    RelationName relation,
+                    DocTableInfo table,
                     ClusterState clusterState,
                     Version indexVersion,
                     Path tempDir) throws IOException  {
-        String indexName = relation.indexNameOrAlias();
+        String indexName = table.ident().indexNameOrAlias();
         assert clusterState.metaData().hasIndex(indexName) : "ClusterState must contain the index: " + indexName;
 
         Index index = new Index(indexName, UUIDs.randomBase64UUID());
@@ -138,7 +140,11 @@ public final class IndexEnv implements AutoCloseable {
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, new InternalEngineFactory(), Collections.emptyMap());
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
         nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
-        luceneReferenceResolver = new LuceneReferenceResolver(mapperService::fullName);
+        luceneReferenceResolver = new LuceneReferenceResolver(
+            indexName,
+            mapperService::fullName,
+            table.partitionedByColumns()
+        );
         indexService = indexModule.newIndexService(
             nodeEnvironment,
             NamedXContentRegistry.EMPTY,

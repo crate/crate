@@ -88,8 +88,10 @@ import io.crate.memory.MemoryManager;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.metadata.table.Operation;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.types.DataTypes;
@@ -140,9 +142,11 @@ public class JobSetup {
     private final PKLookupOperation pkLookupOperation;
     private final Executor searchTp;
     private final String nodeName;
+    private final Schemas schemas;
 
     @Inject
     public JobSetup(Settings settings,
+                    Schemas schemas,
                     MapSideDataCollectOperation collectOperation,
                     ClusterService clusterService,
                     NodeJobsCounter nodeJobsCounter,
@@ -158,6 +162,7 @@ public class JobSetup {
                     ShardCollectSource shardCollectSource,
                     MemoryManagerFactory memoryManagerFactory) {
         this.nodeName = Node.NODE_NAME_SETTING.get(settings);
+        this.schemas = schemas;
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.circuitBreakerService = circuitBreakerService;
@@ -791,6 +796,7 @@ public class JobSetup {
                 localNodeId,
                 context.sharedShardContexts,
                 clusterService.state().metaData(),
+                relationName -> schemas.getTableInfo(relationName, Operation.READ),
                 routings));
             return true;
         }
