@@ -66,8 +66,10 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
@@ -108,20 +110,34 @@ public class LuceneQueryBuilder {
     private static final Logger LOGGER = LogManager.getLogger(LuceneQueryBuilder.class);
     private static final Visitor VISITOR = new Visitor();
     private final Functions functions;
-    private final EvaluatingNormalizer normalizer;
 
     @Inject
     public LuceneQueryBuilder(Functions functions) {
         this.functions = functions;
-        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
     }
 
     public Context convert(Symbol query,
                            TransactionContext txnCtx,
                            MapperService mapperService,
+                           String indexName,
                            QueryShardContext queryShardContext,
+                           DocTableInfo table,
                            IndexCache indexCache) throws UnsupportedFeatureException {
-        Context ctx = new Context(txnCtx, functions, mapperService, indexCache, queryShardContext);
+        var refResolver = new LuceneReferenceResolver(
+            indexName,
+            mapperService::fullName,
+            table.partitionedByColumns()
+        );
+        var normalizer = new EvaluatingNormalizer(functions, RowGranularity.PARTITION, refResolver, null);
+        Context ctx = new Context(
+            txnCtx,
+            functions,
+            mapperService,
+            indexCache,
+            queryShardContext,
+            indexName,
+            table.partitionedByColumns()
+        );
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         ctx.query = VISITOR.process(
             eliminateNullsIfPossible(inverseSourceLookup(query), s -> normalizer.normalize(s, coordinatorTxnCtx)),
@@ -163,14 +179,20 @@ public class LuceneQueryBuilder {
                 Functions functions,
                 MapperService mapperService,
                 IndexCache indexCache,
-                QueryShardContext queryShardContext) {
+                QueryShardContext queryShardContext,
+                String indexName,
+                List<Reference> partitionColumns) {
             this.txnCtx = txnCtx;
             this.queryShardContext = queryShardContext;
             FieldTypeLookup typeLookup = mapperService::fullName;
             this.docInputFactory = new DocInputFactory(
                 functions,
                 typeLookup,
-                new LuceneReferenceResolver(typeLookup)
+                new LuceneReferenceResolver(
+                    indexName,
+                    typeLookup,
+                    partitionColumns
+                )
             );
             this.mapperService = mapperService;
             this.indexCache = indexCache;

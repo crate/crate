@@ -61,7 +61,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
     public static LuceneCollectorExpression<?> create(final Reference reference) {
         assert reference.column().name().equals(DocSysColumns.DOC.name()) :
             "column name must be " + DocSysColumns.DOC.name();
-        if (reference.column().path().size() == 0) {
+        if (reference.column().isTopLevel()) {
             return new DocCollectorExpression();
         }
         return new ChildDocCollectorExpression(reference.valueType(), reference.column().path());

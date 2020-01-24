@@ -41,8 +41,12 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -72,6 +76,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final DocInputFactory docInputFactory;
     private final BigArrays bigArrays;
     private final FieldTypeLookup fieldTypeLookup;
+    private final DocTableInfo table;
 
     public LuceneShardCollectorProvider(Schemas schemas,
                                         LuceneQueryBuilder luceneQueryBuilder,
@@ -83,17 +88,34 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         TransportActionProvider transportActionProvider,
                                         IndexShard indexShard,
                                         BigArrays bigArrays) {
-        super(clusterService, schemas, nodeJobsCounter, functions, threadPool, settings, transportActionProvider, indexShard,
-            new ShardRowContext(indexShard, clusterService), bigArrays);
+        super(
+            clusterService,
+            schemas,
+            nodeJobsCounter,
+            functions,
+            threadPool,
+            settings,
+            transportActionProvider,
+            indexShard,
+            new ShardRowContext(indexShard, clusterService),
+            bigArrays
+        );
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.functions = functions;
         this.indexShard = indexShard;
         this.localNodeId = () -> clusterService.localNode().getId();
-        fieldTypeLookup = indexShard.mapperService()::fullName;
+        var mapperService = indexShard.mapperService();
+        fieldTypeLookup = mapperService::fullName;
+        var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
+        this.table = schemas.getTableInfo(relationName, Operation.READ);
         this.docInputFactory = new DocInputFactory(
             functions,
             fieldTypeLookup,
-            new LuceneReferenceResolver(fieldTypeLookup)
+            new LuceneReferenceResolver(
+                indexShard.shardId().getIndexName(),
+                fieldTypeLookup,
+                table.partitionedByColumns()
+            )
         );
         this.bigArrays = bigArrays;
     }
@@ -113,7 +135,9 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 collectPhase.where(),
                 collectTask.txnCtx(),
                 indexShard.mapperService(),
+                indexShard.shardId().getIndexName(),
                 queryShardContext,
+                table,
                 sharedShardContext.indexService().cache()
             );
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
@@ -141,6 +165,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     protected BatchIterator<Row> getProjectionFusedIterator(RoutedCollectPhase normalizedPhase, CollectTask collectTask) {
         return GroupByOptimizedIterator.tryOptimizeSingleStringKey(
             indexShard,
+            table,
             luceneQueryBuilder,
             fieldTypeLookup,
             bigArrays,
@@ -170,7 +195,9 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 collectPhase.where(),
                 collectTask.txnCtx(),
                 indexService.mapperService(),
+                indexShard.shardId().getIndexName(),
                 queryShardContext,
+                table,
                 indexService.cache()
             );
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);

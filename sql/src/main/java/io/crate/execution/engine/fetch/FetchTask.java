@@ -33,6 +33,7 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
+import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.index.Index;
@@ -51,6 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 public class FetchTask extends AbstractTask {
 
@@ -64,11 +66,13 @@ public class FetchTask extends AbstractTask {
     private final Iterable<? extends Routing> routingIterable;
     private final Map<RelationName, Collection<Reference>> toFetch;
     private final AtomicBoolean isKilled = new AtomicBoolean(false);
+    private final Function<RelationName, DocTableInfo> getTableInfo;
 
     public FetchTask(FetchPhase phase,
                      String localNodeId,
                      SharedShardContexts sharedShardContexts,
                      MetaData metaData,
+                     Function<RelationName, DocTableInfo> getTableInfo,
                      Iterable<? extends Routing> routingIterable) {
         super(phase.phaseId());
         this.phase = phase;
@@ -77,6 +81,7 @@ public class FetchTask extends AbstractTask {
         this.metaData = metaData;
         this.routingIterable = routingIterable;
         this.toFetch = new HashMap<>(phase.tableIndices().size());
+        this.getTableInfo = getTableInfo;
     }
 
     public Map<RelationName, Collection<Reference>> toFetch() {
@@ -184,7 +189,21 @@ public class FetchTask extends AbstractTask {
 
     @Nonnull
     public RelationName tableIdent(int readerId) {
-        return tableIdents.floorEntry(readerId).getValue();
+        var entry = tableIdents.floorEntry(readerId);
+        if (entry == null) {
+            throw new IllegalArgumentException("No table has been registered for readerId=" + readerId);
+        }
+        return entry.getValue();
+    }
+
+    @Nonnull
+    public DocTableInfo table(int readerId) {
+        var relationName = tableIdent(readerId);
+        var table = getTableInfo.apply(relationName);
+        if (table == null) {
+            throw new IllegalStateException("TableInfo missing for relation " + relationName);
+        }
+        return table;
     }
 
     @Nonnull

@@ -48,6 +48,7 @@ import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -108,6 +109,7 @@ final class GroupByOptimizedIterator {
 
     @Nullable
     static BatchIterator<Row> tryOptimizeSingleStringKey(IndexShard indexShard,
+                                                         DocTableInfo table,
                                                          LuceneQueryBuilder luceneQueryBuilder,
                                                          FieldTypeLookup fieldTypeLookup,
                                                          BigArrays bigArrays,
@@ -170,7 +172,9 @@ final class GroupByOptimizedIterator {
                 collectPhase.where(),
                 collectTask.txnCtx(),
                 indexShard.mapperService(),
+                indexShard.shardId().getIndexName(),
                 queryShardContext,
+                table,
                 sharedShardContext.indexService().cache()
             );
 

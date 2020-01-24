@@ -91,6 +91,26 @@ public final class Maps {
         return map;
     }
 
+    @Nullable
+    public static <T> T removeByPath(Map<String, T> map, List<String> path) {
+        assert path instanceof RandomAccess : "`path` must support random access for performance";
+        Map<String, T> m = map;
+        for (int i = 0; i < path.size(); i++) {
+            String key = path.get(i);
+            if (i + 1 == path.size()) {
+                return m.remove(key);
+            } else {
+                T val = map.get(key);
+                if (val instanceof Map) {
+                    m = (Map<String, T>) val;
+                } else {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Inserts a value into source under the given key+path
      */

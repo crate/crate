@@ -62,8 +62,18 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       Settings settings,
                                       TransportActionProvider transportActionProvider,
                                       BigArrays bigArrays) {
-        super(clusterService, schemas, nodeJobsCounter, functions, threadPool, settings, transportActionProvider,
-            blobShard.indexShard(), new ShardRowContext(blobShard, clusterService), bigArrays);
+        super(
+            clusterService,
+            schemas,
+            nodeJobsCounter,
+            functions,
+            threadPool,
+            settings,
+            transportActionProvider,
+            blobShard.indexShard(),
+            new ShardRowContext(blobShard, clusterService),
+            bigArrays
+        );
         inputFactory = new InputFactory(functions);
         this.blobShard = blobShard;
     }
