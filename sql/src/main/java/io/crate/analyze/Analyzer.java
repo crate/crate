@@ -108,7 +108,7 @@ public class Analyzer {
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
     private final AlterTableAnalyzer alterTableAnalyzer;
     private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
-    private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
+    private final InsertAnalyzer insertAnalyzer;
     private final CopyAnalyzer copyAnalyzer;
     private final UpdateAnalyzer updateAnalyzer;
     private final DeleteAnalyzer deleteAnalyzer;
@@ -154,7 +154,7 @@ public class Analyzer {
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this, schemas);
         this.updateAnalyzer = new UpdateAnalyzer(functions, relationAnalyzer);
         this.deleteAnalyzer = new DeleteAnalyzer(functions, relationAnalyzer);
-        this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
+        this.insertAnalyzer = new InsertAnalyzer(functions, schemas, relationAnalyzer);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, functions);
         this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, functions);
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
@@ -445,7 +445,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis analysis) {
-            return insertFromSubQueryAnalyzer.analyze(
+            return insertAnalyzer.analyze(
                 node,
                 analysis.paramTypeHints(),
                 analysis.transactionContext());

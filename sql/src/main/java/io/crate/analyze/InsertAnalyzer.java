@@ -71,7 +71,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-class InsertFromSubQueryAnalyzer {
+class InsertAnalyzer {
 
     private final Functions functions;
     private final Schemas schemas;
@@ -102,7 +102,7 @@ class InsertFromSubQueryAnalyzer {
         }
     }
 
-    InsertFromSubQueryAnalyzer(Functions functions, Schemas schemas, RelationAnalyzer relationAnalyzer) {
+    InsertAnalyzer(Functions functions, Schemas schemas, RelationAnalyzer relationAnalyzer) {
         this.functions = functions;
         this.schemas = schemas;
         this.relationAnalyzer = relationAnalyzer;
