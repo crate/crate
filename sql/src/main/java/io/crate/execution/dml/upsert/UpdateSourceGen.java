@@ -38,10 +38,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -108,7 +105,7 @@ final class UpdateSourceGen {
         }
     }
 
-    BytesReference generateSource(Doc result, Symbol[] updateAssignments, Object[] insertValues) throws IOException {
+    Map<String, Object> generateSource(Doc result, Symbol[] updateAssignments, Object[] insertValues) {
         /* We require a new HashMap because all evaluations of the updateAssignments need to be based on the
          * values *before* the update. For example:
          *
@@ -130,7 +127,7 @@ final class UpdateSourceGen {
         generatedColumns.validateValues(updatedSource);
         injectGeneratedColumns(updatedSource);
         checks.validate(updatedDoc);
-        return BytesReference.bytes(XContentFactory.jsonBuilder().map(updatedSource));
+        return updatedSource;
     }
 
     private void injectGeneratedColumns(HashMap<String, Object> updatedSource) {

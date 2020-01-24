@@ -26,6 +26,7 @@ import io.crate.exceptions.VersioninigValidationException;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.hamcrest.core.IsNull;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -39,6 +40,7 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
+
 
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -891,5 +893,131 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("select id, name from t1 order by id asc");
         assertThat(printedTable(response.rows()), is("1| Slartibartfast\n" +
                                                      "2| Trillian\n"));
+    }
+
+    @Test
+    public void test_update_by_id_returning_id() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='msg' where id = 1 returning id");
+
+        assertThat((response.cols()[0]), is("id" ));
+        assertThat(printedTable(response.rows()), is("1\n" ));
+    }
+
+    @Test
+    public void test_update_by_id_returning_id_with_outputname() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='msg' where id = 1 returning id as renamed");
+
+        assertThat((response.cols()[0]), is("renamed" ));
+        assertThat(printedTable(response.rows()), is("1\n" ));
+    }
+
+    @Test
+    public void test_update_by_id_with_subquery_returning_id() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='updated' where id = (select 1) returning id");
+
+        assertThat(printedTable(response.rows()), is("1\n" ));
+    }
+
+    @Test
+    public void test_update_by_id_where_no_row_is_matching() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='updated' where id = 99 returning id");
+
+        assertThat(response.cols()[0], is("id"));
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void test_update_by_query_returning_single_field_with_outputputname() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='updated' where message='msg' returning message as message_renamed");
+
+        assertThat((response.rowCount()), is(1L));
+        assertThat((response.cols()[0]), is("message_renamed"));
+        assertThat(response.rows()[0][0], is("updated"));
+    }
+
+
+    @Test
+    public void test_update_by_query_with_subquery_returning_multiple_fields() throws Exception {
+        execute("create table test (id int primary key, message string) clustered into 2 shards");
+        execute("insert into test values(1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='updated' where message= (select 'msg') returning id, message");
+
+        assertThat((response.rowCount()), is(1L));
+        assertThat((response.cols()[0]), is("id"));
+        assertThat((response.cols()[1]), is("message"));
+        assertThat(response.rows()[0][0], is(1));
+        assertThat(response.rows()[0][1], is("updated"));
+
+    }
+
+    @Test
+    public void test_update_by_query_returning_multiple_results() throws Exception {
+        execute("create table test (id int primary key, x int, message string) clustered into 2 shards");
+        execute("insert into test values(1, 1, 'msg');");
+        execute("insert into test values(2, 1, 'msg');");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("update test set message='updated' where message='msg' and x > 0 " +
+                "returning _docid, _seq_no as seq, message as message_renamed");
+
+        assertThat((response.rowCount()), is(2L));
+        assertThat((response.cols()[0]), is("_docid"));
+        assertThat((response.cols()[1]), is("seq"));
+        assertThat((response.cols()[2]), is("message_renamed"));
+
+        assertThat(response.rows()[0][0], is(0));
+        assertThat(response.rows()[0][1], is(2L));
+        assertThat(response.rows()[0][2], is("updated"));
+
+        assertThat(response.rows()[1][0], is(1));
+        assertThat(response.rows()[1][1], is(3L));
+        assertThat(response.rows()[1][2], is("updated"));
+    }
+
+    @Test
+    public void test_update_sys_tables_returning_values_with_expressions_and_outputnames() throws Exception {
+        execute("update sys.node_checks set acknowledged = true where id = 1 " +
+                "returning id, UPPER(description) as description, acknowledged as ack");
+
+        long numberOfNodes = this.clusterService().state().getNodes().getSize();
+
+        assertThat((response.rowCount()), is(numberOfNodes));
+        assertThat((response.cols()[0]), is("id"));
+        assertThat((response.cols()[1]), is("description"));
+        assertThat((response.cols()[2]), is("ack"));
+        for (int i = 0; i < numberOfNodes; i++) {
+            assertThat(response.rows()[i][0], is(1));
+            assertThat(response.rows()[i][1], is(IsNull.notNullValue()));
+            assertThat(response.rows()[i][2], is(true));
+        }
     }
 }

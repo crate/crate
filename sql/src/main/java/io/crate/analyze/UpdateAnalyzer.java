@@ -34,6 +34,7 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -100,6 +101,7 @@ public final class UpdateAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, table);
         SubqueryAnalyzer subqueryAnalyzer =
             new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnCtx));
+
         ExpressionAnalyzer sourceExprAnalyzer = new ExpressionAnalyzer(
             functions,
             txnCtx,
@@ -121,12 +123,17 @@ public final class UpdateAnalyzer {
 
         Symbol normalizedQuery = normalizer.normalize(query, txnCtx);
 
-        SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(update.returningClause(),
-                                                                          relCtx.sources(),
-                                                                          sourceExprAnalyzer,
-                                                                          exprCtx);
+        SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(
+            update.returningClause(),
+            relCtx.sources(),
+            sourceExprAnalyzer,
+            exprCtx
+        );
 
-        return new AnalyzedUpdateStatement(table, assignmentByTargetCol, normalizedQuery, selectAnalysis.outputMultiMap());
+        List<Symbol> outputSymbol = Lists2.map(selectAnalysis.outputSymbols(), x -> normalizer.normalize(x, txnCtx));
+        List<ColumnIdent> outputNames = selectAnalysis.outputNames();
+
+        return new AnalyzedUpdateStatement(table, assignmentByTargetCol, normalizedQuery, outputNames, outputSymbol);
     }
 
     private HashMap<Reference, Symbol> getAssignments(List<Assignment<Expression>> assignments,

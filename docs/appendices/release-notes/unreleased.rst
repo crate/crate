@@ -55,6 +55,9 @@ None
 Changes
 =======
 
+- Introduced new optional ``RETURNING`` clause for :ref:`Update <ref-update>` to
+  return specified values from each row updated.
+
 - Added the :ref:`obj_description(integer, text) <obj_description>` scalar
   function for improved PostgreSQL compatibility.
 

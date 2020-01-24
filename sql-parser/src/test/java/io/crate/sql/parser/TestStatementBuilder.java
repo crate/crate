@@ -313,9 +313,10 @@ public class TestStatementBuilder {
         printStatement("update foo set foo='a' where x=false returning id");
         printStatement("update foo set foo='a' returning id AS foo");
         printStatement("update foo set foo='a' returning id + 1 AS foo, id -1 as bar");
-        printStatement("update foo set foo='a' returning id + 1 AS foo, id -1 as bar");
         printStatement("update foo set foo='a' returning \"column['nested']\" AS bar");
         printStatement("update foo set foo='a' returning foo.bar - 1 AS foo");
+        printStatement("update foo set foo='a' returning *");
+        printStatement("update foo set foo='a' returning foo.*");
     }
 
     @Test
