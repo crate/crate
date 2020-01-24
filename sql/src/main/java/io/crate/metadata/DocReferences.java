@@ -95,7 +95,7 @@ public final class DocReferences {
         return reference;
     }
 
-    private static Reference docRefToRegularRef(Reference ref) {
+    public static Reference docRefToRegularRef(Reference ref) {
         ColumnIdent column = ref.column();
         if (!column.isTopLevel() && column.name().equals(DocSysColumns.Names.DOC)) {
             return ref.getRelocated(new ReferenceIdent(ref.ident().tableIdent(), column.shiftRight()));

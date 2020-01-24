@@ -97,7 +97,7 @@ public final class QueryTester implements AutoCloseable {
 
             indexEnv = new IndexEnv(
                 threadPool,
-                table.ident(),
+                table,
                 clusterService.state(),
                 indexVersion,
                 tempDir
@@ -193,7 +193,9 @@ public final class QueryTester implements AutoCloseable {
                     symbol,
                     systemTxnCtx,
                     indexEnv.mapperService(),
+                    indexEnv.indexService().index().getName(),
                     indexEnv.queryShardContext(),
+                    table,
                     indexEnv.indexCache()
                 ).query(),
                 indexEnv

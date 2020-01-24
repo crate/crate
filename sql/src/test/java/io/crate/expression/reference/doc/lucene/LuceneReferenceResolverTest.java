@@ -40,14 +40,17 @@ import static org.hamcrest.Matchers.instanceOf;
 public class LuceneReferenceResolverTest extends CrateUnitTest {
 
     // just return any fieldType to get passt the null check
+    private RelationName name = new RelationName("s", "t");
     private LuceneReferenceResolver luceneReferenceResolver = new LuceneReferenceResolver(
-        i -> KeywordFieldMapper.Defaults.FIELD_TYPE);
+        name.indexNameOrAlias(),
+        i -> KeywordFieldMapper.Defaults.FIELD_TYPE,
+        List.of()
+    );
 
     @Test
     public void testGetImplementationWithColumnsOfTypeCollection() {
         Reference arrayRef = new Reference(
-            new ReferenceIdent(
-            new RelationName("s", "t"), "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, null, null
+            new ReferenceIdent(name, "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, null, null
         );
         assertThat(luceneReferenceResolver.getImplementation(arrayRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
@@ -56,8 +59,7 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
     @Test
     public void testGetImplementationForSequenceNumber() {
         Reference seqNumberRef = new Reference(
-            new ReferenceIdent(
-                new RelationName("s", "t"), "_seq_no"), RowGranularity.DOC, DataTypes.LONG, null, null
+            new ReferenceIdent(name, "_seq_no"), RowGranularity.DOC, DataTypes.LONG, null, null
         );
         assertThat(luceneReferenceResolver.getImplementation(seqNumberRef), instanceOf(SeqNoCollectorExpression.class));
     }
@@ -65,8 +67,7 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
     @Test
     public void testGetImplementationForPrimaryTerm() {
         Reference primaryTerm = new Reference(
-            new ReferenceIdent(
-                new RelationName("s", "t"), "_primary_term"), RowGranularity.DOC, DataTypes.LONG, null, null
+            new ReferenceIdent(name, "_primary_term"), RowGranularity.DOC, DataTypes.LONG, null, null
         );
         assertThat(luceneReferenceResolver.getImplementation(primaryTerm),
                    instanceOf(PrimaryTermCollectorExpression.class));
@@ -75,8 +76,7 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
     @Test
     public void test_ignored_dynamic_references_are_resolved_using_sourcelookup() {
         Reference ignored = new DynamicReference(
-            new ReferenceIdent(
-                new RelationName("s", "t"), "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED);
+            new ReferenceIdent(name, "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED);
 
         assertThat(luceneReferenceResolver.getImplementation(ignored),
                    instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));

@@ -71,6 +71,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
             "dummy",
             new SharedShardContexts(mock(IndicesService.class), UnaryOperator.identity()),
             clusterService.state().getMetaData(),
+            relationName -> null,
             Collections.emptyList());
 
         expectedException.expect(IllegalArgumentException.class);
@@ -110,6 +111,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
             "dummy",
             new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS), UnaryOperator.identity()),
             metaData,
+            relationName -> null,
             ImmutableList.of(routing));
 
         context.prepare();

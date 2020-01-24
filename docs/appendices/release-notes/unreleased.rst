@@ -96,6 +96,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that resulted in the values for nested partitioned columns to
+  be missing from the result.
+
 - Fixed an issue that caused ``SELECT *`` to include nested columns of type
   ``geo_shape`` instead of only selecting top-level columns.
 

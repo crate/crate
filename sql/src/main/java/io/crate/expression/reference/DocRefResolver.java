@@ -22,6 +22,7 @@
 
 package io.crate.expression.reference;
 
+import io.crate.common.collections.Maps;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.ValueExtractors;
@@ -73,12 +74,29 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                 return forFunction(Doc::getSource);
 
             default:
-                int idx = partitionedByColumns.indexOf(columnIdent);
-                if (idx > -1) {
-                    return forFunction(
-                        getResp -> ref.valueType().value(
-                            PartitionName.fromIndexOrTemplate(getResp.getIndex()).values().get(idx)));
+                for (int i = 0; i < partitionedByColumns.size(); i++) {
+                    var pColumn = partitionedByColumns.get(i);
+                    if (pColumn.equals(columnIdent)) {
+                        final int idx = i;
+                        return forFunction(
+                            getResp -> ref.valueType().value(
+                                PartitionName.fromIndexOrTemplate(getResp.getIndex()).values().get(idx))
+                        );
+                    } else if (pColumn.isChildOf(columnIdent)) {
+                        final int idx = i;
+                        return forFunction(response -> {
+                            if (response == null) {
+                                return null;
+                            }
+                            var partitionName = PartitionName.fromIndexOrTemplate(response.getIndex());
+                            var partitionValue = partitionName.values().get(idx);
+                            var source = response.getSource();
+                            Maps.mergeInto(source, pColumn.name(), pColumn.path(), partitionValue);
+                            return ref.valueType().value(ValueExtractors.fromMap(source, columnIdent));
+                        });
+                    }
                 }
+
                 return forFunction(response -> {
                     if (response == null) {
                         return null;

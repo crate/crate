@@ -29,6 +29,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -314,5 +315,29 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         var payloads = List.of(Map.of("x", 10), Map.of("x", 20));
         var source = sourceGen.generateSourceAndCheckConstraints(new Object[] { payloads });
         assertThat(source.utf8ToString(), is("{\"payloads\":[{\"x\":10},{\"x\":20}]}"));
+    }
+
+    @Test
+    public void test_nested_partition_column_is_not_included_in_the_source() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable(
+                "create table doc.tbl (obj object as (p integer, x integer)) partitioned by (obj['p'])",
+                new PartitionName(new RelationName("doc", "tbl"), List.of("1")).asIndexName()
+            )
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        InsertSourceGen sourceGen = InsertSourceGen.of(
+            txnCtx,
+            e.functions(),
+            table,
+            table.concreteIndices()[0],
+            GeneratedColumns.Validation.VALUE_MATCH,
+            List.copyOf(table.columns())
+        );
+        Map<String, Object> obj = new HashMap<>();
+        obj.put("x", 10);
+        obj.put("p", 1);
+        var source = sourceGen.generateSourceAndCheckConstraints(new Object[] { obj });
+        assertThat(source.utf8ToString(), is("{\"obj\":{\"x\":10}}"));
     }
 }
