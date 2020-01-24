@@ -250,11 +250,11 @@ class InsertFromSubQueryAnalyzer {
                 continue;
             }
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
-                source,
+                "The type '%s' of the insert source '%s' is not convertible to the type '%s' of target column '%s'",
                 source.valueType(),
-                targetCol.column().fqn(),
-                targetType
+                SymbolPrinter.INSTANCE.printQualified(source),
+                targetType,
+                targetCol.column().fqn()
             ));
         }
     }
