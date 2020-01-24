@@ -2309,4 +2309,29 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             is("test| 04732d1g64p36d9i60o30c1g| {metadata['date']=1401235200000}\n"));
         assertThat(printedTable(execute("SELECT count(*) FROM test").rows()), is("2\n"));
     }
+
+    @Test
+    public void test_nested_partition_column_is_included_when_selecting_the_object_but_not_in_the_source() {
+        execute("create table tbl (pk object as (id text, part text), primary key (pk['id'], pk['part'])) " +
+                "partitioned by (pk['part'])");
+        execute("insert into tbl (pk) values ({id='1', part='x'})");
+        execute("insert into tbl (pk) (select {id='2', part='x'})");
+        execute("refresh table tbl");
+        execute("select _raw, pk, pk['id'], pk['part'] from tbl order by pk['id'] asc");
+        assertThat(
+            printedTable(response.rows()),
+            is("{\"pk\":{\"id\":\"1\"}}| {id=1, part=x}| 1| x\n" +
+               "{\"pk\":{\"id\":\"2\"}}| {id=2, part=x}| 2| x\n")
+        );
+
+        execute("SELECT _raw, pk, pk['id'], pk['part'] FROM tbl " +
+                " WHERE (pk['id'] = 1 AND pk['part'] = 'x') " +
+                " OR    (pk['id'] = 2 AND pk['part'] = 'x') " +
+                " ORDER BY pk['id'] ASC");
+        assertThat(
+            printedTable(response.rows()),
+            is("{\"pk\":{\"id\":\"1\"}}| {id=1, part=x}| 1| x\n" +
+               "{\"pk\":{\"id\":\"2\"}}| {id=2, part=x}| 2| x\n")
+        );
+    }
 }
