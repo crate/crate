@@ -87,7 +87,7 @@ It returns ``false`` if the subquery does not match with the provided comparison
 or the subquery returns no rows::
 
     cr> select name, population from countries
-    ... where population > any (select * from unnest([8000000, 22000000, null]))
+    ... where population > any (select * from (values(8000000), (22000000), (null)) as t)
     ... order by population, name;
     +--------------+------------+
     | name         | population |
