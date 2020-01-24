@@ -349,4 +349,13 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         expectedException.expectMessage("Clustered by value is required but is missing from the insert statement");
         e.analyze("insert into users_clustered_by_only (name) (select 'user')");
     }
+
+    @Test
+    public void test_insert_from_query_fails_when_source_and_target_types_are_incompatible() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+            "The type 'bigint' of the insert source 'doc.users.id' " +
+            "is not convertible to the type 'object' of target column 'details'");
+        e.analyze("insert into users (id, name, details) (select id, name, id from users)");
+    }
 }
