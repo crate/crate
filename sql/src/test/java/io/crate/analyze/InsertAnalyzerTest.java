@@ -52,7 +52,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
+public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
