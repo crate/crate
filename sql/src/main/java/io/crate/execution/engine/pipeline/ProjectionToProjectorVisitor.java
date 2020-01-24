@@ -33,7 +33,9 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
+import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.SysUpdateProjector;
+import io.crate.execution.dml.SysUpdateResultSetProjector;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dsl.projection.AggregationProjection;
@@ -82,7 +84,9 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableDefinition;
+import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.SysRowUpdater;
+import io.crate.expression.reference.sys.check.node.SysNodeCheck;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -93,6 +97,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
@@ -118,6 +123,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
 
 public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
@@ -501,6 +507,19 @@ public class ProjectionToProjectorVisitor
     @Override
     public Projector visitUpdateProjection(final UpdateProjection projection, Context context) {
         checkShardLevel("Update projection can only be executed on a shard");
+        ShardDMLExecutor<?, ?, ?, ?> shardDMLExecutor;
+        if (projection.returnValues() == null) {
+            shardDMLExecutor = buildUpdateShardDMLExecutor(context, projection, ShardDMLExecutor.ROW_COUNT_COLLECTOR);
+        } else {
+            shardDMLExecutor = buildUpdateShardDMLExecutor(context, projection, ShardDMLExecutor.RESULT_ROW_COLLECTOR);
+        }
+        return new DMLProjector(shardDMLExecutor);
+    }
+
+    private <A> ShardDMLExecutor<?, ?, A, ?> buildUpdateShardDMLExecutor(
+        Context context, UpdateProjection projection,
+        Collector<ShardResponse, A, Iterable<Row>> collector) {
+
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             context.txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
@@ -508,10 +527,13 @@ public class ProjectionToProjectorVisitor
             false,
             projection.assignmentsColumns(),
             null,
+            projection.returnValues(),
             context.jobId,
-            true
+            true,
+            Version.CURRENT
         );
-        ShardDMLExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
+
+        return new ShardDMLExecutor<>(
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
@@ -519,11 +541,15 @@ public class ProjectionToProjectorVisitor
             clusterService,
             nodeJobsCounter,
             () -> builder.newRequest(shardId),
-            id -> new ShardUpsertRequest.Item(id, projection.assignments(), null, projection.requiredVersion(), null, null),
-            transportActionProvider.transportShardUpsertAction()::execute
-        );
-
-        return new DMLProjector(shardDMLExecutor);
+            id -> new ShardUpsertRequest.Item(id,
+                                              projection.assignments(),
+                                              null,
+                                              projection.requiredVersion(),
+                                              null,
+                                              null,
+                                              projection.returnValues()),
+            transportActionProvider.transportShardUpsertAction()::execute,
+            collector);
     }
 
     @Override
@@ -531,7 +557,7 @@ public class ProjectionToProjectorVisitor
         checkShardLevel("Delete projection can only be executed on a shard");
         TimeValue reqTimeout = ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings);
 
-        ShardDMLExecutor<ShardDeleteRequest, ShardDeleteRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
+        ShardDMLExecutor<?, ?, ?, ?> shardDMLExecutor = new ShardDMLExecutor<>(
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
@@ -540,7 +566,8 @@ public class ProjectionToProjectorVisitor
             nodeJobsCounter,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
             ShardDeleteRequest.Item::new,
-            transportActionProvider.transportShardDeleteAction()::execute
+            transportActionProvider.transportShardDeleteAction()::execute,
+            ShardDMLExecutor.ROW_COUNT_COLLECTOR
         );
         return new DMLProjector(shardDMLExecutor);
     }
@@ -610,7 +637,19 @@ public class ProjectionToProjectorVisitor
         assert readCtx != null : "readCtx must not be null";
         assert rowUpdater != null : "row updater needs to exist";
         Consumer<Object> rowWriter = rowUpdater.newRowWriter(assignmentCols, valueInputs, readCtx.expressions());
-        return new SysUpdateProjector(rowWriter);
+
+        if (projection.returnValues() == null) {
+            return new SysUpdateProjector(rowWriter);
+        } else {
+            InputFactory.Context<NestableCollectExpression<SysNodeCheck, ?>> cntx = new InputFactory(
+                functions).ctxForRefs(
+                context.txnCtx, new StaticTableReferenceResolver<>(SysNodeChecksTableInfo.expressions()));
+            cntx.add(List.of(projection.returnValues()));
+            return new SysUpdateResultSetProjector(rowUpdater,
+                                                   rowWriter,
+                                                   cntx.expressions(),
+                                                   cntx.topLevelInputs());
+        }
     }
 
     @Override

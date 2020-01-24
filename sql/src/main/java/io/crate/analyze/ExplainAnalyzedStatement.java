@@ -34,6 +34,7 @@ import io.crate.profile.ProfilingContext;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.ObjectType;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
@@ -78,6 +79,7 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     }
 
     @Override
+    @Nonnull
     public List<Field> fields() {
         return fields;
     }

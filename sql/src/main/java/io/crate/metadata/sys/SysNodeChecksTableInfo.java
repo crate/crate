@@ -58,7 +58,7 @@ public class SysNodeChecksTableInfo extends StaticTableInfo<SysNodeCheck> {
         public static final ColumnIdent ACKNOWLEDGED = new ColumnIdent("acknowledged");
     }
 
-    static Map<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>> expressions() {
+    public static Map<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>> expressions() {
         return columnRegistrar().expressions();
     }
 

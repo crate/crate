@@ -22,11 +22,16 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.Multimap;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import org.elasticsearch.common.Nullable;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -35,16 +40,36 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     private final AbstractTableRelation table;
     private final Map<Reference, Symbol> assignmentByTargetCol;
     private final Symbol query;
-    private final Multimap<String, Symbol> returningClause;
+
+    /**
+     * List of columns used for the result set.
+     */
+    private final List<Field> fields;
+
+    /**
+     * List of values or expressions used to be retrieved from the updated rows.
+     */
+    private final List<Symbol> returnValues;
 
     public AnalyzedUpdateStatement(AbstractTableRelation table,
                                    Map<Reference, Symbol> assignmentByTargetCol,
                                    Symbol query,
-                                   Multimap<String, Symbol> returningClause) {
+                                   List<ColumnIdent> outputNames,
+                                   List<Symbol> returnValues
+                                   ) {
         this.table = table;
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.query = query;
-        this.returningClause = returningClause;
+        this.returnValues = returnValues;
+        if (!outputNames.isEmpty() && !returnValues.isEmpty()) {
+            this.fields = new ArrayList<>(outputNames.size());
+            Iterator<Symbol> outputsIterator = returnValues.iterator();
+            for (ColumnIdent path : outputNames) {
+                fields.add(new Field(table, path, outputsIterator.next()));
+            }
+        } else {
+            fields = null;
+        }
     }
 
     public AbstractTableRelation table() {
@@ -59,8 +84,13 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         return query;
     }
 
-    public Multimap<String, Symbol> returningClause() {
-        return returningClause;
+    @Nullable
+    public List<Field> fields() {
+        return fields;
+    }
+
+    public List<Symbol> returnValues() {
+        return returnValues;
     }
 
     @Override
@@ -79,8 +109,13 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         for (Symbol sourceExpr : assignmentByTargetCol.values()) {
             consumer.accept(sourceExpr);
         }
-        for (Symbol returningSymbol : returningClause.values()) {
+        for (Symbol returningSymbol : returnValues) {
             consumer.accept(returningSymbol);
+        }
+        if (fields != null) {
+            for (Field field : fields) {
+                consumer.accept(field);
+            }
         }
     }
 

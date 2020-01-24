@@ -40,6 +40,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
@@ -101,13 +102,15 @@ public class ColumnIndexWriterProjector implements Projector {
             true, // continueOnErrors
             updateColumnNames,
             columnReferences.toArray(new Reference[columnReferences.size()]),
+            null,
             jobId,
-            true
+            true,
+            Version.CURRENT
         );
 
         InputRow insertValues = new InputRow(insertInputs);
         Function<String, ShardUpsertRequest.Item> itemFactory =
-            id -> new ShardUpsertRequest.Item(id, assignments, insertValues.materialize(), null, null, null);
+            id -> new ShardUpsertRequest.Item(id, assignments, insertValues.materialize(), null, null, null, null);
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
