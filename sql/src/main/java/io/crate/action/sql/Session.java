@@ -272,9 +272,8 @@ public class Session implements AutoCloseable {
             throw t;
         }
 
-        AnalyzedStatement unboundStatement = preparedStmt.unboundStatement();
         AnalyzedStatement analyzedStatement;
-        if (unboundStatement == null) {
+        if (preparedStmt.analyzedStatement() == null) {
             try {
                 analyzedStatement = analyzer.analyze(
                     preparedStmt.parsedStatement(),
@@ -289,7 +288,7 @@ public class Session implements AutoCloseable {
                 throw t;
             }
         } else {
-            analyzedStatement = unboundStatement;
+            analyzedStatement = preparedStmt.analyzedStatement();
         }
 
         Portal portal = new Portal(
@@ -342,17 +341,20 @@ public class Session implements AutoCloseable {
                 Statement statement = preparedStmt.parsedStatement();
 
                 AnalyzedStatement analyzedStatement;
-                if (preparedStmt.isRelationInitialized()) {
-                    analyzedStatement = preparedStmt.unboundStatement();
+                if (preparedStmt.analyzedStatement() != null) {
+                    analyzedStatement = preparedStmt.analyzedStatement();
                 } else {
                     try {
-                        analyzedStatement = analyzer.analyze(statement, sessionContext, preparedStmt.paramTypes());
+                        analyzedStatement = analyzer.analyze(
+                            statement,
+                            sessionContext,
+                            preparedStmt.paramTypes());
                     } catch (Throwable t) {
                         jobsLogs.logPreExecutionFailure(
                             UUID.randomUUID(), preparedStmt.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
                         throw t;
                     }
-                    preparedStmt.unboundStatement(analyzedStatement);
+                    preparedStmt.analyzedStatement(analyzedStatement);
                 }
                 if (analyzedStatement == null) {
                     // statement without result set -> return null for NoData msg
@@ -473,15 +475,14 @@ public class Session implements AutoCloseable {
             null);
 
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
-        var unboundStatement = firstPreparedStatement.unboundStatement();
         AnalyzedStatement analyzedStatement;
-        if (unboundStatement == null) {
+        if (firstPreparedStatement.analyzedStatement() == null) {
             analyzedStatement = analyzer.analyze(
                 statement,
                 sessionContext,
                 firstPreparedStatement.paramTypes());
         } else {
-            analyzedStatement = unboundStatement;
+            analyzedStatement = firstPreparedStatement.analyzedStatement();
         }
 
         Plan plan;
