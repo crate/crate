@@ -34,7 +34,7 @@ public final class Portal {
     private String portalName;
     private final PreparedStmt preparedStmt;
     private final List<Object> params;
-    private final AnalyzedStatement boundOrUnboundStatement;
+    private final AnalyzedStatement analyzedStatement;
 
     @Nullable
     private final FormatCodes.FormatCode[] resultFormatCodes;
@@ -44,12 +44,12 @@ public final class Portal {
     public Portal(String portalName,
                   PreparedStmt preparedStmt,
                   List<Object> params,
-                  AnalyzedStatement boundOrUnboundStatement,
+                  AnalyzedStatement analyzedStatement,
                   @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
         this.portalName = portalName;
         this.preparedStmt = preparedStmt;
         this.params = params;
-        this.boundOrUnboundStatement = boundOrUnboundStatement;
+        this.analyzedStatement = analyzedStatement;
         this.resultFormatCodes = resultFormatCodes;
     }
 
@@ -70,8 +70,8 @@ public final class Portal {
         return resultFormatCodes;
     }
 
-    public AnalyzedStatement boundOrUnboundStatement() {
-        return boundOrUnboundStatement;
+    public AnalyzedStatement analyzedStatement() {
+        return analyzedStatement;
     }
 
     public void setActiveConsumer(RowConsumerToResultReceiver consumer) {
