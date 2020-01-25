@@ -314,7 +314,7 @@ public class Session implements AutoCloseable {
         switch (type) {
             case 'P':
                 Portal portal = getSafePortal(portalOrStatement);
-                AnalyzedStatement analyzedStmt = portal.boundOrUnboundStatement();
+                var analyzedStmt = portal.analyzedStatement();
                 return new DescribeResult(analyzedStmt.fields());
             case 'S':
                 /*
@@ -374,7 +374,7 @@ public class Session implements AutoCloseable {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
         }
         Portal portal = getSafePortal(portalName);
-        AnalyzedStatement analyzedStmt = portal.boundOrUnboundStatement();
+        var analyzedStmt = portal.analyzedStatement();
         if (isReadOnly && analyzedStmt.isWriteOperation()) {
             throw new ReadOnlyException(portal.preparedStmt().rawStatement());
         }
@@ -437,7 +437,7 @@ public class Session implements AutoCloseable {
                 Map<Statement, List<DeferredExecution>> deferredExecutions = Map.copyOf(this.deferredExecutionsByStmt);
                 this.deferredExecutionsByStmt.clear();
                 for (var entry : deferredExecutions.entrySet()) {
-                    if (entry.getValue().stream().anyMatch(x -> !x.portal().boundOrUnboundStatement().isWriteOperation())) {
+                    if (entry.getValue().stream().anyMatch(x -> !x.portal().analyzedStatement().isWriteOperation())) {
                         throw new UnsupportedOperationException(
                             "Only write operations are allowed in Batch statements");
                     }
@@ -555,7 +555,7 @@ public class Session implements AutoCloseable {
         var params = new RowN(portal.params().toArray());
         var plannerContext = new PlannerContext(
             clusterState, routingProvider, jobId, executor.functions(), txnCtx, maxRows, params);
-        var analyzedStmt = portal.boundOrUnboundStatement();
+        var analyzedStmt = portal.analyzedStatement();
         String rawStatement = portal.preparedStmt().rawStatement();
         if (analyzedStmt == null) {
             String errorMsg = "Statement must have been analyzed: " + rawStatement;
@@ -602,7 +602,7 @@ public class Session implements AutoCloseable {
     @Nullable
     public List<? extends DataType> getOutputTypes(String portalName) {
         Portal portal = getSafePortal(portalName);
-        AnalyzedStatement analyzedStatement = portal.boundOrUnboundStatement();
+        var analyzedStatement = portal.analyzedStatement();
         List<Field> fields = analyzedStatement.fields();
         if (fields != null) {
             return Symbols.typeView(fields);
