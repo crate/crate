@@ -186,7 +186,6 @@ public class Analyzer {
             dispatcher,
             new Analysis(
                 new CoordinatorTxnCtx(sessionContext),
-                ParameterContext.EMPTY,
                 paramTypeHints));
         userManager.getAccessControl(sessionContext).ensureMayExecute(analyzedStatement);
         return analyzedStatement;
@@ -198,6 +197,7 @@ public class Analyzer {
         return analyzedStatement;
     }
 
+    @SuppressWarnings("unchecked")
     private class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
 
         @Override
@@ -524,7 +524,7 @@ public class Analyzer {
             return relationAnalyzer.analyze(
                 query,
                 coordinatorTxnCtx,
-                context.parameterContext().typeHints());
+                context.paramTypeHints());
         }
 
         @Override
@@ -538,7 +538,7 @@ public class Analyzer {
             return relationAnalyzer.analyze(
                 query,
                 context.transactionContext(),
-                context.parameterContext().typeHints());
+                context.paramTypeHints());
         }
 
         @Override
@@ -548,7 +548,7 @@ public class Analyzer {
             return relationAnalyzer.analyze(
                 query,
                 context.transactionContext(),
-                context.parameterContext().typeHints());
+                context.paramTypeHints());
         }
 
         @Override
@@ -557,7 +557,7 @@ public class Analyzer {
             return relationAnalyzer.analyze(
                 query,
                 context.transactionContext(),
-                context.parameterContext().typeHints());
+                context.paramTypeHints());
         }
 
         @Override
