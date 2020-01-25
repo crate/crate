@@ -30,10 +30,12 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -100,12 +102,9 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBulkDelete() throws Exception {
-        AnalyzedDeleteStatement delete = e.analyze("delete from users where id = ?", new Object[][]{
-            new Object[]{1},
-            new Object[]{2},
-            new Object[]{3},
-            new Object[]{4},
-        });
+        AnalyzedDeleteStatement delete = e.analyze(
+            "delete from users where id = ?",
+            new ParamTypeHints(List.of(DataTypes.INTEGER, DataTypes.INTEGER)));
         assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("id"), instanceOf(ParameterSymbol.class)));
     }
 

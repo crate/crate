@@ -27,17 +27,15 @@ import io.crate.metadata.CoordinatorTxnCtx;
 
 public class Analysis {
 
-    private final ParameterContext parameterContext;
     private final CoordinatorTxnCtx coordinatorTxnCtx;
 
     private final ParamTypeHints paramTypeHints;
     private AnalyzedStatement analyzedStatement;
     private AnalyzedRelation rootRelation;
 
-    public Analysis(CoordinatorTxnCtx coordinatorTxnCtx, ParameterContext parameterContext, ParamTypeHints paramTypeHints) {
+    public Analysis(CoordinatorTxnCtx coordinatorTxnCtx, ParamTypeHints paramTypeHints) {
         this.paramTypeHints = paramTypeHints;
         this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.parameterContext = parameterContext;
     }
 
     public void analyzedStatement(AnalyzedStatement analyzedStatement) {
@@ -46,10 +44,6 @@ public class Analysis {
 
     public AnalyzedStatement analyzedStatement() {
         return analyzedStatement;
-    }
-
-    public ParameterContext parameterContext() {
-        return parameterContext;
     }
 
     public void rootRelation(AnalyzedRelation rootRelation) {
