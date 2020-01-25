@@ -118,7 +118,7 @@ class InsertAnalyzer {
         List<Reference> targetColumns =
             new ArrayList<>(resolveTargetColumns(insert.columns(), tableInfo));
 
-        AnalyzedRelation subQueryRelation = relationAnalyzer.analyzeUnbound(
+        AnalyzedRelation subQueryRelation = relationAnalyzer.analyze(
             insert.subQuery(),
             new StatementAnalysisContext(typeHints, Operation.READ, txnCtx, targetColumns));
 

@@ -22,7 +22,7 @@
 
 package io.crate.metadata.view;
 
-import io.crate.analyze.ParameterContext;
+import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ResourceUnknownException;
@@ -32,7 +32,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.Query;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -60,11 +60,12 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
         if (view == null) {
             return null;
         }
-        Statement parsedStmt = SqlParser.createStatement(view.stmt());
         List<Reference> columns;
         try {
-            AnalyzedRelation relation = analyzerProvider.get()
-                .analyze(parsedStmt, CoordinatorTxnCtx.systemTransactionContext(), ParameterContext.EMPTY);
+            AnalyzedRelation relation = analyzerProvider.get().analyze(
+                (Query) SqlParser.createStatement(view.stmt()),
+                CoordinatorTxnCtx.systemTransactionContext(),
+                ParamTypeHints.EMPTY);
             final List<Reference> collectedColumns = new ArrayList<>(relation.fields().size());
             relation.fields()
                 .forEach(field -> collectedColumns.add(
