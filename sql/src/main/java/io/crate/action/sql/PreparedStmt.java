@@ -41,13 +41,21 @@ public class PreparedStmt {
     private DataType[] describedParameterTypes;
 
     @Nullable
-    private AnalyzedStatement unboundStatement = null;
-    private boolean relationInitialized = false;
+    private AnalyzedStatement analyzedStatement = null;
 
     PreparedStmt(Statement parsedStatement, String query, List<DataType> paramTypes) {
         this.parsedStatement = parsedStatement;
         this.rawStatement = query;
         this.paramTypes = new ParamTypeHints(paramTypes);
+    }
+
+    @Nullable
+    public AnalyzedStatement analyzedStatement() {
+        return analyzedStatement;
+    }
+
+    public void analyzedStatement(@Nullable AnalyzedStatement analyzedStatement) {
+        this.analyzedStatement = analyzedStatement;
     }
 
     /**
@@ -82,25 +90,5 @@ public class PreparedStmt {
 
     public String rawStatement() {
         return rawStatement;
-    }
-
-    boolean isRelationInitialized() {
-        return relationInitialized;
-    }
-
-    @Nullable
-    public AnalyzedStatement unboundStatement() {
-        return unboundStatement;
-    }
-
-    /**
-     * Set the unbound analyzed statement (or null if unbound analysis is not supported)
-     *
-     * This must not be set to a bound statement because a `preparedStmt` instance can be re-used
-     * for multiple `bind` messages (so there would be different parameters)
-     */
-    public void unboundStatement(@Nullable AnalyzedStatement unboundStatement) {
-        relationInitialized = true;
-        this.unboundStatement = unboundStatement;
     }
 }
