@@ -64,7 +64,10 @@ public final class ViewAnalyzer {
         }
         try {
             // Analyze the formatted Query to make sure the formatting didn't mess it up in any way.
-            query = relationAnalyzer.analyzeUnbound((Query) SqlParser.createStatement(formattedQuery), txnCtx, ParamTypeHints.EMPTY);
+            query = relationAnalyzer.analyze(
+                (Query) SqlParser.createStatement(formattedQuery),
+                txnCtx,
+                ParamTypeHints.EMPTY);
         } catch (Exception e) {
             throw new UnsupportedOperationException("Invalid query used in CREATE VIEW. " + e.getMessage() + ". Query: " + formattedQuery);
         }

@@ -470,7 +470,7 @@ public class Analyzer {
 
         @Override
         protected AnalyzedStatement visitQuery(Query node, Analysis context) {
-            return relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyze(
                 node,
                 context.transactionContext(),
                 context.paramTypeHints());
@@ -521,7 +521,7 @@ public class Analyzer {
             Query query = showStatementAnalyzer.rewriteShowColumns(
                 node,
                 coordinatorTxnCtx.sessionContext().searchPath().currentSchema());
-            return relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyze(
                 query,
                 coordinatorTxnCtx,
                 context.parameterContext().typeHints());
@@ -535,7 +535,7 @@ public class Analyzer {
         @Override
         protected AnalyzedStatement visitShowSchemas(ShowSchemas node, Analysis context) {
             Query query = showStatementAnalyzer.rewriteShowSchemas(node);
-            return relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyze(
                 query,
                 context.transactionContext(),
                 context.parameterContext().typeHints());
@@ -545,7 +545,7 @@ public class Analyzer {
         public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
             ShowStatementAnalyzer.validateSessionSetting(node.parameter());
             Query query = ShowStatementAnalyzer.rewriteShowSessionParameter(node);
-            return relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyze(
                 query,
                 context.transactionContext(),
                 context.parameterContext().typeHints());
@@ -554,7 +554,7 @@ public class Analyzer {
         @Override
         protected AnalyzedStatement visitShowTables(ShowTables node, Analysis context) {
             Query query = showStatementAnalyzer.rewriteShowTables(node);
-            return relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyze(
                 query,
                 context.transactionContext(),
                 context.parameterContext().typeHints());
