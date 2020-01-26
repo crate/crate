@@ -190,6 +190,26 @@ Returns: ``integer``
     +--------------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar_ascii:
+
+``ascii(string)``
+-----------------
+
+Returns the ASCII code of the first character. For UTF-8 returns the Unicode
+code point of the characters.
+
+Returns: ``int``
+
+::
+
+    cr> SELECT ascii('a') AS a, ascii('🎈') AS b;
+    +----+--------+
+    |  a |      b |
+    +----+--------+
+    | 97 | 127880 |
+    +----+--------+
+    SELECT 1 row in set (... sec)
+
 ``lower('string')``
 -------------------
 
