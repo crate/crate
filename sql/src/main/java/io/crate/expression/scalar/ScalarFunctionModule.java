@@ -49,6 +49,7 @@ import io.crate.expression.scalar.postgres.PgBackendPidFunction;
 import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
 import io.crate.expression.scalar.regex.MatchesFunction;
 import io.crate.expression.scalar.regex.RegexpReplaceFunction;
+import io.crate.expression.scalar.string.AsciiFunction;
 import io.crate.expression.scalar.string.HashFunctions;
 import io.crate.expression.scalar.string.InitCapFunction;
 import io.crate.expression.scalar.string.LengthFunction;
@@ -137,6 +138,7 @@ public class ScalarFunctionModule extends AbstractModule {
         StringPaddingFunction.register(this);
         InitCapFunction.register(this);
         TrimFunctions.register(this);
+        AsciiFunction.register(this);
 
         ConcatFunction.register(this);
 

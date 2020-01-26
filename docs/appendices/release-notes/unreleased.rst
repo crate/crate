@@ -55,6 +55,8 @@ None
 Changes
 =======
 
+- Added the :ref:`ascii <scalar_ascii>` scalar function.
+
 - Introduced new optional ``RETURNING`` clause for :ref:`Update <ref-update>` to
   return specified values from each row updated.
 
