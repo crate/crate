@@ -36,7 +36,6 @@ import io.crate.analyze.CreateBlobTableAnalyzer;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -50,7 +49,6 @@ import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.data.Row;
-import io.crate.data.Rows;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
@@ -447,7 +445,7 @@ public class SQLExecutor {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
-                stmt, ParameterContext.EMPTY, txnCtx);
+                stmt, ParamTypeHints.EMPTY, txnCtx);
 
             BoundCreateTable analyzedStmt = CreateTablePlan.bind(
                 analyzedCreateTable,
@@ -506,7 +504,7 @@ public class SQLExecutor {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
-                stmt, ParameterContext.EMPTY, txnCtx);
+                stmt, ParamTypeHints.EMPTY, txnCtx);
             BoundCreateTable analyzedStmt = CreateTablePlan.bind(
                 analyzedCreateTable,
                 txnCtx,
@@ -584,7 +582,7 @@ public class SQLExecutor {
             CreateBlobTable<Expression> stmt = (CreateBlobTable<Expression>) SqlParser.createStatement(createBlobTableStmt);
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
             AnalyzedCreateBlobTable analyzedStmt = createBlobTableAnalyzer.analyze(
-                stmt, ParameterContext.EMPTY, txnCtx);
+                stmt, ParamTypeHints.EMPTY, txnCtx);
             Settings settings = CreateBlobTablePlan.buildSettings(
                 analyzedStmt.createBlobTable(),
                 txnCtx,
@@ -690,20 +688,16 @@ public class SQLExecutor {
         return fulltextAnalyzerResolver;
     }
 
-    private <T extends AnalyzedStatement> T analyze(String stmt, ParameterContext parameterContext) {
+    public <T extends AnalyzedStatement> T analyze(String stmt, ParamTypeHints typeHints) {
         //noinspection unchecked
         return (T) analyzer.analyze(
             SqlParser.createStatement(stmt),
             coordinatorTxnCtx.sessionContext(),
-            parameterContext.typeHints());
+            typeHints);
     }
 
     public <T extends AnalyzedStatement> T analyze(String statement) {
-        return analyze(statement, ParameterContext.EMPTY);
-    }
-
-    public <T extends AnalyzedStatement> T analyze(String statement, Object[][] bulkArgs) {
-        return analyze(statement, new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
+        return analyze(statement, ParamTypeHints.EMPTY);
     }
 
     /**
@@ -739,7 +733,7 @@ public class SQLExecutor {
     }
 
     public <T> T plan(String statement, UUID jobId, int fetchSize) {
-        AnalyzedStatement analyzedStatement = analyze(statement, ParameterContext.EMPTY);
+        AnalyzedStatement analyzedStatement = analyze(statement, ParamTypeHints.EMPTY);
         return planInternal(analyzedStatement, jobId, fetchSize);
     }
 
@@ -776,7 +770,7 @@ public class SQLExecutor {
     }
 
     public <T extends LogicalPlan> T logicalPlan(String statement) {
-        AnalyzedStatement stmt = analyze(statement, ParameterContext.EMPTY);
+        AnalyzedStatement stmt = analyze(statement, ParamTypeHints.EMPTY);
         if (stmt instanceof AnalyzedRelation) {
             // unboundAnalyze currently doesn't normalize; which breaks LogicalPlan building for joins
             // because the subRelations are not yet AnalyzedRelations.

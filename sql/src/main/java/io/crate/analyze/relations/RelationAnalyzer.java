@@ -28,7 +28,6 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.ParameterContext;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
@@ -113,7 +112,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
-
 @Singleton
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
@@ -137,20 +135,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return node.accept(this, statementContext);
     }
 
-    public AnalyzedRelation analyzeUnbound(Query query,
-                                           CoordinatorTxnCtx coordinatorTxnCtx,
-                                           ParamTypeHints paramTypeHints) {
-        return analyze(query, new StatementAnalysisContext(paramTypeHints, Operation.READ, coordinatorTxnCtx));
-    }
-
-    public AnalyzedRelation analyzeUnbound(Query query, StatementAnalysisContext analysisContext) {
-        return analyze(query, analysisContext);
-    }
-
-    public AnalyzedRelation analyze(Node node,
+    public AnalyzedRelation analyze(Query query,
                                     CoordinatorTxnCtx coordinatorTxnCtx,
-                                    ParameterContext parameterContext) {
-        return analyze(node, new StatementAnalysisContext(parameterContext, Operation.READ, coordinatorTxnCtx));
+                                    ParamTypeHints paramTypeHints) {
+        return analyze(query, new StatementAnalysisContext(paramTypeHints, Operation.READ, coordinatorTxnCtx));
     }
 
     @Override

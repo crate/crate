@@ -35,7 +35,7 @@ import java.util.function.Function;
 
 public class ParamTypeHints implements Function<ParameterExpression, Symbol> {
 
-    public static final ParamTypeHints EMPTY = new ParamTypeHints(Collections.<DataType>emptyList());
+    public static final ParamTypeHints EMPTY = new ParamTypeHints(Collections.emptyList());
 
     private final List<DataType> types;
 

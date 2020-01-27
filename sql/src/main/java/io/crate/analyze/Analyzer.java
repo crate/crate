@@ -186,7 +186,6 @@ public class Analyzer {
             dispatcher,
             new Analysis(
                 new CoordinatorTxnCtx(sessionContext),
-                ParameterContext.EMPTY,
                 paramTypeHints));
         userManager.getAccessControl(sessionContext).ensureMayExecute(analyzedStatement);
         return analyzedStatement;
@@ -198,6 +197,7 @@ public class Analyzer {
         return analyzedStatement;
     }
 
+    @SuppressWarnings("unchecked")
     private class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
 
         @Override
@@ -470,7 +470,7 @@ public class Analyzer {
 
         @Override
         protected AnalyzedStatement visitQuery(Query node, Analysis context) {
-            return relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyze(
                 node,
                 context.transactionContext(),
                 context.paramTypeHints());
@@ -521,10 +521,10 @@ public class Analyzer {
             Query query = showStatementAnalyzer.rewriteShowColumns(
                 node,
                 coordinatorTxnCtx.sessionContext().searchPath().currentSchema());
-            return relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyze(
                 query,
                 coordinatorTxnCtx,
-                context.parameterContext().typeHints());
+                context.paramTypeHints());
         }
 
         @Override
@@ -535,29 +535,29 @@ public class Analyzer {
         @Override
         protected AnalyzedStatement visitShowSchemas(ShowSchemas node, Analysis context) {
             Query query = showStatementAnalyzer.rewriteShowSchemas(node);
-            return relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyze(
                 query,
                 context.transactionContext(),
-                context.parameterContext().typeHints());
+                context.paramTypeHints());
         }
 
         @Override
         public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
             ShowStatementAnalyzer.validateSessionSetting(node.parameter());
             Query query = ShowStatementAnalyzer.rewriteShowSessionParameter(node);
-            return relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyze(
                 query,
                 context.transactionContext(),
-                context.parameterContext().typeHints());
+                context.paramTypeHints());
         }
 
         @Override
         protected AnalyzedStatement visitShowTables(ShowTables node, Analysis context) {
             Query query = showStatementAnalyzer.rewriteShowTables(node);
-            return relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyze(
                 query,
                 context.transactionContext(),
-                context.parameterContext().typeHints());
+                context.paramTypeHints());
         }
 
         @Override

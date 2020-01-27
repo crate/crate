@@ -92,7 +92,7 @@ public final class CreateViewPlan implements Plan {
                                                                String formattedQuery) {
         RelationAnalyzer analyzer = new RelationAnalyzer(functions, schemas);
         Query query = (Query) SqlParser.createStatement(formattedQuery);
-        analyzer.analyzeUnbound(query, txnCtx, new ParamTypeHints(List.of()) {
+        analyzer.analyze(query, txnCtx, new ParamTypeHints(List.of()) {
 
                 @Override
                 public Symbol apply(@Nullable ParameterExpression input) {
