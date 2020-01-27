@@ -51,8 +51,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     private final BooleanSupplier isUpstreamExhausted;
     private final Consumer<? super Throwable> closeCallback;
 
-    private Throwable killed;
-    private CompletableFuture<? extends Iterable<? extends KeyIterable<Key, Row>>> currentlyLoading;
+    private volatile Throwable killed;
     private Iterator<Row> it;
     private boolean closed = false;
     private Row current;
@@ -109,20 +108,12 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
         if (allLoaded()) {
             return CompletableFuture.failedFuture(new IllegalStateException("All data already loaded"));
         }
-        Throwable err;
-        CompletableFuture<? extends Iterable<? extends KeyIterable<Key, Row>>> future;
-        synchronized (this) {
-            err = this.killed;
-            if (err == null) {
-                currentlyLoading = future = fetchMore.apply(pagingIterator.exhaustedIterable());
-            } else {
-                future = CompletableFuture.failedFuture(err);
-            }
+        Throwable err = killed;
+        if (err != null) {
+            return CompletableFuture.failedFuture(err);
         }
-        if (err == null) {
-            return future.whenComplete(this::onNextPage);
-        }
-        return future;
+        return fetchMore.apply(pagingIterator.exhaustedIterable())
+            .whenComplete(this::onNextPage);
     }
 
     private void onNextPage(Iterable<? extends KeyIterable<Key, Row>> rows, Throwable ex) {
@@ -152,10 +143,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     }
 
     private void raiseIfClosedOrKilled() {
-        Throwable err;
-        synchronized (this) {
-            err = killed;
-        }
+        Throwable err = killed;
         if (err != null) {
             Exceptions.rethrowUnchecked(err);
         }
@@ -166,14 +154,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     @Override
     public void kill(@Nonnull Throwable throwable) {
-        CompletableFuture<? extends Iterable<? extends KeyIterable<Key, Row>>> loading;
-        synchronized (this) {
-            killed = throwable;
-            loading = this.currentlyLoading;
-        }
+        killed = throwable;
         close();
-        if (loading != null) {
-            loading.completeExceptionally(throwable);
-        }
     }
 }

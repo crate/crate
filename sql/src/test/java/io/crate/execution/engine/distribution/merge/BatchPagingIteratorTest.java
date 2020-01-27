@@ -29,7 +29,6 @@ import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingBatchIterators;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,6 +47,7 @@ import java.util.stream.StreamSupport;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 public class BatchPagingIteratorTest {
 
@@ -137,7 +137,25 @@ public class BatchPagingIteratorTest {
         );
 
         iterator.close();
-        assertThat(pagingIterator.finishedCalled, Matchers.is(true));
+        assertThat(pagingIterator.finishedCalled, is(true));
+    }
+
+    /**
+     * Test that the BatchPagingIterator is only releasing it's own resources and not any foreign ones.
+     * Upstreams must NOT be completed by downstreams, otherwise the upstream may be treat as completed before it stopped.
+     */
+    @Test
+    public void test_batch_paging_iterator_does_not_complete_future_of_upstream_on_kill() {
+        CompletableFuture<? extends Iterable<? extends KeyIterable<Integer, Row>>> upstreamFetchMore = new CompletableFuture<>();
+        BatchPagingIterator<Integer> iterator = new BatchPagingIterator<>(
+            new TestPagingIterator(),
+            exhaustedIt -> upstreamFetchMore,
+            () -> false,
+            throwable -> {}
+        );
+        iterator.loadNextBatch();
+        iterator.kill(new IllegalStateException("killed"));
+        assertThat(upstreamFetchMore.isDone(), is(false));
     }
 
     private static class TestPagingIterator implements PagingIterator<Integer, Row> {

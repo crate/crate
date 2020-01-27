@@ -36,6 +36,7 @@ public interface Killable {
      *
      *  <li>terminate if they're otherwise waiting for input/data</li>
      *  <li>terminate expensive and long running operations within a reasonable amount of time (&lt; 2sec)</li>
+     *  <li>only terminate/release resources they created themselves</li>
      *
      * </ul>
      *
