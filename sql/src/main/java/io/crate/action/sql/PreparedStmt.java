@@ -29,33 +29,28 @@ import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
 public class PreparedStmt {
 
+    private final AnalyzedStatement analyzedStatement;
+    private final ParamTypeHints paramTypeHints;
     private final Statement parsedStatement;
     private final String rawStatement;
-    private final ParamTypeHints paramTypes;
-
     @Nullable
     private DataType[] describedParameterTypes;
 
-    @Nullable
-    private AnalyzedStatement analyzedStatement = null;
-
-    PreparedStmt(Statement parsedStatement, String query, List<DataType> paramTypes) {
+    PreparedStmt(Statement parsedStatement,
+                 AnalyzedStatement analyzedStatement,
+                 String query,
+                 ParamTypeHints paramTypeHints) {
         this.parsedStatement = parsedStatement;
+        this.analyzedStatement = analyzedStatement;
+        this.paramTypeHints = paramTypeHints;
         this.rawStatement = query;
-        this.paramTypes = new ParamTypeHints(paramTypes);
     }
 
-    @Nullable
     public AnalyzedStatement analyzedStatement() {
         return analyzedStatement;
-    }
-
-    public void analyzedStatement(@Nullable AnalyzedStatement analyzedStatement) {
-        this.analyzedStatement = analyzedStatement;
     }
 
     /**
@@ -66,12 +61,8 @@ public class PreparedStmt {
         this.describedParameterTypes = describedParameters;
     }
 
-    public Statement parsedStatement() {
+    Statement parsedStatement() {
         return parsedStatement;
-    }
-
-    ParamTypeHints paramTypes() {
-        return paramTypes;
     }
 
     /**
@@ -81,7 +72,7 @@ public class PreparedStmt {
      */
     DataType getEffectiveParameterType(int idx) {
         if (describedParameterTypes == null) {
-            return paramTypes.getType(idx);
+            return paramTypeHints.getType(idx);
         }
         Preconditions.checkState(idx < describedParameterTypes.length,
             "Requested parameter index exceeds the number of parameters: " + idx);

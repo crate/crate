@@ -254,7 +254,25 @@ public class Session implements AutoCloseable {
                 throw SQLExceptions.createSQLActionException(t, accessControl::ensureMaySee);
             }
         }
-        preparedStatements.put(statementName, new PreparedStmt(statement, query, paramTypes));
+
+        var paramTypeHints = new ParamTypeHints(paramTypes);
+        AnalyzedStatement analyzedStatement;
+        try {
+            analyzedStatement = analyzer.analyze(
+                statement,
+                sessionContext,
+                paramTypeHints);
+        } catch (Throwable t) {
+            jobsLogs.logPreExecutionFailure(
+                UUID.randomUUID(),
+                query,
+                SQLExceptions.messageOf(t),
+                sessionContext.user());
+            throw t;
+        }
+        preparedStatements.put(
+            statementName,
+            new PreparedStmt(statement, analyzedStatement, query, paramTypeHints));
     }
 
     public void bind(String portalName,
@@ -272,30 +290,11 @@ public class Session implements AutoCloseable {
             throw t;
         }
 
-        AnalyzedStatement analyzedStatement;
-        if (preparedStmt.analyzedStatement() == null) {
-            try {
-                analyzedStatement = analyzer.analyze(
-                    preparedStmt.parsedStatement(),
-                    sessionContext,
-                    preparedStmt.paramTypes());
-            } catch (Throwable t) {
-                jobsLogs.logPreExecutionFailure(
-                    UUID.randomUUID(),
-                    preparedStmt.rawStatement(),
-                    SQLExceptions.messageOf(t),
-                    sessionContext.user());
-                throw t;
-            }
-        } else {
-            analyzedStatement = preparedStmt.analyzedStatement();
-        }
-
         Portal portal = new Portal(
             portalName,
             preparedStmt,
             params,
-            analyzedStatement,
+            preparedStmt.analyzedStatement(),
             resultFormatCodes);
         Portal oldPortal = portals.put(portalName, portal);
         if (oldPortal != null) {
@@ -338,28 +337,8 @@ public class Session implements AutoCloseable {
                  *      execute
                  */
                 PreparedStmt preparedStmt = preparedStatements.get(portalOrStatement);
-                Statement statement = preparedStmt.parsedStatement();
+                AnalyzedStatement analyzedStatement = preparedStmt.analyzedStatement();
 
-                AnalyzedStatement analyzedStatement;
-                if (preparedStmt.analyzedStatement() != null) {
-                    analyzedStatement = preparedStmt.analyzedStatement();
-                } else {
-                    try {
-                        analyzedStatement = analyzer.analyze(
-                            statement,
-                            sessionContext,
-                            preparedStmt.paramTypes());
-                    } catch (Throwable t) {
-                        jobsLogs.logPreExecutionFailure(
-                            UUID.randomUUID(), preparedStmt.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
-                        throw t;
-                    }
-                    preparedStmt.analyzedStatement(analyzedStatement);
-                }
-                if (analyzedStatement == null) {
-                    // statement without result set -> return null for NoData msg
-                    return new DescribeResult(null);
-                }
                 DataType[] parameterSymbols =
                     parameterTypeExtractor.getParameterTypes(x -> Relations.traverseDeepSymbols(analyzedStatement, x));
                 if (parameterSymbols.length > 0) {
@@ -475,15 +454,7 @@ public class Session implements AutoCloseable {
             null);
 
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
-        AnalyzedStatement analyzedStatement;
-        if (firstPreparedStatement.analyzedStatement() == null) {
-            analyzedStatement = analyzer.analyze(
-                statement,
-                sessionContext,
-                firstPreparedStatement.paramTypes());
-        } else {
-            analyzedStatement = firstPreparedStatement.analyzedStatement();
-        }
+        AnalyzedStatement analyzedStatement = firstPreparedStatement.analyzedStatement();
 
         Plan plan;
         try {
