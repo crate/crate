@@ -195,7 +195,7 @@ Returns: ``integer``
 ``ascii(string)``
 -----------------
 
-Returns the ASCII code of the first character. For UTF-8 returns the Unicode
+Returns the ASCII code of the first character. For UTF-8, returns the Unicode
 code point of the characters.
 
 Returns: ``int``
