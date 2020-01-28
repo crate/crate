@@ -66,7 +66,6 @@ import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -77,7 +76,6 @@ import java.util.function.Function;
 
 import static io.crate.action.sql.Session.UNNAMED;
 import static io.crate.protocols.http.Headers.isCloseConnection;
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
@@ -196,8 +194,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         } catch (Throwable t) {
             return CompletableFuture.failedFuture(t);
         }
-        Object[] args = parseContext.args();
-        Object[][] bulkArgs = parseContext.bulkArgs();
+        List<Object> args = parseContext.args();
+        List<List<Object>> bulkArgs = parseContext.bulkArgs();
         if (bothProvided(args, bulkArgs)) {
             return CompletableFuture.failedFuture(new SQLActionException(
                 "request body contains args and bulk_args. It's forbidden to provide both", 4000, HttpResponseStatus.BAD_REQUEST));
@@ -242,11 +240,11 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private CompletableFuture<XContentBuilder> executeSimpleRequest(Session session,
                                                                     String stmt,
-                                                                    Object[] args,
+                                                                    List<Object> args,
                                                                     boolean includeTypes) throws IOException {
         long startTimeInNs = System.nanoTime();
         session.parse(UNNAMED, stmt, emptyList());
-        session.bind(UNNAMED, UNNAMED, args == null ? emptyList() : asList(args), null);
+        session.bind(UNNAMED, UNNAMED, args == null ? emptyList() : args, null);
         DescribeResult description = session.describe('P', UNNAMED);
         List<Field> resultFields = description.getFields();
         ResultReceiver<XContentBuilder> resultReceiver;
@@ -275,12 +273,12 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private CompletableFuture<XContentBuilder> executeBulkRequest(Session session,
                                                                   String stmt,
-                                                                  Object[][] bulkArgs) {
+                                                                  List<List<Object>> bulkArgs) {
         final long startTimeInNs = System.nanoTime();
         session.parse(UNNAMED, stmt, emptyList());
-        final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.length];
-        for (int i = 0; i < bulkArgs.length; i++) {
-            session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
+        final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.size()];
+        for (int i = 0; i < bulkArgs.size(); i++) {
+            session.bind(UNNAMED, UNNAMED, bulkArgs.get(i), null);
             ResultReceiver resultReceiver = new RestBulkRowCountReceiver(results, i);
             session.execute(UNNAMED, 0, resultReceiver);
         }
@@ -321,7 +319,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         return userLookup.findUser(username);
     }
 
-    private static boolean bothProvided(@Nullable Object[] args, @Nullable Object[][] bulkArgs) {
-        return args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0;
+    private static boolean bothProvided(@Nullable List<Object> args, @Nullable List<List<Object>> bulkArgs) {
+        return args != null && !args.isEmpty() && bulkArgs != null && !bulkArgs.isEmpty();
     }
 }
