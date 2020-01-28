@@ -1430,6 +1430,25 @@ See below for an example::
     +--------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-pi:
+
+``pi()``
+--------
+
+Returns the π constant.
+
+Returns: ``double precision``
+
+::
+
+    cr> SELECT pi();
+    +-------------------+
+    |              pi() |
+    +-------------------+
+    | 3.141592653589793 |
+    +-------------------+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-regexp:
 
 Regular expression functions
