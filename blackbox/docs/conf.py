@@ -1,4 +1,4 @@
-from crate.theme.rtd.conf.crate_server import *
+from crate.theme.rtd.conf.crate_reference import *
 
 source_suffix = '.rst'
 site_url = 'https://crate.io/docs/crate/reference/en/latest/'
