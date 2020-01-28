@@ -65,6 +65,9 @@ None
 Changes
 =======
 
+- Added a ``ceiling`` alias for the :ref:`ceil <scalar-ceil>` function for
+  improved PostgreSQL compatibility.
+
 - Added the :ref:`encode(bytea, format) <scalar-encode>` and :ref:`decode(text,
   format) <scalar-decode>` string functions.
 

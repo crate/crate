@@ -35,29 +35,40 @@ import java.util.List;
 
 public final class CeilFunction {
 
-    public static final String NAME = "ceil";
+    public static final String CEIL = "ceil";
+    public static final String CEILING = "ceiling";
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new FunctionResolver() {
-            @Nullable
-            @Override
-            public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
-                return FuncParams.SINGLE_NUMERIC.match(funcArgs);
-            }
+        module.register(CEIL, new CeilFunctionResolver(CEIL));
+        module.register(CEILING, new CeilFunctionResolver(CEILING));
+    }
 
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-                if (types.size() != 1) {
-                    throw FunctionResolver.noSignatureMatch(NAME, types);
-                }
-                DataType argType = types.get(0);
-                DataType returnType = DataTypes.getIntegralReturnType(argType);
-                if (returnType == null) {
-                    throw FunctionResolver.noSignatureMatch(NAME, types);
-                }
-                return new UnaryScalar<>(
-                    NAME, argType, returnType, x -> returnType.value(Math.ceil(((Number) x).doubleValue())));
+    private static class CeilFunctionResolver implements FunctionResolver {
+
+        private final String name;
+
+        public CeilFunctionResolver(String name) {
+            this.name = name;
+        }
+
+        @Nullable
+        @Override
+        public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
+            return FuncParams.SINGLE_NUMERIC.match(funcArgs);
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
+            if (types.size() != 1) {
+                throw FunctionResolver.noSignatureMatch(name, types);
             }
-        });
+            DataType<?> argType = types.get(0);
+            DataType<?> returnType = DataTypes.getIntegralReturnType(argType);
+            if (returnType == null) {
+                throw FunctionResolver.noSignatureMatch(name, types);
+            }
+            return new UnaryScalar<>(
+                name, argType, returnType, x -> returnType.value(Math.ceil(((Number) x).doubleValue())));
+        }
     }
 }

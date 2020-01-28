@@ -66,7 +66,7 @@ public final class GeneratedColumnExpander {
     );
 
     private static final Set<String> ROUNDING_FUNCTIONS = ImmutableSet.of(
-        CeilFunction.NAME,
+        CeilFunction.CEIL,
         FloorFunction.NAME,
         RoundFunction.NAME,
         DateTruncFunction.NAME
