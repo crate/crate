@@ -25,41 +25,35 @@ import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 class SQLArgsParseElement implements SQLParseElement {
 
     @Override
     public void parse(XContentParser parser, SQLRequestParseContext context) throws Exception {
         XContentParser.Token token = parser.currentToken();
-
         if (token != XContentParser.Token.START_ARRAY) {
             throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
         }
-
-        Object[] params = parseSubArray(parser);
-        context.args(params);
+        context.args(parseSubArray(parser));
     }
 
-    Object[] parseSubArray(XContentParser parser)
-        throws IOException {
+    ArrayList<Object> parseSubArray(XContentParser parser) throws IOException {
         XContentParser.Token token;
-        List<Object> subList = new ArrayList<>();
-
+        ArrayList<Object> args = new ArrayList<>();
         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
             if (token.isValue()) {
-                subList.add(parser.objectText());
+                args.add(parser.objectText());
             } else if (token == XContentParser.Token.START_ARRAY) {
-                subList.add(parseSubArray(parser));
+                args.add(parseSubArray(parser));
             } else if (token == XContentParser.Token.START_OBJECT) {
-                subList.add(parser.map());
+                args.add(parser.map());
             } else if (token == XContentParser.Token.VALUE_NULL) {
-                subList.add(null);
+                args.add(null);
             } else {
                 throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
             }
         }
-
-        return subList.toArray(new Object[subList.size()]);
+        return args;
     }
 }
+
