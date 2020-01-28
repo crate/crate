@@ -25,6 +25,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
@@ -52,6 +53,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.ObjectType;
+import org.hamcrest.core.Is;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,6 +63,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -118,10 +121,6 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         return e.analyze(statement);
     }
 
-    protected AnalyzedUpdateStatement analyze(String statement, Object[] params) {
-        return (AnalyzedUpdateStatement) e.analyze(statement, params);
-    }
-
     @Test
     public void testUpdateAnalysis() throws Exception {
         AnalyzedStatement analyzedStatement = analyze("update users set name='Ford Prefect'");
@@ -164,9 +163,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow UPDATE " +
                                         "operations, as it is read-only.");
-        analyze("update sys.nodes set fs=?", new Object[]{new HashMap<String, Object>() {{
-            put("free", 0);
-        }}});
+        analyze("update sys.nodes set fs={\"free\"=0}");
     }
 
     @Test
@@ -232,8 +229,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateMuchAssignments() throws Exception {
         AnalyzedUpdateStatement update = analyze(
-            "update users set other_id=9.9, name='Trillian', details=?, stuff=true, foo='bar'",
-            new Object[]{new HashMap<String, Object>()});
+            "update users set other_id=9.9, name='Trillian', details={}, stuff=true, foo='bar'");
         assertThat(update.assignmentByTargetCol().size(), is(5));
     }
 
@@ -264,16 +260,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateWithParameter() throws Exception {
-        Map[] friends = new Map[]{
-            new HashMap<String, Object>() {{
-                put("name", "Slartibartfast");
-            }},
-            new HashMap<String, Object>() {{
-                put("name", "Marvin");
-            }}
-        };
-        AnalyzedUpdateStatement update = analyze("update users set name=?, other_id=?, friends=? where id=?",
-            new Object[]{"Jeltz", 0, friends, "9"});
+        AnalyzedUpdateStatement update = analyze("update users set name=?, other_id=?, friends=? where id=?");
 
         RelationName usersRelation = new RelationName("doc", "users");
         assertThat(update.assignmentByTargetCol().size(), is(3));
@@ -287,7 +274,6 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(update.query(), isFunction(EqOperator.NAME, isReference("id"), instanceOf(ParameterSymbol.class)));
     }
-
 
     @Test
     public void testUpdateWithWrongParameters() throws Exception {
@@ -555,6 +541,67 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 isFunction("_array", singletonList(ObjectType.untyped())),
                 instanceOf(Literal.class)
             )));
+    }
+
+    @Test
+    public void test_update_returning_with_asterisk_contains_all_columns_in_returning_clause() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING *");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.returnValues().size(), is(17));
+    }
+
+    @Test
+    public void test_update_returning_with_single_value_in_returning_clause() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING id AS foo");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.fields(), contains(isField("foo")));
+        assertThat(stmt.returnValues(), contains(isReference("id")));
+    }
+
+    @Test
+    public void test_update_returning_with_multiple_values_in_returning_clause() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING id AS foo, name AS bar");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.fields(), is(contains(isField("foo"), isField("bar"))));
+        assertThat(stmt.returnValues(), contains(isReference("id"), isReference("name")));
+    }
+
+    @Test
+    public void test_updat_returning_with_invalid_column_returning_error() {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column invalid unknown");
+        e.analyze("UPDATE users SET name='noam' RETURNING invalid");
+    }
+
+    @Test
+    public void test_update_returning_with_single_value_altered_in_returning_clause() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING id + 1 AS foo");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.fields(), is(contains(isField("foo"))));
+        assertThat(stmt.returnValues(), contains(isFunction("add")));
+    }
+
+    @Test
+    public void test_update_returning_with_multiple_values_altered_in_returning_clause() {
+        AnalyzedUpdateStatement stmt = e.analyze(
+            "UPDATE users SET name='noam' RETURNING id + 1 AS foo, id -1 as bar");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("name", DataTypes.STRING)));
+        assertThat(stmt.fields(), is(contains(isField("foo"), isField("bar"))));
+        assertThat(stmt.returnValues(), contains(isFunction("add"), isFunction("subtract")));
     }
 
     private List<Object[]> execute(Plan plan, Row params) throws Exception {

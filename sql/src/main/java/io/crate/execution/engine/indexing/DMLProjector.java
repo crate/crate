@@ -29,9 +29,9 @@ import io.crate.data.Row;
 
 public class DMLProjector implements Projector {
 
-    private final ShardDMLExecutor<?, ?> batchAccumulator;
+    private final ShardDMLExecutor<?, ?, ?, ?> batchAccumulator;
 
-    public DMLProjector(ShardDMLExecutor<?, ?> batchAccumulator) {
+    public DMLProjector(ShardDMLExecutor<?, ?, ?, ?> batchAccumulator) {
         this.batchAccumulator = batchAccumulator;
     }
 

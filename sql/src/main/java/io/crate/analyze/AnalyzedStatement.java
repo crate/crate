@@ -21,8 +21,11 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
+import org.elasticsearch.common.Nullable;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public interface AnalyzedStatement {
@@ -50,10 +53,10 @@ public interface AnalyzedStatement {
     }
 
     /**
-     * Defines if an unbound analyzed statement (no parameter are bound yet) can be used
-     * to create execution plans.
+     * Defines the columns for the result set or null if not present.
      */
-    default boolean isUnboundPlanningSupported() {
-        return false;
+    @Nullable
+    default List<Field> fields() {
+        return null;
     }
 }

@@ -67,9 +67,4 @@ public class AnalyzedCreateBlobTable implements AnalyzedStatement {
         createBlobTable.genericProperties().properties().values().forEach(consumer);
 
     }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
 }

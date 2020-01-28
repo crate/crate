@@ -32,6 +32,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
@@ -86,6 +87,7 @@ public class QueriedSelectRelation<T extends AnalyzedRelation> implements Analyz
     }
 
     @Override
+    @Nonnull
     public List<Field> fields() {
         return fields.asList();
     }

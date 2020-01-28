@@ -69,9 +69,4 @@ public class AnalyzedDropFunction implements AnalyzedStatement {
     public boolean isWriteOperation() {
         return true;
     }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
 }

@@ -21,35 +21,65 @@
 
 package io.crate.execution.dsl.projection;
 
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.RowGranularity;
+import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
-public class UpdateProjection extends DMLProjection {
+public class UpdateProjection extends Projection {
+
+    final Symbol uidSymbol;
 
     private Symbol[] assignments;
     // All values of this list are expected to be a FQN columnIdent.
     private String[] assignmentsColumns;
+
+    private Symbol[] outputs;
+
+    @Nullable
+    private Symbol[] returnValues;
+
     @Nullable
     private Long requiredVersion;
+
+    private boolean allOn4_2;
 
     public UpdateProjection(Symbol uidSymbol,
                             String[] assignmentsColumns,
                             Symbol[] assignments,
+                            Version version,
+                            Symbol[] outputs,
+                            @Nullable Symbol[] returnValues,
                             @Nullable Long requiredVersion) {
-        super(uidSymbol);
+        this.uidSymbol = uidSymbol;
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
+        this.allOn4_2 = version.onOrAfter(Version.V_4_2_0);
+        this.returnValues = returnValues;
+        assert Arrays.stream(outputs).noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            : "Cannot operate on Reference, Field or SelectSymbol symbols: " + outputs;
+        this.outputs = outputs;
         this.requiredVersion = requiredVersion;
     }
 
     public UpdateProjection(StreamInput in) throws IOException {
-        super(in);
+        uidSymbol = Symbols.fromStream(in);
+        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
+            this.allOn4_2 = in.readBoolean();
+        } else {
+            this.allOn4_2 = false;
+        }
         int assignmentColumnsSize = in.readVInt();
         assignmentsColumns = new String[assignmentColumnsSize];
         for (int i = 0; i < assignmentColumnsSize; i++) {
@@ -64,6 +94,33 @@ public class UpdateProjection extends DMLProjection {
         if (requiredVersion == 0) {
             requiredVersion = null;
         }
+        if (allOn4_2) {
+            int outputSize = in.readVInt();
+            outputs = new Symbol[outputSize];
+            for (int i = 0; i < outputSize; i++) {
+                outputs[i] = Symbols.fromStream(in);
+            }
+            int returnValuesSize = in.readVInt();
+            if (returnValuesSize > 0) {
+                returnValues = new Symbol[returnValuesSize];
+                for (int i = 0; i < returnValuesSize; i++) {
+                    returnValues[i] = Symbols.fromStream(in);
+                }
+            }
+        } else {
+            //Outputs should never be null and for BwC reasons
+            //the default value in pre 4.1 was a long for a count
+            outputs = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
+        }
+    }
+
+    public Symbol uidSymbol() {
+        return uidSymbol;
+    }
+
+    @Nullable
+    public Symbol[] returnValues() {
+        return returnValues;
     }
 
     public String[] assignmentsColumns() {
@@ -90,6 +147,16 @@ public class UpdateProjection extends DMLProjection {
     }
 
     @Override
+    public List<? extends Symbol> outputs() {
+        return List.of(outputs);
+    }
+
+    @Override
+    public RowGranularity requiredGranularity() {
+        return RowGranularity.SHARD;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -101,6 +168,8 @@ public class UpdateProjection extends DMLProjection {
         if (requiredVersion != null ? !requiredVersion.equals(that.requiredVersion) : that.requiredVersion != null)
             return false;
         if (!uidSymbol.equals(that.uidSymbol)) return false;
+        if (!Arrays.equals(returnValues, that.returnValues)) return false;
+        if (!Arrays.equals(outputs, that.outputs)) return false;
 
         return true;
     }
@@ -112,13 +181,18 @@ public class UpdateProjection extends DMLProjection {
         result = 31 * result + Arrays.hashCode(assignmentsColumns);
         result = 31 * result + (requiredVersion != null ? requiredVersion.hashCode() : 0);
         result = 31 * result + uidSymbol.hashCode();
+        result = 31 * result + Arrays.hashCode(returnValues);
+        result = 31 * result + Arrays.hashCode(outputs);
+
         return result;
     }
 
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
+        Symbols.toStream(uidSymbol, out);
+        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
+            out.writeBoolean(allOn4_2);
+        }
         out.writeVInt(assignmentsColumns.length);
         for (int i = 0; i < assignmentsColumns.length; i++) {
             out.writeString(assignmentsColumns[i]);
@@ -131,6 +205,20 @@ public class UpdateProjection extends DMLProjection {
             out.writeVLong(0);
         } else {
             out.writeVLong(requiredVersion);
+        }
+        if (allOn4_2) {
+            out.writeVInt(outputs.length);
+            for (int i = 0; i < outputs.length; i++) {
+                Symbols.toStream(outputs[i], out);
+            }
+            if (returnValues != null) {
+                out.writeVInt(returnValues.length);
+                for (int i = 0; i < returnValues.length; i++) {
+                    Symbols.toStream(returnValues[i], out);
+                }
+            } else {
+                out.writeVInt(0);
+            }
         }
     }
 }

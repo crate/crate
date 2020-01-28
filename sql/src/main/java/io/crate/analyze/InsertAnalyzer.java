@@ -71,7 +71,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-class InsertFromSubQueryAnalyzer {
+class InsertAnalyzer {
 
     private final Functions functions;
     private final Schemas schemas;
@@ -102,7 +102,7 @@ class InsertFromSubQueryAnalyzer {
         }
     }
 
-    InsertFromSubQueryAnalyzer(Functions functions, Schemas schemas, RelationAnalyzer relationAnalyzer) {
+    InsertAnalyzer(Functions functions, Schemas schemas, RelationAnalyzer relationAnalyzer) {
         this.functions = functions;
         this.schemas = schemas;
         this.relationAnalyzer = relationAnalyzer;
@@ -115,18 +115,19 @@ class InsertFromSubQueryAnalyzer {
             txnCtx.sessionContext().user(),
             txnCtx.sessionContext().searchPath()
         );
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-
         List<Reference> targetColumns =
             new ArrayList<>(resolveTargetColumns(insert.columns(), tableInfo));
 
-        AnalyzedRelation subQueryRelation = relationAnalyzer.analyzeUnbound(
+        AnalyzedRelation subQueryRelation = relationAnalyzer.analyze(
             insert.subQuery(),
             new StatementAnalysisContext(typeHints, Operation.READ, txnCtx, targetColumns));
 
         ensureClusteredByPresentOrNotRequired(targetColumns, tableInfo);
         checkSourceAndTargetColsForLengthAndTypesCompatibility(targetColumns, subQueryRelation.outputs());
 
+        verifyOnConflictTargets(insert.getDuplicateKeyContext(), tableInfo);
+
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
             tableRelation,
             targetColumns,
@@ -141,46 +142,6 @@ class InsertFromSubQueryAnalyzer {
 
         return new InsertFromSubQueryAnalyzedStatement(
             subQueryRelation,
-            tableInfo,
-            targetColumns,
-            ignoreDuplicateKeys,
-            onDuplicateKeyAssignments);
-    }
-
-    public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
-            node.table().getName(),
-            Operation.INSERT,
-            analysis.sessionContext().user(),
-            analysis.sessionContext().searchPath()
-        );
-
-        AnalyzedRelation source = relationAnalyzer.analyze(
-            node.subQuery(), analysis.transactionContext(), analysis.parameterContext());
-
-        List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo));
-
-        ensureClusteredByPresentOrNotRequired(targetColumns, tableInfo);
-        checkSourceAndTargetColsForLengthAndTypesCompatibility(targetColumns, source.outputs());
-
-        verifyOnConflictTargets(node.getDuplicateKeyContext(), tableInfo);
-
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-        FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
-        Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
-            tableRelation,
-            targetColumns,
-            analysis.parameterContext(),
-            analysis.transactionContext(),
-            fieldProvider,
-            node.getDuplicateKeyContext()
-        );
-
-        final boolean ignoreDuplicateKeys =
-            node.getDuplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
-
-        return new InsertFromSubQueryAnalyzedStatement(
-            source,
             tableInfo,
             targetColumns,
             ignoreDuplicateKeys,
@@ -289,11 +250,11 @@ class InsertFromSubQueryAnalyzer {
                 continue;
             }
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
-                source,
+                "The type '%s' of the insert source '%s' is not convertible to the type '%s' of target column '%s'",
                 source.valueType(),
-                targetCol.column().fqn(),
-                targetType
+                SymbolPrinter.INSTANCE.printQualified(source),
+                targetType,
+                targetCol.column().fqn()
             ));
         }
     }

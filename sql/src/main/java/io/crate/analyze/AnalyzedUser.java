@@ -54,9 +54,4 @@ abstract class AnalyzedUser implements AnalyzedStatement {
     public boolean isWriteOperation() {
         return true;
     }
-
-    @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
 }

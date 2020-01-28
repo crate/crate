@@ -32,7 +32,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.ParameterContext;
+import io.crate.analyze.ParamTypeHints;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
 import io.crate.common.collections.Lists2;
@@ -121,7 +121,6 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -452,7 +451,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         Analyzer analyzer = internalCluster().getInstance(Analyzer.class, nodeName);
         Planner planner = internalCluster().getInstance(Planner.class, nodeName);
 
-        ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
         SessionContext sessionContext = new SessionContext(
             Option.NONE, User.CRATE_USER, sqlExecutor.getCurrentSchema());
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
@@ -467,7 +465,10 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             null
         );
         Plan plan = planner.plan(
-            analyzer.boundAnalyze(SqlParser.createStatement(stmt), coordinatorTxnCtx, parameterContext).analyzedStatement(),
+            analyzer.analyze(
+                SqlParser.createStatement(stmt),
+                coordinatorTxnCtx.sessionContext(),
+                ParamTypeHints.EMPTY),
             plannerContext);
         return new PlanForNode(plan, nodeName, plannerContext);
     }

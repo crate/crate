@@ -217,9 +217,10 @@ class ShowStatementAnalyzer {
     }
 
     private AnalyzedStatement unboundAnalyze(Query query, Analysis analysis) {
-        AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(query,
-                                                                      analysis.sessionContext(),
-                                                                      analysis.paramTypeHints());
+        AnalyzedStatement analyzedStatement = analyzer.analyze(
+            query,
+            analysis.sessionContext(),
+            analysis.paramTypeHints());
         analysis.rootRelation((AnalyzedRelation) analyzedStatement);
         return analyzedStatement;
     }

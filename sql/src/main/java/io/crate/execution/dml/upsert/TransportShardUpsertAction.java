@@ -42,6 +42,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -50,6 +51,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
@@ -70,6 +72,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -118,10 +121,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
-        ShardResponse shardResponse = new ShardResponse();
+        ShardResponse shardResponse = new ShardResponse(Version.CURRENT, request.getReturnValues());
+        
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
         Reference[] insertColumns = request.insertColumns();
+
         GeneratedColumns.Validation valueValidation = request.validateConstraints()
             ? GeneratedColumns.Validation.VALUE_MATCH
             : GeneratedColumns.Validation.NONE;
@@ -133,7 +138,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         UpdateSourceGen updateSourceGen = request.updateColumns() == null
             ? null
-            : new UpdateSourceGen(functions, txnCtx, tableInfo, request.updateColumns());
+            : new UpdateSourceGen(functions,
+                                  txnCtx,
+                                  tableInfo,
+                                  request.updateColumns());
+
+        ReturnValueGen returnValueGen = request.getReturnValues() == null
+            ? null
+            : new ReturnValueGen(functions, txnCtx, tableInfo, request.getReturnValues());
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
@@ -146,16 +158,23 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 break;
             }
             try {
-                translogLocation = indexItem(
+                IndexItemResponse indexItemResponse = indexItem(
                     request,
                     item,
                     indexShard,
                     item.insertValues() != null, // try insert first
                     updateSourceGen,
-                    insertSourceGen
+                    insertSourceGen,
+                    returnValueGen
                 );
-                if (translogLocation != null) {
-                    shardResponse.add(location);
+                if (indexItemResponse != null) {
+                    if (indexItemResponse.translog != null) {
+                        shardResponse.add(location);
+                        translogLocation = indexItemResponse.translog;
+                    }
+                    if (indexItemResponse.returnValues != null) {
+                        shardResponse.addResultRows(indexItemResponse.returnValues);
+                    }
                 }
             } catch (Exception e) {
                 if (retryPrimaryException(e)) {
@@ -229,12 +248,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Nullable
-    private Translog.Location indexItem(ShardUpsertRequest request,
+    private IndexItemResponse indexItem(ShardUpsertRequest request,
                                         ShardUpsertRequest.Item item,
                                         IndexShard indexShard,
                                         boolean tryInsertFirst,
                                         @Nullable UpdateSourceGen updateSourceGen,
-                                        @Nullable InsertSourceGen insertSourceGen) throws Exception {
+                                        @Nullable InsertSourceGen insertSourceGen,
+                                        @Nullable ReturnValueGen returnValueGen) throws Exception {
         VersionConflictEngineException lastException = null;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
@@ -245,6 +265,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     tryInsertFirst,
                     updateSourceGen,
                     insertSourceGen,
+                    returnValueGen,
                     retryCount > 0
                 );
             } catch (VersionConflictEngineException e) {
@@ -276,17 +297,31 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         throw lastException;
     }
 
+    static class IndexItemResponse {
+        @Nullable
+        final Translog.Location translog;
+        @Nullable
+        final Object[] returnValues;
+
+        IndexItemResponse(@Nullable Translog.Location translog, @Nullable Object[] returnValues) {
+            this.translog = translog;
+            this.returnValues = returnValues;
+        }
+    }
+
     @VisibleForTesting
-    protected Translog.Location indexItem(ShardUpsertRequest request,
+    protected IndexItemResponse indexItem(ShardUpsertRequest request,
                                           ShardUpsertRequest.Item item,
                                           IndexShard indexShard,
                                           boolean tryInsertFirst,
                                           UpdateSourceGen updateSourceGen,
                                           InsertSourceGen insertSourceGen,
+                                          @Nullable ReturnValueGen returnGen,
                                           boolean isRetry) throws Exception {
         final long seqNo;
         final long primaryTerm;
         final long version;
+        Doc updatedDoc = null;
         if (tryInsertFirst) {
             version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
                 ? Versions.MATCH_ANY
@@ -300,12 +335,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         } else {
             Doc currentDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
-            BytesReference updatedSource = updateSourceGen.generateSource(
+
+            Map<String, Object> updatedSource = updateSourceGen.generateSource(
                 currentDoc,
                 item.updateAssignments(),
                 item.insertValues()
             );
-            item.source(updatedSource);
+
+            if (item.returnValues() != null) {
+                updatedDoc = currentDoc.withUpdatedSource(updatedSource);
+            }
+
+            item.source(BytesReference.bytes(XContentFactory.jsonBuilder().map(updatedSource)));
             seqNo = item.seqNo();
             primaryTerm = item.primaryTerm();
             version = Versions.MATCH_ANY;
@@ -334,7 +375,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 // update the seqNo and version on request for the replicas
                 item.seqNo(indexResult.getSeqNo());
                 item.version(indexResult.getVersion());
-                return indexResult.getTranslogLocation();
+                return new IndexItemResponse(indexResult.getTranslogLocation(),
+                                             getReturnValues(indexResult, returnGen, updatedDoc));
 
             case FAILURE:
                 Exception failure = indexResult.getFailure();
@@ -384,5 +426,16 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
         return columnsNotUsed;
+    }
+
+    @Nullable
+    private static Object[] getReturnValues(Engine.IndexResult indexResult,
+                                            @Nullable ReturnValueGen returnGen,
+                                            @Nullable Doc doc) {
+        if (doc != null && returnGen != null) {
+            return returnGen.generateReturnValues(doc.withVersionAndSeqNo(indexResult.getVersion(),
+                                                                          indexResult.getSeqNo()));
+        }
+        return null;
     }
 }

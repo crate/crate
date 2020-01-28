@@ -52,11 +52,6 @@ public class AnalyzedSetLicenseStatement implements AnalyzedStatement {
     }
 
     @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
-    @Override
     public boolean isWriteOperation() {
         return true;
     }

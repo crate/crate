@@ -54,11 +54,6 @@ public final class AnalyzedDecommissionNode implements AnalyzedStatement {
     }
 
     @Override
-    public boolean isUnboundPlanningSupported() {
-        return true;
-    }
-
-    @Override
     public String toString() {
         return "AnalyzedDecommissionNode{" +
                "nodeIdOrName=" + nodeIdOrName +

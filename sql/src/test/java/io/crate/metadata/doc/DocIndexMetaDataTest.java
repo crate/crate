@@ -11,7 +11,6 @@ import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.ParameterContext;
 import io.crate.data.Row;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
@@ -1066,10 +1065,12 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(functions);
 
-        Analysis analysis = new Analysis(new CoordinatorTxnCtx(SessionContext.systemSessionContext()), ParameterContext.EMPTY, ParamTypeHints.EMPTY);
+        Analysis analysis = new Analysis(new CoordinatorTxnCtx(SessionContext.systemSessionContext()), ParamTypeHints.EMPTY);
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
         AnalyzedCreateTable analyzedCreateTable = analyzer.analyze(
-            (CreateTable<Expression>) statement, analysis.parameterContext(), analysis.transactionContext());
+            (CreateTable<Expression>) statement,
+            analysis.paramTypeHints(),
+            analysis.transactionContext());
         BoundCreateTable analyzedStatement = CreateTablePlan.bind(
             analyzedCreateTable,
             txnCtx,

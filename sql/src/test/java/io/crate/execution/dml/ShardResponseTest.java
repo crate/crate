@@ -23,6 +23,7 @@
 package io.crate.execution.dml;
 
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -31,7 +32,7 @@ public class ShardResponseTest extends CrateUnitTest {
 
     @Test
     public void testMarkResponseItemsAndFailures() {
-        ShardResponse shardResponse = new ShardResponse();
+        ShardResponse shardResponse = new ShardResponse(Version.CURRENT);
         shardResponse.add(0);
         shardResponse.add(1);
         shardResponse.add(2, new ShardResponse.Failure("dummyId", "dummyMessage", false));

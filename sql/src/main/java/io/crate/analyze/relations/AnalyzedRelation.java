@@ -33,6 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
@@ -43,6 +44,7 @@ public interface AnalyzedRelation extends AnalyzedStatement {
 
     Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException;
 
+    @Nonnull
     List<Field> fields();
 
     QualifiedName getQualifiedName();
@@ -120,11 +122,6 @@ public interface AnalyzedRelation extends AnalyzedStatement {
     @Override
     default boolean isWriteOperation() {
         return false;
-    }
-
-    @Override
-    default boolean isUnboundPlanningSupported() {
-        return true;
     }
 
     boolean isDistinct();

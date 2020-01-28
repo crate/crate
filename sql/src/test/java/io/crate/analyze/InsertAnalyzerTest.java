@@ -26,6 +26,7 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.expression.scalar.SubstrFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.sql.parser.ParsingException;
@@ -51,7 +52,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
+public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
@@ -192,13 +193,13 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         var insert = "insert into users (id, name) (select id, name from users) " +
                      "on conflict (id) do update set name = ?";
 
-        InsertFromSubQueryAnalyzedStatement statement = e.analyze(insert, new Object[]{"Arthur"});
+        InsertFromSubQueryAnalyzedStatement statement = e.analyze(insert);
 
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
         for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
             assertThat(entry.getKey(), isReference("name"));
-            assertThat(entry.getValue(), isLiteral("Arthur", StringType.INSTANCE));
+            assertThat(entry.getValue(), instanceOf(ParameterSymbol.class));
         }
     }
 
@@ -347,5 +348,14 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Clustered by value is required but is missing from the insert statement");
         e.analyze("insert into users_clustered_by_only (name) (select 'user')");
+    }
+
+    @Test
+    public void test_insert_from_query_fails_when_source_and_target_types_are_incompatible() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+            "The type 'bigint' of the insert source 'doc.users.id' " +
+            "is not convertible to the type 'object' of target column 'details'");
+        e.analyze("insert into users (id, name, details) (select id, name, id from users)");
     }
 }

@@ -33,6 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
@@ -100,6 +101,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation {
     }
 
     @Override
+    @Nonnull
     public List<Field> fields() {
         return fields.asList();
     }

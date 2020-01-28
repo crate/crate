@@ -29,7 +29,6 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.Relations;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.AccessControl;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -39,6 +38,7 @@ import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
@@ -153,17 +153,13 @@ public class Session implements AutoCloseable {
      * Execute a query in one step, avoiding the parse/bind/execute/sync procedure.
      * Opposed to using parse/bind/execute/sync this method is thread-safe.
      *
-     * This only works for statements that support unbound analyze
-     *
      * @param parse A function to parse the statement; This can be used to cache the parsed statement.
      *              Use {@link #quickExec(String, ResultReceiver, Row)} to use the regular parser
      */
     public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver resultReceiver, Row params) {
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionContext);
         Statement parsedStmt = parse.apply(statement);
-        AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
-        assert analyzedStatement.isUnboundPlanningSupported()
-            : "quickExec can only be used with statements supporting unbound planning";
+        AnalyzedStatement analyzedStatement = analyzer.analyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         UUID jobId = UUID.randomUUID();
         ClusterState clusterState = planner.currentClusterState();
@@ -258,7 +254,25 @@ public class Session implements AutoCloseable {
                 throw SQLExceptions.createSQLActionException(t, accessControl::ensureMaySee);
             }
         }
-        preparedStatements.put(statementName, new PreparedStmt(statement, query, paramTypes));
+
+        var paramTypeHints = new ParamTypeHints(paramTypes);
+        AnalyzedStatement analyzedStatement;
+        try {
+            analyzedStatement = analyzer.analyze(
+                statement,
+                sessionContext,
+                paramTypeHints);
+        } catch (Throwable t) {
+            jobsLogs.logPreExecutionFailure(
+                UUID.randomUUID(),
+                query,
+                SQLExceptions.messageOf(t),
+                sessionContext.user());
+            throw t;
+        }
+        preparedStatements.put(
+            statementName,
+            new PreparedStmt(statement, analyzedStatement, query, paramTypeHints));
     }
 
     public void bind(String portalName,
@@ -276,31 +290,11 @@ public class Session implements AutoCloseable {
             throw t;
         }
 
-        AnalyzedStatement unboundStatement = preparedStmt.unboundStatement();
-        AnalyzedStatement analyzedStatement;
-        if (unboundStatement == null) {
-            try {
-                analyzedStatement = analyzer.unboundAnalyze(
-                    preparedStmt.parsedStatement(),
-                    sessionContext,
-                    preparedStmt.paramTypes());
-            } catch (Throwable t) {
-                jobsLogs.logPreExecutionFailure(
-                    UUID.randomUUID(),
-                    preparedStmt.rawStatement(),
-                    SQLExceptions.messageOf(t),
-                    sessionContext.user());
-                throw t;
-            }
-        } else {
-            analyzedStatement = unboundStatement;
-        }
-
         Portal portal = new Portal(
             portalName,
             preparedStmt,
             params,
-            analyzedStatement,
+            preparedStmt.analyzedStatement(),
             resultFormatCodes);
         Portal oldPortal = portals.put(portalName, portal);
         if (oldPortal != null) {
@@ -318,12 +312,8 @@ public class Session implements AutoCloseable {
         switch (type) {
             case 'P':
                 Portal portal = getSafePortal(portalOrStatement);
-                AnalyzedStatement analyzedStmt = portal.boundOrUnboundStatement();
-                if (analyzedStmt instanceof AnalyzedRelation) {
-                    return new DescribeResult(((AnalyzedRelation) analyzedStmt).fields());
-                } else {
-                    return new DescribeResult(null);
-                }
+                var analyzedStmt = portal.analyzedStatement();
+                return new DescribeResult(analyzedStmt.fields());
             case 'S':
                 /*
                  * describe might be called without prior bind call.
@@ -347,35 +337,14 @@ public class Session implements AutoCloseable {
                  *      execute
                  */
                 PreparedStmt preparedStmt = preparedStatements.get(portalOrStatement);
-                Statement statement = preparedStmt.parsedStatement();
+                AnalyzedStatement analyzedStatement = preparedStmt.analyzedStatement();
 
-                AnalyzedStatement analyzedStatement;
-                if (preparedStmt.isRelationInitialized()) {
-                    analyzedStatement = preparedStmt.unboundStatement();
-                } else {
-                    try {
-                        analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
-                    } catch (Throwable t) {
-                        jobsLogs.logPreExecutionFailure(
-                            UUID.randomUUID(), preparedStmt.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
-                        throw t;
-                    }
-                    preparedStmt.unboundStatement(analyzedStatement);
-                }
-                if (analyzedStatement == null) {
-                    // statement without result set -> return null for NoData msg
-                    return new DescribeResult(null);
-                }
                 DataType[] parameterSymbols =
                     parameterTypeExtractor.getParameterTypes(x -> Relations.traverseDeepSymbols(analyzedStatement, x));
                 if (parameterSymbols.length > 0) {
                     preparedStmt.setDescribedParameters(parameterSymbols);
                 }
-                if (analyzedStatement instanceof AnalyzedRelation) {
-                    AnalyzedRelation relation = (AnalyzedRelation) analyzedStatement;
-                    return new DescribeResult(relation.fields(), parameterSymbols);
-                }
-                return new DescribeResult(null, parameterSymbols);
+                return new DescribeResult(analyzedStatement.fields(), parameterSymbols);
             default:
                 throw new AssertionError("Unsupported type: " + type);
         }
@@ -386,7 +355,7 @@ public class Session implements AutoCloseable {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
         }
         Portal portal = getSafePortal(portalName);
-        AnalyzedStatement analyzedStmt = portal.boundOrUnboundStatement();
+        var analyzedStmt = portal.analyzedStatement();
         if (isReadOnly && analyzedStmt.isWriteOperation()) {
             throw new ReadOnlyException(portal.preparedStmt().rawStatement());
         }
@@ -449,7 +418,7 @@ public class Session implements AutoCloseable {
                 Map<Statement, List<DeferredExecution>> deferredExecutions = Map.copyOf(this.deferredExecutionsByStmt);
                 this.deferredExecutionsByStmt.clear();
                 for (var entry : deferredExecutions.entrySet()) {
-                    if (entry.getValue().stream().anyMatch(x -> !x.portal().boundOrUnboundStatement().isWriteOperation())) {
+                    if (entry.getValue().stream().anyMatch(x -> !x.portal().analyzedStatement().isWriteOperation())) {
                         throw new UnsupportedOperationException(
                             "Only write operations are allowed in Batch statements");
                     }
@@ -485,16 +454,7 @@ public class Session implements AutoCloseable {
             null);
 
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
-        var unboundStatement = firstPreparedStatement.unboundStatement();
-        AnalyzedStatement analyzedStatement;
-        if (unboundStatement == null) {
-            analyzedStatement = analyzer.unboundAnalyze(
-                statement,
-                sessionContext,
-                firstPreparedStatement.paramTypes());
-        } else {
-            analyzedStatement = unboundStatement;
-        }
+        AnalyzedStatement analyzedStatement = firstPreparedStatement.analyzedStatement();
 
         Plan plan;
         try {
@@ -567,7 +527,7 @@ public class Session implements AutoCloseable {
         var params = new RowN(portal.params().toArray());
         var plannerContext = new PlannerContext(
             clusterState, routingProvider, jobId, executor.functions(), txnCtx, maxRows, params);
-        var analyzedStmt = portal.boundOrUnboundStatement();
+        var analyzedStmt = portal.analyzedStatement();
         String rawStatement = portal.preparedStmt().rawStatement();
         if (analyzedStmt == null) {
             String errorMsg = "Statement must have been analyzed: " + rawStatement;
@@ -614,12 +574,12 @@ public class Session implements AutoCloseable {
     @Nullable
     public List<? extends DataType> getOutputTypes(String portalName) {
         Portal portal = getSafePortal(portalName);
-        AnalyzedStatement analyzedStatement = portal.boundOrUnboundStatement();
-        if (analyzedStatement instanceof AnalyzedRelation) {
-            return Symbols.typeView(((AnalyzedRelation) analyzedStatement).fields());
-        } else {
-            return null;
+        var analyzedStatement = portal.analyzedStatement();
+        List<Field> fields = analyzedStatement.fields();
+        if (fields != null) {
+            return Symbols.typeView(fields);
         }
+        return null;
     }
 
     public String getQuery(String portalName) {

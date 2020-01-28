@@ -29,9 +29,7 @@ package io.crate.analyze;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.user.User;
-import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -40,8 +38,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Collections;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -74,19 +70,21 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testCreateFunctionWithSchemaName() {
-        AnalyzedCreateFunction analyzedStatement = e.analyze("CREATE FUNCTION foo.bar(long, long)" +
-                                                             " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'");
+        AnalyzedCreateFunction analyzedStatement = e.analyze(
+            "CREATE FUNCTION foo.bar(long, long)" +
+            " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'");
         assertThat(analyzedStatement.schema(), is("foo"));
         assertThat(analyzedStatement.name(), is("bar"));
     }
 
     @Test
     public void testCreateFunctionWithSessionSetSchema() throws Exception {
-        AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) e.analyzer.boundAnalyze(
-            SqlParser.createStatement("CREATE FUNCTION bar(long, long)" +
+        AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) e.analyzer.analyze(
+            SqlParser.createStatement(
+                "CREATE FUNCTION bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
-            new CoordinatorTxnCtx(new SessionContext(Option.NONE, User.CRATE_USER, "my_schema")),
-            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
+            new SessionContext(Option.NONE, User.CRATE_USER, "my_schema"),
+            ParamTypeHints.EMPTY);
 
         assertThat(analysis.schema(), is("my_schema"));
         assertThat(analysis.name(), is("bar"));
@@ -94,11 +92,11 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testCreateFunctionExplicitSchemaSupersedesSessionSchema() throws Exception {
-        AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) e.analyzer.boundAnalyze(
+        AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) e.analyzer.analyze(
             SqlParser.createStatement("CREATE FUNCTION my_other_schema.bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
-            new CoordinatorTxnCtx(new SessionContext(Option.NONE, User.CRATE_USER, "my_schema")),
-            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
+            new SessionContext(Option.NONE, User.CRATE_USER, "my_schema"),
+            ParamTypeHints.EMPTY);
 
         assertThat(analysis.schema(), is("my_other_schema"));
         assertThat(analysis.name(), is("bar"));

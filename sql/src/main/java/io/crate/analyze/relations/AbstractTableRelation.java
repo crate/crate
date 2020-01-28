@@ -32,6 +32,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -145,6 +146,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     }
 
     @Override
+    @Nonnull
     public List<Field> fields() {
         return fields;
     }

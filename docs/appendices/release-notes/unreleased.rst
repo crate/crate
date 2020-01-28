@@ -55,6 +55,14 @@ None
 Changes
 =======
 
+- Added the :ref:`encode(bytea, format) <scalar-encode>` and :ref:`decode(text,
+  format) <scalar-decode>` string functions.
+
+- Added the :ref:`ascii <scalar_ascii>` scalar function.
+
+- Introduced new optional ``RETURNING`` clause for :ref:`Update <ref-update>` to
+  return specified values from each row updated.
+
 - Added the :ref:`obj_description(integer, text) <obj_description>` scalar
   function for improved PostgreSQL compatibility.
 

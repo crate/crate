@@ -22,11 +22,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.ParameterContext;
+import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.sql.parser.SqlParser;
@@ -122,8 +121,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     private void analyze(String stmt, User user) {
-        e.analyzer.boundAnalyze(SqlParser.createStatement(stmt),
-            new CoordinatorTxnCtx(new SessionContext(Option.NONE, user)), ParameterContext.EMPTY);
+        e.analyzer.analyze(
+            SqlParser.createStatement(stmt),
+            new SessionContext(Option.NONE, user),
+            ParamTypeHints.EMPTY);
     }
 
     @SuppressWarnings("unchecked")
