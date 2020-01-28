@@ -53,17 +53,13 @@ public class SysUpdateProjection extends Projection {
     @Nullable
     private Symbol[] returnValues;
 
-    private boolean allOn4_2;
-
     public SysUpdateProjection(Symbol uidSymbol,
                                Map<Reference, Symbol> assignments,
-                               Version version,
                                Symbol[] outputs,
                                @Nullable Symbol[] returnValues
     ) {
         this.uidSymbol = uidSymbol;
         this.assignments = assignments;
-        this.allOn4_2 = version.onOrAfter(Version.V_4_2_0);
         this.returnValues = returnValues;
         assert Arrays.stream(outputs).noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
             : "Cannot operate on Reference, Field or SelectSymbol symbols: " + outputs;
@@ -72,15 +68,12 @@ public class SysUpdateProjection extends Projection {
 
     public SysUpdateProjection(StreamInput in) throws IOException {
         uidSymbol = Symbols.fromStream(in);
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            this.allOn4_2 = in.readBoolean();
-        }
         int numAssignments = in.readVInt();
         assignments = new HashMap<>(numAssignments, 1.0f);
         for (int i = 0; i < numAssignments; i++) {
             assignments.put(Reference.fromStream(in), Symbols.fromStream(in));
         }
-        if (allOn4_2) {
+        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             int outputSize = in.readVInt();
             outputs = new Symbol[outputSize];
             for (int i = 0; i < outputSize; i++) {
@@ -127,16 +120,13 @@ public class SysUpdateProjection extends Projection {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         Symbols.toStream(uidSymbol, out);
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.writeBoolean(allOn4_2);
-        }
         out.writeVInt(assignments.size());
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
             Reference.toStream(e.getKey(), out);
             Symbols.toStream(e.getValue(), out);
         }
 
-        if (allOn4_2) {
+        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
             out.writeVInt(outputs.length);
             for (int i = 0; i < outputs.length; i++) {
                 Symbols.toStream(outputs[i], out);

@@ -30,6 +30,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -82,6 +83,9 @@ import static java.util.Objects.requireNonNull;
 
 public final class UpdatePlanner {
 
+    public static final String RETURNING_VERSION_ERROR_MSG =
+        "Returning clause for Update is only supported when all nodes in the cluster running at least version 4.2.0";
+
     private UpdatePlanner() {
     }
 
@@ -89,7 +93,14 @@ public final class UpdatePlanner {
                             Functions functions,
                             PlannerContext plannerCtx,
                             SubqueryPlanner subqueryPlanner) {
+
+        if (!update.returnValues().isEmpty() &&
+            !plannerCtx.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
+            throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
+        }
+
         AbstractTableRelation table = update.table();
+
         Plan plan;
         if (table instanceof DocTableRelation) {
             DocTableRelation docTable = (DocTableRelation) table;
@@ -217,7 +228,6 @@ public final class UpdatePlanner {
         SysUpdateProjection updateProjection = new SysUpdateProjection(
             new InputColumn(0, idReference.valueType()),
             assignmentByTargetCol,
-            Version.CURRENT,
             outputSymbols,
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[]{})
         );
@@ -272,7 +282,6 @@ public final class UpdatePlanner {
             new InputColumn(0, idReference.valueType()),
             assignments.targetNames(),
             assignmentSources,
-            Version.CURRENT,
             outputSymbols,
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[]{}),
             null);

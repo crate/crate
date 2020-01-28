@@ -34,7 +34,6 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -78,8 +77,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             missingAssignmentColumns,
             null,
             jobId,
-            false,
-            Version.CURRENT
+            false
         ).newRequest(shardId);
         request.validateConstraints(false);
 
@@ -132,8 +130,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             missingAssignmentColumns,
             null,
             jobId,
-            false,
-            Version.CURRENT
+            false
         ).newRequest(shardId);
         request.validateConstraints(false);
 

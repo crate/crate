@@ -53,19 +53,15 @@ public class UpdateProjection extends Projection {
     @Nullable
     private Long requiredVersion;
 
-    private boolean allOn4_2;
-
     public UpdateProjection(Symbol uidSymbol,
                             String[] assignmentsColumns,
                             Symbol[] assignments,
-                            Version version,
                             Symbol[] outputs,
                             @Nullable Symbol[] returnValues,
                             @Nullable Long requiredVersion) {
         this.uidSymbol = uidSymbol;
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
-        this.allOn4_2 = version.onOrAfter(Version.V_4_2_0);
         this.returnValues = returnValues;
         assert Arrays.stream(outputs).noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
             : "Cannot operate on Reference, Field or SelectSymbol symbols: " + outputs;
@@ -75,11 +71,6 @@ public class UpdateProjection extends Projection {
 
     public UpdateProjection(StreamInput in) throws IOException {
         uidSymbol = Symbols.fromStream(in);
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            this.allOn4_2 = in.readBoolean();
-        } else {
-            this.allOn4_2 = false;
-        }
         int assignmentColumnsSize = in.readVInt();
         assignmentsColumns = new String[assignmentColumnsSize];
         for (int i = 0; i < assignmentColumnsSize; i++) {
@@ -94,7 +85,7 @@ public class UpdateProjection extends Projection {
         if (requiredVersion == 0) {
             requiredVersion = null;
         }
-        if (allOn4_2) {
+        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             int outputSize = in.readVInt();
             outputs = new Symbol[outputSize];
             for (int i = 0; i < outputSize; i++) {
@@ -190,9 +181,6 @@ public class UpdateProjection extends Projection {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         Symbols.toStream(uidSymbol, out);
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.writeBoolean(allOn4_2);
-        }
         out.writeVInt(assignmentsColumns.length);
         for (int i = 0; i < assignmentsColumns.length; i++) {
             out.writeString(assignmentsColumns[i]);
@@ -206,7 +194,7 @@ public class UpdateProjection extends Projection {
         } else {
             out.writeVLong(requiredVersion);
         }
-        if (allOn4_2) {
+        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
             out.writeVInt(outputs.length);
             for (int i = 0; i < outputs.length; i++) {
                 Symbols.toStream(outputs[i], out);

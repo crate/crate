@@ -134,4 +134,8 @@ public class PlannerContext {
     public Functions functions() {
         return functions;
     }
+
+    public ClusterState clusterState() {
+        return clusterState;
+    }
 }

@@ -98,7 +98,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     private String charactersIndexUUID;
     private String partitionIndexUUID;
 
-
     static class TestingTransportShardUpsertAction extends TransportShardUpsertAction {
 
 
@@ -185,8 +184,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             new Reference[]{ID_REF},
             null,
             UUID.randomUUID(),
-            false,
-            Version.CURRENT
+            false
         ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
@@ -208,8 +206,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             new Reference[]{ID_REF},
             null,
             UUID.randomUUID(),
-            false,
-            Version.CURRENT
+            false
         ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
@@ -251,8 +248,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             new Reference[]{ID_REF},
             null,
             UUID.randomUUID(),
-            false,
-            Version.CURRENT
+            false
         ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
@@ -274,8 +270,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             new Reference[]{ID_REF},
             null,
             UUID.randomUUID(),
-            false,
-            Version.CURRENT
+            false
         ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 

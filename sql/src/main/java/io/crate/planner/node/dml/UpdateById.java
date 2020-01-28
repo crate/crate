@@ -38,7 +38,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -119,8 +118,7 @@ public final class UpdateById implements Plan {
             null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
             returnValues,
             plannerContext.jobId(),
-            false,
-            Version.CURRENT
+            false
         );
         UpdateRequests updateRequests = new UpdateRequests(requestBuilder, table, assignments);
         return new ShardRequestExecutor<>(
