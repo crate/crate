@@ -21,14 +21,16 @@
 
 package io.crate.action.sql.parser;
 
+import java.util.List;
+
 /**
  * Context for information gathered by parsing an XContent based sql request
  */
 public final class SQLRequestParseContext {
 
     private String stmt;
-    private Object[] args;
-    private Object[][] bulkArgs;
+    private List<Object> args;
+    private List<List<Object>> bulkArgs;
 
     public String stmt() {
         return stmt;
@@ -38,19 +40,19 @@ public final class SQLRequestParseContext {
         this.stmt = stmt;
     }
 
-    public Object[] args() {
+    public List<Object> args() {
         return args;
     }
 
-    public void args(Object[] args) {
+    public void args(List<Object> args) {
         this.args = args;
     }
 
-    public Object[][] bulkArgs() {
+    public List<List<Object>> bulkArgs() {
         return bulkArgs;
     }
 
-    public void bulkArgs(Object[][] bulkArgs) {
+    public void bulkArgs(List<List<Object>> bulkArgs) {
         this.bulkArgs = bulkArgs;
     }
 }

@@ -42,6 +42,16 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Remap CrateDB :ref:`object_data_type` array data type from the PostgreSQL
+  JSON to JSON array type. That might effect some drivers that use the
+  PostgreSQL wire protocol to insert data into tables with object array typed
+  columns. For instance,  when using the ``Npgsql`` driver, it is not longer
+  possible to insert an array of objects into a column of the object array
+  data type by using the parameter of a SQL statement that has the JSON data
+  type and an array of CLR as its value. Instead, use a string array with JSON
+  strings that represent the objects. See the ``Npgsql`` documentation for
+  more details.
+
 - Bulk ``INSERT INTO ... VALUES (...)`` statements do not throw an exception
   any longer when one of the bulk operations fails. The result of the
   execution is only available via the ``results`` array represented by a
@@ -55,6 +65,9 @@ None
 Changes
 =======
 
+- Added the :ref:`encode(bytea, format) <scalar-encode>` and :ref:`decode(text,
+  format) <scalar-decode>` string functions.
+
 - Added the :ref:`ascii <scalar_ascii>` scalar function.
 
 - Introduced new optional ``RETURNING`` clause for :ref:`Update <ref-update>` to
@@ -63,8 +76,8 @@ Changes
 - Added the :ref:`obj_description(integer, text) <obj_description>` scalar
   function for improved PostgreSQL compatibility.
 
-- Added support for using columns of type ``long`` inside subscript
-  expressions. (``array_expr[column]``).
+- Added support for using columns of type ``long`` inside subscript expressions
+  (e.g., ``array_expr[column]``).
 
 - Made :ref:`generate_series <table-functions-generate-series>` addressable by
   specifying the ``pg_catalog`` schema explicitly. So, for example, both

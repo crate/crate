@@ -33,25 +33,22 @@ class SQLBulkArgsParseElement extends SQLArgsParseElement implements SQLParseEle
     @Override
     public void parse(XContentParser parser, SQLRequestParseContext context) throws Exception {
         XContentParser.Token token = parser.currentToken();
-
         if (token != XContentParser.Token.START_ARRAY) {
             throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
         }
-
-        Object[][] params = parseSubArrays(parser);
-        context.bulkArgs(params);
+        context.bulkArgs(parseSubArrays(parser));
     }
 
-    private Object[][] parseSubArrays(XContentParser parser) throws IOException {
+    private List<List<Object>> parseSubArrays(XContentParser parser) throws IOException {
         XContentParser.Token token;
-        List<Object[]> list = new ArrayList<>();
+        ArrayList<List<Object>> bulkArgs = new ArrayList<>();
         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
             if (token == XContentParser.Token.START_ARRAY) {
-                list.add(parseSubArray(parser));
+                bulkArgs.add(parseSubArray(parser));
             } else {
                 throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
             }
         }
-        return list.toArray(new Object[list.size()][]);
+        return bulkArgs;
     }
 }
