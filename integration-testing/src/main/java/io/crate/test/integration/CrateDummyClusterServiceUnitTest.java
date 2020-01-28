@@ -76,7 +76,7 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
     @Before
     public void setupDummyClusterService() {
-        clusterService = createClusterService(additionalClusterSettings());
+        clusterService = createClusterService(additionalClusterSettings(), Version.CURRENT);
     }
 
     @After
@@ -99,7 +99,7 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
         return EMPTY_CLUSTER_SETTINGS;
     }
 
-    private ClusterService createClusterService(Collection<Setting<?>> additionalClusterSettings) {
+    protected ClusterService createClusterService(Collection<Setting<?>> additionalClusterSettings, Version version) {
         Set<Setting<?>> clusterSettingsSet = Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         clusterSettingsSet.addAll(additionalClusterSettings);
         ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, clusterSettingsSet);
@@ -118,7 +118,7 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
             buildNewFakeTransportAddress(),
             Collections.emptyMap(),
             new HashSet<>(Arrays.asList(DiscoveryNode.Role.values())),
-            Version.CURRENT
+            version
         );
         DiscoveryNodes nodes = DiscoveryNodes.builder()
             .add(discoveryNode)

@@ -42,7 +42,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -121,7 +120,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
-        ShardResponse shardResponse = new ShardResponse(Version.CURRENT, request.getReturnValues());
+        ShardResponse shardResponse = new ShardResponse(request.getReturnValues());
         
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);

@@ -529,8 +529,7 @@ public class ProjectionToProjectorVisitor
             null,
             projection.returnValues(),
             context.jobId,
-            true,
-            Version.CURRENT
+            true
         );
 
         return new ShardDMLExecutor<>(

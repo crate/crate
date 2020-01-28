@@ -112,14 +112,10 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     @Nullable
     private Exception failure;
 
-    private boolean allOn4_2;
 
-    public ShardResponse(Version version) {
-        this.allOn4_2 = version.onOrAfter(Version.V_4_2_0);
-    }
+    public ShardResponse() { }
 
-    public ShardResponse(Version version, @Nullable Symbol[] resultColumns) {
-        this.allOn4_2 = version.onOrAfter(Version.V_4_2_0);
+    public ShardResponse(@Nullable Symbol[] resultColumns) {
         this.resultColumns = resultColumns;
     }
 
@@ -163,11 +159,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
     public ShardResponse(StreamInput in) throws IOException {
         super(in);
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            this.allOn4_2 = in.readBoolean();
-        } else {
-            this.allOn4_2 = false;
-        }
         int size = in.readVInt();
         locations = new IntArrayList(size);
         failures = new ArrayList<>(size);
@@ -182,7 +173,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         if (in.readBoolean()) {
             failure = in.readException();
         }
-        if (allOn4_2) {
+        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             int resultColumnsSize = in.readVInt();
             if (resultColumnsSize > 0) {
                 resultColumns = new Symbol[resultColumnsSize];
@@ -210,9 +201,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.writeBoolean(allOn4_2);
-        }
         out.writeVInt(locations.size());
         for (int i = 0; i < locations.size(); i++) {
             out.writeVInt(locations.get(i));
@@ -229,7 +217,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         } else {
             out.writeBoolean(false);
         }
-        if (allOn4_2) {
+        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
             if (resultRows != null) {
                 assert resultColumns != null : "Result columns are required when writing result rows";
                 Streamer[] resultRowStreamers = Symbols.streamerArray(List.of(resultColumns));

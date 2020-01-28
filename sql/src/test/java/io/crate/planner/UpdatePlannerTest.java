@@ -25,6 +25,7 @@ package io.crate.planner;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -46,6 +47,8 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +73,11 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+        e = buildExecutor(clusterService);
+    }
+
+    private static SQLExecutor buildExecutor(ClusterService clusterService) throws IOException {
+        return SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .enableDefaultTables()
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
@@ -170,5 +177,16 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         SelectSymbol innerSubSelectSymbol = outerSubSelectPlan.dependencies().values().iterator().next();
         assertThat(innerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_MULTIPLE_VALUES));
         assertThat(innerSubSelectPlan.numExpectedRows(), is(-1L));
+    }
+
+    @Test
+    public void test_returning_for_update_throw_error_with_4_1_nodes() throws Exception {
+        // Make sure the former initialized cluster service is shutdown
+        cleanup();
+        this.clusterService = createClusterService(additionalClusterSettings(), Version.V_4_1_0);
+        e = buildExecutor(clusterService);
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage(UpdatePlanner.RETURNING_VERSION_ERROR_MSG);
+        e.plan("update users set name='test' where id=1 returning id");
     }
 }

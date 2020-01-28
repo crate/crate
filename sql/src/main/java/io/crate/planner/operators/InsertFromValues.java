@@ -69,7 +69,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
@@ -237,8 +236,7 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             null,
             plannerContext.jobId(),
-            false,
-            Version.CURRENT);
+            false);
 
         var shardedRequests = new ShardedRequests<>(builder::newRequest);
 
@@ -349,8 +347,7 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             null,
             plannerContext.jobId(),
-            true,
-            Version.CURRENT);
+            true);
         var shardedRequests = new ShardedRequests<>(builder::newRequest);
 
         HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
