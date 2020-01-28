@@ -1,4 +1,4 @@
-from crate.theme.rtd.conf.crate_server import *
+from crate.theme.rtd.conf.crate_reference import *
 
 exclude_patterns = ['out/**', 'clients/**', 'tmp/**', 'eggs/**', 'requirements.txt']
 
