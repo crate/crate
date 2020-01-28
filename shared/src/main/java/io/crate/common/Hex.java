@@ -24,6 +24,11 @@ package io.crate.common;
 public class Hex {
 
     /**
+     * Hex leading flag for string representations.
+     */
+    public static final String HEX_FLAG = "\\x";
+
+    /**
      * Used to build output as Hex
      */
     private static final char[] DIGITS_LOWER = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
@@ -32,6 +37,41 @@ public class Hex {
      * Used to build output as Hex
      */
     private static final char[] DIGITS_UPPER = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
+    /**
+     * Returns true if the argument is in the "bytea" hex format.
+     */
+    public static boolean isHexFormat(String data) {
+        return data.startsWith(HEX_FLAG);
+    }
+
+    /**
+     * Returns a string with the leading hexadecimal flag removed.
+     * This validates the hexadecimal portion of the hex-formatted data.
+     */
+    public static String stripHexFormatFlag(String data) {
+        if (data.length() < 2) {
+            throw new IllegalArgumentException("Invalid hex formatted string");
+        }
+        return validateHex(data.substring(2), 2);
+    }
+
+    /**
+     * Throws an exception if the given hex string contains other characters than hexadecimals,
+     * or returns it verbatim otherwise.
+     * @param data a string that should contain only hexadecimal characters
+     * @param offset for error reporting, the index at which the data starts in order to account for possibly stripped
+     *               HEX_FLAG
+     */
+    public static String validateHex(String data, int offset) {
+        if ((data.length() & 0x01) != 0) {
+            throw new IllegalStateException("Odd number of characters");
+        }
+        for (int i = 0; i < data.length(); i++) {
+            toDigit(data.charAt(i), offset + i);
+        }
+        return data;
+    }
 
     /**
      * Converts an array of bytes into an array of characters representing the hexadecimal values of each byte in order.
