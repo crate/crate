@@ -29,11 +29,15 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Test;
 
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
+
 public class SQLBulkArgsParseElementTest extends CrateUnitTest {
 
-    private Object[][] parse(String bulk_args) throws Exception {
+    private List<List<Object>> parse(String bulkArgs) throws Exception {
         SQLRequestParseContext context = new SQLRequestParseContext();
-        String json = "{\"bulk_args\":" + bulk_args + "}";
+        String json = "{\"bulk_args\":" + bulkArgs + "}";
         XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, json);
         parser.nextToken();
@@ -42,29 +46,27 @@ public class SQLBulkArgsParseElementTest extends CrateUnitTest {
         SQLBulkArgsParseElement bulkArgsParseElement = new SQLBulkArgsParseElement();
         bulkArgsParseElement.parse(parser, context);
         return context.bulkArgs();
-
     }
 
     @Test
     public void testBulkArgsArray() throws Exception {
-        String bulk_args = "[[\"200\", \"Somewhere\", \"planet\"], [\"201\", \"Somewhere else\", \"city\"]]";
-        Object[][] bulk_array = parse(bulk_args);
-        assertArrayEquals(new Object[]{new Object[]{"200", "Somewhere", "planet"},
-            new Object[]{"201", "Somewhere else", "city"}}, bulk_array);
+        String bulkArgs = "[[\"200\", \"Somewhere\", \"planet\"], [\"201\", \"Somewhere else\", \"city\"]]";
+        assertThat(
+            parse(bulkArgs),
+            is(List.of(
+                List.of("200", "Somewhere", "planet"),
+                List.of("201", "Somewhere else", "city"))));
     }
 
     @Test
     public void testEmptyBulkArgsArray() throws Exception {
-        String bulk_args = "[]";
-        Object[][] bulk_array = parse(bulk_args);
-        assertEquals(0, bulk_array.length);
+        assertThat(parse("[]").isEmpty(), is(true));
     }
 
     @Test
     public void testInvalidBulkArgsArray() throws Exception {
-        String bulk_args = "[[\"hello\"], null]";
         try {
-            parse(bulk_args);
+            parse("[[\"hello\"], null]");
         } catch (SQLParseSourceException e) {
             assertEquals("Parse Failure [Field [null] has an invalid value]", e.getMessage());
         }
