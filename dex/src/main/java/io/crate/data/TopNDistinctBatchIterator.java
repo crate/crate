@@ -80,7 +80,7 @@ public final class TopNDistinctBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         return source.loadNextBatch();
     }
 

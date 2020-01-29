@@ -48,7 +48,7 @@ public abstract class MappedForwardingBatchIterator<I, O> implements BatchIterat
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         return delegate().loadNextBatch();
     }
 

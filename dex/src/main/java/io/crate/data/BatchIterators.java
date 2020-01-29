@@ -60,27 +60,23 @@ public class BatchIterators {
                                                          Collector<T, A, R> collector,
                                                          CompletableFuture<R> resultFuture) {
         BiConsumer<A, T> accumulator = collector.accumulator();
-        boolean allLoaded;
         try {
             while (it.moveNext()) {
                 accumulator.accept(state, it.currentElement());
             }
-            allLoaded = it.allLoaded();
+            if (it.allLoaded()) {
+                resultFuture.complete(collector.finisher().apply(state));
+            } else {
+                it.loadNextBatch().whenComplete((r, t) -> {
+                    if (t == null) {
+                        collect(it, state, collector, resultFuture);
+                    } else {
+                        resultFuture.completeExceptionally(t);
+                    }
+                });
+            }
         } catch (Throwable t) {
             resultFuture.completeExceptionally(t);
-            return resultFuture;
-        }
-
-        if (allLoaded) {
-            resultFuture.complete(collector.finisher().apply(state));
-        } else {
-            it.loadNextBatch().whenComplete((r, t) -> {
-                if (t == null) {
-                    collect(it, state, collector, resultFuture);
-                } else {
-                    resultFuture.completeExceptionally(t);
-                }
-            });
         }
         return resultFuture;
     }

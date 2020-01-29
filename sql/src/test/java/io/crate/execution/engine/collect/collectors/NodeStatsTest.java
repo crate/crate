@@ -51,8 +51,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -105,7 +103,7 @@ public class NodeStatsTest extends CrateUnitTest {
     }
 
     @Test
-    public void testNoRequestIfNotRequired() throws InterruptedException, ExecutionException, TimeoutException {
+    public void testNoRequestIfNotRequired() throws Exception {
         List<Symbol> toCollect = new ArrayList<>();
         toCollect.add(idRef);
 
@@ -125,7 +123,7 @@ public class NodeStatsTest extends CrateUnitTest {
     }
 
     @Test
-    public void testRequestsAreIssued() throws InterruptedException, ExecutionException, TimeoutException {
+    public void testRequestsAreIssued() throws Exception {
         List<Symbol> toCollect = new ArrayList<>();
         toCollect.add(idRef);
         toCollect.add(nameRef);
@@ -143,7 +141,7 @@ public class NodeStatsTest extends CrateUnitTest {
     }
 
     @Test
-    public void testRequestsIfRequired() throws InterruptedException, ExecutionException, TimeoutException {
+    public void testRequestsIfRequired() throws Exception {
         List<Symbol> toCollect = new ArrayList<>();
         toCollect.add(idRef);
         toCollect.add(hostnameRef);

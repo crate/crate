@@ -118,9 +118,9 @@ public class AsyncOperationBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         if (sourceExhausted) {
-            return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
+            throw new IllegalStateException("BatchIterator already fully loaded");
         }
         return uncheckedLoadNextBatch();
     }
@@ -128,10 +128,14 @@ public class AsyncOperationBatchIterator<T> implements BatchIterator<T> {
     private CompletionStage<?> uncheckedLoadNextBatch() {
         CompletionStage<?> batchProcessResult = tryProcessBatchFromLoadedSource();
         if (batchProcessResult == null) {
-            if (source.allLoaded()) {
-                return processRemaining();
+            try {
+                if (source.allLoaded()) {
+                    return processRemaining();
+                }
+                return source.loadNextBatch().thenCompose(ignored -> this.uncheckedLoadNextBatch());
+            } catch (Throwable t) {
+                return CompletableFuture.failedFuture(t);
             }
-            return source.loadNextBatch().thenCompose(ignored -> this.uncheckedLoadNextBatch());
         }
         return batchProcessResult;
     }

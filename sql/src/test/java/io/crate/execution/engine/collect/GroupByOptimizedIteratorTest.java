@@ -196,12 +196,18 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
         AtomicReference<Throwable> exception = new AtomicReference<>();
         BatchIterator<Row> it = itSupplier.get();
-        Thread t = new Thread(() -> it.loadNextBatch().whenComplete((r, e) -> {
-            if (e != null) {
-                exception.set(e.getCause());
+        Thread t = new Thread(() -> {
+            try {
+                it.loadNextBatch().whenComplete((r, e) -> {
+                    if (e != null) {
+                        exception.set(e.getCause());
+                    }
+                    batchLoadingCompleted.countDown();
+                });
+            } catch (Exception e) {
+                exception.set(e);
             }
-            batchLoadingCompleted.countDown();
-        }));
+        });
         t.start();
         waitForLoadNextBatch.await(5, TimeUnit.SECONDS);
         interruptingConsumer.accept(it);
