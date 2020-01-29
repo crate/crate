@@ -65,6 +65,8 @@ None
 Changes
 =======
 
+- Added the :ref:`pi <scalar-pi>` scalar function.
+
 - Added a ``ceiling`` alias for the :ref:`ceil <scalar-ceil>` function for
   improved PostgreSQL compatibility.
 

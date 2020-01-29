@@ -126,6 +126,7 @@ public class ScalarFunctionModule extends AbstractModule {
         SquareRootFunction.register(this);
         LogFunction.register(this);
         TrigonometricFunctions.register(this);
+        PiFunction.register(this);
 
         DateTruncFunction.register(this);
         ExtractFunctions.register(this);
