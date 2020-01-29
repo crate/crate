@@ -102,12 +102,16 @@ public class BatchPagingIteratorTest {
                 }
                 // this is intentionally not recursive to not consume the whole source in the first `fetchMore` call
                 // but to simulate multiple pages and fetchMore calls
-                return source.loadNextBatch().toCompletableFuture().thenApply(ignored -> {
-                    while (source.moveNext()) {
-                        rows.add(new RowN(source.currentElement().materialize()));
-                    }
-                    return singleton(new KeyIterable<>(1, rows));
-                });
+                try {
+                    return source.loadNextBatch().toCompletableFuture().thenApply(ignored -> {
+                        while (source.moveNext()) {
+                            rows.add(new RowN(source.currentElement().materialize()));
+                        }
+                        return singleton(new KeyIterable<>(1, rows));
+                    });
+                } catch (Exception e) {
+                    return CompletableFuture.failedFuture(e);
+                }
             };
             return new BatchPagingIterator<>(
                 PassThroughPagingIterator.repeatable(),

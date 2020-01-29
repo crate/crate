@@ -45,7 +45,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -177,11 +176,11 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         if (closed) {
-            return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator is closed"));
+            throw new IllegalStateException("BatchIterator is closed");
         }
-        return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
+        throw new IllegalStateException("BatchIterator already fully loaded");
     }
 
     private Weight createWeight() throws IOException {
