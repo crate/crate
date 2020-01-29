@@ -1166,6 +1166,13 @@ return value will be of type ``bigint``::
     +------------+
     SELECT 1 row in set (... sec)
 
+
+``ceiling(number)``
+-------------------
+
+This is an alias for :ref:`ceil <scalar-ceil>`.
+
+
 .. _scalar-floor:
 
 ``floor(number)``

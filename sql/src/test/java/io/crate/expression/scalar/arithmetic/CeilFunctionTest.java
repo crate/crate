@@ -43,6 +43,11 @@ public class CeilFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void test_ceiling_works_as_alias_for_ceil() {
+        assertEvaluate("ceiling(-95.3)", -95L);
+    }
+
+    @Test
     public void testEvaluateOnIntAndLong() throws Exception {
         assertNormalize("ceil(cast(20 as integer))", isLiteral(20));
         assertNormalize("ceil(cast(null as integer))", isLiteral(null, DataTypes.INTEGER));
@@ -53,6 +58,6 @@ public class CeilFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeReference() throws Exception {
-        assertNormalize("ceil(age)", isFunction(CeilFunction.NAME));
+        assertNormalize("ceil(age)", isFunction(CeilFunction.CEIL));
     }
 }
