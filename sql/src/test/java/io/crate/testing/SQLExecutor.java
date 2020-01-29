@@ -76,6 +76,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
@@ -244,20 +245,20 @@ public class SQLExecutor {
             this.random = random;
             this.clusterService = clusterService;
             addNodesToClusterState(numNodes);
+            functions = getFunctions();
+            udfService = new UserDefinedFunctionService(clusterService, functions);
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
+            schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService));
             schemaInfoByName.put(
                 BlobSchemaInfo.NAME,
                 new BlobSchemaInfo(
                     clusterService,
                     new TestingBlobTableInfoFactory(Collections.emptyMap(), new IndexNameExpressionResolver(Settings.EMPTY), createTempDir())));
 
-            functions = getFunctions();
-
             tableInfoFactory = new TestingDocTableInfoFactory(
                 docTables, functions, new IndexNameExpressionResolver(Settings.EMPTY));
             testingViewInfoFactory = (ident, state) -> null;
-            udfService = new UserDefinedFunctionService(clusterService, functions);
 
             schemas = new Schemas(
                 schemaInfoByName,

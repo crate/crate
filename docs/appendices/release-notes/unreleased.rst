@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused queries on more than one relation and a literal
+  ``FALSE`` in the ``WHERE`` clause to match all rows instead of no rows.
+
 - Fixed the following issues in the Admin UI:
 
   - Fixed an issue that prevents the value for nested partitioned columns showing
