@@ -70,6 +70,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -701,18 +702,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join nl = (Join) qtf.subPlan();
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
-        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isSQL("true"));
-        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isSQL("true"));
+        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isSQL("false"));
+        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isSQL("false"));
     }
 
     @Test
     public void test3TableJoinWithNoMatch() throws Exception {
         QueryThenFetch qtf = e.plan("select * from users t1, users t2, users t3 WHERE 1=2");
         Join outer = (Join) qtf.subPlan();
-        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isSQL("true"));
+        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isSQL("false"));
         Join inner = (Join) outer.left();
-        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(true));
-        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(true));
+        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(false));
     }
 
     @Test
@@ -720,17 +721,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join nl = e.plan("select count(*) from users t1, users t2 WHERE 1=2");
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
-        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isLiteral(true));
-        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isLiteral(true));
+        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isLiteral(false));
     }
 
     @Test
     public void testGlobalAggregateOn3TableJoinWithNoMatch() throws Exception {
         Join outer = e.plan("select count(*) from users t1, users t2, users t3 WHERE 1=2");
         Join inner = (Join) outer.left();
-        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isLiteral(true));
-        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(true));
-        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(true));
+        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(false));
     }
 
     @Test
@@ -937,5 +938,31 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
         assertThat(collectPhase.projections(), contains(instanceOf(OrderedTopNProjection.class)));
+    }
+
+    @Test
+    public void test_join_with_no_match_where_clause_pushes_down_no_match() {
+        String stmt = "SELECT n.* " +
+                      "FROM " +
+                      "   pg_catalog.pg_namespace n," +
+                      "   pg_catalog.pg_class c " +
+                      "WHERE " +
+                      "   n.nspname LIKE E'sys' " +
+                      "   AND c.relnamespace = n.oid " +
+                      "   AND (false)";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "RootBoundary[nspacl, nspname, nspowner, oid]\n" +
+            "FetchOrEval[nspacl, nspname, nspowner, oid]\n" +
+            "NestedLoopJoin[\n" +
+            "    Boundary[nspacl, nspname, nspowner, oid]\n" +
+            "    Boundary[nspacl, nspname, nspowner, oid]\n" +
+            "    Collect[pg_catalog.pg_namespace | [nspacl, nspname, nspowner, oid] | None]\n" +
+            "    --- CROSS ---\n" +
+            "    Boundary[oid, relacl, relallvisible, relam, relchecks, relfilenode, relforcerowsecurity, relfrozenxid, relhasindex, relhasoids, relhaspkey, relhasrules, relhassubclass, relhastriggers, relispartition, relispopulated, relisshared, relkind, relminmxid, relname, relnamespace, relnatts, reloftype, reloptions, relowner, relpages, relpartbound, relpersistence, relreplident, relrowsecurity, reltablespace, reltoastrelid, reltuples, reltype]\n" +
+            "    Boundary[oid, relacl, relallvisible, relam, relchecks, relfilenode, relforcerowsecurity, relfrozenxid, relhasindex, relhasoids, relhaspkey, relhasrules, relhassubclass, relhastriggers, relispartition, relispopulated, relisshared, relkind, relminmxid, relname, relnamespace, relnatts, reloftype, reloptions, relowner, relpages, relpartbound, relpersistence, relreplident, relrowsecurity, reltablespace, reltoastrelid, reltuples, reltype]\n" +
+            "    Collect[pg_catalog.pg_class | [oid, relacl, relallvisible, relam, relchecks, relfilenode, relforcerowsecurity, relfrozenxid, relhasindex, relhasoids, relhaspkey, relhasrules, relhassubclass, relhastriggers, relispartition, relispopulated, relisshared, relkind, relminmxid, relname, relnamespace, relnatts, reloftype, reloptions, relowner, relpages, relpartbound, relpersistence, relreplident, relrowsecurity, reltablespace, reltoastrelid, reltuples, reltype] | None]\n" +
+            "]\n";
+        assertThat(plan, isPlan(e.functions(), expectedPlan));
     }
 }

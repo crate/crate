@@ -26,6 +26,7 @@ package io.crate.analyze.relations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -33,7 +34,6 @@ import io.crate.planner.consumer.QualifiedNameCollector;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -83,45 +83,62 @@ public class QuerySplitter {
      *     set(t2, t3)  -> t2.x = t3.x
      * </pre>
      */
-    public static Map<Set<QualifiedName>, Symbol> split(Symbol symbol) {
-        Map<Set<QualifiedName>, Symbol> splits = new LinkedHashMap<>();
-        symbol.accept(SPLIT_VISITOR, splits);
-        return splits;
+    public static Map<Set<QualifiedName>, Symbol> split(Symbol query) {
+        Context context = new Context(query);
+        query.accept(SPLIT_VISITOR, context);
+        return context.parts;
     }
 
-    private static class SplitVisitor extends SymbolVisitor<Map<Set<QualifiedName>, Symbol>, Void> {
+    private static class Context {
+        final Set<QualifiedName> allNames;
+        final LinkedHashMap<Set<QualifiedName>, Symbol> parts;
+
+        public Context(Symbol query) {
+            allNames = QualifiedNameCollector.collect(query);
+            parts = new LinkedHashMap<>();
+        }
+    }
+
+    private static class SplitVisitor extends SymbolVisitor<Context, Void> {
 
         @Override
-        public Void visitFunction(Function function, Map<Set<QualifiedName>, Symbol> splits) {
+        public Void visitLiteral(Literal literal, Context ctx) {
+            Symbol prevQuery = ctx.parts.put(ctx.allNames, literal);
+            if (prevQuery != null) {
+                ctx.parts.put(ctx.allNames, AndOperator.of(prevQuery, literal));
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitFunction(Function function, Context ctx) {
             if (!function.info().equals(AndOperator.INFO)) {
-                HashSet<QualifiedName> qualifiedNames = new LinkedHashSet<>();
-                ((Symbol) function).accept(QualifiedNameCollector.INSTANCE, qualifiedNames);
-                Symbol prevQuery = splits.put(qualifiedNames, function);
+                Set<QualifiedName> qualifiedNames = QualifiedNameCollector.collect(function);
+                Symbol prevQuery = ctx.parts.put(qualifiedNames, function);
                 if (prevQuery != null) {
-                    splits.put(qualifiedNames, AndOperator.of(prevQuery, function));
+                    ctx.parts.put(qualifiedNames, AndOperator.of(prevQuery, function));
                 }
                 return null;
             }
-
             for (Symbol arg : function.arguments()) {
-                arg.accept(this, splits);
+                arg.accept(this, ctx);
             }
             return null;
         }
 
         @Override
-        public Void visitField(Field field, Map<Set<QualifiedName>, Symbol> context) {
-            context.put(Collections.singleton(field.relation().getQualifiedName()), field);
+        public Void visitField(Field field, Context ctx) {
+            ctx.parts.put(Collections.singleton(field.relation().getQualifiedName()), field);
             return null;
         }
 
         @Override
-        public Void visitMatchPredicate(MatchPredicate matchPredicate, Map<Set<QualifiedName>, Symbol> context) {
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, Context ctx) {
             LinkedHashSet<QualifiedName> relationNames = new LinkedHashSet<>();
             for (Field field : matchPredicate.identBoostMap().keySet()) {
                 relationNames.add(field.relation().getQualifiedName());
             }
-            context.put(relationNames, matchPredicate);
+            ctx.parts.put(relationNames, matchPredicate);
             return null;
         }
     }
