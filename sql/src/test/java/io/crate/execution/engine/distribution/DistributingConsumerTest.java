@@ -41,6 +41,7 @@ import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -52,6 +53,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -138,6 +140,31 @@ public class DistributingConsumerTest extends CrateUnitTest {
         distributingConsumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
 
         expectedException.expect(InterruptedException.class);
+        collectingConsumer.getResult();
+    }
+
+    @Test
+    public void test_exception_on_loadNextBatch_is_forwarded() throws Exception {
+        Streamer<?>[] streamers = { DataTypes.INTEGER.streamer() };
+        TestingRowConsumer collectingConsumer = new TestingRowConsumer();
+        DistResultRXTask distResultRXTask = createPageDownstreamContext(streamers, collectingConsumer);
+        TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, distResultRXTask);
+        DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
+
+        BatchSimulatingIterator<Row> batchSimulatingIterator =
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5),
+                                          2,
+                                          3,
+                                          executorService) {
+
+                @Override
+                public CompletionStage<?> loadNextBatch() {
+                    throw new CircuitBreakingException("data too large");
+                }
+            };
+        distributingConsumer.accept(batchSimulatingIterator, null);
+
+        expectedException.expect(CircuitBreakingException.class);
         collectingConsumer.getResult();
     }
 

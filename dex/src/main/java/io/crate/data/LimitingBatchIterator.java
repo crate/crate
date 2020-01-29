@@ -22,7 +22,6 @@
 
 package io.crate.data;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public final class LimitingBatchIterator<T> extends ForwardingBatchIterator<T> {
@@ -64,9 +63,9 @@ public final class LimitingBatchIterator<T> extends ForwardingBatchIterator<T> {
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         if (allLoaded()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Iterator already fully loaded"));
+            throw new IllegalStateException("Iterator already fully loaded");
         }
         return super.loadNextBatch();
     }

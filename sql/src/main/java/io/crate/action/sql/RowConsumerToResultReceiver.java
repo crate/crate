@@ -58,7 +58,6 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     }
 
     private void consumeIt(BatchIterator<Row> iterator) {
-        boolean allLoaded;
         try {
             while (iterator.moveNext()) {
                 rowCount++;
@@ -70,28 +69,26 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                     return; // resumed via postgres protocol, close is done later
                 }
             }
-            allLoaded = iterator.allLoaded();
+            if (iterator.allLoaded()) {
+                onCompletion.accept(null);
+                iterator.close();
+                resultReceiver.allFinished(false);
+            } else {
+                iterator.loadNextBatch().whenComplete((r, f) -> {
+                    if (f == null) {
+                        consumeIt(iterator);
+                    } else {
+                        Throwable t = SQLExceptions.unwrap(f);
+                        iterator.close();
+                        onCompletion.accept(t);
+                        resultReceiver.fail(t);
+                    }
+                });
+            }
         } catch (Throwable t) {
             iterator.close();
             onCompletion.accept(t);
             resultReceiver.fail(t);
-            return;
-        }
-        if (allLoaded) {
-            onCompletion.accept(null);
-            iterator.close();
-            resultReceiver.allFinished(false);
-        } else {
-            iterator.loadNextBatch().whenComplete((r, f) -> {
-                if (f == null) {
-                    consumeIt(iterator);
-                } else {
-                    Throwable t = SQLExceptions.unwrap(f);
-                    iterator.close();
-                    onCompletion.accept(t);
-                    resultReceiver.fail(t);
-                }
-            });
         }
     }
 

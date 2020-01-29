@@ -121,7 +121,7 @@ public interface BatchIterator<T> extends Killable {
      *         Once the future completes the iterator is still in an "off-row" state, but {@link #moveNext()}
      *         can be called again if the next batch contains more data.
      */
-    CompletionStage<?> loadNextBatch();
+    CompletionStage<?> loadNextBatch() throws Exception;
 
     /**
      * @return true if no more batches can be loaded

@@ -102,12 +102,12 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         if (closed) {
-            return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already closed"));
+            throw new IllegalStateException("BatchIterator already closed");
         }
         if (allLoaded()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("All data already loaded"));
+            throw new IllegalStateException("All data already loaded");
         }
         Throwable err;
         CompletableFuture<? extends Iterable<? extends KeyIterable<Key, Row>>> future;

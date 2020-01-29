@@ -74,7 +74,7 @@ public class CollectingBatchIteratorTest {
     }
 
     @Test
-    public void testCollectingBatchIteratorPropagatesExceptionOnLoadNextBatch() {
+    public void testCollectingBatchIteratorPropagatesExceptionOnLoadNextBatch() throws Exception {
         CompletableFuture<Iterable<Row>> loadItemsFuture = new CompletableFuture<>();
         BatchIterator<Row> collectingBatchIterator = CollectingBatchIterator.newInstance(
             () -> {},
