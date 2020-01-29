@@ -25,13 +25,21 @@ package io.crate.planner.consumer;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.QualifiedName;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class QualifiedNameCollector extends DefaultTraversalSymbolVisitor<Set<QualifiedName>, Void> {
 
-    public static final QualifiedNameCollector INSTANCE = new QualifiedNameCollector();
+    private static final QualifiedNameCollector INSTANCE = new QualifiedNameCollector();
+
+    public static Set<QualifiedName> collect(Symbol symbol) {
+        var names = new LinkedHashSet<QualifiedName>();
+        symbol.accept(INSTANCE, names);
+        return names;
+    }
 
     @Override
     public Void visitField(Field field, Set<QualifiedName> context) {
