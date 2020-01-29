@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Bucket;
-import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -41,6 +40,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -50,6 +50,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
@@ -207,7 +208,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectWithPartitionedColumns() throws Throwable {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
-        Routing routing = schemas.getTableInfo(relationName).getRouting(
+        TableInfo tableInfo = schemas.getTableInfo(relationName);
+        Routing routing = tableInfo.getRouting(
             clusterService().state(),
             new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList()),
             WhereClause.MATCH_ALL,
@@ -215,21 +217,14 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             SessionContext.systemSessionContext());
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(
-                new Reference(
-                    new ReferenceIdent(relationName, "id"), RowGranularity.DOC, DataTypes.INTEGER, null, null
-                ),
-                new Reference(
-                    new ReferenceIdent(relationName, "date"), RowGranularity.SHARD, DataTypes.TIMESTAMPZ, null, null
-                )),
+                tableInfo.getReference(new ColumnIdent("id")),
+                tableInfo.getReference(new ColumnIdent("date"))
+            ),
             routing,
             WhereClause.MATCH_ALL
         );
 
         Bucket result = collect(collectNode);
-        for (Row row : result) {
-            System.out.println("Row:" + Arrays.toString(row.materialize()));
-        }
-
         assertThat(result, containsInAnyOrder(
             isRow(1, 0L),
             isRow(2, 1L)

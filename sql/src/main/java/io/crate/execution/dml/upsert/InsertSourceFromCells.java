@@ -35,10 +35,8 @@ import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -59,6 +57,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     private final CheckConstraints<Map<String, Object>, CollectExpression<Map<String, Object>, ?>> checks;
     private final GeneratedColumns<Row> generatedColumns;
     private final Object[] defaultValues;
+    private final List<Reference> partitionedByColumns;
 
     public InsertSourceFromCells(TransactionContext txnCtx,
                                  Functions functions,
@@ -69,8 +68,13 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         Tuple<List<Reference>, Object[]> allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, functions);
         this.targets = allTargetColumnsAndDefaults.v1();
         this.defaultValues = allTargetColumnsAndDefaults.v2();
+        this.partitionedByColumns = table.partitionedByColumns();
 
-        ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(this.targets, table.partitionedByColumns(), indexName);
+        ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(
+            this.targets,
+            table.partitionedByColumns(),
+            indexName
+        );
         InputFactory inputFactory = new InputFactory(functions);
         if (table.generatedColumns().isEmpty()) {
             generatedColumns = GeneratedColumns.empty();
@@ -88,33 +92,33 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             txnCtx,
             inputFactory,
             new FromSourceRefResolver(table.partitionedByColumns(), indexName),
-            table);
+            table
+        );
     }
 
     @Override
     public BytesReference generateSourceAndCheckConstraints(Object[] values) throws IOException {
-        HashMap<String, Object> source = new HashMap<>();
-
         row.firstCells(values);
         row.secondCells(defaultValues);
 
+        HashMap<String, Object> source = new HashMap<>();
         for (int i = 0; i < targets.size(); i++) {
             Reference target = targets.get(i);
             Object value = row.get(i);
 
-            // partitioned columns must not be included in the source
-            if (target.granularity() == RowGranularity.DOC) {
-                ColumnIdent column = target.column();
-                Maps.mergeInto(source, column.name(), column.path(), value, Map::putIfAbsent);
-            } else if (target.granularity() == RowGranularity.PARTITION && !(target instanceof GeneratedReference)) {
-                // values for columns used as partitioning criteria are not part of the source map;
-                // separate validation is necessary.
-                checks.validate(target.column(), value);
-            }
+            ColumnIdent column = target.column();
+            Maps.mergeInto(source, column.name(), column.path(), value, Map::putIfAbsent);
+        }
+        for (int i = 0; i < partitionedByColumns.size(); i++) {
+            var pCol = partitionedByColumns.get(i);
+            var column = pCol.column();
+            ArrayList<String> fullPath = new ArrayList<>(1 + column.path().size());
+            fullPath.add(column.name());
+            fullPath.addAll(column.path());
+            Maps.removeByPath(source, fullPath);
         }
 
         generatedColumns.setNextRow(row);
-
         generatedColumns.validateValues(source);
         for (var entry : generatedColumns.generatedToInject()) {
             ColumnIdent column = entry.getKey().column();

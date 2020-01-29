@@ -27,7 +27,12 @@ import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
+
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -60,13 +65,16 @@ public class InternalCountOperation implements CountOperation {
     private final ClusterService clusterService;
     private final ThreadPoolExecutor executor;
     private final int numProcessors;
+    private final Schemas schemas;
 
     @Inject
     public InternalCountOperation(Settings settings,
+                                  Schemas schemas,
                                   LuceneQueryBuilder queryBuilder,
                                   ClusterService clusterService,
                                   ThreadPool threadPool,
                                   IndicesService indicesService) {
+        this.schemas = schemas;
         this.queryBuilder = queryBuilder;
         this.clusterService = clusterService;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
@@ -75,7 +83,9 @@ public class InternalCountOperation implements CountOperation {
     }
 
     @Override
-    public CompletableFuture<Long> count(TransactionContext txnCtx, Map<String, IntIndexedContainer> indexShardMap, Symbol filter) {
+    public CompletableFuture<Long> count(TransactionContext txnCtx,
+                                         Map<String, IntIndexedContainer> indexShardMap,
+                                         Symbol filter) {
         List<Supplier<Long>> suppliers = new ArrayList<>();
         MetaData metaData = clusterService.state().getMetaData();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShardMap.entrySet()) {
@@ -122,12 +132,18 @@ public class InternalCountOperation implements CountOperation {
 
         IndexShard indexShard = indexService.getShard(shardId);
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
+            String indexName = indexShard.shardId().getIndexName();
+            var relationName = RelationName.fromIndexName(indexName);
+            DocTableInfo table = schemas.getTableInfo(relationName, Operation.READ);
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                 filter,
                 txnCtx,
                 indexService.mapperService(),
+                indexName,
                 indexService.newQueryShardContext(),
-                indexService.cache());
+                table,
+                indexService.cache()
+            );
             if (Thread.interrupted()) {
                 throw new InterruptedException("thread interrupted during count-operation");
             }

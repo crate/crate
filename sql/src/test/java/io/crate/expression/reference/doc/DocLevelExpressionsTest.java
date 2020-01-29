@@ -23,6 +23,7 @@ package io.crate.expression.reference.doc;
 
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
@@ -55,15 +56,14 @@ public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUn
             .build();
         indexEnv = new IndexEnv(
             THREAD_POOL,
-            StreamSupport.stream(e.schemas().spliterator(), false)
+            (DocTableInfo) StreamSupport.stream(e.schemas().spliterator(), false)
                 .filter(x -> x instanceof DocSchemaInfo)
                 .map(x -> (DocSchemaInfo) x)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No doc schema found"))
                 .getTables()
                 .iterator()
-                .next()
-                .ident(),
+                .next(),
             clusterService.state(),
             Version.CURRENT,
             createTempDir()

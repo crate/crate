@@ -195,7 +195,7 @@ Returns: ``integer``
 ``ascii(string)``
 -----------------
 
-Returns the ASCII code of the first character. For UTF-8 returns the Unicode
+Returns the ASCII code of the first character. For UTF-8, returns the Unicode
 code point of the characters.
 
 Returns: ``int``
@@ -1428,6 +1428,25 @@ See below for an example::
     +--------------------+
     | 0.7853981633974483 |
     +--------------------+
+    SELECT 1 row in set (... sec)
+
+.. _scalar-pi:
+
+``pi()``
+--------
+
+Returns the π constant.
+
+Returns: ``double precision``
+
+::
+
+    cr> SELECT pi();
+    +-------------------+
+    |              pi() |
+    +-------------------+
+    | 3.141592653589793 |
+    +-------------------+
     SELECT 1 row in set (... sec)
 
 .. _scalar-regexp:
