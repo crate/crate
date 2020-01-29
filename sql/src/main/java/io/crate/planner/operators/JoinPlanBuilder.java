@@ -93,7 +93,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
 
     @Override
     public LogicalPlan build(TableStats tableStats, Set<PlanHint> hints, Set<Symbol> usedBeforeNextFetch, @Nullable Row params) {
-        Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
+        Map<Set<QualifiedName>, Symbol> queryParts = QuerySplitter.split(where.queryOrFallback());
         LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs =
             JoinOperations.buildRelationsToJoinPairsMap(
                 JoinOperations.convertImplicitJoinConditionsToJoinPairs(mss.joinPairs(), queryParts));
@@ -181,7 +181,10 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             );
             joinNames.add(nextRel.getQualifiedName());
         }
-        assert queryParts.isEmpty() : "Must've applied all queryParts";
+        if (!queryParts.isEmpty()) {
+            joinPlan = Filter.create(joinPlan, AndOperator.join(queryParts.values()));
+            queryParts.clear();
+        }
         assert joinPairs.isEmpty() : "Must've applied all joinPairs";
 
         return joinPlan;
@@ -328,12 +331,5 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 consumer.accept(f.pointer());
             }
         });
-    }
-
-    private static Map<Set<QualifiedName>, Symbol> getQueryParts(WhereClause where) {
-        if (where.hasQuery()) {
-            return QuerySplitter.split(where.query());
-        }
-        return Collections.emptyMap();
     }
 }

@@ -1010,4 +1010,18 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
             is("1| 1\n")
         );
     }
+
+    @Test
+    public void test_join_with_and_false_in_where_clause_returns_empty_result() {
+        String stmt = "SELECT n.* " +
+                      "FROM " +
+                      "   pg_catalog.pg_namespace n," +
+                      "   pg_catalog.pg_class c " +
+                      "WHERE " +
+                      "   n.nspname LIKE E'sys' " +
+                      "   AND c.relnamespace = n.oid " +
+                      "   AND (false)";
+        execute(stmt);
+        assertThat(response.rowCount(), is(0L));
+    }
 }

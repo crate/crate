@@ -22,6 +22,7 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
@@ -44,6 +45,12 @@ final class FilterOnJoinsUtil {
     }
 
     static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join) {
+        if (!WhereClause.canMatch(query)) {
+            return join.replaceSources(List.of(
+                getNewSource(query, join.sources().get(0)),
+                getNewSource(query, join.sources().get(1))
+            ));
+        }
         Map<Set<QualifiedName>, Symbol> splitQuery = QuerySplitter.split(query);
         if (splitQuery.size() == 1 && splitQuery.keySet().iterator().next().size() > 1) {
             return null;
