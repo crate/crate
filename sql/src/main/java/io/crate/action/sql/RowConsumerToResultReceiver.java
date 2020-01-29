@@ -78,28 +78,26 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                     return; // resumed via postgres protocol, close is done later
                 }
             }
-            allLoaded = iterator.allLoaded();
+            if (iterator.allLoaded()) {
+                completionFuture.complete(null);
+                iterator.close();
+                resultReceiver.allFinished(false);
+            } else {
+                iterator.loadNextBatch().whenComplete((r, f) -> {
+                    if (f == null) {
+                        consumeIt(iterator);
+                    } else {
+                        Throwable t = SQLExceptions.unwrap(f);
+                        iterator.close();
+                        completionFuture.completeExceptionally(t);
+                        resultReceiver.fail(t);
+                    }
+                });
+            }
         } catch (Throwable t) {
             iterator.close();
             completionFuture.completeExceptionally(t);
             resultReceiver.fail(t);
-            return;
-        }
-        if (allLoaded) {
-            completionFuture.complete(null);
-            iterator.close();
-            resultReceiver.allFinished(false);
-        } else {
-            iterator.loadNextBatch().whenComplete((r, f) -> {
-                if (f == null) {
-                    consumeIt(iterator);
-                } else {
-                    Throwable t = SQLExceptions.unwrap(f);
-                    iterator.close();
-                    completionFuture.completeExceptionally(t);
-                    resultReceiver.fail(t);
-                }
-            });
         }
     }
 

@@ -92,7 +92,7 @@ class SemiJoinNLBatchIterator<L, R, C> implements BatchIterator<L> {
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         return activeIt.loadNextBatch();
     }
 

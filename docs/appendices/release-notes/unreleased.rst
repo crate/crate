@@ -57,6 +57,10 @@ None
 Fixes
 =====
 
+- Fixed a bug which could lead to stuck queries when an error happens inside
+  distributed execution plans, e.g. a ``CircuitBreakingException`` due to
+  exceeded memory usage.
+
 - Fixed an issue that resulted in the values for nested partitioned columns to
   be missing from the result.
 

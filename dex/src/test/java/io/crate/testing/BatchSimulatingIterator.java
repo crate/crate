@@ -114,15 +114,15 @@ public class BatchSimulatingIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         if (!currentlyLoading.compareAndSet(false, true)) {
-            return CompletableFuture.failedFuture(new IllegalStateException("loadNextBatch call during load operation"));
+            throw new IllegalStateException("loadNextBatch call during load operation");
         }
         if (delegate.allLoaded()) {
             currentBatch++;
             if (currentBatch > numBatches) {
                 currentlyLoading.compareAndSet(true, false);
-                return CompletableFuture.failedFuture(new IllegalStateException("Iterator already fully loaded"));
+                throw new IllegalStateException("Iterator already fully loaded");
             }
             return CompletableFuture.runAsync(() -> {
                 try {

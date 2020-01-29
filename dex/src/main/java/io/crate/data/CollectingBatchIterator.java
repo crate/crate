@@ -135,7 +135,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         if (resultFuture == null) {
             resultFuture = loadItems.get()
                 .whenComplete((r, t) -> {
@@ -149,7 +149,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
                 });
             return resultFuture;
         }
-        return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already loaded"));
+        throw new IllegalStateException("BatchIterator already loaded");
     }
 
     @Override
