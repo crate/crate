@@ -28,7 +28,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -95,8 +94,8 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
-        return CompletableFuture.failedFuture(new IllegalStateException("All batches already loaded"));
+    public CompletionStage<?> loadNextBatch() throws Exception {
+        throw new IllegalStateException("All batches already loaded");
     }
 
     @Override

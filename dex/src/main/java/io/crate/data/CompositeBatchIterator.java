@@ -86,7 +86,7 @@ public final class CompositeBatchIterator {
 
         @Override
         public void moveToStart() {
-            for (BatchIterator iterator : iterators) {
+            for (BatchIterator<T> iterator : iterators) {
                 iterator.moveToStart();
             }
             idx = 0;
@@ -94,14 +94,14 @@ public final class CompositeBatchIterator {
 
         @Override
         public void close() {
-            for (BatchIterator iterator : iterators) {
+            for (BatchIterator<T> iterator : iterators) {
                 iterator.close();
             }
         }
 
         @Override
         public boolean allLoaded() {
-            for (BatchIterator iterator : iterators) {
+            for (BatchIterator<T> iterator : iterators) {
                 if (iterator.allLoaded() == false) {
                     return false;
                 }
@@ -111,14 +111,14 @@ public final class CompositeBatchIterator {
 
         @Override
         public void kill(@Nonnull Throwable throwable) {
-            for (BatchIterator iterator : iterators) {
+            for (BatchIterator<T> iterator : iterators) {
                 iterator.kill(throwable);
             }
         }
 
         @Override
         public boolean involvesIO() {
-            for (BatchIterator iterator : iterators) {
+            for (BatchIterator<T> iterator : iterators) {
                 if (iterator.involvesIO()) {
                     return true;
                 }
@@ -136,7 +136,7 @@ public final class CompositeBatchIterator {
         @Override
         public boolean moveNext() {
             while (idx < iterators.length) {
-                BatchIterator iterator = iterators[idx];
+                BatchIterator<T> iterator = iterators[idx];
                 if (iterator.moveNext()) {
                     return true;
                 }
@@ -150,14 +150,14 @@ public final class CompositeBatchIterator {
         }
 
         @Override
-        public CompletionStage<?> loadNextBatch() {
-            for (BatchIterator iterator : iterators) {
+        public CompletionStage<?> loadNextBatch() throws Exception {
+            for (BatchIterator<T> iterator : iterators) {
                 if (iterator.allLoaded()) {
                     continue;
                 }
                 return iterator.loadNextBatch();
             }
-            return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
+            throw new IllegalStateException("BatchIterator already fully loaded");
         }
     }
 
@@ -175,7 +175,7 @@ public final class CompositeBatchIterator {
         @Override
         public boolean moveNext() {
             while (idx < iterators.length) {
-                BatchIterator iterator = iterators[idx];
+                BatchIterator<T> iterator = iterators[idx];
                 if (iterator.moveNext()) {
                     return true;
                 }
@@ -186,9 +186,9 @@ public final class CompositeBatchIterator {
         }
 
         @Override
-        public CompletionStage<?> loadNextBatch() {
+        public CompletionStage<?> loadNextBatch() throws Exception {
             if (allLoaded()) {
-                return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already loaded"));
+                throw new IllegalStateException("BatchIterator already loaded");
             }
             int availableThreads = this.availableThreads.getAsInt();
             List<BatchIterator<T>> itToLoad = getIteratorsToLoad(iterators);
@@ -202,7 +202,11 @@ public final class CompositeBatchIterator {
                     CompletableFuture<CompletableFuture> future = supplyAsync(() -> {
                         ArrayList<CompletableFuture<?>> futures = new ArrayList<>(batchIterators.size());
                         for (BatchIterator<T> batchIterator: batchIterators) {
-                            futures.add(batchIterator.loadNextBatch().toCompletableFuture());
+                            try {
+                                futures.add(batchIterator.loadNextBatch().toCompletableFuture());
+                            } catch (Throwable t) {
+                                return CompletableFuture.failedFuture(t);
+                            }
                         }
                         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
                     }, executor);
@@ -210,7 +214,13 @@ public final class CompositeBatchIterator {
                 }
             } else {
                 for (BatchIterator<T> iterator: itToLoad) {
-                    nestedFutures.add(supplyAsync(() -> iterator.loadNextBatch().toCompletableFuture(), executor));
+                    nestedFutures.add(supplyAsync(() -> {
+                        try {
+                            return iterator.loadNextBatch().toCompletableFuture();
+                        } catch (Throwable t) {
+                            return CompletableFuture.failedFuture(t);
+                        }
+                    }, executor));
                 }
             }
             return CompletableFutures.allAsList(nestedFutures)

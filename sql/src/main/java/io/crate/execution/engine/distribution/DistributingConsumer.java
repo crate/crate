@@ -113,7 +113,6 @@ public class DistributingConsumer implements RowConsumer {
     }
 
     private void consumeIt(BatchIterator<Row> it) {
-        boolean allLoaded;
         try {
             while (it.moveNext()) {
                 multiBucketBuilder.add(it.currentElement());
@@ -122,21 +121,19 @@ public class DistributingConsumer implements RowConsumer {
                     return;
                 }
             }
-            allLoaded = it.allLoaded();
+            if (it.allLoaded()) {
+                forwardResults(it, true);
+            } else {
+                it.loadNextBatch().whenComplete((r, t) -> {
+                    if (t == null) {
+                        consumeIt(it);
+                    } else {
+                        forwardFailure(it, t);
+                    }
+                });
+            }
         } catch (Throwable t) {
             forwardFailure(it, t);
-            return;
-        }
-        if (allLoaded) {
-            forwardResults(it, true);
-        } else {
-            it.loadNextBatch().whenComplete((r, t) -> {
-                if (t == null) {
-                    consumeIt(it);
-                } else {
-                    forwardFailure(it, t);
-                }
-            });
         }
     }
 
