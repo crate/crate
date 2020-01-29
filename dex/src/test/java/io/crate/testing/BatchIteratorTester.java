@@ -129,8 +129,12 @@ public class BatchIteratorTester {
         while (!it.allLoaded()) {
             it.loadNextBatch().toCompletableFuture().get(10, TimeUnit.SECONDS);
         }
-        CompletionStage<?> completionStage = it.loadNextBatch();
-        assertThat(completionStage.toCompletableFuture().isCompletedExceptionally(), is(true));
+        try {
+            it.loadNextBatch();
+            fail("loadNextBatch call should throw an exception if called after all is loaded, got none");
+        } catch (Exception ignored) {
+            // ignore
+        }
         it.close();
     }
 
@@ -188,9 +192,13 @@ public class BatchIteratorTester {
         if (it.allLoaded()) {
             return CompletableFuture.failedFuture(new IllegalStateException("Iterator is exhausted"));
         }
-        return it.loadNextBatch()
-            .thenCompose(r -> getFirstElementFuture(it))
-            .toCompletableFuture();
+        try {
+            return it.loadNextBatch()
+                .thenCompose(r -> getFirstElementFuture(it))
+                .toCompletableFuture();
+        } catch (Throwable t) {
+            return CompletableFuture.failedFuture(t);
+        }
     }
 
 

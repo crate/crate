@@ -96,7 +96,7 @@ public abstract class JoinBatchIterator<L, R, C> implements BatchIterator<C> {
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         return activeIt.loadNextBatch();
     }
 

@@ -132,7 +132,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         if (activeIt == left) {
             numberOfLeftBatchesLoadedForBlock++;
         }

@@ -260,7 +260,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
 
     @Override
     public CompletableFuture<?> loadNextBatch() {
-        return CompletableFuture.failedFuture(new IllegalStateException("All batches already loaded"));
+        throw new IllegalStateException("All batches already loaded");
     }
 
     @Override

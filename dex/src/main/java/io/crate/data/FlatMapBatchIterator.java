@@ -84,7 +84,7 @@ public final class FlatMapBatchIterator<TIn, TOut> implements BatchIterator<TOut
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
+    public CompletionStage<?> loadNextBatch() throws Exception {
         return source.loadNextBatch();
     }
 
