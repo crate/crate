@@ -57,6 +57,15 @@ None
 Fixes
 =====
 
+- Fixed the following issues in the Admin UI:
+
+  - Fixed an issue that prevents the value for nested partitioned columns showing
+    up in the table partitions overview.
+
+  - Fixed capitalization of ``Shards`` tab label
+
+  - Updated keywords list so that they are recognised and painted in red.
+
 - Fixed a bug which could lead to stuck queries when an error happens inside
   distributed execution plans, e.g. a ``CircuitBreakingException`` due to
   exceeded memory usage.
