@@ -21,16 +21,14 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.MoreObjects;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.doc.DocSysColumns;
-import org.elasticsearch.common.Nullable;
 
-import java.util.Collections;
+import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -39,21 +37,26 @@ import java.util.function.Function;
 
 public class WhereClause extends QueryClause {
 
-    public static final WhereClause MATCH_ALL = new WhereClause(Literal.BOOLEAN_TRUE);
+    // Using null here instead of Literal.BOOLEAN_TRUE
+    // so that printers can distinguish between explicit `WHERE TRUE` and absence of WHERE
+    public static final WhereClause MATCH_ALL = new WhereClause(null);
     public static final WhereClause NO_MATCH = new WhereClause(Literal.BOOLEAN_FALSE);
 
-    private Set<Symbol> clusteredBy = Collections.emptySet();
-    private List<String> partitions = Collections.emptyList();
+    private final Set<Symbol> clusteredBy;
+    private final List<String> partitions;
 
+    public WhereClause(@Nullable Symbol query) {
+        super(query);
+        this.partitions = List.of();
+        this.clusteredBy = Set.of();
+    }
 
     public WhereClause(@Nullable Symbol normalizedQuery,
                        @Nullable List<String> partitions,
                        Set<Symbol> clusteredBy) {
         super(normalizedQuery);
         this.clusteredBy = clusteredBy;
-        if (partitions != null) {
-            this.partitions = partitions;
-        }
+        this.partitions = Objects.requireNonNullElse(partitions, List.of());
         if (query != null) {
             validateVersioningColumnsUsage();
         }
@@ -79,10 +82,6 @@ public class WhereClause extends QueryClause {
         }
     }
 
-    public WhereClause(@Nullable Symbol query) {
-        super(query);
-    }
-
     public Set<Symbol> clusteredBy() {
         return clusteredBy;
     }
@@ -93,7 +92,7 @@ public class WhereClause extends QueryClause {
             HashSet<String> result = new HashSet<>(clusteredBy.size());
             for (Symbol symbol : clusteredBy) {
                 assert symbol instanceof Literal : "clustered by symbols must be literals";
-                result.add(((Literal) symbol).value().toString());
+                result.add(((Literal<?>) symbol).value().toString());
             }
             return result;
         } else {
@@ -115,44 +114,35 @@ public class WhereClause extends QueryClause {
 
     @Override
     public String toString() {
-        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this);
-        if (noMatch()) {
-            helper.add("NO_MATCH", true);
-        } else if (!hasQuery()) {
-            helper.add("MATCH_ALL", true);
-        } else {
-            helper.add("query", query);
-        }
-        return helper.toString();
+        return "WhereClause{" +
+               "clusteredBy=" + clusteredBy +
+               ", partitions=" + partitions +
+               ", query=" + query +
+               '}';
     }
 
     public boolean hasVersions() {
-        return query != null && Symbols.containsColumn(query, DocSysColumns.VERSION);
+        return Symbols.containsColumn(query, DocSysColumns.VERSION);
     }
 
     public boolean hasSeqNoAndPrimaryTerm() {
-        return query != null && Symbols.containsColumn(query, DocSysColumns.SEQ_NO) &&
+        return Symbols.containsColumn(query, DocSysColumns.SEQ_NO) &&
                Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM);
     }
 
     /**
-     * Adds another query to this WhereClause.
-     * <p>
-     * The result is either a new WhereClause or the same (but modified) instance.
+     * Returns a new WhereClause that contains the query of this `AND`ed with `otherQuery`.
      */
     public WhereClause add(Symbol otherQuery) {
-        if (this == MATCH_ALL) {
-            return new WhereClause(otherQuery);
+        if (query == null || query.equals(Literal.BOOLEAN_TRUE)) {
+            return new WhereClause(otherQuery, partitions, clusteredBy);
+        } else {
+            if (canMatch(query)) {
+                return new WhereClause(AndOperator.of(query, otherQuery), partitions, clusteredBy);
+            } else {
+                return this;
+            }
         }
-        if (this == NO_MATCH) {
-            // NO_MATCH & anything is still NO_MATCH
-            return NO_MATCH;
-        }
-        if (this.query == null) {
-            return new WhereClause(otherQuery);
-        }
-        this.query = AndOperator.of(this.query, otherQuery);
-        return this;
     }
 
     public WhereClause map(Function<? super Symbol, ? extends Symbol> mapper) {

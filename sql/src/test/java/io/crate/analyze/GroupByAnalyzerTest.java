@@ -358,15 +358,14 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "select id as name from users group by id, name having name != null;");
 
         HavingClause havingClause = relation.having();
-        assertThat(havingClause.query(), nullValue());
+        assertThat(havingClause.query(), isLiteral(null));
     }
 
     @Test
     public void testGroupByHavingNormalize() throws Exception {
         AnalyzedRelation rel = analyze("select sum(floats) from users group by name having 1 > 4");
         HavingClause having = rel.having();
-        assertThat(having.noMatch(), is(true));
-        assertNull(having.query());
+        assertThat(having.queryOrFallback(), isLiteral(false));
     }
 
     @Test

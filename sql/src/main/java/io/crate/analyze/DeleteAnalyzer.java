@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.Objects;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -31,6 +33,7 @@ import io.crate.analyze.relations.RelationAnalysisContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
@@ -73,7 +76,10 @@ final class DeleteAnalyzer {
             ),
             new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnContext))
         );
-        Symbol query = expressionAnalyzer.generateQuerySymbol(delete.getWhere(), new ExpressionAnalysisContext());
+        Symbol query = Objects.requireNonNullElse(
+            expressionAnalyzer.generateQuerySymbol(delete.getWhere(), new ExpressionAnalysisContext()),
+            Literal.BOOLEAN_TRUE
+        );
         query = maybeAliasedStatement.maybeMapFields(query);
 
         Symbol normalizedQuery = normalizer.normalize(query, txnContext);

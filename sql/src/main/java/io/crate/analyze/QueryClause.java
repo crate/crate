@@ -30,30 +30,22 @@ import java.util.function.Consumer;
 
 public abstract class QueryClause {
 
-    protected Symbol query;
-    protected boolean noMatch = false;
+    protected final Symbol query;
 
     protected QueryClause(@Nullable Symbol normalizedQuery) {
-        if (normalizedQuery == null) {
-            return;
-        }
-        if (normalizedQuery.symbolType().isValueSymbol()) {
-            noMatch = !canMatch(normalizedQuery);
-        } else {
-            query = normalizedQuery;
-        }
+        this.query = normalizedQuery;
     }
 
     public static boolean canMatch(Symbol query) {
-        if (query.symbolType().isValueSymbol()) {
-            Object value = ((Input) query).value();
+        if (query instanceof Input) {
+            Object value = ((Input<?>) query).value();
             if (value == null) {
                 return false;
             }
             if (value instanceof Boolean) {
                 return (Boolean) value;
             } else {
-                throw new RuntimeException("Symbol normalized to an invalid value");
+                throw new IllegalArgumentException("Expected query value to be of type `Boolean`, but got: " + value);
             }
         }
         return true;
@@ -69,14 +61,7 @@ public abstract class QueryClause {
     }
 
     public Symbol queryOrFallback() {
-        if (query == null) {
-            return noMatch ? Literal.BOOLEAN_FALSE : Literal.BOOLEAN_TRUE;
-        }
-        return query;
-    }
-
-    public boolean noMatch() {
-        return noMatch;
+        return query == null ? Literal.BOOLEAN_TRUE : query;
     }
 
     public void accept(Consumer<? super Symbol> consumer) {

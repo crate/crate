@@ -138,7 +138,7 @@ public class EvaluatingNormalizer {
                 return symbol;
             }
 
-            Input input = referenceResolver.getImplementation(symbol);
+            Input<?> input = referenceResolver.getImplementation(symbol);
             if (input != null) {
                 return Literal.of(symbol.valueType(), input.value());
             }

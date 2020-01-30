@@ -460,10 +460,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "Boundary[_fetchid, _fetchid]\n" +
             "NestedLoopJoin[\n" +
             "    Boundary[_fetchid]\n" +
-            "    Collect[doc.t1 | [_fetchid] | All]\n" +
+            "    Collect[doc.t1 | [_fetchid] | true]\n" +
             "    --- CROSS ---\n" +
             "    Boundary[_fetchid]\n" +
-            "    Collect[doc.t2 | [_fetchid] | All]\n" +
+            "    Collect[doc.t2 | [_fetchid] | true]\n" +
             "]\n";
         assertThat(logicalPlan, isPlan(e.functions(), expectedPlan));
 
@@ -502,10 +502,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "FetchOrEval[name]\n" +
             "HashJoin[\n" +
             "    Boundary[_fetchid, address['postcode']]\n" +
-            "    Collect[doc.users | [_fetchid, address['postcode']] | All]\n" +
+            "    Collect[doc.users | [_fetchid, address['postcode']] | true]\n" +
             "    --- INNER ---\n" +
             "    Boundary[_fetchid, a]\n" +
-            "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+            "    Collect[doc.t1 | [_fetchid, a] | true]\n" +
             "]\n";
         assertThat(logicalPlan, is(isPlan(e.functions(), expectedPlan)));
 
@@ -519,10 +519,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "HashJoin[\n" +
             "    Boundary[_fetchid, address['postcode']]\n" +
             "    Boundary[_fetchid, address['postcode']]\n" +
-            "    Collect[doc.users | [_fetchid, address['postcode']] | All]\n" +
+            "    Collect[doc.users | [_fetchid, address['postcode']] | true]\n" +
             "    --- INNER ---\n" +
             "    Boundary[_fetchid, a]\n" +
-            "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+            "    Collect[doc.t1 | [_fetchid, a] | true]\n" +
             "]\n";
         assertThat(logicalPlan, is(isPlan(e.functions(), expectedPlan)));
     }

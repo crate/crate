@@ -250,13 +250,7 @@ public final class CopyToPlan implements Plan {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");
         }
 
-        WhereClause whereClause;
-        if (copyTo.whereClause() != null) {
-            whereClause = new WhereClause(copyTo.whereClause(), partitions, Collections.emptySet());
-        } else {
-            whereClause = new WhereClause(null, partitions, Collections.emptySet());
-        }
-
+        WhereClause whereClause = new WhereClause(copyTo.whereClause(), partitions, Collections.emptySet());
         QuerySpec querySpec = new QuerySpec(
             outputs,
             whereClause,

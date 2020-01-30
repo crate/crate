@@ -36,6 +36,7 @@ import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -56,6 +57,7 @@ import io.crate.types.ObjectType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.function.Predicate;
 
@@ -118,7 +120,10 @@ public final class UpdateAnalyzer {
         Map<Reference, Symbol> assignmentByTargetCol = getAssignments(
             update.assignments(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);
 
-        Symbol query = sourceExprAnalyzer.generateQuerySymbol(update.whereClause(), exprCtx);
+        Symbol query = Objects.requireNonNullElse(
+            sourceExprAnalyzer.generateQuerySymbol(update.whereClause(), exprCtx),
+            Literal.BOOLEAN_TRUE
+        );
         query = maybeAliasedStatement.maybeMapFields(query);
 
         Symbol normalizedQuery = normalizer.normalize(query, txnCtx);

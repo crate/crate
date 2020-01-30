@@ -55,10 +55,10 @@ public class WhereClauseAnalyzer {
      * Replace parameters and sub-queries with the related values and analyze the query afterwards.
      */
     public static WhereClause resolvePartitions(WhereClause where,
-                                                AbstractTableRelation tableRelation,
+                                                AbstractTableRelation<?> tableRelation,
                                                 Functions functions,
                                                 CoordinatorTxnCtx coordinatorTxnCtx) {
-        if (!where.hasQuery() || !(tableRelation instanceof DocTableRelation)) {
+        if (!where.hasQuery() || !(tableRelation instanceof DocTableRelation) || where.query().equals(Literal.BOOLEAN_TRUE)) {
             return where;
         }
         DocTableInfo table = ((DocTableRelation) tableRelation).tableInfo();

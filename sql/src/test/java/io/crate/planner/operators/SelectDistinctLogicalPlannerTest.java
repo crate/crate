@@ -50,7 +50,7 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "FetchOrEval[id]\n" +
             "OrderBy[(id + 10) ASC]\n" +
             "GroupBy[id | ]\n" +
-            "Collect[doc.users | [id, (id + 10)] | All]\n"));
+            "Collect[doc.users | [id, (id + 10)] | true]\n"));
     }
 
     @Test
@@ -59,7 +59,7 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[[1, 2, 3]]\n" +
             "GroupBy[[1, 2, 3] | ]\n" +
-            "Collect[doc.users | [[1, 2, 3]] | All]\n"));
+            "Collect[doc.users | [[1, 2, 3]] | true]\n"));
     }
 
     @Test
@@ -75,7 +75,7 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "RootBoundary[generate_series(1, 2), col1]\n" +
             "GroupBy[generate_series(1, 2), col1 | ]\n" +
             "ProjectSet[generate_series(1, 2) | col1]\n" +
-            "Collect[.unnest | [col1] | All]\n"));
+            "Collect[.unnest | [col1] | true]\n"));
     }
 
     @Test
@@ -92,10 +92,10 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "HashJoin[\n" +
             "    Boundary[_fetchid, id, department_id]\n" +
             "    FetchOrEval[_fetchid, id, department_id]\n" +
-            "    Collect[doc.users | [_fetchid, department_id, id] | All]\n" +
+            "    Collect[doc.users | [_fetchid, department_id, id] | true]\n" +
             "    --- INNER ---\n" +
             "    Boundary[id, name]\n" +
-            "    Collect[doc.departments | [id, name] | All]\n" +
+            "    Collect[doc.departments | [id, name] | true]\n" +
             "]\n"));
     }
 
@@ -111,10 +111,10 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "GroupBy[name | ]\n" +
             "HashJoin[\n" +
             "    Boundary[_fetchid, department_id]\n" +
-            "    Collect[doc.users | [_fetchid, department_id] | All]\n" +
+            "    Collect[doc.users | [_fetchid, department_id] | true]\n" +
             "    --- INNER ---\n" +
             "    Boundary[id, name]\n" +
-            "    Collect[doc.departments | [id, name] | All]\n" +
+            "    Collect[doc.departments | [id, name] | true]\n" +
             "]\n"));
     }
 }
