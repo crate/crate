@@ -50,6 +50,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
+import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.LongLiteral;
@@ -1080,7 +1081,6 @@ public class TestStatementBuilder {
         printStatement("insert into foo (id, name) values ('string', 1.2) returning foo.*");
     }
 
-
     @Test
     public void testParameterExpressionLimitOffset() {
         // ORMs like SQLAlchemy generate these kind of queries.
@@ -1642,6 +1642,8 @@ public class TestStatementBuilder {
             statement instanceof DropRepository ||
             statement instanceof DropSnapshot ||
             statement instanceof Update ||
+            statement instanceof Insert ||
+            statement instanceof InsertFromSubquery ||
             statement instanceof Window) {
                 println(SqlFormatter.formatSql(statement));
                 println("");

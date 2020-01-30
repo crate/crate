@@ -57,7 +57,6 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
-import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.Join;
@@ -211,7 +210,31 @@ public final class SqlFormatter {
         public Void visitInsertFromSubquery(InsertFromSubquery node, Integer indent) {
             append(indent, "INSERT");
             builder.append(' ');
-
+            append(indent, "INTO");
+            builder.append(' ');
+            node.table().accept(this, indent);
+            builder.append(' ');
+            var columns = node.columns().iterator();
+            if (columns.hasNext()) {
+                builder.append('(');
+                while (columns.hasNext()) {
+                    builder.append(columns.next());
+                    if (columns.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
+                builder.append(')');
+            }
+            builder.append(' ');
+            node.subQuery().accept(this, indent);
+            Iterator<SelectItem> returning = node.returning().iterator();
+            if (returning.hasNext()) {
+                append(indent, "RETURNING");
+                while (returning.hasNext()) {
+                    builder.append(' ');
+                    returning.next().accept(this, indent);
+                }
+            }
             return null;
         }
 
