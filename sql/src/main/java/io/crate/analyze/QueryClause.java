@@ -27,7 +27,6 @@ import io.crate.expression.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public abstract class QueryClause {
 
@@ -78,20 +77,6 @@ public abstract class QueryClause {
 
     public boolean noMatch() {
         return noMatch;
-    }
-
-    public void replace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        if (hasQuery()) {
-            Symbol newQuery = replaceFunction.apply(query);
-            if (query != newQuery) {
-                if (newQuery instanceof Input) {
-                    noMatch = !canMatch(newQuery);
-                    query = null;
-                } else {
-                    query = newQuery;
-                }
-            }
-        }
     }
 
     public void accept(Consumer<? super Symbol> consumer) {

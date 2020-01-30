@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -39,32 +38,6 @@ public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() {
         sqlExpressions = new SqlExpressions(T3.sources(clusterService));
-    }
-
-    @Test
-    public void testReplaceWithLiteralTrueSemantics() throws Exception {
-        Symbol query = sqlExpressions.asSymbol("x = 10");
-
-        WhereClause whereReplaced = new WhereClause(query);
-        whereReplaced.replace(s -> Literal.BOOLEAN_TRUE);
-        WhereClause whereLiteralTrue = new WhereClause(Literal.BOOLEAN_TRUE);
-
-        assertThat(whereLiteralTrue.hasQuery(), is(whereReplaced.hasQuery()));
-        assertThat(whereLiteralTrue.noMatch(), is(whereReplaced.noMatch()));
-        assertThat(whereLiteralTrue.query(), is(whereReplaced.query()));
-    }
-
-    @Test
-    public void testReplaceWithLiteralFalseSemantics() throws Exception {
-        Symbol query = sqlExpressions.asSymbol("x = 10");
-
-        WhereClause whereReplaced = new WhereClause(query);
-        whereReplaced.replace(s -> Literal.BOOLEAN_FALSE);
-        WhereClause whereLiteralFalse = new WhereClause(Literal.BOOLEAN_FALSE);
-
-        assertThat(whereLiteralFalse.hasQuery(), is(whereReplaced.hasQuery()));
-        assertThat(whereLiteralFalse.noMatch(), is(whereReplaced.noMatch()));
-        assertThat(whereLiteralFalse.query(), is(whereReplaced.query()));
     }
 
     @Test
