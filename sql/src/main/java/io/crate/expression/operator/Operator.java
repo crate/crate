@@ -23,14 +23,15 @@
 package io.crate.expression.operator;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.OperatorFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -52,18 +53,14 @@ public abstract class Operator<I> extends Scalar<Boolean, I> implements Operator
         // all operators evaluates to NULL if one argument is NULL
         // let's handle this here to prevent unnecessary collect operations
         for (Symbol symbol : function.arguments()) {
-            if (isNull(symbol)) {
+            if (symbol instanceof Input && ((Input<?>) symbol).value() == null) {
                 return Literal.NULL;
             }
         }
         return super.normalizeSymbol(function, txnCtx);
     }
 
-    private static boolean isNull(Symbol symbol) {
-        return symbol.symbolType().isValueSymbol() && ((Literal) symbol).value() == null;
-    }
-
-    static FunctionInfo generateInfo(String name, DataType type) {
+    static FunctionInfo generateInfo(String name, DataType<?> type) {
         return new FunctionInfo(new FunctionIdent(name, ImmutableList.of(type, type)), RETURN_TYPE);
     }
 }

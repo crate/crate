@@ -22,14 +22,15 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SqlExpressions;
-import io.crate.testing.T3;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.core.Is.is;
+
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SqlExpressions;
+import io.crate.testing.T3;
 
 public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
 
@@ -46,8 +47,7 @@ public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
         WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
         WhereClause where1_where2 = where1.add(where2.query);
 
-        assertThat(where1_where2.hasQuery(), is(false));
-        assertThat(where1_where2.noMatch, is(true));
+        assertThat(where1_where2.queryOrFallback(), isLiteral(false));
     }
 
     @Test
@@ -57,18 +57,16 @@ public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
         WhereClause where1_where2 = where1.add(where2.query);
 
         assertThat(where1_where2.hasQuery(), is(true));
-        assertThat(where1_where2.noMatch, is(false));
         assertThat(where1_where2.query(), is(where2.query()));
     }
 
     @Test
     public void testAddWithNullQuery() {
-        WhereClause where1 = new WhereClause((Symbol) null);
+        WhereClause where1 = new WhereClause(null);
         WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
         WhereClause where1_where2 = where1.add(where2.query);
 
         assertThat(where1_where2.hasQuery(), is(true));
-        assertThat(where1_where2.noMatch, is(false));
         assertThat(where1_where2.query(), is(where2.query()));
     }
 }

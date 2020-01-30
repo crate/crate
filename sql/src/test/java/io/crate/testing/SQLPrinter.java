@@ -51,12 +51,9 @@ public class SQLPrinter {
         } else if (o == null) {
             return "null";
         } else if (o instanceof QueryClause) {
-            if (((QueryClause) o).hasQuery()) {
+            QueryClause queryClause = (QueryClause) o;
+            if (queryClause.hasQuery()) {
                 return print(((QueryClause) o).query());
-            } else if (((QueryClause) o).noMatch()){
-                return "false";
-            } else {
-                return "true";
             }
         }
         return o.toString();

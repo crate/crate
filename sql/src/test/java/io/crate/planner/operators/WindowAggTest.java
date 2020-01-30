@@ -62,7 +62,7 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
             "FetchOrEval[avg(x), avg(x)]\n" +
             "WindowAgg[avg(x) | PARTITION BY y]\n" +
             "WindowAgg[avg(x) | PARTITION BY x]\n" +
-            "Collect[doc.t1 | [x, y] | All]\n";
+            "Collect[doc.t1 | [x, y] | true]\n";
         assertThat(plan, isPlan(e.functions(), expectedPlan));
     }
 
@@ -71,7 +71,7 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
         var plan = plan("SELECT y, AVG(x) FILTER (WHERE x > 1) OVER() FROM t1");
         var expectedPlan = "FetchOrEval[y, avg(x) : (x > 1)]\n" +
                            "WindowAgg[avg(x) : (x > 1)]\n" +
-                           "Collect[doc.t1 | [_fetchid, x] | All]\n";
+                           "Collect[doc.t1 | [_fetchid, x] | true]\n";
         assertThat(plan, isPlan(e.functions(), expectedPlan));
     }
 
@@ -80,7 +80,7 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
         var plan = plan("SELECT x, COUNT(*) FILTER (WHERE y > 1) OVER() FROM t1");
         var expectedPlan = "FetchOrEval[x, count(*) : (y > 1)]\n" +
                            "WindowAgg[count(*) : (y > 1)]\n" +
-                           "Collect[doc.t1 | [_fetchid, y] | All]\n";
+                           "Collect[doc.t1 | [_fetchid, y] | true]\n";
         assertThat(plan, isPlan(e.functions(), expectedPlan));
     }
 

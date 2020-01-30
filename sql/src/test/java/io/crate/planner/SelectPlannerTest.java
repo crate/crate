@@ -70,7 +70,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -757,7 +756,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[unnest([1, 2])]\n" +
             "ProjectSet[unnest([1, 2])]\n" +
-            "Collect[.empty_row | [] | All]\n"
+            "Collect[.empty_row | [] | true]\n"
         ));
         Symbol output = plan.outputs().get(0);
         assertThat(output.valueType(), is(DataTypes.LONG));
@@ -770,7 +769,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[(unnest([1, 2]) + 1)]\n" +
             "FetchOrEval[(unnest([1, 2]) + 1)]\n" +
             "ProjectSet[unnest([1, 2])]\n" +
-            "Collect[.empty_row | [] | All]\n"
+            "Collect[.empty_row | [] | true]\n"
         ));
     }
 
@@ -787,7 +786,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[count(*), generate_series(1, 2)]\n" +
             "FetchOrEval[count(*), generate_series(1, 2)]\n" +
             "ProjectSet[generate_series(1, 2) | count(*)]\n" +
-            "Count[doc.users | All]\n"
+            "Count[doc.users | true]\n"
         ));
     }
 
@@ -799,7 +798,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "FetchOrEval[count(name), generate_series(1, count(name))]\n" +
             "ProjectSet[generate_series(1, count(name)) | count(name)]\n" +
             "Aggregate[count(name)]\n" +
-            "Collect[doc.users | [name] | All]\n"
+            "Collect[doc.users | [name] | true]\n"
         ));
     }
 
@@ -810,7 +809,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[unnest([1, 2])]\n" +
             "OrderBy[unnest([1, 2]) ASC]\n" +
             "ProjectSet[unnest([1, 2])]\n" +
-            "Collect[sys.nodes | [] | All]\n"
+            "Collect[sys.nodes | [] | true]\n"
         ));
     }
 
@@ -893,7 +892,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[name]\n" +
             "TopNDistinct[1 | [name]\n" +
-            "Collect[doc.users | [name] | All]\n"
+            "Collect[doc.users | [name] | true]\n"
         ));
     }
 
@@ -904,7 +903,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[id, name]\n" +
             "TopNDistinct[1 | [id, name]\n" +
-            "Collect[doc.users | [id, name] | All]\n"
+            "Collect[doc.users | [id, name] | true]\n"
         ));
     }
 
@@ -917,7 +916,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "GroupBy[address['postcode'] | ]\n" +
             "Boundary[address]\n" +
             "Boundary[address]\n" +
-            "Collect[doc.users | [address] | All]\n"
+            "Collect[doc.users | [address] | true]\n"
         ));
     }
 
@@ -931,7 +930,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Boundary[address, subscript_obj(address, 'postcode')]\n" +
             "Boundary[address, address['postcode']]\n" +
             "OrderBy[address['postcode'] ASC]\n" +
-            "Collect[doc.users | [address] | All]\n"
+            "Collect[doc.users | [address] | true]\n"
         ));
 
         Merge merge = e.plan(stmt);
@@ -957,11 +956,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "NestedLoopJoin[\n" +
             "    Boundary[nspacl, nspname, nspowner, oid]\n" +
             "    Boundary[nspacl, nspname, nspowner, oid]\n" +
-            "    Collect[pg_catalog.pg_namespace | [nspacl, nspname, nspowner, oid] | None]\n" +
+            "    Collect[pg_catalog.pg_namespace | [nspacl, nspname, nspowner, oid] | false]\n" +
             "    --- CROSS ---\n" +
             "    Boundary[oid, relacl, relallvisible, relam, relchecks, relfilenode, relforcerowsecurity, relfrozenxid, relhasindex, relhasoids, relhaspkey, relhasrules, relhassubclass, relhastriggers, relispartition, relispopulated, relisshared, relkind, relminmxid, relname, relnamespace, relnatts, reloftype, reloptions, relowner, relpages, relpartbound, relpersistence, relreplident, relrowsecurity, reltablespace, reltoastrelid, reltuples, reltype]\n" +
             "    Boundary[oid, relacl, relallvisible, relam, relchecks, relfilenode, relforcerowsecurity, relfrozenxid, relhasindex, relhasoids, relhaspkey, relhasrules, relhassubclass, relhastriggers, relispartition, relispopulated, relisshared, relkind, relminmxid, relname, relnamespace, relnatts, reloftype, reloptions, relowner, relpages, relpartbound, relpersistence, relreplident, relrowsecurity, reltablespace, reltoastrelid, reltuples, reltype]\n" +
-            "    Collect[pg_catalog.pg_class | [oid, relacl, relallvisible, relam, relchecks, relfilenode, relforcerowsecurity, relfrozenxid, relhasindex, relhasoids, relhaspkey, relhasrules, relhassubclass, relhastriggers, relispartition, relispopulated, relisshared, relkind, relminmxid, relname, relnamespace, relnatts, reloftype, reloptions, relowner, relpages, relpartbound, relpersistence, relreplident, relrowsecurity, reltablespace, reltoastrelid, reltuples, reltype] | None]\n" +
+            "    Collect[pg_catalog.pg_class | [oid, relacl, relallvisible, relam, relchecks, relfilenode, relforcerowsecurity, relfrozenxid, relhasindex, relhasoids, relhaspkey, relhasrules, relhassubclass, relhastriggers, relispartition, relispopulated, relisshared, relkind, relminmxid, relname, relnamespace, relnatts, reloftype, reloptions, relowner, relpages, relpartbound, relpersistence, relreplident, relrowsecurity, reltablespace, reltoastrelid, reltuples, reltype] | false]\n" +
             "]\n";
         assertThat(plan, isPlan(e.functions(), expectedPlan));
     }

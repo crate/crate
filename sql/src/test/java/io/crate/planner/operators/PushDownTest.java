@@ -62,10 +62,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(sqlExecutor.functions(),
                                                 "Union[\n" +
                                                     "OrderBy[name ASC]\n" +
-                                                    "Collect[doc.users | [name] | All]\n" +
+                                                    "Collect[doc.users | [name] | true]\n" +
                                                 "---\n" +
                                                     "OrderBy[text ASC]\n" +
-                                                    "Collect[doc.users | [text] | All]\n" +
+                                                    "Collect[doc.users | [text] | true]\n" +
                                                 "]\n"));
     }
 
@@ -81,10 +81,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                              "Boundary[name]\n" +
                                                              "FetchOrEval[name]\n" +
                                                              "OrderBy[name ASC]\n" +
-                                                             "Collect[doc.users | [name, text] | All]\n" +
+                                                             "Collect[doc.users | [name, text] | true]\n" +
                                                          "---\n" +
                                                              "OrderBy[text ASC]\n" +
-                                                             "Collect[doc.users | [text] | All]\n" +
+                                                             "Collect[doc.users | [text] | true]\n" +
                                                          "]\n"));
     }
 
@@ -95,10 +95,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                          "NestedLoopJoin[\n" +
                                                          "    Boundary[_fetchid, a]\n" +
                                                          "    OrderBy[a ASC]\n" +
-                                                         "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a] | true]\n" +
                                                          "    --- INNER ---\n" +
                                                          "    Boundary[_fetchid, b]\n" +
-                                                         "    Collect[doc.t2 | [_fetchid, b] | All]\n" +
+                                                         "    Collect[doc.t2 | [_fetchid, b] | true]\n" +
                                                          "]\n"));
     }
 
@@ -113,15 +113,15 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                          "    NestedLoopJoin[\n" +
                                                          "        Boundary[_fetchid, b]\n" +
                                                          "        OrderBy[b ASC]\n" +
-                                                         "        Collect[doc.t2 | [_fetchid, b] | All]\n" +
+                                                         "        Collect[doc.t2 | [_fetchid, b] | true]\n" +
                                                          "        --- INNER ---\n" +
                                                          "        Boundary[_fetchid, a]\n" +
-                                                         "        Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "        Collect[doc.t1 | [_fetchid, a] | true]\n" +
                                                          "]\n" +
                                                          "    --- INNER ---\n" +
                                                          "    Boundary[_fetchid, a]\n" +    // Aliased relation boundary
                                                          "    Boundary[_fetchid, a]\n" +
-                                                         "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a] | true]\n" +
                                                          "]\n"));
     }
 
@@ -132,10 +132,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                          "NestedLoopJoin[\n" +
                                                          "    Boundary[_fetchid, a, x]\n" +
                                                          "    OrderBy[x DESC]\n" +
-                                                         "    Collect[doc.t1 | [_fetchid, a, x] | All]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a, x] | true]\n" +
                                                          "    --- INNER ---\n" +
                                                          "    Boundary[_fetchid, b]\n" +
-                                                         "    Collect[doc.t2 | [_fetchid, b] | All]\n]" +
+                                                         "    Collect[doc.t2 | [_fetchid, b] | true]\n]" +
                                                          "\n"));
     }
 
@@ -146,10 +146,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                          "OrderBy[b ASC]\n" +
                                                          "NestedLoopJoin[\n" +
                                                          "    Boundary[_fetchid, a]\n" +
-                                                         "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a] | true]\n" +
                                                          "    --- INNER ---\n" +
                                                          "    Boundary[_fetchid, b]\n" +
-                                                         "    Collect[doc.t2 | [_fetchid, b] | All]\n" +
+                                                         "    Collect[doc.t2 | [_fetchid, b] | true]\n" +
                                                          "]\n"));
     }
 
@@ -160,10 +160,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                           "OrderBy[concat(a, b) ASC]\n" +
                                                           "NestedLoopJoin[\n" +
                                                           "    Boundary[_fetchid, a]\n" +
-                                                          "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                          "    Collect[doc.t1 | [_fetchid, a] | true]\n" +
                                                           "    --- INNER ---\n" +
                                                           "    Boundary[_fetchid, b]\n" +
-                                                          "    Collect[doc.t2 | [_fetchid, b] | All]\n" +
+                                                          "    Collect[doc.t2 | [_fetchid, b] | true]\n" +
                                                           "]\n"));
     }
 
@@ -190,15 +190,15 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                          "NestedLoopJoin[\n" +
                                                          "    NestedLoopJoin[\n" +
                                                          "        Boundary[_fetchid, b]\n" +
-                                                         "        Collect[doc.t2 | [_fetchid, b] | All]\n" +
+                                                         "        Collect[doc.t2 | [_fetchid, b] | true]\n" +
                                                          "        --- INNER ---\n" +
                                                          "        Boundary[_fetchid, a]\n" +
-                                                         "        Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "        Collect[doc.t1 | [_fetchid, a] | true]\n" +
                                                          "]\n" +
                                                          "    --- LEFT ---\n" +
                                                          "    Boundary[_fetchid, a]\n" +    // Aliased relation boundary
                                                          "    Boundary[_fetchid, a]\n" +
-                                                         "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a] | true]\n" +
                                                          "]\n"));
     }
 
@@ -215,10 +215,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "OrderBy[a ASC]\n" +
             "HashJoin[\n" +
             "    Boundary[_fetchid, a]\n" +
-            "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+            "    Collect[doc.t1 | [_fetchid, a] | true]\n" +
             "    --- INNER ---\n" +
             "    Boundary[_fetchid, b]\n" +
-            "    Collect[doc.t2 | [_fetchid, b] | All]\n" +
+            "    Collect[doc.t2 | [_fetchid, b] | true]\n" +
             "]\n"));
     }
 
@@ -238,10 +238,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                 "    Boundary[_fetchid, b, y]\n" +
                 "    FetchOrEval[_fetchid, b, y]\n" +
                 "    OrderBy[lower(b) ASC]\n" +
-                "    Collect[doc.t2 | [_fetchid, y, b] | All]\n" +
+                "    Collect[doc.t2 | [_fetchid, y, b] | true]\n" +
                 "    --- INNER ---\n" +
                 "    Boundary[_fetchid, x]\n" +
-                "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
+                "    Collect[doc.t1 | [_fetchid, x] | true]\n" +
                 "]\n")
         );
     }
@@ -280,7 +280,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "    Collect[doc.t1 | [_fetchid, x] | (x = 10)]\n" +
             "    --- INNER ---\n" +
             "    Boundary[_fetchid, y]\n" +
-            "    Collect[doc.t2 | [_fetchid, y] | All]\n" +
+            "    Collect[doc.t2 | [_fetchid, y] | true]\n" +
             "]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
     }
@@ -303,7 +303,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "    Collect[doc.t1 | [_fetchid, x] | (x = 10)]\n" +
             "    --- CROSS ---\n" +
             "    Boundary[_fetchid]\n" +
-            "    Collect[doc.t2 | [_fetchid] | All]\n" +
+            "    Collect[doc.t2 | [_fetchid] | true]\n" +
             "]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
     }

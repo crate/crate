@@ -88,8 +88,8 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
-            Object value = ((Input) argument).value();
+        if (argument instanceof Input) {
+            Object value = ((Input<?>) argument).value();
             try {
                 return Literal.of(returnType, returnType.value(value));
             } catch (ClassCastException | IllegalArgumentException e) {
