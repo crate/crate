@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import io.crate.breaker.RowAccounting;
 import io.crate.common.collections.Lists2;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
@@ -107,11 +108,13 @@ public class OrderedLuceneBatchIteratorFactory {
                 return CompletableFuture.failedFuture(new IllegalStateException("Cannot fetch more if source is exhausted"));
             }
             if (shardId == null) {
-                return ThreadPools.runWithAvailableThreads(
-                    executor,
-                    availableThreads,
-                    Lists2.map(orderedDocCollectors, Function.identity())
-                );
+                // when running inside threads, the threads must be cancelled/interrupted to stop further processing
+                return CompletableFutures.runBeforeCompleteExceptional(
+                    ThreadPools.runWithAvailableThreads(
+                        executor,
+                        availableThreads,
+                        Lists2.map(orderedDocCollectors, Function.identity())),
+                    this::cancel);
             } else {
                 return loadFrom(collectorsByShardId.get(shardId));
             }
@@ -138,6 +141,12 @@ public class OrderedLuceneBatchIteratorFactory {
                 }
             }
             return true;
+        }
+
+        private void cancel(Throwable t) {
+            for (OrderedDocCollector collector : orderedDocCollectors) {
+                collector.cancel(t);
+            }
         }
     }
 

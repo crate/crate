@@ -26,18 +26,23 @@ import com.google.common.collect.Iterables;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.exceptions.Exceptions;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopFieldCollector;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -72,6 +77,11 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private int batchSize;
     private boolean batchSizeReduced = false;
 
+    @Nullable
+    private volatile CancelableCollector currentCollector;
+
+    @Nullable
+    private volatile Throwable cancelled;
 
     @Nullable
     private FieldDoc lastDoc = null;
@@ -106,7 +116,8 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             searcher.getIndexReader(),
             inputs,
             expressions,
-            scorer
+            scorer,
+            () -> raiseIfCancelled(cancelled)
         );
     }
 
@@ -121,18 +132,28 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
      */
     @Override
     public KeyIterable<ShardId, Row> collect() {
+        raiseIfCancelled(cancelled);
         try {
             if (lastDoc == null) {
                 return initialSearch();
             }
             return searchMore();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            Exceptions.rethrowUnchecked(e);
+            return null;
         }
     }
 
     @Override
     public void close() {
+    }
+
+    @Override
+    public void cancel(Throwable t) {
+        cancelled = t;
+        if (currentCollector != null) {
+            currentCollector.cancel(t);
+        }
     }
 
     private KeyIterable<ShardId, Row> initialSearch() throws IOException {
@@ -179,6 +200,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         if (minScore != null) {
             collector = new MinimumScoreCollector(collector, minScore);
         }
+        collector = currentCollector = new CancelableCollector(collector, cancelled);
         searcher.search(query, collector);
         ScoreDoc[] scoreDocs = topFieldCollector.topDocs().scoreDocs;
         if (doDocsScores) {
@@ -204,5 +226,81 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         searchAfterQuery.add(this.query, BooleanClause.Occur.MUST);
         searchAfterQuery.add(optimizedQuery, BooleanClause.Occur.MUST_NOT);
         return searchAfterQuery.build();
+    }
+
+    private static void raiseIfCancelled(@Nullable Throwable cancelledException) {
+        if (cancelledException != null) {
+            Exceptions.rethrowUnchecked(cancelledException);
+        }
+    }
+
+    private static class CancelableCollector implements Collector {
+
+        private final Collector delegate;
+
+        @Nullable
+        private volatile CancelableLeafCollector currentLeafCollector;
+
+        @Nullable
+        private volatile Throwable cancelled;
+
+        public CancelableCollector(Collector delegate, @Nullable Throwable cancelled) {
+            this.delegate = delegate;
+            this.cancelled = cancelled;
+        }
+
+        @Override
+        public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
+            raiseIfCancelled(cancelled);
+            currentLeafCollector = new CancelableLeafCollector(delegate.getLeafCollector(context), cancelled);
+            return currentLeafCollector;
+        }
+
+        @Override
+        public ScoreMode scoreMode() {
+            return delegate.scoreMode();
+        }
+
+        public void cancel(Throwable t) {
+            if (cancelled != null) {
+                return;
+            }
+            cancelled = t;
+            if (currentLeafCollector != null) {
+                currentLeafCollector.cancel(t);
+            }
+        }
+    }
+
+    private static class CancelableLeafCollector implements LeafCollector {
+
+        private final LeafCollector delegate;
+
+        @Nullable
+        private volatile Throwable cancelled;
+
+        public CancelableLeafCollector(LeafCollector delegate, @Nullable Throwable cancelled) {
+            this.delegate = delegate;
+            this.cancelled = cancelled;
+        }
+
+        @Override
+        public void setScorer(Scorable scorer) throws IOException {
+            raiseIfCancelled(cancelled);
+            delegate.setScorer(scorer);
+        }
+
+        @Override
+        public void collect(int doc) throws IOException {
+            raiseIfCancelled(cancelled);
+            delegate.collect(doc);
+        }
+
+        public void cancel(Throwable t) {
+            if (cancelled != null) {
+                return;
+            }
+            cancelled = t;
+        }
     }
 }

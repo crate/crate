@@ -49,6 +49,9 @@ public abstract class OrderedDocCollector implements Supplier<KeyIterable<ShardI
     public void close() {
     }
 
+    public void cancel(Throwable t) {
+    }
+
     /**
      * Returns an iterable for a batch of rows. In order to consume all rows of this collector,
      * {@code #get()} needs to be called while {@linkplain #exhausted()} is {@code false}.
