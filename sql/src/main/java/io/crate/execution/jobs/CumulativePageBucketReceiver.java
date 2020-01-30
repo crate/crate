@@ -23,6 +23,7 @@
 package io.crate.execution.jobs;
 
 import io.crate.Streamer;
+import io.crate.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
@@ -229,9 +230,9 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         return exhausted.size() == numBuckets;
     }
 
-    private CompletableFuture<? extends Iterable<? extends KeyIterable<Integer, Row>>> fetchMore(Integer exhaustedBucket) {
+    private KillableCompletionStage<? extends Iterable<? extends KeyIterable<Integer, Row>>> fetchMore(Integer exhaustedBucket) {
         if (allUpstreamsExhausted()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Source is exhausted"));
+            return KillableCompletionStage.failed(new IllegalStateException("Source is exhausted"));
         }
         currentPage = new CompletableFuture<>();
         if (exhaustedBucket == null || exhausted.contains(exhaustedBucket)) {
@@ -239,7 +240,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         } else {
             fetchExhausted(exhaustedBucket);
         }
-        return currentPage;
+        return KillableCompletionStage.whenKilled(currentPage, t -> currentPage.completeExceptionally(t));
     }
 
     private void fetchExhausted(Integer exhaustedBucket) {

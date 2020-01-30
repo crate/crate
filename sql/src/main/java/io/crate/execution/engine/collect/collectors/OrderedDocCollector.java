@@ -22,14 +22,16 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import io.crate.data.Killable;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.function.Supplier;
 
-public abstract class OrderedDocCollector implements Supplier<KeyIterable<ShardId, Row>>, AutoCloseable {
+public abstract class OrderedDocCollector implements Supplier<KeyIterable<ShardId, Row>>, AutoCloseable, Killable {
 
     private final ShardId shardId;
     private final KeyIterable<ShardId, Row> empty;
@@ -47,6 +49,10 @@ public abstract class OrderedDocCollector implements Supplier<KeyIterable<ShardI
 
     @Override
     public void close() {
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable t) {
     }
 
     /**

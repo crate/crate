@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import io.crate.breaker.RowAccounting;
 import io.crate.common.collections.Lists2;
+import io.crate.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
@@ -102,22 +104,26 @@ public class OrderedLuceneBatchIteratorFactory {
             );
         }
 
-        private CompletableFuture<List<KeyIterable<ShardId, Row>>> tryFetchMore(ShardId shardId) {
+        private KillableCompletionStage<List<KeyIterable<ShardId, Row>>> tryFetchMore(ShardId shardId) {
             if (allExhausted()) {
-                return CompletableFuture.failedFuture(new IllegalStateException("Cannot fetch more if source is exhausted"));
+                return KillableCompletionStage.whenKilled(
+                    CompletableFuture.failedFuture(new IllegalStateException("Cannot fetch more if source is exhausted")),
+                    t -> { });
             }
+            CompletionStage<List<KeyIterable<ShardId, Row>>> stage;
             if (shardId == null) {
-                return ThreadPools.runWithAvailableThreads(
-                    executor,
-                    availableThreads,
-                    Lists2.map(orderedDocCollectors, Function.identity())
-                );
+                // when running inside threads, the threads must be cancelled/interrupted to stop further processing
+                stage = ThreadPools.runWithAvailableThreads(
+                        executor,
+                        availableThreads,
+                        Lists2.map(orderedDocCollectors, Function.identity()));
             } else {
-                return loadFrom(collectorsByShardId.get(shardId));
+                stage = loadFrom(collectorsByShardId.get(shardId));
             }
+            return KillableCompletionStage.whenKilled(stage, this::kill);
         }
 
-        private static CompletableFuture<List<KeyIterable<ShardId, Row>>> loadFrom(OrderedDocCollector collector) {
+        private static CompletionStage<List<KeyIterable<ShardId, Row>>> loadFrom(OrderedDocCollector collector) {
             try {
                 return CompletableFuture.completedFuture(singletonList(collector.get()));
             } catch (Exception e) {
@@ -138,6 +144,12 @@ public class OrderedLuceneBatchIteratorFactory {
                 }
             }
             return true;
+        }
+
+        private void kill(Throwable t) {
+            for (OrderedDocCollector collector : orderedDocCollectors) {
+                collector.kill(t);
+            }
         }
     }
 

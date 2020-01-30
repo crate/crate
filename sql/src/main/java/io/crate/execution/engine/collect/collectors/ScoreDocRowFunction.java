@@ -48,15 +48,18 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
     private final LuceneCollectorExpression[] expressions;
     private final DummyScorer scorer;
     private final InputRow inputRow;
+    private final Runnable onScoreDoc;
 
     ScoreDocRowFunction(IndexReader indexReader,
                         List<? extends Input<?>> inputs,
                         Collection<? extends LuceneCollectorExpression<?>> expressions,
-                        DummyScorer scorer) {
+                        DummyScorer scorer,
+                        Runnable onScoreDoc) {
         this.indexReader = indexReader;
         this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         this.scorer = scorer;
         this.inputRow = new InputRow(inputs);
+        this.onScoreDoc = onScoreDoc;
         for (LuceneCollectorExpression<?> expression : this.expressions) {
             if (expression instanceof OrderByCollectorExpression) {
                 orderByCollectorExpressions.add((OrderByCollectorExpression) expression);
@@ -67,6 +70,7 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
     @Nullable
     @Override
     public Row apply(@Nullable ScoreDoc input) {
+        onScoreDoc.run();
         if (input == null) {
             return null;
         }

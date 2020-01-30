@@ -65,10 +65,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -176,6 +180,39 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
         );
 
         consumeIteratorAndVerifyResultIsException(rowBatchIterator, circuitBreakingException);
+    }
+
+    @Test
+    public void test_lucene_ordered_collector_thread_dies_on_kill() throws Exception {
+        LuceneOrderedDocCollector luceneOrderedDocCollector = createOrderedCollector(searcher1, 1);
+        AtomicReference<Thread> collectThread = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        BatchIterator<Row> rowBatchIterator = OrderedLuceneBatchIteratorFactory.newInstance(
+            Collections.singletonList(luceneOrderedDocCollector),
+            OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
+            mock(RowAccounting.class),
+            c -> {
+                var t = new Thread(c);
+                collectThread.set(t);
+                t.start();
+                latch.countDown();
+            },
+            () -> 1,
+            true
+        );
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(rowBatchIterator, null);
+
+        // Ensure that the collect thread is running
+        latch.await(1, TimeUnit.SECONDS);
+        assertThat(collectThread.get().isAlive(), is(true));
+
+        rowBatchIterator.kill(new InterruptedException("killed"));
+
+        // The collect thread must stop "almost" immediately, 10ms should be enough to wait.
+        // Without any kill logic implementation at the lucene collector, it will continue and may not complete in 10ms.
+        assertBusy(() -> assertThat(collectThread.get().isAlive(), is(false)),
+                   10, TimeUnit.MILLISECONDS);
     }
 
     private void consumeIteratorAndVerifyResultIsException(BatchIterator<Row> rowBatchIterator, Exception exception)

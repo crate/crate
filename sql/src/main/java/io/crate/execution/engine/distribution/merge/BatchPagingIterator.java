@@ -22,13 +22,13 @@
 
 package io.crate.execution.engine.distribution.merge;
 
+import io.crate.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nonnull;
 import java.util.Iterator;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -47,18 +47,18 @@ import java.util.function.Function;
 public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     private final PagingIterator<Key, Row> pagingIterator;
-    private final Function<Key, CompletableFuture<? extends Iterable<? extends KeyIterable<Key, Row>>>> fetchMore;
+    private final Function<Key, KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>>> fetchMore;
     private final BooleanSupplier isUpstreamExhausted;
     private final Consumer<? super Throwable> closeCallback;
 
     private Throwable killed;
-    private CompletableFuture<? extends Iterable<? extends KeyIterable<Key, Row>>> currentlyLoading;
+    private KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>> currentlyLoading;
     private Iterator<Row> it;
     private boolean closed = false;
     private Row current;
 
     public BatchPagingIterator(PagingIterator<Key, Row> pagingIterator,
-                               Function<Key, CompletableFuture<? extends Iterable<? extends KeyIterable<Key, Row>>>> fetchMore,
+                               Function<Key, KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>>> fetchMore,
                                BooleanSupplier isUpstreamExhausted,
                                Consumer<? super Throwable> closeCallback) {
         this.pagingIterator = pagingIterator;
@@ -110,13 +110,13 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
             throw new IllegalStateException("All data already loaded");
         }
         Throwable err;
-        CompletableFuture<? extends Iterable<? extends KeyIterable<Key, Row>>> future;
+        KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>> future;
         synchronized (this) {
             err = this.killed;
             if (err == null) {
                 currentlyLoading = future = fetchMore.apply(pagingIterator.exhaustedIterable());
             } else {
-                future = CompletableFuture.failedFuture(err);
+                future = KillableCompletionStage.failed(err);
             }
         }
         if (err == null) {
@@ -166,14 +166,14 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     @Override
     public void kill(@Nonnull Throwable throwable) {
-        CompletableFuture<? extends Iterable<? extends KeyIterable<Key, Row>>> loading;
+        KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>> loading;
         synchronized (this) {
             killed = throwable;
             loading = this.currentlyLoading;
         }
         close();
         if (loading != null) {
-            loading.completeExceptionally(throwable);
+            loading.kill(throwable);
         }
     }
 }
