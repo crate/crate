@@ -57,6 +57,8 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
+import io.crate.sql.tree.Insert;
+import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
@@ -206,6 +208,14 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitInsertFromSubquery(InsertFromSubquery node, Integer indent) {
+            append(indent, "INSERT");
+            builder.append(' ');
+
+            return null;
+        }
+
+        @Override
         public Void visitUpdate(Update node, Integer indent) {
             append(indent, "UPDATE");
             builder.append(' ');
@@ -251,6 +261,8 @@ public final class SqlFormatter {
             assignment.expression().accept(this, indent);
             return null;
         }
+
+
 
 
         @Override

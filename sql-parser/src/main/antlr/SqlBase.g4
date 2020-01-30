@@ -40,7 +40,7 @@ statement
     | UPDATE aliasedRelation
         SET assignment (',' assignment)*
         where?
-        (RETURNING selectItem (',' selectItem)*)?      													 	   #update
+        returning?      								                             #update
     | DELETE FROM aliasedRelation where?                                             #delete
     | SHOW (TRANSACTION ISOLATION LEVEL | TRANSACTION_ISOLATION)                     #showTransaction
     | SHOW CREATE TABLE table                                                        #showCreateTable
@@ -71,7 +71,8 @@ statement
     | SET LICENSE stringLiteral                                                      #setLicense
     | KILL (ALL | jobId=parameterOrString)                                           #kill
     | INSERT INTO table ('(' ident (',' ident)* ')')? insertSource
-        onConflict?                                                                  #insert
+        onConflict?
+        returning?                                                                   #insert
     | RESTORE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?       #restore
     | COPY tableWithPartition FROM path=expr withProperties? (RETURN SUMMARY)?       #copyFrom
     | COPY tableWithPartition columns? where?
@@ -137,6 +138,10 @@ selectItem
 
 where
     : WHERE condition=booleanExpression
+    ;
+
+returning
+    : RETURNING selectItem (',' selectItem)*
     ;
 
 filter

@@ -31,11 +31,16 @@ public abstract class Insert<T> extends Statement {
     protected final Table<T> table;
     private final DuplicateKeyContext<T> duplicateKeyContext;
     protected final List<String> columns;
+    protected final List<SelectItem> returning;
 
-    Insert(Table<T> table, List<String> columns, DuplicateKeyContext<T> duplicateKeyContext) {
+    Insert(Table<T> table,
+           List<String> columns,
+           DuplicateKeyContext<T> duplicateKeyContext,
+           List<SelectItem> returning) {
         this.table = table;
         this.columns = columns;
         this.duplicateKeyContext = duplicateKeyContext;
+        this.returning = returning;
     }
 
     public Table table() {
@@ -46,13 +51,17 @@ public abstract class Insert<T> extends Statement {
         return columns;
     }
 
+    public List<SelectItem> returning() {
+        return returning;
+    }
+
     public DuplicateKeyContext<T> getDuplicateKeyContext() {
         return duplicateKeyContext;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, columns);
+        return Objects.hashCode(table, columns, returning);
     }
 
     @Override
@@ -65,6 +74,8 @@ public abstract class Insert<T> extends Statement {
         if (columns != null ? !columns.equals(insert.columns) : insert.columns != null)
             return false;
         if (table != null ? !table.equals(insert.table) : insert.table != null)
+            return false;
+        if (returning != null ? !returning.equals(insert.returning) : insert.returning != null)
             return false;
 
         return true;

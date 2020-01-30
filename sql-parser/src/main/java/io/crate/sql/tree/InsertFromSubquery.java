@@ -33,8 +33,9 @@ public class InsertFromSubquery<T> extends Insert<T> {
     public InsertFromSubquery(Table<T> table,
                               Query subQuery,
                               List<String> columns,
-                              DuplicateKeyContext<T> duplicateKeyContext) {
-        super(table, columns, duplicateKeyContext);
+                              DuplicateKeyContext<T> duplicateKeyContext,
+                              List<SelectItem> returning) {
+        super(table, columns, duplicateKeyContext, returning);
         this.subQuery = subQuery;
     }
 
