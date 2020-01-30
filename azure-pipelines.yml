@@ -4,7 +4,7 @@ trigger: none
 jobs:
   - job: LinuxJDK11
     pool:
-      vmImage: 'Ubuntu 16.04'
+      vmImage: 'ubuntu-18.04'
     steps:
       - task: Gradle@2
         env:
@@ -22,7 +22,7 @@ jobs:
 
   - job: Windows
     pool:
-      vmImage: 'VS2017-Win2016'
+      vmImage: 'windows-2019'
     steps:
       - task: Gradle@2
         env:
