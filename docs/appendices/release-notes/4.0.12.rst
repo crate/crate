@@ -1,0 +1,90 @@
+.. _version_4.0.12:
+
+==============
+Version 4.0.12
+==============
+
+Released on 2020-01-30.
+
+.. NOTE::
+
+    Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading from
+    CrateDB 3.x or earlier.
+    Before upgrading to 4.0.12 you should be running a CrateDB cluster that is
+    at least on 3.0.7.
+
+    We recommend that you upgrade to the latest 3.3 release before moving to
+    4.0.12.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_4.0.2`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+    When restarting, CrateDB will migrate indexes to a newer format. Depending
+    on the amount of data, this may delay node start-up time.
+
+.. WARNING::
+
+    Tables that were created prior CrateDB 3.x will not function with 4.x
+    and must be recreated before moving to 4.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.0.0` release notes for a full list of changes in the
+4.0 series.
+
+Fixes
+=====
+
+- Fixed a bug that would lead to insertion of records via ``INSERT INTO ...
+  (SELECT ... FROM ..)`` and ``INSERT INTO ... VALUES (...)`` into different
+  partitions while using the same partition by value. This occurs only when
+  the partition key is an object field of the :ref:`timestamp
+  <timestamp_data_type>` data type.
+
+- Fixed an issue that caused queries on more than one relation and a literal
+  ``FALSE`` in the ``WHERE`` clause to match all rows instead of no rows.
+
+- Fixed the following issues in the Admin UI:
+
+  - Fixed an issue that prevents the value for nested partitioned columns showing
+    up in the table partitions overview.
+
+  - Fixed capitalization of ``Shards`` tab label
+
+  - Updated keywords list so that they are recognised and painted in red.
+
+- Fixed a bug which could lead to stuck queries when an error happens inside
+  distributed execution plans, e.g. a ``CircuitBreakingException`` due to
+  exceeded memory usage.
+
+- Fixed an issue that resulted in the values for nested partitioned columns to
+  be missing from the result.
+
+- Fixed an issue that caused ``SELECT *`` to include nested columns of type
+  ``geo_shape`` instead of only selecting top-level columns.
+
+- Fixed an issue that caused subscript expressions on top of child relations in
+  which an object column is selected to fail.
+
+- Fixed a `ClassCastException` that occurred when querying certain columns from
+  ``information_schema.tables``, ``sys.jobs_log`` or ``sys.jobs_metrics`` with
+  a client connected via PostgreSQL wire protocol.
+
+- Fixed a regression introduced in ``4.0.11`` which caused a
+  ``ClassCastException`` when querying ``sys.allocations``.
