@@ -248,7 +248,7 @@ public abstract class AstVisitor<R, C> {
         return visitExpression(node, context);
     }
 
-    public R visitInsert(Insert node, C context) {
+    public R visitInsert(Insert<?> node, C context) {
         return visitStatement(node, context);
     }
 
@@ -494,10 +494,6 @@ public abstract class AstVisitor<R, C> {
 
     public R visitIntervalLiteral(IntervalLiteral node, C context) {
         return visitLiteral(node, context);
-    }
-
-    public R visitInsertFromSubquery(InsertFromSubquery<?> node, C context) {
-        return visitInsert(node, context);
     }
 
     public R visitMatchPredicate(MatchPredicate node, C context) {

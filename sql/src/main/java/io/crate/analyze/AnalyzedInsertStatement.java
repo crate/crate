@@ -49,7 +49,7 @@ import java.util.function.Consumer;
 import static java.util.Objects.requireNonNull;
 
 
-public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
+public class AnalyzedInsertStatement implements AnalyzedStatement {
 
     private final DocTableInfo targetTable;
     private final AnalyzedRelation subQueryRelation;
@@ -61,11 +61,11 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
     @Nullable
     private final Symbol clusteredBySymbol;
 
-    InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation,
-                                        DocTableInfo tableInfo,
-                                        List<Reference> targetColumns,
-                                        boolean ignoreDuplicateKeys,
-                                        Map<Reference, Symbol> onDuplicateKeyAssignments) {
+    AnalyzedInsertStatement(AnalyzedRelation subQueryRelation,
+                            DocTableInfo tableInfo,
+                            List<Reference> targetColumns,
+                            boolean ignoreDuplicateKeys,
+                            Map<Reference, Symbol> onDuplicateKeyAssignments) {
         this.targetTable = tableInfo;
         this.subQueryRelation = subQueryRelation;
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;
@@ -185,7 +185,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitInsertFromSubQueryStatement(this, context);
+        return analyzedStatementVisitor.visitAnalyzedInsertStatement(this, context);
     }
 
     @Override

@@ -72,7 +72,7 @@ import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
 import io.crate.analyze.ExplainAnalyzedStatement;
-import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.UserManager;
@@ -270,7 +270,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, PlannerContext context) {
+    protected Plan visitAnalyzedInsertStatement(AnalyzedInsertStatement statement, PlannerContext context) {
         return logicalPlanner.plan(statement, context);
     }
 

@@ -84,7 +84,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .build();
     }
 
-    private void assertCompatibleColumns(InsertFromSubQueryAnalyzedStatement statement) {
+    private void assertCompatibleColumns(AnalyzedInsertStatement statement) {
         List<Symbol> outputSymbols = statement.subQueryRelation().outputs();
         assertThat(statement.columns().size(), is(outputSymbols.size()));
 
@@ -101,14 +101,14 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFromQueryWithoutColumns() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis =
+        AnalyzedInsertStatement analysis =
             e.analyze("insert into users (select * from users where name = 'Trillian')");
         assertCompatibleColumns(analysis);
     }
 
     @Test
     public void testFromQueryWithSubQueryColumns() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis =
+        AnalyzedInsertStatement analysis =
             e.analyze("insert into users (id, name) (" +
                       "  select id, name from users where name = 'Trillian' )");
         assertCompatibleColumns(analysis);
@@ -137,7 +137,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFromQueryWithInsertColumns() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis =
+        AnalyzedInsertStatement analysis =
             e.analyze("insert into users (id, name, details) (" +
                       "  select id, name, details from users " +
                       "  where name = 'Trillian'" +
@@ -156,7 +156,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFromQueryWithConvertableInsertColumns() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis =
+        AnalyzedInsertStatement analysis =
             e.analyze("insert into users (id, name) (" +
                       "  select id, other_id from users " +
                       "  where name = 'Trillian'" +
@@ -166,7 +166,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFromQueryWithFunctionSubQuery() throws Exception {
-        InsertFromSubQueryAnalyzedStatement analysis =
+        AnalyzedInsertStatement analysis =
             e.analyze("insert into users (id) (" +
                       "  select count(*) from users " +
                       "  where name = 'Trillian'" +
@@ -179,7 +179,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         var insert = "insert into users (id, name) (select id, name from users) " +
                      "on conflict (id) do update set name = 'Arthur'";
 
-        InsertFromSubQueryAnalyzedStatement statement = e.analyze(insert);
+        AnalyzedInsertStatement statement = e.analyze(insert);
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
         for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
@@ -193,7 +193,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         var insert = "insert into users (id, name) (select id, name from users) " +
                      "on conflict (id) do update set name = ?";
 
-        InsertFromSubQueryAnalyzedStatement statement = e.analyze(insert);
+        AnalyzedInsertStatement statement = e.analyze(insert);
 
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
@@ -208,7 +208,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         var insert = "insert into users (id, name) (select id, name from users) " +
                      "on conflict (id) do update set name = substr(excluded.name, 1, 1)";
 
-        InsertFromSubQueryAnalyzedStatement statement = e.analyze(insert);
+        AnalyzedInsertStatement statement = e.analyze(insert);
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
         for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
@@ -225,7 +225,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testFromQueryWithOnConflictAndMultiplePKs() {
         String insertStatement = "insert into three_pk (a, b, c) (select 1, 2, 3) on conflict (a, b, c) do update set d = 1";
-        InsertFromSubQueryAnalyzedStatement statement = e.analyze(insertStatement);
+        AnalyzedInsertStatement statement = e.analyze(insertStatement);
         assertThat(statement.onDuplicateKeyAssignments().size(), Is.is(1));
         assertThat(statement.onDuplicateKeyAssignments().keySet().iterator().next(), isReference("d"));
         assertThat(statement.onDuplicateKeyAssignments().values().iterator().next(), isLiteral(1));
@@ -254,7 +254,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateOnConflictDoNothingProducesEmptyUpdateAssignments() {
-        InsertFromSubQueryAnalyzedStatement statement =
+        AnalyzedInsertStatement statement =
             e.analyze("insert into users (id, name) (select 1, 'Jon') on conflict DO NOTHING");
         Map<Reference, Symbol> duplicateKeyAssignments = statement.onDuplicateKeyAssignments();
         assertThat(statement.isIgnoreDuplicateKeys(), is(true));
@@ -334,7 +334,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromQueryMissingPrimaryKeyHavingDefaultExpressionSymbolIsAdded() {
-        InsertFromSubQueryAnalyzedStatement statement = e.analyze("insert into default_column_pk (id) (select 1)");
+        AnalyzedInsertStatement statement = e.analyze("insert into default_column_pk (id) (select 1)");
         assertCompatibleColumns(statement);
 
         List<Symbol> pkSymbols = statement.primaryKeySymbols();

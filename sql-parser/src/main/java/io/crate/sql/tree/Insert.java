@@ -21,20 +21,23 @@
 
 package io.crate.sql.tree;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
 import java.util.Collections;
 import java.util.List;
 
-public abstract class Insert<T> extends Statement {
+public final class Insert<T> extends Statement {
 
-    protected final Table<T> table;
+    private final Table<T> table;
     private final DuplicateKeyContext<T> duplicateKeyContext;
-    protected final List<String> columns;
+    private final List<String> columns;
+    private final Query insertSource;
 
-    Insert(Table<T> table, List<String> columns, DuplicateKeyContext<T> duplicateKeyContext) {
+    public Insert(Table<T> table, Query subQuery, List<String> columns, DuplicateKeyContext<T> duplicateKeyContext) {
         this.table = table;
         this.columns = columns;
+        this.insertSource = subQuery;
         this.duplicateKeyContext = duplicateKeyContext;
     }
 
@@ -46,35 +49,46 @@ public abstract class Insert<T> extends Statement {
         return columns;
     }
 
-    public DuplicateKeyContext<T> getDuplicateKeyContext() {
+    public Query insertSource() {
+        return insertSource;
+    }
+
+    public DuplicateKeyContext<T> duplicateKeyContext() {
         return duplicateKeyContext;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, columns);
+        return Objects.hashCode(table, columns, insertSource);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Insert insert = (Insert) o;
-
-        if (columns != null ? !columns.equals(insert.columns) : insert.columns != null)
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
-        if (table != null ? !table.equals(insert.table) : insert.table != null)
-            return false;
+        }
+        Insert<?> insert = (Insert<?>) o;
+        return table.equals(insert.table) &&
+               columns.equals(insert.columns) &&
+               insertSource.equals(insert.insertSource);
+    }
 
-        return true;
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("table", table)
+            .add("columns", columns)
+            .add("insertSource", insertSource)
+            .toString();
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitInsert(this, context);
     }
-
 
     public static class DuplicateKeyContext<T> {
 

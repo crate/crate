@@ -52,7 +52,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Insert;
-import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -108,7 +107,7 @@ class InsertAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    public InsertFromSubQueryAnalyzedStatement analyze(InsertFromSubquery insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
+    public AnalyzedInsertStatement analyze(Insert<?> insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             insert.table().getName(),
             Operation.INSERT,
@@ -119,13 +118,13 @@ class InsertAnalyzer {
             new ArrayList<>(resolveTargetColumns(insert.columns(), tableInfo));
 
         AnalyzedRelation subQueryRelation = relationAnalyzer.analyze(
-            insert.subQuery(),
+            insert.insertSource(),
             new StatementAnalysisContext(typeHints, Operation.READ, txnCtx, targetColumns));
 
         ensureClusteredByPresentOrNotRequired(targetColumns, tableInfo);
         checkSourceAndTargetColsForLengthAndTypesCompatibility(targetColumns, subQueryRelation.outputs());
 
-        verifyOnConflictTargets(insert.getDuplicateKeyContext(), tableInfo);
+        verifyOnConflictTargets(insert.duplicateKeyContext(), tableInfo);
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
@@ -134,13 +133,13 @@ class InsertAnalyzer {
             typeHints,
             txnCtx,
             new NameFieldProvider(tableRelation),
-            insert.getDuplicateKeyContext()
+            insert.duplicateKeyContext()
         );
 
         final boolean ignoreDuplicateKeys =
-            insert.getDuplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
+            insert.duplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
 
-        return new InsertFromSubQueryAnalyzedStatement(
+        return new AnalyzedInsertStatement(
             subQueryRelation,
             tableInfo,
             targetColumns,

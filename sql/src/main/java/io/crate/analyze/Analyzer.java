@@ -67,7 +67,7 @@ import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
-import io.crate.sql.tree.InsertFromSubquery;
+import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Query;
@@ -444,7 +444,7 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery node, Analysis analysis) {
+        public AnalyzedStatement visitInsert(Insert<?> node, Analysis analysis) {
             return insertAnalyzer.analyze(
                 node,
                 analysis.paramTypeHints(),

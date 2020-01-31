@@ -325,9 +325,9 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     }
 
     @Override
-    public R visitInsertFromSubquery(InsertFromSubquery<?> node, C context) {
+    public R visitInsert(Insert<?> node, C context) {
         node.table().accept(this, context);
-        node.subQuery().accept(this, context);
+        node.insertSource().accept(this, context);
         return null;
     }
 
