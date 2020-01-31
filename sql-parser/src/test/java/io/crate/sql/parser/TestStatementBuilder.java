@@ -1073,6 +1073,14 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_insert_returning() {
+        printStatement("insert into foo (id, name) values ('string', 1.2) returning id");
+        printStatement("insert into foo (id, name) values ('string', 1.2) returning id as foo");
+        printStatement("insert into foo (id, name) values ('string', 1.2) returning *");
+        printStatement("insert into foo (id, name) values ('string', 1.2) returning foo.*");
+    }
+
+    @Test
     public void testParameterExpressionLimitOffset() {
         // ORMs like SQLAlchemy generate these kind of queries.
         printStatement("select * from foo limit ? offset ?");
@@ -1633,6 +1641,7 @@ public class TestStatementBuilder {
             statement instanceof DropRepository ||
             statement instanceof DropSnapshot ||
             statement instanceof Update ||
+            statement instanceof Insert ||
             statement instanceof Window) {
                 println(SqlFormatter.formatSql(statement));
                 println("");

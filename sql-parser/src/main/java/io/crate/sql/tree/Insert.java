@@ -33,12 +33,18 @@ public final class Insert<T> extends Statement {
     private final DuplicateKeyContext<T> duplicateKeyContext;
     private final List<String> columns;
     private final Query insertSource;
+    private final List<SelectItem> returning;
 
-    public Insert(Table<T> table, Query subQuery, List<String> columns, DuplicateKeyContext<T> duplicateKeyContext) {
+    public Insert(Table<T> table,
+                  Query insertSource,
+                  List<String> columns,
+                  List<SelectItem> returning,
+                  DuplicateKeyContext<T> duplicateKeyContext) {
         this.table = table;
         this.columns = columns;
-        this.insertSource = subQuery;
+        this.insertSource = insertSource;
         this.duplicateKeyContext = duplicateKeyContext;
+        this.returning = returning;
     }
 
     public Table table() {
@@ -57,9 +63,13 @@ public final class Insert<T> extends Statement {
         return duplicateKeyContext;
     }
 
+    public List<SelectItem> returningClause() {
+        return returning;
+    }
+
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, columns, insertSource);
+        return Objects.hashCode(table, columns, insertSource, returning);
     }
 
     @Override
@@ -73,7 +83,8 @@ public final class Insert<T> extends Statement {
         Insert<?> insert = (Insert<?>) o;
         return table.equals(insert.table) &&
                columns.equals(insert.columns) &&
-               insertSource.equals(insert.insertSource);
+               insertSource.equals(insert.insertSource) &&
+               returning.equals(insert.returning);
     }
 
     @Override
@@ -82,6 +93,7 @@ public final class Insert<T> extends Statement {
             .add("table", table)
             .add("columns", columns)
             .add("insertSource", insertSource)
+            .add("returning", returning)
             .toString();
     }
 
