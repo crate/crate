@@ -57,6 +57,7 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
+import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
@@ -206,6 +207,41 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitInsert(Insert<?> node, Integer indent) {
+            append(indent, "INSERT");
+            builder.append(' ');
+            append(indent, "INTO");
+            builder.append(' ');
+            node.table().accept(this, indent);
+            builder.append(' ');
+            var columns = node.columns().iterator();
+            if (columns.hasNext()) {
+                builder.append('(');
+                while (columns.hasNext()) {
+                    builder.append(columns.next());
+                    if (columns.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
+                builder.append(')');
+            }
+            builder.append(' ');
+            node.insertSource().accept(this, indent);
+            var returning = node.returningClause().iterator();
+            if (returning.hasNext()) {
+                append(indent, "RETURNING");
+                while (returning.hasNext()) {
+                    builder.append(' ');
+                    returning.next().accept(this, indent);
+                    if (returning.hasNext()) {
+                        builder.append(',');
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
         public Void visitUpdate(Update node, Integer indent) {
             append(indent, "UPDATE");
             builder.append(' ');
@@ -251,7 +287,6 @@ public final class SqlFormatter {
             assignment.expression().accept(this, indent);
             return null;
         }
-
 
         @Override
         protected Void visitExpression(Expression node, Integer indent) {
