@@ -22,7 +22,7 @@
 package io.crate.planner.consumer;
 
 
-import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
@@ -50,7 +50,7 @@ public final class InsertFromSubQueryPlanner {
     private InsertFromSubQueryPlanner() {
     }
 
-    public static LogicalPlan plan(InsertFromSubQueryAnalyzedStatement statement,
+    public static LogicalPlan plan(AnalyzedInsertStatement statement,
                                    PlannerContext plannerContext,
                                    LogicalPlanner logicalPlanner,
                                    SubqueryPlanner subqueryPlanner) {

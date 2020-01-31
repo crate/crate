@@ -51,7 +51,7 @@ import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.ExplainAnalyzedStatement;
-import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.AnalyzedPrivileges;
@@ -307,7 +307,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement analysis, User user) {
+        protected Void visitAnalyzedInsertStatement(AnalyzedInsertStatement analysis, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DML,
                 Privilege.Clazz.TABLE,

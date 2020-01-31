@@ -47,7 +47,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    protected R visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement analysis, C context) {
+    protected R visitAnalyzedInsertStatement(AnalyzedInsertStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 

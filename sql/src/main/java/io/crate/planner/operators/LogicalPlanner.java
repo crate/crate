@@ -24,7 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
@@ -459,7 +459,7 @@ public class LogicalPlanner {
         }
 
         @Override
-        protected LogicalPlan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, PlannerContext context) {
+        protected LogicalPlan visitAnalyzedInsertStatement(AnalyzedInsertStatement statement, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
             return writeOptimizer.optimize(
                 InsertFromSubQueryPlanner.plan(
