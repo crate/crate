@@ -560,11 +560,13 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             }
             throw e;
         }
-        return new Insert(
+        return new Insert<>(
             table,
             (Query) visit(context.insertSource().query()),
             columns,
-            createDuplicateKeyContext(context));
+            getReturningItems(context.returning()),
+            createDuplicateKeyContext(context)
+        );
     }
 
     /**
@@ -620,7 +622,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             (Relation) visit(context.aliasedRelation()),
             assignments,
             visitIfPresent(context.where(), Expression.class),
-            visitCollection(context.selectItem(), SelectItem.class)
+            getReturningItems(context.returning())
             );
     }
 
@@ -1789,6 +1791,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         // single quote escaping is handled at later stage
         // as we require more context on the surrounding characters
         return value.substring(2, value.length() - 1);
+    }
+
+    private List<SelectItem> getReturningItems(@Nullable SqlBaseParser.ReturningContext context) {
+        return context == null ? List.of() : visitCollection(context.selectItem(),
+                                                             SelectItem.class);
     }
 
     private QualifiedName getQualifiedName(SqlBaseParser.QnameContext context) {
