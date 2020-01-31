@@ -24,17 +24,18 @@ Synopsis
       { VALUES ( expression [, ...] ) [, ...] | ( query ) | query }
       [ ON CONFLICT (column_ident [, ...]) DO UPDATE SET { column_ident = expression [, ...] } |
         ON CONFLICT [ ( column_ident [, ...] ) ] DO NOTHING ]
+      [ RETURNING { * | output_expression [ [ AS ] output_name ] | relation.* } [, ...] ]
 
 Description
 ===========
 
-INSERT creates one or more rows specified by value expressions.
+``INSERT`` creates one or more rows specified by value expressions.
 
 The target column names can be listed in any order. If no list of column names
 is given at all, the default is all the columns of the table in lexical order;
-or the first N column names, if there are only N columns supplied by the VALUES
-clause. The values supplied by the VALUES clause are associated with the
-explicit or implicit column list left-to-right.
+or the first N column names, if there are only N columns supplied by the
+``VALUES`` clause. The values supplied by the ``VALUES`` clause are associated
+with the explicit or implicit column list left-to-right.
 
 Each column not present in the explicit or implicit column list will not be
 filled.
@@ -42,6 +43,12 @@ filled.
 If the expression for any column is not of the correct data type, automatic
 type conversion will be attempted.
 
+The optional ``RETURNING`` clause causes ``INSERT`` to compute and return
+values based from each row actually inserted (or updated, if an ``ON
+CONFLICT DO UPDATE`` clause was used). This is primarily useful for obtaining
+values that were supplied by defaults, such as a :ref:`_id
+<sql_administration_system_column_id>`, also any expression using the table's
+columns is allowed.
 
 ``ON CONFLICT DO UPDATE SET``
 -----------------------------
@@ -119,14 +126,22 @@ Parameters
 ==========
 
 :table_ident:
-  The identifier (optionally schema-qualified) of an existing table.
+    The identifier (optionally schema-qualified) of an existing table.
 
 :column_ident:
-  The name of a column or field in the table pointed to by *table_ident*.
+    The name of a column or field in the table pointed to by *table_ident*.
 
 :expression:
-  An expression or value to assign to the corresponding column.
+    An expression or value to assign to the corresponding column.
 
 :query:
-  A query (SELECT statement) that supplies the rows to be inserted.
-  Refer to the ``SELECT`` statement for a description of the syntax.
+    A query (``SELECT`` statement) that supplies the rows to be inserted.
+    Refer to the ``SELECT`` statement for a description of the syntax.
+
+:output_expression:
+    An expression to be computed and returned by the ``INSERT`` command
+    after each row is updated. The expression can use any column names
+    of the table or use ``*`` to return all columns.
+
+:output_name:
+    A name to use for the result of the output expression.
