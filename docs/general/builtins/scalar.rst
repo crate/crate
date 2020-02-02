@@ -311,6 +311,39 @@ Replaces all occurrences of ``from`` in ``text`` with ``to``.
    +---------------------------------------------+
    SELECT 1 row in set (... sec)
 
+.. _scalar-translate:
+
+``translate(string, from, to)``
+-------------------------------
+
+Performs single-character, one-to-one translations of ``string``.
+It translates one-to-one positionally ``from`` array of characters (string) ``to`` array of characters.
+If ``from`` is longer then ``to`` unmatched symbols in ``from`` are meant to be removed from ``string``.
+
+Synopsis::
+
+    translate(string, from, to)
+
+Examples::
+
+   cr> select translate('Crate', 'Ct', 'Dk');
+   +--------------------------------+
+   | translate('Crate', 'Ct', 'Dk') |
+   +--------------------------------+
+   | Drake                          |
+   +--------------------------------+
+   SELECT 1 row in set (... sec)
+
+::
+
+   cr> select translate('Crate', 'rCe', 'c');
+   +--------------------------------+
+   | translate('Crate', 'rCe', 'c') |
+   +--------------------------------+
+   | cat                            |
+   +--------------------------------+
+   SELECT 1 row in set (... sec)
+
 .. _scalar-trim:
 
 ``trim({LEADING | TRAILING | BOTH} 'str_arg_1' FROM 'str_arg_2')``
