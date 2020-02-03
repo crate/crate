@@ -126,22 +126,20 @@ public class TranslateFunction extends Scalar<String, String> {
 
     protected String translate(String text, String from, String to) {
         var resultSb = new StringBuilder();
-        var fromChars = from.toCharArray();
-        var fromLength = fromChars.length;
-        var toChars = to.toCharArray();
-        var toLength = toChars.length;
+        var fromLength = from.length();
+        var toLength = to.length();
 
         for (int textIdx = 0; textIdx < text.length(); textIdx++) {
             var textChar = text.charAt(textIdx);
 
             int lookupIdx = 0;
 
-            for (;lookupIdx < fromLength && textChar != fromChars[lookupIdx]; lookupIdx++);
+            for (;lookupIdx < fromLength && textChar != from.charAt(lookupIdx); lookupIdx++);
 
             if (lookupIdx < fromLength) {
                 // translation found, the char from "to" is appended, or skipped if there is not match in "to".
                 if (lookupIdx < toLength) {
-                    resultSb.append(toChars[lookupIdx]);
+                    resultSb.append(to.charAt(lookupIdx));
                 }
             } else {
                 // translation for the char not found, therefore the current char is appended
