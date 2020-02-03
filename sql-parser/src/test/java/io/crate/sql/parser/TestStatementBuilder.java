@@ -109,6 +109,14 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_construct_composite_value() {
+        printStatement("SELECT ROW (x, y)");
+        printStatement("SELECT ROW ('Yalla', 42, 23.7, null)");
+        printStatement("SELECT (x, y)");
+        printStatement("SELECT ('Yalla', 42, 23.7, null)");
+    }
+
+    @Test
     public void test_analyze_statement_can_be_parsed() {
         printStatement("ANALYZE");
     }

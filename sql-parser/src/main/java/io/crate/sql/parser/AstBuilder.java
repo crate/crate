@@ -147,6 +147,7 @@ import io.crate.sql.tree.RerouteOption;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.Row;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.Select;
 import io.crate.sql.tree.SelectItem;
@@ -1692,7 +1693,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitPositionalParameter(SqlBaseParser.PositionalParameterContext context) {
-        return new ParameterExpression(Integer.valueOf(context.integerLiteral().getText()));
+        return new ParameterExpression(Integer.parseInt(context.integerLiteral().getText()));
+    }
+
+    @Override
+    public Node visitRowConstructor(SqlBaseParser.RowConstructorContext ctx) {
+        return new Row(visitCollection(ctx.expr(), Expression.class));
     }
 
     @Override

@@ -229,6 +229,8 @@ valueExpression
 
 primaryExpression
     : parameterOrLiteral                                                             #defaultParamOrLiteral
+    | '(' expr (',' expr)+ ')'                                                       #rowConstructor
+    | ROW '(' expr (',' expr)* ')'                                                   #rowConstructor
     | explicitFunction                                                               #explicitFunctionDefault
     | qname '(' ASTERISK ')' filter? over?                                           #functionCall
     | ident                                                                          #columnReference

@@ -599,4 +599,8 @@ public abstract class AstVisitor<R, C> {
     public R visitAnalyze(AnalyzeStatement analyzeStatement, C context) {
         return visitStatement(analyzeStatement, context);
     }
+
+    public R visitRow(Row row, C context) {
+        return visitExpression(row, context);
+    }
 }
