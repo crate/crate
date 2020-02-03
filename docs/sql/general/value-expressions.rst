@@ -101,6 +101,8 @@ the array which should be retrieved.
 
     :ref:`sql_dql_object_arrays_select`
 
+.. _object-subscript:
+
 Object subscript
 ----------------
 
@@ -115,6 +117,20 @@ should be retrieved.
 .. SEEALSO::
 
     :ref:`sql_dql_objects`
+
+.. _record-subscript:
+
+Record subscript
+----------------
+
+Record subscript is an alternative syntax for :ref:`object subscripts
+<object-subscript>`::
+
+    (obj_expression).key
+
+``obj_expression`` is an expression of type ``object`` and ``key`` is an
+identifier that refers to a field inside the object.
+
 
 Function call
 =============
