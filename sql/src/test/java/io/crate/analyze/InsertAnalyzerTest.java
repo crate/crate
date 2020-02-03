@@ -371,4 +371,45 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             isField("col2", DataTypes.STRING) // Planner adds a cast projection; text is okay here
         ));
     }
+
+    @Test
+    public void test_insert_with_id_in_returning_clause() throws Exception {
+        AnalyzedInsertStatement stmt =
+            e.analyze("insert into users(id, name) values(1, 'max') returning id");
+        assertThat(stmt.fields(), contains(isField("id")));
+        assertThat(stmt.returnValues(), contains(isReference("id")));
+    }
+
+    @Test
+    public void test_insert_with_docid_in_returning_clause() throws Exception {
+        AnalyzedInsertStatement stmt =
+            e.analyze("insert into users(id, name) values(1, 'max') returning _doc");
+        assertThat(stmt.fields(), contains(isField("_doc")));
+        assertThat(stmt.returnValues(), contains(isReference("_doc")));
+    }
+
+    @Test
+    public void test_insert_with_id_renamed_in_returning_clause() throws Exception {
+        AnalyzedInsertStatement stmt =
+            e.analyze("insert into users(id, name) values(1, 'max') returning id as foo");
+        assertThat(stmt.fields(), contains(isField("foo")));
+        assertThat(stmt.returnValues(), contains(isReference("id")));
+    }
+
+    @Test
+    public void test_insert_with_function_in_returning_clause() throws Exception {
+        AnalyzedInsertStatement stmt =
+            e.analyze("insert into users(id, name) values(1, 'max') returning id + 1 as foo");
+        assertThat(stmt.fields(), contains(isField("foo")));
+        assertThat(stmt.returnValues(), contains(isFunction("add")));
+    }
+
+    @Test
+    public void test_insert_with_returning_all_columns() throws Exception {
+        AnalyzedInsertStatement stmt =
+            e.analyze("insert into users(id, name) values(1, 'max') returning *");
+        assertThat(stmt.fields().size(), is(17));
+        assertThat(stmt.returnValues().size(), is(17));
+    }
+
 }

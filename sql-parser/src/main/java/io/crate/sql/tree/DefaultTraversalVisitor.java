@@ -328,6 +328,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     public R visitInsert(Insert<?> node, C context) {
         node.table().accept(this, context);
         node.insertSource().accept(this, context);
+        node.returningClause().forEach(x -> x.accept(this, context));
         return null;
     }
 
