@@ -22,28 +22,18 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.data.CollectionBucket;
 import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -52,9 +42,8 @@ import java.util.List;
 public class EmptyRowTableFunction {
 
     private static final String NAME = "empty_row";
-    public static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
-    static class EmptyRowTableFunctionImplementation extends TableFunctionImplementation {
+    static class EmptyRowTableFunctionImplementation extends TableFunctionImplementation<Object> {
 
         private final FunctionInfo info;
 
@@ -68,27 +57,14 @@ public class EmptyRowTableFunction {
         }
 
         @Override
-        public Object evaluate(TransactionContext txnCtx, Input[] args) {
-            return new CollectionBucket(Collections.singletonList(new Object[0]));
+        @SafeVarargs
+        public final Iterable<Row> evaluate(TransactionContext txnCtx, Input<Object>... args) {
+            return List.of(Row.EMPTY);
         }
 
         @Override
-        public TableInfo createTableInfo() {
-            return new StaticTableInfo(TABLE_IDENT, Collections.emptyMap(), null, Collections.emptyList()) {
-                @Override
-                public RowGranularity rowGranularity() {
-                    return RowGranularity.DOC;
-                }
-
-                @Override
-                public Routing getRouting(ClusterState clusterState,
-                                          RoutingProvider routingProvider,
-                                          WhereClause whereClause,
-                                          RoutingProvider.ShardSelection shardSelection,
-                                          SessionContext sessionContext) {
-                    return Routing.forTableOnSingleNode(TABLE_IDENT, clusterState.getNodes().getLocalNodeId());
-                }
-            };
+        public ObjectType returnType() {
+            return ObjectType.untyped();
         }
     }
 

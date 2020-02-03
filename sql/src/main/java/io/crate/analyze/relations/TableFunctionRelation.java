@@ -32,15 +32,23 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
@@ -57,11 +65,19 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
         this.functionImplementation = functionImplementation;
         this.function = function;
         this.qualifiedName = qualifiedName;
-        TableInfo table = functionImplementation.createTableInfo();
-        this.fields = new Fields(table.columns().size());
-        this.outputs = List.copyOf(table.columns());
-        for (Reference ref : table.columns()) {
-            fields.add(new Field(this, ref.column(), ref));
+        ObjectType objectType = functionImplementation.returnType();
+        this.fields = new Fields(objectType.innerTypes().size());
+        this.outputs = new ArrayList<>(objectType.innerTypes().size());
+        int idx = 0;
+        FunctionName functionName = function.info().ident().fqnName();
+        var relationName = new RelationName(Objects.requireNonNullElse(functionName.schema(), ""), functionName.name());
+        for (var entry : objectType.innerTypes().entrySet()) {
+            String columnName = entry.getKey();
+            DataType<?> type = entry.getValue();
+            var ref = new Reference(new ReferenceIdent(relationName, columnName), RowGranularity.DOC, type, idx, null);
+            outputs.add(ref);
+            fields.add(new Field(this, new ColumnIdent(columnName), ref));
+            idx++;
         }
     }
 

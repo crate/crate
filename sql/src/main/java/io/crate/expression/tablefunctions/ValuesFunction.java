@@ -22,53 +22,51 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import static io.crate.metadata.functions.params.Param.ANY_ARRAY;
-import static io.crate.types.DataTypes.isArray;
 
 public class ValuesFunction {
 
     public static final String NAME = "_values";
-    private static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
     private static class ValuesTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final FunctionInfo info;
+        private final ObjectType returnType;
 
-        private ValuesTableFunctionImplementation(FunctionInfo info) {
-            this.info = info;
+        private ValuesTableFunctionImplementation(List<DataType> argTypes) {
+            ObjectType.Builder objTypeBuilder = ObjectType.builder();
+            for (int i = 0; i < argTypes.size(); i++) {
+                DataType<?> dataType = argTypes.get(i);
+                assert dataType instanceof ArrayType : "Arguments to _values must be of type array";
+
+                objTypeBuilder.setInnerType("col" + (i + 1), ((ArrayType<?>) dataType).innerType());
+            }
+            ObjectType objectType = objTypeBuilder.build();
+            this.info = new FunctionInfo(
+                new FunctionIdent(NAME, argTypes),
+                objectType.innerTypes().size() == 1
+                    ? objectType.innerTypes().values().iterator().next()
+                    : objectType,
+                FunctionInfo.Type.TABLE
+            );
+            this.returnType = objectType;
         }
 
         @Override
@@ -97,36 +95,8 @@ public class ValuesFunction {
         }
 
         @Override
-        public TableInfo createTableInfo() {
-            int noElements = info.ident().argumentTypes().size();
-            Map<ColumnIdent, Reference> columnMap = new LinkedHashMap<>(noElements);
-            Collection<Reference> columns = new ArrayList<>(noElements);
-
-            for (int i = 0; i < info.ident().argumentTypes().size(); i++) {
-                ColumnIdent columnIdent = new ColumnIdent("col" + (i + 1));
-                DataType dataType = ((ArrayType) info.ident().argumentTypes().get(i)).innerType();
-                Reference reference = new Reference(
-                    new ReferenceIdent(TABLE_IDENT, columnIdent), RowGranularity.DOC, dataType, i, null
-                );
-
-                columns.add(reference);
-                columnMap.put(columnIdent, reference);
-            }
-            return new StaticTableInfo(TABLE_IDENT, columnMap, columns, Collections.emptyList()) {
-                @Override
-                public RowGranularity rowGranularity() {
-                    return RowGranularity.DOC;
-                }
-
-                @Override
-                public Routing getRouting(ClusterState state,
-                                          RoutingProvider routingProvider,
-                                          WhereClause whereClause,
-                                          RoutingProvider.ShardSelection shardSelection,
-                                          SessionContext sessionContext) {
-                    return Routing.forTableOnSingleNode(TABLE_IDENT, state.getNodes().getLocalNodeId());
-                }
-            };
+        public ObjectType returnType() {
+            return returnType;
         }
     }
 
@@ -136,20 +106,7 @@ public class ValuesFunction {
 
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                DataType returnType;
-                if (dataTypes.size() == 1) {
-                    var dataType = dataTypes.get(0);
-                    if (isArray(dataType)) {
-                        returnType = ((ArrayType) dataType).innerType();
-                    } else {
-                        throw new IllegalArgumentException(
-                            "Function argument must have an array data type, but was '" + dataType + "'");
-                    }
-                } else {
-                    returnType = ObjectType.untyped();
-                }
-                return new ValuesTableFunctionImplementation(
-                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.TABLE));
+                return new ValuesTableFunctionImplementation(dataTypes);
             }
         });
     }

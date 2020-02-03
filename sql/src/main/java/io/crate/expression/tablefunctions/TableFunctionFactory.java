@@ -22,40 +22,26 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.data.ArrayBucket;
-import io.crate.data.Bucket;
 import io.crate.data.Input;
-import io.crate.metadata.ColumnIdent;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.types.ObjectType;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class TableFunctionFactory {
 
-    public static TableFunctionImplementation from(FunctionImplementation functionImplementation) {
-
-        TableFunctionImplementation tableFunction;
+    public static TableFunctionImplementation<?> from(FunctionImplementation functionImplementation) {
+        TableFunctionImplementation<?> tableFunction;
         switch (functionImplementation.info().type()) {
             case TABLE:
-                tableFunction = (TableFunctionImplementation) functionImplementation;
+                tableFunction = (TableFunctionImplementation<?>) functionImplementation;
                 break;
             case SCALAR:
                 tableFunction = new ScalarTableFunctionImplementation<>((Scalar<?, ?>) functionImplementation);
@@ -82,49 +68,34 @@ public class TableFunctionFactory {
      */
     private static class ScalarTableFunctionImplementation<T> extends TableFunctionImplementation<T> {
 
-        private final RelationName TABLE_IDENT = new RelationName("", "scalar_table");
-
         private final Scalar<?, T> functionImplementation;
+        private final ObjectType returnType;
+        private final FunctionInfo info;
 
         private ScalarTableFunctionImplementation(Scalar<?, T> functionImplementation) {
             this.functionImplementation = functionImplementation;
+            FunctionInfo info = functionImplementation.info();
+            returnType = ObjectType.builder().setInnerType(info.ident().name(), info.returnType()).build();
+            this.info = new FunctionInfo(
+                info.ident(),
+                info.returnType(),
+                FunctionInfo.Type.TABLE
+            );
         }
 
         @Override
         public FunctionInfo info() {
-            return functionImplementation.info();
+            return info;
         }
 
         @Override
-        public Bucket evaluate(TransactionContext txnCtx, Input<T>[] args) {
-            return new ArrayBucket(new Object[][] {new Object[] {functionImplementation.evaluate(txnCtx,args)}});
+        public Iterable<Row> evaluate(TransactionContext txnCtx, Input<T>[] args) {
+            return List.of(new RowN(functionImplementation.evaluate(txnCtx, args)));
         }
 
         @Override
-        public TableInfo createTableInfo() {
-            String functionName = info().ident().name();
-            ColumnIdent col = new ColumnIdent(functionName);
-            Reference reference = new Reference(new ReferenceIdent(TABLE_IDENT, col),
-                                                RowGranularity.DOC,
-                                                info().returnType(),
-                                                1,
-                                                null);
-            Map<ColumnIdent, Reference> referenceByColumn = Collections.singletonMap(col, reference);
-            return new StaticTableInfo(TABLE_IDENT, referenceByColumn, List.of(reference), List.of()) {
-                @Override
-                public Routing getRouting(ClusterState state,
-                                          RoutingProvider routingProvider,
-                                          WhereClause whereClause,
-                                          RoutingProvider.ShardSelection shardSelection,
-                                          SessionContext sessionContext) {
-                    return Routing.forTableOnSingleNode(TABLE_IDENT, state.getNodes().getLocalNodeId());
-                }
-
-                @Override
-                public RowGranularity rowGranularity() {
-                    return RowGranularity.DOC;
-                }
-            };
+        public ObjectType returnType() {
+            return returnType;
         }
     }
 }
