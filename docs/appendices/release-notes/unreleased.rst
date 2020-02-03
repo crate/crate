@@ -65,6 +65,10 @@ None
 Changes
 =======
 
+- Replaced the ``Nashorn`` JavaScript engine with ``GraalVM`` for JavaScript
+  :ref:`user-defined functions <sql_administration_udf>`. This change upgrades
+  ``ECMAScript`` support from ``5.1`` to ``10.0``.
+
 - Added support for ``JOIN USING``, e.g. ``SELECT * FROM t1 JOIN t2 USING (col)``,
   an alternative to ``JOIN ON``, when the column name(s) are the same in both relations.
 

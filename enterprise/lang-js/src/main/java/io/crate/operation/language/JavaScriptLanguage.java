@@ -18,21 +18,24 @@
 
 package io.crate.operation.language;
 
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
-import jdk.nashorn.api.scripting.NashornScriptEngine;
-import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
 import org.elasticsearch.common.inject.Inject;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Engine;
+import org.graalvm.polyglot.HostAccess;
+import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
 
 import javax.annotation.Nullable;
-import javax.script.Bindings;
-import javax.script.CompiledScript;
 import javax.script.ScriptException;
+import java.io.IOException;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
@@ -40,8 +43,13 @@ public class JavaScriptLanguage implements UDFLanguage {
 
     static final String NAME = "javascript";
 
-    private static final NashornScriptEngine ENGINE = (NashornScriptEngine) new NashornScriptEngineFactory()
-        .getScriptEngine("--no-java", "--no-syntax-extensions", "--language=es6");
+    private static final Engine ENGINE = Engine.newBuilder()
+        .build();
+
+    private static final HostAccess HOST_ACCESS = HostAccess.newBuilder()
+        .allowListAccess(true)
+        .allowArrayAccess(true)
+        .build();
 
     @Inject
     public JavaScriptLanguage(UserDefinedFunctionService udfService) {
@@ -59,9 +67,9 @@ public class JavaScriptLanguage implements UDFLanguage {
     @Nullable
     public String validate(UserDefinedFunctionMetaData meta) {
         try {
-            bindScript(meta.definition());
-        } catch (Throwable t) {
-            // We need to catch throwable because of https://bugs.openjdk.java.net/browse/JDK-8144711
+            resolvePolyglotFunctionValue(meta.name(), meta.definition());
+            return null;
+        } catch (IllegalArgumentException | IOException | PolyglotException t) {
             return String.format(Locale.ENGLISH, "Invalid JavaScript in function '%s.%s(%s)' AS '%s': %s",
                 meta.schema(),
                 meta.name(),
@@ -70,14 +78,22 @@ public class JavaScriptLanguage implements UDFLanguage {
                 t.getMessage()
             );
         }
-        return null;
     }
 
-    static Bindings bindScript(String source) throws ScriptException {
-        Bindings bindings = ENGINE.createBindings();
-        CompiledScript compiledScript = ENGINE.compile(source);
-        compiledScript.eval(bindings);
-        return bindings;
+    static Value resolvePolyglotFunctionValue(String functionName, String script) throws IOException {
+        var context = Context.newBuilder("js")
+            .engine(ENGINE)
+            .allowHostAccess(HOST_ACCESS)
+            .build();
+        var source = Source.newBuilder("js", script, functionName).build();
+        context.eval(source);
+        var polyglotFunctionValue = context.getBindings("js").getMember(functionName);
+        if (polyglotFunctionValue == null) {
+            throw new IllegalArgumentException(
+                "The name of the function signature '" + functionName + "' doesn't match " +
+                "the function name in the function definition.");
+        }
+        return polyglotFunctionValue;
     }
 
     public String name() {
