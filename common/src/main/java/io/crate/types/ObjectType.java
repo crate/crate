@@ -91,7 +91,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         if (path.isEmpty()) {
             return DataTypes.UNDEFINED;
         }
-        DataType innerType = DataTypes.UNDEFINED;
+        DataType<?> innerType = DataTypes.UNDEFINED;
         ObjectType currentObject = this;
         for (int i = 0; i < path.size(); i++) {
             innerType = currentObject.innerTypes().get(path.get(i));

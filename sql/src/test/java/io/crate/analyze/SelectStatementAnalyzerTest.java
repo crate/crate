@@ -2009,4 +2009,22 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("Relation 'foobar' unknown. Maybe you meant one of: fooobar, \"Foobaarr\"");
         analyze("select * from foobar");
     }
+
+    @Test
+    public void test_nested_column_of_object_can_be_selected_using_composite_type_access_syntax() {
+        AnalyzedRelation relation = analyze("select (address).postcode from users");
+        assertThat(relation.outputs(), contains(isReference("address['postcode']")));
+    }
+
+    @Test
+    public void test_deep_nested_column_of_object_can_be_selected_using_composite_type_access_syntax() {
+        AnalyzedRelation relation = analyze("select ((details).stuff).name from deeply_nested");
+        assertThat(relation.outputs(), contains(isReference("details['stuff']['name']")));
+    }
+
+    @Test
+    public void test_record_subscript_syntax_can_be_used_on_object_literals() {
+        AnalyzedRelation rel = analyze("select ({x=10}).x");
+        assertThat(rel.outputs(), contains(isLiteral(10L)));
+    }
 }

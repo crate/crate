@@ -116,6 +116,7 @@ import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.SimpleCaseExpression;
 import io.crate.sql.tree.StringLiteral;
@@ -804,6 +805,44 @@ public class ExpressionAnalyzer {
                 node.getType().name().toLowerCase(Locale.ENGLISH),
                 ImmutableList.of(left, right),
                 context);
+        }
+
+        @Override
+        public Symbol visitRecordSubscript(RecordSubscript recordSubscript,
+                                           ExpressionAnalysisContext context) {
+            // E.g.: SELECT (address).postcode FROM ...
+            //  or   SELECT ((obj).x).y FROM ...
+            //  or   SELECT ({x=10}).x FROM ...
+            Expression base = recordSubscript.base();
+            String field = recordSubscript.field();
+            ArrayList<String> reversedPath = new ArrayList<>();
+            reversedPath.add(field);
+            while (base instanceof RecordSubscript) {
+                RecordSubscript subscript = (RecordSubscript) base;
+                base = subscript.base();
+                reversedPath.add(subscript.field());
+            }
+            List<String> path = Lists.reverse(reversedPath);
+            if (base instanceof QualifiedNameReference) {
+                QualifiedName name = ((QualifiedNameReference) base).getName();
+                return fieldProvider.resolveField(name, path, operation);
+            }
+            Symbol baseSymbol = base.accept(this, context);
+            if (baseSymbol.valueType().id() == ObjectType.ID) {
+                List<Symbol> arguments = mapTail(baseSymbol, path, Literal::of);
+                DataType<?> returnType = ((ObjectType) baseSymbol.valueType()).resolveInnerType(path);
+                return new Function(
+                    new FunctionInfo(new FunctionIdent(SubscriptObjectFunction.NAME, Symbols.typeView(arguments)), returnType),
+                    arguments
+                );
+            } else {
+                throw new UnsupportedOperationException(
+                    "Unsupported expression `"
+                    + ExpressionFormatter.formatStandaloneExpression(recordSubscript)
+                    + "`, `"
+                    + ExpressionFormatter.formatStandaloneExpression(base)
+                    + "` should have type `object` but was `" + baseSymbol.valueType().getName() + '`');
+            }
         }
 
         @Override

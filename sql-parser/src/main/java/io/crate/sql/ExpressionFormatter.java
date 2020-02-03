@@ -39,6 +39,7 @@ import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
+import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.ExistsPredicate;
@@ -144,6 +145,14 @@ public final class ExpressionFormatter {
         @Override
         public String visitIntervalLiteral(IntervalLiteral node, List<Expression> context) {
             return IntervalLiteral.format(node);
+        }
+
+        @Override
+        public String visitRecordSubscript(RecordSubscript recordSubscript, List<Expression> parameters) {
+            return '('
+                + recordSubscript.base().accept(this, parameters)
+                + ")."
+                + recordSubscript.field();
         }
 
         @Override
