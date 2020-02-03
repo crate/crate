@@ -54,6 +54,7 @@ dependencies {
     runtime project(':enterprise:ssl-impl')
     runtime project(':enterprise:functions')
     runtime project(':enterprise:licensing')
+    runtime project(':enterprise:lang-js')
 
     testCompile project(':integration-testing')
     testCompile project(':http')

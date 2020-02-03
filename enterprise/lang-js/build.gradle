@@ -11,9 +11,9 @@ task writePropertiesFile {
             into "${buildDir}/tmp"
             include "plugin-descriptor.properties"
             expand(version: project.version,
-                   esVersion: versions.internalES,
-                   jmvCompatibility: project.targetCompatibility,
-                   name: project.name)
+                esVersion: versions.internalES,
+                jmvCompatibility: project.targetCompatibility,
+                name: project.name)
         }
     }
 }
@@ -21,6 +21,11 @@ task writePropertiesFile {
 jar.dependsOn('writePropertiesFile')
 dependencies {
     implementation project(':sql')
+
+    implementation "org.graalvm.js:js:${versions.graalvm}"
+    implementation "org.graalvm.sdk:graal-sdk:${versions.graalvm}"
+    implementation "org.graalvm.truffle:truffle-api:${versions.graalvm}"
+
     testImplementation project(':integration-testing')
     testImplementation project(path: ':sql', configuration: 'testOutput')
     testImplementation project(path: ':dex', configuration: 'testOutput')

@@ -15,12 +15,12 @@ User-defined functions
 CrateDB supports user-defined functions. See :ref:`ref-create-function` for a
 full syntax description.
 
-These functions can be created like so::
+``CREATE FUNCTION`` defines a new function::
 
     cr> CREATE FUNCTION my_subtract_function(integer, integer)
-    ...  RETURNS integer
-    ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function my_subtract_function(a, b) { return a - b; }';
+    ... RETURNS integer
+    ... LANGUAGE JAVASCRIPT
+    ... AS 'function my_subtract_function(a, b) { return a - b; }';
     CREATE OK, 1 row affected  (... sec)
 
 .. hide:
@@ -37,12 +37,13 @@ These functions can be created like so::
     +--------------------------------+
     SELECT 1 row in set (... sec)
 
-``OR REPLACE`` can be used to replace an existing function::
+``CREATE OR REPLACE FUNCTION`` will either create a new function or replace
+an existing function definition::
 
     cr> CREATE OR REPLACE FUNCTION log10(bigint)
-    ...  RETURNS double precision
-    ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function log10(a) { return Math.log(a)/Math.log(10); }';
+    ... RETURNS double precision
+    ... LANGUAGE JAVASCRIPT
+    ... AS 'function log10(a) {return Math.log(a)/Math.log(10); }';
     CREATE OK, 1 row affected  (... sec)
 
 .. hide:
@@ -59,17 +60,18 @@ These functions can be created like so::
     +---------------+
     SELECT 1 row in set (... sec)
 
-Arguments can be named in the function definition.
+It is possible to use named function arguments in the function signature. For
+example, the ``calculate_distance`` function signature has two ``geo_point``
+arguments named ``start`` and ``end``::
 
-For example, if you wanted two ``geo_point`` arguments named ``start_point``
-and ``end_point``, you would do it like this::
-
-    cr> CREATE OR REPLACE FUNCTION calculate_distance(start_point geo_point, end_point geo_point)
-    ...  RETURNS real
-    ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function calculate_distance(start_point, end_point){
-    ...        return Math.sqrt( Math.pow(end_point[0] - start_point[0], 2), Math.pow(end_point[1] - start_point[1], 2));
-    ...      }';
+    cr> CREATE OR REPLACE FUNCTION calculate_distance("start" geo_point, "end" geo_point)
+    ... RETURNS real
+    ... LANGUAGE JAVASCRIPT
+    ... AS 'function calculate_distance(start, end) {
+    ...       return Math.sqrt(
+    ...            Math.pow(end[0] - start[0], 2),
+    ...            Math.pow(end[1] - start[1], 2));
+    ...    }';
     CREATE OK, 1 row affected  (... sec)
 
 
@@ -78,15 +80,13 @@ and ``end_point``, you would do it like this::
     Argument names are used for query documentation purposes only. You cannot
     reference arguments by name in the function body.
 
-Optionally, you can specify a schema for the function. If you omit the schema,
-the current session schema is used.
-
-You can explicitly assign a schema like this::
+Optionally, a schema-qualified function name can be defined. If you omit the
+schema, the current session schema is used::
 
     cr> CREATE OR REPLACE FUNCTION my_schema.log10(bigint)
-    ...  RETURNS double precision
-    ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function log10(a) { return Math.log(a)/Math.log(10); }';
+    ... RETURNS double precision
+    ... LANGUAGE JAVASCRIPT
+    ... AS 'function log10(a) { return Math.log(a)/Math.log(10); }';
     CREATE OK, 1 row affected  (... sec)
 
 .. NOTE::
@@ -105,9 +105,9 @@ You can explicitly assign a schema like this::
 Supported types
 ===============
 
-The argument types, and the return type of the function can be any of the
-CrateDB supported :ref:`data-types`. Data types of values passed into a
-function must strictly correspond to its argument data types.
+Function arguments and return values can be any supported :ref:`data-types`.
+The values passed into a function must strictly correspond to the specified
+argument data types.
 
 .. NOTE::
 
@@ -118,30 +118,30 @@ function must strictly correspond to its argument data types.
 Overloading
 ===========
 
-Within a specific schema, you can overload functions by defining two functions
-with the same name that have a different set of arguments::
+Within a specific schema, you can overload functions by defining functions
+with the same name but a different set of arguments::
 
     cr> CREATE FUNCTION my_schema.my_multiply(integer, integer)
-    ...  RETURNS integer
-    ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function my_multiply(a, b) { return a * b; }';
+    ... RETURNS integer
+    ... LANGUAGE JAVASCRIPT
+    ... AS 'function my_multiply(a, b) { return a * b; }';
     CREATE OK, 1 row affected  (... sec)
 
-This would overload our ``my_multiply`` function with different argument
+This would overload the ``my_multiply`` function with different argument
 types::
 
     cr> CREATE FUNCTION my_schema.my_multiply(bigint, bigint)
-    ...  RETURNS bigint
-    ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function my_multiply(a, b) { return a * b; }';
+    ... RETURNS bigint
+    ... LANGUAGE JAVASCRIPT
+    ... AS 'function my_multiply(a, b) { return a * b; }';
     CREATE OK, 1 row affected  (... sec)
 
-This would overload our ``my_multiply`` function with more arguments::
+This would overload the ``my_multiply`` function with more arguments::
 
     cr> CREATE FUNCTION my_schema.my_multiply(bigint, bigint, bigint)
-    ...  RETURNS bigint
-    ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function my_multiply(a, b, c) { return a * b * c; }';
+    ... RETURNS bigint
+    ... LANGUAGE JAVASCRIPT
+    ... AS 'function my_multiply(a, b, c) { return a * b * c; }';
     CREATE OK, 1 row affected  (... sec)
 
 .. CAUTION::
@@ -197,31 +197,44 @@ Optionally, you can provide a schema::
 Supported languages
 ===================
 
-CrateDB currently only supports the UDF language ``javascript``.
+CrateDB currently only supports the ``JavaScript`` user-defined functions.
 
 .. _udf_lang_js:
 
 JavaScript
 ----------
 
-The UDF language ``javascript`` supports the `ECMAScript 5.1`_ standard.
+The user defined function JavaScript is compatible with the `ECMAScript 2019`_
+specification.
 
 .. NOTE::
 
    The JavaScript language is an :ref:`enterprise feature
    <enterprise-features>`.
 
-CrateDB uses the Java built-in JavaScript engine Nashorn_ to interpret and
-execute functions written in JavaScript. The engine is initialized using the
-``--no-java`` option which basically restricts all access to Java APIs from
-within the JavaScript context. CrateDB's engine also does not allow
-non-standard syntax extensions (``--no-syntax-extensions``).
+CrateDB uses the `GraalVM JavaScript`_ engine as a JavaScript (ECMAScript)
+language execution runtime. The `GraalVM JavaScript`_ engine is a Java
+application that works on the stock Java Virtual Machines (VMs). The
+interoperability between Java code (host language) and JavaScript user-defined
+functions (guest language) is guaranteed by the `GraalVM Polyglot API`_.
+
+Please note: CrateDB does not use the GraalVM JIT compiler as optimizing
+compiler. However, the `stock host Java VM JIT compilers`_ can JIT-compile,
+optimize, and execute the GraalVM JavaScript codebase to a certain extent.
+
+The execution context for guest JavaScript is created with restricted
+privileges to allow for the safe execution of less trusted guest language
+code. The guest language application context for each user-defined function
+is created with default access modifiers, so any access to managed resources
+is denied. The only exception is the host language interoperability
+configuration which explicitly allows access to Java lists and arrays. Please
+refer to `GraalVM Security Guide`_ for more detailed information.
 
 **This, however, does not mean that JavaScript is securely sandboxed.**
 
-Also, even though Nashorn runs ECMA-complient JavaScript, objects that are
-normally accessible with a web browser (e.g. ``window``, ``console`` and so on)
-are are not available.
+Also, even though user-defined functions implemented with ECMA-compliant
+JavaScript, objects that are normally accessible with a web browser
+(e.g. ``window``, ``console``, and so on) are not available.
 
 .. CAUTION::
 
@@ -242,39 +255,39 @@ function must return a ``double precision`` array of size 2, ``WKT`` string or
 Here is an example of a JavaScript function returning a ``double array``::
 
     cr> CREATE FUNCTION rotate_point(point geo_point, angle real)
-    ...  RETURNS geo_point
-    ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function rotate_point(point, angle) {
-    ...        var cos = Math.cos(angle);
-    ...        var sin = Math.sin(angle);
-    ...        var x = cos * point[0] - sin * point[1];
-    ...        var y = sin * point[0] + cos * point[1];
-    ...        return [x, y];
-    ...      }';
+    ... RETURNS geo_point
+    ... LANGUAGE JAVASCRIPT
+    ... AS 'function rotate_point(point, angle) {
+    ...       var cos = Math.cos(angle);
+    ...       var sin = Math.sin(angle);
+    ...       var x = cos * point[0] - sin * point[1];
+    ...       var y = sin * point[0] + cos * point[1];
+    ...       return [x, y];
+    ...    }';
     CREATE OK, 1 row affected  (... sec)
 
 Below is an example of a JavaScript function returning a ``WKT`` string, which
 will be cast to ``geo_point``::
 
      cr> CREATE FUNCTION symmetric_point(point geo_point)
-     ...  RETURNS geo_point
-     ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function symmetric_point (point, angle) {
-     ...        var x = - point[0],
-     ...            y = - point[1];
-     ...        return "POINT (\" + x + \", \" + y +\")";
-     ...      }';
+     ... RETURNS geo_point
+     ... LANGUAGE JAVASCRIPT
+     ... AS 'function symmetric_point (point, angle) {
+     ...       var x = - point[0],
+     ...           y = - point[1];
+     ...       return "POINT (\" + x + \", \" + y +\")";
+     ...    }';
      CREATE OK, 1 row affected  (... sec)
 
 Similarly, if the function specifies the ``geo_shape`` return data type, then
-the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
+the JavaScript function should return a ``GeoJson`` object or ``WKT`` string::
 
-     cr> CREATE FUNCTION line(start_point array(double precision), end_point array(double precision))
-     ...  RETURNS object
-     ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function line(start_point, end_point) {
+     cr> CREATE FUNCTION line("start" array(double precision), "end" array(double precision))
+     ... RETURNS object
+     ... LANGUAGE JAVASCRIPT
+     ... AS 'function line(start, end) {
      ...        return { "type": "LineString", "coordinates" : [start_point, end_point] };
-     ...      }';
+     ...    }';
      CREATE OK, 1 row affected  (... sec)
 
 .. NOTE::
@@ -285,7 +298,7 @@ the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
 Working with ``NUMBERS``
 ------------------------
 
-The JavaScript engine Nashorn_ interprets numbers as ``java.lang.Double``,
+The JavaScript engine interprets numbers as ``java.lang.Double``,
 ``java.lang.Long``, or ``java.lang.Integer``, depending on the computation
 performed. In most cases, this is not an issue, since the return type of the
 JavaScript function will be cast to the return type specified in the ``CREATE
@@ -296,11 +309,11 @@ However, when you try to cast ``DOUBLE PRECISION`` to
 result in a wrong value::
 
      cr> CREATE FUNCTION utc(bigint, bigint, bigint)
-     ...  RETURNS TIMESTAMP WITH TIME ZONE
-     ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function utc(year, month, day) {
-     ...        return Date.UTC(year, month, day, 0, 0, 0);
-     ...      }';
+     ... RETURNS TIMESTAMP WITH TIME ZONE
+     ... LANGUAGE JAVASCRIPT
+     ... AS 'function utc(year, month, day) {
+     ...       return Date.UTC(year, month, day, 0, 0, 0);
+     ...    }';
      CREATE OK, 1 row affected  (... sec)
 
 .. hide:
@@ -326,11 +339,11 @@ To avoid this behavior, the numeric value should be divided by 1000 before it
 is returned::
 
      cr> CREATE FUNCTION utc(bigint, bigint, bigint)
-     ...  RETURNS TIMESTAMP WITH TIME ZONE
-     ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function utc(year, month, day) {
-     ...        return Date.UTC(year, month, day, 0, 0, 0)/1000;
-     ...      }';
+     ... RETURNS TIMESTAMP WITH TIME ZONE
+     ... LANGUAGE JAVASCRIPT
+     ... AS 'function utc(year, month, day) {
+     ...       return Date.UTC(year, month, day, 0, 0, 0)/1000;
+     ...    }';
      CREATE OK, 1 row affected  (... sec)
 
 .. hide:
@@ -406,5 +419,8 @@ passed as array-like objects.
 .. _slice: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
 .. _reduce: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
 
-.. _Nashorn: http://www.oracle.com/technetwork/articles/java/jf14-nashorn-2126515.html
-.. _ECMAScript 5.1: https://www.ecma-international.org/ecma-262/5.1/
+.. _ECMAScript 2019: https://www.ecma-international.org/ecma-262/10.0/
+.. _GraalVM JavaScript: https://www.graalvm.org/docs/reference-manual/languages/js/
+.. _GraalVM Polyglot API: https://www.graalvm.org/docs/reference-manual/polyglot/
+.. _stock host Java VM JIT compilers: https://www.graalvm.org/docs/reference-manual/languages/JavaScript/user/RunOnJDK
+.. _GraalVM Security Guide: https://www.graalvm.org/docs/security-guide/

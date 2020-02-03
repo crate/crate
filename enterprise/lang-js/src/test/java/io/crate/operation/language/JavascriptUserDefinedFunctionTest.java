@@ -18,8 +18,6 @@
 
 package io.crate.operation.language;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
@@ -34,9 +32,7 @@ import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
@@ -48,7 +44,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
@@ -58,24 +53,26 @@ import static org.mockito.Mockito.mock;
 
 public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTest {
 
-    @Rule
-    public final ExpectedException exception = ExpectedException.none();
+    private static final String JS = JavaScriptLanguage.NAME;
 
-    private static final String JS = "javascript";
+    private HashMap<FunctionIdent, FunctionImplementation> functionImplementations = new HashMap<>();
     private UserDefinedFunctionService udfService;
 
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        udfService = new UserDefinedFunctionService(mock(ClusterService.class), functions);
+        udfService = new UserDefinedFunctionService(
+            mock(ClusterService.class),
+            functions);
         udfService.registerLanguage(new JavaScriptLanguage(udfService));
     }
 
-    private Map<FunctionIdent, FunctionImplementation> functionImplementations = new HashMap<>();
-
-    private void registerUserDefinedFunction(String name, DataType returnType, List<DataType> types, String definition) throws ScriptException {
-        UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+    private void registerUserDefinedFunction(String name,
+                                             DataType returnType,
+                                             List<DataType> types,
+                                             String definition) throws ScriptException {
+        var udfMetaData = new UserDefinedFunctionMetaData(
             Schemas.DOC_SCHEMA_NAME,
             name,
             types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
@@ -84,11 +81,11 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             definition
         );
 
-        String validation = udfService.getLanguage(JS).validate(udfMeta);
+        String validation = udfService.getLanguage(JS).validate(udfMetaData);
         if (validation == null) {
             functionImplementations.put(
                 new FunctionIdent(Schemas.DOC_SCHEMA_NAME, name, types),
-                udfService.getLanguage(JS).createFunctionImplementation(udfMeta)
+                udfService.getLanguage(JS).createFunctionImplementation(udfMetaData)
             );
             functions.registerUdfResolversForSchema(Schemas.DOC_SCHEMA_NAME, functionImplementations);
         } else {
@@ -103,37 +100,40 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testObjectReturnType() throws Exception {
-        registerUserDefinedFunction("f", ObjectType.untyped(), ImmutableList.of(),
+        registerUserDefinedFunction(
+            "f",
+            ObjectType.untyped(),
+            List.of(),
             "function f() { return JSON.parse('{\"foo\": \"bar\"}'); }");
-        assertEvaluate("f()", ImmutableMap.of("foo", "bar"));
+        assertEvaluate("f()", Map.of("foo", "bar"));
     }
 
     @Test
     public void testValidateCatchesScriptException() {
-        UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+        var udfMeta = new UserDefinedFunctionMetaData(
             Schemas.DOC_SCHEMA_NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),
             DataTypes.DOUBLE_ARRAY,
             JS,
-            "function f(a) { return a[0]1*#?; }"
-        );
+            "function f(a) { return a[0]1*#?; }");
 
-        String validation = udfService.getLanguage(JS).validate(udfMeta);
-        assertThat(validation, startsWith("Invalid JavaScript in function 'doc.f(double precision)'"));
-        assertThat(validation, endsWith("^ in <eval> at line number 1 at column number 27"));
+        assertThat(
+            udfService.getLanguage(JS).validate(udfMeta),
+            containsString(
+                "Invalid JavaScript in function 'doc.f(double precision)' AS 'function f(a) " +
+                "{ return a[0]1*#?; }': SyntaxError: f:1:27 Expected ; but found 1"));
     }
 
     @Test
     public void testValidateCatchesAssertionError() {
-        UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+        var udfMeta = new UserDefinedFunctionMetaData(
             Schemas.DOC_SCHEMA_NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),
             DataTypes.DOUBLE_ARRAY,
             JS,
-            "var f = (a) => a * a;"
-        );
+            "var f = (a) => a * a;");
 
         String validation = udfService.getLanguage(JS).validate(udfMeta);
         String javaVersion = System.getProperty("java.specification.version");
@@ -148,77 +148,102 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     }
 
     @Test
-    public void testValidJavascript() throws Exception {
-        UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+    public void testValidJavascript() {
+        var udfMeta = new UserDefinedFunctionMetaData(
             Schemas.DOC_SCHEMA_NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY)),
             DataTypes.DOUBLE,
             JS,
-            "function f(a) { return a[0]; }"
-        );
-
-        String validation = udfService.getLanguage(JS).validate(udfMeta);
-        assertNull(validation);
+            "function f(a) { return a[0]; }");
+        assertThat(udfService.getLanguage(JS).validate(udfMeta), is(nullValue()));
     }
 
     @Test
     public void testArrayReturnType() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.DOUBLE_ARRAY, ImmutableList.of(), "function f() { return [1, 2]; }");
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.DOUBLE_ARRAY,
+            List.of(),
+            "function f() { return [1, 2]; }");
         assertEvaluate("f()", List.of(1.0, 2.0));
     }
 
     @Test
     public void testTimestampReturnType() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.TIMESTAMPZ, ImmutableList.of(),
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.TIMESTAMPZ,
+            List.of(),
             "function f() { return \"1990-01-01T00:00:00\"; }");
         assertEvaluate("f()", 631152000000L);
     }
 
     @Test
     public void testIpReturnType() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.IP, ImmutableList.of(), "function f() { return \"127.0.0.1\"; }");
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.IP,
+            List.of(),
+            "function f() { return \"127.0.0.1\"; }");
         assertEvaluate("f()", DataTypes.IP.value("127.0.0.1"));
     }
 
     @Test
     public void testPrimitiveReturnType() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.INTEGER, ImmutableList.of(), "function f() { return 10; }");
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.INTEGER,
+            List.of(),
+            "function f() { return 10; }");
         assertEvaluate("f()", 10);
     }
 
     @Test
     public void testObjectReturnTypeAndInputArguments() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.FLOAT, ImmutableList.of(DataTypes.DOUBLE, DataTypes.SHORT),
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.FLOAT,
+            List.of(DataTypes.DOUBLE, DataTypes.SHORT),
             "function f(x, y) { return x + y; }");
         assertEvaluate("f(double_val, short_val)", 3.0f, Literal.of(1), Literal.of(2));
     }
 
     @Test
     public void testPrimitiveReturnTypeAndInputArguments() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.FLOAT, ImmutableList.of(DataTypes.DOUBLE, DataTypes.SHORT),
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.FLOAT,
+            List.of(DataTypes.DOUBLE, DataTypes.SHORT),
             "function f(x, y) { return x + y; }");
         assertEvaluate("f(double_val, short_val)", 3.0f, Literal.of(1), Literal.of(2));
     }
 
     @Test
     public void testGeoTypeReturnTypeWithDoubleArray() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.GEO_POINT, ImmutableList.of(), "function f() { return [1, 1]; }");
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.GEO_POINT,
+            List.of(),
+            "function f() { return [1, 1]; }");
         assertEvaluate("f()", new PointImpl(1.0, 1.0, JtsSpatialContext.GEO));
     }
 
     @Test
     public void testGeoTypeReturnTypeWithWKT() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.GEO_POINT, ImmutableList.of(),
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.GEO_POINT,
+            List.of(),
             "function f() { return \"POINT (1.0 2.0)\"; }");
         assertEvaluate("f()", new PointImpl(1.0, 2.0, JtsSpatialContext.GEO));
     }
 
     @Test
     public void testOverloadingUserDefinedFunctions() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.LONG, ImmutableList.of(), "function f() { return 1; }");
-        registerUserDefinedFunction("f", DataTypes.LONG, ImmutableList.of(DataTypes.LONG), "function f(x) { return x; }");
-        registerUserDefinedFunction("f", DataTypes.LONG, ImmutableList.of(DataTypes.LONG, DataTypes.INTEGER),
+        registerUserDefinedFunction("f", DataTypes.LONG, List.of(), "function f() { return 1; }");
+        registerUserDefinedFunction("f", DataTypes.LONG, List.of(DataTypes.LONG), "function f(x) { return x; }");
+        registerUserDefinedFunction("f", DataTypes.LONG, List.of(DataTypes.LONG, DataTypes.INTEGER),
             "function f(x, y) { return x + y; }");
         assertEvaluate("f()", 1L);
         assertEvaluate("f(x)", 2L, Literal.of(2));
@@ -226,69 +251,100 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     }
 
     @Test
-    public void testFunctionWrongNameInFunctionBody() throws Exception {
-        exception.expect(io.crate.exceptions.ScriptException.class);
-        exception.expectMessage("The name of the function signature doesn't match");
-        registerUserDefinedFunction("test", DataTypes.LONG, ImmutableList.of(), "function f() { return 1; }");
-        assertEvaluate("test()", 1L);
+    public void testFunctionWrongNameInFunctionBody() {
+        var udfMeta = new UserDefinedFunctionMetaData(
+            Schemas.DOC_SCHEMA_NAME,
+            "f",
+            Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),
+            DataTypes.DOUBLE_ARRAY,
+            JS,
+            "function test() { return 1; }");
+
+        assertThat(
+            udfService.getLanguage(JS).validate(udfMeta),
+            containsString(
+                "The name of the function signature 'f' doesn't " +
+                "match the function name in the function definition"));
     }
 
     @Test
     public void testNormalizeOnObjectInput() throws Exception {
-        registerUserDefinedFunction("f", ObjectType.untyped(), ImmutableList.of(ObjectType.untyped()),
+        registerUserDefinedFunction(
+            "f",
+            ObjectType.untyped(),
+            List.of(ObjectType.untyped()),
             "function f(x) { return x; }");
-        assertNormalize("f({})", isLiteral(new HashMap<>()));
+        assertNormalize("f({})", isLiteral(Map.of()));
     }
 
     @Test
     public void testNormalizeOnArrayInput() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.LONG, ImmutableList.of(DataTypes.DOUBLE_ARRAY),
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.LONG,
+            List.of(DataTypes.DOUBLE_ARRAY),
             "function f(x) { return x[1]; }");
         assertNormalize("f([1.0, 2.0])", isLiteral(2L));
     }
 
     @Test
     public void testNormalizeOnStringInputs() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(DataTypes.STRING),
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.STRING,
+            List.of(DataTypes.STRING),
             "function f(x) { return x; }");
         assertNormalize("f('bar')", isLiteral("bar"));
     }
 
     @Test
     public void testAccessJavaClasses() throws Exception {
-        exception.expect(io.crate.exceptions.ScriptException.class);
-        exception.expectMessage(anyOf(
-            containsString("has no such function \"type\""),
-            containsString("ReferenceError: \"Java\" is not defined")
-        ));
-        registerUserDefinedFunction("f", DataTypes.LONG, ImmutableList.of(DataTypes.LONG),
+        expectedException.expect(io.crate.exceptions.ScriptException.class);
+        expectedException.expectMessage(containsString("Java is not defined"));
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.LONG,
+            List.of(DataTypes.LONG),
             "function f(x) { var File = Java.type(\"java.io.File\"); return x; }");
         assertEvaluate("f(x)", 1L, Literal.of(1L));
     }
 
     @Test
     public void testEvaluateBytesRefConvertedToString() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(DataTypes.STRING),
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.STRING,
+            List.of(DataTypes.STRING),
             "function f(name) { return 'foo' + name; }");
         assertEvaluate("f(name)", "foobar", Literal.of("bar"));
     }
 
     @Test
     public void testJavaScriptFunctionReturnsUndefined() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(DataTypes.STRING),
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.STRING,
+            List.of(DataTypes.STRING),
             "function f(name) { }");
         assertEvaluate("f(name)", null, Literal.of("bar"));
     }
 
     @Test
     public void testJavaScriptFunctionReturnsNull() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(), "function f() { return null; }");
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.STRING,
+            List.of(),
+            "function f() { return null; }");
         assertEvaluate("f()", null);
     }
 
     @Test
     public void testStringArrayTypeArgument() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(DataTypes.STRING_ARRAY),
+        registerUserDefinedFunction(
+            "f",
+            DataTypes.STRING,
+            List.of(DataTypes.STRING_ARRAY),
             "function f(a) { return Array.prototype.join.call(a, '.'); }");
         assertEvaluate("f(['a', 'b'])", is("a.b"));
         assertEvaluate("f(['a', 'b'])", is("a.b"), Literal.of(List.of("a", "b"), DataTypes.STRING_ARRAY));
