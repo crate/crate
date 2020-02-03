@@ -100,6 +100,7 @@ public class TranslateFunction extends Scalar<String, String> {
 
     private class WithPrecomputedTranslate extends TranslateFunction {
         private final HashMap<Character, Consumer<StringBuilder>> translationMap;
+
         private WithPrecomputedTranslate(HashMap<Character, Consumer<StringBuilder>> translationMap) {
             this.translationMap = translationMap;
         }
@@ -108,6 +109,9 @@ public class TranslateFunction extends Scalar<String, String> {
         @Override
         public final String evaluate(TransactionContext txnCtx, Input<String>... args) {
             var text = args[0].value();
+            var from = args[1].value();
+            var to = args[2].value();
+
             if (text == null) {
                 return null;
             }
@@ -115,13 +119,36 @@ public class TranslateFunction extends Scalar<String, String> {
             if (text.isEmpty()) {
                 return text;
             } else {
-                return translate(text, translationMap);
+                return translate(text, from, to);
             }
         }
     }
 
     protected String translate(String text, String from, String to) {
-        return translate(text, createTranslationMap(from, to));
+        var resultSb = new StringBuilder();
+        var fromChars = from.toCharArray();
+        var fromLength = fromChars.length;
+        var toChars = to.toCharArray();
+        var toLength = toChars.length;
+
+        for (int textIdx = 0; textIdx < text.length(); textIdx++) {
+            var textChar = text.charAt(textIdx);
+
+            int lookupIdx = 0;
+
+            for (;lookupIdx < fromLength && textChar != fromChars[lookupIdx]; lookupIdx++);
+
+            if (lookupIdx < fromLength) {
+                // translation found, the char from "to" is appended, or skipped if there is not match in "to".
+                if (lookupIdx < toLength) {
+                    resultSb.append(toChars[lookupIdx]);
+                }
+            } else {
+                // translation for the char not found, therefore the current char is appended
+                resultSb.append(textChar);
+            }
+        }
+        return resultSb.toString();
     }
 
     protected String translate(String text, HashMap<Character, Consumer<StringBuilder>> translationMap) {

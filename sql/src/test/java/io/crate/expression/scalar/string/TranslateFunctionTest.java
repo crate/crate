@@ -72,9 +72,7 @@ public class TranslateFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testWithDuplicateCharsInFromField() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Argument 'from' contains duplicate characters 'C'");
-        assertEvaluate("translate('Create', 'CtC', 'Dk')", null);
+        assertNormalize("translate('Crate', 'CtC', 'Dk')", isLiteral("Drake"));
     }
 
     @Test
