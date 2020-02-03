@@ -23,31 +23,112 @@
 package io.crate.expression.scalar.string;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.scalar.TripleScalar;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-public final class TranslateFunction {
-    public static void register(ScalarFunctionModule module) {
-        var functionInfo = new FunctionInfo(new FunctionIdent("translate", ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING)), DataTypes.STRING);
-        module.register(new TripleScalar<>(functionInfo, TranslateFunction::translate));
+public class TranslateFunction extends Scalar<String, String> {
+    private final FunctionInfo functionInfo = new FunctionInfo(
+        new FunctionIdent("translate", ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING)),
+        DataTypes.STRING);
+
+    public TranslateFunction() {
     }
 
-    private static String translate(String text, String from, String to) {
-        if (from.isEmpty() || text.isEmpty()) {
+    @Override
+    public FunctionInfo info() {
+        return functionInfo;
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(new TranslateFunction());
+    }
+
+    @Override
+    public Scalar<String, String> compile(List<Symbol> arguments) {
+        assert arguments.size() == 3 : "function's number of arguments must be 3";
+
+        Symbol fromSymbol = arguments.get(1);
+        if (!Literal.isLiteral(fromSymbol, DataTypes.STRING)) {
+            return this;
+        }
+
+        Symbol toSymbol = arguments.get(2);
+        if (!Literal.isLiteral(toSymbol, DataTypes.STRING)) {
+            return this;
+        }
+
+        var fromStr = (String) ((Input) fromSymbol).value();
+        var toStr = (String) ((Input) toSymbol).value();
+        return new WithPrecomputedTranslate(createTranslationMap(fromStr, toStr));
+    }
+
+    @Override
+    public String evaluate(TransactionContext txnCtx, Input<String>... args) {
+        var text = args[0].value();
+        if (text == null) {
+            return null;
+        }
+
+        var from = args[1].value();
+        if (from == null) {
+            return null;
+        }
+
+        var to = args[2].value();
+        if (to == null) {
+            return null;
+        }
+
+        if (text.isEmpty() || from.isEmpty()) {
             return text;
         } else {
-            return applyTranslationsToText(text, createTranslationMap(from, to));
+            return translate(text, from, to);
         }
     }
 
-    private static HashMap<Character, Consumer<StringBuilder>> createTranslationMap(String from, String to) {
+    private class WithPrecomputedTranslate extends TranslateFunction {
+        private final HashMap<Character, Consumer<StringBuilder>> translationMap;
+        private WithPrecomputedTranslate(HashMap<Character, Consumer<StringBuilder>> translationMap) {
+            this.translationMap = translationMap;
+        }
+
+        @SafeVarargs
+        @Override
+        public final String evaluate(TransactionContext txnCtx, Input<String>... args) {
+            var text = args[0].value();
+            if (text == null) {
+                return null;
+            }
+
+            if (text.isEmpty()) {
+                return text;
+            } else {
+                return translate(text, translationMap);
+            }
+        }
+    }
+
+    protected String translate(String text, String from, String to) {
+        return translate(text, createTranslationMap(from, to));
+    }
+
+    protected String translate(String text, HashMap<Character, Consumer<StringBuilder>> translationMap) {
+        return applyTranslationsToText(text, translationMap);
+    }
+
+    private HashMap<Character, Consumer<StringBuilder>> createTranslationMap(String from, String to) {
         var translationMap = new HashMap<Character, Consumer<StringBuilder>>();
         var fromLength = from.length();
         var toLength = to.length();
@@ -61,23 +142,25 @@ public final class TranslateFunction {
                 final var toChar = to.charAt(i);
                 translationMap.put(fromChar, (sb) -> sb.append(toChar));
             } else {
-                translationMap.put(fromChar, (sb) -> {});
+                translationMap.put(fromChar, (sb) -> {
+                });
             }
         }
         return translationMap;
     }
 
-    private static String applyTranslationsToText(String text, HashMap<Character, Consumer<StringBuilder>> translationMap) {
+    private String applyTranslationsToText(String text, HashMap<Character, Consumer<StringBuilder>> translationMap) {
         var outputSb = new StringBuilder();
 
-        for (var ch: text.toCharArray()) {
-            if (translationMap.containsKey(ch)) {
-                translationMap.get(ch).accept(outputSb);
+        for (int i = 0; i < text.length(); i++) {
+            var fromChar = text.charAt(i);
+            var function = translationMap.get(fromChar);
+            if (function != null) {
+                function.accept(outputSb);
             } else {
-                outputSb.append(ch);
+                outputSb.append(fromChar);
             }
         }
-
         return outputSb.toString();
     }
 
@@ -85,7 +168,7 @@ public final class TranslateFunction {
      * Repeated occurrence of any char in the 'from' argument creates an ambiguity of resolving a correct translation.
      * Therefore, such arguments treated as invalid.
      */
-    private static void checkDuplicatesInFromArg(Character ch, HashMap<Character, Consumer<StringBuilder>> translationMap) {
+    private void checkDuplicatesInFromArg(Character ch, HashMap<Character, Consumer<StringBuilder>> translationMap) {
         if (translationMap.containsKey(ch)) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Argument 'from' contains duplicate characters '%s'", ch)
