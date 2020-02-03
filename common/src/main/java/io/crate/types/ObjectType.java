@@ -69,7 +69,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return new Builder();
     }
 
-    private ImmutableMap<String, DataType<?>> innerTypes;
+    private final ImmutableMap<String, DataType<?>> innerTypes;
 
     private ObjectType() {
         this(ImmutableMap.of());

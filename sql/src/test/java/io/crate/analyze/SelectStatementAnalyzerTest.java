@@ -2009,4 +2009,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("Relation 'foobar' unknown. Maybe you meant one of: fooobar, \"Foobaarr\"");
         analyze("select * from foobar");
     }
+
+    @Test
+    public void test_row_constructor_can_be_used_in_places_expressions_are_allowed() {
+        analyze("SELECT (name, 10) FROM users WHERE (name, text) = ('Arthur', 'foo') ORDER BY 1");
+    }
 }

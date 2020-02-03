@@ -116,6 +116,7 @@ import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.Row;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.SimpleCaseExpression;
 import io.crate.sql.tree.StringLiteral;
@@ -908,6 +909,11 @@ public class ExpressionAnalyzer {
                 period = period.negated();
             }
             return Literal.newInterval(period);
+        }
+
+        @Override
+        public Symbol visitRow(Row row, ExpressionAnalysisContext context) {
+            return super.visitRow(row, context);
         }
 
         @Override
