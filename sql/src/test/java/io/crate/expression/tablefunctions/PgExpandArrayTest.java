@@ -22,18 +22,27 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.testing.TestingHelpers;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
-public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
+import static org.hamcrest.CoreMatchers.is;
 
-    @Override
-    public void configureFunctions() {
-        UnnestFunction.register(this);
-        EmptyRowTableFunction.register(this);
-        GenerateSeries.register(this);
-        ValuesFunction.register(this);
-        PgGetKeywordsFunction.register(this);
-        PgExpandArray.register(this);
+public class PgExpandArrayTest extends AbstractTableFunctionsTest {
+
+    @Test
+    public void test_null_argument_to_pg_expand_array_returns_empty_result() {
+        var rows = execute("information_schema._pg_expandarray(null::text[])");
+        assertThat(rows, Matchers.emptyIterable());
+    }
+
+    @Test
+    public void test_pg_expand_array_returns_objects_containing_value_and_1based_idx() {
+        var result = execute("information_schema._pg_expandarray(['a', 'b', 'b'])");
+        String expectedResult =
+            "a| 1\n" +
+            "b| 2\n" +
+            "b| 3\n";
+        assertThat(TestingHelpers.printedTable(result), is(expectedResult));
     }
 }
