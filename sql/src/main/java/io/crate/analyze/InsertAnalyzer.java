@@ -28,9 +28,12 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.ExcludedFieldProvider;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
+import io.crate.analyze.relations.select.SelectAnalyzer;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.DynamicReference;
@@ -139,12 +142,53 @@ class InsertAnalyzer {
         final boolean ignoreDuplicateKeys =
             insert.duplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
 
+        List<Symbol> returnValues = List.of();
+        List<ColumnIdent> outputNames = List.of();
+
+        if (!insert.returningClause().isEmpty()) {
+            var stmtCtx = new StatementAnalysisContext(typeHints, Operation.INSERT, txnCtx);
+            var relCtx = stmtCtx.startRelation();
+            DocTableRelation targetTableRelation = (DocTableRelation) relationAnalyzer.analyze(insert.table(), stmtCtx);
+            stmtCtx.endRelation();
+
+            var exprCtx = new ExpressionAnalysisContext();
+            var sourceExprAnalyzer = new ExpressionAnalyzer(
+                functions,
+                txnCtx,
+                typeHints,
+                new FullQualifiedNameFieldProvider(
+                    relCtx.sources(),
+                    relCtx.parentSources(),
+                    txnCtx.sessionContext().searchPath().currentSchema()
+                ),
+                null
+            );
+
+            var selectAnalysis = SelectAnalyzer.analyzeSelectItems(
+                insert.returningClause(),
+                relCtx.sources(),
+                sourceExprAnalyzer,
+                exprCtx
+            );
+
+            var normalizer = new EvaluatingNormalizer(functions,
+                                                      RowGranularity.CLUSTER,
+                                                      null,
+                                                      targetTableRelation);
+
+            returnValues = Lists2.map(selectAnalysis.outputSymbols(), x -> normalizer.normalize(x, txnCtx));
+            outputNames = selectAnalysis.outputNames();
+
+        }
+
         return new AnalyzedInsertStatement(
             subQueryRelation,
             tableInfo,
             targetColumns,
             ignoreDuplicateKeys,
-            onDuplicateKeyAssignments);
+            onDuplicateKeyAssignments,
+            outputNames,
+            returnValues);
     }
 
     private static void verifyOnConflictTargets(Insert.DuplicateKeyContext duplicateKeyContext, DocTableInfo docTableInfo) {
