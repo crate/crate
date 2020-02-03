@@ -22,36 +22,23 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.Identifiers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
@@ -60,9 +47,9 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
 
     public static final String NAME = "pg_get_keywords";
     private static final FunctionName FUNCTION_NAME = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
-    private static final RelationName REL_NAME = new RelationName(PgCatalogSchemaInfo.NAME, NAME);
     private static final PgGetKeywordsFunction INSTANCE = new PgGetKeywordsFunction();
     private final FunctionInfo info;
+    private final ObjectType returnType;
 
     public static void register(TableFunctionModule module) {
         module.register(
@@ -78,46 +65,17 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
         );
     }
 
-    static class Columns {
-        static final ColumnIdent WORD = new ColumnIdent("word");
-        static final ColumnIdent CATCODE = new ColumnIdent("catcode");
-        static final ColumnIdent CATDESC = new ColumnIdent("catdesc");
-    }
-
     public PgGetKeywordsFunction() {
+        returnType = ObjectType.builder()
+            .setInnerType("word", DataTypes.STRING)
+            .setInnerType("catcode", DataTypes.STRING)
+            .setInnerType("catdesc", DataTypes.STRING)
+            .build();
         info = new FunctionInfo(
             new FunctionIdent(FUNCTION_NAME, List.of()),
-            ObjectType.untyped(),
+            returnType,
             FunctionInfo.Type.TABLE
         );
-    }
-
-    @Override
-    public TableInfo createTableInfo() {
-        LinkedHashMap<ColumnIdent, Reference> columnMap = new LinkedHashMap<>();
-        columnMap.put(
-            Columns.WORD,
-            new Reference(new ReferenceIdent(REL_NAME, Columns.WORD), RowGranularity.DOC, DataTypes.STRING, 0, null)
-        );
-        columnMap.put(
-            Columns.CATCODE,
-            new Reference(new ReferenceIdent(REL_NAME, Columns.CATCODE), RowGranularity.DOC, DataTypes.STRING, 1, null)
-        );
-        columnMap.put(
-            Columns.CATDESC,
-            new Reference(new ReferenceIdent(REL_NAME, Columns.CATDESC), RowGranularity.DOC, DataTypes.STRING, 2, null)
-        );
-        return new StaticTableInfo<>(REL_NAME, columnMap, columnMap.values(), List.of()) {
-
-            @Override
-            public Routing getRouting(ClusterState state,
-                                      RoutingProvider routingProvider,
-                                      WhereClause whereClause,
-                                      RoutingProvider.ShardSelection shardSelection,
-                                      SessionContext sessionContext) {
-                return Routing.forTableOnSingleNode(REL_NAME, state.getNodes().getLocalNodeId());
-            }
-        };
     }
 
     @Override
@@ -146,5 +104,10 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Override
+    public ObjectType returnType() {
+        return returnType;
     }
 }

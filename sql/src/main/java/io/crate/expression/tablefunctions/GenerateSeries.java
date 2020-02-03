@@ -22,48 +22,35 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.ObjectType;
 import io.crate.types.TimestampType;
-import org.elasticsearch.cluster.ClusterState;
 import org.joda.time.Period;
 
 import javax.annotation.Nonnull;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
@@ -84,13 +71,13 @@ import java.util.stream.Collectors;
 public final class GenerateSeries<T extends Number> extends TableFunctionImplementation<T> {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "generate_series");
-    private static final RelationName RELATION_NAME = new RelationName(PgCatalogSchemaInfo.NAME, NAME.name());
     private final FunctionInfo info;
     private final T defaultStep;
     private final BinaryOperator<T> minus;
     private final BinaryOperator<T> plus;
     private final BinaryOperator<T> divide;
     private final Comparator<T> comparator;
+    private final ObjectType returnType;
 
     public static void register(TableFunctionModule module) {
         Param startAndEnd = Param.of(DataTypes.LONG, DataTypes.INTEGER, DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP);
@@ -102,8 +89,8 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         module.register(NAME, new BaseFunctionResolver(paramsBuilder.build()) {
             @Override
             public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-                DataType startType = types.get(0);
-                DataType stopType = types.get(1);
+                DataType<?> startType = types.get(0);
+                DataType<?> stopType = types.get(1);
                 assert startType.equals(stopType) : "Start and stop type must be the same, got: " + startType + " and " + stopType;
                 if (types.size() == 2 && !startType.equals(DataTypes.INTEGER) && !startType.equals(DataTypes.LONG)) {
                     throw new IllegalArgumentException(
@@ -145,13 +132,8 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         this.divide = divide;
         this.comparator = comparator;
         FunctionIdent functionIdent = new FunctionIdent(NAME, dataTypes);
-        DataType returnType = dataTypes.get(0);
-        this.info = new FunctionInfo(functionIdent, returnType, FunctionInfo.Type.TABLE);
-    }
-
-    @Override
-    public TableInfo createTableInfo() {
-        return tableWith1Col(info.returnType());
+        this.returnType = ObjectType.builder().setInnerType("col1", dataTypes.get(0)).build();
+        this.info = new FunctionInfo(functionIdent, dataTypes.get(0), FunctionInfo.Type.TABLE);
     }
 
     @Override
@@ -214,52 +196,25 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         return info;
     }
 
-    private static TableInfo tableWith1Col(DataType<?> returnType) {
-        ColumnIdent col1 = new ColumnIdent("col1");
-        Reference reference = new Reference(
-            new ReferenceIdent(RELATION_NAME, col1),
-            RowGranularity.DOC,
-            returnType,
-            1,
-            null
-        );
-        Map<ColumnIdent, Reference> referenceByColumn = Collections.singletonMap(col1, reference);
-        return new StaticTableInfo(RELATION_NAME, referenceByColumn, Collections.singletonList(reference), Collections.emptyList()) {
-            @Override
-            public Routing getRouting(ClusterState state,
-                                      RoutingProvider routingProvider,
-                                      WhereClause whereClause,
-                                      RoutingProvider.ShardSelection shardSelection,
-                                      SessionContext sessionContext) {
-                return Routing.forTableOnSingleNode(RELATION_NAME, state.getNodes().getLocalNodeId());
-            }
-
-            @Override
-            public RowGranularity rowGranularity() {
-                return RowGranularity.DOC;
-            }
-        };
+    @Override
+    public ObjectType returnType() {
+        return returnType;
     }
 
     private static class GenerateSeriesIntervals extends TableFunctionImplementation<Object> {
 
         private final FunctionInfo info;
+        private final ObjectType returnType;
 
         public GenerateSeriesIntervals(List<DataType> types) {
             FunctionIdent functionIdent = new FunctionIdent(NAME, types);
-            DataType returnType = types.get(0);
-            this.info = new FunctionInfo(functionIdent, returnType, FunctionInfo.Type.TABLE);
+            returnType = ObjectType.builder().setInnerType("col1", types.get(0)).build();
+            this.info = new FunctionInfo(functionIdent, types.get(0), FunctionInfo.Type.TABLE);
         }
 
         @Override
         public FunctionInfo info() {
             return info;
-        }
-
-
-        @Override
-        public TableInfo createTableInfo() {
-            return tableWith1Col(info.returnType());
         }
 
         @Override
@@ -320,5 +275,9 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 .plusNanos(step.getMillis() * 1000_0000L);
         }
 
+        @Override
+        public ObjectType returnType() {
+            return returnType;
+        }
     }
 }

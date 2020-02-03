@@ -25,15 +25,70 @@ package io.crate.metadata.tablefunctions;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.table.TableInfo;
+import io.crate.types.ObjectType;
 
 /**
- * Interface which needs to be implemented by functions returning whole tables as result.
+ * <p>
+ *     Base class for table functions or set returning functions (SRF).
+ *     These are functions which return a set of rows.
+ * </p>
+ *
+ * <p>
+ *     A row can have multiple columns. These columns are specified by the inner types of {@link #returnType()}
+ * </p>
+ * <p>
+ *     The semantics of SRF can seem a bit odd:
+ * </p>
+ *
+ *  If the SRF is used in place of relations, e.g. the FROM clause, the inner types of the resultType are promoted to top-level columns
+ *
+ * <pre>
+ *     SELECT * FROM srf(...) as t (x, y);
+ *     x  | y
+ *     ---+---
+ *     ...
+ *     ...
+ * </pre>
+ *
+ * If the SRF is used in place of expressions, the SRF will return a single column as object type.
+ * Except if there is only a single column *within* the object type, in that case it is promoted:
+ *
+ * <pre>
+ *     SELECT srf(...)
+ *     srf
+ *     ------------
+ *     (val1, val2)          <-- object type. (Maybe a record or composite type later one, once we introduce it)
+ *
+ * vs.
+ *
+ *     SELECT srf(...)
+ *     srf
+ *     ---------------
+ *     1                    <-- {@link #info()#returnType()} will be a `bigint`,
+ *     2                         but {@link #returnType()} will be an ObjectType which describes the single column.
+ * </pre>
+ *
+ * This promotion behavior of `info()#returnType()` to the inner type of the object is necessary to support expressions like:
+ *
+ * <pre>
+ *     SELECT generate_series(1, 2) + 1; // objectType + longType would result in a cast error.
+ * </pre>
+ *
+ *
  */
 public abstract class TableFunctionImplementation<T> extends Scalar<Iterable<Row>, T> {
+
+    /**
+     * An ObjectType which describes the result of the table function.
+     *
+     * This can be the same as {@link #info()#returnType()},
+     * but if there is only a single inner type, then {@link #info()#returnType()} will return that inner-type directly.
+     *
+     * See the class documentation for more information about that behavior.
+     */
+    public abstract ObjectType returnType();
 
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
@@ -41,15 +96,4 @@ public abstract class TableFunctionImplementation<T> extends Scalar<Iterable<Row
         // The RelationAnalyzer expects a function symbol and can't deal with Literals
         return function;
     }
-
-    /**
-     * Creates the metadata for the table that is generated upon execution of this function. This is the actual return
-     * type of the table function.
-     * <p>
-     * Note: The result type of the {@link FunctionInfo} that is returned by {@link #info()}
-     * is ignored for table functions.
-     *
-     * @return a table info object representing the actual return type of the function.
-     */
-    public abstract TableInfo createTableInfo();
 }

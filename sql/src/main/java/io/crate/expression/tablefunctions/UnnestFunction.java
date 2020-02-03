@@ -23,58 +23,61 @@
 package io.crate.expression.tablefunctions;
 
 import com.google.common.collect.Iterators;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import static io.crate.metadata.functions.params.Param.ANY_ARRAY;
 
 public class UnnestFunction {
 
     public static final String NAME = "unnest";
-    private static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
     static class UnnestTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final FunctionInfo info;
+        private final ObjectType returnType;
 
-        private UnnestTableFunctionImplementation(FunctionInfo info) {
-            this.info = info;
+        private UnnestTableFunctionImplementation(List<DataType> argTypes) {
+            ObjectType.Builder returnTypeBuilder = ObjectType.builder();
+            for (int i = 0; i < argTypes.size(); i++) {
+                DataType<?> dataType = argTypes.get(i);
+                assert dataType instanceof ArrayType : "Arguments to unnest must be of type array due to type signature";
+                returnTypeBuilder.setInnerType("col" + (i + 1), ArrayType.unnest(dataType));
+            }
+            this.returnType = returnTypeBuilder.build();
+            this.info = new FunctionInfo(
+                new FunctionIdent(null, NAME, argTypes),
+                returnType.innerTypes().size() == 1
+                    ? returnType.innerTypes().values().iterator().next()
+                    : returnType,
+                FunctionInfo.Type.TABLE
+            );
         }
 
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Override
+        public ObjectType returnType() {
+            return returnType;
         }
 
         /**
@@ -97,15 +100,15 @@ public class UnnestFunction {
         private Iterator<Object>[] createIterators(ArrayList<List<Object>> valuesPerColumn) {
             Iterator[] iterators = new Iterator[valuesPerColumn.size()];
             for (int i = 0; i < valuesPerColumn.size(); i++) {
-                DataType dataType = info.ident().argumentTypes().get(i);
+                DataType<?> dataType = info.ident().argumentTypes().get(i);
                 assert dataType instanceof ArrayType : "Argument to unnest must be an array";
-                iterators[i] = createIterator(valuesPerColumn.get(i), (ArrayType) dataType);
+                iterators[i] = createIterator(valuesPerColumn.get(i), (ArrayType<?>) dataType);
             }
             //noinspection unchecked
             return iterators;
         }
 
-        private static Iterator<Object> createIterator(List<Object> objects, ArrayType type) {
+        private static Iterator<Object> createIterator(List<Object> objects, ArrayType<?> type) {
             if (objects == null) {
                 return Collections.emptyIterator();
             }
@@ -113,45 +116,12 @@ public class UnnestFunction {
                 @SuppressWarnings("unchecked")
                 List<Iterator<Object>> iterators = Lists2.map(
                     objects,
-                    x -> createIterator((List<Object>) x, (ArrayType) type.innerType())
+                    x -> createIterator((List<Object>) x, (ArrayType<?>) type.innerType())
                 );
                 return Iterators.concat(iterators.iterator());
             } else {
                 return objects.iterator();
             }
-        }
-
-        @Override
-        public TableInfo createTableInfo() {
-            int noElements = info.ident().argumentTypes().size();
-            Map<ColumnIdent, Reference> columnMap = new LinkedHashMap<>(noElements);
-            Collection<Reference> columns = new ArrayList<>(noElements);
-
-            for (int i = 0; i < info.ident().argumentTypes().size(); i++) {
-                ColumnIdent columnIdent = new ColumnIdent("col" + (i + 1));
-                DataType dataType = ArrayType.unnest(info.ident().argumentTypes().get(i));
-                Reference reference = new Reference(
-                    new ReferenceIdent(TABLE_IDENT, columnIdent), RowGranularity.DOC, dataType, i, null
-                );
-
-                columns.add(reference);
-                columnMap.put(columnIdent, reference);
-            }
-            return new StaticTableInfo(TABLE_IDENT, columnMap, columns, Collections.emptyList()) {
-                @Override
-                public RowGranularity rowGranularity() {
-                    return RowGranularity.DOC;
-                }
-
-                @Override
-                public Routing getRouting(ClusterState state,
-                                          RoutingProvider routingProvider,
-                                          WhereClause whereClause,
-                                          RoutingProvider.ShardSelection shardSelection,
-                                          SessionContext sessionContext) {
-                    return Routing.forTableOnSingleNode(TABLE_IDENT, state.getNodes().getLocalNodeId());
-                }
-            };
         }
     }
 
@@ -161,9 +131,7 @@ public class UnnestFunction {
 
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                DataType returnType = dataTypes.size() == 1 ? ArrayType.unnest(dataTypes.get(0)) : ObjectType.untyped();
-                return new UnnestTableFunctionImplementation(
-                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.TABLE));
+                return new UnnestTableFunctionImplementation(dataTypes);
             }
         });
     }

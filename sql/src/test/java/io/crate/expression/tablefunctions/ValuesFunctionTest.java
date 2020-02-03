@@ -102,7 +102,7 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_function_arguments_must_have_array_types() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Function argument must have an array data type, but was 'text'");
-        functions.getQualified(new FunctionIdent(ValuesFunction.NAME, List.of(DataTypes.STRING)));
+        expectedException.expectMessage("Cannot cast `200` of type `bigint` to type `undefined_array`");
+        assertExecute("_values(200)", "");
     }
 }

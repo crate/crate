@@ -98,7 +98,6 @@ import io.crate.sql.tree.ValuesList;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -802,15 +801,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 columnValues
             ));
         }
-        Function function = new Function(
-            new FunctionInfo(
-                new FunctionIdent(ValuesFunction.NAME, Symbols.typeView(arrays)),
-                ObjectType.untyped(),
-                FunctionInfo.Type.TABLE
-            ),
-            arrays
-        );
-        FunctionImplementation implementation = functions.getQualified(function.info().ident());
+        FunctionIdent functionIdent = new FunctionIdent(ValuesFunction.NAME, Symbols.typeView(arrays));
+        FunctionImplementation implementation = functions.getQualified(functionIdent);
+        Function function = new Function(implementation.info(), arrays);
         TableFunctionImplementation<?> tableFunc = TableFunctionFactory.from(implementation);
         QualifiedName qualifiedName = new QualifiedName(ValuesFunction.NAME);
         TableFunctionRelation relation = new TableFunctionRelation(

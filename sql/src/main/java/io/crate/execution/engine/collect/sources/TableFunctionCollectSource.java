@@ -37,10 +37,9 @@ import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -64,15 +63,24 @@ public class TableFunctionCollectSource implements CollectSource {
                                           boolean supportMoveToStart) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
         TableFunctionImplementation<?> functionImplementation = phase.functionImplementation();
-        TableInfo tableInfo = functionImplementation.createTableInfo();
+        ObjectType objectType = functionImplementation.returnType();
 
         //noinspection unchecked  Only literals can be passed to table functions. Anything else is invalid SQL
         List<Input<?>> inputs = (List<Input<?>>) (List) phase.functionArguments();
-        List<Reference> columns = new ArrayList<>(tableInfo.columns());
 
         List<Input<?>> topLevelInputs = new ArrayList<>(phase.toCollect().size());
-        InputFactory.Context<InputCollectExpression> ctx =
-            inputFactory.ctxForRefs(txnCtx, i -> new InputCollectExpression(columns.indexOf(i)));
+        List<String> columns = List.copyOf(objectType.innerTypes().keySet());
+        InputFactory.Context<InputCollectExpression> ctx = inputFactory.ctxForRefs(
+            txnCtx,
+            ref -> {
+                for (int i = 0; i < columns.size(); i++) {
+                    String column = columns.get(i);
+                    if (ref.column().isTopLevel() && ref.column().name().equals(column)) {
+                        return new InputCollectExpression(i);
+                    }
+                }
+                throw new IllegalStateException("Column `" + ref + "` not found in " + functionImplementation.info().ident());
+            });
         for (Symbol symbol : phase.toCollect()) {
             topLevelInputs.add(ctx.add(symbol));
         }
