@@ -33,6 +33,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -71,7 +72,24 @@ public class TranslateFunction extends Scalar<String, String> {
 
         var fromStr = (String) ((Input) fromSymbol).value();
         var toStr = (String) ((Input) toSymbol).value();
-        return new WithPrecomputedTranslate(createTranslationMap(fromStr, toStr));
+        var toLength = toStr.length();
+
+        var sortedFromChars = fromStr.toCharArray();
+        Arrays.sort(sortedFromChars);
+
+        var lookupIndexes = new int [sortedFromChars.length];
+
+        for (int i = 0; i < sortedFromChars.length; i++) {
+            var ch = fromStr.charAt(i);
+            var lookupIdx = Arrays.binarySearch(sortedFromChars, ch);
+            if (i < toLength) {
+                lookupIndexes[lookupIdx] = i;
+            } else {
+                lookupIndexes[lookupIdx] = -1;
+            }
+        }
+
+        return new WithPrecomputedTranslate(sortedFromChars, lookupIndexes);
     }
 
     @Override
@@ -99,10 +117,12 @@ public class TranslateFunction extends Scalar<String, String> {
     }
 
     private class WithPrecomputedTranslate extends TranslateFunction {
-        private final HashMap<Character, Consumer<StringBuilder>> translationMap;
+        private char[] sortedLookup;
+        private int[] lookupIndexes;
 
-        private WithPrecomputedTranslate(HashMap<Character, Consumer<StringBuilder>> translationMap) {
-            this.translationMap = translationMap;
+        private WithPrecomputedTranslate(char[] sortedLookup, int[] lookupIndexes) {
+            this.sortedLookup = sortedLookup;
+            this.lookupIndexes = lookupIndexes;
         }
 
         @SafeVarargs
@@ -118,9 +138,21 @@ public class TranslateFunction extends Scalar<String, String> {
 
             if (text.isEmpty()) {
                 return text;
-            } else {
-                return translate(text, from, to);
             }
+            var sb = new StringBuilder();
+            for (int i = 0; i < text.length(); i++) {
+                var ch = text.charAt(i);
+                var lookupIdx = Arrays.binarySearch(sortedLookup, ch);
+                if (lookupIdx >= 0) {
+                    var valueIdx = lookupIndexes[lookupIdx];
+                    if (valueIdx >= 0) {
+                        sb.append(to.charAt(valueIdx));
+                    }
+                } else {
+                    sb.append(ch);
+                }
+            }
+            return sb.toString();
         }
     }
 
@@ -151,27 +183,6 @@ public class TranslateFunction extends Scalar<String, String> {
 
     protected String translate(String text, HashMap<Character, Consumer<StringBuilder>> translationMap) {
         return applyTranslationsToText(text, translationMap);
-    }
-
-    private HashMap<Character, Consumer<StringBuilder>> createTranslationMap(String from, String to) {
-        var translationMap = new HashMap<Character, Consumer<StringBuilder>>();
-        var fromLength = from.length();
-        var toLength = to.length();
-
-        for (int i = 0; i < fromLength; i++) {
-            Character fromChar = from.charAt(i);
-
-            checkDuplicatesInFromArg(fromChar, translationMap);
-
-            if (i < toLength) {
-                final var toChar = to.charAt(i);
-                translationMap.put(fromChar, (sb) -> sb.append(toChar));
-            } else {
-                translationMap.put(fromChar, (sb) -> {
-                });
-            }
-        }
-        return translationMap;
     }
 
     private String applyTranslationsToText(String text, HashMap<Character, Consumer<StringBuilder>> translationMap) {
