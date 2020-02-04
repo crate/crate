@@ -124,7 +124,7 @@ public class SortingProjectorTest extends CrateUnitTest {
     public void testUsedMemoryIsAccountedFor() throws Exception {
         MemoryCircuitBreaker circuitBreaker = new MemoryCircuitBreaker(new ByteSizeValue(30, ByteSizeUnit.BYTES),
                                                                        1,
-                                                                       LogManager.getLogger(SortingTopNProjectorTest.class)
+                                                                       LogManager.getLogger(SortingProjectorTest.class)
         );
         RowCellsAccountingWithEstimators rowAccounting =
             new RowCellsAccountingWithEstimators(List.of(DataTypes.LONG, DataTypes.BOOLEAN),
