@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Collections;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.contains;
@@ -51,7 +50,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan("SELECT 1");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect"));
+        assertThat(classification.labels(), contains("TableFunction"));
 
         plan = e.logicalPlan("SELECT * FROM users WHERE id = 1");
         classification = StatementClassifier.classify(plan);
@@ -91,7 +90,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         plan = e.logicalPlan("SELECT * FROM users WHERE id = (SELECT 1) OR name = (SELECT 'Arthur')");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "Limit", "MultiPhase"));
+        assertThat(classification.labels(), contains("Limit", "MultiPhase", "TableFunction"));
     }
 
 
@@ -106,7 +105,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
             "WHERE y >= 2");
         var classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "Filter", "ProjectSet", "WindowAgg"));
+        assertThat(classification.labels(), contains("FetchOrEval", "Filter", "ProjectSet", "TableFunction", "WindowAgg"));
     }
 
     @Test
@@ -124,6 +123,6 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         plan = e.logicalPlan("INSERT INTO users (id, name) (SELECT * FROM unnest([1], ['foo']))");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.INSERT));
-        assertThat(classification.labels(), contains("Collect"));
+        assertThat(classification.labels(), contains("TableFunction"));
     }
 }

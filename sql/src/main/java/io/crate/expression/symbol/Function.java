@@ -160,7 +160,7 @@ public class Function extends Symbol implements Cloneable {
         }
         var sb = new StringBuilder(name + '(' + ExplainLeaf.printList(arguments) + ')');
         if (filter != null) {
-            sb.append("FILTER (WHERE " + filter.representation() + ')');
+            sb.append(" FILTER (" + filter.representation() + ')');
         }
         return sb.toString();
     }

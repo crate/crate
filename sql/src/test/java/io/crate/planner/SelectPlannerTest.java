@@ -756,7 +756,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[unnest([1, 2])]\n" +
             "ProjectSet[unnest([1, 2])]\n" +
-            "Collect[.empty_row | [] | true]\n"
+            "TableFunction[empty_row | [] | true]\n"
         ));
         Symbol output = plan.outputs().get(0);
         assertThat(output.valueType(), is(DataTypes.LONG));
@@ -769,7 +769,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[(unnest([1, 2]) + 1)]\n" +
             "FetchOrEval[(unnest([1, 2]) + 1)]\n" +
             "ProjectSet[unnest([1, 2])]\n" +
-            "Collect[.empty_row | [] | true]\n"
+            "TableFunction[empty_row | [] | true]\n"
         ));
     }
 
