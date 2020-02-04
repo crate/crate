@@ -83,7 +83,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testAggregationOnTableFunction() throws Exception {
         LogicalPlan plan = plan("select max(col1) from unnest([1, 2, 3])");
         assertThat(plan, isPlan("Aggregate[max(col1)]\n" +
-                                "Collect[.unnest | [col1] | true]\n"));
+                                "TableFunction[unnest | [col1] | true]\n"));
     }
 
     @Test
@@ -545,6 +545,17 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 addSymbolsList(get.outputs());
                 sb.append(" | ");
                 sb.append(get.docKeys);
+                return sb.toString();
+            }
+            if (plan instanceof TableFunction) {
+                TableFunction tableFunction = (TableFunction) plan;
+                startLine("TableFunction[");
+                sb.append(tableFunction.relation().function().info().ident().name());
+                sb.append(" | [");
+                addSymbolsList(tableFunction.outputs());
+                sb.append("] | ");
+                sb.append(symbolPrinter.printUnqualified(tableFunction.where.queryOrFallback()));
+                sb.append("]\n");
                 return sb.toString();
             }
             if (plan instanceof ProjectSet) {

@@ -22,7 +22,6 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.optimizer.Rule;
@@ -36,13 +35,13 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert> {
 
-    private final Capture<Collect> capture;
+    private final Capture<TableFunction> capture;
     private final Pattern<Insert> pattern;
 
     RewriteInsertFromSubQueryToInsertFromValues() {
         this.capture = new Capture<>();
         this.pattern = typeOf(Insert.class)
-            .with(source(), typeOf(Collect.class).capturedAs(capture));
+            .with(source(), typeOf(TableFunction.class).capturedAs(capture));
     }
 
     @Override
@@ -55,14 +54,10 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx) {
-        Collect collect = captures.get(this.capture);
-
-        var relation = collect.relation();
-        if (relation instanceof TableFunctionRelation
-            && relation.getQualifiedName().toString().equals(ValuesFunction.NAME)) {
-            return new InsertFromValues(
-                (TableFunctionRelation) collect.relation(),
-                plan.columnIndexWriterProjection());
+        TableFunction tableFunction = captures.get(this.capture);
+        var relation = tableFunction.relation();
+        if (relation.function().info().ident().name().equals(ValuesFunction.NAME)) {
+            return new InsertFromValues(tableFunction.relation(), plan.columnIndexWriterProjection());
         } else {
             return null;
         }

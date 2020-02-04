@@ -370,18 +370,32 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             //
             //      AliasedAnalyzedRelation -> QueriedTable -> AbstractTableRelation
             //
+            // This is also necessary for TableFunctions for another reason:
+            //
+            // The QuerySplitter might add expressions to `toCollect` because
+            // they're a dependency for aggregates.  Due to how the
+            // LogicalPlanner currently works these `toCollect` expressions
+            // would be lost if there is a AliasedAnalyzedRelation in-between.
+            // That later on causes a failure as the TableFunction operator
+            // would lack the required outputs.
+            // `test_filter_with_subquery_in_aggregate_expr_for_group_by_aggregates` is a test scenario for that.
             AliasedAnalyzedRelation aliasedRelation = null;
-            if (source instanceof AliasedAnalyzedRelation
-                && ((AliasedAnalyzedRelation) source).relation() instanceof AbstractTableRelation) {
+            if (source instanceof AliasedAnalyzedRelation) {
                 aliasedRelation = (AliasedAnalyzedRelation) source;
-                source = aliasedRelation.relation();
-                AliasedAnalyzedRelation finalAliasedRelation = aliasedRelation;
-                querySpec = querySpec.map(s -> FieldReplacer.replaceFields(s, f -> {
-                    if (f.relation().equals(finalAliasedRelation)) {
-                        return f.pointer();
-                    }
-                    return f;
-                }));
+                if (aliasedRelation.relation() instanceof AbstractTableRelation
+                    || aliasedRelation.relation() instanceof TableFunctionRelation) {
+
+                    source = aliasedRelation.relation();
+                    AliasedAnalyzedRelation finalAliasedRelation = aliasedRelation;
+                    querySpec = querySpec.map(s -> FieldReplacer.replaceFields(s, f -> {
+                        if (f.relation().equals(finalAliasedRelation)) {
+                            return f.pointer();
+                        }
+                        return f;
+                    }));
+                } else {
+                    aliasedRelation = null;
+                }
             }
             relation = new QueriedSelectRelation<>(
                 isDistinct,
@@ -703,11 +717,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         FunctionIdent ident = function.info().ident();
 
         FunctionImplementation functionImplementation = functions.getQualified(ident);
-        TableFunctionImplementation tableFunction = TableFunctionFactory.from(functionImplementation);
-        TableInfo tableInfo = tableFunction.createTableInfo();
-        Operation.blockedRaiseException(tableInfo, statementContext.currentOperation());
+        TableFunctionImplementation<?> tableFunction = TableFunctionFactory.from(functionImplementation);
         QualifiedName qualifiedName = new QualifiedName(node.name());
-        TableRelation tableRelation = new TableFunctionRelation(tableInfo, tableFunction, function, qualifiedName);
+        TableFunctionRelation tableRelation = new TableFunctionRelation(tableFunction, function, qualifiedName);
         context.addSourceRelation(qualifiedName, tableRelation);
         return tableRelation;
     }
@@ -799,12 +811,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             arrays
         );
         FunctionImplementation implementation = functions.getQualified(function.info().ident());
-        TableFunctionImplementation tableFunc = TableFunctionFactory.from(implementation);
-        TableInfo tableInfo = tableFunc.createTableInfo();
-        Operation.blockedRaiseException(tableInfo, context.currentOperation());
+        TableFunctionImplementation<?> tableFunc = TableFunctionFactory.from(implementation);
         QualifiedName qualifiedName = new QualifiedName(ValuesFunction.NAME);
         TableFunctionRelation relation = new TableFunctionRelation(
-            tableInfo,
             tableFunc,
             function,
             qualifiedName

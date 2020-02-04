@@ -35,7 +35,7 @@ import java.io.IOException;
 public class SelectSymbol extends Symbol {
 
     private final AnalyzedRelation relation;
-    private final ArrayType dataType;
+    private final ArrayType<?> dataType;
     private final ResultType resultType;
 
     public enum ResultType {
@@ -43,7 +43,7 @@ public class SelectSymbol extends Symbol {
         SINGLE_COLUMN_MULTIPLE_VALUES
     }
 
-    public SelectSymbol(AnalyzedRelation relation, ArrayType dataType, ResultType resultType) {
+    public SelectSymbol(AnalyzedRelation relation, ArrayType<?> dataType, ResultType resultType) {
         this.relation = relation;
         this.dataType = dataType;
         this.resultType = resultType;
@@ -89,7 +89,7 @@ public class SelectSymbol extends Symbol {
     }
 
     @Override
-    public DataType valueType() {
+    public DataType<?> valueType() {
         if (resultType == ResultType.SINGLE_COLUMN_SINGLE_VALUE) {
             return dataType.innerType();
         }
