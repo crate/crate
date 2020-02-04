@@ -22,9 +22,9 @@
 
 package io.crate.planner.operators;
 
+import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
@@ -411,7 +411,13 @@ public class LogicalPlanner {
                                   Row params,
                                   SubQueryResults subQueryResults,
                                   boolean enableProfiling) {
-        NodeOperationTree nodeOpTree = getNodeOperationTree(logicalPlan, dependencies, plannerContext, params, subQueryResults);
+        NodeOperationTree nodeOpTree;
+        try {
+            nodeOpTree = getNodeOperationTree(logicalPlan, dependencies, plannerContext, params, subQueryResults);
+        } catch (Throwable t) {
+            consumer.accept(null, t);
+            return;
+        }
         executeNodeOpTree(
             dependencies,
             plannerContext.transactionContext(),
