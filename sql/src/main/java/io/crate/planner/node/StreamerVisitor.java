@@ -91,7 +91,7 @@ public class StreamerVisitor {
 
         @Override
         public Streamer<?>[] visitTableFunctionCollect(TableFunctionCollectPhase phase, Void context) {
-            return visitRoutedCollectPhase(phase, context);
+            return DataTypes.getStreamers(phase.outputTypes());
         }
 
         @Override

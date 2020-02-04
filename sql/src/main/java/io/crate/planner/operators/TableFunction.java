@@ -35,20 +35,15 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Objects.requireNonNullElse;
 
 public final class TableFunction implements LogicalPlan {
 
@@ -92,17 +87,12 @@ public final class TableFunction implements LogicalPlan {
                 )
             );
         }
-        FunctionName functionName = relation.function().info().ident().fqnName();
         TableFunctionCollectPhase collectPhase = new TableFunctionCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            Routing.forTableOnSingleNode(
-                new RelationName(requireNonNullElse(functionName.schema(), ""), functionName.name()),
-                plannerContext.handlerNode()
-            ),
+            plannerContext.handlerNode(),
             relation.functionImplementation(),
             functionArguments,
-            Collections.emptyList(),
             Lists2.map(toCollect, paramBinder),
             paramBinder.apply(where.queryOrFallback())
         );
