@@ -31,6 +31,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.breaker.TypeGuessEstimateRowSize;
+import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -225,6 +226,8 @@ public class InsertFromValues implements LogicalPlan {
                 plannerContext,
                 subQueryResults));
 
+        List<Symbol> returnValues = this.writerProjection.returnValues();
+
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
             BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
@@ -234,7 +237,7 @@ public class InsertFromValues implements LogicalPlan {
             rows.size() > 1, // continueOnErrors
             updateColumnNames,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
-            null,
+            returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[]{}),
             plannerContext.jobId(),
             false);
 
@@ -275,8 +278,12 @@ public class InsertFromValues implements LogicalPlan {
                 dependencies.scheduler());
         }).whenComplete((response, t) -> {
             if (t == null) {
-                consumer.accept(
-                    InMemoryBatchIterator.of(new Row1((long) response.numSuccessfulWrites()), SENTINEL), null);
+                if (returnValues.isEmpty()) {
+                    consumer.accept(InMemoryBatchIterator.of(new Row1((long) response.numSuccessfulWrites()), SENTINEL),
+                                    null);
+                } else {
+                    consumer.accept(InMemoryBatchIterator.of(new CollectionBucket(response.resultRows()), SENTINEL, false), null);
+                }
             } else {
                 consumer.accept(null, t);
             }
@@ -446,7 +453,7 @@ public class InsertFromValues implements LogicalPlan {
                 id,
                 assignmentSources,
                 insertValues.materialize(),
-                null, null, null, null);
+                null, null, null, this.writerProjection.returnValues().toArray(new Symbol[]{}));
 
         var rowShardResolver = new RowShardResolver(
             plannerContext.transactionContext(),

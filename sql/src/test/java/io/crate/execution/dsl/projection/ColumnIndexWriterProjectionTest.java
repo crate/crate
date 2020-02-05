@@ -92,7 +92,9 @@ public class ColumnIndexWriterProjectionTest {
             null,
             null,
             Settings.EMPTY,
-            true
+            true,
+            List.of(),
+            null
         );
 
         assertThat(projection.columnReferencesExclPartition(), Matchers.is(Arrays.asList(

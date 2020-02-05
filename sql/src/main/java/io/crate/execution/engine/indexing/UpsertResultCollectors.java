@@ -24,6 +24,7 @@ package io.crate.execution.engine.indexing;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.dml.ShardResponse;
@@ -37,6 +38,10 @@ import java.util.function.Supplier;
 
 final class UpsertResultCollectors {
 
+    static UpsertResultCollector newResultValueCollector() {
+        return new ResultValueCollector();
+    }
+
     static UpsertResultCollector newRowCountCollector() {
         return new RowCountCollector();
     }
@@ -48,6 +53,44 @@ final class UpsertResultCollectors {
         ));
     }
 
+    private static class ResultValueCollector implements UpsertResultCollector {
+
+        private final Object lock = new Object();
+
+        @Override
+        public Supplier<UpsertResults> supplier() {
+            return UpsertResults::new;
+        }
+
+        @Override
+        public Accumulator accumulator() {
+            return this::processShardResponse;
+        }
+
+        @Override
+        public BinaryOperator<UpsertResults> combiner() {
+            return (i, o) -> {
+                synchronized (lock) {
+                    i.addResultValues(o.getResultValuesForNoUri());
+                }
+                return i;
+            };
+        }
+
+        @Override
+        public Function<UpsertResults, Iterable<Row>> finisher() {
+            return r -> new CollectionBucket(r.getResultValuesForNoUri());
+        }
+
+        @SuppressWarnings("unused")
+        void processShardResponse(UpsertResults upsertResults,
+                                  ShardResponse shardResponse,
+                                  List<RowSourceInfo> rowSourceInfosIgnored) {
+            synchronized (lock) {
+                upsertResults.addResultValues(shardResponse.getResultRows());
+            }
+        }
+    }
 
     private static class RowCountCollector implements UpsertResultCollector {
 

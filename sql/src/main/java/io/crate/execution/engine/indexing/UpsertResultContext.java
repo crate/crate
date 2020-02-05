@@ -53,6 +53,22 @@ public class UpsertResultContext {
         };
     }
 
+    public static UpsertResultContext forResultValues() {
+        return new UpsertResultContext(
+            () -> null, () -> null, () -> null, Collections.emptyList(), UpsertResultCollectors.newResultValueCollector()) {
+
+            @Override
+            BiConsumer<ShardedRequests, String> getItemFailureRecorder() {
+                return (s, f) -> { };
+            }
+
+            @Override
+            Predicate<ShardedRequests> getHasSourceUriFailureChecker() {
+                return (ignored) -> false;
+            }
+        };
+    }
+
     public static UpsertResultContext forReturnSummary(TransactionContext txnCtx,
                                                        SourceIndexWriterReturnSummaryProjection projection,
                                                        DiscoveryNode discoveryNode,

@@ -257,6 +257,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
         private final BitSet successfulWrites = new BitSet();
         private final BitSet failureLocations = new BitSet();
+        private final ArrayList<Object[]> resultRows = new ArrayList<>();
 
         public void update(ShardResponse response) {
             IntArrayList itemIndices = response.itemIndices();
@@ -270,6 +271,10 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
                     failureLocations.set(location, true);
                 }
             }
+            List<Object[]> resultRows = response.getResultRows();
+            if (resultRows != null) {
+                this.resultRows.addAll(resultRows);
+            }
         }
 
         public boolean successfulWrites(int location) {
@@ -278,6 +283,10 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
         public boolean failed(int location) {
             return failureLocations.get(location);
+        }
+
+        public List<Object[]> resultRows() {
+            return resultRows;
         }
 
         public int numSuccessfulWrites() {

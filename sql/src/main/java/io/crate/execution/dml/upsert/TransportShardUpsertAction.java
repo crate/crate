@@ -50,8 +50,11 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
@@ -121,11 +124,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse(request.getReturnValues());
-        
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
         Reference[] insertColumns = request.insertColumns();
-
         GeneratedColumns.Validation valueValidation = request.validateConstraints()
             ? GeneratedColumns.Validation.VALUE_MATCH
             : GeneratedColumns.Validation.NONE;
@@ -161,7 +162,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     request,
                     item,
                     indexShard,
-                    item.insertValues() != null, // try insert first
                     updateSourceGen,
                     insertSourceGen,
                     returnValueGen
@@ -250,23 +250,20 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private IndexItemResponse indexItem(ShardUpsertRequest request,
                                         ShardUpsertRequest.Item item,
                                         IndexShard indexShard,
-                                        boolean tryInsertFirst,
                                         @Nullable UpdateSourceGen updateSourceGen,
                                         @Nullable InsertSourceGen insertSourceGen,
                                         @Nullable ReturnValueGen returnValueGen) throws Exception {
         VersionConflictEngineException lastException = null;
+        boolean tryInsertFirst = item.insertValues() != null;
+        boolean isRetry;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
-                return indexItem(
-                    request,
-                    item,
-                    indexShard,
-                    tryInsertFirst,
-                    updateSourceGen,
-                    insertSourceGen,
-                    returnValueGen,
-                    retryCount > 0
-                );
+                isRetry = retryCount > 0;
+                if (tryInsertFirst) {
+                    return insert(request, item, indexShard, isRetry, returnValueGen, insertSourceGen);
+                } else {
+                    return update(item, indexShard, isRetry, returnValueGen, updateSourceGen);
+                }
             } catch (VersionConflictEngineException e) {
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
@@ -309,53 +306,112 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @VisibleForTesting
-    protected IndexItemResponse indexItem(ShardUpsertRequest request,
-                                          ShardUpsertRequest.Item item,
-                                          IndexShard indexShard,
-                                          boolean tryInsertFirst,
-                                          UpdateSourceGen updateSourceGen,
-                                          InsertSourceGen insertSourceGen,
-                                          @Nullable ReturnValueGen returnGen,
-                                          boolean isRetry) throws Exception {
-        final long seqNo;
-        final long primaryTerm;
-        final long version;
-        Doc updatedDoc = null;
-        if (tryInsertFirst) {
-            version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
-                ? Versions.MATCH_ANY
-                : Versions.MATCH_DELETED;
-            seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
-            primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
-            try {
-                item.source(insertSourceGen.generateSourceAndCheckConstraints(item.insertValues()));
-            } catch (IOException e) {
-                throw ExceptionsHelper.convertToElastic(e);
+    protected IndexItemResponse insert(ShardUpsertRequest request,
+                                       ShardUpsertRequest.Item item,
+                                       IndexShard indexShard,
+                                       boolean isRetry,
+                                       @Nullable ReturnValueGen returnGen,
+                                       @Nullable InsertSourceGen insertSourceGen) throws Exception {
+        assert insertSourceGen != null : "InsertSourceGen must not be null";
+        BytesReference rawSource;
+        Map<String, Object> source = null;
+        try {
+            // This optimizes for the case where the insert value is already string-based, so we can take directly
+            // the rawSource
+            if (insertSourceGen instanceof FromRawInsertSource) {
+                rawSource = insertSourceGen.generateSourceAndCheckConstraintsAsBytesReference(item.insertValues());
+            } else {
+                source = insertSourceGen.generateSourceAndCheckConstraints(item.insertValues());
+                rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
             }
-        } else {
-            Doc currentDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
-
-            Map<String, Object> updatedSource = updateSourceGen.generateSource(
-                currentDoc,
-                item.updateAssignments(),
-                item.insertValues()
-            );
-
-            if (item.returnValues() != null) {
-                updatedDoc = currentDoc.withUpdatedSource(updatedSource);
-            }
-
-            item.source(BytesReference.bytes(XContentFactory.jsonBuilder().map(updatedSource)));
-            seqNo = item.seqNo();
-            primaryTerm = item.primaryTerm();
-            version = Versions.MATCH_ANY;
+        } catch (IOException e) {
+            throw ExceptionsHelper.convertToElastic(e);
         }
+        item.source(rawSource);
+
+        long version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE ? Versions.MATCH_ANY : Versions.MATCH_DELETED;
+        long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
+        long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
+
+        Engine.IndexResult indexResult = index(item, indexShard, isRetry, seqNo, primaryTerm, version);
+        Object[] returnvalues = null;
+        if (returnGen != null) {
+            // This optimizes for the case where the insert value is already string-based, so only parse the source
+            // when return values are requested
+            if (source == null) {
+                source = JsonXContent.jsonXContent.createParser(
+                    NamedXContentRegistry.EMPTY,
+                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                    BytesReference.toBytes(rawSource)).map();
+            }
+            returnvalues = returnGen.generateReturnValues(
+                // return -1 as docId, the docId can only be retrieved by fetching the inserted document again, which
+                // we want to avoid. The docId is anyway just valid with the lifetime of a searcher and can change afterwards.
+                new Doc(
+                    -1,
+                    indexShard.shardId().getIndexName(),
+                    item.id(),
+                    indexResult.getVersion(),
+                    indexResult.getSeqNo(),
+                    primaryTerm,
+                    source,
+                    () -> ""
+                )
+            );
+        }
+        return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues);
+    }
+
+    protected IndexItemResponse update(ShardUpsertRequest.Item item,
+                                       IndexShard indexShard,
+                                       boolean isRetry,
+                                       @Nullable ReturnValueGen returnGen,
+                                       @Nullable UpdateSourceGen updateSourceGen) throws Exception {
+        assert updateSourceGen != null : "UpdateSourceGen must not be null";
+        Doc fetchedDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
+        Map<String, Object> source = updateSourceGen.generateSource(
+            fetchedDoc,
+            item.updateAssignments(),
+            item.insertValues()
+        );
+        BytesReference rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
+        item.source(rawSource);
+        long seqNo = item.seqNo();
+        long primaryTerm = item.primaryTerm();
+        long version = Versions.MATCH_ANY;
+
+        Engine.IndexResult indexResult = index(item, indexShard, isRetry, seqNo, primaryTerm, version);
+        Object[] returnvalues = null;
+        if (returnGen != null) {
+            returnvalues = returnGen.generateReturnValues(
+                new Doc(
+                    fetchedDoc.docId(),
+                    fetchedDoc.getIndex(),
+                    fetchedDoc.getId(),
+                    indexResult.getVersion(),
+                    indexResult.getSeqNo(),
+                    indexResult.getTerm(),
+                    source,
+                    () -> ""
+                )
+            );
+        }
+        return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues);
+    }
+
+    private Engine.IndexResult index(ShardUpsertRequest.Item item,
+                                     IndexShard indexShard,
+                                     boolean isRetry,
+                                     long seqNo,
+                                     long primaryTerm,
+                                     long version) throws Exception {
         SourceToParse sourceToParse = new SourceToParse(
             indexShard.shardId().getIndexName(),
             item.id(),
             item.source(),
             XContentType.JSON
         );
+
         Engine.IndexResult indexResult = executeOnPrimaryHandlingMappingUpdate(
             indexShard.shardId(),
             () -> indexShard.applyIndexOperationOnPrimary(
@@ -369,13 +425,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             ),
             e -> indexShard.getFailedIndexResult(e, Versions.MATCH_ANY)
         );
+
         switch (indexResult.getResultType()) {
             case SUCCESS:
                 // update the seqNo and version on request for the replicas
                 item.seqNo(indexResult.getSeqNo());
                 item.version(indexResult.getVersion());
-                return new IndexItemResponse(indexResult.getTranslogLocation(),
-                                             getReturnValues(indexResult, returnGen, updatedDoc));
+                return indexResult;
 
             case FAILURE:
                 Exception failure = indexResult.getFailure();
@@ -425,16 +481,5 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
         return columnsNotUsed;
-    }
-
-    @Nullable
-    private static Object[] getReturnValues(Engine.IndexResult indexResult,
-                                            @Nullable ReturnValueGen returnGen,
-                                            @Nullable Doc doc) {
-        if (doc != null && returnGen != null) {
-            return returnGen.generateReturnValues(doc.withVersionAndSeqNo(indexResult.getVersion(),
-                                                                          indexResult.getSeqNo()));
-        }
-        return null;
     }
 }

@@ -53,6 +53,11 @@ class UpsertResults {
         result.successRowCount += successRowCount;
     }
 
+    void addResultValues(List<Object[]> resultValues) {
+        Result result = getResultSafe(null);
+        result.resultValues.addAll(resultValues);
+    }
+
     void addResult(String uri, @Nullable String failureMessage, long lineNumber) {
         Result result = getResultSafe(uri);
         if (failureMessage == null) {
@@ -83,6 +88,10 @@ class UpsertResults {
         return getResultSafe(null).successRowCount;
     }
 
+    List<Object[]> getResultValuesForNoUri() {
+        return getResultSafe(null).resultValues;
+    }
+
     void merge(UpsertResults other) {
         for (Map.Entry<String, Result> entry : other.resultsByUri.entrySet()) {
             Result result = resultsByUri.get(entry.getKey());
@@ -91,7 +100,6 @@ class UpsertResults {
             } else {
                 result.merge(entry.getValue());
             }
-
         }
     }
 
@@ -118,6 +126,8 @@ class UpsertResults {
         private long errorRowCount = 0;
         private final Map<String, Map<String, Object>> errors = new HashMap<>();
         private boolean sourceUriFailure = false;
+        private final List<Object[]> resultValues = new ArrayList<>();
+
 
         void merge(Result upsertResult) {
             successRowCount += upsertResult.successRowCount;
@@ -132,6 +142,7 @@ class UpsertResults {
                 Long errorCnt = (Long) val.get(ERROR_COUNT_KEY);
                 updateErrorCount(entry.getKey(), lineNumbers, errorCnt);
             }
+            resultValues.addAll(upsertResult.resultValues);
         }
 
         private void updateErrorCount(String msg, List<Long> lineNumbers, Long increaseBy) {
