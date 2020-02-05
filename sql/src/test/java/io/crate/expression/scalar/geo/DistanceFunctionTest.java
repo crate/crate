@@ -43,7 +43,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testResolveWithInvalidType() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast '1' to type geo_point");
+        expectedException.expectMessage("Cannot cast `'1'` of type `text` to type `geo_point`");
         assertNormalize("distance(1, 'POINT (11 21)')", null);
     }
 
@@ -68,7 +68,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeWithInvalidReferences() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast [10.04, 28.02] to type text");
+        expectedException.expectMessage("Cannot cast `name` of type `text` to type `double precision_array`");
         assertNormalize("distance(name, [10.04, 28.02])", null);
     }
 

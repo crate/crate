@@ -48,7 +48,7 @@ public class SquareRootFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidType() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type double precision");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
         assertEvaluate("sqrt('foo')", null);
     }
 

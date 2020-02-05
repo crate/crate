@@ -211,15 +211,14 @@ public final class Param {
     }
 
     private FuncArg rebind(FuncArg bound, FuncArg newTarget) {
-        DataType boundType = bound.valueType();
-        DataType dataType = Objects.requireNonNull(newTarget.valueType(),
-            "Provided dataType type must not be null");
-        if (boundType.equals(dataType)) {
+        DataType<?> boundType = bound.valueType();
+        DataType<?> targetType = Objects.requireNonNull(newTarget.valueType(), "Provided dataType type must not be null");
+        if (boundType.equals(targetType)) {
             return bound;
         }
         FuncArg convertedType = convertTypes(newTarget, bound);
         if (convertedType == null) {
-            throw new ConversionException(newTarget, boundType);
+            throw new ConversionException(bound, targetType);
         }
         return convertedType;
     }

@@ -201,7 +201,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidWhereClause() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast 129 to type char");
+        expectedException.expectMessage("Cannot cast `129` of type `bigint` to type `char`");
 
         setUpSimple();
         execute("delete from t1 where byte_field=129");
@@ -210,7 +210,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast ['a'] to type char_array");
+        expectedException.expectMessage("Cannot cast `['a']` of type `text_array` to type `char_array`");
 
         setUpSimple();
         execute("update t1 set byte_field=0 where byte_field in ('a')");
@@ -302,7 +302,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("t1", "o.a");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast {\"a\"=['123', '456']} to type object");
+        expectedException.expectMessage("Cannot cast `{\"a\"=['123', '456']}` of type `object` to type `object`");
         execute("insert into t1 values ({a=['123', '456']})");
     }
 

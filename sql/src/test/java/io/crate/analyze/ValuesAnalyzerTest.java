@@ -55,7 +55,7 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_error_is_raised_if_the_types_of_the_rows_are_not_compatible() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type bigint");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
         e.analyze("VALUES (1), ('foo')");
     }
 

@@ -105,14 +105,14 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testConvertNonNumericStringToNumber() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast ['foo', 'bar'] to type bigint_array");
+        expectedException.expectMessage("Cannot cast `['foo', 'bar']` of type `text_array` to type `bigint_array`");
         assertEvaluate("array_unique([10, 20], ['foo', 'bar'])", null);
     }
 
     @Test
     public void testDifferentUnconvertableInnerTypes() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast [true] to type geo_point_array");
+        expectedException.expectMessage("Cannot cast `_array(geopoint)` of type `geo_point_array` to type `boolean_array`");
         assertEvaluate("array_unique([geopoint], [true])", null);
     }
 

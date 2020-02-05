@@ -186,7 +186,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureYellow();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot cast '192.168.1.500' to type ip");
+        expectedException.expectMessage("Cannot cast `'192.168.1.500'` of type `text` to type `ip`");
         execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')");
     }
 
