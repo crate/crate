@@ -327,7 +327,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testIncompatibleLiteralThrowsException() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 2147483648 to type integer");
+        expectedException.expectMessage("Cannot cast `2147483648` of type `bigint` to type `integer`");
         executor.asSymbol("doc.t2.i = 1 + " + Integer.MAX_VALUE);
     }
 
@@ -387,7 +387,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
-        expectedException.expectMessage("Cannot cast bigint to type integer_array");
+        expectedException.expectMessage("Cannot cast `xs` of type `integer_array` to type `bigint`");
         executor.analyze("select * from tarr where xs = ANY([10, 20])");
     }
 

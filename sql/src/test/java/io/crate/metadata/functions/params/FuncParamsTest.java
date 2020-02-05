@@ -136,7 +136,7 @@ public class FuncParamsTest extends CrateUnitTest {
 
         FuncParams arrayParams = FuncParams.builder(Param.of(ObjectType.untyped())).build();
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 1");
+        expectedException.expectMessage("Cannot cast `1` of type `integer` to type `object`");
         arrayParams.match(list(Literal.of(1)));
     }
 
@@ -146,7 +146,7 @@ public class FuncParamsTest extends CrateUnitTest {
         Field field = new Field(Mockito.mock(AnalyzedRelation.class), path, new InputColumn(0, DataTypes.INTEGER));
         FuncParams params = FuncParams.builder(Param.LONG).build();
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast test to type bigint");
+        expectedException.expectMessage("Cannot cast `test` of type `integer` to type `bigint`");
         params.match(list(field));
     }
 
@@ -162,7 +162,7 @@ public class FuncParamsTest extends CrateUnitTest {
         FuncArg castableArg = new Arg(DataTypes.INTEGER, false);
         FuncParams params = FuncParams.builder(Param.LONG).build();
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast testarg to type bigint");
+        expectedException.expectMessage("Cannot cast `testarg` of type `integer` to type `bigint`");
         params.match(list(castableArg));
     }
 

@@ -33,7 +33,7 @@ public interface FuncArg {
      * Returns the {@link DataType} of this {@link Function} argument.
      * @return The DataType of the value.
      */
-    DataType valueType();
+    DataType<?> valueType();
 
     /**
      * Indicates whether a Symbol can be casted or not.

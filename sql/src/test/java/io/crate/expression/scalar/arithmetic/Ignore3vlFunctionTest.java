@@ -41,7 +41,7 @@ public class Ignore3vlFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testWrongType() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type boolean");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `boolean`");
         assertEvaluate("ignore3vl('foo')", null);
     }
 

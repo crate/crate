@@ -472,7 +472,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testWhereInSelectDifferentDataTypeValueIncompatibleDataTypes() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type bigint");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
         analyze("select 'found' from users where 1 in (1, 'foo', 2)");
     }
 
@@ -681,7 +681,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testNotTimestamp() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast date to type boolean");
+        expectedException.expectMessage("Cannot cast `date` of type `timestamp with time zone` to type `boolean`");
         analyze("select id, name from parted where not date");
     }
 
@@ -826,7 +826,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testArrayCompareInvalidArray() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast name to type undefined_array");
+        expectedException.expectMessage("Cannot cast `name` of type `text` to type `undefined_array`");
         analyze("select * from users where 'George' = ANY (name)");
     }
 
@@ -872,7 +872,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // so its fields are selected as arrays,
         // ergo simple comparison does not work here
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast 5 to type bigint_array");
+        expectedException.expectMessage("Cannot cast `friends['id']` of type `bigint_array` to type `bigint`");
         analyze("select * from users where 5 = friends['id']");
     }
 
@@ -1012,7 +1012,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testAnyLikeInvalidArray() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast name to type undefined_array");
+        expectedException.expectMessage("Cannot cast `name` of type `text` to type `undefined_array`");
         analyze("select * from users where 'awesome' LIKE ANY (name)");
     }
 
@@ -1139,7 +1139,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testMatchPredicateWithWrongQueryTerm() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast [10, 20] to type text");
+        expectedException.expectMessage("Cannot cast `[10, 20]` of type `bigint_array` to type `text`");
         analyze("select name from users order by match(name, [10, 20])");
     }
 
@@ -1345,7 +1345,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testRegexpMatchInvalidArg() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast floats to type text");
+        expectedException.expectMessage("Cannot cast `floats` of type `real` to type `text`");
         analyze("select * from users where floats ~ 'foo'");
     }
 
@@ -1511,7 +1511,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testInvalidCastExpression() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast text to type object_array");
+        expectedException.expectMessage("Cannot cast expressions from type `text` to type `object_array`");
         analyze("select cast(name as array(object)) from users");
     }
 
@@ -1766,7 +1766,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSelectStarFromUnnestWithInvalidArguments() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 1 to type undefined_array");
+        expectedException.expectMessage("Cannot cast `1` of type `bigint` to type `undefined_array`");
         analyze("select * from unnest(1, 'foo')");
     }
 

@@ -73,8 +73,14 @@ public final class ValueNormalizer {
             throw new ColumnValidationException(
                 reference.column().name(),
                 tableInfo.ident(),
-                String.format(Locale.ENGLISH, "Cannot cast %s to type %s", SymbolPrinter.INSTANCE.printUnqualified(valueSymbol),
-                    reference.valueType().getName()));
+                String.format(
+                    Locale.ENGLISH,
+                    "Cannot cast expression `%s` of type `%s` to `%s`",
+                    SymbolPrinter.INSTANCE.printUnqualified(valueSymbol),
+                    valueSymbol.valueType().getName(),
+                    reference.valueType().getName()
+                )
+            );
         }
         Object value = literal.value();
         if (value == null) {

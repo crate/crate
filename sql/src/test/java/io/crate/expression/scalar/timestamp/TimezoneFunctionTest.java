@@ -69,7 +69,7 @@ public class TimezoneFunctionTest extends AbstractScalarFunctionsTest {
     public void testEvaluateInvalidTimestamp() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "Cannot cast 'not_a_timestamp' to type timestamp with time zone");
+            "Cannot cast `'not_a_timestamp'` of type `text` to type `timestamp with time zone`");
         assertEvaluate("timezone('Europe/Madrid', 'not_a_timestamp')", null);
     }
 

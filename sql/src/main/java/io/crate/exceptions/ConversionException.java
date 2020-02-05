@@ -31,43 +31,49 @@ import java.util.Locale;
 
 public class ConversionException extends IllegalArgumentException {
 
-    private static final String ERROR_MESSAGE = "Cannot cast %s to type %s";
-
-    public ConversionException(FuncArg symbol, Collection<DataType> dataTypes) {
-        super(generateMessage(symbol, dataTypes));
+    public ConversionException(FuncArg source, Collection<DataType> targetTypeCandidates) {
+        super(String.format(
+            Locale.ENGLISH,
+            "Cannot cast `%s` of type `%s` to %s",
+            formatFuncArg(source),
+            source.valueType(),
+            targetTypeCandidates.size() > 1
+                ? "any of the types: " + targetTypeCandidates.toString()
+                : "type `" + targetTypeCandidates.iterator().next().getName() + "`"
+        ));
     }
 
-    public ConversionException(Symbol symbol, DataType targetType) {
-        super(generateMessage(symbol, targetType));
+    public ConversionException(FuncArg source, DataType<?> targetType) {
+        super(String.format(
+            Locale.ENGLISH,
+            "Cannot cast `%s` of type `%s` to %s",
+            formatFuncArg(source),
+            source.valueType(),
+            "type `" + targetType.getName() + "`"
+        ));
     }
 
-    public ConversionException(Object value, DataType type) {
-        super(generateMessage(value, type));
+    public ConversionException(DataType<?> sourceType, DataType<?> targetType) {
+        super(String.format(
+            Locale.ENGLISH,
+            "Cannot cast expressions from type `%s` to type `%s`",
+            sourceType.getName(),
+            targetType.getName()
+        ));
     }
 
-    private static String generateMessage(FuncArg arg, Collection<DataType> dataTypes) {
-        String dataTypeString = dataTypes.size() > 1 ?
-            dataTypes.toString() :
-            dataTypes.iterator().next().toString();
-        if (arg instanceof Symbol) {
-            return String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                SymbolPrinter.INSTANCE.printUnqualified((Symbol) arg), dataTypeString);
-        }
-        return String.format(Locale.ENGLISH, ERROR_MESSAGE, arg, dataTypeString);
+    public ConversionException(Object sourceValue, DataType<?> targetType) {
+        super(String.format(
+            Locale.ENGLISH,
+            "Cannot cast value `%s` to type `%s`",
+            sourceValue,
+            targetType.getName()
+        ));
     }
 
-    private static String generateMessage(Symbol value, DataType type) {
-        return String.format(Locale.ENGLISH, ERROR_MESSAGE,
-            SymbolPrinter.INSTANCE.printUnqualified(value), type.toString());
-    }
-
-    private static String generateMessage(Object value, DataType type) {
-        if (value instanceof Symbol) {
-            return generateMessage((Symbol) value, type);
-        } else if (value instanceof String) {
-            return String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                String.format(Locale.ENGLISH, "'%s'", value), type.toString());
-        }
-        return String.format(Locale.ENGLISH, ERROR_MESSAGE, value.toString(), type.toString());
+    private static String formatFuncArg(FuncArg source) {
+        return source instanceof Symbol
+            ? SymbolPrinter.INSTANCE.printUnqualified(((Symbol) source))
+            : source.toString();
     }
 }
