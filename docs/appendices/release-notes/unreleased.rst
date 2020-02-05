@@ -65,6 +65,9 @@ None
 Changes
 =======
 
+- Added support for using :ref:`table functions <ref-table-functions>` with
+  more than one column within the select list part of a SELECT statement.
+
 - Added :ref:`postgres_pg_type` columns: ``typbyval``, ``typcategory``,
   ``typowner``, ``typisdefined``, ``typrelid``, ``typndims``,
   ``typcollation``, ``typinput``, ``typoutput``, and ``typndefault`` for improved

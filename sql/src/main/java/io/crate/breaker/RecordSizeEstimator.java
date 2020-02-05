@@ -20,28 +20,34 @@
  * agreement.
  */
 
-package io.crate.expression.scalar.conditional;
+package io.crate.breaker;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.FunctionInfo;
-import io.crate.types.DataType;
+import javax.annotation.Nullable;
 
-public class LeastFunction extends ConditionalCompareFunction {
+import io.crate.data.Row;
 
-    public static final String NAME = "least";
+import java.util.List;
 
-    private LeastFunction(FunctionInfo info) {
-        super(info);
+public final class RecordSizeEstimator extends SizeEstimator<Row> {
+
+    private final List<SizeEstimator<? super Object>> fieldEstimators;
+
+    public RecordSizeEstimator(List<SizeEstimator<? super Object>> fieldEstimators) {
+        this.fieldEstimators = fieldEstimators;
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    public int compare(Object o1, Object o2) {
-        DataType dataType = info().returnType();
-        return dataType.compareValueTo(o1, o2);
-    }
+    public long estimateSize(@Nullable Row value) {
+        if (value == null) {
+            return 8;
+        }
+        assert fieldEstimators.size() == value.numColumns()
+            : "The row must have the same number of fields as `fieldEstimators` are available";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new ConditionalFunctionResolver(NAME, LeastFunction::new));
+        long size = 0;
+        for (int i = 0; i < value.numColumns(); i++) {
+            size += fieldEstimators.get(i).estimateSize(value.get(i));
+        }
+        return size;
     }
 }

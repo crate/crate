@@ -24,13 +24,13 @@ package io.crate.expression.tablefunctions;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.data.RowN;
+import io.crate.data.Row1;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 
 import java.util.List;
 import java.util.Locale;
@@ -69,13 +69,13 @@ public class TableFunctionFactory {
     private static class ScalarTableFunctionImplementation<T> extends TableFunctionImplementation<T> {
 
         private final Scalar<?, T> functionImplementation;
-        private final ObjectType returnType;
+        private final RowType returnType;
         private final FunctionInfo info;
 
         private ScalarTableFunctionImplementation(Scalar<?, T> functionImplementation) {
             this.functionImplementation = functionImplementation;
             FunctionInfo info = functionImplementation.info();
-            returnType = ObjectType.builder().setInnerType(info.ident().name(), info.returnType()).build();
+            returnType = new RowType(List.of(info.returnType()), List.of(info.ident().name()));
             this.info = new FunctionInfo(
                 info.ident(),
                 info.returnType(),
@@ -90,11 +90,11 @@ public class TableFunctionFactory {
 
         @Override
         public Iterable<Row> evaluate(TransactionContext txnCtx, Input<T>[] args) {
-            return List.of(new RowN(functionImplementation.evaluate(txnCtx, args)));
+            return List.of(new Row1(functionImplementation.evaluate(txnCtx, args)));
         }
 
         @Override
-        public ObjectType returnType() {
+        public RowType returnType() {
             return returnType;
         }
     }

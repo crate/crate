@@ -22,8 +22,16 @@
 
 package io.crate.integrationtests;
 
+import io.crate.data.RowN;
+import io.crate.common.collections.Lists2;
+import io.crate.data.Row;
+import io.crate.shade.org.postgresql.util.PGobject;
+import io.crate.testing.UseJdbc;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -147,5 +155,22 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
         execute("select * from substr('foo',1,2), array_cat([1], [2, 3])");
         assertThat(printedTable(response.rows()),
             is("fo| [1, 2, 3]\n"));
+    }
+
+    @Test
+    @UseJdbc(1)
+    public void test_srf_with_multiple_columns_in_result_can_be_used_in_selectlist() throws Exception {
+        execute("select pg_catalog.pg_get_keywords()");
+        var rows = Arrays.asList(response.rows());
+
+        rows.sort(Comparator.comparing((Object[] x) -> {
+            Object value = x[0];
+            if (value instanceof String) {
+                return (Comparable) value;
+            } else {
+                throw new IllegalArgumentException("Unexpected value " + value);
+            }
+        }));
+        assertThat(rows.get(0)[0], is("(add,R,reserved)"));
     }
 }

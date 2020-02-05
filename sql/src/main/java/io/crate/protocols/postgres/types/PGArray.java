@@ -47,10 +47,11 @@ class PGArray extends PGType {
     static final PGArray JSON_ARRAY = new PGArray(199, JsonType.INSTANCE);
     static final PGArray POINT_ARRAY = new PGArray(1017, PointType.INSTANCE);
     static final PGArray INTERVAL_ARRAY = new PGArray(1187, IntervalType.INSTANCE);
+    static final PGArray EMPTY_RECORD_ARRAY = new PGArray(2287, RecordType.EMPTY_RECORD);
 
     private static final byte[] NULL_BYTES = new byte[]{'N', 'U', 'L', 'L'};
 
-    private PGArray(int oid, PGType innerType) {
+    PGArray(int oid, PGType innerType) {
         super(oid, -1, -1, "_" + innerType.typName());
         this.innerType = innerType;
     }

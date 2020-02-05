@@ -300,7 +300,7 @@ public class SQLTransportExecutor {
         try {
             Properties properties = new Properties();
             if (random.nextBoolean()) {
-                properties.setProperty("prepareThreshold", "-1"); // disable prepared statements
+                properties.setProperty("prepareThreshold", "-1"); // always use prepared statements
             }
             try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                 conn.setAutoCommit(true);
@@ -378,7 +378,7 @@ public class SQLTransportExecutor {
         return arg;
     }
 
-    private SQLResponse executeAndConvertResult(PreparedStatement preparedStatement) throws SQLException {
+    private static SQLResponse executeAndConvertResult(PreparedStatement preparedStatement) throws SQLException {
         if (preparedStatement.execute()) {
             ResultSetMetaData metaData = preparedStatement.getMetaData();
             ResultSet resultSet = preparedStatement.getResultSet();
@@ -425,7 +425,7 @@ public class SQLTransportExecutor {
     /**
      * retrieve the same type of object from the resultSet as the CrateClient would return
      */
-    private Object getObject(ResultSet resultSet, int i, String typeName) throws SQLException {
+    private static Object getObject(ResultSet resultSet, int i, String typeName) throws SQLException {
         Object value;
         switch (typeName) {
             // need to use explicit `get<Type>` for some because getObject would return a wrong type.
@@ -459,6 +459,9 @@ public class SQLTransportExecutor {
                 PGpoint pGpoint = resultSet.getObject(i + 1, PGpoint.class);
                 value = new PointImpl(pGpoint.x, pGpoint.y, JtsSpatialContext.GEO);
                 break;
+            case "record":
+                value = resultSet.getObject(i + 1, PGobject.class).getValue();
+                break;
             default:
                 value = resultSet.getObject(i + 1);
                 break;
@@ -471,7 +474,7 @@ public class SQLTransportExecutor {
         return value;
     }
 
-    private Object jsonToObject(String json) {
+    private static Object jsonToObject(String json) {
         try {
             if (json != null) {
                 byte[] bytes = json.getBytes(StandardCharsets.UTF_8);

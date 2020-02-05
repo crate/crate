@@ -35,7 +35,7 @@ import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,20 +51,19 @@ public class UnnestFunction {
     static class UnnestTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final FunctionInfo info;
-        private final ObjectType returnType;
+        private final RowType returnType;
 
         private UnnestTableFunctionImplementation(List<DataType> argTypes) {
-            ObjectType.Builder returnTypeBuilder = ObjectType.builder();
+            ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {
                 DataType<?> dataType = argTypes.get(i);
-                assert dataType instanceof ArrayType : "Arguments to unnest must be of type array due to type signature";
-                returnTypeBuilder.setInnerType("col" + (i + 1), ArrayType.unnest(dataType));
+                fieldTypes.add(ArrayType.unnest(dataType));
             }
-            this.returnType = returnTypeBuilder.build();
+            this.returnType = new RowType(fieldTypes);
             this.info = new FunctionInfo(
                 new FunctionIdent(null, NAME, argTypes),
-                returnType.innerTypes().size() == 1
-                    ? returnType.innerTypes().values().iterator().next()
+                returnType.numElements() == 1
+                    ? returnType.getFieldType(0)
                     : returnType,
                 FunctionInfo.Type.TABLE
             );
@@ -76,7 +75,7 @@ public class UnnestFunction {
         }
 
         @Override
-        public ObjectType returnType() {
+        public RowType returnType() {
             return returnType;
         }
 

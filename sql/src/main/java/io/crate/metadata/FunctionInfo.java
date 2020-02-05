@@ -47,19 +47,19 @@ public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
         Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT);
 
     private final FunctionIdent ident;
-    private final DataType returnType;
+    private final DataType<?> returnType;
     private final Type type;
     private final Set<Feature> features;
 
-    public FunctionInfo(FunctionIdent ident, DataType returnType) {
+    public FunctionInfo(FunctionIdent ident, DataType<?> returnType) {
         this(ident, returnType, Type.SCALAR);
     }
 
-    public FunctionInfo(FunctionIdent ident, DataType returnType, Type type) {
+    public FunctionInfo(FunctionIdent ident, DataType<?> returnType, Type type) {
         this(ident, returnType, type, DETERMINISTIC_ONLY);
     }
 
-    public FunctionInfo(FunctionIdent ident, DataType returnType, Type type, Set<Feature> features) {
+    public FunctionInfo(FunctionIdent ident, DataType<?> returnType, Type type, Set<Feature> features) {
         assert features.size() < 32 : "features size must not exceed 32";
         this.ident = ident;
         this.returnType = returnType;
@@ -75,7 +75,7 @@ public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
         return type;
     }
 
-    public DataType returnType() {
+    public DataType<?> returnType() {
         return returnType;
     }
 

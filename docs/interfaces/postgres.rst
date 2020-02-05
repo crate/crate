@@ -188,8 +188,10 @@ table available in CrateDB::
     | 1185 | _timestamptz                 |        0 |    1184 |     -1 | A           |
     | 1186 | interval                     |     1187 |       0 |     16 | T           |
     | 1187 | _interval                    |        0 |    1186 |     -1 | A           |
+    | 2249 | record                       |     2287 |       0 |     -1 | P           |
+    | 2287 | _record                      |        0 |    2249 |     -1 | A           |
     +------+------------------------------+----------+---------+--------+-------------+
-    SELECT 27 rows in set (... sec)
+    SELECT 29 rows in set (... sec)
 
 
 .. NOTE::

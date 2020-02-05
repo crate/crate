@@ -25,23 +25,27 @@ package io.crate.protocols.postgres.types;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.google.common.collect.ImmutableMap;
+import io.crate.common.collections.Lists2;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 public class PGTypes {
 
-    private static final Map<DataType, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType, PGType>builder()
+    private static final Map<DataType<?>, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType<?>, PGType>builder()
         .put(DataTypes.BYTE, CharType.INSTANCE)
         .put(DataTypes.STRING, VarCharType.INSTANCE)
         .put(DataTypes.BOOLEAN, BooleanType.INSTANCE)
         .put(ObjectType.untyped(), JsonType.INSTANCE)
+        .put(new RowType(List.of()), RecordType.EMPTY_RECORD)
         .put(DataTypes.SHORT, SmallIntType.INSTANCE)
         .put(DataTypes.INTEGER, IntegerType.INSTANCE)
         .put(DataTypes.LONG, BigIntType.INSTANCE)
@@ -69,15 +73,16 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.GEO_POINT), PGArray.POINT_ARRAY)
         .put(new ArrayType<>(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
         .put(new ArrayType<>(DataTypes.INTERVAL), PGArray.INTERVAL_ARRAY)
+        .put(new ArrayType<>(new RowType(List.of())), PGArray.EMPTY_RECORD_ARRAY)
         .build();
 
-    private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
+    private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
     private static final Set<PGType> TYPES;
     private static final int TEXT_OID = 25;
     private static final int TEXT_ARRAY_OID = 1009;
 
     static {
-        for (Map.Entry<DataType, PGType> e : CRATE_TO_PG_TYPES.entrySet()) {
+        for (Map.Entry<DataType<?>, PGType> e : CRATE_TO_PG_TYPES.entrySet()) {
             int oid = e.getValue().oid();
             // crate string and ip types both map to pg varchar, avoid overwriting the mapping that is first established.
             if (!PG_TYPES_TO_CRATE_TYPE.containsKey(oid)) {
@@ -97,31 +102,49 @@ public class PGTypes {
         return TYPES;
     }
 
-    public static DataType fromOID(int oid) {
+    public static DataType<?> fromOID(int oid) {
         return PG_TYPES_TO_CRATE_TYPE.get(oid);
     }
 
-    public static PGType get(DataType type) {
-        if (type.id() == ArrayType.ID) {
-            DataType<?> innerType = ((ArrayType) type).innerType();
-            if (innerType.id() == ArrayType.ID) {
-                // if this is a nested collection stream it as JSON because
-                // postgres binary format doesn't support multidimensional arrays
-                // with sub-arrays of different length
-                // (something like [ [1, 2], [3] ] is not supported)
-                return JsonType.INSTANCE;
-            } else if (innerType.id() == ObjectType.ID) {
-                return PGArray.JSON_ARRAY;
+    public static PGType get(DataType<?> type) {
+        switch (type.id()) {
+            case ArrayType.ID: {
+                DataType<?> innerType = ((ArrayType<?>) type).innerType();
+                if (innerType.id() == ArrayType.ID) {
+                    // if this is a nested collection stream it as JSON because
+                    // postgres binary format doesn't support multidimensional arrays
+                    // with sub-arrays of different length
+                    // (something like [ [1, 2], [3] ] is not supported)
+                    return JsonType.INSTANCE;
+                } else if (innerType.id() == ObjectType.ID) {
+                    return PGArray.JSON_ARRAY;
+                } else if (innerType.id() == RowType.ID) {
+                    return new PGArray(PGArray.EMPTY_RECORD_ARRAY.oid(), get(innerType));
+                }
+
+                PGType pgType = CRATE_TO_PG_TYPES.get(type);
+                if (pgType == null) {
+                    throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "No type mapping from '%s' to pg_type", type.getName()));
+                }
+                return pgType;
             }
-        } else if (type.id() == ObjectType.ID) {
-            return JsonType.INSTANCE;
+            case ObjectType.ID: {
+                return JsonType.INSTANCE;
+            }
+
+            case RowType.ID:
+                return new RecordType(Lists2.map(((RowType) type).fieldTypes(), PGTypes::get));
+
+            default: {
+                PGType pgType = CRATE_TO_PG_TYPES.get(type);
+                if (pgType == null) {
+                    throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "No type mapping from '%s' to pg_type", type.getName()));
+                }
+                return pgType;
+            }
         }
 
-        PGType pgType = CRATE_TO_PG_TYPES.get(type);
-        if (pgType == null) {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "No type mapping from '%s' to pg_type", type.getName()));
-        }
-        return pgType;
     }
 }

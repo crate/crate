@@ -33,8 +33,9 @@ import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -48,25 +49,24 @@ public class ValuesFunction {
     private static class ValuesTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final FunctionInfo info;
-        private final ObjectType returnType;
+        private final RowType returnType;
 
         private ValuesTableFunctionImplementation(List<DataType> argTypes) {
-            ObjectType.Builder objTypeBuilder = ObjectType.builder();
+            ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {
                 DataType<?> dataType = argTypes.get(i);
                 assert dataType instanceof ArrayType : "Arguments to _values must be of type array";
 
-                objTypeBuilder.setInnerType("col" + (i + 1), ((ArrayType<?>) dataType).innerType());
+                fieldTypes.add(((ArrayType<?>) dataType).innerType());
             }
-            ObjectType objectType = objTypeBuilder.build();
+            returnType = new RowType(fieldTypes);
             this.info = new FunctionInfo(
                 new FunctionIdent(NAME, argTypes),
-                objectType.innerTypes().size() == 1
-                    ? objectType.innerTypes().values().iterator().next()
-                    : objectType,
+                returnType.numElements() == 1
+                    ? returnType.getFieldType(0)
+                    : returnType,
                 FunctionInfo.Type.TABLE
             );
-            this.returnType = objectType;
         }
 
         @Override
@@ -95,7 +95,7 @@ public class ValuesFunction {
         }
 
         @Override
-        public ObjectType returnType() {
+        public RowType returnType() {
             return returnType;
         }
     }

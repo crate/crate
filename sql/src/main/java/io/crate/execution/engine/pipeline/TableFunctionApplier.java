@@ -77,7 +77,17 @@ public final class TableFunctionApplier implements Function<Row, Iterator<Row>> 
                 }
                 for (int i = 0; i < iterators.size(); i++) {
                     Iterator<Row> it = iterators.get(i);
-                    outgoingCells[i] = it.hasNext() ? it.next().get(0) : null;
+                    if (it.hasNext()) {
+                        var row = it.next();
+                        // See description of TableFunctionImplementation for an explanation why single column treatment is different.
+                        if (row.numColumns() == 1) {
+                            outgoingCells[i] = row.get(0);
+                        } else {
+                            outgoingCells[i] = row;
+                        }
+                    } else {
+                        outgoingCells[i] = null;
+                    }
                 }
                 return outgoingRow;
             }

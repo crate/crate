@@ -22,9 +22,12 @@
 
 package io.crate.breaker;
 
+import io.crate.data.RowN;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.RowType;
+
 import org.junit.Test;
 
 import java.util.Collections;
@@ -59,4 +62,12 @@ public class SizeEstimatorFactoryTest {
         SizeEstimator<Object> estimator = SizeEstimatorFactory.create(DataTypes.GEO_SHAPE);
         assertThat(estimator.estimateSize(Collections.emptyMap()), is(24L));
     }
+
+    @Test
+    public void test_estimate_size_of_record() throws Exception {
+        var estimator = SizeEstimatorFactory.create(new RowType(List.of(DataTypes.LONG, DataTypes.INTEGER)));
+        assertThat(estimator.estimateSize(new RowN(20L, 10)), is(40L));
+
+    }
+
 }

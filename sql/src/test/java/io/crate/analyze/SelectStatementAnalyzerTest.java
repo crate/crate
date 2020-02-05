@@ -2030,4 +2030,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation rel = analyze("select ({x=10}).x");
         assertThat(rel.outputs(), contains(isLiteral(10L)));
     }
+
+    @Test
+    public void test_table_function_with_multiple_columns_in_select_list_has_row_type() {
+        AnalyzedRelation rel = analyze("select unnest([1, 2], [3, 4])");
+        assertThat(rel.outputs().get(0).valueType().getName(), is("record"));
+    }
 }

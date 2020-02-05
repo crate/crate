@@ -27,7 +27,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 
 /**
  * <p>
@@ -52,14 +52,14 @@ import io.crate.types.ObjectType;
  *     ...
  * </pre>
  *
- * If the SRF is used in place of expressions, the SRF will return a single column as object type.
- * Except if there is only a single column *within* the object type, in that case it is promoted:
+ * If the SRF is used in place of expressions, the SRF will return a single column as row type.
+ * Except if there is only a single column *within* the row type, in that case it is promoted:
  *
  * <pre>
  *     SELECT srf(...)
  *     srf
  *     ------------
- *     (val1, val2)          <-- object type. (Maybe a record or composite type later one, once we introduce it)
+ *     (val1, val2)          <-- row type
  *
  * vs.
  *
@@ -67,13 +67,13 @@ import io.crate.types.ObjectType;
  *     srf
  *     ---------------
  *     1                    <-- {@link #info()#returnType()} will be a `bigint`,
- *     2                         but {@link #returnType()} will be an ObjectType which describes the single column.
+ *     2                         but {@link #returnType()} will be a RowType which describes the single column.
  * </pre>
  *
- * This promotion behavior of `info()#returnType()` to the inner type of the object is necessary to support expressions like:
+ * This promotion behavior of `info()#returnType()` to the inner type of the rowType is necessary to support expressions like:
  *
  * <pre>
- *     SELECT generate_series(1, 2) + 1; // objectType + longType would result in a cast error.
+ *     SELECT generate_series(1, 2) + 1; // rowType + longType would result in a cast error.
  * </pre>
  *
  *
@@ -88,7 +88,7 @@ public abstract class TableFunctionImplementation<T> extends Scalar<Iterable<Row
      *
      * See the class documentation for more information about that behavior.
      */
-    public abstract ObjectType returnType();
+    public abstract RowType returnType();
 
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
