@@ -78,7 +78,9 @@ public class ColumnIndexWriterProjector implements Projector {
                                       @Nullable Map<Reference, Symbol> updateAssignments,
                                       int bulkActions,
                                       boolean autoCreateIndices,
-                                      UUID jobId) {
+                                      List<Symbol> returnValues,
+                                      UUID jobId
+                                      ) {
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         assert columnReferences.size() == insertInputs.size()
@@ -94,6 +96,9 @@ public class ColumnIndexWriterProjector implements Projector {
             updateColumnNames = convert.targetNames();
             assignments = convert.sources();
         }
+
+        Symbol[] returnValueOrNull = returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]);
+
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
@@ -101,13 +106,21 @@ public class ColumnIndexWriterProjector implements Projector {
             true, // continueOnErrors
             updateColumnNames,
             columnReferences.toArray(new Reference[columnReferences.size()]),
-            null,
+            returnValueOrNull,
             jobId,
             true);
 
         InputRow insertValues = new InputRow(insertInputs);
         Function<String, ShardUpsertRequest.Item> itemFactory =
-            id -> new ShardUpsertRequest.Item(id, assignments, insertValues.materialize(), null, null, null, null);
+            id -> new ShardUpsertRequest.Item(id,
+                                              assignments,
+                                              insertValues.materialize(),
+                                              null,
+                                              null,
+                                              null,
+                                              returnValueOrNull);
+
+        var upsertResultContext = returnValues.isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
@@ -126,7 +139,7 @@ public class ColumnIndexWriterProjector implements Projector {
             transportActionProvider.transportBulkCreateIndicesAction(),
             targetTableNumShards,
             targetTableNumReplicas,
-            UpsertResultContext.forRowCount()
+            upsertResultContext
         );
     }
 

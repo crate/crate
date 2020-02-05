@@ -23,6 +23,7 @@ package io.crate.planner.consumer;
 
 
 import io.crate.analyze.AnalyzedInsertStatement;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
@@ -37,6 +38,7 @@ import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.PlanHint;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -47,6 +49,9 @@ import java.util.List;
 
 public final class InsertFromSubQueryPlanner {
 
+    public static final String RETURNING_VERSION_ERROR_MSG =
+        "Returning clause for Insert is only supported when all nodes in the cluster running at least version 4.2.0";
+
     private InsertFromSubQueryPlanner() {
     }
 
@@ -54,6 +59,12 @@ public final class InsertFromSubQueryPlanner {
                                    PlannerContext plannerContext,
                                    LogicalPlanner logicalPlanner,
                                    SubqueryPlanner subqueryPlanner) {
+
+        if (!statement.returnValues().isEmpty() &&
+            !plannerContext.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
+            throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
+        }
+
         List<Reference> targetColsExclPartitionCols = new ArrayList<>(
             statement.columns().size() - statement.tableInfo().partitionedBy().size());
         for (Reference column : statement.columns()) {
@@ -66,6 +77,8 @@ public final class InsertFromSubQueryPlanner {
             targetColsExclPartitionCols,
             new InputColumns.SourceSymbols(statement.columns()));
 
+        // if fields are null default to number of rows imported
+        var outputs = statement.fields() == null ? List.of(new InputColumn(0, DataTypes.LONG)) : statement.fields();
 
         ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
             statement.tableInfo().ident(),
@@ -81,7 +94,9 @@ public final class InsertFromSubQueryPlanner {
             statement.tableInfo().clusteredBy(),
             statement.clusteredBySymbol(),
             Settings.EMPTY,
-            statement.tableInfo().isPartitioned()
+            statement.tableInfo().isPartitioned(),
+            outputs,
+            statement.returnValues()
         );
 
         LogicalPlan plannedSubQuery = logicalPlanner.normalizeAndPlan(

@@ -65,6 +65,9 @@ None
 Changes
 =======
 
+- Introduced new optional ``RETURNING`` clause for :ref:`Insert <ref-insert>` to
+  return specified values from each row inserted.
+
 - Added a ``mod`` alias for the :ref:`modulus <scalar-modulus>` function for
   improved PostgreSQL compatibility.
 

@@ -141,7 +141,8 @@ Parameters
 :output_expression:
     An expression to be computed and returned by the ``INSERT`` command
     after each row is updated. The expression can use any column names
-    of the table or use ``*`` to return all columns.
+    of the table or use ``*`` to return all columns. :ref:`System columns
+    <sql_administration_system_columns>` can also be returned.
 
 :output_name:
     A name to use for the result of the output expression.
