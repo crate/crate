@@ -1458,4 +1458,134 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                "5| cr8\n")
         );
     }
+
+    @Test
+    public void test_insert_with_id_in_returning_clause() {
+        execute("create table t (" +
+                " id int," +
+                " owner text default 'crate'" +
+                ") with (number_of_replicas=0)");
+
+        execute("insert into t (id) values (?) returning id",
+                new Object[]{1});
+
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols()[0], is("id"));
+        assertThat(response.rows()[0][0], is(1));
+
+    }
+
+    @Test
+    public void test_insert_with_multiple_values_in_returning_clause() {
+        execute("create table t (" +
+                " id int," +
+                " owner text default 'crate'" +
+                ") with (number_of_replicas=0)");
+
+        execute("insert into t (id) values (?) returning id, owner",
+                new Object[]{1});
+
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols()[0], is("id"));
+        assertThat(response.cols()[1], is("owner"));
+        assertThat(response.rows()[0][0], is(1));
+        assertThat(response.rows()[0][1], is("crate"));
+
+    }
+
+    @Test
+    public void test_insert_with_function_in_returning_clause() {
+        execute("create table t (" +
+                " id int," +
+                " owner text default 'crate'" +
+                ") with (number_of_replicas=0)");
+
+        execute("insert into t (id) values (?) returning id + 1 as bar",
+                new Object[]{1});
+
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols()[0], is("bar"));
+        assertThat(response.rows()[0][0], is(2));
+
+    }
+
+
+    @Test
+    public void test_insert_with_seq_no_in_returning_clause() {
+        execute("create table t (" +
+                " id int," +
+                " owner text default 'crate'" +
+                ") with (number_of_replicas=0)");
+
+        execute("insert into t (id) values (?) returning _seq_no as seq",
+                new Object[]{1});
+
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols()[0], is("seq"));
+        assertThat(response.rows()[0][0], is(0L));
+
+    }
+
+    @Test
+    public void test_insert_with_owner_renamed_in_returning_clause() {
+        execute("create table t (" +
+                " id int," +
+                " owner text default 'crate'" +
+                ") with (number_of_replicas=0)");
+
+        execute("insert into t (id) values (?) returning owner as name",
+                new Object[]{1});
+
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols()[0], is("name"));
+        assertThat(response.rows()[0][0], is("crate"));
+
+    }
+
+    @Test
+    public void test_insert_from_subquery_with_id_field_in_returning_clause() {
+        execute("create table t (" +
+                " id int," +
+                " owner text default 'crate'" +
+                ") with (number_of_replicas=0)");
+
+        execute("insert into t (id)  select '1' as id returning id as foo, owner as name");
+
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols()[0], is("foo"));
+        assertThat(response.rows()[0][0], is(1));
+        assertThat(response.cols()[1], is("name"));
+        assertThat(response.rows()[0][1], is("crate"));
+
+    }
+
+    @Test
+    public void test_insert_from_values_on_duplicate_key_with_id_in_returning_clause() {
+        execute("create table t1 (id integer primary key, other string) clustered into 1 shards");
+        execute("insert into t1 (id, other) values (1, 'test'), (2, 'test2')");
+
+        execute("insert into t1 (id, other) values (1, 'updated') ON CONFLICT (id) DO UPDATE SET other = 'updated' returning id, other");
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        assertThat(response.cols()[0], is("id"));
+        assertThat(response.rows()[0][0], is(1));
+
+        assertThat(response.cols()[1], is("other"));
+        assertThat(response.rows()[0][1], is("updated"));
+
+        execute("insert into t1 (id, other) values (1, 'updated_again'), (3, 'new') ON CONFLICT (id) DO UPDATE SET other = excluded.other returning id, other");
+        assertThat(response.rowCount(), is(2L));
+        refresh();
+
+        assertThat(response.cols()[0], is("id"));
+        assertThat(response.cols()[1], is("other"));
+
+        assertThat(response.rows()[0][0], is(1));
+        assertThat(response.rows()[0][1], is("updated_again"));
+
+        assertThat(response.rows()[1][0], is(3));
+        assertThat(response.rows()[1][1], is("new"));
+
+    }
 }

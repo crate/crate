@@ -28,13 +28,19 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public interface InsertSourceGen {
 
-    BytesReference generateSourceAndCheckConstraints(Object[] values) throws IOException;
+    default BytesReference generateSourceAndCheckConstraintsAsBytesReference(Object[] values) throws IOException {
+        return BytesReference.bytes(XContentFactory.jsonBuilder().map(generateSourceAndCheckConstraints(values)));
+    }
+
+    Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException;
 
     static InsertSourceGen of(TransactionContext txnCtx,
                               Functions functions,
@@ -51,4 +57,5 @@ public interface InsertSourceGen {
         }
         return new InsertSourceFromCells(txnCtx, functions, table, indexName, validation, targets);
     }
+
 }

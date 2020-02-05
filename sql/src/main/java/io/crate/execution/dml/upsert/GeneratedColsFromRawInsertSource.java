@@ -33,8 +33,6 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 
@@ -63,7 +61,7 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
     }
 
     @Override
-    public BytesReference generateSourceAndCheckConstraints(Object[] values) throws IOException {
+    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException {
         String rawSource = (String) values[0];
         Map<String, Object> source = XContentHelper.convertToMap(new BytesArray(rawSource), false, XContentType.JSON).v2();
         mixinDefaults(source, defaults);
@@ -73,7 +71,7 @@ public final class GeneratedColsFromRawInsertSource implements InsertSourceGen {
         for (Map.Entry<ColumnIdent, Input<?>> entry : generatedCols.entrySet()) {
             source.putIfAbsent(entry.getKey().fqn(), entry.getValue().value());
         }
-        return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
+        return source;
     }
 
     private Map<Reference, Object> buildDefaults(List<Reference> defaults,

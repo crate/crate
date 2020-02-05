@@ -108,6 +108,7 @@ import java.util.stream.Collectors;
 
 import static io.crate.sql.ExpressionFormatter.formatExpression;
 import static io.crate.sql.ExpressionFormatter.formatStandaloneExpression;
+import static io.crate.sql.tree.Insert.DuplicateKeyContext.Type.NONE;
 
 public final class SqlFormatter {
 
@@ -227,6 +228,42 @@ public final class SqlFormatter {
             }
             builder.append(' ');
             node.insertSource().accept(this, indent);
+            var duplicateKeyContext = node.duplicateKeyContext();
+            if (duplicateKeyContext.getType() != NONE) {
+                builder.append(" ON CONFLICT");
+                var constraintColumns = duplicateKeyContext.getConstraintColumns().iterator();
+                if (constraintColumns.hasNext()) {
+                    builder.append(" (");
+                    while (constraintColumns.hasNext()) {
+                        builder.append(constraintColumns.next());
+                        if (constraintColumns.hasNext()) {
+                            builder.append(", ");
+                        }
+                    }
+                    builder.append(')');
+                }
+                switch (duplicateKeyContext.getType()) {
+                    case ON_CONFLICT_DO_NOTHING:
+                        builder.append(" DO NOTHING");
+                        break;
+                    case ON_CONFLICT_DO_UPDATE_SET:
+                        builder.append(" DO UPDATE");
+                        var assignments = duplicateKeyContext.getAssignments().iterator();
+                        if (assignments.hasNext()) {
+                            builder.append(" SET ");
+                            while (assignments.hasNext()) {
+                                assignments.next().accept(this, indent);
+                                if (assignments.hasNext()) {
+                                    builder.append(", ");
+                                }
+                            }
+                        }
+                        break;
+                    case NONE:
+                    default:
+                }
+            }
+
             var returning = node.returningClause().iterator();
             if (returning.hasNext()) {
                 append(indent, "RETURNING");

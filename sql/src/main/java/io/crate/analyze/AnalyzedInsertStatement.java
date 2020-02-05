@@ -123,7 +123,7 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
             this.fields = new ArrayList<>(outputNames.size());
             Iterator<Symbol> outputsIterator = returnValues.iterator();
             for (ColumnIdent path : outputNames) {
-                //TODO The relation in the field should be point semantically correctly to this
+                //TODO The relation in the field should point semantically correctly to `this`
                 fields.add(new Field(this.subQueryRelation, path, outputsIterator.next()));
             }
         } else {

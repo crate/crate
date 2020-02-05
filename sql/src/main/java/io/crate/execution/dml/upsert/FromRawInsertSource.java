@@ -24,13 +24,25 @@ package io.crate.execution.dml.upsert;
 
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
+import java.util.Map;
 
 public class FromRawInsertSource implements InsertSourceGen {
 
-    @Override
-    public BytesReference generateSourceAndCheckConstraints(Object[] values) throws IOException {
+    public BytesReference generateSourceAndCheckConstraintsAsBytesReference(Object[] values) throws IOException {
         return new BytesArray(((String) values[0]));
+    }
+
+    @Override
+    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException {
+        return JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            new BytesArray(((String) values[0])).array()
+        ).map();
     }
 }

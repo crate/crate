@@ -95,7 +95,7 @@ public class Insert implements LogicalPlan {
 
     @Override
     public List<Symbol> outputs() {
-        return MergeCountProjection.OUTPUTS;
+        return (List<Symbol>) writeToTable.outputs();
     }
 
     @Override
