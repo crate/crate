@@ -32,7 +32,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.types.ObjectType;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
@@ -74,14 +73,6 @@ public class ProjectSet extends ForwardingLogicalPlan {
         this.outputs = Lists2.concat(tableFunctions, standalone);
         this.tableFunctions = tableFunctions;
         this.standalone = standalone;
-        for (Function tableFunction : tableFunctions) {
-            // We should distinguish between single-column objects and multiple columns;
-            // but the type system doesn't allow that yet.
-            // So this restricts us to table functions that don't return objects
-            if (tableFunction.info().returnType().id() == ObjectType.ID) {
-                throw new UnsupportedOperationException("Table function used in select list must not return multiple columns");
-            }
-        }
     }
 
     @Override

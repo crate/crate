@@ -41,11 +41,10 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
-import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -65,18 +64,18 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
         this.functionImplementation = functionImplementation;
         this.function = function;
         this.qualifiedName = qualifiedName;
-        ObjectType objectType = functionImplementation.returnType();
-        this.fields = new Fields(objectType.innerTypes().size());
-        this.outputs = new ArrayList<>(objectType.innerTypes().size());
+        RowType rowType = functionImplementation.returnType();
+        this.fields = new Fields(rowType.numElements());
+        this.outputs = new ArrayList<>(rowType.numElements());
         int idx = 0;
         FunctionName functionName = function.info().ident().fqnName();
         var relationName = new RelationName(Objects.requireNonNullElse(functionName.schema(), ""), functionName.name());
-        for (var entry : objectType.innerTypes().entrySet()) {
-            String columnName = entry.getKey();
-            DataType<?> type = entry.getValue();
-            var ref = new Reference(new ReferenceIdent(relationName, columnName), RowGranularity.DOC, type, idx, null);
+        for (int i = 0; i < rowType.numElements(); i++) {
+            DataType<?> type = rowType.getFieldType(i);
+            String fieldName = rowType.getFieldName(i);
+            var ref = new Reference(new ReferenceIdent(relationName, fieldName), RowGranularity.DOC, type, idx, null);
             outputs.add(ref);
-            fields.add(new Field(this, new ColumnIdent(columnName), ref));
+            fields.add(new Field(this, new ColumnIdent(fieldName), ref));
             idx++;
         }
     }

@@ -33,6 +33,7 @@ import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 
 import java.util.List;
 
@@ -46,6 +47,7 @@ public class EmptyRowTableFunction {
     static class EmptyRowTableFunctionImplementation extends TableFunctionImplementation<Object> {
 
         private final FunctionInfo info;
+        private final RowType emptyRow = new RowType(List.of());
 
         private EmptyRowTableFunctionImplementation(FunctionInfo info) {
             this.info = info;
@@ -63,8 +65,8 @@ public class EmptyRowTableFunction {
         }
 
         @Override
-        public ObjectType returnType() {
-            return ObjectType.untyped();
+        public RowType returnType() {
+            return emptyRow;
         }
     }
 

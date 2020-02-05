@@ -36,12 +36,13 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.Identifiers;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
+
+import static io.crate.types.DataTypes.STRING;
 
 public final class PgGetKeywordsFunction extends TableFunctionImplementation<List<Object>> {
 
@@ -49,7 +50,7 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     private static final FunctionName FUNCTION_NAME = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
     private static final PgGetKeywordsFunction INSTANCE = new PgGetKeywordsFunction();
     private final FunctionInfo info;
-    private final ObjectType returnType;
+    private final RowType returnType;
 
     public static void register(TableFunctionModule module) {
         module.register(
@@ -66,11 +67,10 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     }
 
     public PgGetKeywordsFunction() {
-        returnType = ObjectType.builder()
-            .setInnerType("word", DataTypes.STRING)
-            .setInnerType("catcode", DataTypes.STRING)
-            .setInnerType("catdesc", DataTypes.STRING)
-            .build();
+        returnType = new RowType(
+            List.of(STRING, STRING, STRING),
+            List.of("word", "catcode", "catdesc")
+        );
         info = new FunctionInfo(
             new FunctionIdent(FUNCTION_NAME, List.of()),
             returnType,
@@ -107,7 +107,7 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     }
 
     @Override
-    public ObjectType returnType() {
+    public RowType returnType() {
         return returnType;
     }
 }

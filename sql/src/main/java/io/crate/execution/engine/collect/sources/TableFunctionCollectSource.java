@@ -39,7 +39,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -63,13 +63,13 @@ public class TableFunctionCollectSource implements CollectSource {
                                           boolean supportMoveToStart) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
         TableFunctionImplementation<?> functionImplementation = phase.functionImplementation();
-        ObjectType objectType = functionImplementation.returnType();
+        RowType rowType = functionImplementation.returnType();
 
         //noinspection unchecked  Only literals can be passed to table functions. Anything else is invalid SQL
         List<Input<?>> inputs = (List<Input<?>>) (List) phase.functionArguments();
 
         List<Input<?>> topLevelInputs = new ArrayList<>(phase.toCollect().size());
-        List<String> columns = List.copyOf(objectType.innerTypes().keySet());
+        List<String> columns = rowType.fieldNames();
         InputFactory.Context<InputCollectExpression> ctx = inputFactory.ctxForRefs(
             txnCtx,
             ref -> {

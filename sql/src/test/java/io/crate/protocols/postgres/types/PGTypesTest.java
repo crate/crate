@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.crate.data.Row1;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -29,6 +30,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.FloatType;
 import io.crate.types.LongType;
 import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.netty.buffer.ByteBuf;
@@ -36,6 +38,7 @@ import io.netty.buffer.Unpooled;
 import org.joda.time.Period;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -151,6 +154,15 @@ public class PGTypesTest extends CrateUnitTest {
     @Test
     public void testReadWriteVarCharType() {
         assertEntryOfPgType(new Entry(DataTypes.STRING, "test"), VarCharType.INSTANCE);
+    }
+
+    @Test
+    public void test_can_retrieve_pg_type_for_record_array() throws Exception {
+        var pgType = PGTypes.get(new ArrayType<>(new RowType(List.of(DataTypes.STRING))));
+        assertThat(pgType.oid(), is(PGArray.EMPTY_RECORD_ARRAY.oid()));
+
+        byte[] bytes = pgType.encodeAsUTF8Text(List.of(new Row1("foobar")));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("{\"(foobar)\"}"));
     }
 
     private void assertEntryOfPgType(Entry entry, PGType pgType) {

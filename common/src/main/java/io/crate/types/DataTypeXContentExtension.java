@@ -28,6 +28,7 @@ import org.joda.time.Period;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
+import io.crate.data.RowN;
 
 import java.util.Map;
 import java.util.function.Function;
@@ -54,6 +55,14 @@ public class DataTypeXContentExtension implements XContentBuilderExtension {
             Map.entry(Period.class, (b, v) -> {
                 Period period = (Period) v;
                 b.value(IntervalType.PERIOD_FORMATTER.print(period));
+            }),
+            Map.entry(RowN.class, (b, v) -> {
+                RowN row = (RowN) v;
+                b.startArray();
+                for (int i = 0; i < row.numColumns(); i++) {
+                    b.value(row.get(i));
+                }
+                b.endArray();
             })
         );
     }

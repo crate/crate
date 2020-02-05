@@ -829,12 +829,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testUnnestCannotReturnMultipleColumnsIfUsedInSelectList() {
-        expectedException.expectMessage("Table function used in select list must not return multiple columns");
-        e.logicalPlan("select unnest([1, 2], [3, 4])");
-    }
-
-    @Test
     public void testWindowFunctionsWithPartitionByAreExecutedDistributed() {
         Merge localMerge = e.plan("select sum(ints) OVER (partition by awesome) from users");
         Merge distMerge = (Merge) localMerge.subPlan();

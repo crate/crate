@@ -135,7 +135,8 @@ public final class DataTypes {
             entry(GeoPointType.ID, in -> GEO_POINT),
             entry(GeoShapeType.ID, in -> GEO_SHAPE),
             entry(ArrayType.ID, ArrayType::new),
-            entry(IntervalType.ID, in -> INTERVAL))
+            entry(IntervalType.ID, in -> INTERVAL),
+            entry(RowType.ID, RowType::new))
         );
 
     private static final Set<DataType> NUMBER_CONVERSIONS = Stream.concat(
@@ -314,6 +315,7 @@ public final class DataTypes {
         entry("int4", INTEGER),
         entry("int8", LONG),
         entry("name", STRING),
+        entry("regproc", STRING),
         entry("long", LONG),
         entry("byte", BYTE),
         entry("short", SHORT),

@@ -40,6 +40,7 @@ public abstract class PGType {
         GEOMETRIC("G"),
         NETWORK("I"),
         NUMERIC("N"),
+        PSEUDO("P"),
         RANGE("R"),
         STRING("S"),
         TIMESPAN("T"),

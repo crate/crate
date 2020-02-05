@@ -40,7 +40,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
-import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 import io.crate.types.TimestampType;
 import org.joda.time.Period;
 
@@ -77,7 +77,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     private final BinaryOperator<T> plus;
     private final BinaryOperator<T> divide;
     private final Comparator<T> comparator;
-    private final ObjectType returnType;
+    private final RowType returnType;
 
     public static void register(TableFunctionModule module) {
         Param startAndEnd = Param.of(DataTypes.LONG, DataTypes.INTEGER, DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP);
@@ -132,7 +132,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         this.divide = divide;
         this.comparator = comparator;
         FunctionIdent functionIdent = new FunctionIdent(NAME, dataTypes);
-        this.returnType = ObjectType.builder().setInnerType("col1", dataTypes.get(0)).build();
+        this.returnType = new RowType(List.of((DataType<?>) dataTypes.get(0)));
         this.info = new FunctionInfo(functionIdent, dataTypes.get(0), FunctionInfo.Type.TABLE);
     }
 
@@ -197,18 +197,18 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     }
 
     @Override
-    public ObjectType returnType() {
+    public RowType returnType() {
         return returnType;
     }
 
     private static class GenerateSeriesIntervals extends TableFunctionImplementation<Object> {
 
         private final FunctionInfo info;
-        private final ObjectType returnType;
+        private final RowType returnType;
 
         public GenerateSeriesIntervals(List<DataType> types) {
             FunctionIdent functionIdent = new FunctionIdent(NAME, types);
-            returnType = ObjectType.builder().setInnerType("col1", types.get(0)).build();
+            returnType = new RowType(List.of((DataType<?>) types.get(0)));
             this.info = new FunctionInfo(functionIdent, types.get(0), FunctionInfo.Type.TABLE);
         }
 
@@ -276,7 +276,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         }
 
         @Override
-        public ObjectType returnType() {
+        public RowType returnType() {
             return returnType;
         }
     }
