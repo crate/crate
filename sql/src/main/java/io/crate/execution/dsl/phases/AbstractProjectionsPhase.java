@@ -24,7 +24,6 @@ package io.crate.execution.dsl.phases;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
@@ -44,8 +43,8 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     private UUID jobId;
     private int executionPhaseId;
     private String name;
-    protected List<Projection> projections = ImmutableList.of();
-    protected List<DataType> outputTypes = ImmutableList.of();
+    protected List<Projection> projections = List.of();
+    protected List<DataType> outputTypes = List.of();
 
     protected AbstractProjectionsPhase(UUID jobId, int executionPhaseId, String name, List<Projection> projections) {
         this.jobId = jobId;
@@ -88,7 +87,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     public void addProjection(Projection projection) {
         List<Projection> projections = new ArrayList<>(this.projections);
         projections.add(projection);
-        this.projections = ImmutableList.copyOf(projections);
+        this.projections = List.copyOf(projections);
         outputTypes = Symbols.typeView(projection.outputs());
     }
 

@@ -1200,6 +1200,12 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_row_type_access() {
+        printStatement("SELECT (obj).col FROM tbl");
+        printStatement("SELECT ((obj).x).y FROM tbl");
+    }
+
+    @Test
     public void testSubscriptExpression() {
         Expression expression = SqlParser.createExpression("a['sub']");
         assertThat(expression, instanceOf(SubscriptExpression.class));

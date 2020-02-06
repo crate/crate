@@ -277,7 +277,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnyInvalidArrayType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast ['foo', 'bar', 'baz'] to type boolean_array");
+        expectedException.expectMessage("Cannot cast `['foo', 'bar', 'baz']` of type `text_array` to type `boolean_array`");
         analyzeSelectWhere("select * from users_multi_pk where awesome = any(['foo', 'bar', 'baz'])");
     }
 
@@ -295,7 +295,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         WhereClause whereClause = analyzeSelectWhere(s);
         assertThat(whereClause.query(), isFunction(AnyOperators.Names.EQ,
-            ImmutableList.<DataType>of(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))));
+            ImmutableList.of(DataTypes.INTEGER, new ArrayType<>(DataTypes.INTEGER))));
     }
 
     @Test

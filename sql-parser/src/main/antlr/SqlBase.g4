@@ -234,7 +234,7 @@ primaryExpression
     | ident                                                                          #columnReference
     | qname '(' (setQuant? expr (',' expr)*)? ')' filter? over?                      #functionCall
     | subqueryExpression                                                             #subqueryExpressionDefault
-    // This case handles a simple parenthesized expression.
+    | '(' base=primaryExpression ')' '.' fieldName=ident                             #recordSubscript
     | '(' expr ')'                                                                   #nestedExpression
     // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
     | EXISTS '(' query ')'                                                           #exists

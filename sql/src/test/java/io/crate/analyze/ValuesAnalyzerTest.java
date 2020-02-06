@@ -24,6 +24,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
@@ -54,7 +55,7 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_error_is_raised_if_the_types_of_the_rows_are_not_compatible() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type bigint");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
         e.analyze("VALUES (1), ('foo')");
     }
 

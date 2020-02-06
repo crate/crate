@@ -22,44 +22,46 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RowGranularity;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.planner.distribution.DistributionInfo;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-public class TableFunctionCollectPhase extends RoutedCollectPhase implements CollectPhase {
+public class TableFunctionCollectPhase extends AbstractProjectionsPhase implements CollectPhase {
 
-    private final TableFunctionImplementation functionImplementation;
+    private final TableFunctionImplementation<?> functionImplementation;
     private final List<Literal<?>> functionArguments;
+    private final List<Symbol> outputs;
+    private final Symbol where;
+    private final String nodeId;
+
+    private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
 
     public TableFunctionCollectPhase(UUID jobId,
                                      int phaseId,
-                                     Routing routing,
-                                     TableFunctionImplementation functionImplementation,
+                                     String nodeId,
+                                     TableFunctionImplementation<?> functionImplementation,
                                      List<Literal<?>> functionArguments,
-                                     List<Projection> projections,
                                      List<Symbol> outputs,
                                      Symbol where) {
-        super(jobId,
-            phaseId,
-            functionImplementation.info().ident().name(),
-            routing,
-            RowGranularity.DOC,
-            outputs,
-            projections,
-            where,
-            DistributionInfo.DEFAULT_BROADCAST
-        );
+        super(jobId, phaseId, "tableFunction", List.of());
+        this.nodeId = nodeId;
         this.functionImplementation = functionImplementation;
         this.functionArguments = functionArguments;
+        this.outputs = outputs;
+        this.where = where;
+        this.outputTypes = Symbols.typeView(outputs);
+    }
+
+    public Symbol where() {
+        return where;
     }
 
     @Override
@@ -82,7 +84,33 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
         return functionArguments;
     }
 
-    public TableFunctionImplementation functionImplementation() {
+    public TableFunctionImplementation<?> functionImplementation() {
         return functionImplementation;
+    }
+
+    @Override
+    public DistributionInfo distributionInfo() {
+        return distributionInfo;
+    }
+
+    @Override
+    public void distributionInfo(DistributionInfo distributionInfo) {
+        this.distributionInfo = distributionInfo;
+    }
+
+    @Override
+    public String name() {
+        return "tableFunction";
+    }
+
+    @Override
+    public Collection<String> nodeIds() {
+        return List.of(nodeId);
+    }
+
+
+    @Override
+    public List<Symbol> toCollect() {
+        return outputs;
     }
 }

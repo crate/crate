@@ -65,6 +65,10 @@ None
 Changes
 =======
 
+- Added support for :ref:`record subscript <record-subscript>` syntax as
+  alternative to the existing :ref:`object subscript <object-subscript>`
+  syntax.
+
 - Added the :ref:`pi <scalar-pi>` scalar function.
 
 - Added a ``ceiling`` alias for the :ref:`ceil <scalar-ceil>` function for

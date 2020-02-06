@@ -50,7 +50,7 @@ public class ArrayBoundFunctionResolverTest extends AbstractScalarFunctionsTest 
     @Test
     public void testSecondArgumentNotANumber() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast [2] to type integer");
+        expectedException.expectMessage("Cannot cast `[2]` of type `bigint_array` to type `integer`");
         assertEvaluate("array_lower([1], [2])", null);
     }
 

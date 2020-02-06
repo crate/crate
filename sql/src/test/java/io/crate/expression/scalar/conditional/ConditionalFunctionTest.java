@@ -134,7 +134,7 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testCaseConditionNotBooleanThrowsIllegalArgumentException() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type boolean");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `boolean`");
         assertEvaluate("case when 'foo' then x else 1 end", "");
     }
 

@@ -70,11 +70,4 @@ public class CastIntegrationTest extends SQLTransportIntegrationTest {
         execute("select try_cast(name as integer) from sys.nodes limit 1");
         assertThat(response.rows()[0][0], is(nullValue()));
     }
-
-    @Test
-    public void testInvalidCastExpression() throws Exception {
-        expectedException.expect(Exception.class);
-        expectedException.expectMessage("Cannot cast text to type object_array");
-        execute("select cast(name as array(object)) from sys.cluster");
-    }
 }

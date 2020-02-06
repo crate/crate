@@ -75,7 +75,7 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "RootBoundary[generate_series(1, 2), col1]\n" +
             "GroupBy[generate_series(1, 2), col1 | ]\n" +
             "ProjectSet[generate_series(1, 2) | col1]\n" +
-            "Collect[.unnest | [col1] | true]\n"));
+            "TableFunction[unnest | [col1] | true]\n"));
     }
 
     @Test

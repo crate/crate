@@ -107,4 +107,8 @@ public class LogicalPlanVisitor<C, R> {
     public R visitTopNDistinct(TopNDistinct topNDistinct, C context) {
         return visitPlan(topNDistinct, context);
     }
+
+    public R visitTableFunction(TableFunction tableFunction, C context) {
+        return visitPlan(tableFunction, context);
+    }
 }

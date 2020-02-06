@@ -23,7 +23,6 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.Iterables;
-import io.crate.analyze.OrderBy;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
@@ -33,7 +32,6 @@ import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.execution.engine.collect.ValueAndInputRow;
 import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
@@ -85,10 +83,6 @@ public class TableFunctionCollectSource implements CollectSource {
             new ValueAndInputRow<>(topLevelInputs, ctx.expressions()));
         Input<Boolean> condition = (Input<Boolean>) ctx.add(phase.where());
         rows = Iterables.filter(rows, InputCondition.asPredicate(condition));
-        OrderBy orderBy = phase.orderBy();
-        if (orderBy != null) {
-            rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
-        }
         return InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false);
     }
 }

@@ -37,7 +37,7 @@ public class ArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testTypeValidation() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type bigint");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
         assertEvaluate("ARRAY[1, 'foo']", null);
     }
 

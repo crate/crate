@@ -24,18 +24,15 @@ package io.crate.planner.operators;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.predicate.MatchPredicate;
@@ -304,32 +301,6 @@ public class Collect implements LogicalPlan {
             plannerContext.functions(),
             plannerContext.transactionContext());
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
-
-        if (relation instanceof TableFunctionRelation) {
-            TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation;
-            List<Symbol> args = tableFunctionRelation.function().arguments();
-            ArrayList<Literal<?>> functionArguments = new ArrayList<>(args.size());
-            for (Symbol arg : args) {
-                // It's not possible to use columns as argument to a table function, so it's safe to evaluate at this point.
-                functionArguments.add(
-                    Literal.of(
-                        arg.valueType(),
-                        SymbolEvaluator.evaluate(
-                            plannerContext.transactionContext(), plannerContext.functions(), arg, params, subQueryResults)
-                    )
-                );
-            }
-            return new TableFunctionCollectPhase(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                plannerContext.allocateRouting(tableInfo, where, RoutingProvider.ShardSelection.ANY, sessionContext),
-                tableFunctionRelation.functionImplementation(),
-                functionArguments,
-                Collections.emptyList(),
-                boundOutputs,
-                where.queryOrFallback()
-            );
-        }
         return new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),

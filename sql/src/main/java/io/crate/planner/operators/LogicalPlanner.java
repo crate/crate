@@ -22,9 +22,9 @@
 
 package io.crate.planner.operators;
 
+import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
@@ -35,6 +35,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.RelationNormalizer;
+import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.analyze.where.DocKeys;
@@ -322,7 +323,7 @@ public class LogicalPlanner {
             return plan(((AliasedAnalyzedRelation) analyzedRelation).relation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
         }
         if (analyzedRelation instanceof AbstractTableRelation) {
-            return Collect.create(((AbstractTableRelation) analyzedRelation), toCollect, where);
+            return Collect.create(((AbstractTableRelation<?>) analyzedRelation), toCollect, where);
         }
         if (analyzedRelation instanceof MultiSourceSelect) {
             return JoinPlanBuilder.createNodes((MultiSourceSelect) analyzedRelation, where, subqueryPlanner, functions, txnCtx);
@@ -330,8 +331,11 @@ public class LogicalPlanner {
         if (analyzedRelation instanceof UnionSelect) {
             return Union.create((UnionSelect) analyzedRelation, subqueryPlanner, functions, txnCtx);
         }
+        if (analyzedRelation instanceof TableFunctionRelation) {
+            return TableFunction.create(((TableFunctionRelation) analyzedRelation), toCollect, where);
+        }
         if (analyzedRelation instanceof QueriedSelectRelation) {
-            QueriedSelectRelation<?> selectRelation = (QueriedSelectRelation) analyzedRelation;
+            QueriedSelectRelation<?> selectRelation = (QueriedSelectRelation<?>) analyzedRelation;
 
             AnalyzedRelation subRelation = selectRelation.subRelation();
             if (subRelation instanceof DocTableRelation) {
@@ -358,6 +362,8 @@ public class LogicalPlanner {
                 ));
             } else if (subRelation instanceof TableRelation) {
                 return Collect.create(((TableRelation) subRelation), toCollect, where);
+            } else if (subRelation instanceof TableFunctionRelation) {
+                return TableFunction.create(((TableFunctionRelation) subRelation), toCollect, where);
             }
             return Filter.create(
                 plan(subRelation, fetchMode, subqueryPlanner, false, functions, txnCtx),
@@ -411,7 +417,13 @@ public class LogicalPlanner {
                                   Row params,
                                   SubQueryResults subQueryResults,
                                   boolean enableProfiling) {
-        NodeOperationTree nodeOpTree = getNodeOperationTree(logicalPlan, dependencies, plannerContext, params, subQueryResults);
+        NodeOperationTree nodeOpTree;
+        try {
+            nodeOpTree = getNodeOperationTree(logicalPlan, dependencies, plannerContext, params, subQueryResults);
+        } catch (Throwable t) {
+            consumer.accept(null, t);
+            return;
+        }
         executeNodeOpTree(
             dependencies,
             plannerContext.transactionContext(),

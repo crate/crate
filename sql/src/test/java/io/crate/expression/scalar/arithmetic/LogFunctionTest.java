@@ -85,7 +85,7 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeString() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type double");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
         assertNormalize("log('foo')", Matchers.nullValue());
     }
 

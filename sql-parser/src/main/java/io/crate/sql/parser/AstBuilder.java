@@ -76,6 +76,7 @@ import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
@@ -973,7 +974,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         // indirect left-side recursion when attempting to do so. We restrict it before initializing
         // an Assignment.
         if (column instanceof SubscriptExpression || column instanceof QualifiedNameReference) {
-            return new Assignment(column, (Expression) visit(context.expr()));
+            return new Assignment<>(column, (Expression) visit(context.expr()));
         }
         throw new IllegalArgumentException(
             String.format(Locale.ENGLISH, "cannot use expression %s as a left side of an assignment", column));
@@ -1568,6 +1569,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitRecordSubscript(SqlBaseParser.RecordSubscriptContext ctx) {
+        return new RecordSubscript(
+            (Expression) visit(ctx.base),
+            getIdentText(ctx.fieldName)
+        );
+    }
+
+    @Override
     public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
         return new QualifiedNameReference(QualifiedName.of(getIdentText(context.ident())));
     }
@@ -1692,7 +1701,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitPositionalParameter(SqlBaseParser.PositionalParameterContext context) {
-        return new ParameterExpression(Integer.valueOf(context.integerLiteral().getText()));
+        return new ParameterExpression(Integer.parseInt(context.integerLiteral().getText()));
     }
 
     @Override
