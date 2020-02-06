@@ -70,7 +70,7 @@ public final class CompletableFutures {
         return new ExceptionalInterceptingFuture<>(delegate, beforeExceptional);
     }
 
-
+    @SuppressForbidden
     private static class ExceptionalInterceptingFuture<T> extends CompletableFuture<T> {
 
         private final CompletableFuture<T> delegate;

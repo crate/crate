@@ -151,8 +151,9 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     @Override
     public void cancel(Throwable t) {
         cancelled = t;
-        if (currentCollector != null) {
-            currentCollector.cancel(t);
+        var collector = currentCollector;
+        if (collector != null) {
+            collector.cancel(t);
         }
     }
 
@@ -200,8 +201,9 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         if (minScore != null) {
             collector = new MinimumScoreCollector(collector, minScore);
         }
-        collector = currentCollector = new CancelableCollector(collector, cancelled);
-        searcher.search(query, collector);
+        var cancelableCollector = new CancelableCollector(collector, cancelled);
+        currentCollector = cancelableCollector;
+        searcher.search(query, cancelableCollector);
         ScoreDoc[] scoreDocs = topFieldCollector.topDocs().scoreDocs;
         if (doDocsScores) {
             TopFieldCollector.populateScores(scoreDocs, searcher, query);
@@ -266,8 +268,9 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                 return;
             }
             cancelled = t;
-            if (currentLeafCollector != null) {
-                currentLeafCollector.cancel(t);
+            var leafCollector = currentLeafCollector;
+            if (leafCollector != null) {
+                leafCollector.cancel(t);
             }
         }
     }
