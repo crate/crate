@@ -721,8 +721,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testJoinUsingSyntax() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        analyze("select * from users join users_multi_pk using (id)");
+        MultiSourceSelect relation = analyze("select * from users join users_multi_pk using (id, name)");
+        assertThat(relation.where().query(), isSQL("null"));
+        assertEquals(relation.joinPairs().size(), 1);
+        assertThat(relation.joinPairs().get(0).condition(),
+                   isSQL("((doc.users.id = doc.users_multi_pk.id) AND (doc.users.name = doc.users_multi_pk.name))"));
     }
 
     @Test

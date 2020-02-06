@@ -25,13 +25,53 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class JoinUsing
     extends JoinCriteria {
+
+    private static QualifiedName extendQualifiedName(QualifiedName name, String ext) {
+        List<String> parts = new ArrayList<>(name.getParts().size() + 1);
+        parts.addAll(name.getParts());
+        parts.add(ext);
+        return new QualifiedName(parts);
+    }
+
+    public static Expression toExpression(QualifiedName left, QualifiedName right, List<String> columns) {
+        checkNotNull(columns, "columns is null");
+        checkArgument(false == columns.isEmpty(), "columns is empty");
+        List<ComparisonExpression> comp = columns.stream()
+            .map(col -> new ComparisonExpression(
+                ComparisonExpression.Type.EQUAL,
+                new QualifiedNameReference(extendQualifiedName(left, col)),
+                new QualifiedNameReference((extendQualifiedName(right, col)))))
+            .collect(Collectors.toList());
+        if (1 == comp.size()) {
+            return comp.get(0);
+        }
+        Expression expr = null;
+        for (int i = comp.size() - 2; i >= 0; i--) {
+            if (null == expr) {
+                expr = new LogicalBinaryExpression(
+                    LogicalBinaryExpression.Type.AND,
+                    comp.get(i),
+                    comp.get(i + 1));
+            } else {
+                expr = new LogicalBinaryExpression(
+                    LogicalBinaryExpression.Type.AND,
+                    comp.get(i),
+                    expr);
+            }
+        }
+        return expr;
+    }
+
+
     private final List<String> columns;
 
     public JoinUsing(List<String> columns) {
