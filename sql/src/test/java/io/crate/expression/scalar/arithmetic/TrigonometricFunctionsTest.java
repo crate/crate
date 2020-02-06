@@ -22,8 +22,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -204,5 +204,33 @@ public class TrigonometricFunctionsTest extends AbstractScalarFunctionsTest {
         assertNormalize("acos(age)", isFunction("acos"));
         assertNormalize("tan(age)", isFunction("tan"));
         assertNormalize("atan(age)", isFunction("atan"));
+    }
+
+    @Test
+    public void test_evaluate_cot_with_primitive_numeric_argument_types() {
+        assertEvaluate("cot(double_val)", -0.6166933379738136, Literal.of(2.1234));
+        assertEvaluate("cot(float_val)", 0.33894928708120026, Literal.of(1.244F));
+        assertEvaluate("cot(x)", -0.45765755436028577, Literal.of(2L));
+        assertEvaluate("cot(id)", 0.6420926159343306, Literal.of(1));
+        assertEvaluate("cot(short_val)", -7.015252551434534, Literal.of(DataTypes.SHORT, (short) 3));
+    }
+
+    @Test
+    public void test_cot_with_null_argument() {
+        assertEvaluate("cot(null)", null);
+    }
+
+    @Test
+    public void test_cot_with_argument_value_equal_to_zero_radian() {
+        assertEvaluate("cot(0)", Double.POSITIVE_INFINITY);
+    }
+
+    @Test
+    public void test_normalize_cot_with_primitive_numeric_argument_types() {
+        assertNormalize("cot(2.1234::double)", isLiteral(-0.6166933379738136, DataTypes.DOUBLE));
+        assertNormalize("cot(1.245::real)", isLiteral(0.33783472578914325, DataTypes.DOUBLE));
+        assertNormalize("cot(2::bigint)", isLiteral(-0.45765755436028577, DataTypes.DOUBLE));
+        assertNormalize("cot(1::int)", isLiteral(0.6420926159343306, DataTypes.DOUBLE));
+        assertNormalize("cot(3::smallint)", isLiteral(-7.015252551434534, DataTypes.DOUBLE));
     }
 }

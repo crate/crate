@@ -65,6 +65,8 @@ None
 Changes
 =======
 
+- Added the :ref:`cot <scalar-cot>` trigonometric scalar function.
+
 - Added support for :ref:`record subscript <record-subscript>` syntax as
   alternative to the existing :ref:`object subscript <object-subscript>`
   syntax.

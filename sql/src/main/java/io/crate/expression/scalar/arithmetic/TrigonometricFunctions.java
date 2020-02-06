@@ -37,6 +37,7 @@ public final class TrigonometricFunctions {
         register(module, "cos", Math::cos);
         register(module, "acos", x -> Math.acos(checkRange(x)));
         register(module, "tan", Math::tan);
+        register(module, "cot", x -> 1 / Math.tan(x));
         register(module, "atan", x -> Math.atan(checkRange(x)));
     }
 

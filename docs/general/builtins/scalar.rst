@@ -1413,6 +1413,27 @@ See below for an example::
     +--------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-cot:
+
+``cot(number)``
+---------------
+
+Returns the cotangent of the argument that represents the angle expressed in
+radians. The range of the argument is all real numbers. The cotangent of zero
+is undefined and returns ``Infinity``.
+
+Returns: ``double precision``
+
+See below for an example::
+
+    cr> select cot(1);
+    +--------------------+
+    |             cot(1) |
+    +--------------------+
+    | 0.6420926159343306 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
 ``atan(number)``
 ----------------
 
