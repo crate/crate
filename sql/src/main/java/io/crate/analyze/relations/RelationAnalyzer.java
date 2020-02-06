@@ -82,6 +82,7 @@ import io.crate.sql.tree.Intersect;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
+import io.crate.sql.tree.JoinUsing;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -245,15 +246,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext statementContext) {
-        node.getLeft().accept(this, statementContext);
-        node.getRight().accept(this, statementContext);
+        AnalyzedRelation leftRel = node.getLeft().accept(this, statementContext);
+        AnalyzedRelation rightRel = node.getRight().accept(this, statementContext);
 
         RelationAnalysisContext relationContext = statementContext.currentRelationContext();
         Optional<JoinCriteria> optCriteria = node.getCriteria();
         Symbol joinCondition = null;
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
-            if (joinCriteria instanceof JoinOn) {
+            if (joinCriteria instanceof JoinOn || joinCriteria instanceof JoinUsing) {
                 final CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
                 ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                     functions,
@@ -264,9 +265,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                         relationContext.parentSources(),
                         coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
                     new SubqueryAnalyzer(this, statementContext));
+                Expression expr;
+                if (joinCriteria instanceof JoinOn) {
+                    expr = ((JoinOn) joinCriteria).getExpression();
+                } else {
+                    expr = JoinUsing.toExpression(
+                        leftRel.getQualifiedName(),
+                        rightRel.getQualifiedName(),
+                        ((JoinUsing) joinCriteria).getColumns());
+                }
                 try {
-                    joinCondition = expressionAnalyzer.convert(
-                        ((JoinOn) joinCriteria).getExpression(), relationContext.expressionAnalysisContext());
+                    joinCondition = expressionAnalyzer.convert(expr, relationContext.expressionAnalysisContext());
                 } catch (RelationUnknown e) {
                     throw new RelationValidationException(e.getTableIdents(),
                         String.format(Locale.ENGLISH,

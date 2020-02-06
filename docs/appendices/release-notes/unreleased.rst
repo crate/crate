@@ -65,6 +65,9 @@ None
 Changes
 =======
 
+- Added support for ``JOIN USING``, e.g. ``SELECT * FROM t1 JOIN t2 USING (col)``,
+  an alternative to ``JOIN ON``, when the column name(s) are the same in both relations.
+
 - Added the :ref:`cot <scalar-cot>` trigonometric scalar function.
 
 - Added support for :ref:`record subscript <record-subscript>` syntax as

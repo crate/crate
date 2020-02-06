@@ -159,7 +159,7 @@ Joined relation
 A ``joined_relation`` is a relation which joins two relations together. See
 :ref:`sql_dql_joins` ::
 
-    relation { , | join_type JOIN } relation [ ON join_condition ]
+    relation { , | join_type JOIN } relation [ { ON join_condition  |  USING (col_names) } ]
 
 :join_type:
   ``LEFT [OUTER]``, ``RIGHT [OUTER]``, ``FULL [OUTER]``, ``CROSS`` or ``INNER``.
@@ -170,6 +170,10 @@ A ``joined_relation`` is a relation which joins two relations together. See
 
   The join_condition is not applicable for joins of type CROSS and must
   have a returning value of type ``boolean``.
+
+:col_names:
+  A comma separated list of column names. The relations joined need to contain
+  the columns specified.
 
 Table function
 ''''''''''''''

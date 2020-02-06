@@ -113,6 +113,27 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertFromInnerJoinUsing() throws Exception {
+        execute("create table t1 (num int, value string)");
+        execute("create table t2 (num int, value string, qty int)");
+        ensureYellow();
+        execute("insert into t1 (num, value) values (1, 'xxx'), (3, 'yyy'), (5, 'zzz')");
+        execute("insert into t2 (num, value, qty) values (1, 'xxx', 12), (3, 'yyy', 7), (5, 'zzz', 0)");
+        execute("refresh table t1, t2");
+        ensureGreen();
+        execute("SELECT * FROM t1 AS rel1 INNER JOIN t2 USING (num, value) ORDER BY rel1.num");
+        assertThat(printedTable(response.rows()), is(
+            "1| xxx| 1| xxx| 12\n" +
+            "3| yyy| 3| yyy| 7\n" +
+            "5| zzz| 5| zzz| 0\n"));
+        execute("SELECT * FROM (SELECT * FROM t1) AS rel1 JOIN (SELECT * FROM t2) AS rel2 USING (num, value) ORDER BY rel1.num;");
+        assertThat(printedTable(response.rows()), is(
+            "1| xxx| 1| xxx| 12\n" +
+            "3| yyy| 3| yyy| 7\n" +
+            "5| zzz| 5| zzz| 0\n"));
+    }
+
+    @Test
     public void testJoinOnEmptyPartitionedTablesWithAndWithoutJoinCondition() throws Exception {
         execute("create table foo (id long) partitioned by (id)");
         execute("create table bar (id long) partitioned by (id)");
