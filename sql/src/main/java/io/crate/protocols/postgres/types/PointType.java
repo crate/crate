@@ -49,6 +49,11 @@ public final class PointType extends PGType {
     }
 
     @Override
+    public String typeCategory() {
+        return TypeCategory.GEOMETRIC.code();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         Point point = (Point) value;
         buffer.writeInt(TYPE_LEN);

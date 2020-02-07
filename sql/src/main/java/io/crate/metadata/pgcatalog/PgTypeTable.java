@@ -37,13 +37,13 @@ import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Map;
 
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
 
 public class PgTypeTable extends StaticTableInfo<PGType> {
 
@@ -64,11 +64,35 @@ public class PgTypeTable extends StaticTableInfo<PGType> {
             .register("typdelim", STRING, () -> forFunction(PGType::typDelim))
             .register("typelem", INTEGER, () -> forFunction(PGType::typElem))
             .register("typlen", SHORT, () -> forFunction(PGType::typeLen))
+            .register("typbyval", BOOLEAN, () -> constant(true))
             .register("typtype", STRING, () -> constant(TYPTYPE))
+            .register("typcategory", STRING, () -> forFunction(PGType::typeCategory))
+            .register("typowner", INTEGER, () -> constant(null))
+            .register("typisdefined", BOOLEAN, () -> constant(true))
+            // Zero for non-composite types, otherwise should point
+            // to the pg_class table entry.
+            .register("typrelid", INTEGER, () -> constant(0))
+            .register("typndims", INTEGER, () -> constant(0))
+            .register("typcollation", INTEGER, () -> constant(0))
+            .register("typdefault", STRING, () -> constant(null))
             .register("typbasetype", INTEGER, () -> constant(0))
             .register("typtypmod", INTEGER, () -> constant(-1))
             .register("typnamespace", INTEGER, () -> constant(TYPE_NAMESPACE_OID))
             .register("typarray", INTEGER, () -> forFunction(PGType::typArray))
+            .register("typinput", STRING, () -> forFunction(t -> {
+                if (t.typArray() == 0) {
+                    return "array_in";
+                } else {
+                    return t.typName() + "_in";
+                }
+            }))
+            .register("typoutput", STRING, () -> forFunction(t -> {
+                if (t.typArray() == 0) {
+                    return "array_out";
+                } else {
+                    return t.typName() + "_out";
+                }
+            }))
             .register("typnotnull", BOOLEAN, () -> constant(false));
     }
 

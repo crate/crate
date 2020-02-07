@@ -589,7 +589,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(728, response.rowCount());
+        assertEquals(738, response.rowCount());
     }
 
     @Test
@@ -638,20 +638,29 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "where table_schema = 'pg_catalog' " +
                 "and table_name = 'pg_type' " +
                 "order by 1 asc");
-        assertThat(response.rowCount(), is(11L));
         assertThat(printedTable(response.rows()), is(
             "oid| integer\n" +
             "typarray| integer\n" +
             "typbasetype| integer\n" +
+            "typbyval| boolean\n" +
+            "typcategory| text\n" +
+            "typcollation| integer\n" +
+            "typdefault| text\n" +
             "typdelim| text\n" +
             "typelem| integer\n" +
+            "typinput| text\n" +
+            "typisdefined| boolean\n" +
             "typlen| smallint\n" +
             "typname| text\n" +
             "typnamespace| integer\n" +
+            "typndims| integer\n" +
             "typnotnull| boolean\n" +
+            "typoutput| text\n" +
+            "typowner| integer\n" +
+            "typrelid| integer\n" +
             "typtype| text\n" +
-            "typtypmod| integer\n"
-        ));
+            "typtypmod| integer\n")
+        );
     }
 
     @Test

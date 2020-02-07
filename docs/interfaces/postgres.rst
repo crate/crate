@@ -152,41 +152,43 @@ following tables:
 Some clients require the ``pg_catalog.pg_type`` in order to be able to stream
 arrays or other non-primitive types.
 
-For compatibility reasons there is a trimmed down `pg_type <pgsql_pg_type_>`__ table available in
-CrateDB::
+For compatibility reasons, there is a trimmed down `pg_type <pgsql_pg_type_>`__
+table available in CrateDB::
 
-    cr> select oid, typname, typarray, typelem, typlen from pg_catalog.pg_type order by oid;
-    +------+------------------------------+----------+---------+--------+
-    |  oid | typname                      | typarray | typelem | typlen |
-    +------+------------------------------+----------+---------+--------+
-    |   16 | bool                         |     1000 |       0 |      1 |
-    |   18 | char                         |     1002 |       0 |      1 |
-    |   19 | name                         |       -1 |       0 |     64 |
-    |   20 | int8                         |     1016 |       0 |      8 |
-    |   21 | int2                         |     1005 |       0 |      2 |
-    |   23 | int4                         |     1007 |       0 |      4 |
-    |  114 | json                         |      199 |       0 |     -1 |
-    |  199 | _json                        |        0 |     114 |     -1 |
-    |  600 | point                        |     1017 |       0 |     16 |
-    |  700 | float4                       |     1021 |       0 |      4 |
-    |  701 | float8                       |     1022 |       0 |      8 |
-    | 1000 | _bool                        |        0 |      16 |     -1 |
-    | 1002 | _char                        |        0 |      18 |     -1 |
-    | 1005 | _int2                        |        0 |      21 |     -1 |
-    | 1007 | _int4                        |        0 |      23 |     -1 |
-    | 1015 | _varchar                     |        0 |    1043 |     -1 |
-    | 1016 | _int8                        |        0 |      20 |     -1 |
-    | 1017 | _point                       |        0 |     600 |     -1 |
-    | 1021 | _float4                      |        0 |     700 |     -1 |
-    | 1022 | _float8                      |        0 |     701 |     -1 |
-    | 1043 | varchar                      |     1015 |       0 |     -1 |
-    | 1114 | timestamp without time zone  |     1115 |       0 |      8 |
-    | 1115 | _timestamp without time zone |        0 |    1114 |     -1 |
-    | 1184 | timestamptz                  |     1185 |       0 |      8 |
-    | 1185 | _timestamptz                 |        0 |    1184 |     -1 |
-    | 1186 | interval                     |     1187 |       0 |     16 |
-    | 1187 | _interval                    |        0 |    1186 |     -1 |
-    +------+------------------------------+----------+---------+--------+
+    cr> SELECT oid, typname, typarray, typelem, typlen, typcategory
+    ... FROM pg_catalog.pg_type
+    ... ORDER BY oid;
+    +------+------------------------------+----------+---------+--------+-------------+
+    |  oid | typname                      | typarray | typelem | typlen | typcategory |
+    +------+------------------------------+----------+---------+--------+-------------+
+    |   16 | bool                         |     1000 |       0 |      1 | N           |
+    |   18 | char                         |     1002 |       0 |      1 | S           |
+    |   19 | name                         |       -1 |       0 |     64 | S           |
+    |   20 | int8                         |     1016 |       0 |      8 | N           |
+    |   21 | int2                         |     1005 |       0 |      2 | N           |
+    |   23 | int4                         |     1007 |       0 |      4 | N           |
+    |  114 | json                         |      199 |       0 |     -1 | U           |
+    |  199 | _json                        |        0 |     114 |     -1 | A           |
+    |  600 | point                        |     1017 |       0 |     16 | G           |
+    |  700 | float4                       |     1021 |       0 |      4 | N           |
+    |  701 | float8                       |     1022 |       0 |      8 | N           |
+    | 1000 | _bool                        |        0 |      16 |     -1 | A           |
+    | 1002 | _char                        |        0 |      18 |     -1 | A           |
+    | 1005 | _int2                        |        0 |      21 |     -1 | A           |
+    | 1007 | _int4                        |        0 |      23 |     -1 | A           |
+    | 1015 | _varchar                     |        0 |    1043 |     -1 | A           |
+    | 1016 | _int8                        |        0 |      20 |     -1 | A           |
+    | 1017 | _point                       |        0 |     600 |     -1 | A           |
+    | 1021 | _float4                      |        0 |     700 |     -1 | A           |
+    | 1022 | _float8                      |        0 |     701 |     -1 | A           |
+    | 1043 | varchar                      |     1015 |       0 |     -1 | S           |
+    | 1114 | timestamp without time zone  |     1115 |       0 |      8 | D           |
+    | 1115 | _timestamp without time zone |        0 |    1114 |     -1 | A           |
+    | 1184 | timestamptz                  |     1185 |       0 |      8 | D           |
+    | 1185 | _timestamptz                 |        0 |    1184 |     -1 | A           |
+    | 1186 | interval                     |     1187 |       0 |     16 | T           |
+    | 1187 | _interval                    |        0 |    1186 |     -1 | A           |
+    +------+------------------------------+----------+---------+--------+-------------+
     SELECT 27 rows in set (... sec)
 
 

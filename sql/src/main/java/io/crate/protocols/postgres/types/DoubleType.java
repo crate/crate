@@ -46,6 +46,11 @@ class DoubleType extends PGType {
     }
 
     @Override
+    public String typeCategory() {
+        return TypeCategory.NUMERIC.code();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeDouble(((double) value));

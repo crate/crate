@@ -23,13 +23,40 @@
 package io.crate.protocols.postgres.types;
 
 import io.netty.buffer.ByteBuf;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
 public abstract class PGType {
+
+    enum TypeCategory {
+
+        ARRAY("A"),
+        BOOLEAN("B"),
+        COMPOSITE("C"),
+        DATETIME("D"),
+        GEOMETRIC("G"),
+        NETWORK("I"),
+        NUMERIC("N"),
+        RANGE("R"),
+        STRING("S"),
+        TIMESPAN("T"),
+        USER_DEFINED_TYPES("U"),
+        BIT_STRING("V"),
+        UNKNOWN("X");
+
+        private final String code;
+
+        TypeCategory(String code) {
+            this.code = code;
+        }
+
+        public String code() {
+            return code;
+        }
+    }
 
     static final int INT32_BYTE_SIZE = Integer.SIZE / 8;
     private static final Logger LOGGER = LogManager.getLogger(PGType.class);
@@ -71,6 +98,8 @@ public abstract class PGType {
     public String typDelim() {
         return ",";
     }
+
+    public abstract String typeCategory();
 
     /**
      * Write the value as text into the buffer.

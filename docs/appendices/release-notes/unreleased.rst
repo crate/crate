@@ -65,6 +65,11 @@ None
 Changes
 =======
 
+- Added :ref:`postgres_pg_type` columns: ``typbyval``, ``typcategory``,
+  ``typowner``, ``typisdefined``, ``typrelid``, ``typndims``,
+  ``typcollation``, ``typinput``, ``typoutput``, and ``typndefault`` for improved
+  PostgreSQL compatibility.
+
 - Replaced the ``Nashorn`` JavaScript engine with ``GraalVM`` for JavaScript
   :ref:`user-defined functions <sql_administration_udf>`. This change upgrades
   ``ECMAScript`` support from ``5.1`` to ``10.0``.
