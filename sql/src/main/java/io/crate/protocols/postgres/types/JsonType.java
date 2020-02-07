@@ -52,6 +52,10 @@ class JsonType extends PGType {
         return PGArray.JSON_ARRAY.oid();
     }
 
+    @Override
+    public String typeCategory() {
+        return TypeCategory.USER_DEFINED_TYPES.code();
+    }
 
     @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {

@@ -54,6 +54,11 @@ class VarCharType extends PGType {
     }
 
     @Override
+    public String typeCategory() {
+        return TypeCategory.STRING.code();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         assert value instanceof String : "value must be a string, got: " + value;
         byte[] bytes = ((String) value).getBytes(StandardCharsets.UTF_8);

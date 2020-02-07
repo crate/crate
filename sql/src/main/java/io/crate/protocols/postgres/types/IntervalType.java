@@ -46,6 +46,11 @@ public class IntervalType extends PGType {
     }
 
     @Override
+    public String typeCategory() {
+        return TypeCategory.TIMESPAN.code();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         Period period = (Period) value;
         buffer.writeInt(TYPE_LEN);
