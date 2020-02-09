@@ -21,7 +21,7 @@ package org.elasticsearch.index.engine;
 
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.Accountable;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
 import java.util.Map;

@@ -24,7 +24,7 @@ package io.crate.analyze;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashSet;

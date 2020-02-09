@@ -8,6 +8,7 @@ dependencies {
     implementation project(':common')
     implementation project(':es:es-server')
     implementation "io.netty:netty-handler:${versions.netty4}"
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
 
     testImplementation project(':es:es-testing')
     testImplementation "junit:junit:${versions.junit}"

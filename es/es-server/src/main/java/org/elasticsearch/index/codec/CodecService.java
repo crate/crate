@@ -25,7 +25,7 @@ import org.apache.lucene.codecs.lucene50.Lucene50StoredFieldsFormat.Mode;
 import org.apache.lucene.codecs.lucene70.Lucene70Codec;
 import org.apache.lucene.codecs.lucene80.Lucene80Codec;
 import org.apache.lucene.codecs.lucene84.Lucene84Codec;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.index.mapper.MapperService;
 

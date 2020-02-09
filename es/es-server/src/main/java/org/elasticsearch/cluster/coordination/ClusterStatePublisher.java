@@ -21,7 +21,7 @@ package org.elasticsearch.cluster.coordination;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.unit.TimeValue;
 
 public interface ClusterStatePublisher {

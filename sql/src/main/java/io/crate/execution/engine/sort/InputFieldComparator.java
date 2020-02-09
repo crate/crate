@@ -29,7 +29,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorable;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 import java.io.IOException;
 

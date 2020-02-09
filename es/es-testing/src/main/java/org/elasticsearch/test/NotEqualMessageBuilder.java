@@ -19,7 +19,7 @@
 
 package org.elasticsearch.test;
 
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 import java.util.List;
 import java.util.Locale;

@@ -19,7 +19,7 @@
 
 package org.elasticsearch.indices.recovery;
 
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.index.shard.IndexShard;
 
 //CRATE_PATCH: used to inject BlobRecoverySourceHandler

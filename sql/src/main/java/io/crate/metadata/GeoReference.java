@@ -25,7 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

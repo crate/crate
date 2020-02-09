@@ -23,7 +23,7 @@
 package io.crate.license;
 
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 

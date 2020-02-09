@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 import java.util.function.Consumer;
 
