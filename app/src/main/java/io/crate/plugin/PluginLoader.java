@@ -29,7 +29,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.xbean.finder.ResourceFinder;
 import org.elasticsearch.bootstrap.JarHell;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.PathUtils;

@@ -22,6 +22,7 @@ dependencies {
     compile "org.apache.lucene:lucene-suggest:${versions.lucene}"
 
     // utilities
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compile("org.elasticsearch:elasticsearch-cli:${versions.elasticsearch}") {
         exclude group: 'org.elasticsearch', module: 'elasticsearch-core'
     }

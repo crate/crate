@@ -21,6 +21,7 @@ jar.dependsOn('writePropertiesFile')
 
 dependencies {
     implementation project(':es:es-server')
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compileOnly project(':common')
     compileOnly('com.microsoft.azure:azure-mgmt-utility:0.9.8') {
         exclude group: 'stax', module: 'stax-api'

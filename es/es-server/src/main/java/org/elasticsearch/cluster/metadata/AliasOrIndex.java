@@ -20,7 +20,7 @@
 package org.elasticsearch.cluster.metadata;
 
 import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
 

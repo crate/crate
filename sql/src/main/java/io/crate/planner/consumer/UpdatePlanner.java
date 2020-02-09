@@ -75,7 +75,7 @@ import java.util.concurrent.CompletableFuture;
 
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.singletonList;

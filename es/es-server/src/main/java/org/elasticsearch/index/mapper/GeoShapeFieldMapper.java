@@ -32,7 +32,7 @@ import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.Explicit;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.SpatialStrategy;
 import org.elasticsearch.common.geo.XShapeCollection;

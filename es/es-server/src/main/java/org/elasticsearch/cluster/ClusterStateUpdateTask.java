@@ -19,7 +19,7 @@
 
 package org.elasticsearch.cluster;
 
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.unit.TimeValue;
 

@@ -28,7 +28,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * The handler for dealing with Postgres SSLRequest messages.
