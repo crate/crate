@@ -28,9 +28,9 @@ import io.netty.buffer.ByteBuf;
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-class CharType extends PGType {
+class CharType extends PGType<Byte> {
 
-    public static final PGType INSTANCE = new CharType();
+    public static final CharType INSTANCE = new CharType();
     static final int OID = 18;
 
 
@@ -49,25 +49,25 @@ class CharType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Byte value) {
         buffer.writeInt(1);
-        buffer.writeByte(((byte) value));
+        buffer.writeByte(value);
         return 5;
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public Byte readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == 1 : "char must have 1 byte";
         return buffer.readByte();
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        return Byte.toString((byte) value).getBytes(StandardCharsets.UTF_8);
+    byte[] encodeAsUTF8Text(@Nonnull Byte value) {
+        return Byte.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Byte decodeUTF8Text(byte[] bytes) {
         return Byte.parseByte(new String(bytes, StandardCharsets.UTF_8));
     }
 }

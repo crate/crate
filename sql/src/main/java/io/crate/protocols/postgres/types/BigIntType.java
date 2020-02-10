@@ -28,7 +28,7 @@ import io.netty.buffer.ByteBuf;
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-class BigIntType extends PGType {
+class BigIntType extends PGType<Long> {
 
     public static final BigIntType INSTANCE = new BigIntType();
     static final int OID = 20;
@@ -47,9 +47,9 @@ class BigIntType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Long value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeLong(((long) value));
+        buffer.writeLong(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
@@ -59,19 +59,19 @@ class BigIntType extends PGType {
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        return Long.toString(((long) value)).getBytes(StandardCharsets.UTF_8);
+    protected byte[] encodeAsUTF8Text(@Nonnull Long value) {
+        return Long.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public Long readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because long is int64. Actual length: " +
                                          valueLength;
         return buffer.readLong();
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Long decodeUTF8Text(byte[] bytes) {
         return Long.parseLong(new String(bytes, StandardCharsets.UTF_8));
     }
 }

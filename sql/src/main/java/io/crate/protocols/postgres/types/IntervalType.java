@@ -29,7 +29,7 @@ import org.joda.time.ReadablePeriod;
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-public class IntervalType extends PGType {
+public class IntervalType extends PGType<Period> {
 
     private static final int OID = 1186;
     private static final int TYPE_LEN = 16;
@@ -51,8 +51,7 @@ public class IntervalType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
-        Period period = (Period) value;
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Period period) {
         buffer.writeInt(TYPE_LEN);
         // from PostgreSQL code:
         // pq_sendint64(&buf, interval->time);
@@ -70,7 +69,7 @@ public class IntervalType extends PGType {
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public Period readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because interval is 16. Actual length: " +
                                          valueLength;
         long micros = buffer.readLong();
@@ -100,14 +99,14 @@ public class IntervalType extends PGType {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@Nonnull Object value) {
+    byte[] encodeAsUTF8Text(@Nonnull Period value) {
         StringBuffer sb = new StringBuffer();
         io.crate.types.IntervalType.PERIOD_FORMATTER.printTo(sb, (ReadablePeriod) value);
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Period decodeUTF8Text(byte[] bytes) {
         return io.crate.types.IntervalType.PERIOD_FORMATTER.parsePeriod(new String(bytes, StandardCharsets.UTF_8));
     }
 }
