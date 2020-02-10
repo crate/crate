@@ -65,6 +65,8 @@ None
 Changes
 =======
 
+- Added the :ref:`exp <scalar-exp>` scalar function.
+
 - Added the :ref:`degrees <scalar-degrees>` and :ref:`radians <scalar-radians>`
   scalar functions.
 
