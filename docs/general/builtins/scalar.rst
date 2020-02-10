@@ -1191,6 +1191,26 @@ Returns: ``double precision``
     +-------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-exp:
+
+``exp(number)``
+---------------
+
+Returns Euler's number ``e`` raised to the power of the given numeric value.
+The output will be cast to the given input type and thus may loose precision.
+
+Returns: Same as input type.
+
+::
+
+    cr> select exp(1.0);
+    +-------------------+
+    |          exp(1.0) |
+    +-------------------+
+    | 2.718281828459045 |
+    +-------------------+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-floor:
 
 ``floor(number)``
