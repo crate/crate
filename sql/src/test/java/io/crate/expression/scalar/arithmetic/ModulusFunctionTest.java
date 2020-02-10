@@ -41,4 +41,9 @@ public class ModulusFunctionTest extends AbstractScalarFunctionsTest {
     public void test_modulus_operator() {
         assertNormalize("3 % 2", isLiteral(1L));
     }
+
+    @Test
+    public void test_mod_works_as_alias_for_modulus() {
+        assertNormalize("mod(3, 2)", isLiteral(1L));
+    }
 }
