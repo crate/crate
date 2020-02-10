@@ -1256,6 +1256,23 @@ The second argument (``b``) is optional. If not present, base 10 is used::
     The same is true for arguments which lead to a ``division by zero``, as
     e.g. log(10, 1) does.
 
+``modulus(y, x)``
+-----------------
+
+Returns the remainder of ``y/x``.
+
+Returns: Same as argument types.
+
+::
+
+    cr> select modulus(5, 4);
+    +---------------+
+    | modulus(5, 4) |
+    +---------------+
+    |             1 |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
 ``power(a: number, b: number)``
 -------------------------------
 
