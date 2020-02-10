@@ -31,7 +31,7 @@ import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 
-public final class PointType extends PGType {
+public final class PointType extends PGType<Point> {
 
     public static final PointType INSTANCE = new PointType();
     static final int OID = 600;
@@ -54,8 +54,7 @@ public final class PointType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
-        Point point = (Point) value;
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Point point) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeDouble(point.getX());
         buffer.writeDouble(point.getY());
@@ -63,20 +62,19 @@ public final class PointType extends PGType {
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public Point readBinaryValue(ByteBuf buffer, int valueLength) {
         double x = buffer.readDouble();
         double y = buffer.readDouble();
         return new PointImpl(x, y, JtsSpatialContext.GEO);
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        Point point = (Point) value;
+    byte[] encodeAsUTF8Text(@Nonnull Point point) {
         return ('(' + String.valueOf(point.getX()) + ',' + point.getY() + ')').getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Point decodeUTF8Text(byte[] bytes) {
         String value = new String(bytes, StandardCharsets.UTF_8);
         StringTokenizer tokenizer = new StringTokenizer(value, ",()");
         double x;

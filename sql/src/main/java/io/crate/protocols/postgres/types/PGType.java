@@ -29,7 +29,7 @@ import org.apache.logging.log4j.Logger;
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-public abstract class PGType {
+public abstract class PGType<T> {
 
     enum TypeCategory {
 
@@ -112,14 +112,14 @@ public abstract class PGType {
      *
      * @return the number of bytes written. (4 (int32)  + N)
      */
-    public int writeAsText(ByteBuf buffer, @Nonnull Object value) {
+    public int writeAsText(ByteBuf buffer, @Nonnull T value) {
         byte[] bytes = encodeAsUTF8Text(value);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
         return INT32_BYTE_SIZE + bytes.length;
     }
 
-    public Object readTextValue(ByteBuf buffer, int valueLength) {
+    public T readTextValue(ByteBuf buffer, int valueLength) {
         byte[] bytes = new byte[valueLength];
         buffer.readBytes(bytes);
         try {
@@ -143,19 +143,19 @@ public abstract class PGType {
      *
      * @return the number of bytes written. (4 (int32)  + N)
      */
-    public abstract int writeAsBinary(ByteBuf buffer, @Nonnull Object value);
+    public abstract int writeAsBinary(ByteBuf buffer, @Nonnull T value);
 
-    public abstract Object readBinaryValue(ByteBuf buffer, int valueLength);
+    public abstract T readBinaryValue(ByteBuf buffer, int valueLength);
 
 
     /**
      * Return the UTF8 encoded text representation of the value
      */
-    abstract byte[] encodeAsUTF8Text(@Nonnull Object value);
+    abstract byte[] encodeAsUTF8Text(@Nonnull T value);
 
     /**
      * Convert a UTF8 encoded text representation into the actual value
      */
-    abstract Object decodeUTF8Text(byte[] bytes);
+    abstract T decodeUTF8Text(byte[] bytes);
 
 }

@@ -67,7 +67,7 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
     }
 
     public void test_json_array_encode_decode_round_trip() {
-        var actual = List.of(
+        List<Object> actual = List.of(
             Map.of("names", List.of("Arthur", "Trillian")),
             Map.of("names", List.of("Ford", "Slarti")));
 
@@ -167,12 +167,12 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
     @Ignore // For multi-dimensions -1 is used both for "padding" until the max length of the dimension,
             // but also for null handling, therefore we cannot distinguish between the two
     public void testBinaryEncodingDecodingRoundtrip_MultipleDimensionsWithNulls() {
-        Object sourceArray = new Object[][] {
-            {1, 2, 3},
-            {4, 5, null},
-            {null, 6, 7, 8},
-            {null, null, 9, null}
-        };
+        List<Object> sourceArray = List.of(
+            Arrays.asList(1, 2, 3),
+            Arrays.asList(4, 5, null),
+            Arrays.asList(null, 6, 7, 8),
+            Arrays.asList(null, null, 9, null)
+        );
 
         ByteBuf buffer = Unpooled.buffer();
         pgArray.writeAsBinary(buffer, sourceArray);
