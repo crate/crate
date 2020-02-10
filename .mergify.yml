@@ -9,7 +9,7 @@ pull_request_rules:
       - label=ready-to-merge
       - '#approved-reviews-by>=1'
       - status-success=ci/jenkins/pr_tests
-      - status-success=crate.crate
+      - status-success~=^Test CrateDB SQL
     name: default
   - name: Delete branch after merge
     actions:
