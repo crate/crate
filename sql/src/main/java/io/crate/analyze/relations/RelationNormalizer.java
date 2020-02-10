@@ -31,9 +31,12 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 
 /**
- * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single AnalyzedRelation.
- * The merge occurs from the top level to the deepest one. For each level, it verifies if the query is mergeable with
- * the next relation and proceed with the merge if positive. When it is not, the partially merged tree is returned.
+ * Normalizes expressions within a tree of relations.
+ *
+ * To normalize a expression means:
+ *
+ *  - Simplify expressions, e.g.: 1 + 1 becomes 2
+ *  - Resolve symbols of type `Field` to `Reference` if possible.
  */
 public final class RelationNormalizer {
 
