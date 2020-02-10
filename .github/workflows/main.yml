@@ -1,0 +1,21 @@
+---
+name: CrateDB SQL
+on: [push]
+
+jobs:
+  test:
+    name: Test CrateDB SQL on ${{ matrix.os }} with Java ${{ matrix.java }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        java: [11]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Java ${{ matrix.java }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+      - name: Run tests
+        run: |
+          ./gradlew :sql:test

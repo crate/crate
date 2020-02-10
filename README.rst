@@ -4,8 +4,8 @@
 
 ----
 
-.. image:: https://dev.azure.com/cratedb/cratedb/_apis/build/status/crate.crate
-    :target: https://dev.azure.com/cratedb/cratedb/_build/latest?definitionId=1
+.. image:: https://github.com/crate/crate/workflows/CrateDB%20SQL/badge.svg?branch=master
+    :target: https://github.com/crate/crate/actions?query=workflow%3A%22CrateDB+SQL%22
 
 .. image:: https://img.shields.io/badge/docs-latest-brightgreen.svg
     :target: https://crate.io/docs/en/latest/
