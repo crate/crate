@@ -1172,6 +1172,24 @@ return value will be of type ``bigint``::
 
 This is an alias for :ref:`ceil <scalar-ceil>`.
 
+.. _scalar-degrees:
+
+``degrees(double precision)``
+-----------------------------
+
+Convert the given ``radians`` value to ``degrees``.
+
+Returns: ``double precision``
+
+::
+
+    cr> select degrees(0.5);
+    +-------------------+
+    |      degrees(0.5) |
+    +-------------------+
+    | 28.64788975654116 |
+    +-------------------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-floor:
 
@@ -1275,6 +1293,25 @@ See below for an example::
     +-------------+
     |         8.0 |
     +-------------+
+    SELECT 1 row in set (... sec)
+
+.. _scalar-radians:
+
+``radians(double precision)``
+-----------------------------
+
+Convert the given ``degrees`` value to ``radians``.
+
+Returns: ``double precision``
+
+::
+
+    cr> select radians(45.0);
+    +--------------------+
+    |      radians(45.0) |
+    +--------------------+
+    | 0.7853981633974483 |
+    +--------------------+
     SELECT 1 row in set (... sec)
 
 ``random()``
