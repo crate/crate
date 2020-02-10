@@ -194,6 +194,14 @@ public class TrigonometricFunctionsTest extends AbstractScalarFunctionsTest {
         assertNormalize("atan(cast(null as long))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("atan(cast(null as integer))", isLiteral(null, DataTypes.DOUBLE));
         assertNormalize("atan(cast(null as short))", isLiteral(null, DataTypes.DOUBLE));
+
+        // Atan2Function
+        assertNormalize("atan2(null, null)", isLiteral(null, DataTypes.DOUBLE));
+        assertNormalize("atan2(1, null::double)", isLiteral(null, DataTypes.DOUBLE));
+        assertNormalize("atan2(null::float, 1)", isLiteral(null, DataTypes.DOUBLE));
+        assertNormalize("atan2(null::long, 1)", isLiteral(null, DataTypes.DOUBLE));
+        assertNormalize("atan2(null::integer, 1)", isLiteral(null, DataTypes.DOUBLE));
+        assertNormalize("atan2(null::short, 1)", isLiteral(null, DataTypes.DOUBLE));
     }
 
     @Test
@@ -232,5 +240,14 @@ public class TrigonometricFunctionsTest extends AbstractScalarFunctionsTest {
         assertNormalize("cot(2::bigint)", isLiteral(-0.45765755436028577, DataTypes.DOUBLE));
         assertNormalize("cot(1::int)", isLiteral(0.6420926159343306, DataTypes.DOUBLE));
         assertNormalize("cot(3::smallint)", isLiteral(-7.015252551434534, DataTypes.DOUBLE));
+    }
+
+    @Test
+    public void test_atan2() {
+        assertNormalize("atan2(2, 1)", isLiteral(1.1071487177940904));
+        assertNormalize("atan2(-1, -1.0)", isLiteral(-2.356194490192345));
+        assertNormalize("atan2(1, 1::short)", isLiteral(0.7853981633974483));
+        assertNormalize("atan2(1, 1::int)", isLiteral(0.7853981633974483));
+        assertNormalize("atan2(1, 1::real)", isLiteral(0.7853981633974483));
     }
 }

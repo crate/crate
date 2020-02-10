@@ -65,6 +65,8 @@ None
 Changes
 =======
 
+- Added the :ref:`atan2 <scalar-atan2>` trigonometric scalar function.
+
 - Added the :ref:`exp <scalar-exp>` scalar function.
 
 - Added the :ref:`degrees <scalar-degrees>` and :ref:`radians <scalar-radians>`

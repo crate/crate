@@ -24,10 +24,19 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.List;
+import java.util.function.BinaryOperator;
 import java.util.function.DoubleUnaryOperator;
+
+import static io.crate.types.DataTypes.NUMERIC_PRIMITIVE_TYPES;
 
 public final class TrigonometricFunctions {
 
@@ -39,10 +48,11 @@ public final class TrigonometricFunctions {
         register(module, "tan", Math::tan);
         register(module, "cot", x -> 1 / Math.tan(x));
         register(module, "atan", x -> Math.atan(checkRange(x)));
+        module.register("atan2", new DoubleBinaryFunctionResolver("atan2", Math::atan2));
     }
 
     private static void register(ScalarFunctionModule module, String name, DoubleUnaryOperator func) {
-        for (DataType inputType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+        for (DataType<?> inputType : NUMERIC_PRIMITIVE_TYPES) {
             module.register(new DoubleScalar(name, inputType, func));
         }
     }
@@ -53,5 +63,22 @@ public final class TrigonometricFunctions {
                                                "Values must be in range of [-1.0, 1.0]");
         }
         return value;
+    }
+
+    static final class DoubleBinaryFunctionResolver extends BaseFunctionResolver {
+
+        private final String name;
+        private final BinaryOperator<Double> doubleFunction;
+
+        DoubleBinaryFunctionResolver(String name, BinaryOperator<Double> doubleFunction) {
+            super(FuncParams.builder(Param.of(NUMERIC_PRIMITIVE_TYPES), Param.of(NUMERIC_PRIMITIVE_TYPES)).build());
+            this.name = name;
+            this.doubleFunction = doubleFunction;
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> args) throws IllegalArgumentException {
+            return new BinaryScalar<>(doubleFunction, name, DataTypes.DOUBLE, FunctionInfo.DETERMINISTIC_ONLY);
+        }
     }
 }

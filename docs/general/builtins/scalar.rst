@@ -1508,6 +1508,25 @@ See below for an example::
     +--------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-atan2:
+
+``atan2(y: number, x: number)``
+-------------------------------
+
+Returns the arctangent of ``y/x``.
+
+Returns: ``double precision``
+
+::
+
+    cr> SELECT atan2(2, 1);
+    +--------------------+
+    |        atan2(2, 1) |
+    +--------------------+
+    | 1.1071487177940904 |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-pi:
 
 ``pi()``
