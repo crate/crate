@@ -20,20 +20,16 @@
  * agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.scalar.UnaryScalar;
+import io.crate.types.DoubleType;
 
-public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
+public class RadiansDegreesFunctions {
 
-    @Override
-    public void configureFunctions() {
-        UnnestFunction.register(this);
-        EmptyRowTableFunction.register(this);
-        GenerateSeries.register(this);
-        ValuesFunction.register(this);
-        PgGetKeywordsFunction.register(this);
-        PgExpandArray.register(this);
+    public static void register(ScalarFunctionModule module) {
+        module.register(new UnaryScalar<>("radians", DoubleType.INSTANCE, DoubleType.INSTANCE, Math::toRadians));
+        module.register(new UnaryScalar<>("degrees", DoubleType.INSTANCE, DoubleType.INSTANCE, Math::toDegrees));
     }
 }

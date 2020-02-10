@@ -20,20 +20,22 @@
  * agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import org.junit.Test;
 
-public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
-    @Override
-    public void configureFunctions() {
-        UnnestFunction.register(this);
-        EmptyRowTableFunction.register(this);
-        GenerateSeries.register(this);
-        ValuesFunction.register(this);
-        PgGetKeywordsFunction.register(this);
-        PgExpandArray.register(this);
+public class RadiansDegreesFunctionsTest extends AbstractScalarFunctionsTest {
+
+    @Test
+    public void test_radians_scalar() {
+        assertNormalize("radians(45.0)", isLiteral(0.7853981633974483));
+    }
+
+    @Test
+    public void test_degrees_scalar() {
+        assertNormalize("degrees(0.5)", isLiteral(28.64788975654116));
     }
 }

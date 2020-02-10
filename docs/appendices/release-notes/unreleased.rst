@@ -65,6 +65,9 @@ None
 Changes
 =======
 
+- Added the :ref:`degrees <scalar-degrees>` and :ref:`radians <scalar-radians>`
+  scalar functions.
+
 - Added support for using :ref:`table functions <ref-table-functions>` with
   more than one column within the select list part of a SELECT statement.
 

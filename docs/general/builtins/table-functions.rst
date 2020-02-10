@@ -182,3 +182,43 @@ The result rows have three columns:
     | allocate | U       | unreserved |
     +----------+---------+------------+
     SELECT 4 rows in set (... sec)
+
+
+.. _information_schema._pg_expandarray:
+
+``information_schema._pg_expandarray(array)``
+=============================================
+
+Takes an array and returns a set of value and an index into the array.
+
+.. list-table::
+    :header-rows: 1
+
+    * - Column name
+      - Description
+    * - x
+      - Value within the array
+    * - n
+      - Index of the value within the array
+
+::
+
+    cr> SELECT information_schema._pg_expandarray(ARRAY['a', 'b']);
+    +------------------------------------------------+
+    | information_schema._pg_expandarray(['a', 'b']) |
+    +------------------------------------------------+
+    | ["a", 1]                                       |
+    | ["b", 2]                                       |
+    +------------------------------------------------+
+    SELECT 2 rows in set (... sec)
+
+::
+
+    cr> SELECT * from information_schema._pg_expandarray(ARRAY['a', 'b']);
+    +---+---+
+    | x | n |
+    +---+---+
+    | a | 1 |
+    | b | 2 |
+    +---+---+
+    SELECT 2 rows in set (... sec)
