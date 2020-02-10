@@ -29,6 +29,7 @@ import io.crate.expression.scalar.arithmetic.FloorFunction;
 import io.crate.expression.scalar.arithmetic.LogFunction;
 import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.scalar.arithmetic.NegateFunctions;
+import io.crate.expression.scalar.arithmetic.RadiansDegreesFunctions;
 import io.crate.expression.scalar.arithmetic.RandomFunction;
 import io.crate.expression.scalar.arithmetic.RoundFunction;
 import io.crate.expression.scalar.arithmetic.SquareRootFunction;
@@ -127,6 +128,7 @@ public class ScalarFunctionModule extends AbstractModule {
         LogFunction.register(this);
         TrigonometricFunctions.register(this);
         PiFunction.register(this);
+        RadiansDegreesFunctions.register(this);
 
         DateTruncFunction.register(this);
         ExtractFunctions.register(this);
