@@ -24,7 +24,7 @@ package io.crate.metadata;
 import com.google.common.base.MoreObjects;
 import io.crate.metadata.table.StoredTable;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 import java.util.Map;
 

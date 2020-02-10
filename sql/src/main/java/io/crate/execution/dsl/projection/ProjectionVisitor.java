@@ -22,7 +22,7 @@
 package io.crate.execution.dsl.projection;
 
 
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 public class ProjectionVisitor<C, R> {
 

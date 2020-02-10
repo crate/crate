@@ -28,7 +28,7 @@ import io.netty.buffer.ByteBuf;
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-class SmallIntType extends PGType {
+class SmallIntType extends PGType<Short> {
 
     public static final SmallIntType INSTANCE = new SmallIntType();
     static final int OID = 21;
@@ -51,19 +51,19 @@ class SmallIntType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Short value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeShort((short) value);
+        buffer.writeShort(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        return Short.toString(((short) value)).getBytes(StandardCharsets.UTF_8);
+    protected byte[] encodeAsUTF8Text(@Nonnull Short value) {
+        return Short.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public Short readBinaryValue(ByteBuf buffer, int valueLength) {
         assert
             valueLength == TYPE_LEN :
             "length should be " + TYPE_LEN + " because short is int16. Actual length: " + valueLength;
@@ -71,7 +71,7 @@ class SmallIntType extends PGType {
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Short decodeUTF8Text(byte[] bytes) {
         return Short.parseShort(new String(bytes, StandardCharsets.UTF_8));
     }
 }

@@ -21,7 +21,7 @@ package org.elasticsearch.common.util.concurrent;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.SuppressForbidden;
 
 import java.util.concurrent.ExecutionException;

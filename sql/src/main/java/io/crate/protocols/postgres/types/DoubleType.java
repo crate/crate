@@ -28,7 +28,7 @@ import io.netty.buffer.ByteBuf;
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-class DoubleType extends PGType {
+class DoubleType extends PGType<Double> {
 
     public static final DoubleType INSTANCE = new DoubleType();
     static final int OID = 701;
@@ -51,26 +51,26 @@ class DoubleType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Double value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeDouble(((double) value));
+        buffer.writeDouble(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        return Double.toString(((double) value)).getBytes(StandardCharsets.UTF_8);
+    protected byte[] encodeAsUTF8Text(@Nonnull Double value) {
+        return Double.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public Double readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because double is int64. Actual length: " +
                                          valueLength;
         return buffer.readDouble();
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Double decodeUTF8Text(byte[] bytes) {
         return Double.parseDouble(new String(bytes, StandardCharsets.UTF_8));
     }
 }

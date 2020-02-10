@@ -173,4 +173,14 @@ public class TableFunctionITest extends SQLTransportIntegrationTest {
         }));
         assertThat(rows.get(0)[0], is("(add,R,reserved)"));
     }
+
+    @Test
+    public void test_row_type_field_access() throws Exception {
+        execute("select (information_schema._pg_expandarray(ARRAY['a', 'b', 'b'])).n");
+        assertThat(printedTable(response.rows()),
+            is("1\n" +
+               "2\n" +
+               "3\n")
+        );
+    }
 }

@@ -28,7 +28,7 @@ import io.netty.buffer.ByteBuf;
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-class RealType extends PGType {
+class RealType extends PGType<Float> {
 
     public static final RealType INSTANCE = new RealType();
     static final int OID = 700;
@@ -51,26 +51,26 @@ class RealType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Float value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeFloat(((float) value));
+        buffer.writeFloat(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        return Float.toString(((float) value)).getBytes(StandardCharsets.UTF_8);
+    protected byte[] encodeAsUTF8Text(@Nonnull Float value) {
+        return Float.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public Float readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because float is int32. Actual length: " +
                                          valueLength;
         return buffer.readFloat();
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Float decodeUTF8Text(byte[] bytes) {
         return Float.parseFloat(new String(bytes, StandardCharsets.UTF_8));
     }
 }

@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 
-class BooleanType extends PGType {
+class BooleanType extends PGType<Boolean> {
 
     public static final PGType INSTANCE = new BooleanType();
     static final int OID = 16;
@@ -63,23 +63,20 @@ class BooleanType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
-        byte byteValue = (byte) ((boolean) value ? 1 : 0);
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Boolean value) {
+        byte byteValue = (byte) (value ? 1 : 0);
         buffer.writeInt(TYPE_LEN);
         buffer.writeByte(byteValue);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        if ((boolean) value) {
-            return TEXT_TRUE;
-        }
-        return TEXT_FALSE;
+    byte[] encodeAsUTF8Text(@Nonnull Boolean value) {
+        return value ? TEXT_TRUE : TEXT_FALSE;
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public Boolean readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN +
                                          " because boolean is just a byte. Actual length: " + valueLength;
         byte value = buffer.readByte();
@@ -94,7 +91,7 @@ class BooleanType extends PGType {
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Boolean decodeUTF8Text(byte[] bytes) {
         return TRUTH_VALUES.contains(ByteBuffer.wrap(bytes));
     }
 }

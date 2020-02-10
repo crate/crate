@@ -20,7 +20,7 @@
 package org.elasticsearch.test;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 
 import java.util.ArrayList;

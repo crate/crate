@@ -27,7 +27,7 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Iterator;

@@ -23,7 +23,7 @@
 package io.crate.protocols.ssl;
 
 import io.netty.handler.ssl.SslContext;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * Provides Netty's SslContext.
