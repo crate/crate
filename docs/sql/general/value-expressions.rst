@@ -123,13 +123,31 @@ should be retrieved.
 Record subscript
 ----------------
 
-Record subscript is an alternative syntax for :ref:`object subscripts
-<object-subscript>`::
+Record subscript retrieves the value of a field within a record or object. This
+is similar to :ref:`object subscripts <object-subscript>`.
 
-    (obj_expression).key
 
-``obj_expression`` is an expression of type ``object`` and ``key`` is an
-identifier that refers to a field inside the object.
+Synopsis:
+
+::
+
+    (record_expression).fieldName
+
+
+Example::
+
+    cr> SELECT (information_schema._pg_expandarray(ARRAY['a', 'b'])).n
+    +----------------------------------------------------+
+    | (information_schema._pg_expandarray(['a', 'b'])).n |
+    +----------------------------------------------------+
+    |                                                  1 |
+    |                                                  2 |
+    +----------------------------------------------------+
+    SELECT 2 rows in set (... sec)
+
+
+``expression`` is an expression of type ``record`` or ``object`` and ``key`` is
+an identifier that must refer to a field of the record.
 
 
 Function call
