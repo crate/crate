@@ -65,6 +65,9 @@ None
 Changes
 =======
 
+- Added a ``mod`` alias for the :ref:`modulus <scalar-modulus>` function for
+  improved PostgreSQL compatibility.
+
 - Added the :ref:`atan2 <scalar-atan2>` trigonometric scalar function.
 
 - Added the :ref:`exp <scalar-exp>` scalar function.

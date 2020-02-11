@@ -70,6 +70,7 @@ public class ArithmeticFunctions {
         public static final String DIVIDE = "divide";
         public static final String POWER = "power";
         public static final String MODULUS = "modulus";
+        public static final String MOD = "mod";
     }
 
     public static void register(ScalarFunctionModule module) {
@@ -109,15 +110,20 @@ public class ArithmeticFunctions {
             (arg0, arg1) -> arg0 / arg1,
             (arg0, arg1) -> arg0 / arg1
         ));
-        module.register(Names.MODULUS, new ArithmeticFunctionResolver(
-            Names.MODULUS,
-            "%",
-            FunctionInfo.DETERMINISTIC_ONLY,
-            (arg0, arg1) -> arg0 % arg1,
-            (arg0, arg1) -> arg0 % arg1,
-            (arg0, arg1) -> arg0 % arg1,
-            (arg0, arg1) -> arg0 % arg1
-        ));
+
+        java.util.function.Function<String, ArithmeticFunctionResolver> modFunctionResolverFactory =
+            name -> new ArithmeticFunctionResolver(
+                name,
+                "%",
+                FunctionInfo.DETERMINISTIC_ONLY,
+                (arg0, arg1) -> arg0 % arg1,
+                (arg0, arg1) -> arg0 % arg1,
+                (arg0, arg1) -> arg0 % arg1,
+                (arg0, arg1) -> arg0 % arg1
+            );
+
+        module.register(Names.MODULUS, modFunctionResolverFactory.apply(Names.MODULUS));
+        module.register(Names.MOD, modFunctionResolverFactory.apply(Names.MOD));
         module.register(Names.POWER, new DoubleFunctionResolver(
             Names.POWER,
             Math::pow
