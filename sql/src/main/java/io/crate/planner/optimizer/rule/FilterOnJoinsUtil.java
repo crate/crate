@@ -52,6 +52,7 @@ final class FilterOnJoinsUtil {
             ));
         }
         Map<Set<QualifiedName>, Symbol> splitQuery = QuerySplitter.split(query);
+        int initialParts = splitQuery.size();
         if (splitQuery.size() == 1 && splitQuery.keySet().iterator().next().size() > 1) {
             return null;
         }
@@ -67,6 +68,8 @@ final class FilterOnJoinsUtil {
         LogicalPlan newJoin = join.replaceSources(List.of(newLhs, newRhs));
         if (splitQuery.isEmpty()) {
             return newJoin;
+        } else if (initialParts == splitQuery.size()) {
+            return null;
         } else {
             return new Filter(newJoin, AndOperator.join(splitQuery.values()));
         }

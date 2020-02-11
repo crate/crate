@@ -1045,4 +1045,45 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute(stmt);
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void test_many_table_join_with_filter_pushdown() throws Exception {
+        // regression this; optimization rule resulted in a endless loop
+        String stmt = ""
+            + "SELECT\n"
+            + "   *\n"
+            + "FROM\n"
+            + "    pg_catalog.pg_namespace pkn,\n"
+            + "    pg_catalog.pg_class pkc,\n"
+            + "    pg_catalog.pg_attribute pka,\n"
+            + "    pg_catalog.pg_namespace fkn,\n"
+            + "    pg_catalog.pg_class fkc,\n"
+            + "    pg_catalog.pg_attribute fka,\n"
+            + "    pg_catalog.pg_constraint con,\n"
+            + "    pg_catalog.generate_series(1, 32) pos (n),\n"
+            + "    pg_catalog.pg_class pkic\n"
+            + "WHERE\n"
+            + "    pkn.oid = pkc.relnamespace\n"
+            + "    AND pkc.oid = pka.attrelid\n"
+            + "    AND pka.attnum = con.confkey[pos.n]\n"
+            + "    AND con.confrelid = pkc.oid\n"
+            + "    AND fkn.oid = fkc.relnamespace\n"
+            + "    AND fkc.oid = fka.attrelid\n"
+            + "    AND fka.attnum = con.conkey[pos.n]\n"
+            + "    AND con.conrelid = fkc.oid\n"
+            + "    AND con.contype = 'f'\n"
+            + "    AND pkic.relkind = 'i'\n"
+            + "    AND pkic.oid = con.conindid\n"
+            + "    AND pkn.nspname = E'sys'\n"
+            + "    AND fkn.nspname = E'sys'\n"
+            + "    AND pkc.relname = E'jobs'\n"
+            + "    AND fkc.relname = E'jobs_log'\n"
+            + "ORDER BY\n"
+            + "    fkn.nspname,\n"
+            + "    fkc.relname,\n"
+            + "    con.conname,\n"
+            + "    pos.n\n";
+        execute(stmt);
+        assertThat(response.rowCount(), is(0L));
+    }
 }
