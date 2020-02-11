@@ -58,14 +58,15 @@ public class Optimizer {
         // Some rules may only become applicable after another rule triggered, so we keep
         // trying to re-apply the rules as long as at least one plan was transformed.
         boolean done = false;
-        while (!done) {
+        int numIterations = 0;
+        while (!done && numIterations < 10_000) {
             done = true;
             Version minVersion = minNodeVersionInCluster.get();
             for (Rule rule : rules) {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                Match match = rule.pattern().accept(node, Captures.empty());
+                Match<?> match = rule.pattern().accept(node, Captures.empty());
                 if (match.isPresent()) {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
@@ -81,7 +82,10 @@ public class Optimizer {
                     }
                 }
             }
+            numIterations++;
         }
+        assert numIterations < 10_000
+            : "Optimizer reached 10_000 iterations safety guard. This is an indication of a broken rule that matches again and again";
         return node;
     }
 }
