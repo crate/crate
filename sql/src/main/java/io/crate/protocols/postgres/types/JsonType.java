@@ -35,9 +35,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-class JsonType extends PGType {
+class JsonType extends PGType<Object> {
 
-    public static final PGType INSTANCE = new JsonType();
+    public static final JsonType INSTANCE = new JsonType();
     static final int OID = 114;
 
     private static final int TYPE_LEN = -1;

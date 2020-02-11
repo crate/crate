@@ -27,14 +27,14 @@ import io.netty.buffer.ByteBuf;
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-class VarCharType extends PGType {
+class VarCharType extends PGType<String> {
 
     static final int OID = 1043;
     private static final int ARRAY_OID = 1015;
     private static final int TYPE_LEN = -1;
     private static final int TYPE_MOD = -1;
 
-    public static final PGType INSTANCE = new VarCharType(ARRAY_OID);
+    public static final VarCharType INSTANCE = new VarCharType(ARRAY_OID);
 
     private final int typArray;
 
@@ -59,34 +59,32 @@ class VarCharType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
-        assert value instanceof String : "value must be a string, got: " + value;
-        byte[] bytes = ((String) value).getBytes(StandardCharsets.UTF_8);
+    public int writeAsBinary(ByteBuf buffer, @Nonnull String value) {
+        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
         return INT32_BYTE_SIZE + bytes.length;
     }
 
     @Override
-    public int writeAsText(ByteBuf buffer, @Nonnull Object value) {
+    public int writeAsText(ByteBuf buffer, @Nonnull String value) {
         return writeAsBinary(buffer, value);
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        assert value instanceof String : "value must be a string";
-        return ((String) value).getBytes(StandardCharsets.UTF_8);
+    protected byte[] encodeAsUTF8Text(@Nonnull String value) {
+        return value.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public String readBinaryValue(ByteBuf buffer, int valueLength) {
         byte[] utf8 = new byte[valueLength];
         buffer.readBytes(utf8);
         return new String(utf8, StandardCharsets.UTF_8);
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    String decodeUTF8Text(byte[] bytes) {
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
@@ -95,6 +93,6 @@ class VarCharType extends PGType {
         private static final int ARRAY_OID = -1;
         private static final int TYPE_LEN = 64;
 
-        static final PGType INSTANCE = new VarCharType(OID, ARRAY_OID, TYPE_LEN, "name");
+        static final VarCharType INSTANCE = new VarCharType(OID, ARRAY_OID, TYPE_LEN, "name");
     }
 }

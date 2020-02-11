@@ -55,6 +55,7 @@ import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.ExtractFunctions;
 import io.crate.expression.scalar.SubscriptFunction;
+import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.scalar.arithmetic.MapFunction;
@@ -825,23 +826,29 @@ public class ExpressionAnalyzer {
             List<String> path = Lists.reverse(reversedPath);
             if (base instanceof QualifiedNameReference) {
                 QualifiedName name = ((QualifiedNameReference) base).getName();
-                return fieldProvider.resolveField(name, path, operation);
+                try {
+                    return fieldProvider.resolveField(name, path, operation);
+                } catch (ColumnUnknownException e) {
+                    var baseSymbol = fieldProvider.resolveField(name, List.of(), operation);
+                    var subscriptFunction = SubscriptFunctions.tryCreateSubscript(baseSymbol, path);
+                    if (subscriptFunction == null) {
+                        throw e;
+                    } else {
+                        return subscriptFunction;
+                    }
+                }
             }
             Symbol baseSymbol = base.accept(this, context);
-            if (baseSymbol.valueType().id() == ObjectType.ID) {
-                List<Symbol> arguments = mapTail(baseSymbol, path, Literal::of);
-                DataType<?> returnType = ((ObjectType) baseSymbol.valueType()).resolveInnerType(path);
-                return new Function(
-                    new FunctionInfo(new FunctionIdent(SubscriptObjectFunction.NAME, Symbols.typeView(arguments)), returnType),
-                    arguments
-                );
-            } else {
+            var subscriptFunction = SubscriptFunctions.tryCreateSubscript(baseSymbol, path);
+            if (subscriptFunction == null) {
                 throw new UnsupportedOperationException(
                     "Unsupported expression `"
                     + ExpressionFormatter.formatStandaloneExpression(recordSubscript)
                     + "`, `"
                     + ExpressionFormatter.formatStandaloneExpression(base)
-                    + "` should have type `object` but was `" + baseSymbol.valueType().getName() + '`');
+                    + "` should have type `object` or `record` but was `" + baseSymbol.valueType().getName() + '`');
+            } else {
+                return subscriptFunction;
             }
         }
 

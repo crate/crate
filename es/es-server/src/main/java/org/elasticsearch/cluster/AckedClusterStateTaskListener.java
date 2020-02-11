@@ -19,7 +19,7 @@
 package org.elasticsearch.cluster;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 import org.elasticsearch.common.unit.TimeValue;
 
 public interface AckedClusterStateTaskListener extends ClusterStateTaskListener {

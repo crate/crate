@@ -28,7 +28,7 @@ import io.netty.buffer.ByteBuf;
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-class IntegerType extends PGType {
+class IntegerType extends PGType<Integer> {
 
     static final int OID = 23;
 
@@ -52,26 +52,26 @@ class IntegerType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Integer value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeInt(((int) value));
+        buffer.writeInt(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        return Integer.toString(((int) value)).getBytes(StandardCharsets.UTF_8);
+    protected byte[] encodeAsUTF8Text(@Nonnull Integer value) {
+        return Integer.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
-        assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because int is int32. Actual length: " +
-                                         valueLength;
+    public Integer readBinaryValue(ByteBuf buffer, int valueLength) {
+        assert valueLength == TYPE_LEN
+            : "length should be " + TYPE_LEN + " because int is int32. Actual length: " + valueLength;
         return buffer.readInt();
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Integer decodeUTF8Text(byte[] bytes) {
         return Integer.parseInt(new String(bytes, StandardCharsets.UTF_8));
     }
 }

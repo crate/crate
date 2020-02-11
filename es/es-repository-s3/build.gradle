@@ -1,5 +1,6 @@
 dependencies {
     compile project(':es:es-server')
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
     compile "com.amazonaws:aws-java-sdk-kms:${versions.aws}"
     compile "com.amazonaws:aws-java-sdk-core:${versions.aws}"

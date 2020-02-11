@@ -34,5 +34,6 @@ public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImp
         GenerateSeries.register(this);
         ValuesFunction.register(this);
         PgGetKeywordsFunction.register(this);
+        PgExpandArray.register(this);
     }
 }

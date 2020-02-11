@@ -29,16 +29,16 @@ import java.util.List;
 
 import com.carrotsearch.hppc.ByteArrayList;
 
-public class RecordType extends PGType {
+public class RecordType extends PGType<Row> {
 
     static final int OID = 2249;
     static final String NAME = "record";
 
     static final RecordType EMPTY_RECORD = new RecordType(List.of());
 
-    private final List<PGType> fieldTypes;
+    private final List<PGType<?>> fieldTypes;
 
-    RecordType(List<PGType> fieldTypes) {
+    RecordType(List<PGType<?>> fieldTypes) {
         super(OID, -1, -1, NAME);
         this.fieldTypes = fieldTypes;
     }
@@ -48,9 +48,9 @@ public class RecordType extends PGType {
         return 2287;
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
-    public int writeAsBinary(ByteBuf buffer, Object record) {
-        List values = (List) record;
+    public int writeAsBinary(ByteBuf buffer, Row record) {
         final int startWriterIndex = buffer.writerIndex();
         buffer.writeInt(0); // reserve space for the length of the record; updated later
         buffer.writeInt(fieldTypes.size());
@@ -61,7 +61,7 @@ public class RecordType extends PGType {
             buffer.writeInt(fieldType.oid());
             bytesWritten += 4;
 
-            var value = values.get(i);
+            var value = record.get(i);
             if (value == null) {
                 buffer.writeInt(-1); // -1 data length signals a NULL
                 continue;
@@ -74,19 +74,19 @@ public class RecordType extends PGType {
     }
 
     @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
+    public Row readBinaryValue(ByteBuf buffer, int valueLength) {
         throw new UnsupportedOperationException("Input of anonymous record type values is not implemented");
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
-    byte[] encodeAsUTF8Text(Object record) {
-        Row values = (Row) record;
+    byte[] encodeAsUTF8Text(Row record) {
         ByteArrayList bytes = new ByteArrayList();
         // See PostgreSQL src/backend/utils/adt/rowtypes.c record_out(PG_FUNCTION_ARGS)
         bytes.add((byte) '(');
-        for (int i = 0; i < values.numColumns(); i++) {
-            var fieldType = fieldTypes.get(i);
-            var value = values.get(i);
+        for (int i = 0; i < record.numColumns(); i++) {
+            PGType fieldType = fieldTypes.get(i);
+            var value = record.get(i);
 
             if (i > 0) {
                 bytes.add((byte) ',');
@@ -117,7 +117,7 @@ public class RecordType extends PGType {
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Row decodeUTF8Text(byte[] bytes) {
         throw new UnsupportedOperationException("Input of record type values is not implemented");
     }
 

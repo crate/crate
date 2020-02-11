@@ -26,7 +26,7 @@
 
 package io.crate.metadata;
 
-import org.elasticsearch.common.Nullable;
+import javax.annotation.Nullable;
 
 import javax.annotation.Nonnull;
 
