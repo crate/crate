@@ -39,9 +39,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.xcontent.XContentFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -97,7 +95,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     }
 
     @Override
-    public BytesReference generateSourceAndCheckConstraints(Object[] values) throws IOException {
+    public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException {
         row.firstCells(values);
         row.secondCells(defaultValues);
 
@@ -125,8 +123,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
         }
         checks.validate(source);
-
-        return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
+        return source;
     }
 
     private static Tuple<List<Reference>, Object[]> addDefaults(List<Reference> targets,

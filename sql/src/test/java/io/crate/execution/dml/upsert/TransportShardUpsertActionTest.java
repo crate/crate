@@ -115,17 +115,14 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 tasksService, indicesService, shardStateAction, functions, schemas, indexNameExpressionResolver);
         }
 
-        @Nullable
         @Override
-        protected IndexItemResponse indexItem(ShardUpsertRequest request,
-                                              ShardUpsertRequest.Item item,
-                                              IndexShard indexShard,
-                                              boolean tryInsertFirst,
-                                              UpdateSourceGen updateSourceGen,
-                                              InsertSourceGen insertSourceGen,
-                                              ReturnValueGen returnValueGen,
-                                              boolean isRetry) throws Exception {
-             throw new VersionConflictEngineException(
+        protected IndexItemResponse insert(ShardUpsertRequest request,
+                                           ShardUpsertRequest.Item item,
+                                           IndexShard indexShard,
+                                           boolean isRetry,
+                                           @Nullable ReturnValueGen returnGen,
+                                           @Nullable InsertSourceGen insertSourceGen) throws Exception {
+            throw new VersionConflictEngineException(
                 indexShard.shardId(),
                 item.id(),
                 "document with id: " + item.id() + " already exists in '" + request.shardId().getIndexName() + '\'');

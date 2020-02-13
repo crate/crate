@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
@@ -48,6 +49,17 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     private final boolean ignoreDuplicateKeys;
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
     private final List<Reference> allTargetColumns;
+    /**
+     * List of columns used for the result set
+     */
+    private final List<? extends Symbol> outputs;
+
+    /**
+     * List of values or expressions used to be retrieved from the inserted/updated rows,
+     * empty if no values should be returned. The types of the returnValues need
+     * to match with outputs.
+     */
+    private List<Symbol> returnValues;
 
     /**
      * @param relationName              identifying the table to write to
@@ -67,7 +79,11 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable ColumnIdent clusteredByColumn,
                                        @Nullable Symbol clusteredBySymbol,
                                        Settings settings,
-                                       boolean autoCreateIndices) {
+                                       boolean autoCreateIndices,
+                                       List<? extends Symbol> outputs,
+                                       List<Symbol> returnValues
+                                       ) {
+
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
         assert partitionedBySymbols.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
             : "All references and fields in partitionedBySymbols must be resolved to inputColumns, got: " + partitionedBySymbols;
@@ -78,6 +94,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         this.targetColsExclPartitionCols = targetColsExclPartitionCols;
         this.clusteredBySymbol = clusteredBySymbol;
         this.targetColsSymbolsExclPartition = targetColsSymbolsExclPartition;
+        this.outputs = outputs;
+        this.returnValues = returnValues;
     }
 
     ColumnIndexWriterProjection(StreamInput in) throws IOException {
@@ -115,9 +133,41 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             for (int i = 0; i < mapSize; i++) {
                 allTargetColumns.add(Reference.fromStream(in));
             }
+
+            int outputSize = in.readVInt();
+            if (outputSize > 0) {
+                var result = new ArrayList<Symbol>(outputSize);
+                for (int i = 0; i < outputSize; i++) {
+                    result.add(Symbols.fromStream(in));
+                }
+                outputs = result;
+            } else {
+                outputs = List.of();
+            }
+
+            int returnValueSize = in.readVInt();
+            if (returnValueSize > 0) {
+                returnValues = new ArrayList<>(returnValueSize);
+                for (int i = 0; i < returnValueSize; i++) {
+                    returnValues.add(Symbols.fromStream(in));
+                }
+            } else {
+                returnValues = List.of();
+            }
         } else {
+            returnValues = List.of();
+            outputs = List.of();
             allTargetColumns = List.of();
         }
+
+    }
+
+    public List<? extends Symbol> outputs() {
+        return outputs;
+    }
+
+    public List<Symbol> returnValues() {
+        return returnValues;
     }
 
     public List<Reference> allTargetColumns() {
@@ -150,7 +200,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return ProjectionType.COLUMN_INDEX_WRITER;
     }
 
-    @SuppressWarnings("SimplifiableIfStatement")
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -158,21 +207,23 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         if (!super.equals(o)) return false;
 
         ColumnIndexWriterProjection that = (ColumnIndexWriterProjection) o;
-
-        if (!targetColsExclPartitionCols.equals(that.targetColsExclPartitionCols)) return false;
-        if (!targetColsSymbolsExclPartition.equals(that.targetColsSymbolsExclPartition)) return false;
-        return !(onDuplicateKeyAssignments != null ?
-                     !onDuplicateKeyAssignments.equals(that.onDuplicateKeyAssignments)
-                     : that.onDuplicateKeyAssignments != null);
+        return targetColsSymbolsExclPartition.equals(that.targetColsSymbolsExclPartition) &&
+               targetColsExclPartitionCols.equals(that.targetColsExclPartitionCols) &&
+               onDuplicateKeyAssignments.equals(that.onDuplicateKeyAssignments) &&
+               allTargetColumns.equals(that.allTargetColumns) &&
+               Objects.equals(outputs, that.outputs) &&
+               Objects.equals(returnValues, that.returnValues);
     }
 
     @Override
     public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + targetColsSymbolsExclPartition.hashCode();
-        result = 31 * result + targetColsExclPartitionCols.hashCode();
-        result = 31 * result + (onDuplicateKeyAssignments != null ? onDuplicateKeyAssignments.hashCode() : 0);
-        return result;
+        return Objects.hash(super.hashCode(),
+                            targetColsSymbolsExclPartition,
+                            targetColsExclPartitionCols,
+                            onDuplicateKeyAssignments,
+                            allTargetColumns,
+                            outputs,
+                            returnValues);
     }
 
     @Override
@@ -212,6 +263,18 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             for (var ref : allTargetColumns) {
                 Symbols.toStream(ref, out);
             }
+            if (outputs != null) {
+                out.writeVInt(outputs.size());
+                for (var output : outputs) {
+                    Symbols.toStream(output, out);
+                }
+            } else {
+                out.writeVInt(0);
+            }
+            out.writeVInt(returnValues.size());
+            for (var returnValue : returnValues) {
+                Symbols.toStream(returnValue, out);
+            }
         }
     }
 
@@ -238,6 +301,9 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             clusteredByIdent(),
             clusteredBySymbol,
             Settings.EMPTY,
-            autoCreateIndices());
+            autoCreateIndices(),
+            outputs,
+            returnValues
+            );
     }
 }

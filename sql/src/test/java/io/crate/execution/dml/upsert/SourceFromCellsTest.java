@@ -90,8 +90,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     public void testGeneratedSourceBytesRef() throws IOException {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.functions(), t1, "t1", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y));
-        BytesReference source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1, 2});
-        assertThat(source.utf8ToString(), is("{\"x\":1,\"y\":2,\"z\":3}"));
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1, 2});
+        assertThat(source, is(Map.of("x", 1, "y", 2, "z", 3)));
     }
 
     @Test
@@ -109,9 +109,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.functions(), t2, "t2", GeneratedColumns.Validation.VALUE_MATCH, Collections.singletonList(obj));
         HashMap<Object, Object> m = new HashMap<>();
         m.put("a", 10);
-        BytesReference source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{m});
-        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
-            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
+        var map = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{m});
         assertThat(map.get("b"), is(11));
         assertThat(Maps.getByPath(map, "obj.a"), is(10));
         assertThat(Maps.getByPath(map, "obj.c"), is(13));
@@ -153,8 +151,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.functions(), t4, "t4", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x));
 
         Object[] input = new Object[]{1};
-        BytesReference source = sourceFromCells.generateSourceAndCheckConstraints(input);
-        assertThat(source.utf8ToString(), is("{\"x\":1,\"y\":\"crate\"}"));
+        var source = sourceFromCells.generateSourceAndCheckConstraints(input);
+        assertThat(source, is(Map.of("x", 1, "y", "crate")));
     }
 
     @Test
@@ -168,8 +166,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.functions(), t4, "t4", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y));
 
         Object[] input = {1, "cr8"};
-        BytesReference source = sourceFromCells.generateSourceAndCheckConstraints(input);
-        assertThat(source.utf8ToString(), is("{\"x\":1,\"y\":\"cr8\"}"));
+        var source = sourceFromCells.generateSourceAndCheckConstraints(input);
+        assertThat(source, is(Map.of("x", 1, "y", "cr8")));
     }
 
     @Test
@@ -184,13 +182,11 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         providedValueForObj.put("a", 10);
         providedValueForObj.put("c", 13);
 
-        BytesReference source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
 
-        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
-            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
-        assertThat(Maps.getByPath(map, "obj.a"), is(10));
-        assertThat(Maps.getByPath(map, "b"), is(11));
-        assertThat(Maps.getByPath(map, "obj.c"), is(13));
+        assertThat(Maps.getByPath(source, "obj.a"), is(10));
+        assertThat(Maps.getByPath(source, "b"), is(11));
+        assertThat(Maps.getByPath(source, "obj.c"), is(13));
     }
 
     @Test
@@ -220,11 +216,9 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.functions(), t5, "t4", GeneratedColumns.Validation.VALUE_MATCH, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
         providedValueForObj.put("y", 2);
-        BytesReference source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
-        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
-            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
-        assertThat(Maps.getByPath(map, "obj.x"), is(0));
-        assertThat(Maps.getByPath(map, "obj.y"), is(2));
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
+        assertThat(Maps.getByPath(source, "obj.x"), is(0));
+        assertThat(Maps.getByPath(source, "obj.y"), is(2));
     }
 
     @Test
@@ -238,11 +232,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             txnCtx, e.functions(), t5, "t5", GeneratedColumns.Validation.VALUE_MATCH, targets);
         HashMap<String, Object> providedValueForObj = new HashMap<>();
         providedValueForObj.put("x", 2);
-        BytesReference source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
-
-        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
-            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
-        assertThat(Maps.getByPath(map, "obj.x"), is(2));
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{providedValueForObj});
+        assertThat(Maps.getByPath(source, "obj.x"), is(2));
     }
 
     @Test
@@ -250,11 +241,9 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo t6 = e.resolveTableInfo("t6");
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.functions(), t6, "t6", GeneratedColumns.Validation.VALUE_MATCH, List.of());
-        BytesReference source = sourceFromCells.generateSourceAndCheckConstraints(new Object[0]);
-        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
-            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
-        assertThat(Maps.getByPath(map, "x"), is(1));
-        assertThat(Maps.getByPath(map, "y"), is(2));
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[0]);
+        assertThat(Maps.getByPath(source, "x"), is(1));
+        assertThat(Maps.getByPath(source, "y"), is(2));
     }
 
     @Test
@@ -271,9 +260,9 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             GeneratedColumns.Validation.VALUE_MATCH,
             List.of(Objects.requireNonNull(tableInfo.getReference(new ColumnIdent("x")))));
 
-        BytesReference source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1});
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{1});
 
-        assertThat(source.utf8ToString(), is("{\"x\":1,\"y\":1}"));
+        assertThat(source, is(Map.of("x", 1, "y", 1)));
     }
 
     @Test
@@ -293,9 +282,9 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             GeneratedColumns.Validation.VALUE_MATCH,
             List.of());
 
-        BytesReference source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{});
+        var source = sourceFromCells.generateSourceAndCheckConstraints(new Object[]{});
 
-        assertThat(source.utf8ToString(), is("{\"x\":\"test\"}"));
+        assertThat(source, is(Map.of("x", "test")));
     }
 
     @Test
@@ -314,7 +303,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         );
         var payloads = List.of(Map.of("x", 10), Map.of("x", 20));
         var source = sourceGen.generateSourceAndCheckConstraints(new Object[] { payloads });
-        assertThat(source.utf8ToString(), is("{\"payloads\":[{\"x\":10},{\"x\":20}]}"));
+        assertThat(source, is(Map.of("payloads", List.of(Map.of("x", 10), Map.of("x", 20)))));
     }
 
     @Test
@@ -338,6 +327,6 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         obj.put("x", 10);
         obj.put("p", 1);
         var source = sourceGen.generateSourceAndCheckConstraints(new Object[] { obj });
-        assertThat(source.utf8ToString(), is("{\"obj\":{\"x\":10}}"));
+        assertThat(source, is(Map.of("obj", Map.of("x", 10))));
     }
 }

@@ -41,7 +41,7 @@ import java.util.List;
 
 public abstract class AbstractIndexWriterProjection extends Projection {
 
-    public static final List<Symbol> OUTPUTS = ImmutableList.of(new InputColumn(0, DataTypes.LONG));  // number of rows imported
+    public static final List<? extends Symbol> OUTPUTS = ImmutableList.of(new InputColumn(0, DataTypes.LONG));  // number of rows imported
 
     private static final String BULK_SIZE = "bulk_size";
 

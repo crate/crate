@@ -56,9 +56,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
         DocTableInfo t = e.resolveTableInfo("generated_based_on_default");
         GeneratedColsFromRawInsertSource insertSource = new GeneratedColsFromRawInsertSource(
             txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
-        BytesReference source = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
-        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
-            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
+        Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{}"});
         assertThat(Maps.getByPath(map, "x"), is(1));
         assertThat(Maps.getByPath(map, "y"), is(2));
     }
@@ -68,9 +66,7 @@ public class GeneratedColsFromRawInsertSourceTest extends CrateDummyClusterServi
         DocTableInfo t = e.resolveTableInfo("generated_based_on_default");
         GeneratedColsFromRawInsertSource insertSource = new GeneratedColsFromRawInsertSource(
             txnCtx, e.functions(), t.generatedColumns(), t.defaultExpressionColumns());
-        BytesReference source = insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"x\":2}"});
-        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
-            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
+        Map<String, Object> map = insertSource.generateSourceAndCheckConstraints(new Object[]{"{\"x\":2}"});
         assertThat(Maps.getByPath(map, "x"), is(2));
         assertThat(Maps.getByPath(map, "y"), is(3));
     }

@@ -494,6 +494,7 @@ public class ProjectionToProjectorVisitor
             projection.onDuplicateKeyAssignments(),
             projection.bulkActions(),
             projection.autoCreateIndices(),
+            projection.returnValues(),
             context.jobId
         );
     }
