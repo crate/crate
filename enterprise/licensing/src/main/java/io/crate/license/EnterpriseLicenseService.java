@@ -28,13 +28,13 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
@@ -93,6 +93,11 @@ public class EnterpriseLicenseService implements LicenseService, ClusterStateLis
         this.transportService = transportService;
         this.transportSetLicenseAction = transportSetLicenseAction;
         this.logger = LogManager.getLogger(getClass());
+    }
+
+    @Override
+    public Mode getMode() {
+        return Mode.ENTERPRISE;
     }
 
     public CompletableFuture<Long> registerLicense(final String licenseKey) {
