@@ -31,6 +31,7 @@ import io.crate.metadata.Reference;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.hamcrest.core.Is;
 import org.junit.Assert;
@@ -41,10 +42,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -340,5 +343,15 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         assertThat(pkSymbols, hasSize(2));
         assertThat(pkSymbols.get(0), isInputColumn(0));
         assertThat(pkSymbols.get(1), isLiteral("crate"));
+    }
+
+    @Test
+    public void test_unnest_with_json_str_can_insert_into_object_column() {
+        InsertFromSubQueryAnalyzedStatement stmt = e.analyze(
+            "insert into users (id, address) (select * from unnest([1], ['{\"postcode\":12345}']))");
+        assertThat(stmt.subQueryRelation().fields(), contains(
+            isField("col1"),
+            isField("col2", DataTypes.STRING) // Planner adds a cast projection; text is okay here
+        ));
     }
 }

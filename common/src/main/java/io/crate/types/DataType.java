@@ -98,16 +98,16 @@ public abstract class DataType<T> implements Comparable, Writeable {
      * @param other the DataType to check conversion to
      * @return true or false
      */
-    public boolean isConvertableTo(DataType other) {
+    public boolean isConvertableTo(DataType<?> other) {
         if (this.equals(other)) {
             return true;
         }
-        Set<DataType> possibleConversions = DataTypes.ALLOWED_CONVERSIONS.get(id());
+        Set<Integer> possibleConversions = DataTypes.ALLOWED_CONVERSIONS.get(id());
         //noinspection SimplifiableIfStatement
         if (possibleConversions == null) {
             return false;
         }
-        return possibleConversions.contains(other);
+        return possibleConversions.contains(other.id());
     }
 
     static <T> int nullSafeCompareValueTo(T val1, T val2, Comparator<T> cmp) {
