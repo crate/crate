@@ -137,11 +137,6 @@ public class QueriedSelectRelation<T extends AnalyzedRelation> implements Analyz
     }
 
     @Override
-    public boolean hasAggregates() {
-        return querySpec.hasAggregates();
-    }
-
-    @Override
     public String toString() {
         StringJoiner joiner = new StringJoiner(", ");
         for (Field field : fields.asList()) {

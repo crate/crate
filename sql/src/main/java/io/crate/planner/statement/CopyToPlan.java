@@ -258,8 +258,7 @@ public final class CopyToPlan implements Plan {
             null,
             null,
             null,
-            null,
-            false
+            null
         );
         QueriedSelectRelation<DocTableRelation> subRelation = new QueriedSelectRelation<>(
             false,

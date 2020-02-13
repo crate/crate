@@ -194,8 +194,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     false
                 ),
                 longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
-                longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext),
-                false
+                longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext)
             )
         );
     }
@@ -358,12 +357,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 node.getOrderBy(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
-                expressionAnalysisContext.hasAggregates() || ((groupBy != null && !groupBy.isEmpty())),
+                expressionAnalysisContext.hasAggregates() || !groupBy.isEmpty(),
                 isDistinct
             ),
             longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
-            longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext),
-            expressionAnalysisContext.hasAggregates()
+            longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext)
         );
         AnalyzedRelation relation;
         if (context.sources().size() == 1) {
@@ -560,10 +558,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private static Symbol tryGetFromSelectList(QualifiedNameReference expression, SelectAnalysis selectAnalysis) {
         List<String> parts = expression.getName().getParts();
         if (parts.size() == 1) {
-            Symbol symbol = getOneOrAmbiguous(selectAnalysis.outputMultiMap(), Iterables.getOnlyElement(parts));
-            if (symbol != null) {
-                return symbol;
-            }
+            return getOneOrAmbiguous(selectAnalysis.outputMultiMap(), Iterables.getOnlyElement(parts));
         }
         return null;
     }
@@ -657,7 +652,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitTable(Table node, StatementAnalysisContext context) {
+    protected AnalyzedRelation visitTable(Table<?> node, StatementAnalysisContext context) {
         QualifiedName tableQualifiedName = node.getName();
         SearchPath searchPath = context.sessionContext().searchPath();
         RelationName relationName;

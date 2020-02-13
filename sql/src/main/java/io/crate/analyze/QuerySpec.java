@@ -47,16 +47,13 @@ public final class QuerySpec {
     @Nullable
     private final Symbol offset;
 
-    private final boolean hasAggregates;
-
     public QuerySpec(List<Symbol> outputs,
                      WhereClause where,
                      List<Symbol> groupBy,
                      @Nullable HavingClause having,
                      @Nullable OrderBy orderBy,
                      @Nullable Symbol limit,
-                     @Nullable Symbol offset,
-                     boolean hasAggregates) {
+                     @Nullable Symbol offset) {
         this.outputs = outputs;
         this.where = where;
         this.groupBy = groupBy;
@@ -64,7 +61,6 @@ public final class QuerySpec {
         this.orderBy = orderBy;
         this.limit = limit;
         this.offset = offset;
-        this.hasAggregates = hasAggregates;
     }
 
     public List<Symbol> groupBy() {
@@ -99,10 +95,6 @@ public final class QuerySpec {
         return outputs;
     }
 
-    public boolean hasAggregates() {
-        return hasAggregates;
-    }
-
     public QuerySpec map(Function<? super Symbol, ? extends Symbol> mapper) {
         return new QuerySpec(
             Lists2.map(outputs, mapper),
@@ -111,8 +103,7 @@ public final class QuerySpec {
             having == null ? null : having.map(mapper),
             orderBy == null ? null : orderBy.map(mapper),
             limit == null ? null : mapper.apply(limit),
-            offset == null ? null : mapper.apply(offset),
-            hasAggregates
+            offset == null ? null : mapper.apply(offset)
         );
     }
 

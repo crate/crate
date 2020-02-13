@@ -152,11 +152,6 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
     }
 
     @Override
-    public boolean hasAggregates() {
-        return false;
-    }
-
-    @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
         for (Symbol output : outputs) {
             consumer.accept(output);
