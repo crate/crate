@@ -90,11 +90,9 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "GroupBy[count(id) | ]\n" +
             "GroupBy[name | count(id)]\n" +
             "HashJoin[\n" +
-            "    Boundary[id, department_id, name]\n" +
-            "    Collect[doc.users | [id, department_id, name] | true]\n" +
+            "    Collect[doc.users | [id, department_id] | true]\n" +
             "    --- INNER ---\n" +
-            "    Boundary[id, name]\n" +
-            "    Collect[doc.departments | [id, name] | true]\n" +
+            "    Collect[doc.departments | [name, id] | true]\n" +
             "]\n"));
     }
 
@@ -109,11 +107,9 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "OrderBy[name ASC]\n" +
             "GroupBy[name | ]\n" +
             "HashJoin[\n" +
-            "    Boundary[id, department_id, name]\n" +
-            "    Collect[doc.users | [id, department_id, name] | true]\n" +
+            "    Collect[doc.users | [department_id] | true]\n" +
             "    --- INNER ---\n" +
-            "    Boundary[id, name]\n" +
-            "    Collect[doc.departments | [id, name] | true]\n" +
+            "    Collect[doc.departments | [name, id] | true]\n" +
             "]\n"));
     }
 }

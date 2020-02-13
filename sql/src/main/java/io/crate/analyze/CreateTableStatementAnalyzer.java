@@ -30,6 +30,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
+import io.crate.planner.operators.EnsureNoMatchPredicate;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ParameterExpression;
@@ -80,11 +81,19 @@ public final class CreateTableStatementAnalyzer {
         for (int i = 0; i < analyzedCreateTable.tableElements().size(); i++) {
             TableElement<Expression> elementExpression = createTable.tableElements().get(i);
             TableElement<Symbol> elementSymbol = analyzedCreateTable.tableElements().get(i);
-            tableElementsWithExpressions.add(elementExpression.mapExpressions(elementSymbol, x -> exprAnalyzerWithReferences.convert(x, exprCtx)));
+            tableElementsWithExpressions.add(elementExpression.mapExpressions(elementSymbol, x -> {
+                Symbol symbol = exprAnalyzerWithReferences.convert(x, exprCtx);
+                EnsureNoMatchPredicate.ensureNoMatchPredicate(symbol, "Cannot use MATCH in CREATE TABLE statements");
+                return symbol;
+            }));
         }
         AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
             tableElementsWithExpressions, relationName, null, false);
-
-        return new AnalyzedCreateTable(relationName, analyzedCreateTable, analyzedTableElements, analyzedTableElementsWithExpressions);
+        return new AnalyzedCreateTable(
+            relationName,
+            analyzedCreateTable,
+            analyzedTableElements,
+            analyzedTableElementsWithExpressions
+        );
     }
 }

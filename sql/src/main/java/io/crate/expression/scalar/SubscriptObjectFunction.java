@@ -89,7 +89,10 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
         return tryToInferReturnTypeFromObjectTypeAndArguments(func);
     }
 
-    private static Symbol tryToInferReturnTypeFromObjectTypeAndArguments(Function func) {
+    static Symbol tryToInferReturnTypeFromObjectTypeAndArguments(Function func) {
+        if (!func.valueType().equals(DataTypes.UNDEFINED)) {
+            return func;
+        }
         var arguments = func.arguments();
         ObjectType objectType = (ObjectType) arguments.get(0).valueType();
         List<String> path = maybeCreatePath(arguments);

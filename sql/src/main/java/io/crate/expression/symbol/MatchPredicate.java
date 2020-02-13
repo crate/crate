@@ -33,12 +33,12 @@ import java.util.stream.Collectors;
 
 public class MatchPredicate extends Symbol {
 
-    private final Map<Field, Symbol> identBoostMap;
+    private final Map<Symbol, Symbol> identBoostMap;
     private final Symbol queryTerm;
     private final String matchType;
     private final Symbol options;
 
-    public MatchPredicate(Map<Field, Symbol> identBoostMap,
+    public MatchPredicate(Map<Symbol, Symbol> identBoostMap,
                           Symbol queryTerm,
                           String matchType,
                           Symbol options) {
@@ -49,7 +49,7 @@ public class MatchPredicate extends Symbol {
         this.options = options;
     }
 
-    public Map<Field, Symbol> identBoostMap() {
+    public Map<Symbol, Symbol> identBoostMap() {
         return identBoostMap;
     }
 

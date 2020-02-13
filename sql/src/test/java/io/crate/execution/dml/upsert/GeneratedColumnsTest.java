@@ -52,8 +52,8 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table t (obj object as (arr array(integer)), arr as obj['arr'])")
             .build();
-        QueriedSelectRelation<DocTableRelation> query = e.analyze("select obj, arr from t");
-        DocTableInfo table = query.subRelation().tableInfo();
+        QueriedSelectRelation query = e.analyze("select obj, arr from t");
+        DocTableInfo table = ((DocTableRelation) query.from().get(0)).tableInfo();
         GeneratedColumns<Doc> generatedColumns = new GeneratedColumns<>(
             new InputFactory(e.functions()),
             CoordinatorTxnCtx.systemTransactionContext(),

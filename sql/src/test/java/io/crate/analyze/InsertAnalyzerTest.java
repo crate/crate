@@ -43,7 +43,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isAlias;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -366,9 +366,9 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_unnest_with_json_str_can_insert_into_object_column() {
         AnalyzedInsertStatement stmt = e.analyze(
             "insert into users (id, address) (select * from unnest([1], ['{\"postcode\":12345}']))");
-        assertThat(stmt.subQueryRelation().fields(), contains(
-            isField("col1"),
-            isField("col2", DataTypes.STRING) // Planner adds a cast projection; text is okay here
+        assertThat(stmt.subQueryRelation().outputs(), contains(
+            isReference("col1"),
+            isReference("col2", DataTypes.STRING) // Planner adds a cast projection; text is okay here
         ));
     }
 
@@ -376,40 +376,35 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_insert_with_id_in_returning_clause() throws Exception {
         AnalyzedInsertStatement stmt =
             e.analyze("insert into users(id, name) values(1, 'max') returning id");
-        assertThat(stmt.fields(), contains(isField("id")));
-        assertThat(stmt.returnValues(), contains(isReference("id")));
+        assertThat(stmt.outputs(), contains(isReference("id")));
     }
 
     @Test
     public void test_insert_with_docid_in_returning_clause() throws Exception {
         AnalyzedInsertStatement stmt =
             e.analyze("insert into users(id, name) values(1, 'max') returning _doc");
-        assertThat(stmt.fields(), contains(isField("_doc")));
-        assertThat(stmt.returnValues(), contains(isReference("_doc")));
+        assertThat(stmt.outputs(), contains(isReference("_doc")));
     }
 
     @Test
     public void test_insert_with_id_renamed_in_returning_clause() throws Exception {
         AnalyzedInsertStatement stmt =
             e.analyze("insert into users(id, name) values(1, 'max') returning id as foo");
-        assertThat(stmt.fields(), contains(isField("foo")));
-        assertThat(stmt.returnValues(), contains(isReference("id")));
+        assertThat(stmt.outputs(), contains(isAlias("foo", isReference("id"))));
     }
 
     @Test
     public void test_insert_with_function_in_returning_clause() throws Exception {
         AnalyzedInsertStatement stmt =
             e.analyze("insert into users(id, name) values(1, 'max') returning id + 1 as foo");
-        assertThat(stmt.fields(), contains(isField("foo")));
-        assertThat(stmt.returnValues(), contains(isFunction("add")));
+        assertThat(stmt.outputs(), contains(isAlias("foo", isFunction("add"))));
     }
 
     @Test
     public void test_insert_with_returning_all_columns() throws Exception {
         AnalyzedInsertStatement stmt =
             e.analyze("insert into users(id, name) values(1, 'max') returning *");
-        assertThat(stmt.fields().size(), is(17));
-        assertThat(stmt.returnValues().size(), is(17));
+        assertThat(stmt.outputs().size(), is(17));
     }
 
 }

@@ -28,7 +28,9 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.StringJoiner;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 public final class Lists2 {
@@ -53,7 +55,7 @@ public final class Lists2 {
         return xs;
     }
 
-    public static <T> List<T> concatUnique(List<? extends T> list1, List<? extends T> list2) {
+    public static <T> List<T> concatUnique(List<? extends T> list1, Collection<? extends T> list2) {
         List<T> result = new ArrayList<>(list1.size() + list2.size());
         result.addAll(list1);
         for (T item : list2) {
@@ -238,5 +240,17 @@ public final class Lists2 {
             }
         }
         return firstGTEProbeIdx;
+    }
+
+    /**
+     * Less garbage producing alternative to
+     * {@link java.util.stream.Stream#map(Function)} → {@link java.util.stream.Stream#collect(Collector)} with a {@link Collectors#joining(CharSequence)} collector.
+     */
+    public static <T> String joinOn(String delimiter, List<? extends T> items, Function<? super T, String> mapper) {
+        StringJoiner joiner = new StringJoiner(delimiter);
+        for (int i = 0; i < items.size(); i++) {
+            joiner.add(mapper.apply(items.get(i)));
+        }
+        return joiner.toString();
     }
 }

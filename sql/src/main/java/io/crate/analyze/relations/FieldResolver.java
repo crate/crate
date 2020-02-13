@@ -21,7 +21,7 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 
 import javax.annotation.Nullable;
@@ -29,5 +29,5 @@ import javax.annotation.Nullable;
 public interface FieldResolver {
 
     @Nullable
-    Symbol resolveField(Field field);
+    Symbol resolveField(ScopedSymbol field);
 }

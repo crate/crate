@@ -28,10 +28,10 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.NotPredicate;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.ColumnIdent;
@@ -179,8 +179,8 @@ public class SelectivityFunctions {
     private static ColumnIdent getColumn(Symbol symbol) {
         if (symbol instanceof Reference) {
             return ((Reference) symbol).column();
-        } else if (symbol instanceof Field) {
-            return ((Field) symbol).path();
+        } else if (symbol instanceof ScopedSymbol) {
+            return ((ScopedSymbol) symbol).column();
         } else {
             return null;
         }

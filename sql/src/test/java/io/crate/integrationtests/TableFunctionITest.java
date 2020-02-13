@@ -22,12 +22,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.data.RowN;
-import io.crate.common.collections.Lists2;
-import io.crate.data.Row;
-import io.crate.shade.org.postgresql.util.PGobject;
 import io.crate.testing.UseJdbc;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;

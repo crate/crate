@@ -22,146 +22,109 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.Fields;
-import io.crate.analyze.HavingClause;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class AliasedAnalyzedRelation implements AnalyzedRelation {
+/**
+ * <pre>{@code <relation> AS alias}</pre>
+ *
+ * This relation only provides a different name for an inner relation.
+ * The {@link #outputs()} of the aliased-relation are {@link ScopedSymbol}s,
+ * a 1:1 mapping of the outputs of the inner relation but associated with the aliased-relation.;
+ */
+public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver {
 
     private final AnalyzedRelation relation;
-    private final QualifiedName qualifiedName;
-    private final List<String> columnAliases;
-    private final Fields fields;
-    private final List<Symbol> outputSymbols;
+    private final RelationName alias;
     private final Map<ColumnIdent, ColumnIdent> aliasToColumnMapping;
+    private final ArrayList<Symbol> outputs;
 
-    public AliasedAnalyzedRelation(AnalyzedRelation relation, QualifiedName relationAlias) {
-        this(relation, relationAlias, List.of());
+    public AliasedAnalyzedRelation(AnalyzedRelation relation, RelationName alias) {
+        this(relation, alias, List.of());
     }
 
-    AliasedAnalyzedRelation(AnalyzedRelation relation, QualifiedName relationAlias, List<String> columnAliases) {
+    AliasedAnalyzedRelation(AnalyzedRelation relation, RelationName alias, List<String> columnAliases) {
         this.relation = relation;
-        qualifiedName = relationAlias;
-        this.columnAliases = columnAliases;
-        List<Field> originalFields = relation.fields();
-        fields = new Fields(originalFields.size());
-        outputSymbols = List.copyOf(relation.fields());
+        this.alias = alias;
         aliasToColumnMapping = new HashMap<>(columnAliases.size());
-        createAliasToColumnMappingAndNewFields(columnAliases, originalFields);
+        this.outputs = new ArrayList<>(relation.outputs().size());
+        for (int i = 0; i < relation.outputs().size(); i++) {
+            Symbol childOutput = relation.outputs().get(i);
+            ColumnIdent childColumn = Symbols.pathFromSymbol(childOutput);
+            if (i < columnAliases.size()) {
+                ColumnIdent columnAlias = new ColumnIdent(columnAliases.get(i));
+                aliasToColumnMapping.put(columnAlias, childColumn);
+                outputs.add(new ScopedSymbol(this.alias, columnAlias, childOutput.valueType()));
+            } else {
+                aliasToColumnMapping.put(childColumn, childColumn);
+                outputs.add(new ScopedSymbol(alias, childColumn, childOutput.valueType()));
+            }
+        }
     }
 
-    private void createAliasToColumnMappingAndNewFields(List<String> columnAliases, List<Field> originalFields) {
-        for (int i = 0; i < originalFields.size(); i++) {
-            Field field = originalFields.get(i);
-            ColumnIdent ci = field.path();
-            if (i < columnAliases.size()) {
-                String columnAlias = columnAliases.get(i);
-                if (columnAlias != null) {
-                    aliasToColumnMapping.put(new ColumnIdent(columnAlias), ci);
-                    ci = new ColumnIdent(columnAlias);
-                }
-            }
-            fields.add(new Field(this, ci, field));
+    @Override
+    public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        if (operation != Operation.READ) {
+            throw new UnsupportedOperationException(operation + " is not supported on " + alias);
         }
+        ColumnIdent childColumnName = aliasToColumnMapping.get(column);
+        if (childColumnName == null) {
+            return null;
+        }
+        Symbol field = relation.getField(childColumnName, operation);
+        return field == null
+            ? null
+            : new ScopedSymbol(alias, column, field.valueType());
     }
 
     public AnalyzedRelation relation() {
         return relation;
     }
 
-    List<String> columnAliases() {
-        return columnAliases;
+    @Override
+    public RelationName relationName() {
+        return alias;
     }
 
-    @Override
-    public Field getField(ColumnIdent path,
-                          Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        Field field = fields.get(path);
-        if (field == null) {
-            ColumnIdent childPath = aliasToColumnMapping.getOrDefault(path, path);
-            Field originalField = relation.getField(childPath, operation);
-            if (originalField != null) {
-                field = new Field(this, path, originalField);
-            }
-        }
-        return field;
-    }
-
-    @Override
     @Nonnull
-    public List<Field> fields() {
-        return fields.asList();
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
-        return qualifiedName;
-    }
-
     @Override
     public List<Symbol> outputs() {
-        return outputSymbols;
-    }
-
-    @Override
-    public WhereClause where() {
-        return WhereClause.MATCH_ALL;
-    }
-
-    @Override
-    public List<Symbol> groupBy() {
-        return List.of();
-    }
-
-    @Nullable
-    @Override
-    public HavingClause having() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public OrderBy orderBy() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol limit() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol offset() {
-        return null;
-    }
-
-    @Override
-    public boolean isDistinct() {
-        return false;
+        return outputs;
     }
 
     @Override
     public String toString() {
-        return relation + " AS " + qualifiedName;
+        return relation + " AS " + alias;
     }
 
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitAliasedAnalyzedRelation(this, context);
+    }
+
+    @Nullable
+    @Override
+    public Symbol resolveField(ScopedSymbol field) {
+        if (!field.relation().equals(alias)) {
+            throw new IllegalArgumentException(field + " does not belong to " + relationName());
+        }
+        ColumnIdent childColumnName = aliasToColumnMapping.get(field.column());
+        var result = relation.getField(childColumnName, Operation.READ);
+        if (result == null) {
+            throw new IllegalArgumentException(field + " does not belong to " + relationName());
+        }
+        return result;
     }
 }

@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
@@ -55,7 +55,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testEmptyOverClause() {
-        QueriedSelectRelation<?> analysis = e.analyze("select avg(x) OVER () from t");
+        QueriedSelectRelation analysis = e.analyze("select avg(x) OVER () from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
@@ -70,7 +70,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithPartitionByClause() {
-        QueriedSelectRelation<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x) from t");
+        QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (PARTITION BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
@@ -104,7 +104,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithOrderByClause() {
-        QueriedSelectRelation<?> analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
+        QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
@@ -117,7 +117,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithPartitionAndOrderByClauses() {
-        QueriedSelectRelation<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x) from t");
+        QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
@@ -131,8 +131,8 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithFrameDefinition() {
-        QueriedSelectRelation<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x " +
-                                             "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) from t");
+        QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x " +
+                                                   "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
@@ -154,7 +154,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         WindowFunction windowFunction = (WindowFunction) relation.outputs().get(0);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
 
-        assertThat(windowDefinition.partitions(), contains(isField("x")));
+        assertThat(windowDefinition.partitions(), contains(isReference("x")));
 
         OrderBy orderBy = windowDefinition.orderBy();
         assertThat(orderBy, not(nullValue()));
@@ -170,7 +170,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         WindowFunction windowFunction = (WindowFunction) relation.outputs().get(0);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
 
-        assertThat(windowDefinition.partitions(), contains(isField("x")));
+        assertThat(windowDefinition.partitions(), contains(isReference("x")));
 
         OrderBy orderBy = windowDefinition.orderBy();
         assertThat(orderBy, not(nullValue()));
@@ -189,7 +189,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("'x' must appear in the GROUP BY clause or be used in an aggregation function.");
         e.analyze("select y, sum(x) over(partition by x) " +
-                "FROM unnest([1], [6]) as t(x, y) " +
+                "FROM unnest([1], [6]) as t (x, y) " +
                 "group by 1");
     }
 }

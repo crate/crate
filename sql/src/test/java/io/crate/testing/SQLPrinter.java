@@ -25,8 +25,8 @@ package io.crate.testing;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueryClause;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 
@@ -38,8 +38,8 @@ public class SQLPrinter {
     private static final TestingSymbolPrinter TESTING_SYMBOL_PRINTER = new TestingSymbolPrinter();
 
     public static String print(Object o) {
-        if (o instanceof AnalyzedRelation) {
-            return print((AnalyzedRelation) o);
+        if (o instanceof QueriedSelectRelation) {
+            return print((QueriedSelectRelation) o);
         } else if (o instanceof OrderBy) {
             return print((OrderBy) o);
         } else if (o instanceof Symbol) {
@@ -78,7 +78,7 @@ public class SQLPrinter {
         return sb.toString();
     }
 
-    public static String print(AnalyzedRelation relation) {
+    public static String print(QueriedSelectRelation relation) {
         StringBuilder sb = new StringBuilder();
 
         sb.append("SELECT ");

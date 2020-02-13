@@ -24,17 +24,17 @@ package io.crate.testing;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchReference;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
-import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 
@@ -42,6 +42,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.ListIterator;
 
+import static io.crate.testing.MoreMatchers.withFeature;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
@@ -54,15 +55,15 @@ public class SymbolMatchers {
         return isLiteral(expectedValue, null);
     }
 
-    private static Matcher<Symbol> hasDataType(DataType type) {
+    private static Matcher<Symbol> hasDataType(DataType<?> type) {
         return withFeature(Symbol::valueType, "valueType", equalTo(type));
     }
 
     private static Matcher<Symbol> hasValue(Object expectedValue) {
-        return withFeature(s -> ((Input) s).value(), "value", equalTo(expectedValue));
+        return withFeature(s -> ((Input<?>) s).value(), "value", equalTo(expectedValue));
     }
 
-    public static Matcher<Symbol> isLiteral(Object expectedValue, @Nullable final DataType type) {
+    public static Matcher<Symbol> isLiteral(Object expectedValue, @Nullable final DataType<?> type) {
         if (type == null) {
             return Matchers.allOf(Matchers.instanceOf(Literal.class), hasValue(expectedValue));
         }
@@ -75,37 +76,35 @@ public class SymbolMatchers {
     }
 
     public static Matcher<Symbol> isField(final String expectedName) {
-        return isField(expectedName, null);
+        return isField(expectedName, (DataType<?>) null);
     }
 
-    public static Matcher<Symbol> isField(final String expectedName, @Nullable final DataType dataType) {
-        var hasExpectedName = withFeature(s -> ((Field) s).path().sqlFqn(), "name", equalTo(expectedName));
-        if (dataType == null) {
-            return both(Matchers.<Symbol>instanceOf(Field.class)).and(hasExpectedName);
-        }
-        return allOf(instanceOf(Field.class), hasExpectedName, hasDataType(dataType));
-    }
-
-    public static Matcher<Symbol> fieldPointsToReferenceOf(final String expectedName,
-                                                           final String expectedRelationName) {
-        java.util.function.Function<Symbol, Symbol> followFieldPointer = s -> {
-            Symbol symbol = s;
-            while (symbol instanceof Field) {
-                symbol = ((Field) symbol).pointer();
-            }
-            return symbol;
-        };
+    public static Matcher<Symbol> isField(final String expectedName, RelationName relation) {
         return allOf(
-            withFeature(followFieldPointer, "ref", isReference(expectedName)),
-            withFeature(followFieldPointer
-                            .andThen(s -> ((Reference) s).ident().tableIdent().fqn()),
-                        "relationName",
-                        equalTo(expectedRelationName))
+            instanceOf(ScopedSymbol.class),
+            withFeature(x -> ((ScopedSymbol) x).column().sqlFqn(), "", equalTo(expectedName)),
+            withFeature(x -> ((ScopedSymbol) x).relation(), "", equalTo(relation))
         );
+    }
+
+    public static Matcher<Symbol> isField(final String expectedName, @Nullable final DataType<?> dataType) {
+        var hasExpectedName = withFeature(s -> ((ScopedSymbol) s).column().sqlFqn(), "", equalTo(expectedName));
+        if (dataType == null) {
+            return both(Matchers.<Symbol>instanceOf(ScopedSymbol.class)).and(hasExpectedName);
+        }
+        return allOf(instanceOf(ScopedSymbol.class), hasExpectedName, hasDataType(dataType));
     }
 
     public static Matcher<Symbol> isFetchRef(int docIdIdx, String ref) {
         return isFetchRef(isInputColumn(docIdIdx), isReference(ref));
+    }
+
+    public static Matcher<Symbol> isAlias(String alias, Matcher<Symbol> childMatcher) {
+        return allOf(
+            Matchers.instanceOf(AliasSymbol.class),
+            withFeature(s -> ((AliasSymbol) s).alias(), "alias", equalTo(alias)),
+            withFeature(s -> ((AliasSymbol) s).symbol(), "child", childMatcher)
+        );
     }
 
     public static Matcher<Symbol> isFetchRef(Matcher<Symbol> fetchIdMatcher, Matcher<Symbol> refMatcher) {
@@ -129,18 +128,6 @@ public class SymbolMatchers {
             withFeature(s -> ((Reference) s).ident().tableIdent(), "relationName", relName),
             withFeature(Symbol::valueType, "valueType", type)
         );
-    }
-
-    private static <T> FeatureMatcher<Symbol, T> withFeature(java.util.function.Function<? super Symbol, T> getFeature,
-                                                   String featureName,
-                                                   Matcher<T> featureMatcher) {
-        return new FeatureMatcher<>(featureMatcher, featureName, featureName) {
-
-            @Override
-            protected T featureValueOf(Symbol actual) {
-                return getFeature.apply(actual);
-            }
-        };
     }
 
     public static Matcher<Symbol> isReference(final String expectedName, @Nullable final DataType dataType) {

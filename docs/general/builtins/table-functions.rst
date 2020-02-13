@@ -93,12 +93,6 @@ The columns are named ``colN`` where N is a number starting at 1.
     +------+----------+
     SELECT 3 rows in set (... sec)
 
-If an array with object literals is passed into unnest the object will be
-regarded as a object with column policy ``ignored``. This means that it is not
-possible to access values of the object using the subscript notation::
-
-    cr> select col1['x'] from unnest([{x=10}]);
-    SQLActionException[ColumnUnknownException: Column col1['x'] unknown]
 
 .. _table-functions-generate-series:
 
@@ -204,12 +198,12 @@ Takes an array and returns a set of value and an index into the array.
 ::
 
     cr> SELECT information_schema._pg_expandarray(ARRAY['a', 'b']);
-    +------------------------------------------------+
-    | information_schema._pg_expandarray(['a', 'b']) |
-    +------------------------------------------------+
-    | ["a", 1]                                       |
-    | ["b", 2]                                       |
-    +------------------------------------------------+
+    +-----------------------------+
+    | _pg_expandarray(['a', 'b']) |
+    +-----------------------------+
+    | ["a", 1]                    |
+    | ["b", 2]                    |
+    +-----------------------------+
     SELECT 2 rows in set (... sec)
 
 ::

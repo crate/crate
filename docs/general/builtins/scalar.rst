@@ -27,22 +27,22 @@ Returns: ``text``
 
 ::
 
-    cr> select concat('foo', null, 'bar');
-    +----------------------------+
-    | concat('foo', NULL, 'bar') |
-    +----------------------------+
-    | foobar                     |
-    +----------------------------+
+    cr> select concat('foo', null, 'bar') AS col;
+    +--------+
+    | col    |
+    +--------+
+    | foobar |
+    +--------+
     SELECT 1 row in set (... sec)
 
 You can also use the ``||`` operator::
 
-    cr> select 'foo' || 'bar';
-    +----------------------+
-    | concat('foo', 'bar') |
-    +----------------------+
-    | foobar               |
-    +----------------------+
+    cr> select 'foo' || 'bar' AS col;
+    +--------+
+    | col    |
+    +--------+
+    | foobar |
+    +--------+
     SELECT 1 row in set (... sec)
 
 ``format('format_string', parameter, [ parameter , ... ])``
@@ -55,27 +55,29 @@ Returns: ``text``
 
 ::
 
-    cr> select format('%s.%s', schema_name, table_name) from sys.shards
+    cr> select format('%s.%s', schema_name, table_name)  AS fqtable
+    ... from sys.shards
     ... where table_name = 'locations'
     ... limit 1;
-    +------------------------------------------+
-    | format('%s.%s', schema_name, table_name) |
-    +------------------------------------------+
-    | doc.locations                            |
-    +------------------------------------------+
+    +---------------+
+    | fqtable       |
+    +---------------+
+    | doc.locations |
+    +---------------+
     SELECT 1 row in set (... sec)
 
 ::
 
-    cr> select format('%tY', date) from locations
+    cr> select format('%tY', date) AS year
+    ... from locations
     ... group by format('%tY', date)
     ... order by 1;
-    +---------------------+
-    | format('%tY', date) |
-    +---------------------+
-    |                1979 |
-    |                2013 |
-    +---------------------+
+    +------+
+    | year |
+    +------+
+    | 1979 |
+    | 2013 |
+    +------+
     SELECT 2 rows in set (... sec)
 
 ``substr('string', from, [ count ])``
@@ -88,12 +90,12 @@ Returns: ``text``
 
 ::
 
-    cr> select substr('crate.io', 3, 2);
-    +--------------------------+
-    | substr('crate.io', 3, 2) |
-    +--------------------------+
-    | at                       |
-    +--------------------------+
+    cr> select substr('crate.io', 3, 2) AS substr;
+    +--------+
+    | substr |
+    +--------+
+    | at     |
+    +--------+
     SELECT 1 row in set (... sec)
 
 .. _scalar_char_length:
@@ -107,24 +109,24 @@ Returns: ``integer``
 
 ::
 
-    cr> select char_length('crate.io');
-    +-------------------------+
-    | char_length('crate.io') |
-    +-------------------------+
-    |                       8 |
-    +-------------------------+
+    cr> select char_length('crate.io') AS char_length;
+    +-------------+
+    | char_length |
+    +-------------+
+    |           8 |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 Each character counts only once, regardless of its byte size.
 
 ::
 
-    cr> select char_length('©rate.io');
-    +-------------------------+
-    | char_length('©rate.io') |
-    +-------------------------+
-    |                       8 |
-    +-------------------------+
+    cr> select char_length('©rate.io') AS char_length;
+    +-------------+
+    | char_length |
+    +-------------+
+    |           8 |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 .. _scalar_bit_length:
@@ -143,22 +145,22 @@ Returns: ``integer``
 
 ::
 
-    cr> select bit_length('crate.io');
-    +------------------------+
-    | bit_length('crate.io') |
-    +------------------------+
-    |                     64 |
-    +------------------------+
+    cr> select bit_length('crate.io') AS bit_length;
+    +------------+
+    | bit_length |
+    +------------+
+    |         64 |
+    +------------+
     SELECT 1 row in set (... sec)
 
 ::
 
-    cr> select bit_length('©rate.io');
-    +------------------------+
-    | bit_length('©rate.io') |
-    +------------------------+
-    |                     72 |
-    +------------------------+
+    cr> select bit_length('©rate.io') AS bit_length;
+    +------------+
+    | bit_length |
+    +------------+
+    |         72 |
+    +------------+
     SELECT 1 row in set (... sec)
 
 .. _scalar_octet_length:
@@ -172,22 +174,22 @@ Returns: ``integer``
 
 ::
 
-    cr> select octet_length('crate.io');
-    +--------------------------+
-    | octet_length('crate.io') |
-    +--------------------------+
-    |                        8 |
-    +--------------------------+
+    cr> select octet_length('crate.io') AS octet_length;
+    +--------------+
+    | octet_length |
+    +--------------+
+    |            8 |
+    +--------------+
     SELECT 1 row in set (... sec)
 
 ::
 
-    cr> select octet_length('©rate.io');
-    +--------------------------+
-    | octet_length('©rate.io') |
-    +--------------------------+
-    |                        9 |
-    +--------------------------+
+    cr> select octet_length('©rate.io') AS octet_length;
+    +--------------+
+    | octet_length |
+    +--------------+
+    |            9 |
+    +--------------+
     SELECT 1 row in set (... sec)
 
 .. _scalar_ascii:
@@ -220,12 +222,12 @@ Returns: ``text``
 
 ::
 
-    cr> select lower('TransformMe');
-    +----------------------+
-    | lower('TransformMe') |
-    +----------------------+
-    | transformme          |
-    +----------------------+
+    cr> select lower('TransformMe') AS lower;
+    +-------------+
+    | lower       |
+    +-------------+
+    | transformme |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 ``upper('string')``
@@ -238,12 +240,12 @@ Returns: ``text``
 
 ::
 
-    cr> select upper('TransformMe');
-    +----------------------+
-    | upper('TransformMe') |
-    +----------------------+
-    | TRANSFORMME          |
-    +----------------------+
+    cr> select upper('TransformMe') as upper;
+    +-------------+
+    | upper       |
+    +-------------+
+    | TRANSFORMME |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 .. _scalar-initcap:
@@ -258,12 +260,12 @@ Returns: ``text``
 
 ::
 
-   cr> select initcap('heLlo WORLD');
-    +------------------------+
-    | initcap('heLlo WORLD') |
-    +------------------------+
-    | Hello World            |
-    +------------------------+
+   cr> select initcap('heLlo WORLD') AS initcap;
+   +-------------+
+   | initcap     |
+   +-------------+
+   | Hello World |
+   +-------------+
     SELECT 1 row in set (... sec)
 
 .. _sha1:
@@ -277,9 +279,9 @@ Computes the SHA1 checksum of the given string.
 
 ::
 
-    cr> select sha1('foo');
+    cr> select sha1('foo') AS sha1;
     +------------------------------------------+
-    | sha1('foo')                              |
+    | sha1                                     |
     +------------------------------------------+
     | 0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33 |
     +------------------------------------------+
@@ -303,12 +305,12 @@ Replaces all occurrences of ``from`` in ``text`` with ``to``.
 
 ::
 
-   cr> select replace('Hello World', 'World', 'Stranger');
-   +---------------------------------------------+
-   | replace('Hello World', 'World', 'Stranger') |
-   +---------------------------------------------+
-   | Hello Stranger                              |
-   +---------------------------------------------+
+   cr> select replace('Hello World', 'World', 'Stranger') AS hello;
+   +----------------+
+   | hello          |
+   +----------------+
+   | Hello Stranger |
+   +----------------+
    SELECT 1 row in set (... sec)
 
 .. _scalar-trim:
@@ -327,32 +329,32 @@ Synopsis::
 Examples
 ::
 
-   cr> select trim(BOTH 'ab' from 'abcba');
-   +-----------------------------+
-   | trim('abcba', 'ab', 'BOTH') |
-   +-----------------------------+
-   | c                           |
-   +-----------------------------+
+   cr> select trim(BOTH 'ab' from 'abcba') AS trim;
+   +------+
+   | trim |
+   +------+
+   | c    |
+   +------+
    SELECT 1 row in set (... sec)
 
 ::
 
-   cr> select trim('ab' from 'abcba');
-   +-----------------------------+
-   | trim('abcba', 'ab', 'BOTH') |
-   +-----------------------------+
-   | c                           |
-   +-----------------------------+
+   cr> select trim('ab' from 'abcba') AS trim;
+   +------+
+   | trim |
+   +------+
+   | c    |
+   +------+
    SELECT 1 row in set (... sec)
 
 ::
 
-   cr> select trim('   abcba   ');
-   +---------------------+
-   | trim('   abcba   ') |
-   +---------------------+
-   | abcba               |
-   +---------------------+
+   cr> select trim('   abcba   ') AS trim;
+   +-------+
+   | trim  |
+   +-------+
+   | abcba |
+   +-------+
    SELECT 1 row in set (... sec)
 
 .. _scalar-ltrim:
@@ -365,12 +367,12 @@ by default) to the left of ``text``.
 
 ::
 
-   cr> select ltrim('xxxzzzabcba', 'xz');
-   +----------------------------+
-   | ltrim('xxxzzzabcba', 'xz') |
-   +----------------------------+
-   | abcba                      |
-   +----------------------------+
+   cr> select ltrim('xxxzzzabcba', 'xz') AS ltrim;
+   +-------+
+   | ltrim |
+   +-------+
+   | abcba |
+   +-------+
    SELECT 1 row in set (... sec)
 
 .. _scalar-rtrim:
@@ -383,12 +385,12 @@ by default) to the right of ``text``.
 
 ::
 
-   cr> select rtrim('abcbaxxxzzz', 'xz');
-   +----------------------------+
-   | rtrim('abcbaxxxzzz', 'xz') |
-   +----------------------------+
-   | abcba                      |
-   +----------------------------+
+   cr> select rtrim('abcbaxxxzzz', 'xz') AS rtrim;
+   +-------+
+   | rtrim |
+   +-------+
+   | abcba |
+   +-------+
    SELECT 1 row in set (... sec)
 
 .. _scalar-quote-ident:
@@ -406,12 +408,12 @@ The quoted string can be used as an identifier in an SQL statement.
 
 ::
 
-   cr> select quote_ident('Column name');
-   +----------------------------+
-   | quote_ident('Column name') |
-   +----------------------------+
-   | "Column name"              |
-   +----------------------------+
+   cr> select quote_ident('Column name') AS quoted;
+   +---------------+
+   | quoted        |
+   +---------------+
+   | "Column name" |
+   +---------------+
    SELECT 1 row in set (... sec)
 
 .. _scalar-left:
@@ -428,22 +430,22 @@ Synopsis::
 
 Examples::
 
-   cr> select left('crate.io', 5);
-   +---------------------+
-   | left('crate.io', 5) |
-   +---------------------+
-   | crate               |
-   +---------------------+
+   cr> select left('crate.io', 5) AS col;
+   +-------+
+   | col   |
+   +-------+
+   | crate |
+   +-------+
    SELECT 1 row in set (... sec)
 
 ::
 
-   cr> select left('crate.io', -3);
-   +-----------------------+
-   | left('crate.io', - 3) |
-   +-----------------------+
-   | crate                 |
-   +-----------------------+
+   cr> select left('crate.io', -3) AS col;
+   +-------+
+   | col   |
+   +-------+
+   | crate |
+   +-------+
    SELECT 1 row in set (... sec)
 
 .. _scalar-right:
@@ -460,22 +462,22 @@ Synopsis::
 
 Examples::
 
-      cr> select right('crate.io', 2);
-      +----------------------+
-      | right('crate.io', 2) |
-      +----------------------+
-      | io                   |
-      +----------------------+
+      cr> select right('crate.io', 2) AS col;
+      +-----+
+      | col |
+      +-----+
+      | io  |
+      +-----+
       SELECT 1 row in set (... sec)
 
 ::
 
-      cr> select right('crate.io', -6);
-      +------------------------+
-      | right('crate.io', - 6) |
-      +------------------------+
-      | io                     |
-      +------------------------+
+      cr> select right('crate.io', -6) AS col;
+      +-----+
+      | col |
+      +-----+
+      | io  |
+      +-----+
       SELECT 1 row in set (... sec)
 
 .. _scalar-lpad:
@@ -493,9 +495,9 @@ Synopsis::
 
 Example::
 
-   cr> select lpad(' I like CrateDB!!', 41, 'yes! ');
+   cr> select lpad(' I like CrateDB!!', 41, 'yes! ') AS col;
    +-------------------------------------------+
-   | lpad(' I like CrateDB!!', 41, 'yes! ')    |
+   | col                                       |
    +-------------------------------------------+
    | yes! yes! yes! yes! yes! I like CrateDB!! |
    +-------------------------------------------+
@@ -507,7 +509,8 @@ Example::
 -------------------------------------
 
 Fill up ``string1`` to length ``len`` by appending the characters ``string2``
-(a space by default). If string1 is already longer than len then it is truncated.
+(a space by default). If string1 is already longer than len then it is
+truncated.
 
 Synopsis::
 
@@ -515,12 +518,12 @@ Synopsis::
 
 Example::
 
-   cr> select rpad('Do you like Crate?', 38, ' yes!');
-   +-----------------------------------------+
-   | rpad('Do you like Crate?', 38, ' yes!') |
-   +-----------------------------------------+
-   | Do you like Crate? yes! yes! yes! yes!  |
-   +-----------------------------------------+
+   cr> select rpad('Do you like Crate?', 38, ' yes!') AS col;
+   +----------------------------------------+
+   | col                                    |
+   +----------------------------------------+
+   | Do you like Crate? yes! yes! yes! yes! |
+   +----------------------------------------+
    SELECT 1 row in set (... sec)
 
 .. NOTE::
@@ -543,12 +546,12 @@ Synopsis::
 
 Example::
 
-    cr> select encode(E'123\b\t56', 'base64');
-    +--------------------------------+
-    | encode(E'123\b\t56', 'base64') |
-    +--------------------------------+
-    | MTIzCAk1Ng==                   |
-    +--------------------------------+
+    cr> select encode(E'123\b\t56', 'base64') AS col;
+    +--------------+
+    | col          |
+    +--------------+
+    | MTIzCAk1Ng== |
+    +--------------+
     SELECT 1 row in set (... sec)
 
 .. _scalar-decode:
@@ -565,12 +568,12 @@ Synopsis::
 
 Example::
 
-    cr> select decode('T\214', 'escape');
-    +---------------------------+
-    | decode('T\214', 'escape') |
-    +---------------------------+
-    | \x548c                    |
-    +---------------------------+
+    cr> select decode('T\214', 'escape') AS col;
+    +--------+
+    | col    |
+    +--------+
+    | \x548c |
+    +--------+
     SELECT 1 row in set (... sec)
 
 Date and time functions
@@ -615,8 +618,8 @@ day based histogram in the ``Europe/Moscow`` timezone::
     ... date_trunc('day', 'Europe/Moscow', date) as day,
     ... count(*) as num_locations
     ... from locations
-    ... group by date_trunc('day', 'Europe/Moscow', date)
-    ... order by date_trunc('day', 'Europe/Moscow', date);
+    ... group by 1
+    ... order by 1;
     +---------------+---------------+
     | day           | num_locations |
     +---------------+---------------+
@@ -630,8 +633,8 @@ If you don't specify a time zone, ``truncate`` uses UTC time::
 
     cr> select date_trunc('day', date) as day, count(*) as num_locations
     ... from locations
-    ... group by date_trunc('day', date)
-    ... order by date_trunc('day', date);
+    ... group by 1
+    ... order by 1;
     +---------------+---------------+
     | day           | num_locations |
     +---------------+---------------+
@@ -666,12 +669,12 @@ Synopsis
 
 ::
 
-    cr> select extract(day from '2014-08-23');
-    +--------------------------------+
-    | EXTRACT(DAY FROM '2014-08-23') |
-    +--------------------------------+
-    |                             23 |
-    +--------------------------------+
+    cr> select extract(day from '2014-08-23') AS day;
+    +-----+
+    | day |
+    +-----+
+    |  23 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 ``source`` must be an expression that returns a timestamp. In case the
@@ -993,12 +996,12 @@ Below is an example of the distance function where both points are specified
 using WKT. See :ref:`geo_point_data_type` for more information on the implicit
 type casting of geo points::
 
-    cr> select distance('POINT (10 20)', 'POINT (11 21)');
-    +--------------------------------------------+
-    | distance('POINT (10 20)', 'POINT (11 21)') |
-    +--------------------------------------------+
-    |                          152354.3209044634 |
-    +--------------------------------------------+
+    cr> select distance('POINT (10 20)', 'POINT (11 21)') AS col;
+    +-------------------+
+    |               col |
+    +-------------------+
+    | 152354.3209044634 |
+    +-------------------+
     SELECT 1 row in set (... sec)
 
 This scalar function can always be used in both the ``WHERE`` and ``ORDER BY``
@@ -1035,12 +1038,12 @@ casting from strings to geo point and geo shapes::
     cr> select within(
     ...   'POINT (10 10)',
     ...   'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
-    ... );
-    +--------------------------------------------------------------------+
-    | within('POINT (10 10)', 'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))') |
-    +--------------------------------------------------------------------+
-    | TRUE                                                               |
-    +--------------------------------------------------------------------+
+    ... ) AS is_within;
+    +-----------+
+    | is_within |
+    +-----------+
+    | TRUE      |
+    +-----------+
     SELECT 1 row in set (... sec)
 
 This function can always be used within the ``WHERE`` clause.
@@ -1109,12 +1112,12 @@ Example::
 Below is an example of the latitude/longitude functions which make use of the
 implicit type casting from strings to geo point::
 
-    cr> select latitude('POINT (10 20)'), longitude([10.0, 20.0]);
-    +---------------------------+-------------------------+
-    | latitude('POINT (10 20)') | longitude([10.0, 20.0]) |
-    +---------------------------+-------------------------+
-    |                      20.0 |                    10.0 |
-    +---------------------------+-------------------------+
+    cr> select latitude('POINT (10 20)') AS lat, longitude([10.0, 20.0]) AS long;
+    +------+------+
+    |  lat | long |
+    +------+------+
+    | 20.0 | 10.0 |
+    +------+------+
     SELECT 1 row in set (... sec)
 
 ``geohash(geo_point)``
@@ -1153,12 +1156,12 @@ clauses.
 Returns the absolute value of the given number in the datatype of the given
 number::
 
-    cr> select abs(214748.0998), abs(0), abs(-214748);
-    +------------------+--------+---------------+
-    | abs(214748.0998) | abs(0) | abs(- 214748) |
-    +------------------+--------+---------------+
-    |      214748.0998 |      0 |        214748 |
-    +------------------+--------+---------------+
+    cr> select abs(214748.0998) AS a, abs(0) AS b, abs(-214748) AS c;
+    +-------------+---+--------+
+    |           a | b |      c |
+    +-------------+---+--------+
+    | 214748.0998 | 0 | 214748 |
+    +-------------+---+--------+
     SELECT 1 row in set (... sec)
 
 .. _scalar-ceil:
@@ -1174,12 +1177,12 @@ Return value will be of type ``integer`` if the input value is an integer or
 float. If the input value is of type ``bigint`` or ``double precision`` the
 return value will be of type ``bigint``::
 
-    cr> select ceil(29.9);
-    +------------+
-    | ceil(29.9) |
-    +------------+
-    |         30 |
-    +------------+
+    cr> select ceil(29.9) AS col;
+    +-----+
+    | col |
+    +-----+
+    |  30 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 
@@ -1199,9 +1202,9 @@ Returns: ``double precision``
 
 ::
 
-    cr> select degrees(0.5);
+    cr> select degrees(0.5) AS degrees;
     +-------------------+
-    |      degrees(0.5) |
+    |           degrees |
     +-------------------+
     | 28.64788975654116 |
     +-------------------+
@@ -1219,9 +1222,9 @@ Returns: Same as input type.
 
 ::
 
-    cr> select exp(1.0);
+    cr> select exp(1.0) AS exp;
     +-------------------+
-    |          exp(1.0) |
+    |               exp |
     +-------------------+
     | 2.718281828459045 |
     +-------------------+
@@ -1243,12 +1246,12 @@ will be of type ``bigint``.
 
 See below for an example::
 
-    cr> select floor(29.9);
-    +-------------+
-    | floor(29.9) |
-    +-------------+
-    |          29 |
-    +-------------+
+    cr> select floor(29.9) AS floor;
+    +-------+
+    | floor |
+    +-------+
+    |    29 |
+    +-------+
     SELECT 1 row in set (... sec)
 
 ``ln(number)``
@@ -1260,12 +1263,12 @@ Returns: ``double precision``
 
 See below for an example::
 
-    cr> SELECT ln(1);
-    +-------+
-    | ln(1) |
-    +-------+
-    |   0.0 |
-    +-------+
+    cr> SELECT ln(1) AS ln;
+    +-----+
+    |  ln |
+    +-----+
+    | 0.0 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 .. NOTE::
@@ -1283,22 +1286,22 @@ Returns: ``double precision``
 
 See below for an example, which essentially is the same as above::
 
-    cr> SELECT log(100, 10);
-    +--------------+
-    | log(100, 10) |
-    +--------------+
-    |          2.0 |
-    +--------------+
+    cr> SELECT log(100, 10) AS log;
+    +-----+
+    | log |
+    +-----+
+    | 2.0 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 The second argument (``b``) is optional. If not present, base 10 is used::
 
-    cr> SELECT log(100);
-    +----------+
-    | log(100) |
-    +----------+
-    |      2.0 |
-    +----------+
+    cr> SELECT log(100) AS log;
+    +-----+
+    | log |
+    +-----+
+    | 2.0 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 .. NOTE::
@@ -1321,12 +1324,12 @@ Returns: Same as argument types.
 
 ::
 
-    cr> select modulus(5, 4);
-    +---------------+
-    | modulus(5, 4) |
-    +---------------+
-    |             1 |
-    +---------------+
+    cr> select modulus(5, 4) AS mod;
+    +-----+
+    | mod |
+    +-----+
+    |   1 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 ``mod(y, x)``
@@ -1348,12 +1351,12 @@ and negative exponents (which will yield decimal types).
 
 See below for an example::
 
-    cr> SELECT power(2,3);
-    +-------------+
-    | power(2, 3) |
-    +-------------+
-    |         8.0 |
-    +-------------+
+    cr> SELECT power(2,3) AS pow;
+    +-----+
+    | pow |
+    +-----+
+    | 8.0 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 .. _scalar-radians:
@@ -1367,9 +1370,9 @@ Returns: ``double precision``
 
 ::
 
-    cr> select radians(45.0);
+    cr> select radians(45.0) AS radians;
     +--------------------+
-    |      radians(45.0) |
+    |            radians |
     +--------------------+
     | 0.7853981633974483 |
     +--------------------+
@@ -1401,12 +1404,12 @@ Returns: ``bigint`` or ``integer``
 
 See below for an example::
 
-    cr> select round(42.2);
-    +-------------+
-    | round(42.2) |
-    +-------------+
-    |          42 |
-    +-------------+
+    cr> select round(42.2) AS round;
+    +-------+
+    | round |
+    +-------+
+    |    42 |
+    +-------+
     SELECT 1 row in set (... sec)
 
 .. _scalar-trunc:
@@ -1423,20 +1426,20 @@ types.
 
 See below for examples::
 
-    cr> select trunc(29.999999, 3);
-    +---------------------+
-    | trunc(29.999999, 3) |
-    +---------------------+
-    |              29.999 |
-    +---------------------+
+    cr> select trunc(29.999999, 3) AS trunc;
+    +--------+
+    |  trunc |
+    +--------+
+    | 29.999 |
+    +--------+
     SELECT 1 row in set (... sec)
 
-    cr> select trunc(29.999999);
-    +------------------+
-    | trunc(29.999999) |
-    +------------------+
-    |               29 |
-    +------------------+
+    cr> select trunc(29.999999) AS trunc;
+    +-------+
+    | trunc |
+    +-------+
+    |    29 |
+    +-------+
     SELECT 1 row in set (... sec)
 
 ``sqrt(number)``
@@ -1448,12 +1451,12 @@ Returns: ``double precision``
 
 See below for an example::
 
-    cr> select sqrt(25.0);
-    +------------+
-    | sqrt(25.0) |
-    +------------+
-    |        5.0 |
-    +------------+
+    cr> select sqrt(25.0) AS sqrt;
+    +------+
+    | sqrt |
+    +------+
+    |  5.0 |
+    +------+
     SELECT 1 row in set (... sec)
 
 ``sin(number)``
@@ -1465,9 +1468,9 @@ Returns: ``double precision``
 
 See below for an example::
 
-    cr> SELECT sin(1);
+    cr> SELECT sin(1) AS sin;
     +--------------------+
-    |             sin(1) |
+    |                sin |
     +--------------------+
     | 0.8414709848078965 |
     +--------------------+
@@ -1482,9 +1485,9 @@ Returns: ``double precision``
 
 See below for an example::
 
-    cr> SELECT asin(1);
+    cr> SELECT asin(1) AS asin;
     +--------------------+
-    |            asin(1) |
+    |               asin |
     +--------------------+
     | 1.5707963267948966 |
     +--------------------+
@@ -1499,9 +1502,9 @@ Returns: ``double precision``
 
 See below for an example::
 
-    cr> SELECT cos(1);
+    cr> SELECT cos(1) AS cos;
     +--------------------+
-    |             cos(1) |
+    |                cos |
     +--------------------+
     | 0.5403023058681398 |
     +--------------------+
@@ -1516,9 +1519,9 @@ Returns: ``double precision``
 
 See below for an example::
 
-    cr> SELECT acos(-1);
+    cr> SELECT acos(-1) AS acos;
     +-------------------+
-    |         acos(- 1) |
+    |              acos |
     +-------------------+
     | 3.141592653589793 |
     +-------------------+
@@ -1533,9 +1536,9 @@ Returns: ``double precision``
 
 See below for an example::
 
-    cr> SELECT tan(1);
+    cr> SELECT tan(1) AS tan;
     +--------------------+
-    |             tan(1) |
+    |                tan |
     +--------------------+
     | 1.5574077246549023 |
     +--------------------+
@@ -1554,9 +1557,9 @@ Returns: ``double precision``
 
 See below for an example::
 
-    cr> select cot(1);
+    cr> select cot(1) AS cot;
     +--------------------+
-    |             cot(1) |
+    |                cot |
     +--------------------+
     | 0.6420926159343306 |
     +--------------------+
@@ -1571,9 +1574,9 @@ Returns: ``double precision``
 
 See below for an example::
 
-    cr> SELECT atan(1);
+    cr> SELECT atan(1) AS atan;
     +--------------------+
-    |            atan(1) |
+    |               atan |
     +--------------------+
     | 0.7853981633974483 |
     +--------------------+
@@ -1590,9 +1593,9 @@ Returns: ``double precision``
 
 ::
 
-    cr> SELECT atan2(2, 1);
+    cr> SELECT atan2(2, 1) AS atan2;
     +--------------------+
-    |        atan2(2, 1) |
+    |              atan2 |
     +--------------------+
     | 1.1071487177940904 |
     +--------------------+
@@ -1609,9 +1612,9 @@ Returns: ``double precision``
 
 ::
 
-    cr> SELECT pi();
+    cr> SELECT pi() AS pi;
     +-------------------+
-    |              pi() |
+    |                pi |
     +-------------------+
     | 3.141592653589793 |
     +-------------------+
@@ -1840,12 +1843,12 @@ Returns: ``array``
 
 ::
 
-    cr> select array_cat([1,2,3],[3,4,5,6]);
-    +------------------------------------+
-    | array_cat([1, 2, 3], [3, 4, 5, 6]) |
-    +------------------------------------+
-    | [1, 2, 3, 3, 4, 5, 6]              |
-    +------------------------------------+
+    cr> select array_cat([1,2,3],[3,4,5,6]) AS array_cat;
+    +-----------------------+
+    | array_cat             |
+    +-----------------------+
+    | [1, 2, 3, 3, 4, 5, 6] |
+    +-----------------------+
     SELECT 1 row in set (... sec)
 
 It can be used to append elements to array fields
@@ -1897,12 +1900,12 @@ You can also use the concat operator ``||`` with arrays
 
 ::
 
-    cr> select [1,2,3] || [4,5,6] || [7,8,9];
-    +-------------------------------------------------+
-    | concat(concat([1, 2, 3], [4, 5, 6]), [7, 8, 9]) |
-    +-------------------------------------------------+
-    | [1, 2, 3, 4, 5, 6, 7, 8, 9]                     |
-    +-------------------------------------------------+
+    cr> select [1,2,3] || [4,5,6] || [7,8,9] AS arr;
+    +-----------------------------+
+    | arr                         |
+    +-----------------------------+
+    | [1, 2, 3, 4, 5, 6, 7, 8, 9] |
+    +-----------------------------+
     SELECT 1 row in set (... sec)
 
 ``array_unique(first_array, [ second_array])``
@@ -1915,23 +1918,23 @@ Returns: ``array``
 
 ::
 
-    cr> select array_unique([1, 2, 3], [3, 4, 4]);
-    +------------------------------------+
-    | array_unique([1, 2, 3], [3, 4, 4]) |
-    +------------------------------------+
-    | [1, 2, 3, 4]                       |
-    +------------------------------------+
+    cr> select array_unique([1, 2, 3], [3, 4, 4]) AS arr;
+    +--------------+
+    | arr          |
+    +--------------+
+    | [1, 2, 3, 4] |
+    +--------------+
     SELECT 1 row in set (... sec)
 
 If the arrays have different types all elements will be cast to the element
 type of the first array with a defined type::
 
-    cr> select array_unique([10, 20], [10.2, 20.3]);
-    +--------------------------------------+
-    | array_unique([10, 20], [10.2, 20.3]) |
-    +--------------------------------------+
-    | [10, 20]                             |
-    +--------------------------------------+
+    cr> select array_unique([10, 20], [10.2, 20.3]) AS arr;
+    +----------+
+    | arr      |
+    +----------+
+    | [10, 20] |
+    +----------+
     SELECT 1 row in set (... sec)
 
 ``array_difference(first_array, second_array)``
@@ -1944,12 +1947,12 @@ Returns: ``array``
 
 ::
 
-    cr> select array_difference([1,2,3,4,5,6,7,8,9,10],[2,3,6,9,15]);
-    +---------------------------------------------------------------------+
-    | array_difference([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [2, 3, 6, 9, 15]) |
-    +---------------------------------------------------------------------+
-    | [1, 4, 5, 7, 8, 10]                                                 |
-    +---------------------------------------------------------------------+
+    cr> select array_difference([1,2,3,4,5,6,7,8,9,10],[2,3,6,9,15]) AS arr;
+    +---------------------+
+    | arr                 |
+    +---------------------+
+    | [1, 4, 5, 7, 8, 10] |
+    +---------------------+
     SELECT 1 row in set (... sec)
 
 It can be used to remove elements from array fields.
@@ -2013,12 +2016,12 @@ Returns: ``integer``
 
 ::
 
-    cr> select array_upper([[1, 4], [3]], 1);
-    +-------------------------------+
-    | array_upper([[1, 4], [3]], 1) |
-    +-------------------------------+
-    | 2                             |
-    +-------------------------------+
+    cr> select array_upper([[1, 4], [3]], 1) AS size;
+    +------+
+    | size |
+    +------+
+    |    2 |
+    +------+
     SELECT 1 row in set (... sec)
 
 .. _scalar-array-length:
@@ -2033,12 +2036,12 @@ Returns: ``integer``
 
 ::
 
-    cr> select array_length([[1, 4], [3]], 1);
-    +--------------------------------+
-    | array_length([[1, 4], [3]], 1) |
-    +--------------------------------+
-    | 2                              |
-    +--------------------------------+
+    cr> select array_length([[1, 4], [3]], 1) AS len;
+    +-----+
+    | len |
+    +-----+
+    |   2 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 .. _scalar-array-lower:
@@ -2053,12 +2056,12 @@ Returns: ``integer``
 
 ::
 
-    cr> select array_lower([[1, 4], [3]], 1);
-    +-------------------------------+
-    | array_lower([[1, 4], [3]], 1) |
-    +-------------------------------+
-    | 1                             |
-    +-------------------------------+
+    cr> select array_lower([[1, 4], [3]], 1) AS size;
+    +------+
+    | size |
+    +------+
+    |    1 |
+    +------+
     SELECT 1 row in set (... sec)
 
 
@@ -2075,22 +2078,22 @@ Returns: ``array(text)``
 
 ::
 
-    cr> select string_to_array('Arthur,Ford,Trillian', ',');
-    +----------------------------------------------+
-    | string_to_array('Arthur,Ford,Trillian', ',') |
-    +----------------------------------------------+
-    | ["Arthur", "Ford", "Trillian"]               |
-    +----------------------------------------------+
+    cr> select string_to_array('Arthur,Ford,Trillian', ',') AS arr;
+    +--------------------------------+
+    | arr                            |
+    +--------------------------------+
+    | ["Arthur", "Ford", "Trillian"] |
+    +--------------------------------+
     SELECT 1 row in set (... sec)
 
 ::
 
-    cr> select string_to_array('Arthur,Ford,Trillian', ',', 'Ford');
-    +------------------------------------------------------+
-    | string_to_array('Arthur,Ford,Trillian', ',', 'Ford') |
-    +------------------------------------------------------+
-    | ["Arthur", null, "Trillian"]                         |
-    +------------------------------------------------------+
+    cr> select string_to_array('Arthur,Ford,Trillian', ',', 'Ford') AS arr;
+    +------------------------------+
+    | arr                          |
+    +------------------------------+
+    | ["Arthur", null, "Trillian"] |
+    +------------------------------+
     SELECT 1 row in set (... sec)
 
 separator
@@ -2101,12 +2104,12 @@ becomes a separate element in the resulting array.
 
 ::
 
-    cr> select string_to_array('Ford', NULL);
-    +-------------------------------+
-    | string_to_array('Ford', NULL) |
-    +-------------------------------+
-    | ["F", "o", "r", "d"]          |
-    +-------------------------------+
+    cr> select string_to_array('Ford', NULL) AS arr;
+    +----------------------+
+    | arr                  |
+    +----------------------+
+    | ["F", "o", "r", "d"] |
+    +----------------------+
     SELECT 1 row in set (... sec)
 
 If the separator is an empty string, then the entire input string is returned
@@ -2114,12 +2117,12 @@ as a one-element array.
 
 ::
 
-    cr> select string_to_array('Arthur,Ford', '');
-    +------------------------------------+
-    | string_to_array('Arthur,Ford', '') |
-    +------------------------------------+
-    | ["Arthur,Ford"]                    |
-    +------------------------------------+
+    cr> select string_to_array('Arthur,Ford', '') AS arr;
+    +-----------------+
+    | arr             |
+    +-----------------+
+    | ["Arthur,Ford"] |
+    +-----------------+
     SELECT 1 row in set (... sec)
 
 null_string
@@ -2271,14 +2274,14 @@ Returns: same type as arguments
 
 ::
 
-    cr> select coalesce(clustered_by, 'nothing')
+    cr> select coalesce(clustered_by, 'nothing') AS clustered_by
     ...   from information_schema.tables
     ...   where table_name='nodes';
-    +-----------------------------------+
-    | coalesce(clustered_by, 'nothing') |
-    +-----------------------------------+
-    | nothing                           |
-    +-----------------------------------+
+    +--------------+
+    | clustered_by |
+    +--------------+
+    | nothing      |
+    +--------------+
     SELECT 1 row in set (... sec)
 
 ``greatest('first_arg', second_arg[ , ... ])``
@@ -2292,12 +2295,12 @@ Returns: same type as arguments
 
 ::
 
-    cr> select greatest(1, 2);
-    +----------------+
-    | greatest(1, 2) |
-    +----------------+
-    | 2              |
-    +----------------+
+    cr> select greatest(1, 2) AS greatest;
+    +----------+
+    | greatest |
+    +----------+
+    |        2 |
+    +----------+
     SELECT 1 row in set (... sec)
 
 ``least('first_arg', second_arg[ , ... ])``
@@ -2311,12 +2314,12 @@ Returns: same type as arguments
 
 ::
 
-    cr> select least(1, 2);
-    +-------------+
-    | least(1, 2) |
-    +-------------+
-    | 1           |
-    +-------------+
+    cr> select least(1, 2) AS least;
+    +-------+
+    | least |
+    +-------+
+    |     1 |
+    +-------+
     SELECT 1 row in set (... sec)
 
 ``nullif('first_arg', second_arg)``
@@ -2329,14 +2332,14 @@ Returns: same type as arguments
 
 ::
 
-    cr> select nullif(table_schema, 'sys')
+    cr> select nullif(table_schema, 'sys') AS nullif
     ...   from information_schema.tables
     ...   where table_name='nodes';
-    +-----------------------------+
-    | nullif(table_schema, 'sys') |
-    +-----------------------------+
-    | NULL                        |
-    +-----------------------------+
+    +--------+
+    | nullif |
+    +--------+
+    |   NULL |
+    +--------+
     SELECT 1 row in set (... sec)
 
 System information functions
@@ -2398,9 +2401,9 @@ Synopsis::
 
 Example::
 
-    cr> SELECT CURRENT_SCHEMAS(true);
+    cr> SELECT CURRENT_SCHEMAS(true) AS schemas;
     +-----------------------+
-    | current_schemas(true) |
+    | schemas               |
     +-----------------------+
     | ["pg_catalog", "doc"] |
     +-----------------------+
@@ -2427,12 +2430,12 @@ Synopsis::
 
 Example::
 
-    cr> select current_user;
-    +--------------+
-    | current_user |
-    +--------------+
-    | crate        |
-    +--------------+
+    cr> select current_user AS name;
+    +-------+
+    | name  |
+    +-------+
+    | crate |
+    +-------+
     SELECT 1 row in set (... sec)
 
 .. _user:
@@ -2455,12 +2458,12 @@ Synopsis::
 
 Example::
 
-    cr> select user;
-    +--------------+
-    | current_user |
-    +--------------+
-    | crate        |
-    +--------------+
+    cr> select user AS name;
+    +-------+
+    | name  |
+    +-------+
+    | crate |
+    +-------+
     SELECT 1 row in set (... sec)
 
 .. _session_user:
@@ -2484,12 +2487,12 @@ Synopsis::
 
 Example::
 
-    cr> select session_user;
-    +--------------+
-    | session_user |
-    +--------------+
-    | crate        |
-    +--------------+
+    cr> select session_user AS name;
+    +-------+
+    | name  |
+    +-------+
+    | crate |
+    +-------+
     SELECT 1 row in set (... sec)
 
 .. NOTE::
@@ -2519,12 +2522,12 @@ Synopsis::
 
 Example::
 
-    cr> select pg_backend_pid();
-    +------------------+
-    | pg_backend_pid() |
-    +------------------+
-    |               -1 |
-    +------------------+
+    cr> select pg_backend_pid() AS pid;
+    +-----+
+    | pid |
+    +-----+
+    |  -1 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 .. _scalar_current_database:
@@ -2535,12 +2538,12 @@ Example::
 The ``current_database`` function returns the name of the current database,
 which in CrateDB will always be ``crate``::
 
-    cr> select current_database();
-    +--------------------+
-    | current_database() |
-    +--------------------+
-    | crate              |
-    +--------------------+
+    cr> select current_database() AS db;
+    +-------+
+    | db    |
+    +-------+
+    | crate |
+    +-------+
     SELECT 1 row in set (... sec)
 
 .. _scalar_current_setting:
@@ -2564,12 +2567,12 @@ unless ``missing_ok`` argument is provided and is true.
 Examples::
 
 
-    cr> select current_setting('search_path');
-    +--------------------------------+
-    | current_setting('search_path') |
-    +--------------------------------+
-    | pg_catalog, doc                |
-    +--------------------------------+
+    cr> select current_setting('search_path') AS search_path;
+    +-----------------+
+    | search_path     |
+    +-----------------+
+    | pg_catalog, doc |
+    +-----------------+
     SELECT 1 row in set (... sec)
 
 ::
@@ -2579,12 +2582,12 @@ Examples::
 
 ::
 
-    cr> select current_setting('foo', true);
-    +------------------------------+
-    | current_setting('foo', true) |
-    +------------------------------+
-    |                         NULL |
-    +------------------------------+
+    cr> select current_setting('foo', true) AS foo;
+    +------+
+    |  foo |
+    +------+
+    | NULL |
+    +------+
     SELECT 1 row in set (... sec)
 
 
@@ -2601,12 +2604,12 @@ Synopsis::
 
 Example::
 
-    cr> select pg_get_expr('literal', 1);
-    +---------------------------+
-    | pg_get_expr('literal', 1) |
-    +---------------------------+
-    |                      NULL |
-    +---------------------------+
+    cr> select pg_get_expr('literal', 1) AS col;
+    +------+
+    |  col |
+    +------+
+    | NULL |
+    +------+
     SELECT 1 row in set (... sec)
 
 .. _pg_get_userbyid:
@@ -2627,12 +2630,12 @@ Synopsis::
 
 Example::
 
-    cr> select pg_get_userbyid(1);
-    +--------------------+
-    | pg_get_userbyid(1) |
-    +--------------------+
-    |              crate |
-    +--------------------+
+    cr> select pg_get_userbyid(1) AS name;
+    +-------+
+    | name  |
+    +-------+
+    | crate |
+    +-------+
     SELECT 1 row in set (... sec)
 
 .. _pg_typeof:
@@ -2678,9 +2681,9 @@ Example:
 
 ::
 
-    cr> select version();
+    cr> select version() AS version;
     +---------...-+
-    | version()   |
+    | version     |
     +---------...-+
     | CrateDB ... |
     +---------...-+

@@ -22,14 +22,15 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.join.JoinType;
 
 import java.util.HashSet;
@@ -67,7 +68,7 @@ public class EquiJoinDetector {
     private static class Context {
         boolean isHashJoinPossible = false;
         boolean insideEqOperator = false;
-        Set<AnalyzedRelation> usedRelationsInsideEqOperatorArgument = new HashSet<>();
+        Set<RelationName> usedRelationsInsideEqOperatorArgument = new HashSet<>();
     }
 
     private static class Visitor extends SymbolVisitor<Context, Void> {
@@ -86,8 +87,7 @@ public class EquiJoinDetector {
                     context.insideEqOperator = true;
                     for (Symbol arg : function.arguments()) {
                         arg.accept(this, context);
-                        if (context.usedRelationsInsideEqOperatorArgument.isEmpty() ||
-                            context.usedRelationsInsideEqOperatorArgument.size() > 1) {
+                        if (context.usedRelationsInsideEqOperatorArgument.size() != 1) {
                             context.isHashJoinPossible = false;
                         }
                         context.usedRelationsInsideEqOperatorArgument = new HashSet<>();
@@ -108,9 +108,17 @@ public class EquiJoinDetector {
         }
 
         @Override
-        public Void visitField(Field field, Context context) {
+        public Void visitField(ScopedSymbol field, Context context) {
             if (context.insideEqOperator) {
                 context.usedRelationsInsideEqOperatorArgument.add(field.relation());
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference ref, Context context) {
+            if (context.insideEqOperator) {
+                context.usedRelationsInsideEqOperatorArgument.add(ref.ident().tableIdent());
             }
             return null;
         }

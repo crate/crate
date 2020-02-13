@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -32,8 +31,10 @@ import org.junit.Test;
 
 import java.io.IOException;
 
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.TestingHelpers.isSQL;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 
 public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -53,28 +54,27 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnion2Tables() {
-        QueriedSelectRelation<UnionSelect> relation = analyze(
+        QueriedSelectRelation relation = analyze(
             "select id, text from users " +
             "union all " +
             "select id, name from users_multi_pk " +
             "order by id, 2 " +
             "limit 10 offset 20");
-        assertThat(relation.orderBy(),
-            isSQL("doc.users.id, doc.users.text"));
+        assertThat(relation.orderBy().orderBySymbols(), contains(isField("id"), isField("text")));
         assertThat(relation.limit(), isLiteral(10L));
         assertThat(relation.offset(), isLiteral(20L));
 
-        UnionSelect tableUnion = relation.subRelation();
+        UnionSelect tableUnion = ((UnionSelect) relation.from().get(0));
         assertThat(tableUnion.left(), instanceOf(QueriedSelectRelation.class));
         assertThat(tableUnion.right(), instanceOf(QueriedSelectRelation.class));
-        assertThat(tableUnion, isSQL("SELECT doc.users.id, doc.users.text"));
-        assertThat(tableUnion.left(), isSQL("SELECT doc.users.id, doc.users.text"));
-        assertThat(tableUnion.right(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name"));
+        assertThat(tableUnion.outputs(), contains(isField("id"), isField("text")));
+        assertThat(tableUnion.left().outputs(), contains(isReference("id"), isReference("text")));
+        assertThat(tableUnion.right().outputs(), contains(isReference("id"), isReference("name")));
     }
 
     @Test
     public void testUnion3Tables() {
-        QueriedSelectRelation<UnionSelect> relation = analyze(
+        QueriedSelectRelation relation = analyze(
             "select id, text from users u1 " +
             "union all " +
             "select id, name from users_multi_pk " +
@@ -83,22 +83,24 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "order by text " +
             "limit 10 offset 20"
         );
-        assertThat(relation.orderBy(), isSQL("u1.text"));
+        assertThat(relation.orderBy().orderBySymbols(), contains(isField("text")));
         assertThat(relation.limit(), isLiteral(10L));
         assertThat(relation.offset(), isLiteral(20L));
 
-        UnionSelect tableUnion1 = relation.subRelation();
+        UnionSelect tableUnion1 = ((UnionSelect) relation.from().get(0));
         assertThat(tableUnion1.left(), instanceOf(UnionSelect.class));
         assertThat(tableUnion1.right(), instanceOf(QueriedSelectRelation.class));
-        assertThat(tableUnion1, isSQL("SELECT u1.id, u1.text"));
-        assertThat(tableUnion1.right(), isSQL("SELECT doc.users.id, doc.users.name"));
+        assertThat(tableUnion1.outputs(), contains(isField("id"), isField("text")));
+        assertThat(tableUnion1.right().outputs(), contains(isReference("id"), isReference("name")));
 
         UnionSelect tableUnion2 = (UnionSelect) tableUnion1.left();
-        assertThat(tableUnion2, isSQL("SELECT u1.id, u1.text"));
-        assertThat(tableUnion2.left(), instanceOf(AliasedAnalyzedRelation.class));
+        assertThat(tableUnion2.outputs(), contains(isField("id"), isField("text")));
+
+        assertThat(tableUnion2.left(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion2.left().outputs(), contains(isField("id"), isField("text")));
+
         assertThat(tableUnion2.right(), instanceOf(QueriedSelectRelation.class));
-        assertThat(tableUnion2.left(), isSQL("SELECT doc.users.id, doc.users.text"));
-        assertThat(tableUnion2.right(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name"));
+        assertThat(tableUnion2.right().outputs(), contains(isReference("id"), isReference("name")));
     }
 
     @Test

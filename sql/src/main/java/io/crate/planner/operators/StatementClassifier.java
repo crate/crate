@@ -120,12 +120,6 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
     }
 
     @Override
-    public Void visitRelationBoundary(RelationBoundary logicalPlan, Set<String> context) {
-        logicalPlan.source.accept(this, context);
-        return null;
-    }
-
-    @Override
     public Void visitLimit(Limit limit, Set<String> context) {
         limit.source.accept(this, context);
         return visitPlan(limit, context);
@@ -173,6 +167,13 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
     @Override
     public Void visitInsert(Insert logicalPlan, Set<String> context) {
         logicalPlan.source.accept(this, context);
+        return null;
+    }
+
+    @Override
+    public Void visitRename(Rename rename, Set<String> context) {
+        // skip rename; not relevant for query metrics
+        rename.source.accept(this, context);
         return null;
     }
 

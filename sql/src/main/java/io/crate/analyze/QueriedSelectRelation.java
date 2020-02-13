@@ -24,50 +24,70 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.JoinPair;
+import io.crate.common.collections.Lists2;
+import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.StringJoiner;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
 
-public class QueriedSelectRelation<T extends AnalyzedRelation> implements AnalyzedRelation {
+public class QueriedSelectRelation implements AnalyzedRelation {
 
-    private final Fields fields;
+    private final List<AnalyzedRelation> from;
+    private final List<JoinPair> joinPairs;
     private final QuerySpec querySpec;
     private final boolean isDistinct;
-    private final T subRelation;
 
     public QueriedSelectRelation(boolean isDistinct,
-                                 T subRelation,
-                                 Collection<? extends ColumnIdent> outputNames,
+                                 List<AnalyzedRelation> from,
+                                 List<JoinPair> joinPairs,
                                  QuerySpec querySpec) {
+        assert from.size() >= 1 : "QueriedSelectRelation must have at least 1 relation in FROM";
         this.isDistinct = isDistinct;
-        this.subRelation = subRelation;
+        this.from = from;
+        this.joinPairs = joinPairs;
         this.querySpec = querySpec;
-        this.fields = new Fields(outputNames.size());
-        Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
-        for (ColumnIdent path : outputNames) {
-            fields.add(new Field(this, path, outputsIterator.next()));
+    }
+
+    public List<AnalyzedRelation> from() {
+        return from;
+    }
+
+    public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        Symbol match = null;
+        for (Symbol output : outputs()) {
+            ColumnIdent outputName = Symbols.pathFromSymbol(output);
+            if (outputName.equals(column)) {
+                if (match != null) {
+                    throw new AmbiguousColumnException(column, output);
+                }
+                match = output;
+            }
         }
+        if (match == null) {
+            // SELECT obj['x'] FROM (select...)
+            // This is to optimize `obj['x']` to a reference with path instead of building a subscript function.
+            for (AnalyzedRelation analyzedRelation : from) {
+                Symbol field = analyzedRelation.getField(column, operation);
+                if (field != null) {
+                    if (match != null) {
+                        throw new AmbiguousColumnException(column, field);
+                    }
+                    match = field;
+                }
+            }
+        }
+        return match;
     }
 
-    public T subRelation() {
-        return subRelation;
-    }
-
-    @Override
     public boolean isDistinct() {
         return isDistinct;
     }
@@ -77,120 +97,83 @@ public class QueriedSelectRelation<T extends AnalyzedRelation> implements Analyz
         return visitor.visitQueriedSelectRelation(this, context);
     }
 
-    @Nullable
     @Override
-    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        if (operation != Operation.READ) {
-            throw new UnsupportedOperationException("getField on QueriedSelectRelation is only supported for READ operations");
-        }
-        return fields.getWithSubscriptFallback(path, this, subRelation);
+    public RelationName relationName() {
+        throw new UnsupportedOperationException(
+            "QueriedSelectRelation has no name. It must be beneath an aliased-relation to be addressable by name");
     }
 
-    @Override
     @Nonnull
-    public List<Field> fields() {
-        return fields.asList();
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
-        return subRelation.getQualifiedName();
-    }
-
     @Override
     public List<Symbol> outputs() {
         return querySpec.outputs();
     }
 
-    @Override
     public WhereClause where() {
         return querySpec.where();
     }
 
-    @Override
     public List<Symbol> groupBy() {
         return querySpec.groupBy();
     }
 
     @Nullable
-    @Override
     public HavingClause having() {
         return querySpec.having();
     }
 
     @Nullable
-    @Override
     public OrderBy orderBy() {
         return querySpec.orderBy();
     }
 
     @Nullable
-    @Override
     public Symbol limit() {
         return querySpec.limit();
     }
 
     @Nullable
-    @Override
     public Symbol offset() {
         return querySpec.offset();
     }
 
     @Override
     public String toString() {
-        StringJoiner joiner = new StringJoiner(", ");
-        for (Field field : fields.asList()) {
-            joiner.add(field.path().sqlFqn());
+        return "SELECT "
+               + Lists2.joinOn(", ", outputs(), x -> Symbols.pathFromSymbol(x).sqlFqn())
+               + " FROM ("
+               + Lists2.joinOn(", ", from, x -> x.relationName().toString())
+               + ')';
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (Symbol output : outputs()) {
+            consumer.accept(output);
         }
-        return "SELECT " + joiner.toString() + " FROM (" + subRelation + ')';
-    }
-
-    /**
-     * Creates a new relation with the newSubrelation as child.
-     * Fields will be re-mapped (They contain a hard-reference to a relation),
-     * but for this to work the new relation must have semantically equal outputs to the old relation.
-     */
-    public <U extends AnalyzedRelation> QueriedSelectRelation<U> replaceSubRelation(U newSubRelation) {
-        var mapFieldsToNewRelation = FieldReplacer.bind(
-            f -> {
-                if (f.relation().equals(subRelation)) {
-                    int idx = subRelation.fields().indexOf(f);
-                    if (idx >= 0) {
-                        return newSubRelation.fields().get(idx);
-                    }
-                }
-                return f;
-            }
-        );
-        return new QueriedSelectRelation<>(
-            isDistinct,
-            newSubRelation,
-            outputNamesOfFieldsWithUnifiedPossibleAliases(fields.asList()),
-            querySpec.map(mapFieldsToNewRelation)
-        );
-    }
-
-    public QueriedSelectRelation<T> map(Function<? super Symbol, ? extends Symbol> mapper) {
-        return new QueriedSelectRelation<>(
-            isDistinct,
-            subRelation,
-            outputNamesOfFieldsWithUnifiedPossibleAliases(fields.asList()),
-            querySpec.map(mapper)
-        );
-    }
-
-    /**
-     * Return a list of field paths.
-     * If multiple fields are pointing to the same symbol with different path, only the last path will be used.
-     * (e.g. if a column is referenced multiple times by using column aliases).
-     * This is required as a <p>reverseMapping</p> of a possible {@link io.crate.planner.operators.RelationBoundary}
-     * will act the same and thus won't return all different field path for the same pointers.
-     */
-    private static List<ColumnIdent> outputNamesOfFieldsWithUnifiedPossibleAliases(List<Field> fieldList) {
-        HashMap<Symbol, Field> fieldMap = new HashMap<>();
-        for (Field f : fieldList) {
-            fieldMap.put(f.pointer(), f);
+        where().accept(consumer);
+        for (Symbol groupKey : groupBy()) {
+            consumer.accept(groupKey);
         }
-        return fieldList.stream().map(f -> fieldMap.get(f.pointer()).path()).collect(Collectors.toList());
+        HavingClause having = having();
+        if (having != null) {
+            having.accept(consumer);
+        }
+        OrderBy orderBy = orderBy();
+        if (orderBy != null) {
+            orderBy.accept(consumer);
+        }
+        Symbol limit = limit();
+        if (limit != null) {
+            consumer.accept(limit);
+        }
+        Symbol offset = offset();
+        if (offset != null) {
+            consumer.accept(offset);
+        }
+    }
+
+    public List<JoinPair> joinPairs() {
+        return joinPairs;
     }
 }

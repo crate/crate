@@ -79,6 +79,11 @@ public interface NestableCollectExpression<T, R> extends CollectExpression<T, R>
         public R value() {
             return value;
         }
+
+        @Override
+        public String toString() {
+            return "FuncExpression{func=" + f + '}';
+        }
     }
 
     class ConstantNestableCollectExpression<T, R> implements NestableCollectExpression<T, R> {

@@ -24,14 +24,13 @@ package io.crate.analyze.relations;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,13 +42,13 @@ import java.util.Objects;
  * The Resolver also takes full qualified names so the name may contain table
  * and / or schema.
  */
-public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
+public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
 
-    private final Map<QualifiedName, AnalyzedRelation> sources;
+    private final Map<RelationName, AnalyzedRelation> sources;
     private final ParentRelations parents;
     private final String defaultSchema;
 
-    public FullQualifiedNameFieldProvider(Map<QualifiedName, AnalyzedRelation> sources,
+    public FullQualifiedNameFieldProvider(Map<RelationName, AnalyzedRelation> sources,
                                           ParentRelations parents,
                                           String defaultSchema) {
         this.sources = Objects.requireNonNull(sources, "Please provide a source map.");
@@ -58,7 +57,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
     }
 
     @Override
-    public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
+    public Symbol resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
         List<String> parts = qualifiedName.getParts();
         String columnSchema = null;
         String columnTableName = null;
@@ -81,22 +80,12 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
 
         boolean schemaMatched = false;
         boolean tableNameMatched = false;
-        Field lastField = null;
+        Symbol lastField = null;
 
-        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : sources.entrySet()) {
-            List<String> sourceParts = entry.getKey().getParts();
-            String sourceSchema = null;
-            String sourceTableOrAlias;
-
-            if (sourceParts.size() == 1) {
-                sourceTableOrAlias = sourceParts.get(0);
-            } else if (sourceParts.size() == 2) {
-                sourceSchema = sourceParts.get(0);
-                sourceTableOrAlias = sourceParts.get(1);
-            } else {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "sources key (QualifiedName) must have 1 or 2 parts, not %d", sourceParts.size()));
-            }
+        for (var entry : sources.entrySet()) {
+            RelationName relName = entry.getKey();
+            String sourceSchema = relName.schema();
+            String sourceTableOrAlias = relName.name();
 
             if (columnSchema != null && !columnSchema.equals(sourceSchema)) {
                 continue;
@@ -108,7 +97,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
             tableNameMatched = true;
 
             AnalyzedRelation sourceRelation = entry.getValue();
-            Field newField = sourceRelation.getField(columnIdent, operation);
+            Symbol newField = sourceRelation.getField(columnIdent, operation);
             if (newField != null) {
                 if (lastField != null) {
                     throw new AmbiguousColumnException(columnIdent, newField);
@@ -120,24 +109,24 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
             if (!schemaMatched || !tableNameMatched) {
                 String schema = columnSchema == null ? defaultSchema : columnSchema;
                 raiseUnsupportedFeatureIfInParentScope(columnSchema, columnTableName, schema);
-                throw new RelationUnknown(new RelationName(schema, columnTableName));
+                RelationName relationName = new RelationName(schema, columnTableName);
+                throw new RelationUnknown(relationName);
             }
-            QualifiedName tableName = sources.entrySet().iterator().next().getKey();
-            RelationName relationName = RelationName.fromIndexName(tableName.toString());
+            RelationName relationName = sources.entrySet().iterator().next().getKey();
             throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
         }
         return lastField;
     }
 
     private void raiseUnsupportedFeatureIfInParentScope(String columnSchema, String columnTableName, String schema) {
-        QualifiedName qn = new QualifiedName(Arrays.asList(schema, columnTableName));
-        if (parents.containsRelation(qn)) {
+        RelationName name = new RelationName(schema, columnTableName);
+        if (parents.containsRelation(name)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Cannot use relation \"%s.%s\" in this context. It is only accessible in the parent context.",
                 schema,
                 columnTableName));
         }
-        if (columnSchema == null && parents.containsRelation(new QualifiedName(columnTableName))) {
+        if (columnSchema == null && parents.containsRelation(new RelationName(null, columnTableName))) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Cannot use relation \"%s\" in this context. It is only accessible in the parent context.", columnTableName));
         }

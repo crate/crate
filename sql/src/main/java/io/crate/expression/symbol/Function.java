@@ -24,9 +24,9 @@ package io.crate.expression.symbol;
 
 import com.google.common.base.Preconditions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.planner.ExplainLeaf;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
@@ -37,7 +37,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
 public class Function extends Symbol implements Cloneable {
@@ -46,6 +45,16 @@ public class Function extends Symbol implements Cloneable {
     private final FunctionInfo info;
     @Nullable
     private final Symbol filter;
+
+    public static Function of(String name, List<Symbol> arguments, DataType<?> returnType) {
+        return new Function(
+            new FunctionInfo(
+                new FunctionIdent(name, Symbols.typeView(arguments)),
+                returnType
+            ),
+            arguments
+        );
+    }
 
     public Function(StreamInput in) throws IOException {
         info = new FunctionInfo(in);
@@ -152,19 +161,7 @@ public class Function extends Symbol implements Cloneable {
 
     @Override
     public String representation() {
-        String name = info.ident().name();
-        if (name.startsWith("op_") && arguments.size() == 2) {
-            return arguments.get(0).representation()
-                   + " " + name.substring(3).toUpperCase(Locale.ENGLISH)
-                   + " " + arguments.get(1).representation();
-        }
-        var sb = new StringBuilder(name + '(' + ExplainLeaf.printList(arguments) + ')');
-        if (filter != null) {
-            sb.append(" FILTER (")
-                .append(filter.representation())
-                .append(')');
-        }
-        return sb.toString();
+        return SymbolPrinter.printUnqualified(this);
     }
 
     @Override

@@ -21,10 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
-import javax.annotation.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -53,10 +52,12 @@ public interface AnalyzedStatement {
     }
 
     /**
-     * Defines the columns for the result set or null if not present.
+     * Expressions which define the output of the statement.
+     * This is only present if the Statement has a ResultSet.
+     * For DDL / DML operations without ResultSet this is absent.
      */
     @Nullable
-    default List<Field> fields() {
+    default List<Symbol> outputs() {
         return null;
     }
 }

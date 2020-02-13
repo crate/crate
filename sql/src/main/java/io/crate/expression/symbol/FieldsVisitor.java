@@ -24,17 +24,17 @@ package io.crate.expression.symbol;
 
 import java.util.function.Consumer;
 
-public final class FieldsVisitor extends DefaultTraversalSymbolVisitor<Consumer<? super Field>, Void> {
+public final class FieldsVisitor extends DefaultTraversalSymbolVisitor<Consumer<? super ScopedSymbol>, Void> {
 
     private static final FieldsVisitor FIELDS_VISITOR = new FieldsVisitor();
 
     @Override
-    public Void visitField(Field field, Consumer<? super Field> context) {
+    public Void visitField(ScopedSymbol field, Consumer<? super ScopedSymbol> context) {
         context.accept(field);
         return null;
     }
 
-    public static void visitFields(Symbol symbolTree, Consumer<? super Field> consumer) {
+    public static void visitFields(Symbol symbolTree, Consumer<? super ScopedSymbol> consumer) {
         symbolTree.accept(FIELDS_VISITOR, consumer);
     }
 }

@@ -23,7 +23,6 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.ValuesResolver;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -42,9 +41,9 @@ import java.util.List;
 public class ExcludedFieldProvider implements FieldProvider<Symbol> {
 
     private ValuesResolver valuesResolver;
-    private FieldProvider fieldProvider;
+    private FieldProvider<?> fieldProvider;
 
-    public ExcludedFieldProvider(FieldProvider fieldProvider, ValuesResolver valuesResolver) {
+    public ExcludedFieldProvider(FieldProvider<?> fieldProvider, ValuesResolver valuesResolver) {
         this.fieldProvider = fieldProvider;
         this.valuesResolver = valuesResolver;
     }
@@ -55,7 +54,7 @@ public class ExcludedFieldProvider implements FieldProvider<Symbol> {
         if (parts.size() == 2 && parts.get(0).equals("excluded")) {
             String colName = parts.get(1);
             Symbol symbol = fieldProvider.resolveField(new QualifiedName(colName), path, operation);
-            return valuesResolver.allocateAndResolve((Field) symbol);
+            return valuesResolver.allocateAndResolve(symbol);
         }
         return fieldProvider.resolveField(qualifiedName, path, operation);
     }

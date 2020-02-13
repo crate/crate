@@ -102,7 +102,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
                     e.getPlannerContext(clusterService.state()),
                     new ProjectionBuilder(getFunctions()));
             } catch (Exception e) {
-                fail("statement not printable: " + statement);
+                fail("statement not printable: " + statement + " error=" + e.getMessage());
             }
             assertNotNull(map);
             assertThat(map.size(), greaterThan(0));

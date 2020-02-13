@@ -23,19 +23,17 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.ValuesResolver;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 public class ExcludedFieldProviderTest {
@@ -46,13 +44,13 @@ public class ExcludedFieldProviderTest {
         QualifiedName normalField2 = QualifiedName.of("normal", "field2");
         QualifiedName excludedName = QualifiedName.of("excluded", "field3");
 
-        FieldProvider fieldProvider = (qualifiedName, path, operation) ->
-            new Field(
-                Mockito.mock(AnalyzedRelation.class),
+        FieldProvider<?> fieldProvider = (qualifiedName, path, operation) ->
+            new ScopedSymbol(
+                new RelationName("doc", "dummy"),
                 new ColumnIdent(qualifiedName.toString()),
-                new InputColumn(0, DataTypes.INTEGER));
+                DataTypes.INTEGER);
         ValuesResolver valuesResolver = argumentColumn -> {
-            assertThat(argumentColumn.path().sqlFqn(), is("field3"));
+            assertThat(argumentColumn, isField("field3"));
             return Literal.of(42);
         };
 

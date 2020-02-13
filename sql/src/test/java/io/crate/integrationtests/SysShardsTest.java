@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -222,7 +223,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectStarMatch() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot use match predicate on system tables");
+        expectedException.expectMessage("Cannot use MATCH on system tables");
         execute("select * from sys.shards where match(table_name, 'characters')");
     }
 

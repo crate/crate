@@ -27,11 +27,9 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -77,23 +75,18 @@ public class T3 {
         "  ts timestamp without time zone" +
         ")";
 
-    public static final QualifiedName T1 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t1"));
-    public static final QualifiedName T2 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t2"));
-    public static final QualifiedName T3 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t3"));
-    public static final QualifiedName T4 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t4"));
-
-    public static final RelationName T1_RN = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
-    public static final RelationName T2_RN = new RelationName(Schemas.DOC_SCHEMA_NAME, "t2");
-    public static final RelationName T3_RN = new RelationName(Schemas.DOC_SCHEMA_NAME, "t3");
-    public static final RelationName T4_RN = new RelationName(Schemas.DOC_SCHEMA_NAME, "t4");
-    public static final RelationName T5_RN = new RelationName(Schemas.DOC_SCHEMA_NAME, "t5");
+    public static final RelationName T1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
+    public static final RelationName T2 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t2");
+    public static final RelationName T3 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t3");
+    public static final RelationName T4 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t4");
+    public static final RelationName T5 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t5");
 
     private static final Map<RelationName, String> RELATION_DEFINITIONS = ImmutableMap.of(
-        T1_RN, T1_DEFINITION,
-        T2_RN, T2_DEFINITION,
-        T3_RN, T3_DEFINITION,
-        T4_RN, T4_DEFINITION,
-        T5_RN, T5_DEFINITION);
+        T1, T1_DEFINITION,
+        T2, T2_DEFINITION,
+        T3, T3_DEFINITION,
+        T4, T4_DEFINITION,
+        T5, T5_DEFINITION);
 
     public static List<AnalyzedRelation> relations(ClusterService clusterService) {
         SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService);
@@ -112,11 +105,11 @@ public class T3 {
             .collect(Collectors.toList());
     }
 
-    public static Map<QualifiedName, AnalyzedRelation> sources(ClusterService clusterService) {
+    public static Map<RelationName, AnalyzedRelation> sources(ClusterService clusterService) {
         return sources(RELATION_DEFINITIONS.keySet(), clusterService);
     }
 
-    public static Map<QualifiedName, AnalyzedRelation> sources(Iterable<RelationName> relations, ClusterService clusterService) {
+    public static Map<RelationName, AnalyzedRelation> sources(Iterable<RelationName> relations, ClusterService clusterService) {
         SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService);
         relations.forEach(rn -> {
             String tableDefinition = RELATION_DEFINITIONS.get(rn);
@@ -132,16 +125,12 @@ public class T3 {
         SQLExecutor executor = executorBuilder.build();
         Schemas schemas = executor.schemas();
 
-        ImmutableMap.Builder<QualifiedName, AnalyzedRelation> builder = ImmutableMap.builder();
+        ImmutableMap.Builder<RelationName, AnalyzedRelation> builder = ImmutableMap.builder();
         for (RelationName relationName : relations) {
             builder.put(
-                new QualifiedName(Arrays.asList(relationName.schema(), relationName.name())),
+                relationName,
                 new DocTableRelation(schemas.getTableInfo(relationName)));
         }
         return builder.build();
-    }
-
-    public static <R> R fromSource(RelationName relationName, Map<QualifiedName, AnalyzedRelation> sources) {
-        return (R) sources.get(new QualifiedName(Arrays.asList(relationName.schema(), relationName.name())));
     }
 }

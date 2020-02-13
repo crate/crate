@@ -1,5 +1,6 @@
 package io.crate.analyze.relations;
 
+import io.crate.expression.symbol.Symbols;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -29,18 +30,18 @@ public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testValidGroupByWithScalarAndMultipleColumns() throws Exception {
         AnalyzedRelation relation = executor.analyze("select id * other_id from users group by id, other_id");
-        assertThat(relation.fields().get(0).path().sqlFqn(), is("(id * other_id)"));
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn(), is("(id * other_id)"));
     }
 
     @Test
     public void testValidGroupByWithScalar() throws Exception {
         AnalyzedRelation relation = executor.analyze("select id * 2 from users group by id");
-        assertThat(relation.fields().get(0).path().sqlFqn(), is("(id * 2)"));
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn(), is("(id * 2)"));
     }
 
     @Test
     public void testValidGroupByWithMultipleScalarFunctions() throws Exception {
         AnalyzedRelation relation = executor.analyze("select abs(id * 2) from users group by id");
-        assertThat(relation.fields().get(0).path().sqlFqn(), is("abs((id * 2))"));
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn(), is("abs((id * 2))"));
     }
 }

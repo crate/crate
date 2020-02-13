@@ -20,41 +20,32 @@
  * agreement.
  */
 
-package io.crate.planner.operators;
+package io.crate.testing;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SqlExpressions;
-import io.crate.testing.T3;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.TableRelation;
+import io.crate.metadata.RelationName;
+import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import static io.crate.testing.MoreMatchers.withFeature;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.equalTo;
 
-public class OperatorUtilsTest extends CrateDummyClusterServiceUnitTest {
+public class RelationMatchers {
 
-    private SqlExpressions sqlExpressions;
-
-    @Before
-    public void prepare() throws Exception {
-        sqlExpressions = new SqlExpressions(T3.sources(clusterService));
+    public static Matcher<AnalyzedRelation> isDocTable(RelationName name) {
+        return allOf(
+            Matchers.instanceOf(DocTableRelation.class),
+            withFeature(x -> ((DocTableRelation) x).tableInfo().ident(), "relationName", equalTo(name))
+        );
     }
 
-    @Test
-    public void testGetUnusedColsWithNoUnused() throws Exception {
-        Symbol x = sqlExpressions.asSymbol("x");
-        Symbol xAdd1 = sqlExpressions.asSymbol("x + 1");
-
-        List<Symbol> toCollect = Arrays.asList(x, xAdd1);
-        Set<Symbol> used = Collections.singleton(xAdd1);
-
-        assertThat(
-            OperatorUtils.getUnusedColumns(toCollect, used),
-            Matchers.emptyIterable()
+    public static Matcher<AnalyzedRelation> isSystemTable(RelationName name) {
+        return allOf(
+            Matchers.instanceOf(TableRelation.class),
+            withFeature(x -> ((TableRelation) x).tableInfo().ident(), "relationName", equalTo(name))
         );
     }
 }

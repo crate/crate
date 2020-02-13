@@ -22,68 +22,48 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
-import io.crate.statistics.TableStats;
+import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.Order;
-import io.crate.planner.operators.RelationBoundary;
+import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 
 import java.util.List;
-import java.util.function.Function;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-/**
- * <pre>
- *     Order
- *       |
- *     RelationBoundary
- *       |
- *     Source
- * </pre>
- *
- * to
- *
- * <pre>
- *     RelationBoundary
- *       |
- *     Order
- *       |
- *     Source
- * </pre>
- */
-public final class MoveOrderBeneathBoundary implements Rule<Order> {
+public class MoveFilterBeneathRename implements Rule<Filter> {
 
-    private final Capture<RelationBoundary> boundary;
-    private final Pattern<Order> pattern;
+    private final Capture<Rename> renameCapture;
+    private final Pattern<Filter> pattern;
 
-    public MoveOrderBeneathBoundary() {
-        this.boundary = new Capture<>();
-        this.pattern = typeOf(Order.class)
-            .with(source(), typeOf(RelationBoundary.class).capturedAs(boundary));
+    public MoveFilterBeneathRename() {
+        this.renameCapture = new Capture<>();
+        this.pattern = typeOf(Filter.class)
+            .with(source(), typeOf(Rename.class).capturedAs(renameCapture));
     }
 
     @Override
-    public Pattern<Order> pattern() {
+    public Pattern<Filter> pattern() {
         return pattern;
     }
 
     @Override
-    public LogicalPlan apply(Order plan,
+    public LogicalPlan apply(Filter plan,
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx) {
-        RelationBoundary relationBoundary = captures.get(boundary);
-        Function<? super Symbol, ? extends Symbol> mapField = FieldReplacer.bind(Field::pointer);
-        Order newOrder = new Order(relationBoundary.source(), plan.orderBy().map(mapField));
-        return relationBoundary.replaceSources(List.of(newOrder));
+        Rename rename = captures.get(renameCapture);
+        Filter newFilter = new Filter(
+            rename.source(),
+            FieldReplacer.replaceFields(plan.query(), rename::resolveField)
+        );
+        return rename.replaceSources(List.of(newFilter));
     }
 }

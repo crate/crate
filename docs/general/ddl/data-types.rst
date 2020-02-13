@@ -142,12 +142,12 @@ and ``-0`` (signed zero).
 
 ::
 
-    cr> SELECT 0.0 / 0.0, 1.0 / 0.0, 1.0 / -0.0;
-    +-------------+-------------+---------------+
-    | (0.0 / 0.0) | (1.0 / 0.0) | (1.0 / - 0.0) |
-    +-------------+-------------+---------------+
-    | NaN         | Infinity    | -Infinity     |
-    +-------------+-------------+---------------+
+    cr> SELECT 0.0 / 0.0 AS a, 1.0 / 0.0 as B, 1.0 / -0.0 AS c;
+    +-----+----------+-----------+
+    | a   | b        | c         |
+    +-----+----------+-----------+
+    | NaN | Infinity | -Infinity |
+    +-----+----------+-----------+
     SELECT 1 row in set (... sec)
 
 These special numeric values can also be inserted into a column of type
@@ -288,12 +288,12 @@ the epoch with milliseconds as fractions.
 
 ::
 
-    cr> select 1.0::timestamp with time zone;
-    +---------------------------------------+
-    | CAST(1.0 AS timestamp with time zone) |
-    +---------------------------------------+
-    |                                  1000 |
-    +---------------------------------------+
+    cr> select 1.0::timestamp with time zone AS ts;
+    +------+
+    |   ts |
+    +------+
+    | 1000 |
+    +------+
     SELECT 1 row in set (... sec)
 
 
@@ -397,12 +397,12 @@ subset of these fields.
 
 For example::
 
-    cr> select INTERVAL '01-02' YEAR TO MONTH;
-    +--------------------------------+
-    | INTERVAL '01-02' YEAR TO MONTH |
-    +--------------------------------+
-    | 1 year 2 mons 00:00:00         |
-    +--------------------------------+
+    cr> select INTERVAL '01-02' YEAR TO MONTH AS result;
+    +------------------------+
+    | result                 |
+    +------------------------+
+    | 1 year 2 mons 00:00:00 |
+    +------------------------+
     SELECT 1 row in set (... sec)
 
 .. _day-time-literal:
@@ -427,12 +427,12 @@ seconds precision of ``SECOND`` ranges from 0 to 6 digits.
 
 For example::
 
-    cr> select INTERVAL '10 23:10' DAY TO MINUTE;
-    +-----------------------------------+
-    | INTERVAL '10 23:10' DAY TO MINUTE |
-    +-----------------------------------+
-    | 1 weeks 3 days 23:10:00           |
-    +-----------------------------------+
+    cr> select INTERVAL '10 23:10' DAY TO MINUTE AS result;
+    +-------------------------+
+    | result                  |
+    +-------------------------+
+    | 1 weeks 3 days 23:10:00 |
+    +-------------------------+
     SELECT 1 row in set (... sec)
 
 
@@ -449,12 +449,12 @@ or using the :ref:`iso-8601-format <iso-8601-format>` or
 
 For example::
 
-    cr> select INTERVAL '1-2 3 4:5:6';
-    +---------------------------------+
-    | CAST('1-2 3 4:5:6' AS interval) |
-    +---------------------------------+
-    | 1 year 2 mons 3 days 04:05:06   |
-    +---------------------------------+
+    cr> select INTERVAL '1-2 3 4:5:6' AS result;
+    +-------------------------------+
+    | result                        |
+    +-------------------------------+
+    | 1 year 2 mons 3 days 04:05:06 |
+    +-------------------------------+
     SELECT 1 row in set (... sec)
 
 
@@ -468,12 +468,12 @@ The iso-8601 format describes a duration of time using the
 
 For example::
 
-    cr> select INTERVAL 'P1Y2M3DT4H5M6S';
-    +------------------------------------+
-    | CAST('P1Y2M3DT4H5M6S' AS interval) |
-    +------------------------------------+
-    | 1 year 2 mons 3 days 04:05:06      |
-    +------------------------------------+
+    cr> select INTERVAL 'P1Y2M3DT4H5M6S' AS result;
+    +-------------------------------+
+    | result                        |
+    +-------------------------------+
+    | 1 year 2 mons 3 days 04:05:06 |
+    +-------------------------------+
     SELECT 1 row in set (... sec)
 
 
@@ -486,12 +486,12 @@ The ``PostgreSQL`` format describes a duration of time using the `PostgreSQL int
 
 For example::
 
-    cr> select INTERVAL '1 year 2 months 3 days 4 hours 5 minutes 6 seconds';
-    +------------------------------------------------------------------------+
-    | CAST('1 year 2 months 3 days 4 hours 5 minutes 6 seconds' AS interval) |
-    +------------------------------------------------------------------------+
-    | 1 year 2 mons 3 days 04:05:06                                          |
-    +------------------------------------------------------------------------+
+    cr> select INTERVAL '1 year 2 months 3 days 4 hours 5 minutes 6 seconds' AS result;
+    +-------------------------------+
+    | result                        |
+    +-------------------------------+
+    | 1 year 2 mons 3 days 04:05:06 |
+    +-------------------------------+
     SELECT 1 row in set (... sec)
 
 
@@ -1048,7 +1048,7 @@ Example usages:
 
     cr> select cast(port['http'] as boolean) from sys.nodes limit 1;
     +-------------------------------+
-    | CAST(port['http'] AS boolean) |
+    | cast(port['http'] AS boolean) |
     +-------------------------------+
     | TRUE                          |
     +-------------------------------+
@@ -1056,12 +1056,12 @@ Example usages:
 
 ::
 
-    cr> select (2+10)/2::text;
-    +------------------------------+
-    | ((2 + 10) / CAST(2 AS text)) |
-    +------------------------------+
-    |                            6 |
-    +------------------------------+
+    cr> select (2+10)/2::text AS col;
+    +-----+
+    | col |
+    +-----+
+    |   6 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 It is also possible to convert array structures to different data types, e.g.
@@ -1069,8 +1069,7 @@ converting an array of integer values to a boolean array.
 
 ::
 
-    cr> select cast([0,1,5] as array(boolean)) as
-    ... active_threads from sys.nodes limit 1;
+    cr> select cast([0,1,5] as array(boolean)) AS active_threads ;
     +---------------------+
     | active_threads      |
     +---------------------+
@@ -1098,12 +1097,12 @@ Example usages:
 
 ::
 
-    cr> select try_cast('true' as boolean) from sys.nodes limit 1;
-    +-----------------------------+
-    | TRY_CAST('true' AS boolean) |
-    +-----------------------------+
-    | TRUE                        |
-    +-----------------------------+
+    cr> select try_cast('true' as boolean) AS col;
+    +------+
+    | col  |
+    +------+
+    | TRUE |
+    +------+
     SELECT 1 row in set (... sec)
 
 Trying to cast a ``text`` to ``integer``, will fail with ``cast`` if
@@ -1111,12 +1110,12 @@ Trying to cast a ``text`` to ``integer``, will fail with ``cast`` if
 
 ::
 
-    cr> select try_cast(name as integer) from sys.nodes limit 1;
-    +---------------------------+
-    | TRY_CAST(name AS integer) |
-    +---------------------------+
-    | NULL                      |
-    +---------------------------+
+    cr> select try_cast(name as integer) AS name_as_int from sys.nodes limit 1;
+    +-------------+
+    | name_as_int |
+    +-------------+
+    |        NULL |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 .. _type_cast_from_string_literal:
@@ -1131,22 +1130,22 @@ Example usages, initializing an ``integer`` and a ``timestamp`` constant:
 
 ::
 
-    cr> select integer '25';
-    +-----------------------+
-    | CAST('25' AS integer) |
-    +-----------------------+
-    |                    25 |
-    +-----------------------+
+    cr> select integer '25' AS int;
+    +-----+
+    | int |
+    +-----+
+    |  25 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 ::
 
-    cr> select timestamp with time zone '2029-12-12T11:44:00.24446';
-    +---------------------------------------------------------------+
-    | CAST('2029-12-12T11:44:00.24446' AS timestamp with time zone) |
-    +---------------------------------------------------------------+
-    |                                                 1891770240244 |
-    +---------------------------------------------------------------+
+    cr> select timestamp with time zone '2029-12-12T11:44:00.24446' AS ts;
+    +---------------+
+    | ts            |
+    +---------------+
+    | 1891770240244 |
+    +---------------+
     SELECT 1 row in set (... sec)
 
 .. NOTE::
@@ -1165,12 +1164,12 @@ used instead of the CrateDB specific type names.
 
 For example, in a type cast::
 
-  cr> select 10::int2;
-  +------------------+
-  | CAST(10 AS int2) |
-  +------------------+
-  |               10 |
-  +------------------+
+  cr> select 10::int2 AS int2;
+  +------+
+  | int2 |
+  +------+
+  |   10 |
+  +------+
   SELECT 1 row in set (... sec)
 
 

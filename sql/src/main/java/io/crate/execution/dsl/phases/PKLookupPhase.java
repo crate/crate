@@ -22,7 +22,7 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -58,7 +58,7 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
                          Map<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode) {
         super(jobId, phaseId, "pkLookup", Collections.emptyList());
         assert toCollect.stream().noneMatch(
-            st -> SymbolVisitors.any(s -> s instanceof Field || s instanceof SelectSymbol, st))
+            st -> SymbolVisitors.any(s -> s instanceof ScopedSymbol || s instanceof SelectSymbol, st))
             : "toCollect must not contain any fields or selectSymbols: " + toCollect;
         this.partitionedByColumns = partitionedByColumns;
         this.toCollect = toCollect;

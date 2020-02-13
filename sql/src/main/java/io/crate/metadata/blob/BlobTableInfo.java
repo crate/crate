@@ -66,7 +66,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Version versionUpgraded;
     private final boolean closed;
 
-    private static final Map<ColumnIdent, Reference> INFOS = new LinkedHashMap<>();
+    private final Map<ColumnIdent, Reference> infos = new LinkedHashMap<>();
 
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("digest"));
     private static final List<Tuple<String, DataType>> STATIC_COLUMNS = ImmutableList.<Tuple<String, DataType>>builder()
@@ -101,7 +101,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Nullable
     @Override
     public Reference getReference(ColumnIdent columnIdent) {
-        return INFOS.get(columnIdent);
+        return infos.get(columnIdent);
     }
 
     @Override
@@ -163,7 +163,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
             assert ref.column().isTopLevel() : "only top-level columns should be added to columns list";
             pos++;
             columns.add(ref);
-            INFOS.put(ref.column(), ref);
+            infos.put(ref.column(), ref);
         }
     }
 

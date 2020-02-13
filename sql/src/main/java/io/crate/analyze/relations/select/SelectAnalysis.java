@@ -29,8 +29,8 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +38,7 @@ import java.util.Map;
 
 public class SelectAnalysis {
 
-    private final Map<QualifiedName, AnalyzedRelation> sources;
+    private final Map<RelationName, AnalyzedRelation> sources;
     private final ExpressionAnalyzer expressionAnalyzer;
     private final ExpressionAnalysisContext expressionAnalysisContext;
     private final List<ColumnIdent> outputNames;
@@ -46,7 +46,7 @@ public class SelectAnalysis {
     private final Multimap<String, Symbol> outputMultiMap;
 
     public SelectAnalysis(int expectedItems,
-                          Map<QualifiedName, AnalyzedRelation> sources,
+                          Map<RelationName, AnalyzedRelation> sources,
                           ExpressionAnalyzer expressionAnalyzer,
                           ExpressionAnalysisContext expressionAnalysisContext) {
         this.sources = sources;
@@ -69,7 +69,7 @@ public class SelectAnalysis {
         return expressionAnalyzer.convert(expression, expressionAnalysisContext);
     }
 
-    public Map<QualifiedName, AnalyzedRelation> sources() {
+    public Map<RelationName, AnalyzedRelation> sources() {
         return sources;
     }
 

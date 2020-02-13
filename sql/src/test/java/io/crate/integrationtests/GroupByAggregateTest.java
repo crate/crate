@@ -618,7 +618,6 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         waitNoPendingTasksOnAll();
         execute("select count(details['job']), min(details['job']), max(details['job']), count(distinct details['job']) from characters");
         assertEquals(1, response.rowCount());
-        assertArrayEquals(new String[]{"count(details['job'])", "min(details['job'])", "max(details['job'])", "count(DISTINCT details['job'])"}, response.cols());
         assertEquals(2L, response.rows()[0][0]);
         assertEquals("Mathematician", response.rows()[0][1]);
         assertEquals("Sandwitch Maker", response.rows()[0][2]);

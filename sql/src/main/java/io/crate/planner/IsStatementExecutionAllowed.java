@@ -23,11 +23,10 @@
 package io.crate.planner;
 
 import io.crate.analyze.AnalyzedDecommissionNode;
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.AnalyzedSetStatement;
 import io.crate.analyze.AnalyzedSetLicenseStatement;
+import io.crate.analyze.AnalyzedSetStatement;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
@@ -92,18 +91,13 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
         }
 
         @Override
-        public Boolean visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Void context) {
-            for (AnalyzedRelation relation : multiSourceSelect.sources().values()) {
-                if (process(relation, context) == false) {
+        public Boolean visitQueriedSelectRelation(QueriedSelectRelation relation, Void context) {
+            for (AnalyzedRelation analyzedRelation : relation.from()) {
+                if (!analyzedRelation.accept(this, context)) {
                     return false;
                 }
             }
             return true;
-        }
-
-        @Override
-        public Boolean visitQueriedSelectRelation(QueriedSelectRelation relation, Void context) {
-            return process(relation.subRelation(), context);
         }
 
         @Override

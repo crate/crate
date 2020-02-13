@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Symbol;
@@ -32,7 +31,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
@@ -95,8 +93,7 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
 
 
         TableRelation tableRelation = new TableRelation(tableInfo);
-        Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-            new QualifiedName("sys.nodes"), tableRelation);
+        Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
         Symbol query = sqlExpressions.normalize(sqlExpressions.asSymbol(where));
 

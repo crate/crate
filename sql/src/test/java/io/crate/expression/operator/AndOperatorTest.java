@@ -2,13 +2,12 @@ package io.crate.expression.operator;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Symbol;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.List;
 
-import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 
@@ -16,7 +15,7 @@ public class AndOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {
-        assertNormalize("is_awesome and true", isField("is_awesome"));
+        assertNormalize("is_awesome and true", isReference("is_awesome"));
     }
 
     @Test

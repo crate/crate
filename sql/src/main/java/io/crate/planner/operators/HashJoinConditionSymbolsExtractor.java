@@ -22,14 +22,15 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,7 +68,7 @@ public final class HashJoinConditionSymbolsExtractor {
      * Extracts all symbols per relations from any EQ join conditions. See {@link HashJoinConditionSymbolsExtractor}
      * class documentation for details.
      */
-    public static Map<AnalyzedRelation, List<Symbol>> extract(Symbol symbol) {
+    public static Map<RelationName, List<Symbol>> extract(Symbol symbol) {
         Context ctx = new Context();
         symbol.accept(SYMBOL_EXTRACTOR, ctx);
         return ctx.symbolsPerRelation;
@@ -75,7 +76,7 @@ public final class HashJoinConditionSymbolsExtractor {
 
     private static class Context {
         boolean insideEqOperator = false;
-        Map<AnalyzedRelation, List<Symbol>> symbolsPerRelation = new HashMap<>();
+        Map<RelationName, List<Symbol>> symbolsPerRelation = new HashMap<>();
     }
 
     private static class SymbolExtractor extends DefaultTraversalSymbolVisitor<Context, Void> {
@@ -90,7 +91,7 @@ public final class HashJoinConditionSymbolsExtractor {
                     context.insideEqOperator = true;
                     int duplicatePos = 0;
                     for (Symbol arg : function.arguments()) {
-                        AnalyzedRelation relation = arg.accept(RELATION_EXTRACTOR, null);
+                        var relation = arg.accept(RELATION_EXTRACTOR, null);
                         List<Symbol> symbols = context.symbolsPerRelation.computeIfAbsent(relation, k -> new ArrayList<>());
                         if (symbols.contains(arg)) {
                             // duplicate detected, use the current size as the position of the other relation symbol we
@@ -102,7 +103,7 @@ public final class HashJoinConditionSymbolsExtractor {
                     }
                     // if a duplicate is found, we must remove already processed argument symbols of the other relation
                     if (duplicatePos > 0) {
-                        for (Map.Entry<AnalyzedRelation, List<Symbol>> entry : context.symbolsPerRelation.entrySet()) {
+                        for (Map.Entry<RelationName, List<Symbol>> entry : context.symbolsPerRelation.entrySet()) {
                             List<Symbol> symbols = entry.getValue();
                             if (symbols.size() > duplicatePos) {
                                 symbols.remove(duplicatePos);
@@ -122,12 +123,12 @@ public final class HashJoinConditionSymbolsExtractor {
         }
     }
 
-    private static class RelationExtractor extends SymbolVisitor<Void, AnalyzedRelation> {
+    private static class RelationExtractor extends SymbolVisitor<Void, RelationName> {
 
         @Override
-        public AnalyzedRelation visitFunction(Function symbol, Void context) {
+        public RelationName visitFunction(Function symbol, Void context) {
             for (Symbol arg : symbol.arguments()) {
-                AnalyzedRelation relation = arg.accept(this, context);
+                var relation = arg.accept(this, context);
                 if (relation != null) {
                     return relation;
                 }
@@ -136,8 +137,13 @@ public final class HashJoinConditionSymbolsExtractor {
         }
 
         @Override
-        public AnalyzedRelation visitField(Field field, Void context) {
+        public RelationName visitField(ScopedSymbol field, Void context) {
             return field.relation();
+        }
+
+        @Override
+        public RelationName visitReference(Reference ref, Void context) {
+            return ref.ident().tableIdent();
         }
     }
 

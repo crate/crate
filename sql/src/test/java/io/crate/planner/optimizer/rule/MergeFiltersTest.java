@@ -26,12 +26,12 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.statistics.TableStats;
+import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
-import io.crate.sql.tree.QualifiedName;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -52,9 +52,9 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        Map<QualifiedName, AnalyzedRelation> sources = T3.sources(clusterService);
+        Map<RelationName, AnalyzedRelation> sources = T3.sources(clusterService);
         e = new SqlExpressions(sources);
-        tr1 = T3.fromSource(T3.T1_RN, sources);
+        tr1 = (AbstractTableRelation) sources.get(T3.T1);
     }
 
     @Test

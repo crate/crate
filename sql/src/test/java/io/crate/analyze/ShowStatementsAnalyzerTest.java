@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -30,7 +29,11 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.RelationMatchers.isSystemTable;
+import static io.crate.testing.SymbolMatchers.isAlias;
+import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
@@ -50,63 +53,71 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testVisitShowTablesSchema() throws Exception {
-        AnalyzedRelation relation = analyze("show tables in QNAME");
+        QueriedSelectRelation relation = analyze("show tables in QNAME");
 
         assertThat(relation.isDistinct(), is(true));
         assertThat(relation, isSQL(
-            "SELECT information_schema.tables.table_name " +
-            "WHERE ((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) " +
-            "ORDER BY information_schema.tables.table_name"));
+            "SELECT information_schema.tables.table_name AS table_name " +
+            "WHERE ((information_schema.tables.table_type = 'BASE TABLE') " +
+            "AND (information_schema.tables.table_schema = 'qname')) " +
+            "ORDER BY information_schema.tables.table_name AS table_name"));
 
         relation = analyze("show tables");
         assertThat(relation.isDistinct(), is(true));
         assertThat(relation, isSQL(
-            "SELECT information_schema.tables.table_name " +
+            "SELECT information_schema.tables.table_name AS table_name " +
             "WHERE ((information_schema.tables.table_type = 'BASE TABLE') " +
             "AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
-            "ORDER BY information_schema.tables.table_name"));
+            "ORDER BY information_schema.tables.table_name AS table_name"));
     }
 
     @Test
     public void testVisitShowTablesLike() throws Exception {
-        AnalyzedRelation relation = analyze("show tables in QNAME like 'likePattern'");
+        QueriedSelectRelation relation = analyze("show tables in QNAME like 'likePattern'");
 
         assertThat(relation.isDistinct(), is(true));
         assertThat(relation, isSQL(
-            "SELECT information_schema.tables.table_name " +
+            "SELECT information_schema.tables.table_name AS table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) " +
             "AND (information_schema.tables.table_name LIKE 'likePattern')) " +
-            "ORDER BY information_schema.tables.table_name"));
+            "ORDER BY information_schema.tables.table_name AS table_name"));
 
         relation = analyze("show tables like '%'");
         assertThat(relation.isDistinct(), is(true));
         assertThat(relation, isSQL(
-            "SELECT information_schema.tables.table_name " +
+            "SELECT information_schema.tables.table_name AS table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND " +
             "(NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
             "AND (information_schema.tables.table_name LIKE '%')) " +
-            "ORDER BY information_schema.tables.table_name"));
+            "ORDER BY information_schema.tables.table_name AS table_name"));
     }
 
     @Test
     public void testVisitShowTablesWhere() throws Exception {
-        AnalyzedRelation relation =
+        QueriedSelectRelation relation =
             analyze("show tables in QNAME where table_name = 'foo' or table_name like '%bar%'");
         assertThat(relation.isDistinct(), is(true));
-        assertThat(relation, isSQL(
-            "SELECT information_schema.tables.table_name " +
-            "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) " +
-            "AND ((information_schema.tables.table_name = 'foo') OR (information_schema.tables.table_name LIKE '%bar%'))) " +
-            "ORDER BY information_schema.tables.table_name"));
+        assertThat(relation.outputs(), contains(
+            isAlias("table_name", isReference("table_name"))
+        ));
+        assertThat(
+            relation.where().queryOrFallback(),
+            isFunction(
+                "op_and",
+                isFunction("op_and"),
+                isFunction("op_or", isFunction("op_="), isFunction("op_like"))
+            )
+        );
+        assertThat(relation.orderBy().orderBySymbols(), contains(isAlias("table_name", isReference("table_name"))));
 
         relation = analyze("show tables where table_name like '%'");
         assertThat(relation.isDistinct(), is(true));
         assertThat(relation, isSQL(
-            "SELECT information_schema.tables.table_name " +
+            "SELECT information_schema.tables.table_name AS table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') " +
             "AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
             "AND (information_schema.tables.table_name LIKE '%')) " +
-            "ORDER BY information_schema.tables.table_name"));
+            "ORDER BY information_schema.tables.table_name AS table_name"));
     }
 
     @Test
@@ -178,12 +189,12 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testRewriteOfTransactionIsolation() {
-        QueriedSelectRelation<AbstractTableRelation<?>> stmt = analyze("show transaction isolation level");
-        assertThat(stmt.subRelation().tableInfo().ident(), is(SysClusterTableInfo.IDENT));
-        assertThat(stmt.outputs(), contains(isLiteral("read uncommitted")));
+        QueriedSelectRelation stmt = analyze("show transaction isolation level");
+        assertThat(stmt.from(), contains(isSystemTable(SysClusterTableInfo.IDENT)));
+        assertThat(stmt.outputs(), contains(isAlias("transaction_isolation", isLiteral("read uncommitted"))));
 
         stmt = analyze("show transaction_isolation");
-        assertThat(stmt.subRelation().tableInfo().ident(), is(SysClusterTableInfo.IDENT));
-        assertThat(stmt.outputs(), contains(isLiteral("read uncommitted")));
+        assertThat(stmt.from(), contains(isSystemTable(SysClusterTableInfo.IDENT)));
+        assertThat(stmt.outputs(), contains(isAlias("transaction_isolation", isLiteral("read uncommitted"))));
     }
 }

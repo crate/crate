@@ -26,6 +26,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlannerTest;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -102,13 +103,25 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnionWithOrderByLiteralConstant() {
-        ExecutionPlan plan = e.plan(
-            "select * from (" +
+        String stmt = "select * from (" +
             " select 1 as x, id from users" +
             " union all" +
             " select 2, id from users" +
             ") o" +
-            " order by x");
+            " order by x";
+        var logicalPlan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "RootBoundary[x, id]\n" +
+            "Rename[x, id] AS o\n" +
+            "Union[\n" +
+            "OrderBy[1 AS x ASC]\n" +
+            "Collect[doc.users | [1 AS x, id] | true]\n" +
+            "---\n" +
+            "OrderBy[2 ASC]\n" +
+            "Collect[doc.users | [2, id] | true]\n" +
+            "]\n";
+        assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(e.functions(), expectedPlan)));
+        ExecutionPlan plan = e.plan(stmt);
         assertThat(plan, instanceOf(UnionExecutionPlan.class));
         UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) plan;
         assertThat(unionExecutionPlan.mergePhase().orderByPositions(), instanceOf(PositionalOrderBy.class));

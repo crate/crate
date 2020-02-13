@@ -23,8 +23,9 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
@@ -34,9 +35,12 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -49,14 +53,14 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testSingleRowSubselectInWhereClause() throws Exception {
-        AnalyzedRelation relation = e.analyze("select * from t1 where x = (select y from t2)");
+        QueriedSelectRelation relation = e.analyze("select * from t1 where x = (select y from t2)");
         assertThat(relation.where().query(),
             isSQL("(doc.t1.x = SelectSymbol{integer_array})"));
     }
 
     @Test
     public void testSingleRowSubselectInWhereClauseNested() throws Exception {
-        AnalyzedRelation relation = e.analyze(
+        QueriedSelectRelation relation = e.analyze(
             "select a from t1 where x = (select y from t2 where y = (select z from t3))");
         assertThat(relation.where().query(),
             isSQL("(doc.t1.x = SelectSymbol{integer_array})"));
@@ -90,22 +94,25 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testMatchPredicateWithSingleRowSubselect() throws Exception {
-        AnalyzedRelation relation = e.normalize(
+        QueriedSelectRelation relation = e.analyze(
             "select * from users where match(shape 1.2, (select shape from users limit 1))");
-        assertThat(relation.where().query(),
-            isSQL("MATCH((shape 1.2), SelectSymbol{geo_shape_array}) USING intersects"));
+        assertThat(relation.where().query(), instanceOf(MatchPredicate.class));
+        MatchPredicate match = (MatchPredicate) relation.where().queryOrFallback();
+        assertThat(match.identBoostMap(), hasEntry(isReference("shape"), isLiteral(1.2)));
+        assertThat(match.queryTerm(), instanceOf(SelectSymbol.class));
+        assertThat(match.matchType(), is("intersects"));
     }
 
     @Test
     public void testLikeSupportsSubQueries() {
-        AnalyzedRelation relation = e.analyze("select * from users where name like (select 'foo')");
+        QueriedSelectRelation relation = e.analyze("select * from users where name like (select 'foo')");
         assertThat(relation.where().query(),
             isSQL("(doc.users.name LIKE SelectSymbol{text_array})"));
     }
 
     @Test
     public void testAnySupportsSubQueries() {
-        AnalyzedRelation relation = e.analyze("select * from users where (select 'bar') = ANY (tags)");
+        QueriedSelectRelation relation = e.analyze("select * from users where (select 'bar') = ANY (tags)");
         assertThat(relation.where().query(),
             isSQL("(SelectSymbol{text_array} = ANY(doc.users.tags))"));
 

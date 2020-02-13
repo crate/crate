@@ -48,16 +48,16 @@ public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
 
     @Override
     public String visitQueriedSelectRelation(QueriedSelectRelation relation, Void context) {
-        return relation.getQualifiedName().toString();
+        return relation.relationName().toString();
     }
 
     @Override
     public String visitUnionSelect(UnionSelect unionSelect, Void context) {
-        return unionSelect.getQualifiedName().toString();
+        return unionSelect.relationName().toString();
     }
 
     @Override
     public String visitAliasedAnalyzedRelation(AliasedAnalyzedRelation relation, Void context) {
-        return relation.getQualifiedName().toString();
+        return relation.relationName().toString();
     }
 }

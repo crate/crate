@@ -25,12 +25,11 @@ package io.crate.analyze.relations;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.join.JoinType;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,7 +43,7 @@ public class RelationAnalysisContext {
     private final ParentRelations parents;
     // keep order of sources.
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
-    private final Map<QualifiedName, AnalyzedRelation> sources = new LinkedHashMap<>();
+    private final Map<RelationName, AnalyzedRelation> sources = new LinkedHashMap<>();
 
     @Nullable
     private List<JoinPair> joinPairs;
@@ -60,7 +59,7 @@ public class RelationAnalysisContext {
         return aliasedRelation;
     }
 
-    public Map<QualifiedName, AnalyzedRelation> sources() {
+    public Map<RelationName, AnalyzedRelation> sources() {
         return sources;
     }
 
@@ -74,12 +73,12 @@ public class RelationAnalysisContext {
     void addJoinType(JoinType joinType, @Nullable Symbol joinCondition) {
         int size = sources.size();
         assert size >= 2 : "sources must be added first, cannot add join type for only 1 source";
-        Iterator<QualifiedName> it = sources.keySet().iterator();
-        QualifiedName left = null;
-        QualifiedName right = null;
+        Iterator<RelationName> it = sources.keySet().iterator();
+        RelationName left = null;
+        RelationName right = null;
         int idx = 0;
         while (it.hasNext()) {
-            QualifiedName sourceName = it.next();
+            RelationName sourceName = it.next();
             if (idx == size - 2) {
                 left = sourceName;
             } else if (idx == size - 1) {
@@ -97,23 +96,12 @@ public class RelationAnalysisContext {
         return joinPairs;
     }
 
-    void addSourceRelation(QualifiedName qualifiedName, AnalyzedRelation relation) {
-        if (sources.put(qualifiedName, relation) != null) {
-            String tableName = qualifiedName.toString();
-            if (tableName.startsWith(".")) {
-                tableName = tableName.substring(1);
-            }
-            String errorMessage = String.format(Locale.ENGLISH, "\"%s\" specified more than once in the FROM clause", tableName);
+    void addSourceRelation(AnalyzedRelation relation) {
+        RelationName relationName = relation.relationName();
+        if (sources.put(relationName, relation) != null) {
+            String errorMessage = String.format(Locale.ENGLISH, "\"%s\" specified more than once in the FROM clause", relationName);
             throw new IllegalArgumentException(errorMessage);
         }
-    }
-
-    void addSourceRelation(String nameOrAlias, AnalyzedRelation relation) {
-        addSourceRelation(new QualifiedName(nameOrAlias), relation);
-    }
-
-    void addSourceRelation(String schemaName, String nameOrAlias, AnalyzedRelation relation) {
-        addSourceRelation(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation);
     }
 
     public ExpressionAnalysisContext expressionAnalysisContext() {

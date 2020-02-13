@@ -22,7 +22,7 @@
 
 package io.crate.action.sql;
 
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -34,21 +34,21 @@ import java.util.List;
 public class DescribeResult {
 
     @Nullable
-    private final List<Field> fields;
+    private final List<Symbol> fields;
     @Nullable
     private DataType[] parameters;
 
-    DescribeResult(@Nullable List<Field> fields) {
+    DescribeResult(@Nullable List<Symbol> fields) {
         this.fields = fields;
     }
 
-    DescribeResult(@Nullable List<Field> fields, @Nullable DataType[] parameters) {
+    DescribeResult(@Nullable List<Symbol> fields, @Nullable DataType[] parameters) {
         this.fields = fields;
         this.parameters = parameters;
     }
 
     @Nullable
-    public List<Field> getFields() {
+    public List<Symbol> getFields() {
         return fields;
     }
 

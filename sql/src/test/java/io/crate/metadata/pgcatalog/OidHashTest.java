@@ -37,18 +37,18 @@ import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
 import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.testing.T3.T1_DEFINITION;
-import static io.crate.testing.T3.T1_RN;
+import static io.crate.testing.T3.T1;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 public class OidHashTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationInfo VIEW_INFO =  new ViewInfo(T1_RN, "", Collections.emptyList(), null);
+    private static final RelationInfo VIEW_INFO =  new ViewInfo(T1, "", Collections.emptyList(), null);
     private RelationInfo t1Info;
 
     @Before
     public void prepare() throws Exception {
-        t1Info = SQLExecutor.tableInfo(T1_RN, T1_DEFINITION, clusterService);
+        t1Info = SQLExecutor.tableInfo(T1, T1_DEFINITION, clusterService);
     }
 
     @Test
@@ -67,7 +67,7 @@ public class OidHashTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testConstraintOid() {
-        assertThat(constraintOid(T1_RN.fqn(), "id_pk", ConstraintInfo.Type.PRIMARY_KEY.toString()),
+        assertThat(constraintOid(T1.fqn(), "id_pk", ConstraintInfo.Type.PRIMARY_KEY.toString()),
             is(279835673));
     }
 }

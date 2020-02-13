@@ -198,7 +198,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("refresh table test");
 
         execute("select \"_version\", *, \"_id\" from test");
-        assertArrayEquals(new String[]{"_version", "id", "first_name", "last_name", "_id"}, response.cols());
+        assertThat(response.cols(), arrayContaining("_version", "id", "first_name", "last_name", "_id"));
         assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{1L, "id1", "Youri", "Zoon", "id1"}, response.rows()[0]);
     }

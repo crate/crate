@@ -46,7 +46,7 @@ public abstract class Operator<I> extends Scalar<Boolean, I> {
         // let's handle this here to prevent unnecessary collect operations
         for (Symbol symbol : function.arguments()) {
             if (symbol instanceof Input && ((Input<?>) symbol).value() == null) {
-                return Literal.NULL;
+                return Literal.of(RETURN_TYPE, null);
             }
         }
         return super.normalizeSymbol(function, txnCtx);

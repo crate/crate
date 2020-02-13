@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.execution.dsl.projection.builder.InputColumns;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -41,7 +40,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
@@ -64,14 +62,9 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
     private final Symbol clusteredBySymbol;
 
     /**
-     * List of columns used for the result set.
-     */
-    @Nullable
-    private final List<Field> fields;
-
-    /**
      * List of values or expressions used to be retrieved from the updated rows.
      */
+    @Nullable
     private final List<Symbol> returnValues;
 
     AnalyzedInsertStatement(AnalyzedRelation subQueryRelation,
@@ -79,7 +72,6 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
                             List<Reference> targetColumns,
                             boolean ignoreDuplicateKeys,
                             Map<Reference, Symbol> onDuplicateKeyAssignments,
-                            List<ColumnIdent> outputNames,
                             List<Symbol> returnValues) {
         this.targetTable = tableInfo;
         this.subQueryRelation = subQueryRelation;
@@ -119,16 +111,6 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
             defaultExpressionColumns,
             false);
         this.returnValues = returnValues;
-        if (!outputNames.isEmpty() && !returnValues.isEmpty()) {
-            this.fields = new ArrayList<>(outputNames.size());
-            Iterator<Symbol> outputsIterator = returnValues.iterator();
-            for (ColumnIdent path : outputNames) {
-                //TODO The relation in the field should point semantically correctly to `this`
-                fields.add(new Field(this.subQueryRelation, path, outputsIterator.next()));
-            }
-        } else {
-            fields = null;
-        }
     }
 
     private static Map<ColumnIdent, Integer> toPositionMap(List<Reference> targetColumns) {
@@ -197,13 +179,9 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
         return symbols;
     }
 
-    @Override
     @Nullable
-    public List<Field> fields() {
-        return fields;
-    }
-
-    public List<Symbol> returnValues() {
+    @Override
+    public List<Symbol> outputs() {
         return returnValues;
     }
 

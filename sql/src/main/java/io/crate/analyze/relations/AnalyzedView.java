@@ -22,41 +22,44 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.Fields;
-import io.crate.analyze.HavingClause;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
-public final class AnalyzedView implements AnalyzedRelation {
+/**
+ * A view is a stored SELECT statement.
+ *
+ * This is semantically equivalent to {@code <relation> AS <viewName>} with the
+ * addition of special privilege behavior (Users can be granted privileges on a view)
+ **/
+public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
 
-    private final QualifiedName qualifiedName;
     private final RelationName name;
     private final String owner;
     private final AnalyzedRelation relation;
-    private final Fields fields;
     private final List<Symbol> outputSymbols;
 
     public AnalyzedView(RelationName name, String owner, AnalyzedRelation relation) {
         this.name = name;
-        this.qualifiedName = QualifiedName.of(name.schema(), name.name());
         this.owner = owner;
-        this.fields = new Fields(relation.fields().size());
         this.relation = relation;
-        for (Field field : relation.fields()) {
-            fields.add(new Field(this, field.path(), field));
+        var childOutputs = relation.outputs();
+        ArrayList<Symbol> outputs = new ArrayList<>(childOutputs.size());
+        for (int i = 0; i < childOutputs.size(); i++) {
+            var output = childOutputs.get(i);
+            var column = Symbols.pathFromSymbol(output);
+            outputs.add(new ScopedSymbol(name, column, output.valueType()));
         }
-        this.outputSymbols = List.copyOf(relation.fields());
+        this.outputSymbols = List.copyOf(outputs);
     }
 
     public String owner() {
@@ -72,77 +75,42 @@ public final class AnalyzedView implements AnalyzedRelation {
     }
 
     @Override
-    public boolean isDistinct() {
-        return false;
-    }
-
-    @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitView(this, context);
     }
 
     @Override
-    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        if (operation != Operation.READ) {
-            throw new UnsupportedOperationException("getField on AnalyzedView is only supported for READ operations");
-        }
-        return fields.getWithSubscriptFallback(path, this, relation);
+    public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        Symbol field = relation.getField(column, operation);
+        return field == null
+            ? null
+            : new ScopedSymbol(name, column, field.valueType());
     }
 
     @Override
+    public RelationName relationName() {
+        return name;
+    }
+
     @Nonnull
-    public List<Field> fields() {
-        return fields.asList();
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
-        return qualifiedName;
-    }
-
     @Override
     public List<Symbol> outputs() {
         return outputSymbols;
     }
 
     @Override
-    public WhereClause where() {
-        return WhereClause.MATCH_ALL;
-    }
-
-    @Override
-    public List<Symbol> groupBy() {
-        return List.of();
-    }
-
-    @Nullable
-    @Override
-    public HavingClause having() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public OrderBy orderBy() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol limit() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol offset() {
-        return null;
-    }
-
-    @Override
     public String toString() {
-        return "AnalyzedView{" + "qualifiedName=" + qualifiedName +
+        return "AnalyzedView{" + "qualifiedName=" + name +
                ", relation=" + relation +
                '}';
+    }
+
+    @Nullable
+    @Override
+    public Symbol resolveField(ScopedSymbol field) {
+        if (!field.relation().equals(name)) {
+            throw new IllegalArgumentException(field + " does not belong to " + name);
+        }
+        return relation.getField(field.column(), Operation.READ);
     }
 }

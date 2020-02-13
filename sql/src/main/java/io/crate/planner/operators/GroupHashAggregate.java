@@ -32,8 +32,8 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -67,30 +67,36 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         long distinctValues = 1;
         int numKeysWithStats = 0;
         for (Symbol groupKey : groupKeys) {
-            while (groupKey instanceof Field) {
-                groupKey = ((Field) groupKey).pointer();
-            }
+
+            Stats stats = null;
+            ColumnStats columnStats = null;
             if (groupKey instanceof Reference) {
                 Reference ref = (Reference) groupKey;
-                Stats stats = tableStats.getStats(ref.ident().tableIdent());
-                ColumnStats columnStats = stats.statsByColumn().get(ref.column());
-                if (columnStats == null) {
-                    // Assume worst case: Every value is unique
-                    distinctValues *= numSourceRows;
-                } else {
-                    // `approxDistinct` is the number of distinct values in relation to `stats.numDocs()´, not in
-                    // relation to `numSourceRows`, which is based on the estimates of a source operator.
-                    // That is why we calculate the cardinality ratio and calculate the new distinct
-                    // values based on `numSourceRows` to account for changes in the number of rows in source operators
-                    //
-                    // e.g. SELECT x, count(*) FROM tbl GROUP BY x
-                    // and  SELECT x, count(*) FROM tbl WHERE pk = 1 GROUP BY x
-                    //
-                    // have a different number of groups
-                    double cardinalityRatio = columnStats.approxDistinct() / stats.numDocs();
-                    distinctValues *= (long) (numSourceRows * cardinalityRatio);
-                }
+                stats = tableStats.getStats(ref.ident().tableIdent());
+                columnStats = stats.statsByColumn().get(ref.column());
                 numKeysWithStats++;
+            } else if (groupKey instanceof ScopedSymbol) {
+                ScopedSymbol scopedSymbol = (ScopedSymbol) groupKey;
+                stats = tableStats.getStats(scopedSymbol.relation());
+                columnStats = stats.statsByColumn().get(scopedSymbol.column());
+                numKeysWithStats++;
+            }
+
+            if (columnStats == null) {
+                // Assume worst case: Every value is unique
+                distinctValues *= numSourceRows;
+            } else {
+                // `approxDistinct` is the number of distinct values in relation to `stats.numDocs()´, not in
+                // relation to `numSourceRows`, which is based on the estimates of a source operator.
+                // That is why we calculate the cardinality ratio and calculate the new distinct
+                // values based on `numSourceRows` to account for changes in the number of rows in source operators
+                //
+                // e.g. SELECT x, count(*) FROM tbl GROUP BY x
+                // and  SELECT x, count(*) FROM tbl WHERE pk = 1 GROUP BY x
+                //
+                // have a different number of groups
+                double cardinalityRatio = columnStats.approxDistinct() / stats.numDocs();
+                distinctValues *= (long) (numSourceRows * cardinalityRatio);
             }
         }
         if (numKeysWithStats == groupKeys.size()) {
@@ -117,7 +123,6 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         return aggregates;
     }
 
-
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
@@ -132,37 +137,68 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        List<Symbol> boundGroupKeys = Lists2.map(groupKeys, paramBinder);
+        //noinspection unchecked,rawtypes
+        List<Function> boundAggregates = (List<Function>)(List) Lists2.map(aggregates, paramBinder);
+        List<Symbol> boundOutputs = Lists2.map(outputs, paramBinder);
+
         List<Symbol> sourceOutputs = source.outputs();
         if (shardsContainAllGroupKeyValues()) {
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                 sourceOutputs,
-                groupKeys,
-                aggregates,
+                boundGroupKeys,
+                boundAggregates,
                 AggregateMode.ITER_FINAL,
                 source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER
             );
-            executionPlan.addProjection(groupProjection);
+            executionPlan.addProjection(groupProjection, TopN.NO_LIMIT, 0, null);
             return executionPlan;
         }
 
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), executionPlan.resultDescription().nodeIds())) {
             if (source.preferShardProjections()) {
                 executionPlan.addProjection(projectionBuilder.groupProjection(
-                    sourceOutputs, groupKeys, aggregates, AggregateMode.ITER_PARTIAL, RowGranularity.SHARD));
-                executionPlan.addProjection(projectionBuilder.groupProjection(
-                    outputs, groupKeys, aggregates, AggregateMode.PARTIAL_FINAL, RowGranularity.NODE));
+                    sourceOutputs,
+                    boundGroupKeys,
+                    boundAggregates,
+                    AggregateMode.ITER_PARTIAL,
+                    RowGranularity.SHARD)
+                );
+                executionPlan.addProjection(
+                    projectionBuilder.groupProjection(
+                        boundOutputs,
+                        boundGroupKeys,
+                        boundAggregates,
+                        AggregateMode.PARTIAL_FINAL,
+                        RowGranularity.NODE
+                    ),
+                    TopN.NO_LIMIT,
+                    0,
+                    null
+                );
                 return executionPlan;
             } else {
-                executionPlan.addProjection(projectionBuilder.groupProjection(
-                    sourceOutputs, groupKeys, aggregates, AggregateMode.ITER_FINAL, RowGranularity.NODE));
+                executionPlan.addProjection(
+                    projectionBuilder.groupProjection(
+                        sourceOutputs,
+                        boundGroupKeys,
+                        boundAggregates,
+                        AggregateMode.ITER_FINAL,
+                        RowGranularity.NODE
+                    ),
+                    TopN.NO_LIMIT,
+                    0,
+                    null
+                );
                 return executionPlan;
             }
         }
 
         GroupProjection toPartial = projectionBuilder.groupProjection(
             sourceOutputs,
-            groupKeys,
-            aggregates,
+            boundGroupKeys,
+            boundAggregates,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
         );
@@ -170,9 +206,9 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         executionPlan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
 
         GroupProjection toFinal = projectionBuilder.groupProjection(
-            this.outputs,
-            groupKeys,
-            aggregates,
+            boundOutputs,
+            boundGroupKeys,
+            boundAggregates,
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER
         );

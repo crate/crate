@@ -61,9 +61,9 @@ import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
@@ -75,6 +75,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
@@ -185,7 +186,7 @@ public class ExpressionAnalyzer {
     public ExpressionAnalyzer(Functions functions,
                               CoordinatorTxnCtx coordinatorTxnCtx,
                               java.util.function.Function<ParameterExpression, Symbol> convertParamFunction,
-                              FieldProvider fieldProvider,
+                              FieldProvider<?> fieldProvider,
                               @Nullable SubqueryAnalyzer subQueryAnalyzer) {
         this(functions, coordinatorTxnCtx, convertParamFunction, fieldProvider, subQueryAnalyzer, Operation.READ);
     }
@@ -193,7 +194,7 @@ public class ExpressionAnalyzer {
     public ExpressionAnalyzer(Functions functions,
                               CoordinatorTxnCtx coordinatorTxnCtx,
                               java.util.function.Function<ParameterExpression, Symbol> convertParamFunction,
-                              FieldProvider fieldProvider,
+                              FieldProvider<?> fieldProvider,
                               @Nullable SubqueryAnalyzer subQueryAnalyzer,
                               Operation operation) {
         this.functions = functions;
@@ -460,7 +461,7 @@ public class ExpressionAnalyzer {
             if (!node.getType().equals(CurrentTime.Type.TIMESTAMP)) {
                 visitExpression(node, context);
             }
-            List<Symbol> args = Lists.newArrayList(
+            List<Symbol> args = List.of(
                 Literal.of(node.getPrecision().orElse(CurrentTimestampFunction.DEFAULT_PRECISION))
             );
             return allocateFunction(CurrentTimestampFunction.NAME, args, context);
@@ -565,13 +566,13 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
-            DataType returnType = DataTypeAnalyzer.convert(node.getType());
+            DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
             return node.getExpression().accept(this, context).cast(returnType, false);
         }
 
         @Override
         protected Symbol visitTryCast(TryCast node, ExpressionAnalysisContext context) {
-            DataType returnType = DataTypeAnalyzer.convert(node.getType());
+            DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
 
             if (CastFunctionResolver.supportsExplicitConversion(returnType)) {
                 try {
@@ -654,8 +655,37 @@ public class ExpressionAnalyzer {
                 Symbol index = node.index().accept(this, context);
                 return allocateFunction(SubscriptFunction.NAME, List.of(base, index), context);
             } else {
+                // Ideally the above base+index + subscriptFunction case would be enough
+                // But:
+                // - We want to avoid subscript functions if possible (we've nested object values in a column store)
+                // - In DDL statement we can't turn a `PRIMARY KEY o['x']` into a subscript either
+                // - In DML statements we can have assignments: obj['x'] = 30
+                // We should come up with a design that addresses those and remove the duct-tape logic below.
+
                 Symbol name;
-                name = fieldProvider.resolveField(qualifiedName, parts, operation);
+                try {
+                    name = fieldProvider.resolveField(qualifiedName, parts, operation);
+                } catch (ColumnUnknownException e) {
+                    if (operation != Operation.READ) {
+                        throw e;
+                    }
+                    try {
+                        Symbol base = fieldProvider.resolveField(qualifiedName, List.of(), operation);
+                        if (base instanceof Reference) {
+                            throw e;
+                        }
+                        return allocateFunction(
+                            SubscriptFunction.NAME,
+                            List.of(
+                                node.base().accept(this, context),
+                                node.index().accept(this, context)
+                            ),
+                            context
+                        );
+                    } catch (ColumnUnknownException e2) {
+                        throw e;
+                    }
+                }
                 Expression idxExpression = subscriptContext.index();
                 if (idxExpression != null) {
                     Symbol index = idxExpression.accept(this, context);
@@ -962,21 +992,22 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitMatchPredicate(MatchPredicate node, ExpressionAnalysisContext context) {
-            Map<Field, Symbol> identBoostMap = new HashMap<>(node.idents().size());
-            DataType columnType = null;
-            HashSet<QualifiedName> relationsInColumns = new HashSet<>();
+            Map<Symbol, Symbol> identBoostMap = new HashMap<>(node.idents().size());
+            DataType<?> columnType = null;
+            HashSet<RelationName> relationsInColumns = new HashSet<>();
             for (MatchPredicateColumnIdent ident : node.idents()) {
                 Symbol column = ident.columnIdent().accept(this, context);
                 if (columnType == null) {
                     columnType = column.valueType();
                 }
                 Preconditions.checkArgument(
-                    column instanceof Field,
+                    column instanceof ScopedSymbol || column instanceof Reference,
                     SymbolPrinter.format("can only MATCH on columns, not on %s", column));
                 Symbol boost = ident.boost().accept(this, context);
-                Field field = (Field) column;
-                identBoostMap.put(field, boost);
-                relationsInColumns.add(field.relation().getQualifiedName());
+                identBoostMap.put(column, boost);
+                if (column instanceof ScopedSymbol) {
+                    relationsInColumns.add(((ScopedSymbol) column).relation());
+                }
             }
             if (relationsInColumns.size() > 1) {
                 throw new IllegalArgumentException("Cannot use MATCH predicates on columns of 2 different relations");
@@ -1005,7 +1036,7 @@ public class ExpressionAnalyzer {
              * this would require {@link StatementAnalysisContext#startRelation} to somehow inherit the parent context
              */
             AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
-            List<Field> fields = relation.fields();
+            List<Symbol> fields = relation.outputs();
             if (fields.size() > 1) {
                 throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported.");
             }
@@ -1113,7 +1144,7 @@ public class ExpressionAnalyzer {
         return newFunction;
     }
 
-    private static void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {
+    private static void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType<?> columnType) {
         Preconditions.checkArgument(
             io.crate.expression.predicate.MatchPredicate.SUPPORTED_TYPES.contains(columnType),
             String.format(Locale.ENGLISH, "Can only use MATCH on columns of type STRING or GEO_SHAPE, not on '%s'", columnType));
@@ -1174,8 +1205,8 @@ public class ExpressionAnalyzer {
          * eq(2, name)  becomes  eq(name, 2)
          */
         private void swapIfNecessary() {
-            if ((!(right instanceof Reference || right instanceof Field)
-                || left instanceof Reference || left instanceof Field)
+            if ((!(right instanceof Reference || right instanceof ScopedSymbol)
+                || left instanceof Reference || left instanceof ScopedSymbol)
                 && left.valueType().id() != DataTypes.UNDEFINED.id()) {
                 return;
             }

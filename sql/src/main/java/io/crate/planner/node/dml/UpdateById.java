@@ -58,12 +58,12 @@ public final class UpdateById implements Plan {
     public UpdateById(DocTableInfo table,
                       Map<Reference, Symbol> assignmentByTargetCol,
                       DocKeys docKeys,
-                      List<Symbol> returnValues) {
+                      @Nullable List<Symbol> returnValues) {
         this.table = table;
         this.assignments = Assignments.convert(assignmentByTargetCol);
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.docKeys = docKeys;
-        this.returnValues = returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[]{});
+        this.returnValues = returnValues == null ? null : returnValues.toArray(new Symbol[0]);
     }
 
     @VisibleForTesting

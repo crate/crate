@@ -112,7 +112,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         Input[] inputs = new Input[arguments.size()];
         int idx = 0;
         for (Symbol arg : arguments) {
-            inputs[idx] = (Input) arg;
+            inputs[idx] = (Input<?>) arg;
             idx++;
         }
         //noinspection unchecked

@@ -36,12 +36,12 @@ the left-hand expression. It returns ``false`` otherwise.
 
 Here's an example::
 
-    cr> select 1 in (1,2,3), 4 in (1,2,3);
-    +------------------+------------------+
-    | (1 IN (1, 2, 3)) | (4 IN (1, 2, 3)) |
-    +------------------+------------------+
-    | TRUE             | FALSE            |
-    +------------------+------------------+
+    cr> select 1 in (1,2,3) AS a, 4 in (1,2,3) AS b;
+    +------+-------+
+    | a    | b     |
+    +------+-------+
+    | TRUE | FALSE |
+    +------+-------+
     SELECT 1 row in set (... sec)
 
 The result of the ``IN`` construct yields ``null`` if:
@@ -70,12 +70,12 @@ comparison.
 
 For example::
 
-    cr> select 1 = any ([1,2,3]), 4 = any ([1,2,3]);
-    +--------------------+--------------------+
-    | 1 = ANY([1, 2, 3]) | 4 = ANY([1, 2, 3]) |
-    +--------------------+--------------------+
-    | TRUE               | FALSE              |
-    +--------------------+--------------------+
+    cr> select 1 = any ([1,2,3]) AS a, 4 = any ([1,2,3]) AS b;
+    +------+-------+
+    | a    | b     |
+    +------+-------+
+    | TRUE | FALSE |
+    +------+-------+
     SELECT 1 row in set (... sec)
 
 

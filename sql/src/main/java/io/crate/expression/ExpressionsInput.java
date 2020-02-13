@@ -48,4 +48,9 @@ public final class ExpressionsInput<TRow, TResult> {
         }
         return input.value();
     }
+
+    @Override
+    public String toString() {
+        return "ExpressionsInput{input=" + input + '}';
+    }
 }

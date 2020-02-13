@@ -241,7 +241,7 @@ public final class CopyFromPlan implements Plan {
             final InputColumn lineNumberSymbol = new InputColumn(toCollect.size(), DataTypes.LONG);
             toCollect.add(SourceLineNumberExpression.getReferenceForRelation(table.ident()));
 
-            List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).fields();
+            List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).outputs();
             projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
 
             sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(

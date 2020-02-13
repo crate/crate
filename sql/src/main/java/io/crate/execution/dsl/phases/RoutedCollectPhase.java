@@ -27,7 +27,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Paging;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -76,9 +76,9 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               DistributionInfo distributionInfo) {
         super(jobId, executionNodeId, name, projections);
         assert toCollect.stream().noneMatch(
-            st -> SymbolVisitors.any(s -> s instanceof Field || s instanceof SelectSymbol, st))
+            st -> SymbolVisitors.any(s -> s instanceof ScopedSymbol || s instanceof SelectSymbol, st))
             : "toCollect must not contain any fields or selectSymbols: " + toCollect;
-        assert !SymbolVisitors.any(s -> s instanceof Field || s instanceof SelectSymbol, where)
+        assert !SymbolVisitors.any(s -> s instanceof ScopedSymbol || s instanceof SelectSymbol, where)
             : "whereClause must not contain any fields or selectSymbols: " + where;
         assert routing != null : "routing must not be null";
 
@@ -172,7 +172,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     }
 
     public void orderBy(@Nullable OrderBy orderBy) {
-        assert orderBy == null || orderBy.orderBySymbols().stream().noneMatch(st -> SymbolVisitors.any(s -> s instanceof Field, st))
+        assert orderBy == null || orderBy.orderBySymbols().stream().noneMatch(st -> SymbolVisitors.any(s -> s instanceof ScopedSymbol, st))
             : "orderBy must not contain any fields: " + orderBy.orderBySymbols();
         this.orderBy = orderBy;
     }

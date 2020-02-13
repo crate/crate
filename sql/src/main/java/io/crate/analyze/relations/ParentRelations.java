@@ -22,7 +22,7 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.sql.tree.QualifiedName;
+import io.crate.metadata.RelationName;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,23 +33,23 @@ public class ParentRelations {
 
     public static final ParentRelations NO_PARENTS = new ParentRelations();
 
-    private final List<Map<QualifiedName, AnalyzedRelation>> sourcesTree;
+    private final List<Map<RelationName, AnalyzedRelation>> sourcesTree;
 
     private ParentRelations() {
         sourcesTree = Collections.emptyList();
     }
 
-    private ParentRelations(ArrayList<Map<QualifiedName, AnalyzedRelation>> sourcesTree) {
+    private ParentRelations(ArrayList<Map<RelationName, AnalyzedRelation>> sourcesTree) {
         this.sourcesTree = sourcesTree;
     }
 
-    public ParentRelations newLevel(Map<QualifiedName, AnalyzedRelation> sources) {
-        ArrayList<Map<QualifiedName, AnalyzedRelation>> newSourcesTree = new ArrayList<>(sourcesTree);
+    public ParentRelations newLevel(Map<RelationName, AnalyzedRelation> sources) {
+        ArrayList<Map<RelationName, AnalyzedRelation>> newSourcesTree = new ArrayList<>(sourcesTree);
         newSourcesTree.add(sources);
         return new ParentRelations(newSourcesTree);
     }
 
-    public boolean containsRelation(QualifiedName qualifiedName) {
+    public boolean containsRelation(RelationName qualifiedName) {
         for (int i = sourcesTree.size() - 1; i >= 0; i--) {
             if (sourcesTree.get(i).containsKey(qualifiedName)) {
                 return true;

@@ -28,6 +28,7 @@ import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -184,6 +185,11 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         // this is a hack, but that is how it worked before, so who cares :)
         SortField.Type type = function.valueType().equals(DataTypes.BOOLEAN) ? null : LUCENE_TYPE_MAP.get(function.valueType());
         return customSortField(function.toString(), function, context, type == null);
+    }
+
+    @Override
+    public SortField visitAlias(AliasSymbol aliasSymbol, SortSymbolContext context) {
+        return aliasSymbol.symbol().accept(this, context);
     }
 
     @Override

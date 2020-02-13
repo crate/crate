@@ -24,7 +24,7 @@ package io.crate.planner.operators;
 
 import com.carrotsearch.hppc.ObjectIntHashMap;
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.sql.tree.QualifiedName;
+import io.crate.metadata.RelationName;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,9 +42,12 @@ final class JoinOrdering {
     private JoinOrdering() {
     }
 
-    static Collection<QualifiedName> getOrderedRelationNames(Collection<QualifiedName> sourceRelations,
-                                                             Set<? extends Set<QualifiedName>> explicitJoinConditions,
-                                                             Set<? extends Set<QualifiedName>> implicitJoinConditions) {
+    static Collection<RelationName> getOrderedRelationNames(Collection<RelationName> sourceRelations,
+                                                            Set<? extends Set<RelationName>> explicitJoinConditions,
+                                                            Set<? extends Set<RelationName>> implicitJoinConditions) {
+        if (sourceRelations.size() == 2) {
+            return sourceRelations;
+        }
         if (explicitJoinConditions.isEmpty() && implicitJoinConditions.isEmpty()) {
             return sourceRelations;
         }
@@ -65,42 +68,42 @@ final class JoinOrdering {
      * @param implicitJoinedRelations contains all relations pairs that have an implicit join condition
      *                                e.g. {{t1, t2}, {t2, t3}}
      */
-    static Collection<QualifiedName> orderByJoinConditions(Collection<QualifiedName> relations,
-                                                           Set<? extends Set<QualifiedName>> explicitJoinedRelations,
-                                                           Set<? extends Set<QualifiedName>> implicitJoinedRelations) {
-        List<Set<QualifiedName>> pairsWithJoinConditions = new ArrayList<>(explicitJoinedRelations);
+    static Collection<RelationName> orderByJoinConditions(Collection<RelationName> relations,
+                                                          Set<? extends Set<RelationName>> explicitJoinedRelations,
+                                                          Set<? extends Set<RelationName>> implicitJoinedRelations) {
+        List<Set<RelationName>> pairsWithJoinConditions = new ArrayList<>(explicitJoinedRelations);
         pairsWithJoinConditions.addAll(implicitJoinedRelations);
 
-        ObjectIntHashMap<QualifiedName> occurrences =
+        ObjectIntHashMap<RelationName> occurrences =
             getOccurrencesInJoinConditions(relations.size(), explicitJoinedRelations, implicitJoinedRelations);
 
-        Set<QualifiedName> firstJoinPair = findAndRemoveFirstJoinPair(occurrences, pairsWithJoinConditions);
+        Set<RelationName> firstJoinPair = findAndRemoveFirstJoinPair(occurrences, pairsWithJoinConditions);
         assert firstJoinPair != null : "firstJoinPair should not be null";
-        LinkedHashSet<QualifiedName> bestOrder = new LinkedHashSet<>(firstJoinPair);
+        LinkedHashSet<RelationName> bestOrder = new LinkedHashSet<>(firstJoinPair);
 
         buildBestOrderByJoinConditions(pairsWithJoinConditions, bestOrder);
         bestOrder.addAll(relations);
         return bestOrder;
     }
 
-    private static ObjectIntHashMap<QualifiedName> getOccurrencesInJoinConditions(
+    private static ObjectIntHashMap<RelationName> getOccurrencesInJoinConditions(
         int numberOfRelations,
-        Set<? extends Set<QualifiedName>> explicitJoinedRelations,
-        Set<? extends Set<QualifiedName>> implicitJoinedRelations) {
+        Set<? extends Set<RelationName>> explicitJoinedRelations,
+        Set<? extends Set<RelationName>> implicitJoinedRelations) {
 
-        ObjectIntHashMap<QualifiedName> occurrences = new ObjectIntHashMap<>(numberOfRelations);
+        ObjectIntHashMap<RelationName> occurrences = new ObjectIntHashMap<>(numberOfRelations);
         explicitJoinedRelations.forEach(o -> o.forEach(qName -> occurrences.putOrAdd(qName, 1, 1)));
         implicitJoinedRelations.forEach(o -> o.forEach(qName -> occurrences.putOrAdd(qName, 1, 1)));
         return occurrences;
     }
 
     @VisibleForTesting
-    static Set<QualifiedName> findAndRemoveFirstJoinPair(ObjectIntHashMap<QualifiedName> occurrences,
-                                                         Collection<Set<QualifiedName>> joinPairs) {
-        Iterator<Set<QualifiedName>> setsIterator = joinPairs.iterator();
+    static Set<RelationName> findAndRemoveFirstJoinPair(ObjectIntHashMap<RelationName> occurrences,
+                                                        Collection<Set<RelationName>> joinPairs) {
+        Iterator<Set<RelationName>> setsIterator = joinPairs.iterator();
         while (setsIterator.hasNext()) {
-            Set<QualifiedName> set = setsIterator.next();
-            for (QualifiedName name : set) {
+            Set<RelationName> set = setsIterator.next();
+            for (RelationName name : set) {
                 int count = occurrences.getOrDefault(name, 0);
                 if (count > 1) {
                     setsIterator.remove();
@@ -111,11 +114,11 @@ final class JoinOrdering {
         return joinPairs.iterator().next();
     }
 
-    private static void buildBestOrderByJoinConditions(List<Set<QualifiedName>> sets, LinkedHashSet<QualifiedName> bestOrder) {
-        Iterator<Set<QualifiedName>> setsIterator = sets.iterator();
+    private static void buildBestOrderByJoinConditions(List<Set<RelationName>> sets, LinkedHashSet<RelationName> bestOrder) {
+        Iterator<Set<RelationName>> setsIterator = sets.iterator();
         while (setsIterator.hasNext()) {
-            Set<QualifiedName> set = setsIterator.next();
-            for (QualifiedName name : set) {
+            Set<RelationName> set = setsIterator.next();
+            for (RelationName name : set) {
                 if (bestOrder.contains(name)) {
                     bestOrder.addAll(set);
                     setsIterator.remove();

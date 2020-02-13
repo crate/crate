@@ -32,11 +32,11 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -104,8 +104,8 @@ public final class JoinOperations {
     }
 
 
-    public static LinkedHashMap<Set<QualifiedName>, JoinPair> buildRelationsToJoinPairsMap(List<JoinPair> joinPairs) {
-        LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairsMap = new LinkedHashMap<>();
+    public static LinkedHashMap<Set<RelationName>, JoinPair> buildRelationsToJoinPairsMap(List<JoinPair> joinPairs) {
+        LinkedHashMap<Set<RelationName>, JoinPair> joinPairsMap = new LinkedHashMap<>();
         for (JoinPair joinPair : joinPairs) {
             if (joinPair.condition() == null) {
                 continue;
@@ -127,14 +127,14 @@ public final class JoinOperations {
      * @return the new list of {@link JoinPair}
      */
     public static List<JoinPair> convertImplicitJoinConditionsToJoinPairs(List<JoinPair> explicitJoinPairs,
-                                                                          Map<Set<QualifiedName>, Symbol> splitQueries) {
-        Iterator<Map.Entry<Set<QualifiedName>, Symbol>> queryIterator = splitQueries.entrySet().iterator();
+                                                                          Map<Set<RelationName>, Symbol> splitQueries) {
+        Iterator<Map.Entry<Set<RelationName>, Symbol>> queryIterator = splitQueries.entrySet().iterator();
         ArrayList<JoinPair> newJoinPairs = new ArrayList<>(explicitJoinPairs.size() + splitQueries.size());
         newJoinPairs.addAll(explicitJoinPairs);
 
         while (queryIterator.hasNext()) {
-            Map.Entry<Set<QualifiedName>, Symbol> queryEntry = queryIterator.next();
-            Set<QualifiedName> relations = queryEntry.getKey();
+            Map.Entry<Set<RelationName>, Symbol> queryEntry = queryIterator.next();
+            Set<RelationName> relations = queryEntry.getKey();
 
             if (relations.size() == 2) { // If more than 2 relations are involved it cannot be converted to a JoinPair
                 Symbol implicitJoinCondition = queryEntry.getValue();
@@ -170,7 +170,7 @@ public final class JoinOperations {
                     }
                 }
                 if (newJoinPair == null) {
-                    Iterator<QualifiedName> namesIter = relations.iterator();
+                    Iterator<RelationName> namesIter = relations.iterator();
                     newJoinPair = JoinPair.of(namesIter.next(), namesIter.next(), JoinType.INNER, implicitJoinCondition);
                     queryIterator.remove();
                     newJoinPairs.add(newJoinPair);

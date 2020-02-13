@@ -21,15 +21,11 @@
 
 package io.crate.expression.scalar;
 
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
@@ -37,7 +33,22 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
+import javax.annotation.Nullable;
+import java.util.List;
+
 public final class SubscriptFunctions {
+
+    public static Function makeObjectSubscript(Symbol base, List<String> path) {
+        assert base.valueType().id() == ObjectType.ID
+            : "makeObjectSubscript only works on base symbols of type `object`, got `" + base.valueType().getName() + '`';
+        List<Symbol> arguments = Lists2.mapTail(base, path, Literal::of);
+        DataType<?> returnType = ((ObjectType) base.valueType()).resolveInnerType(path);
+        return Function.of(SubscriptObjectFunction.NAME, arguments, returnType);
+    }
+
+    public static Function makeObjectSubscript(Symbol base, ColumnIdent column) {
+        return makeObjectSubscript(base, column.path());
+    }
 
     @Nullable
     public static Function tryCreateSubscript(Symbol baseSymbol, List<String> path) {
@@ -48,10 +59,7 @@ public final class SubscriptFunctions {
             case ObjectType.ID: {
                 List<Symbol> arguments = Lists2.mapTail(baseSymbol, path, Literal::of);
                 DataType<?> returnType = ((ObjectType) baseType).resolveInnerType(path);
-                return new Function(
-                    new FunctionInfo(new FunctionIdent(SubscriptObjectFunction.NAME, Symbols.typeView(arguments)), returnType),
-                    arguments
-                );
+                return Function.of(SubscriptObjectFunction.NAME, arguments, returnType);
             }
 
             case RowType.ID: {

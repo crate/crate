@@ -27,7 +27,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.sql.tree.QualifiedName;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -48,9 +48,9 @@ public class InputColumnsTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        Map<QualifiedName, AnalyzedRelation> sources = T3.sources(List.of(T3.T1_RN), clusterService);
+        Map<RelationName, AnalyzedRelation> sources = T3.sources(List.of(T3.T1), clusterService);
 
-        DocTableRelation tr1 = (DocTableRelation) T3.fromSource(T3.T1_RN, sources);
+        DocTableRelation tr1 = (DocTableRelation) sources.get(T3.T1);
         sqlExpressions = new SqlExpressions(sources, tr1);
     }
 

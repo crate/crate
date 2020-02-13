@@ -21,20 +21,22 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
@@ -42,13 +44,15 @@ import java.util.Set;
 public final class RelationName implements Writeable {
 
     private static final Set<String> INVALID_NAME_CHARACTERS = ImmutableSet.of(".");
+
+    @Nullable
     private final String schema;
     private final String name;
 
     public static RelationName of(QualifiedName name, String defaultSchema) {
         List<String> parts = name.getParts();
         Preconditions.checkArgument(parts.size() < 3,
-            "Table with more then 2 QualifiedName parts is not supported. only <schema>.<tableName> works.");
+            "Table with more than 2 QualifiedName parts is not supported. Only <schema>.<tableName> works.");
         if (parts.size() == 2) {
             return new RelationName(parts.get(0), parts.get(1));
         }
@@ -80,17 +84,21 @@ public final class RelationName implements Writeable {
     }
 
     public RelationName(StreamInput in) throws IOException {
-        schema = in.readString();
+        if (in.getVersion().before(Version.V_4_2_0)) {
+            schema = in.readString();
+        } else {
+            schema = in.readOptionalString();
+        }
         name = in.readString();
     }
 
-    public RelationName(String schema, String name) {
-        assert schema != null : "schema name must not be null";
+    public RelationName(@Nullable String schema, String name) {
         assert name != null : "table name must not be null";
         this.schema = schema;
         this.name = name;
     }
 
+    @Nullable
     public String schema() {
         return schema;
     }
@@ -100,17 +108,35 @@ public final class RelationName implements Writeable {
     }
 
     public String fqn() {
+        if (schema == null) {
+            return name;
+        }
         return schema + "." + name;
     }
 
     public String sqlFqn() {
+        if (schema == null) {
+            return Identifiers.quoteIfNeeded(name);
+        }
         return Identifiers.quoteIfNeeded(schema) + "." + Identifiers.quoteIfNeeded(name);
+    }
+
+    public QualifiedName toQualifiedName() {
+        if (schema == null) {
+            return new QualifiedName(name);
+        } else {
+            return new QualifiedName(List.of(schema, name));
+        }
     }
 
     /**
      * @return The indexName for non-partitioned tables or the alias name for partitioned tables.
      */
     public String indexNameOrAlias() {
+        if (schema == null) {
+            throw new IllegalStateException(
+                "indexNameOrAlias can only be generated from a RelationName that is fully qualified.");
+        }
         if (schema.equalsIgnoreCase(Schemas.DOC_SCHEMA_NAME)) {
             return name;
         } else if (schema.equalsIgnoreCase(BlobSchemaInfo.NAME)) {
@@ -144,33 +170,41 @@ public final class RelationName implements Writeable {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        RelationName o = (RelationName) obj;
-        return Objects.equal(schema, o.schema) &&
-               Objects.equal(name, o.name);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = schema.hashCode();
-        result = 31 * result + name.hashCode();
-        return result;
-    }
-
-    @Override
     public String toString() {
         return fqn();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(schema);
+        if (out.getVersion().before(Version.V_4_2_0)) {
+            out.writeString(schema == null ? DocSchemaInfo.NAME : schema);
+        } else {
+            out.writeOptionalString(schema);
+        }
         out.writeString(name);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        RelationName that = (RelationName) o;
+
+        if (schema != null ? !schema.equals(that.schema) : that.schema != null) {
+            return false;
+        }
+        return name.equals(that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = schema != null ? schema.hashCode() : 0;
+        result = 31 * result + name.hashCode();
+        return result;
     }
 }

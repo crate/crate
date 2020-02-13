@@ -67,15 +67,15 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
         return union.replaceSources(List.of(lhsOrder, rhsOrder));
     }
 
-    private static Order updateSources(Order order, LogicalPlan rhs) {
+    private static Order updateSources(Order order, LogicalPlan child) {
         List<Symbol> sourceOutputs = order.source().outputs();
-        return new Order(rhs, order.orderBy().map(s -> {
+        return new Order(child, order.orderBy().map(s -> {
             int idx = sourceOutputs.indexOf(s);
             if (idx < 0) {
                 throw new IllegalArgumentException(
                     "The ORDER BY expression " + s + " must be part of the child union: " + sourceOutputs);
             }
-            return rhs.outputs().get(idx);
+            return child.outputs().get(idx);
         }));
     }
 }

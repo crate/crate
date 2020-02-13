@@ -24,14 +24,15 @@ package io.crate.analyze.relations;
 
 
 import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.planner.consumer.QualifiedNameCollector;
-import io.crate.sql.tree.QualifiedName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.planner.consumer.RelationNameCollector;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -45,7 +46,7 @@ public class QuerySplitter {
 
     /**
      * <p>
-     * Splits a (function) symbol on <code>AND</code> based on relation occurrences of {@link io.crate.expression.symbol.Field}
+     * Splits a (function) symbol on <code>AND</code> based on relation occurrences of {@link ScopedSymbol}
      * into multiple symbols.
      * </p>
      * <p>
@@ -83,18 +84,18 @@ public class QuerySplitter {
      *     set(t2, t3)  -> t2.x = t3.x
      * </pre>
      */
-    public static Map<Set<QualifiedName>, Symbol> split(Symbol query) {
+    public static Map<Set<RelationName>, Symbol> split(Symbol query) {
         Context context = new Context(query);
         query.accept(SPLIT_VISITOR, context);
         return context.parts;
     }
 
     private static class Context {
-        final Set<QualifiedName> allNames;
-        final LinkedHashMap<Set<QualifiedName>, Symbol> parts;
+        final Set<RelationName> allNames;
+        final LinkedHashMap<Set<RelationName>, Symbol> parts;
 
         public Context(Symbol query) {
-            allNames = QualifiedNameCollector.collect(query);
+            allNames = RelationNameCollector.collect(query);
             parts = new LinkedHashMap<>();
         }
     }
@@ -113,7 +114,7 @@ public class QuerySplitter {
         @Override
         public Void visitFunction(Function function, Context ctx) {
             if (!function.info().equals(AndOperator.INFO)) {
-                Set<QualifiedName> qualifiedNames = QualifiedNameCollector.collect(function);
+                Set<RelationName> qualifiedNames = RelationNameCollector.collect(function);
                 Symbol prevQuery = ctx.parts.put(qualifiedNames, function);
                 if (prevQuery != null) {
                     ctx.parts.put(qualifiedNames, AndOperator.of(prevQuery, function));
@@ -127,16 +128,26 @@ public class QuerySplitter {
         }
 
         @Override
-        public Void visitField(Field field, Context ctx) {
-            ctx.parts.put(Collections.singleton(field.relation().getQualifiedName()), field);
+        public Void visitField(ScopedSymbol field, Context ctx) {
+            ctx.parts.put(Collections.singleton(field.relation()), field);
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference ref, Context ctx) {
+            ctx.parts.put(Set.of(ref.ident().tableIdent()), ref);
             return null;
         }
 
         @Override
         public Void visitMatchPredicate(MatchPredicate matchPredicate, Context ctx) {
-            LinkedHashSet<QualifiedName> relationNames = new LinkedHashSet<>();
-            for (Field field : matchPredicate.identBoostMap().keySet()) {
-                relationNames.add(field.relation().getQualifiedName());
+            LinkedHashSet<RelationName> relationNames = new LinkedHashSet<>();
+            for (Symbol field : matchPredicate.identBoostMap().keySet()) {
+                if (field instanceof ScopedSymbol) {
+                    relationNames.add(((ScopedSymbol) field).relation());
+                } else if (field instanceof Reference) {
+                    relationNames.add(((Reference) field).ident().tableIdent());
+                }
             }
             ctx.parts.put(relationNames, matchPredicate);
             return null;

@@ -987,26 +987,26 @@ Window functions
 CrateDB supports the :ref:`OVER <over>` clause to enable the execution of
 :ref:`window functions <window-functions>`::
 
-   cr> select sum(position) OVER(), name from locations order by name;
-   +-----------------------+------------------------------------+
-   | sum(position) OVER () | name                               |
-   +-----------------------+------------------------------------+
-   |                    67 |                                    |
-   |                    67 | Aldebaran                          |
-   |                    67 | Algol                              |
-   |                    67 | Allosimanius Syneca                |
-   |                    67 | Alpha Centauri                     |
-   |                    67 | Altair                             |
-   |                    67 | Argabuthon                         |
-   |                    67 | Arkintoofle Minor                  |
-   |                    67 | Bartledan                          |
-   |                    67 | Berlin                             |
-   |                    67 | Dornbirn                           |
-   |                    67 | Galactic Sector QQ7 Active J Gamma |
-   |                    67 | North West Ripple                  |
-   |                    67 | Outer Eastern Rim                  |
-   |                    67 | NULL                               |
-   +-----------------------+------------------------------------+
+   cr> select sum(position) OVER() AS pos_sum, name from locations order by name;
+   +---------+------------------------------------+
+   | pos_sum | name                               |
+   +---------+------------------------------------+
+   |      67 |                                    |
+   |      67 | Aldebaran                          |
+   |      67 | Algol                              |
+   |      67 | Allosimanius Syneca                |
+   |      67 | Alpha Centauri                     |
+   |      67 | Altair                             |
+   |      67 | Argabuthon                         |
+   |      67 | Arkintoofle Minor                  |
+   |      67 | Bartledan                          |
+   |      67 | Berlin                             |
+   |      67 | Dornbirn                           |
+   |      67 | Galactic Sector QQ7 Active J Gamma |
+   |      67 | North West Ripple                  |
+   |      67 | Outer Eastern Rim                  |
+   |      67 | NULL                               |
+   +---------+------------------------------------+
    SELECT 15 rows in set (... sec)
 
 .. _sql_dql_group_by:

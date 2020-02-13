@@ -22,6 +22,7 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
@@ -30,6 +31,8 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.selectivity.SelectivityFunctions;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
@@ -57,13 +60,15 @@ public class MergeFilterAndCollect implements Rule<Filter> {
                              TableStats tableStats,
                              TransactionContext txnCtx) {
         Collect collect = captures.get(collectCapture);
+        Stats stats = tableStats.getStats(collect.relation().tableInfo().ident());
+        WhereClause newWhere = collect.where().add(filter.query());
         return new Collect(
             collect.preferSourceLookup(),
             collect.relation(),
             collect.outputs(),
-            collect.where().add(filter.query()),
-            collect.numExpectedRows(),
-            collect.estimatedRowSize()
+            newWhere,
+            SelectivityFunctions.estimateNumRows(stats, newWhere.queryOrFallback(), null),
+            stats.averageSizePerRowInBytes()
         );
     }
 }

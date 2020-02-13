@@ -32,7 +32,6 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
@@ -63,7 +62,7 @@ public class UserDefinedFunctionsTest extends UdfUnitTest {
             .build();
         DocTableInfo users = sqlExecutor.schemas().getTableInfo(new RelationName("doc", "users"));
         sqlExpressions = new SqlExpressions(
-            ImmutableMap.of(new QualifiedName("users"), new DocTableRelation(users)));
+            ImmutableMap.of(users.ident(), new DocTableRelation(users)));
         functions = sqlExpressions.functions();
         udfService.registerLanguage(DUMMY_LANG);
     }

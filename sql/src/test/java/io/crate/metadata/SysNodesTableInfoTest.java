@@ -77,7 +77,7 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
         AnalyzedRelation statement = e.analyze("select fs['data']['path'] from sys.nodes");
-        assertThat(statement.fields().get(0).valueType(), is(new ArrayType<>(DataTypes.STRING)));
+        assertThat(statement.outputs().get(0).valueType(), is(new ArrayType<>(DataTypes.STRING)));
     }
 
     @Test

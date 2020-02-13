@@ -29,12 +29,12 @@ full syntax description.
 
 ::
 
-    cr> SELECT doc.my_subtract_function(3, 1);
-    +--------------------------------+
-    | doc.my_subtract_function(3, 1) |
-    +--------------------------------+
-    |                              2 |
-    +--------------------------------+
+    cr> SELECT doc.my_subtract_function(3, 1) AS col;
+    +-----+
+    | col |
+    +-----+
+    |   2 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 ``CREATE OR REPLACE FUNCTION`` will either create a new function or replace
@@ -52,12 +52,12 @@ an existing function definition::
 
 ::
 
-    cr> SELECT doc.log10(10);
-    +---------------+
-    | doc.log10(10) |
-    +---------------+
-    |           1.0 |
-    +---------------+
+    cr> SELECT doc.log10(10) AS col;
+    +-----+
+    | col |
+    +-----+
+    | 1.0 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 It is possible to use named function arguments in the function signature. For
