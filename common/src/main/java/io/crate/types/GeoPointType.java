@@ -170,4 +170,9 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     public int fixedSize() {
         return 40; // 2x double + array overhead
     }
+
+    @Override
+    public boolean isConvertableTo(DataType<?> other) {
+        return other.id() == id() || other instanceof ArrayType && ((ArrayType<?>) other).innerType().equals(DataTypes.DOUBLE);
+    }
 }

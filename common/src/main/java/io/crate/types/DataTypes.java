@@ -139,33 +139,34 @@ public final class DataTypes {
             entry(RowType.ID, RowType::new))
         );
 
-    private static final Set<DataType> NUMBER_CONVERSIONS = Stream.concat(
+    private static final Set<Integer> NUMBER_CONVERSIONS = Stream.concat(
         Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, IP),
         NUMERIC_PRIMITIVE_TYPES.stream()
-    ).collect(toSet());
+    ).map(DataType::id).collect(toSet());
 
     // allowed conversion from key to one of the value types
     // the key type itself does not need to be in the value set
-    static final Map<Integer, Set<DataType>> ALLOWED_CONVERSIONS = Map.ofEntries(
+    static final Map<Integer, Set<Integer>> ALLOWED_CONVERSIONS = Map.ofEntries(
         entry(BYTE.id(), NUMBER_CONVERSIONS),
         entry(SHORT.id(), NUMBER_CONVERSIONS),
         entry(INTEGER.id(), NUMBER_CONVERSIONS),
         entry(LONG.id(), NUMBER_CONVERSIONS),
         entry(FLOAT.id(), NUMBER_CONVERSIONS),
         entry(DOUBLE.id(), NUMBER_CONVERSIONS),
-        entry(BOOLEAN.id(), Set.of(STRING)),
+        entry(BOOLEAN.id(), Set.of(STRING.id())),
         entry(STRING.id(), Stream.concat(
-            Stream.of(GEO_SHAPE, GEO_POINT, ObjectType.untyped()),
+            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID),
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
-        entry(IP.id(), Set.of(STRING)),
-        entry(TIMESTAMPZ.id(), Set.of(DOUBLE, LONG, STRING, TIMESTAMP)),
-        entry(TIMESTAMP.id(), Set.of(DOUBLE, LONG, STRING, TIMESTAMPZ)),
+        entry(IP.id(), Set.of(STRING.id())),
+        entry(TIMESTAMPZ.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMP.id())),
+        entry(TIMESTAMP.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id())),
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
-        entry(GEO_POINT.id(), Set.of(new ArrayType<>(DOUBLE))),
-        entry(GEO_SHAPE.id(), Set.of(ObjectType.untyped())),
-        entry(ObjectType.ID, Set.of(GEO_SHAPE)),
-        entry(ArrayType.ID, Set.of())); // convertability handled in ArrayType
+        entry(GEO_POINT.id(), Set.of()),
+        entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
+        entry(ObjectType.ID, Set.of(GEO_SHAPE.id())),
+        entry(ArrayType.ID, Set.of()) // convertability handled in ArrayType
+    );
 
     /**
      * Contains number conversions which are "safe" (= a conversion would not reduce the number of bytes
