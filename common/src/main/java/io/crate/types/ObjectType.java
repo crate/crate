@@ -181,9 +181,9 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public boolean isConvertableTo(DataType o) {
-        Set<DataType> conversions = ALLOWED_CONVERSIONS.getOrDefault(id(), Set.of());
-        if (conversions.contains(o)) {
+    public boolean isConvertableTo(DataType<?> o) {
+        Set<Integer> conversions = ALLOWED_CONVERSIONS.getOrDefault(id(), Set.of());
+        if (conversions.contains(o.id())) {
             return true;
         }
 
