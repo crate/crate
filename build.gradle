@@ -1,5 +1,5 @@
-import java.security.Security
 import org.gradle.api.JavaVersion
+import io.crate.gradle.OS
 import io.crate.gradle.TestLogger;
 
 buildscript {
@@ -15,7 +15,6 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '2.0.4'
 }
 
-
 def download(File downloadDir, String url, String name) {
     downloadDir.mkdirs()
     def dest = new File(downloadDir, name)
@@ -30,6 +29,19 @@ def download(File downloadDir, String url, String name) {
 }
 
 apply from: 'gradle/dependencies.gradle'
+apply plugin: 'base'
+apply plugin: 'jdk-download'
+
+jdks {
+    runtime {
+        vendor = "${System.getProperty("bundled_jdk_vendor", versions['bundled_jdk_vendor'])}"
+        version = "${System.getProperty("bundled_jdk_version", versions['bundled_jdk_version'])}"
+        platform = System.getProperty("platform",
+                versions['platform'] != null
+                        ? "${versions['platform']}"
+                        : OS.current().name().toLowerCase())
+    }
+}
 
 repositories {
     mavenCentral()
@@ -44,14 +56,23 @@ allprojects {
     apply plugin: 'jacoco'
 
     tasks.withType(JavaCompile) {
-        sourceCompatibility = "11"
-        targetCompatibility = "11"
+        dependsOn rootProject.jdks.runtime
+        doFirst {
+            options.fork = true
+            options.forkOptions.javaHome = rootProject.jdks.runtime.getJavaHome()
+            options.forkOptions.executable = rootProject.jdks.runtime.getBinJavaPath()
+        }
+        sourceCompatibility = rootProject.jdks.runtime.major()
+        targetCompatibility = rootProject.jdks.runtime.major()
         options.encoding = 'UTF-8'
     }
 
     tasks.withType(Test) {
         // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
         outputs.upToDateWhen { false }
+
+        dependsOn rootProject.jdks.runtime
+        executable = rootProject.jdks.runtime.getBinJavaPath()
 
         minHeapSize = "1024m"
         maxHeapSize = "1024m"
@@ -117,6 +138,12 @@ allprojects {
         }
     }
 
+}
+
+clean {
+    doLast {
+        delete project.buildDir
+    }
 }
 
 // intellij configuration

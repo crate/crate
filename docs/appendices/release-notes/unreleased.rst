@@ -65,6 +65,10 @@ None
 Changes
 =======
 
+- Include the bundled version of ``OpenJDK`` (13.0.2+8) into the ``CrateDB``
+  built. It means that ``CrateDB`` doesn't rely the ``JAVA_HOME`` of the host
+  system any longer.
+
 - Added the `pg_catalog.pg_proc <postgres_pg_catalog>`_ table.
 
 - Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>`

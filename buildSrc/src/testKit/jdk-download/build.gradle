@@ -1,0 +1,11 @@
+ext {
+    fakeJdkVendor = Objects.requireNonNull(System.getProperty('tests.jdk_vendor'))
+    fakeJdkVersion = Objects.requireNonNull(System.getProperty('tests.jdk_version'))
+}
+
+repositories {
+    flatDir {
+        name "jdk_repo_${fakeJdkVendor}_${fakeJdkVersion}"
+        dirs "${projectDir}/fake_repos/jdk_repo_${fakeJdkVendor}_${fakeJdkVersion}"
+    }
+}
