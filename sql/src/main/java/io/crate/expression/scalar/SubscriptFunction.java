@@ -23,6 +23,9 @@ package io.crate.expression.scalar;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.FuncArg;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
@@ -39,6 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+
+import static io.crate.expression.scalar.SubscriptObjectFunction.tryToInferReturnTypeFromObjectTypeAndArguments;
 
 /** Supported subscript expressions:
  * <ul>
@@ -67,6 +72,18 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Override
+    public Symbol normalizeSymbol(Function func, TransactionContext txnCtx) {
+        Symbol result = evaluateIfLiterals(this, txnCtx, func);
+        if (result instanceof Literal) {
+            return result;
+        }
+        if (func.arguments().get(0).valueType().id() == ObjectType.ID) {
+            return tryToInferReturnTypeFromObjectTypeAndArguments(func);
+        }
+        return func;
     }
 
     @Override

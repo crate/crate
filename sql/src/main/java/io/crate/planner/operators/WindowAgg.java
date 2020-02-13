@@ -76,7 +76,21 @@ public class WindowAgg extends ForwardingLogicalPlan {
              * Pass along the source outputs as standalone symbols as they might be required in cases like:
              *      select x, avg(x) OVER() from t;
              */
-            lastWindowAgg = new WindowAgg(lastWindowAgg, entry.getKey(), entry.getValue(), lastWindowAgg.outputs());
+
+            ArrayList<WindowFunction> functions = entry.getValue();
+            WindowDefinition windowDefinition = entry.getKey();
+            OrderBy orderBy = windowDefinition.orderBy();
+            if (orderBy == null || lastWindowAgg.outputs().containsAll(orderBy.orderBySymbols())) {
+                lastWindowAgg = new WindowAgg(lastWindowAgg, windowDefinition, functions, lastWindowAgg.outputs());
+            } else {
+                // ``WindowProjector.createUpdateProbeValueFunction` expects that all OrderBY symbols are `InputColumn`
+                // Here we have a case where there is a function or something in the orderBy expression that is *not*
+                // already provided by the source.
+                // -> Inject `eval` so that the `orderBy` of the window-function will turn into a `InputColumn`
+                Eval eval = new Eval(
+                    lastWindowAgg, Lists2.concatUnique(lastWindowAgg.outputs(), orderBy.orderBySymbols()));
+                lastWindowAgg = new WindowAgg(eval, windowDefinition, functions, eval.outputs());
+            }
         }
         return lastWindowAgg;
     }

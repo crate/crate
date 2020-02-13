@@ -35,7 +35,7 @@ import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -583,7 +583,7 @@ class PostgresWireProtocol {
         byte type = buffer.readByte();
         String portalOrStatement = readCString(buffer);
         DescribeResult describeResult = session.describe((char) type, portalOrStatement);
-        Collection<Field> fields = describeResult.getFields();
+        Collection<Symbol> fields = describeResult.getFields();
         DataType[] parameterTypes = describeResult.getParameters();
         if (parameterTypes != null) {
             Messages.sendParameterDescription(channel, parameterTypes);
@@ -701,7 +701,7 @@ class PostgresWireProtocol {
             session.parse("", query, Collections.emptyList());
             session.bind("", "", Collections.emptyList(), null);
             DescribeResult describeResult = session.describe('P', "");
-            List<Field> fields = describeResult.getFields();
+            List<Symbol> fields = describeResult.getFields();
 
             Function<Throwable, Exception> wrapError = SQLExceptions.forWireTransmission(
                 getAccessControl.apply(session.sessionContext()));
@@ -714,7 +714,7 @@ class PostgresWireProtocol {
                     query,
                     channel,
                     wrapError,
-                    Lists2.map(fields, Field::valueType),
+                    Lists2.map(fields, Symbol::valueType),
                     null
                 );
                 session.execute("", 0, resultSetReceiver);

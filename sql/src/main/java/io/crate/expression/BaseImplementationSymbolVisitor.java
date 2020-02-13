@@ -25,6 +25,7 @@ package io.crate.expression;
 import com.google.common.base.Joiner;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -83,6 +84,11 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
     @Override
     public Input<?> visitDynamicReference(DynamicReference symbol, C context) {
         return visitReference(symbol, context);
+    }
+
+    @Override
+    public Input<?> visitAlias(AliasSymbol aliasSymbol, C context) {
+        return aliasSymbol.symbol().accept(this, context);
     }
 
     @Override

@@ -32,6 +32,7 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.instanceOf;
 
@@ -52,7 +53,7 @@ public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat(symbol, instanceOf(Function.class));
 
         var function = (Function) symbol;
-        assertThat(function.filter(), isFunction("op_>", isField("x"), isLiteral(1)));
+        assertThat(function.filter(), isFunction("op_>", isReference("x"), isLiteral(1)));
     }
 
     @Test
@@ -63,7 +64,7 @@ public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUni
         var outerFunc = (Function) symbol;
         assertThat(outerFunc.arguments().size(), is(1));
         var innerFunc = (Function) outerFunc.arguments().get(0);
-        assertThat(innerFunc.filter(), isFunction("op_<", isField("x"), isLiteral(1)));
+        assertThat(innerFunc.filter(), isFunction("op_<", isReference("x"), isLiteral(1)));
     }
 
     @Test

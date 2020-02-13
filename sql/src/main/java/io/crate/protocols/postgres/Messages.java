@@ -24,7 +24,8 @@ package io.crate.protocols.postgres;
 
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -32,8 +33,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -386,7 +387,7 @@ public class Messages {
      * <p>
      * See https://www.postgresql.org/docs/current/static/protocol-message-formats.html
      */
-    static void sendRowDescription(Channel channel, Collection<Field> columns, @Nullable FormatCodes.FormatCode[] formatCodes) {
+    static void sendRowDescription(Channel channel, Collection<Symbol> columns, @Nullable FormatCodes.FormatCode[] formatCodes) {
         int length = 4 + 2;
         int columnSize = 4 + 2 + 4 + 2 + 4 + 2;
         ByteBuf buffer = channel.alloc().buffer(
@@ -397,8 +398,8 @@ public class Messages {
         buffer.writeShort(columns.size());
 
         int idx = 0;
-        for (Field column : columns) {
-            byte[] nameBytes = column.path().sqlFqn().getBytes(StandardCharsets.UTF_8);
+        for (Symbol column : columns) {
+            byte[] nameBytes = Symbols.pathFromSymbol(column).sqlFqn().getBytes(StandardCharsets.UTF_8);
             length += nameBytes.length + 1;
             length += columnSize;
 
@@ -406,7 +407,7 @@ public class Messages {
             buffer.writeInt(0);     // table_oid
             buffer.writeShort(0);   // attr_num
 
-            PGType pgType = PGTypes.get(column.valueType());
+            PGType<?> pgType = PGTypes.get(column.valueType());
             buffer.writeInt(pgType.oid());
             buffer.writeShort(pgType.typeLen());
             buffer.writeInt(pgType.typeMod());

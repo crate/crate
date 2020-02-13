@@ -30,18 +30,19 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -115,14 +116,14 @@ public class TableIdentsExtractor {
         }
 
         @Override
-        public Collection<RelationName> visitField(Field field, Void context) {
-            return RELATION_TABLE_IDENT_EXTRACTOR.process(field.relation(), context);
+        public Collection<RelationName> visitField(ScopedSymbol field, Void context) {
+            return List.of(field.relation());
         }
 
         @Override
         public Collection<RelationName> visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
             Set<RelationName> relationNames = new HashSet<>();
-            for (Map.Entry<Field, Symbol> entry : matchPredicate.identBoostMap().entrySet()) {
+            for (Map.Entry<Symbol, Symbol> entry : matchPredicate.identBoostMap().entrySet()) {
                 relationNames.addAll(entry.getKey().accept(this, context));
                 relationNames.addAll(entry.getValue().accept(this, context));
             }
@@ -156,15 +157,6 @@ public class TableIdentsExtractor {
         }
 
         @Override
-        public Collection<RelationName> visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Void context) {
-            Collection<RelationName> relationNames = new HashSet<>(multiSourceSelect.sources().size());
-            for (AnalyzedRelation relation : multiSourceSelect.sources().values()) {
-                relationNames.addAll(process(relation, context));
-            }
-            return relationNames;
-        }
-
-        @Override
         public Collection<RelationName> visitTableRelation(TableRelation tableRelation, Void context) {
             return Collections.singletonList(tableRelation.tableInfo().ident());
         }
@@ -181,7 +173,11 @@ public class TableIdentsExtractor {
 
         @Override
         public Collection<RelationName> visitQueriedSelectRelation(QueriedSelectRelation relation, Void context) {
-            return process(relation.subRelation(), context);
+            ArrayList<RelationName> names = new ArrayList<>();
+            for (AnalyzedRelation analyzedRelation : relation.from()) {
+                names.addAll(analyzedRelation.accept(this, context));
+            }
+            return names;
         }
     }
 }

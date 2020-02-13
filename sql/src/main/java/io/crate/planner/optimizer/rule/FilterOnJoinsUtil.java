@@ -26,9 +26,9 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -51,7 +51,7 @@ final class FilterOnJoinsUtil {
                 getNewSource(query, join.sources().get(1))
             ));
         }
-        Map<Set<QualifiedName>, Symbol> splitQuery = QuerySplitter.split(query);
+        Map<Set<RelationName>, Symbol> splitQuery = QuerySplitter.split(query);
         int initialParts = splitQuery.size();
         if (splitQuery.size() == 1 && splitQuery.keySet().iterator().next().size() > 1) {
             return null;
@@ -59,8 +59,8 @@ final class FilterOnJoinsUtil {
         assert join.sources().size() == 2 : "Join operator must only have 2 children, LHS and RHS";
         LogicalPlan lhs = join.sources().get(0);
         LogicalPlan rhs = join.sources().get(1);
-        Set<QualifiedName> leftName = lhs.getRelationNames();
-        Set<QualifiedName> rightName = rhs.getRelationNames();
+        Set<RelationName> leftName = lhs.getRelationNames();
+        Set<RelationName> rightName = rhs.getRelationNames();
         Symbol queryForLhs = splitQuery.remove(leftName);
         Symbol queryForRhs = splitQuery.remove(rightName);
         LogicalPlan newLhs = getNewSource(queryForLhs, lhs);

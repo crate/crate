@@ -124,29 +124,29 @@ result set.
 
 Example::
 
-   cr> SELECT dept_id, COUNT(*) OVER() FROM employees ORDER BY 1, 2;
-   +---------+------------------+
-   | dept_id | count(*) OVER () |
-   +---------+------------------+
-   |    4001 |               18 |
-   |    4001 |               18 |
-   |    4001 |               18 |
-   |    4002 |               18 |
-   |    4002 |               18 |
-   |    4002 |               18 |
-   |    4002 |               18 |
-   |    4003 |               18 |
-   |    4003 |               18 |
-   |    4003 |               18 |
-   |    4003 |               18 |
-   |    4003 |               18 |
-   |    4004 |               18 |
-   |    4004 |               18 |
-   |    4004 |               18 |
-   |    4006 |               18 |
-   |    4006 |               18 |
-   |    4006 |               18 |
-   +---------+------------------+
+   cr> SELECT dept_id, COUNT(*) OVER() AS cnt FROM employees ORDER BY 1, 2;
+   +---------+-----+
+   | dept_id | cnt |
+   +---------+-----+
+   |    4001 |  18 |
+   |    4001 |  18 |
+   |    4001 |  18 |
+   |    4002 |  18 |
+   |    4002 |  18 |
+   |    4002 |  18 |
+   |    4002 |  18 |
+   |    4003 |  18 |
+   |    4003 |  18 |
+   |    4003 |  18 |
+   |    4003 |  18 |
+   |    4003 |  18 |
+   |    4004 |  18 |
+   |    4004 |  18 |
+   |    4004 |  18 |
+   |    4006 |  18 |
+   |    4006 |  18 |
+   |    4006 |  18 |
+   +---------+-----+
    SELECT 18 rows in set (... sec)
 
 The ``PARTITION BY`` clause groups the rows within a window into
@@ -156,29 +156,30 @@ the rows are considered a single partition.
 
 Example::
 
-   cr> SELECT dept_id, ROW_NUMBER() OVER(PARTITION BY dept_id) FROM employees ORDER BY 1, 2;
-   +---------+------------------------------------------+
-   | dept_id | row_number() OVER (PARTITION BY dept_id) |
-   +---------+------------------------------------------+
-   |    4001 |                                        1 |
-   |    4001 |                                        2 |
-   |    4001 |                                        3 |
-   |    4002 |                                        1 |
-   |    4002 |                                        2 |
-   |    4002 |                                        3 |
-   |    4002 |                                        4 |
-   |    4003 |                                        1 |
-   |    4003 |                                        2 |
-   |    4003 |                                        3 |
-   |    4003 |                                        4 |
-   |    4003 |                                        5 |
-   |    4004 |                                        1 |
-   |    4004 |                                        2 |
-   |    4004 |                                        3 |
-   |    4006 |                                        1 |
-   |    4006 |                                        2 |
-   |    4006 |                                        3 |
-   +---------+------------------------------------------+
+   cr> SELECT dept_id, ROW_NUMBER() OVER(PARTITION BY dept_id) AS row_num 
+   ... FROM employees ORDER BY 1, 2;
+   +---------+---------+
+   | dept_id | row_num |
+   +---------+---------+
+   |    4001 |       1 |
+   |    4001 |       2 |
+   |    4001 |       3 |
+   |    4002 |       1 |
+   |    4002 |       2 |
+   |    4002 |       3 |
+   |    4002 |       4 |
+   |    4003 |       1 |
+   |    4003 |       2 |
+   |    4003 |       3 |
+   |    4003 |       4 |
+   |    4003 |       5 |
+   |    4004 |       1 |
+   |    4004 |       2 |
+   |    4004 |       3 |
+   |    4006 |       1 |
+   |    4006 |       2 |
+   |    4006 |       3 |
+   +---------+---------+
    SELECT 18 rows in set (... sec)
 
 If ``ORDER BY`` is supplied the ``window`` definition consists of a range of
@@ -191,31 +192,31 @@ Example::
    cr> SELECT
    ...   dept_id,
    ...   sex,
-   ...   COUNT(*) OVER(PARTITION BY dept_id ORDER BY sex)
+   ...   COUNT(*) OVER(PARTITION BY dept_id ORDER BY sex) AS cnt
    ... FROM employees
    ... ORDER BY 1, 2, 3
-   +---------+-----+---------------------------------------------------------+
-   | dept_id | sex | count(*) OVER (PARTITION BY dept_id ORDER BY "sex" ASC) |
-   +---------+-----+---------------------------------------------------------+
-   |    4001 | M   |                                                       3 |
-   |    4001 | M   |                                                       3 |
-   |    4001 | M   |                                                       3 |
-   |    4002 | F   |                                                       1 |
-   |    4002 | M   |                                                       4 |
-   |    4002 | M   |                                                       4 |
-   |    4002 | M   |                                                       4 |
-   |    4003 | M   |                                                       5 |
-   |    4003 | M   |                                                       5 |
-   |    4003 | M   |                                                       5 |
-   |    4003 | M   |                                                       5 |
-   |    4003 | M   |                                                       5 |
-   |    4004 | F   |                                                       1 |
-   |    4004 | M   |                                                       3 |
-   |    4004 | M   |                                                       3 |
-   |    4006 | F   |                                                       1 |
-   |    4006 | M   |                                                       3 |
-   |    4006 | M   |                                                       3 |
-   +---------+-----+---------------------------------------------------------+
+   +---------+-----+-----+
+   | dept_id | sex | cnt |
+   +---------+-----+-----+
+   |    4001 | M   |   3 |
+   |    4001 | M   |   3 |
+   |    4001 | M   |   3 |
+   |    4002 | F   |   1 |
+   |    4002 | M   |   4 |
+   |    4002 | M   |   4 |
+   |    4002 | M   |   4 |
+   |    4003 | M   |   5 |
+   |    4003 | M   |   5 |
+   |    4003 | M   |   5 |
+   |    4003 | M   |   5 |
+   |    4003 | M   |   5 |
+   |    4004 | F   |   1 |
+   |    4004 | M   |   3 |
+   |    4004 | M   |   3 |
+   |    4006 | F   |   1 |
+   |    4006 | M   |   3 |
+   |    4006 | M   |   3 |
+   +---------+-----+-----+
    SELECT 18 rows in set (... sec)
 
 .. note::
@@ -317,7 +318,7 @@ then it can only add clauses from the referenced window, but not overwrite them.
 
    cr> SELECT
    ...   x,
-   ...   LAST_VALUE(x) OVER (w ORDER BY x)
+   ...   LAST_VALUE(x) OVER (w ORDER BY x) AS y
    ... FROM (VALUES
    ...      (1, 1),
    ...      (2, 1),
@@ -363,11 +364,11 @@ in the ``WINDOW`` clause permits only backward references.
 
    cr> SELECT
    ...   x,
-   ...   ROW_NUMBER() OVER (w)
+   ...   ROW_NUMBER() OVER (w) AS y
    ... FROM (VALUES
    ...      (1, 1),
    ...      (3, 2),
-   ...      (2, 1)) AS t(x, y)
+   ...      (2, 1)) AS t (x, y)
    ... WINDOW p AS (PARTITION BY y),
    ...        w AS (p ORDER BY x)
    +---+---+
@@ -391,15 +392,17 @@ Returns the number of the current row within its window.
 
 Example::
 
-   cr> SELECT col1, ROW_NUMBER() OVER(ORDER BY col1)
+   cr> SELECT 
+   ...  col1, 
+   ...  ROW_NUMBER() OVER(ORDER BY col1) as row_num
    ... FROM (VALUES('x'), ('y'), ('z')) AS t;
-   +------+-----------------------------------------+
-   | col1 | row_number() OVER (ORDER BY "col1" ASC) |
-   +------+-----------------------------------------+
-   | x    |                                       1 |
-   | y    |                                       2 |
-   | z    |                                       3 |
-   +------+-----------------------------------------+
+   +------+---------+
+   | col1 | row_num |
+   +------+---------+
+   | x    |       1 |
+   | y    |       2 |
+   | z    |       3 |
+   +------+---------+
    SELECT 3 rows in set (... sec)
 
 .. _window-function-firstvalue:
@@ -418,16 +421,18 @@ Its return type is the type of its argument.
 
 Example::
 
-   cr> SELECT col1, FIRST_VALUE(col1) OVER(ORDER BY col1)
+   cr> SELECT 
+   ...  col1, 
+   ...  FIRST_VALUE(col1) OVER (ORDER BY col1) AS value
    ... FROM (VALUES('x'), ('y'), ('y'), ('z')) AS t;
-   +------+----------------------------------------------+
-   | col1 | first_value(col1) OVER (ORDER BY "col1" ASC) |
-   +------+----------------------------------------------+
-   | x    | x                                            |
-   | y    | x                                            |
-   | y    | x                                            |
-   | z    | x                                            |
-   +------+----------------------------------------------+
+   +------+-------+
+   | col1 | value |
+   +------+-------+
+   | x    | x     |
+   | y    | x     |
+   | y    | x     |
+   | z    | x     |
+   +------+-------+
    SELECT 4 rows in set (... sec)
 
 .. _window-function-lastvalue:
@@ -446,16 +451,18 @@ Its return type is the type of its argument.
 
 Example::
 
-   cr> SELECT col1, LAST_VALUE(col1) OVER(ORDER BY col1)
+   cr> SELECT 
+   ...  col1, 
+   ...  LAST_VALUE(col1) OVER(ORDER BY col1) AS value
    ... FROM (VALUES('x'), ('y'), ('y'), ('z')) AS t;
-   +------+---------------------------------------------+
-   | col1 | last_value(col1) OVER (ORDER BY "col1" ASC) |
-   +------+---------------------------------------------+
-   | x    | x                                           |
-   | y    | y                                           |
-   | y    | y                                           |
-   | z    | z                                           |
-   +------+---------------------------------------------+
+   +------+-------+
+   | col1 | value |
+   +------+-------+
+   | x    | x     |
+   | y    | y     |
+   | y    | y     |
+   | z    | z     |
+   +------+-------+
    SELECT 4 rows in set (... sec)
 
 .. _window-function-nthvalue:
@@ -475,16 +482,18 @@ Its return type is the type of its first argument.
 
 Example::
 
-   cr> SELECT col1, NTH_VALUE(col1, 3) OVER(ORDER BY col1)
-   ... FROM (VALUES('x'), ('y'), ('y'), ('z')) AS t;
-   +------+-----------------------------------------------+
-   | col1 | nth_value(col1, 3) OVER (ORDER BY "col1" ASC) |
-   +------+-----------------------------------------------+
-   | x    | NULL                                          |
-   | y    | y                                             |
-   | y    | y                                             |
-   | z    | y                                             |
-   +------+-----------------------------------------------+
+   cr> SELECT 
+   ...  col1, 
+   ...  NTH_VALUE(col1, 3) OVER(ORDER BY col1) AS val
+   ... FROM (VALUES ('x'), ('y'), ('y'), ('z')) AS t;
+   +------+------+
+   | col1 | val  |
+   +------+------+
+   | x    | NULL |
+   | y    | y    |
+   | y    | y    |
+   | z    | y    |
+   +------+------+
    SELECT 4 rows in set (... sec)
 
 .. _window-function-lag:

@@ -446,7 +446,7 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitInsert(Insert<?> node, Analysis analysis) {
             return insertAnalyzer.analyze(
-                node,
+                (Insert<Expression>) node,
                 analysis.paramTypeHints(),
                 analysis.transactionContext());
         }

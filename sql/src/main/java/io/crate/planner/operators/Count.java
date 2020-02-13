@@ -31,11 +31,13 @@ import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
@@ -54,11 +56,11 @@ public class Count implements LogicalPlan {
 
     private static final String COUNT_PHASE_NAME = "count-merge";
 
-    final AbstractTableRelation tableRelation;
+    final AbstractTableRelation<?> tableRelation;
     final WhereClause where;
     private final List<Symbol> outputs;
 
-    public Count(Function countFunction, AbstractTableRelation tableRelation, WhereClause where) {
+    public Count(Function countFunction, AbstractTableRelation<?> tableRelation, WhereClause where) {
         this.outputs = List.of(countFunction);
         this.tableRelation = tableRelation;
         this.where = where;
@@ -73,10 +75,19 @@ public class Count implements LogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
+        var normalizer = new EvaluatingNormalizer(
+            plannerContext.functions(),
+            RowGranularity.CLUSTER,
+            null,
+            tableRelation
+        );
+        var binder = new SubQueryAndParamBinder(params, subQueryResults)
+            .andThen(x -> normalizer.normalize(x, plannerContext.transactionContext()));
+
         // bind all parameters and possible subQuery values and re-analyze the query
         // (could result in a NO_MATCH, routing could've changed, etc).
         WhereClause boundWhere = WhereClauseAnalyzer.resolvePartitions(
-            where.map(s -> SubQueryAndParamBinder.convert(s, params, subQueryResults)),
+            where.map(binder),
             tableRelation,
             plannerContext.functions(),
             plannerContext.transactionContext()

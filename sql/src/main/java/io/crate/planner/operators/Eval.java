@@ -57,7 +57,7 @@ public final class Eval extends ForwardingLogicalPlan {
         }
     }
 
-    private Eval(LogicalPlan source, List<Symbol> outputs) {
+    Eval(LogicalPlan source, List<Symbol> outputs) {
         super(source);
         this.outputs = outputs;
     }

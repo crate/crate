@@ -43,7 +43,7 @@ public class MaybeAliasedStatement {
             AliasedAnalyzedRelation aliasedAnalyzedRelation = (AliasedAnalyzedRelation) relation;
             return new MaybeAliasedStatement(
                 aliasedAnalyzedRelation.relation(),
-                FieldReplacer.bind(f -> f.relation().equals(aliasedAnalyzedRelation) ? f.pointer() : f)
+                FieldReplacer.bind(aliasedAnalyzedRelation::resolveField)
             );
         }
         return new MaybeAliasedStatement(relation, s -> s);

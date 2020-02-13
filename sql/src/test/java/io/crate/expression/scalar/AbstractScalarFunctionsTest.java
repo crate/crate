@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -30,10 +29,10 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
-import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
@@ -45,7 +44,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
@@ -69,7 +67,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
 
     protected SqlExpressions sqlExpressions;
     protected Functions functions;
-    protected Map<QualifiedName, AnalyzedRelation> tableSources;
+    protected Map<RelationName, AnalyzedRelation> tableSources;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private InputFactory inputFactory;
 
@@ -117,7 +115,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             clusterService);
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-        tableSources = ImmutableMap.of(new QualifiedName("users"), tableRelation);
+        tableSources = Map.of(tableInfo.ident(), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);
         functions = sqlExpressions.functions();
         inputFactory = new InputFactory(functions);
@@ -185,7 +183,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             return;
         }
         LinkedList<Literal<?>> unusedLiterals = new LinkedList<>(Arrays.asList(literals));
-        Function function = (Function) FieldReplacer.replaceFields(functionSymbol, f -> {
+        Function function = (Function) RefReplacer.replaceRefs(functionSymbol, f -> {
             Literal<?> literal = unusedLiterals.pollFirst();
             if (literal == null) {
                 throw new IllegalArgumentException("No value literal for field=" + f + ", please add more literals");

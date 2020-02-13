@@ -21,12 +21,14 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Reference;
 
 import java.util.Collection;
 
@@ -83,12 +85,28 @@ public class OrderByWithAggregationValidator {
         }
 
         @Override
-        public Void visitField(Field field, ValidatorContext context) {
-            if (context.outputSymbols.contains(field)) {
+        public Void visitReference(Reference ref, ValidatorContext context) {
+            return ensureOutputsContainColumn(ref, context);
+        }
+
+        @Override
+        public Void visitField(ScopedSymbol field, ValidatorContext context) {
+            return ensureOutputsContainColumn(field, context);
+        }
+
+        private static Void ensureOutputsContainColumn(Symbol symbol, ValidatorContext context) {
+            if (context.outputSymbols.contains(symbol)) {
                 return null;
             } else {
+                for (Symbol outputSymbol : context.outputSymbols) {
+                    if (outputSymbol instanceof AliasSymbol) {
+                        if (((AliasSymbol) outputSymbol).symbol().equals(symbol)) {
+                            return null;
+                        }
+                    }
+                }
                 String template = context.isDistinct ? INVALID_FIELD_IN_DISTINCT_TEMPLATE : INVALID_FIELD_TEMPLATE;
-                throw new UnsupportedOperationException(SymbolPrinter.format(template, field));
+                throw new UnsupportedOperationException(SymbolPrinter.format(template, symbol));
             }
         }
 

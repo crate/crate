@@ -52,10 +52,8 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             "RootBoundary[x, x]\n" +
             "NestedLoopJoin[\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t1 | [x] | true]\n" +
             "    --- INNER ---\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t2 | [x] | (x = 10)]\n" +
             "]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
@@ -71,10 +69,8 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[x, x]\n" +
             "Filter[(coalesce(x, 10) = 10)]\n" +
             "NestedLoopJoin[\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t1 | [x] | true]\n" +
             "    --- LEFT ---\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t2 | [x] | true]\n" +
             "]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
@@ -90,10 +86,8 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[x, x]\n" +
             "Filter[(coalesce(x, 10) = 10)]\n" +
             "NestedLoopJoin[\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t1 | [x] | (x > 5)]\n" +
             "    --- LEFT ---\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t2 | [x] | true]\n" +
             "]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
@@ -109,10 +103,8 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[x, x]\n" +
             "Filter[(coalesce(x, 10) = 10)]\n" +
             "NestedLoopJoin[\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t1 | [x] | true]\n" +
             "    --- RIGHT ---\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t2 | [x] | (x > 5)]\n" +
             "]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
@@ -128,10 +120,8 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[x, x]\n" +
             "Filter[((coalesce(x, 10) = 10) AND (x > 5))]\n" +
             "NestedLoopJoin[\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t1 | [x] | true]\n" +
             "    --- FULL ---\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t2 | [x] | (x > 5)]\n" +
             "]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));

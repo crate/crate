@@ -58,7 +58,7 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(inputColumn, context);
     }
 
-    public R visitField(Field field, C context) {
+    public R visitField(ScopedSymbol field, C context) {
         return visitSymbol(field, context);
     }
 
@@ -76,6 +76,10 @@ public class SymbolVisitor<C, R> {
 
     public R visitSelectSymbol(SelectSymbol selectSymbol, C context) {
         return visitSymbol(selectSymbol, context);
+    }
+
+    public R visitAlias(AliasSymbol aliasSymbol, C context) {
+        return visitSymbol(aliasSymbol, context);
     }
 }
 

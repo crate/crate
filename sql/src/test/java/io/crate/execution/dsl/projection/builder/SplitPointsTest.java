@@ -22,7 +22,7 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -51,7 +51,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSplitPointsCreationWithFunctionInAggregation() throws Exception {
-        AnalyzedRelation relation = e.normalize("select sum(coalesce(x, 0::integer)) + 10 from t1");
+        QueriedSelectRelation relation = e.analyze("select sum(coalesce(x, 0::integer)) + 10 from t1");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 
@@ -61,11 +61,10 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSplitPointsCreationSelectItemAggregationsAreAlwaysAdded() throws Exception {
-        AnalyzedRelation relation = e.normalize(
-            "select" +
-            "   sum(coalesce(x, 0::integer)), " +
-            "   sum(coalesce(x, 0::integer)) + 10 " +
-            "from t1");
+        QueriedSelectRelation relation = e.analyze("select" +
+                                              "   sum(coalesce(x, 0::integer)), " +
+                                              "   sum(coalesce(x, 0::integer)) + 10 " +
+                                              "from t1");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 
@@ -76,7 +75,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testScalarIsNotCollectedEarly() throws Exception {
-        AnalyzedRelation relation = e.normalize("select x + 1 from t1 group by x");
+        QueriedSelectRelation relation = e.analyze("select x + 1 from t1 group by x");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
         assertThat(splitPoints.toCollect(), contains(isReference("x")));
@@ -85,7 +84,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTableFunctionArgsAndStandaloneColumnsAreAddedToCollect() throws Exception {
-        AnalyzedRelation relation = e.normalize("select unnest(xs), x from t2");
+        QueriedSelectRelation relation = e.analyze("select unnest(xs), x from t2");
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
         assertThat(splitPoints.toCollect(), contains(isReference("xs"), isReference("x")));
         assertThat(splitPoints.tableFunctions(), contains(isFunction("unnest")));
@@ -93,7 +92,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAggregationPlusTableFunctionUsingAggregation() throws Exception {
-        AnalyzedRelation relation = e.normalize("select max(x), generate_series(0, max(x)) from t1");
+        QueriedSelectRelation relation = e.analyze("select max(x), generate_series(0, max(x)) from t1");
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
         assertThat(splitPoints.toCollect(), contains(isReference("x")));
         assertThat(splitPoints.aggregates(), contains(isFunction("max")));
@@ -102,7 +101,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_split_points_creation_with_filter_in_aggregate_expression() {
-        AnalyzedRelation relation = e.normalize("select sum(i) filter (where x > 1) from t1");
+        QueriedSelectRelation relation = e.analyze("select sum(i) filter (where x > 1) from t1");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 
@@ -115,8 +114,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_split_points_creation_with_filter_in_aggregate_fo_window_function_call() {
-        AnalyzedRelation relation = e.normalize(
-            "select sum(i) filter (where x > 1) over(order by i) from t1");
+        QueriedSelectRelation relation = e.analyze("select sum(i) filter (where x > 1) over(order by i) from t1");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 

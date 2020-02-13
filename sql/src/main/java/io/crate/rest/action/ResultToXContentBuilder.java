@@ -23,7 +23,8 @@
 package io.crate.rest.action;
 
 import io.crate.data.Row;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -55,18 +56,18 @@ class ResultToXContentBuilder {
         return new ResultToXContentBuilder(builder);
     }
 
-    ResultToXContentBuilder cols(List<Field> fields) throws IOException {
+    ResultToXContentBuilder cols(List<? extends Symbol> fields) throws IOException {
         builder.startArray(FIELDS.COLS);
-        for (Field field : fields) {
-            builder.value(field.path().sqlFqn());
+        for (Symbol field : fields) {
+            builder.value(Symbols.pathFromSymbol(field).sqlFqn());
         }
         builder.endArray();
         return this;
     }
 
-    ResultToXContentBuilder colTypes(List<Field> fields) throws IOException {
+    ResultToXContentBuilder colTypes(List<? extends Symbol> fields) throws IOException {
         builder.startArray(FIELDS.COLUMN_TYPES);
-        for (Field field : fields) {
+        for (Symbol field : fields) {
             toXContentNestedDataType(builder, field.valueType());
         }
         builder.endArray();

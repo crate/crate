@@ -22,46 +22,39 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.Fields;
-import io.crate.analyze.HavingClause;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.Relations;
-import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
+import org.elasticsearch.common.UUIDs;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 public class UnionSelect implements AnalyzedRelation {
 
-    private final Fields fields;
     private final AnalyzedRelation left;
     private final AnalyzedRelation right;
-    private final List<Symbol> outputs;
-    private final QualifiedName name;
+    private final List<ScopedSymbol> outputs;
+    private final RelationName name;
 
     public UnionSelect(AnalyzedRelation left, AnalyzedRelation right) {
+        assert left.outputs().size() == right.outputs().size()
+            : "Both the left side and the right side of UNION must have the same number of outputs";
         this.left = left;
         this.right = right;
-        this.name = left.getQualifiedName();
-
-        List<Field> fieldsFromLeft = left.fields();
-        fields = new Fields(fieldsFromLeft.size());
-        for (Field field : fieldsFromLeft) {
-            // Creating a field that points to the field of the left relation isn't 100% accurate.
-            // We're pointing to *two* symbols (both left AND right).
-            // We could either use a `InputColumn` to do that (by pointing to a position) - (but might be confusing to have InputColumns in the analysis already)
-            // Or introduce a `UnionSymbol` or `UnionField` which would take two symbols it is pointing to
-            // Since this currently has no effect we go with the left symbol until there is a good reason to change it.
-            fields.add(new Field(this, field.path(), field));
+        this.name = new RelationName(null, UUIDs.randomBase64UUID());
+        // SQL semantics dictate that UNION uses the column names from the first relation (top or left side)
+        List<Symbol> fieldsFromLeft = left.outputs();
+        ArrayList<ScopedSymbol> outputs = new ArrayList<>(fieldsFromLeft.size());
+        for (Symbol field : fieldsFromLeft) {
+            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), field.valueType()));
         }
-        this.outputs = List.copyOf(fields.asList());
+        this.outputs = List.copyOf(outputs);
     }
 
     public AnalyzedRelation left() {
@@ -78,74 +71,28 @@ public class UnionSelect implements AnalyzedRelation {
     }
 
     @Override
-    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        if (operation != Operation.READ) {
-            throw new UnsupportedOperationException("getField on MultiSourceSelect is only supported for READ operations");
+    public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        for (var output : outputs) {
+            if (output.column().equals(column)) {
+                return output;
+            }
         }
-        Field field = fields.getWithSubscriptFallback(path, this, left);
-        if (field == null && path.isTopLevel() == false) {
-            return Relations.resolveSubscriptOnAliasedField(path, fields, operation);
-        }
-        return field;
+        return null;
     }
 
     @Override
-    @Nonnull
-    public List<Field> fields() {
-        return fields.asList();
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
+    public RelationName relationName() {
         return name;
     }
 
+    @Nonnull
     @Override
     public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public WhereClause where() {
-        return WhereClause.MATCH_ALL;
-    }
-
-    @Override
-    public List<Symbol> groupBy() {
-        return List.of();
-    }
-
-    @Nullable
-    @Override
-    public HavingClause having() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public OrderBy orderBy() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol limit() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol offset() {
-        return null;
-    }
-
-    @Override
-    public boolean isDistinct() {
-        return false;
+        return (List<Symbol>)(List) outputs;
     }
 
     @Override
     public String toString() {
-        return "US{" + left.getQualifiedName().toString() + ',' + right.getQualifiedName().toString() + '}';
+        return left + " UNION ALL " + right;
     }
 }

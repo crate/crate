@@ -89,7 +89,7 @@ public class ReturnValueGenTest extends CrateDummyClusterServiceUnitTest {
         returnValueGen = new ReturnValueGen(executor.functions(),
                                             txnCtx,
                                             tableInfo,
-                                            update.returnValues().toArray(new Symbol[]{}));
+                                            update.outputs() == null ? null : update.outputs().toArray(new Symbol[0]));
     }
 
     private Doc doc(String id, Map<String, Object> content) {

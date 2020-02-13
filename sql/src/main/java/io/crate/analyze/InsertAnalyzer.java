@@ -30,14 +30,13 @@ import io.crate.analyze.relations.ExcludedFieldProvider;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
+import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.select.SelectAnalyzer;
-import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.DynamicReference;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
@@ -46,6 +45,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
@@ -70,35 +70,30 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import static java.util.Objects.requireNonNull;
-
 class InsertAnalyzer {
 
     private final Functions functions;
     private final Schemas schemas;
     private final RelationAnalyzer relationAnalyzer;
 
-
     private static class ValuesResolver implements io.crate.analyze.ValuesResolver {
 
-        private final DocTableRelation targetTableRelation;
         private final List<Reference> targetColumns;
 
-        ValuesResolver(DocTableRelation targetTableRelation, List<Reference> targetColumns) {
-            this.targetTableRelation = targetTableRelation;
+        ValuesResolver(List<Reference> targetColumns) {
             this.targetColumns = targetColumns;
         }
 
         @Override
-        public Symbol allocateAndResolve(Field argumentColumn) {
-            Reference reference = targetTableRelation.resolveField(argumentColumn);
-            int i = targetColumns.indexOf(reference);
+        public Symbol allocateAndResolve(Symbol argumentColumn) {
+            int i = argumentColumn instanceof Reference
+                ? targetColumns.indexOf(argumentColumn)
+                : -1;
             if (i < 0) {
                 throw new IllegalArgumentException(SymbolPrinter.format(
                     "Column '%s' that is used in the VALUES() expression is not part of the target column list",
                     argumentColumn));
             }
-            assert reference != null : "reference must not be null";
             return new InputColumn(i, argumentColumn.valueType());
         }
     }
@@ -109,7 +104,7 @@ class InsertAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    public AnalyzedInsertStatement analyze(Insert<?> insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
+    public AnalyzedInsertStatement analyze(Insert<Expression> insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             insert.table().getName(),
             Operation.INSERT,
@@ -141,56 +136,42 @@ class InsertAnalyzer {
         final boolean ignoreDuplicateKeys =
             insert.duplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
 
-        List<Symbol> returnValues = List.of();
-        List<ColumnIdent> outputNames = List.of();
-
-        if (!insert.returningClause().isEmpty()) {
-            var stmtCtx = new StatementAnalysisContext(typeHints, Operation.INSERT, txnCtx);
-            var relCtx = stmtCtx.startRelation();
-            DocTableRelation targetTableRelation = (DocTableRelation) relationAnalyzer.analyze(insert.table(), stmtCtx);
-            stmtCtx.endRelation();
-
+        List<Symbol> returnValues;
+        if (insert.returningClause().isEmpty()) {
+            returnValues = null;
+        } else {
             var exprCtx = new ExpressionAnalysisContext();
+            Map<RelationName, AnalyzedRelation> sources = Map.of(tableRelation.relationName(), tableRelation);
             var sourceExprAnalyzer = new ExpressionAnalyzer(
                 functions,
                 txnCtx,
                 typeHints,
                 new FullQualifiedNameFieldProvider(
-                    relCtx.sources(),
-                    relCtx.parentSources(),
+                    sources,
+                    ParentRelations.NO_PARENTS,
                     txnCtx.sessionContext().searchPath().currentSchema()
                 ),
                 null
             );
-
             var selectAnalysis = SelectAnalyzer.analyzeSelectItems(
                 insert.returningClause(),
-                relCtx.sources(),
+                sources,
                 sourceExprAnalyzer,
                 exprCtx
             );
-
-            var normalizer = new EvaluatingNormalizer(functions,
-                                                      RowGranularity.CLUSTER,
-                                                      null,
-                                                      targetTableRelation);
-
-            returnValues = Lists2.map(selectAnalysis.outputSymbols(), x -> normalizer.normalize(x, txnCtx));
-            outputNames = selectAnalysis.outputNames();
-
+            returnValues = selectAnalysis.outputSymbols();
         }
-
         return new AnalyzedInsertStatement(
             subQueryRelation,
             tableInfo,
             targetColumns,
             ignoreDuplicateKeys,
             onDuplicateKeyAssignments,
-            outputNames,
-            returnValues);
+            returnValues
+        );
     }
 
-    private static void verifyOnConflictTargets(Insert.DuplicateKeyContext duplicateKeyContext, DocTableInfo docTableInfo) {
+    private static void verifyOnConflictTargets(Insert.DuplicateKeyContext<?> duplicateKeyContext, DocTableInfo docTableInfo) {
         List<String> constraintColumns = duplicateKeyContext.getConstraintColumns();
         if (constraintColumns.isEmpty()) {
             return;
@@ -313,8 +294,8 @@ class InsertAnalyzer {
         }
 
         ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
-        ValuesResolver valuesResolver = new ValuesResolver(targetTable, targetCols);
-        final FieldProvider fieldProvider;
+        ValuesResolver valuesResolver = new ValuesResolver(targetCols);
+        final FieldProvider<?> fieldProvider;
         if (duplicateKeyContext.getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET) {
             fieldProvider = new ExcludedFieldProvider(new NameFieldProvider(targetTable), valuesResolver);
         } else {
@@ -324,11 +305,7 @@ class InsertAnalyzer {
         var normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, targetTable);
         Map<Reference, Symbol> updateAssignments = new HashMap<>(duplicateKeyContext.getAssignments().size());
         for (Assignment<Expression> assignment : duplicateKeyContext.getAssignments()) {
-            Reference targetCol = requireNonNull(
-                targetTable.resolveField((Field) exprAnalyzer.convert(assignment.columnName(), exprCtx)),
-                "resolveField must work on a field that was just resolved"
-            );
-
+            Reference targetCol = (Reference) exprAnalyzer.convert(assignment.columnName(), exprCtx);
             Symbol valueSymbol = ValueNormalizer.normalizeInputForReference(
                 normalizer.normalize(expressionAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
                 targetCol,
@@ -343,8 +320,8 @@ class InsertAnalyzer {
                                                             List<Reference> targetColumns,
                                                             java.util.function.Function<ParameterExpression, Symbol> parameterContext,
                                                             CoordinatorTxnCtx coordinatorTxnCtx,
-                                                            FieldProvider fieldProvider,
-                                                            Insert.DuplicateKeyContext duplicateKeyContext) {
+                                                            FieldProvider<?> fieldProvider,
+                                                            Insert.DuplicateKeyContext<Expression> duplicateKeyContext) {
         if (duplicateKeyContext.getAssignments().isEmpty()) {
             return Collections.emptyMap();
         }

@@ -29,8 +29,8 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.predicate.NotPredicate;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
@@ -79,8 +79,8 @@ public final class WhereClauseValidator {
                                                                 SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue());
 
         @Override
-        public Symbol visitField(Field field, Context context) {
-            validateSysReference(context, field.path().sqlFqn());
+        public Symbol visitField(ScopedSymbol field, Context context) {
+            validateSysReference(context, field.column().sqlFqn());
             return super.visitField(field, context);
         }
 
@@ -106,11 +106,10 @@ public final class WhereClauseValidator {
             throw new IllegalArgumentException("Window functions are not allowed in WHERE");
         }
 
-        private Function continueTraversal(Function symbol, Context context) {
+        private void continueTraversal(Function symbol, Context context) {
             for (Symbol argument : symbol.arguments()) {
                 argument.accept(this, context);
             }
-            return symbol;
         }
 
         private static boolean insideNotPredicate(Context context) {

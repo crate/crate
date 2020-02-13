@@ -95,9 +95,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testQTFWithOrderByAndAlias() throws Exception {
         LogicalPlan plan = plan("select a, x from t1 as t order by a");
-        assertThat(plan, isPlan("Boundary[a, x]\n" +
-                                "OrderBy[a ASC]\n" +
-                                "Collect[doc.t1 | [a, x] | true]\n"));
+        assertThat(plan, isPlan(
+            "Rename[a, x] AS t\n" +
+            "OrderBy[a ASC]\n" +
+            "Collect[doc.t1 | [a, x] | true]\n"));
     }
 
     @Test
@@ -120,8 +121,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "   select a, x from t1 order by a limit 3) tt " +
                                 "order by x desc limit 1");
         assertThat(plan, isPlan("Limit[1;0]\n" +
-                                "Boundary[a, x]\n" +    // Aliased relation boundary
-                                "Boundary[a, x]\n" +
+                                "Rename[a, x] AS tt\n" +
                                 "OrderBy[x DESC]\n" +
                                 "Limit[3;0]\n" +
                                 "OrderBy[a ASC]\n" +
@@ -132,8 +132,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testIntermediateFetch() throws Exception {
         LogicalPlan plan = plan("select sum(x) from (select x from t1 limit 10) tt");
         assertThat(plan, isPlan("Aggregate[sum(x)]\n" +
-                                "Boundary[x]\n" +       // Aliased relation boundary
-                                "Boundary[x]\n" +
+                                "Rename[x] AS tt\n" +       // Aliased relation boundary
                                 "Limit[10;0]\n" +
                                 "Collect[doc.t1 | [x] | true]\n"));
     }
@@ -150,10 +149,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testHavingGlobalAggregationAndRelationAlias() throws Exception {
         LogicalPlan plan = plan("select min(a), min(x) from t1 as tt having min(tt.x) < 33 and max(tt.x) > 100");
-        assertThat(plan, isPlan("Boundary[\"min(a)\", \"min(x)\"]\n" +
-                                "Eval[min(a), min(x)]\n" +
+        assertThat(plan, isPlan("Eval[min(a), min(x)]\n" +
                                 "Filter[((min(x) < 33) AND (max(x) > 100))]\n" +
                                 "Aggregate[min(a), min(x), max(x)]\n" +
+                                "Rename[a, x] AS tt\n" +
                                 "Collect[doc.t1 | [a, x] | true]\n"));
     }
 
@@ -177,10 +176,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan("MultiPhase[\n" +
                                 "    subQueries[\n" +
                                 "        RootBoundary[1]\n" +
-                                "        Limit[2;0]\n" +
+                                "        Limit[2;0]\n" + // implicitly added limit to enforce max1row
                                 "        MultiPhase[\n" +
                                 "            subQueries[\n" +
                                 "                RootBoundary[count(*)]\n" +
+                                "                Limit[2;0]\n" +
                                 "                Limit[1;0]\n" +
                                 "                Count[doc.t2 | true]\n" +
                                 "            ]\n" +
@@ -200,12 +200,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                "on t1.cnt = t2.i::long ");
         assertThat(plan, isPlan("Eval[i, cnt]\n" +
                                 "HashJoin[\n" +
-                                "    Boundary[cnt]\n" +     // Aliased relation boundary
-                                "    Boundary[cnt]\n" +
+                                "    Rename[cnt] AS t1\n" +     // Aliased relation boundary
+                                "    Eval[count(*) AS cnt]\n" +
                                 "    Count[doc.t1 | true]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[i]\n" +       // Aliased relation boundary
-                                "    Boundary[i]\n" +
+                                "    Rename[i] AS t2\n" +       // Aliased relation boundary
                                 "    Limit[1;0]\n" +
                                 "    Collect[doc.t2 | [i] | true]\n" +
                                 "]\n"));
@@ -220,15 +219,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "   inner join t2 on t1.x = t2.y " +
                                 "order by t1.x " +
                                 "limit 10");
-        assertThat(plan, isPlan("Eval[x, a, y]\n" +
-                                "Limit[10;0]\n" +
+        assertThat(plan, isPlan("Limit[10;0]\n" +
                                 "OrderBy[x ASC]\n" +
                                 "HashJoin[\n" +
-                                "    Boundary[a, x, i]\n" +
-                                "    Collect[doc.t1 | [a, x, i] | true]\n" +
+                                "    Collect[doc.t1 | [x, a] | true]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[b, y, i]\n" +
-                                "    Collect[doc.t2 | [b, y, i] | true]\n" +
+                                "    Collect[doc.t2 | [y] | true]\n" +
                                 "]\n"));
     }
 
@@ -291,16 +287,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "limit 10");
         assertThat(plan, isPlan("Limit[10;0]\n" +
                                 "HashJoin[\n" +
-                                "    Boundary[a, i]\n" +    // Aliased relation boundary
-                                "    Boundary[a, i]\n" +
+                                "    Rename[a, i] AS t1\n" +    // Aliased relation boundary
                                 "    Filter[(a > '50')]\n" +
                                 "    Limit[5;0]\n" +
                                 "    OrderBy[a ASC]\n" +
                                 "    Collect[doc.t1 | [a, i] | true]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[b, i]\n" +    // Aliased relation boundary
-                                "    Boundary[b, i]\n" +
-                                "    Collect[doc.t2 | [b, i] | ((b > '10') AND (b > '100'))]\n" +
+                                "    Rename[b, i] AS t2\n" +    // Aliased relation boundary
+                                "    Collect[doc.t2 | [b, i] | ((b > '100') AND (b > '10'))]\n" +
                                 "]\n"));
     }
 
@@ -312,12 +306,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                               "  ON v2.x= v3.x");
         assertThat(plan, isPlan("Eval[x, a, x, a]\n" +
                                 "HashJoin[\n" +
-                                "    Boundary[a, x]\n" +
-                                "    Boundary[a, x]\n" +
+                                "    Rename[a, x] AS doc.v2\n" +
                                 "    Collect[doc.t1 | [a, x] | true]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[a, x]\n" +
-                                "    Boundary[a, x]\n" +
+                                "    Rename[a, x] AS doc.v3\n" +
                                 "    Collect[doc.t1 | [a, x] | true]\n" +
                                 "]\n"));
     }
@@ -325,7 +317,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAliasedPrimaryKeyLookupHasGetPlan() {
         LogicalPlan plan = plan("select name from users u where id = 1");
-        assertThat(plan, isPlan("Boundary[name]\n" +
+        assertThat(plan, isPlan("Rename[name] AS u\n" +
                                 "Get[doc.users | name | DocKeys{1}"));
     }
 
@@ -389,12 +381,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 sb.append("]\n");
                 plan = boundary.source;
             }
-            if (plan instanceof RelationBoundary) {
-                RelationBoundary boundary = (RelationBoundary) plan;
-                startLine("Boundary[");
-                addSymbolsList(boundary.outputs());
-                sb.append("]\n");
-                plan = boundary.source;
+            if (plan instanceof Rename) {
+                Rename rename = (Rename) plan;
+                startLine("Rename[");
+                addSymbolsList(rename.outputs());
+                sb.append("] AS ");
+                sb.append(rename.name);
+                sb.append("\n");
+                plan = rename.source;
             }
             if (plan instanceof GroupHashAggregate) {
                 GroupHashAggregate groupHashAggregate = (GroupHashAggregate) plan;

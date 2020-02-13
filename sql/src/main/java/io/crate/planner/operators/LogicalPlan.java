@@ -30,11 +30,11 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -150,7 +150,7 @@ public interface LogicalPlan extends Plan {
         return StatementType.SELECT;
     }
 
-    default Set<QualifiedName> getRelationNames() {
-        return baseTables().stream().map(AnalyzedRelation::getQualifiedName).collect(Collectors.toSet());
+    default Set<RelationName> getRelationNames() {
+        return baseTables().stream().map(AnalyzedRelation::relationName).collect(Collectors.toSet());
     }
 }

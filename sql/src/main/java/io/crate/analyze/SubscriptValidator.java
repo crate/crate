@@ -137,7 +137,7 @@ public final class SubscriptValidator {
                     String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
                         MAX_VALUE));
             }
-            context.index(new Cast(node, new ColumnType("integer")));
+            context.index(new Cast(node, new ColumnType<>("integer")));
             return null;
         }
 

@@ -21,21 +21,16 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.expression.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.QualifiedName;
 
 public class TableRelation extends AbstractTableRelation<TableInfo> {
 
     public TableRelation(TableInfo tableInfo) {
         super(tableInfo);
-    }
-
-    public TableRelation(TableInfo tableInfo, QualifiedName qualifiedName) {
-        super(tableInfo, qualifiedName);
     }
 
     @Override
@@ -44,11 +39,11 @@ public class TableRelation extends AbstractTableRelation<TableInfo> {
     }
 
     @Override
-    public Field getField(ColumnIdent path, Operation operation) throws ColumnUnknownException {
+    public Reference getField(ColumnIdent column, Operation operation) throws ColumnUnknownException {
         switch (operation) {
             case READ:
             case UPDATE:
-                return getField(path);
+                return getField(column);
             case INSERT:
             case DELETE:
                 throw new UnsupportedOperationException("getField is only supported for read or update operations on TableRelation");

@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
@@ -39,18 +40,14 @@ import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
@@ -73,9 +70,9 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.allOf;
@@ -84,8 +81,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Additional tests for the ExpressionAnalyzer.
@@ -93,7 +88,7 @@ import static org.mockito.Mockito.when;
  */
 public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private ImmutableMap<QualifiedName, AnalyzedRelation> dummySources;
+    private ImmutableMap<RelationName, AnalyzedRelation> dummySources;
     private CoordinatorTxnCtx coordinatorTxnCtx;
     private ExpressionAnalysisContext context;
     private ParamTypeHints paramTypeHints;
@@ -105,7 +100,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws Exception {
         paramTypeHints = ParamTypeHints.EMPTY;
         DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
-        dummySources = ImmutableMap.of(new QualifiedName("foo"), dummyRelation);
+        dummySources = ImmutableMap.of(dummyRelation.relationName(), dummyRelation);
         coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         context = new ExpressionAnalysisContext();
         functions = getFunctions();
@@ -150,14 +145,14 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
-        Field field1 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("obj['x']"), expressionAnalysisContext);
-        Field field2 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("\"obj['x']\""), expressionAnalysisContext);
+        ScopedSymbol field1 = (ScopedSymbol) expressionAnalyzer.convert(SqlParser.createExpression("obj['x']"), expressionAnalysisContext);
+        ScopedSymbol field2 = (ScopedSymbol) expressionAnalyzer.convert(SqlParser.createExpression("\"obj['x']\""), expressionAnalysisContext);
         assertEquals(field1, field2);
 
-        Field field3 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("\"myObj['x']\""), expressionAnalysisContext);
-        assertEquals("myObj['x']", field3.path().toString());
-        Field field4 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("\"myObj['x']['AbC']\""), expressionAnalysisContext);
-        assertEquals("myObj['x']['AbC']", field4.path().toString());
+        ScopedSymbol field3 = (ScopedSymbol) expressionAnalyzer.convert(SqlParser.createExpression("\"myObj['x']\""), expressionAnalysisContext);
+        assertEquals("myObj['x']", field3.column().toString());
+        ScopedSymbol field4 = (ScopedSymbol) expressionAnalyzer.convert(SqlParser.createExpression("\"myObj['x']['AbC']\""), expressionAnalysisContext);
+        assertEquals("myObj['x']['AbC']", field4.column().toString());
     }
 
     @Test
@@ -204,20 +199,14 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInSelfJoinCaseFunctionsThatLookTheSameMustNotReuseFunctionAllocation() throws Exception {
-        TableInfo tableInfo = mock(TableInfo.class);
-        when(tableInfo.getReadReference(new ColumnIdent("id"))).thenReturn(
-            new Reference(new ReferenceIdent(new RelationName("doc", "t"), "id"),
-                          RowGranularity.DOC,
-                          DataTypes.INTEGER,
-                          null,
-                          null));
-        when(tableInfo.ident()).thenReturn(new RelationName("doc", "t"));
-        TableRelation tr1 = new TableRelation(tableInfo);
-        TableRelation tr2 = new TableRelation(tableInfo);
+        TableInfo t1 = executor.resolveTableInfo("t1");
+        TableRelation relation = new TableRelation(t1);
 
-        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.of(
-            new QualifiedName("t1"), tr1,
-            new QualifiedName("t2"), tr2
+        RelationName a1 = new RelationName(null, "a1");
+        RelationName a2 = new RelationName(null, "a2");
+        Map<RelationName, AnalyzedRelation> sources = ImmutableMap.of(
+            a1, new AliasedAnalyzedRelation(relation, a1),
+            a2, new AliasedAnalyzedRelation(relation, a2)
         );
         SessionContext sessionContext = SessionContext.systemSessionContext();
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
@@ -229,11 +218,11 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Function andFunction = (Function) expressionAnalyzer.convert(
-            SqlParser.createExpression("not t1.id = 1 and not t2.id = 1"), context);
+            SqlParser.createExpression("not a1.x = 1 and not a2.x = 1"), context);
 
-        Field t1Id = ((Field) ((Function) ((Function) andFunction.arguments().get(0)).arguments().get(0)).arguments().get(0));
-        Field t2Id = ((Field) ((Function) ((Function) andFunction.arguments().get(1)).arguments().get(0)).arguments().get(0));
-        assertTrue(t1Id.relation() != t2Id.relation());
+        ScopedSymbol t1Id = ((ScopedSymbol) ((Function) ((Function) andFunction.arguments().get(0)).arguments().get(0)).arguments().get(0));
+        ScopedSymbol t2Id = ((ScopedSymbol) ((Function) ((Function) andFunction.arguments().get(1)).arguments().get(0)).arguments().get(0));
+        assertThat(t1Id.relation(), is(not(t2Id.relation())));
     }
 
     @Test
@@ -241,7 +230,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Function cmp = (Function) expressions.normalize(executor.asSymbol("8 + 5 > t1.x"));
         // the comparison was swapped so the field is on the left side
         assertThat(cmp.info().ident().name(), is("op_<"));
-        assertThat(cmp.arguments().get(0), isField("x"));
+        assertThat(cmp.arguments().get(0), isReference("x"));
     }
 
     @Test
@@ -320,7 +309,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testColumnsCannotBeCastedToLiteralType() {
         Function symbol = (Function) executor.asSymbol("doc.t2.i = 1.1");
-        assertThat(symbol.arguments().get(0), isField("i"));
+        assertThat(symbol.arguments().get(0), isReference("i"));
         assertThat(symbol.arguments().get(0).valueType(), is(DataTypes.INTEGER));
     }
 
@@ -335,7 +324,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testFunctionsCanBeCasted() {
         Function symbol2 = (Function) executor.asSymbol("doc.t5.w = doc.t2.i + 1.2");
         assertThat(symbol2, isFunction(EqOperator.NAME));
-        assertThat(symbol2.arguments().get(0), isField("w"));
+        assertThat(symbol2.arguments().get(0), isReference("w"));
         assertThat(symbol2.arguments().get(1), isFunction("to_bigint"));
         assertThat(symbol2.arguments().get(1).valueType(), is(DataTypes.LONG));
     }

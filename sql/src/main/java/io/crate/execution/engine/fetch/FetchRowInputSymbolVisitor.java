@@ -26,7 +26,7 @@ import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.symbol.FetchReference;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -196,7 +196,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
     }
 
     @Override
-    public Input<?> visitField(Field field, Context context) {
+    public Input<?> visitField(ScopedSymbol field, Context context) {
         throw new UnsupportedOperationException(
             "Encountered " + field + " but Fields should have been changed to InputColumns already");
     }

@@ -23,7 +23,6 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedView;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -31,10 +30,11 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.RelationMatchers.isDocTable;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -50,12 +50,12 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testSelectFromViewIsResolvedToViewQueryDefinition() {
-        QueriedSelectRelation<?> query = e.normalize("select * from doc.v1");
-        assertThat(query.outputs(), Matchers.contains(isField("name"), isField("count(*)")));
+        QueriedSelectRelation query = e.analyze("select * from doc.v1");
+        assertThat(query.outputs(), contains(isField("name"), isField("count(*)")));
         assertThat(query.groupBy(), Matchers.empty());
-        assertThat(query.subRelation(), instanceOf(AnalyzedView.class));
-        QueriedSelectRelation<?> queriedDocTable = (QueriedSelectRelation<?>) ((AnalyzedView) query.subRelation()).relation();
-        assertThat(queriedDocTable.groupBy(), Matchers.contains(isReference("name")));
-        assertThat(((DocTableRelation) queriedDocTable.subRelation()).tableInfo().ident(), is(new RelationName("doc", "t1")));
+        assertThat(query.from(), contains(instanceOf(AnalyzedView.class)));
+        QueriedSelectRelation queriedDocTable = (QueriedSelectRelation) ((AnalyzedView) query.from().get(0)).relation();
+        assertThat(queriedDocTable.groupBy(), contains(isReference("name")));
+        assertThat(queriedDocTable.from(), contains(isDocTable(new RelationName("doc", "t1"))));
     }
 }

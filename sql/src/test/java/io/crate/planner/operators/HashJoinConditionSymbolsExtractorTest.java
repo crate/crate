@@ -25,7 +25,7 @@ package io.crate.planner.operators;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.symbol.Symbol;
-import io.crate.sql.tree.QualifiedName;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -35,9 +35,9 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
@@ -49,49 +49,46 @@ public class HashJoinConditionSymbolsExtractorTest extends CrateDummyClusterServ
 
     @Before
     public void prepare() throws Exception {
-        Map<QualifiedName, AnalyzedRelation> sources = T3.sources(clusterService);
+        Map<RelationName, AnalyzedRelation> sources = T3.sources(clusterService);
         sqlExpressions = new SqlExpressions(sources);
-        tr1 = T3.fromSource(T3.T1_RN, sources);
-        tr2 = T3.fromSource(T3.T2_RN, sources);
+        tr1 = sources.get(T3.T1);
+        tr2 = sources.get(T3.T2);
     }
 
     @Test
     public void testExtractFromTopEqCondition() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.x = t2.y");
-        Map<AnalyzedRelation, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
-        assertThat(symbolsPerRelation.get(tr1), contains(isField("x")));
-        assertThat(symbolsPerRelation.get(tr2), contains(isField("y")));
+        Map<RelationName, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        assertThat(symbolsPerRelation.get(tr1.relationName()), contains(isReference("x")));
+        assertThat(symbolsPerRelation.get(tr2.relationName()), contains(isReference("y")));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testExtractFromNestedEqCondition() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.x > t2.y and t1.a = t2.b and not(t1.i = t2.i)");
-        Map<AnalyzedRelation, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
-        assertThat(symbolsPerRelation.get(tr1), contains(isField("a")));
-        assertThat(symbolsPerRelation.get(tr2), contains(isField("b")));
+        Map<RelationName, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        assertThat(symbolsPerRelation.get(tr1.relationName()), contains(isReference("a")));
+        assertThat(symbolsPerRelation.get(tr2.relationName()), contains(isReference("b")));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testExtractSymbolsWithDuplicates() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t2.b and t1.i + 1 = t2.i and t2.y = t1.i + 1");
-        Map<AnalyzedRelation, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
-        assertThat(symbolsPerRelation.get(tr1), containsInAnyOrder(
-            isField("a"),
-            isFunction(ArithmeticFunctions.Names.ADD, isField("i"), isLiteral(1))));
-        assertThat(symbolsPerRelation.get(tr2), containsInAnyOrder(isField("b"), isField("i")));
+        Map<RelationName, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        assertThat(symbolsPerRelation.get(tr1.relationName()), containsInAnyOrder(
+            isReference("a"),
+            isFunction(ArithmeticFunctions.Names.ADD, isReference("i"), isLiteral(1))));
+        assertThat(symbolsPerRelation.get(tr2.relationName()), containsInAnyOrder(isReference("b"), isReference("i")));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testExtractRelationsOfFunctionsWithLiterals() {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t2.b and t1.i + 1 = t2.i and t2.y = 1 + t1.i");
-        Map<AnalyzedRelation, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
-        assertThat(symbolsPerRelation.get(tr1), containsInAnyOrder(
-            isField("a"),
-            isFunction(ArithmeticFunctions.Names.ADD, isField("i"), isLiteral(1)),
-            isFunction(ArithmeticFunctions.Names.ADD, isLiteral(1), isField("i"))));
-        assertThat(symbolsPerRelation.get(tr2), containsInAnyOrder(isField("b"), isField("i"), isField("y")));
+        Map<RelationName, List<Symbol>> symbolsPerRelation = HashJoinConditionSymbolsExtractor.extract(joinCondition);
+        assertThat(symbolsPerRelation.get(tr1.relationName()), containsInAnyOrder(
+            isReference("a"),
+            isFunction(ArithmeticFunctions.Names.ADD, isReference("i"), isLiteral(1)),
+            isFunction(ArithmeticFunctions.Names.ADD, isLiteral(1), isReference("i"))));
+        assertThat(symbolsPerRelation.get(tr2.relationName()), containsInAnyOrder(isReference("b"), isReference("i"), isReference("y")));
     }
 }

@@ -395,7 +395,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testArithmeticFunctions() throws Exception {
         execute("select ((2 * 4 - 2 + 1) / 2) % 3 from sys.cluster");
-        assertThat(response.cols()[0], is("(((((2 * 4) - 2) + 1) / 2) % 3)"));
+        assertThat(response.cols()[0], is("0"));
         assertThat(response.rows()[0][0], is(0L));
 
         execute("select ((2 * 4.0 - 2 + 1) / 2) % 3 from sys.cluster");
@@ -581,7 +581,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         long before = DateTimeUtils.currentTimeMillis();
         SQLResponse response = execute("select current_timestamp from sys.cluster");
         long after = DateTimeUtils.currentTimeMillis();
-        assertThat(response.cols(), arrayContaining("current_timestamp"));
+        assertThat(response.cols(), arrayContaining("current_timestamp(3)"));
         assertThat((long) response.rows()[0][0], allOf(greaterThanOrEqualTo(before), lessThanOrEqualTo(after)));
     }
 

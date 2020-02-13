@@ -47,11 +47,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -71,16 +71,16 @@ public class SqlExpressions {
     private final EvaluatingNormalizer normalizer;
     private final Functions functions;
 
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
+    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources) {
         this(sources, null, null, User.CRATE_USER);
     }
 
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
+    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver) {
         this(sources, fieldResolver, null, User.CRATE_USER);
     }
 
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
+    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
                           @Nullable Object[] parameters,
                           User user,

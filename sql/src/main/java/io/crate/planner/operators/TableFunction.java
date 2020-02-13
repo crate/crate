@@ -32,9 +32,11 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
@@ -76,7 +78,14 @@ public final class TableFunction implements LogicalPlan {
                                SubQueryResults subQueryResults) {
         List<Symbol> args = relation.function().arguments();
         ArrayList<Literal<?>> functionArguments = new ArrayList<>(args.size());
-        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            plannerContext.functions(),
+            RowGranularity.CLUSTER,
+            null,
+            relation
+        );
+        var binder = new SubQueryAndParamBinder(params, subQueryResults)
+            .andThen(x -> normalizer.normalize(x, plannerContext.transactionContext()));
         for (Symbol arg : args) {
             // It's not possible to use columns as argument to a table function, so it's safe to evaluate at this point.
             functionArguments.add(
@@ -93,8 +102,8 @@ public final class TableFunction implements LogicalPlan {
             plannerContext.handlerNode(),
             relation.functionImplementation(),
             functionArguments,
-            Lists2.map(toCollect, paramBinder),
-            paramBinder.apply(where.queryOrFallback())
+            Lists2.map(toCollect, binder),
+            binder.apply(where.queryOrFallback())
         );
         return new Collect(collectPhase, TopN.NO_LIMIT, 0, toCollect.size(), TopN.NO_LIMIT, null);
     }

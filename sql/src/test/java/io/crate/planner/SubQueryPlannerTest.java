@@ -22,20 +22,17 @@
 
 package io.crate.planner;
 
+import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
-import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
-import io.crate.expression.symbol.Function;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -47,6 +44,9 @@ import org.junit.Test;
 import java.util.List;
 
 import static io.crate.testing.ProjectionMatchers.isTopN;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -88,7 +88,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             isTopN(3, 0),
             instanceOf(EvalProjection.class)
         ));
-        assertThat(projections.get(0).outputs(), isSQL("INPUT(0), INPUT(1), INPUT(2), INPUT(3), INPUT(4), INPUT(5)"));
+        assertThat(projections.get(0).outputs(), isSQL("INPUT(1), INPUT(1), INPUT(2)"));
         assertThat(projections.get(5).outputs(), isSQL("INPUT(0)"));
     }
 
@@ -98,12 +98,25 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                  "    (select x + 10 as c, max(i) as max from t1 group by x + 10) t " +
                                  "group by c + 100 order by c + 100 " +
                                  "limit 100");
-        // We assume that an add function is present in the group projection keys.
-        List<Projection> projections = collect.collectPhase().projections();
-        GroupProjection projection = (GroupProjection) projections.get(2);
-        Function function = (Function) projection.keys().get(0);
-
-        assertEquals(ArithmeticFunctions.Names.ADD, function.info().ident().name());
+        CollectPhase collectPhase = collect.collectPhase();
+        assertThat(
+            collectPhase.toCollect(),
+            contains(
+                isReference("i"),
+                isFunction("add", isReference("x"), isLiteral(10))
+            )
+        );
+        assertThat(
+            collectPhase.projections(),
+            contains(
+                instanceOf(GroupProjection.class),
+                instanceOf(GroupProjection.class),
+                instanceOf(EvalProjection.class),
+                instanceOf(GroupProjection.class),
+                instanceOf(OrderedTopNProjection.class),
+                instanceOf(TopNProjection.class)
+            )
+        );
     }
 
     @Test
@@ -211,11 +224,15 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
         assertThat(nl.left(), instanceOf(Collect.class));
         Collect leftPlan = (Collect) nl.left();
-        assertThat(leftPlan.collectPhase().projections().size(), is(2));
-        assertThat(leftPlan.collectPhase().projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(leftPlan.collectPhase().projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        assertThat(leftPlan.collectPhase().projections().get(1), instanceOf(GroupProjection.class));
-        assertThat(leftPlan.collectPhase().projections().get(1).requiredGranularity(), is(RowGranularity.NODE));
+        CollectPhase leftCollectPhase = leftPlan.collectPhase();
+        assertThat(
+            leftCollectPhase.projections(),
+            contains(
+                instanceOf(GroupProjection.class),
+                instanceOf(GroupProjection.class),
+                instanceOf(EvalProjection.class)
+            )
+        );
         Collect rightPlan = (Collect) nl.right();
         assertThat(rightPlan.collectPhase().projections(), contains(
             instanceOf(GroupProjection.class),

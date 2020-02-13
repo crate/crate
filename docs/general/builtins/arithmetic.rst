@@ -34,12 +34,12 @@ operator   description
 
 Below is an example using all available arithmetic operators::
 
-    cr> select ((2 * 4.0 - 2 + 1) / 2) % 3;
-    +-----------------------------------+
-    | (((((2 * 4.0) - 2) + 1) / 2) % 3) |
-    +-----------------------------------+
-    | 0.5                               |
-    +-----------------------------------+
+    cr> select ((2 * 4.0 - 2 + 1) / 2) % 3 AS n;
+    +-----+
+    |   n |
+    +-----+
+    | 0.5 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 Result types
@@ -50,10 +50,10 @@ higher precision. In the case of ``divide`` this means that if both arguments
 are of type integer the result will also be an integer with the fractional part
 truncated::
 
-    cr> select 5 / 2,  5 / 2.0;
-    +---------+-----------+
-    | (5 / 2) | (5 / 2.0) |
-    +---------+-----------+
-    | 2       | 2.5       |
-    +---------+-----------+
+    cr> select 5 / 2 AS a,  5 / 2.0 AS b;
+    +---+-----+
+    | a |   b |
+    +---+-----+
+    | 2 | 2.5 |
+    +---+-----+
     SELECT 1 row in set (... sec)

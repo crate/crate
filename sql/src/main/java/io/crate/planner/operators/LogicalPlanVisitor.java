@@ -84,10 +84,6 @@ public class LogicalPlanVisitor<C, R> {
         return visitPlan(logicalPlan, context);
     }
 
-    public R visitRelationBoundary(RelationBoundary logicalPlan, C context) {
-        return visitPlan(logicalPlan, context);
-    }
-
     public R visitRootRelationBoundary(RootRelationBoundary logicalPlan, C context) {
         return visitPlan(logicalPlan, context);
     }
@@ -110,5 +106,9 @@ public class LogicalPlanVisitor<C, R> {
 
     public R visitTableFunction(TableFunction tableFunction, C context) {
         return visitPlan(tableFunction, context);
+    }
+
+    public R visitRename(Rename rename, C context) {
+        return visitPlan(rename, context);
     }
 }

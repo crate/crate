@@ -21,16 +21,17 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
-import io.crate.sql.tree.QualifiedName;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyRelation;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
@@ -46,8 +47,7 @@ public class ScalarsAndRefsToTrueTest extends CrateUnitTest {
             "table_name",
             "number_of_replicas",
             "schema_name");
-        ImmutableMap<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-            new QualifiedName("dummy"), dummyRelation);
+        Map<RelationName, AnalyzedRelation> sources = Map.of(dummyRelation.relationName(), dummyRelation);
         expressions = new SqlExpressions(sources);
     }
 

@@ -22,7 +22,6 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.ExplainAnalyzedStatement;
-import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 
 import javax.annotation.Nullable;
@@ -36,10 +35,6 @@ public abstract class AnalyzedRelationVisitor<C, R> {
 
     protected R visitAnalyzedRelation(AnalyzedRelation relation, C context) {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "relation \"%s\" is not supported", relation));
-    }
-
-    public R visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, C context) {
-        return visitAnalyzedRelation(multiSourceSelect, context);
     }
 
     public R visitUnionSelect(UnionSelect unionSelect, C context) {
@@ -62,7 +57,7 @@ public abstract class AnalyzedRelationVisitor<C, R> {
         return visitAnalyzedRelation(tableFunctionRelation, context);
     }
 
-    public R visitQueriedSelectRelation(QueriedSelectRelation<?> relation, C context) {
+    public R visitQueriedSelectRelation(QueriedSelectRelation relation, C context) {
         return visitAnalyzedRelation(relation, context);
     }
 

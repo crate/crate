@@ -33,7 +33,8 @@ import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.protocols.postgres.types.PGType;
@@ -241,12 +242,12 @@ public class SQLTransportExecutor {
             session.parse(UNNAMED, stmt, Collections.emptyList());
             List<Object> argsList = args == null ? Collections.emptyList() : Arrays.asList(args);
             session.bind(UNNAMED, UNNAMED, argsList, null);
-            List<Field> outputFields = session.describe('P', UNNAMED).getFields();
+            List<Symbol> outputFields = session.describe('P', UNNAMED).getFields();
             if (outputFields == null) {
-                ResultReceiver resultReceiver = new RowCountReceiver(listener);
+                ResultReceiver<?> resultReceiver = new RowCountReceiver(listener);
                 session.execute(UNNAMED, 0, resultReceiver);
             } else {
-                ResultReceiver resultReceiver = new ResultSetReceiver(listener, outputFields);
+                ResultReceiver<?> resultReceiver = new ResultSetReceiver(listener, outputFields);
                 session.execute(UNNAMED, 0, resultReceiver);
             }
             session.sync();
@@ -273,7 +274,7 @@ public class SQLTransportExecutor {
                     session.execute(UNNAMED, 0, resultReceiver);
                 }
             }
-            List<Field> outputColumns = session.describe('P', UNNAMED).getFields();
+            List<Symbol> outputColumns = session.describe('P', UNNAMED).getFields();
             if (outputColumns != null) {
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");
@@ -560,9 +561,9 @@ public class SQLTransportExecutor {
 
         private final List<Object[]> rows = new ArrayList<>();
         private final ActionListener<SQLResponse> listener;
-        private final List<Field> outputFields;
+        private final List<Symbol> outputFields;
 
-        ResultSetReceiver(ActionListener<SQLResponse> listener, List<Field> outputFields) {
+        ResultSetReceiver(ActionListener<SQLResponse> listener, List<Symbol> outputFields) {
             this.listener = listener;
             this.outputFields = outputFields;
         }
@@ -594,8 +595,8 @@ public class SQLTransportExecutor {
             DataType[] outputTypes = new DataType[outputFields.size()];
 
             for (int i = 0, outputFieldsSize = outputFields.size(); i < outputFieldsSize; i++) {
-                Field field = outputFields.get(i);
-                outputNames[i] = field.path().sqlFqn();
+                Symbol field = outputFields.get(i);
+                outputNames[i] = Symbols.pathFromSymbol(field).sqlFqn();
                 outputTypes[i] = field.valueType();
             }
 

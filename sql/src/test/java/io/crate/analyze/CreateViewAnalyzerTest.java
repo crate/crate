@@ -34,7 +34,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Locale;
 
-import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isAlias;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -105,7 +106,7 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAliasCanBeUsedToAvoidDuplicateColumnNamesInQuery() {
         CreateViewStmt createView = e.analyze("create view v1 as select x, x as y from t1");
-        assertThat(createView.analyzedQuery().fields(), contains(isField("x"), isField("y")));
+        assertThat(createView.analyzedQuery().outputs(), contains(isReference("x"), isAlias("y", isReference("x"))));
     }
 
     @Test

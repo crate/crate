@@ -213,10 +213,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
 
     private Symbol asSymbol(String expression) {
         try {
-            return normalizer.normalize(
-                expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext()),
-                systemTransactionCtx
-            );
+            return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext());
         } catch (Throwable t) {
             throw new IllegalArgumentException("Invalid filter expression: " + expression + ": " + t.getMessage(), t);
         }
@@ -226,7 +223,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         Symbol filter = asSymbol(filterExpression);
         if (!filter.valueType().equals(DataTypes.BOOLEAN)) {
             throw new IllegalArgumentException(
-                "Filter expression for " + settingName + " must result in a boolean, not: " + filter.valueType());
+                "Filter expression for " + settingName + " must result in a boolean, not: " + filter.valueType() + " (`" + filter + "`)");
         }
         InputFactory.Context<NestableCollectExpression<JobContextLog, ?>> ctx = inputFactory.ctxForRefs(systemTransactionCtx, refResolver);
         @SuppressWarnings("unchecked")

@@ -215,11 +215,6 @@ public class ExplainLogicalPlan {
         }
 
         @Override
-        public ImmutableMap.Builder<String, Object> visitRelationBoundary(RelationBoundary logicalPlan, Context context) {
-            return ImmutableMap.<String, Object>builder().putAll(explainMap(logicalPlan.source, context));
-        }
-
-        @Override
         public ImmutableMap.Builder<String, Object> visitRootRelationBoundary(RootRelationBoundary logicalPlan, Context context) {
             return ImmutableMap.<String, Object>builder().putAll(explainMap(logicalPlan.source, context));
         }

@@ -33,11 +33,12 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testNotAnyEqWith3vl() {
         assertThat(
             convert("NOT 10 = ANY(y_array)").toString(),
-            is("+(+*:* -y_array:[10 TO 10]) +(+*:* -op_isnull(any_=(10, Ref{doc.users.y_array, bigint_array})))")
+            is("+(+*:* -y_array:[10 TO 10]) +(+*:* -((10 = ANY(y_array)) IS NULL))")
         );
-        assertThat(
+        assertThat
+            (
             convert("NOT d = ANY([1,2,3])").toString(),
-            is("+(+*:* -d:{1.0 2.0 3.0}) +(+*:* -op_isnull(any_=(Ref{doc.users.d, double precision}, [1.0, 2.0, 3.0])))")
+            is("+(+*:* -d:{1.0 2.0 3.0}) +(+*:* -((d = ANY([1.0, 2.0, 3.0])) IS NULL))")
         );
     }
 

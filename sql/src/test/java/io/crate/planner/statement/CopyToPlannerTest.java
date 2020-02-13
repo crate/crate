@@ -35,6 +35,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -83,8 +84,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         return (T) CopyToPlan.planCopyToExecution(
             plan.copyTo(),
             e.getPlannerContext(clusterService.state()),
-            plan.logicalPlanner(),
-            plan.subqueryPlanner(),
+            new TableStats(),
             new ProjectionBuilder(e.functions()),
             Row.EMPTY,
             SubQueryResults.EMPTY);

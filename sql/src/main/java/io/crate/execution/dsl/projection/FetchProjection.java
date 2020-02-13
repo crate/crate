@@ -25,7 +25,7 @@ import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.crate.data.Paging;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -61,7 +61,7 @@ public class FetchProjection extends Projection {
                            TreeMap<Integer, String> readerIndices,
                            Map<String, RelationName> indicesToIdents) {
         assert outputSymbols.stream().noneMatch(s ->
-            SymbolVisitors.any(x -> x instanceof Field || x instanceof SelectSymbol, s))
+            SymbolVisitors.any(x -> x instanceof ScopedSymbol || x instanceof SelectSymbol, s))
             : "Cannot operate on Field or SelectSymbol symbols: " + outputSymbols;
         this.fetchPhaseId = fetchPhaseId;
         this.fetchSources = fetchSources;

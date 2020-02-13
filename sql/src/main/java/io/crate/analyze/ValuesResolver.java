@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 
 /**
@@ -30,5 +29,5 @@ import io.crate.expression.symbol.Symbol;
  */
 public interface ValuesResolver {
 
-    Symbol allocateAndResolve(Field argumentColumn);
+    Symbol allocateAndResolve(Symbol argumentColumn);
 }

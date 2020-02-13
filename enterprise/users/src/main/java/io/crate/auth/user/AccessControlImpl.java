@@ -53,7 +53,6 @@ import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedKill;
-import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.AnalyzedPrivileges;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.AnalyzedResetStatement;
@@ -147,14 +146,6 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, RelationContext context) {
-            for (AnalyzedRelation relation : multiSourceSelect.sources().values()) {
-                process(relation, context);
-            }
-            return null;
-        }
-
-        @Override
         public Void visitUnionSelect(UnionSelect unionSelect, RelationContext context) {
             process(unionSelect.left(), context);
             process(unionSelect.right(), context);
@@ -191,7 +182,10 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitQueriedSelectRelation(QueriedSelectRelation relation, RelationContext context) {
-            return process(relation.subRelation(), context);
+            for (var source : relation.from()) {
+                source.accept(this, context);
+            }
+            return null;
         }
 
         @Override

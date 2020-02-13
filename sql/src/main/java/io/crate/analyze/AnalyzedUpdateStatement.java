@@ -23,56 +23,37 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import javax.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.Iterator;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 public final class AnalyzedUpdateStatement implements AnalyzedStatement {
 
-    private final AbstractTableRelation table;
+    private final AbstractTableRelation<?> table;
     private final Map<Reference, Symbol> assignmentByTargetCol;
     private final Symbol query;
 
     /**
-     * List of columns used for the result set.
-     */
-    private final List<Field> fields;
-
-    /**
      * List of values or expressions used to be retrieved from the updated rows.
      */
+    @Nullable
     private final List<Symbol> returnValues;
 
-    public AnalyzedUpdateStatement(AbstractTableRelation table,
+    public AnalyzedUpdateStatement(AbstractTableRelation<?> table,
                                    Map<Reference, Symbol> assignmentByTargetCol,
                                    Symbol query,
-                                   List<ColumnIdent> outputNames,
-                                   List<Symbol> returnValues
-                                   ) {
+                                   @Nullable List<Symbol> returnValues) {
         this.table = table;
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.query = query;
         this.returnValues = returnValues;
-        if (!outputNames.isEmpty() && !returnValues.isEmpty()) {
-            this.fields = new ArrayList<>(outputNames.size());
-            Iterator<Symbol> outputsIterator = returnValues.iterator();
-            for (ColumnIdent path : outputNames) {
-                fields.add(new Field(table, path, outputsIterator.next()));
-            }
-        } else {
-            fields = null;
-        }
     }
 
-    public AbstractTableRelation table() {
+    public AbstractTableRelation<?> table() {
         return table;
     }
 
@@ -85,11 +66,8 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     }
 
     @Nullable
-    public List<Field> fields() {
-        return fields;
-    }
-
-    public List<Symbol> returnValues() {
+    @Override
+    public List<Symbol> outputs() {
         return returnValues;
     }
 
@@ -109,12 +87,9 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         for (Symbol sourceExpr : assignmentByTargetCol.values()) {
             consumer.accept(sourceExpr);
         }
-        for (Symbol returningSymbol : returnValues) {
-            consumer.accept(returningSymbol);
-        }
-        if (fields != null) {
-            for (Field field : fields) {
-                consumer.accept(field);
+        if (returnValues != null) {
+            for (Symbol returningSymbol : returnValues) {
+                consumer.accept(returningSymbol);
             }
         }
     }

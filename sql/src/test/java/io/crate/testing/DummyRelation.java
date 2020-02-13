@@ -22,20 +22,15 @@
 
 package io.crate.testing;
 
-import io.crate.analyze.HavingClause;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,9 +41,17 @@ import java.util.Set;
 public class DummyRelation implements AnalyzedRelation {
 
     private final Set<ColumnIdent> columnReferences = new HashSet<>();
-    private QualifiedName name = new QualifiedName("dummy");
+    private final RelationName name;
+
+    public DummyRelation(RelationName name, String... referenceNames) {
+        this.name = name;
+        for (String referenceName : referenceNames) {
+            columnReferences.add(ColumnIdent.fromPath(referenceName));
+        }
+    }
 
     public DummyRelation(String... referenceNames) {
+        this.name = new RelationName("foo", "dummy");
         for (String referenceName : referenceNames) {
             columnReferences.add(ColumnIdent.fromPath(referenceName));
         }
@@ -60,64 +63,20 @@ public class DummyRelation implements AnalyzedRelation {
     }
 
     @Override
-    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException {
-        if (columnReferences.contains(path)) {
-            return new Field(this, path, new InputColumn(0, DataTypes.STRING));
+    public ScopedSymbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException {
+        if (columnReferences.contains(column)) {
+            return new ScopedSymbol(name, column, DataTypes.STRING);
         }
         return null;
     }
 
     @Override
-    public List<Field> fields() {
-        return null;
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
+    public RelationName relationName() {
         return name;
     }
 
     @Override
     public List<Symbol> outputs() {
-        return null;
-    }
-
-    @Override
-    public WhereClause where() {
-        return null;
-    }
-
-    @Override
-    public List<Symbol> groupBy() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public HavingClause having() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public OrderBy orderBy() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol limit() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol offset() {
-        return null;
-    }
-
-    @Override
-    public boolean isDistinct() {
-        return false;
+        return List.of();
     }
 }

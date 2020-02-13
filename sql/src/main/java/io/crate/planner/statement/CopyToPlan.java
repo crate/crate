@@ -26,8 +26,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.BoundCopyTo;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
@@ -43,7 +41,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -58,11 +55,11 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.SubqueryPlanner;
+import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
@@ -83,30 +80,16 @@ import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSet
 public final class CopyToPlan implements Plan {
 
     private final AnalyzedCopyTo copyTo;
-    private final LogicalPlanner logicalPlanner;
-    private final SubqueryPlanner subqueryPlanner;
+    private final TableStats tableStats;
 
-    public CopyToPlan(AnalyzedCopyTo copyTo,
-                      LogicalPlanner logicalPlanner,
-                      SubqueryPlanner subqueryPlanner) {
+    public CopyToPlan(AnalyzedCopyTo copyTo, TableStats tableStats) {
         this.copyTo = copyTo;
-        this.logicalPlanner = logicalPlanner;
-        this.subqueryPlanner = subqueryPlanner;
+        this.tableStats = tableStats;
     }
 
     @VisibleForTesting
     AnalyzedCopyTo copyTo() {
         return copyTo;
-    }
-
-    @VisibleForTesting
-    LogicalPlanner logicalPlanner() {
-        return logicalPlanner;
-    }
-
-    @VisibleForTesting
-    SubqueryPlanner subqueryPlanner() {
-        return subqueryPlanner;
     }
 
     @Override
@@ -123,11 +106,11 @@ public final class CopyToPlan implements Plan {
         ExecutionPlan executionPlan = planCopyToExecution(
             copyTo,
             plannerContext,
-            logicalPlanner,
-            subqueryPlanner,
+            tableStats,
             executor.projectionBuilder(),
             params,
-            subQueryResults);
+            subQueryResults
+        );
 
         NodeOperationTree nodeOpTree = NodeOperationTreeGenerator
             .fromPlan(executionPlan, executor.localNodeId());
@@ -139,8 +122,7 @@ public final class CopyToPlan implements Plan {
     @VisibleForTesting
     static ExecutionPlan planCopyToExecution(AnalyzedCopyTo copyTo,
                                              PlannerContext context,
-                                             LogicalPlanner logicalPlanner,
-                                             SubqueryPlanner subqueryPlanner,
+                                             TableStats tableStats,
                                              ProjectionBuilder projectionBuilder,
                                              Row params,
                                              SubQueryResults subQueryResults) {
@@ -158,20 +140,23 @@ public final class CopyToPlan implements Plan {
         }
 
         WriterProjection projection = ProjectionBuilder.writerProjection(
-            boundedCopyTo.relation().outputs(),
+            boundedCopyTo.outputs(),
             boundedCopyTo.uri(),
             boundedCopyTo.compressionType(),
             boundedCopyTo.overwrites(),
             boundedCopyTo.outputNames(),
             outputFormat);
 
-        LogicalPlan logicalPlan = logicalPlanner.normalizeAndPlan(
-            boundedCopyTo.relation(),
-            context,
-            subqueryPlanner,
-            Set.of());
+        LogicalPlan collect = Collect.create(
+            new DocTableRelation(boundedCopyTo.table()),
+            boundedCopyTo.outputs(),
+            boundedCopyTo.whereClause(),
+            Set.of(),
+            tableStats,
+            context.params()
+        );
 
-        ExecutionPlan executionPlan = logicalPlan.build(
+        ExecutionPlan executionPlan = collect.build(
             context,
             projectionBuilder,
             0, 0, null, null, params, SubQueryResults.EMPTY);
@@ -196,18 +181,19 @@ public final class CopyToPlan implements Plan {
             parameters,
             subQueryResults
         );
-
-        DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) copyTo.tableInfo());
+        DocTableInfo table = (DocTableInfo) copyTo.tableInfo();
 
         List<String> partitions = resolvePartitions(
             Lists2.map(copyTo.table().partitionProperties(), x -> x.map(eval)),
-            tableRelation.tableInfo());
+            table
+        );
 
         List<Symbol> outputs = new ArrayList<>();
         Map<ColumnIdent, Symbol> overwrites = null;
         boolean columnsDefined = false;
         List<String> outputNames = null;
         if (!copyTo.columns().isEmpty()) {
+            // TODO: remove outputNames?
             outputNames = new ArrayList<>(copyTo.columns().size());
             for (Symbol symbol : copyTo.columns()) {
                 outputNames.add(SymbolPrinter.printUnqualified(symbol));
@@ -216,21 +202,21 @@ public final class CopyToPlan implements Plan {
             columnsDefined = true;
         } else {
             Reference sourceRef;
-            if (tableRelation.tableInfo().isPartitioned() && partitions.isEmpty()) {
+            if (table.isPartitioned() && partitions.isEmpty()) {
                 // table is partitioned, insert partitioned columns into the output
                 overwrites = new HashMap<>();
-                for (Reference reference : tableRelation.tableInfo().partitionedByColumns()) {
+                for (Reference reference : table.partitionedByColumns()) {
                     if (!(reference instanceof GeneratedReference)) {
                         overwrites.put(reference.column(), reference);
                     }
                 }
                 if (overwrites.size() > 0) {
-                    sourceRef = tableRelation.tableInfo().getReference(DocSysColumns.DOC);
+                    sourceRef = table.getReference(DocSysColumns.DOC);
                 } else {
-                    sourceRef = tableRelation.tableInfo().getReference(DocSysColumns.RAW);
+                    sourceRef = table.getReference(DocSysColumns.RAW);
                 }
             } else {
-                sourceRef = tableRelation.tableInfo().getReference(DocSysColumns.RAW);
+                sourceRef = table.getReference(DocSysColumns.RAW);
             }
             outputs = List.of(sourceRef);
         }
@@ -249,26 +235,10 @@ public final class CopyToPlan implements Plan {
         }
 
         WhereClause whereClause = new WhereClause(copyTo.whereClause(), partitions, Collections.emptySet());
-        QuerySpec querySpec = new QuerySpec(
-            outputs,
-            whereClause,
-            List.of(),
-            null,
-            null,
-            null,
-            null
-        );
-        QueriedSelectRelation<DocTableRelation> subRelation = new QueriedSelectRelation<>(
-            false,
-            tableRelation,
-            outputNames == null
-                ? Lists2.map(outputs, Symbols::pathFromSymbol)
-                : Lists2.map(outputNames, ColumnIdent::new),
-            querySpec
-        );
-
         return new BoundCopyTo(
-            subRelation,
+            outputs,
+            table,
+            whereClause,
             Literal.of(DataTypes.STRING.value(eval.apply(copyTo.uri()))),
             compressionType,
             outputFormat,

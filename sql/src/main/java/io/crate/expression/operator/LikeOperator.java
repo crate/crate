@@ -61,7 +61,7 @@ public class LikeOperator extends Operator<String> {
     public Scalar<Boolean, String> compile(List<Symbol> arguments) {
         Symbol pattern = arguments.get(1);
         if (pattern instanceof Input) {
-            Object value = ((Input) pattern).value();
+            Object value = ((Input<?>) pattern).value();
             if (value == null) {
                 return this;
             }

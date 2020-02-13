@@ -25,43 +25,39 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.List;
 
 public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements AnalyzedRelation {
 
-    private final List<Field> fields = List.of(
-        new Field(this, new ColumnIdent("node"), new InputColumn(0, ObjectType.builder()
-            .setInnerType("id", DataTypes.STRING)
-            .setInnerType("name", DataTypes.STRING)
-            .build())),
-        new Field(this, new ColumnIdent("uri"), new InputColumn(1, DataTypes.STRING)),
-        new Field(this, new ColumnIdent("success_count"), new InputColumn(2, DataTypes.LONG)),
-        new Field(this, new ColumnIdent("error_count"), new InputColumn(3, DataTypes.LONG)),
-        new Field(this, new ColumnIdent("errors"), new InputColumn(4, ObjectType.untyped()))
-    );
-    private final QualifiedName qualifiedName;
+    private final List<ScopedSymbol> fields;
 
     AnalyzedCopyFromReturnSummary(DocTableInfo tableInfo,
                                   Table<Symbol> table,
                                   GenericProperties<Symbol> properties,
                                   Symbol uri) {
         super(tableInfo, table, properties, uri);
-        qualifiedName = new QualifiedName(Arrays.asList(tableInfo.ident().schema(), tableInfo.ident().name()));
+        this.fields = List.of(
+            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("node"), ObjectType.builder()
+                .setInnerType("id", DataTypes.STRING)
+                .setInnerType("name", DataTypes.STRING)
+                .build()),
+            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("uri"), DataTypes.STRING),
+            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("success_count"), DataTypes.LONG),
+            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("error_count"), DataTypes.LONG),
+            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("errors"), ObjectType.untyped())
+        );
     }
 
     @Override
@@ -71,63 +67,18 @@ public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements A
     }
 
     @Override
-    public Field getField(ColumnIdent path, Operation operation)
-        throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getField is unsupported on internal relation for copy from return");
+    public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("Cannot use getField on " + getClass().getSimpleName());
     }
 
     @Override
+    public RelationName relationName() {
+        return tableInfo().ident();
+    }
+
     @Nonnull
-    public List<Field> fields() {
-        return fields;
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
-        return qualifiedName;
-    }
-
     @Override
     public List<Symbol> outputs() {
         return List.copyOf(fields);
-    }
-
-    @Override
-    public WhereClause where() {
-        return WhereClause.MATCH_ALL;
-    }
-
-    @Override
-    public List<Symbol> groupBy() {
-        return List.of();
-    }
-
-    @Nullable
-    @Override
-    public HavingClause having() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public OrderBy orderBy() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol limit() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol offset() {
-        return null;
-    }
-
-    @Override
-    public boolean isDistinct() {
-        return false;
     }
 }

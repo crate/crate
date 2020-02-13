@@ -23,63 +23,56 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.HavingClause;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * Represents a relation
+ *
+ * <pre>
+ *     {@code
+ *      tbl
+ *      tableFunction()
+ *      <rel> UNION ALL <rel>
+ *      SELECT * FROM <rel>
+ *      SELECT * FROM <rel>, <rel>
+ *      SELECT * FROM <rel> AS t1, <rel> AS t2
+ *      SELECT * FROM (SELECT * FROM tbl) as t
+ *     }
+ * </pre>
+ */
 public interface AnalyzedRelation extends AnalyzedStatement {
 
     <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context);
 
-    Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException;
+    /**
+     * Get a column (as Symbol) by column name. (Columns in this context can be virtual; E.g. computed -> `SELECT x FROM (SELECT 1 + 1 AS x) tbl`;
+     * <p>
+     *  The contract is that any symbol that is returned by this method must also appear within `outputs`.
+     * </p>
+     *
+     * <p>
+     *  An exception to this contract are `AbstractTableRelation` instances:
+     *  <ul>
+     *  <li>They can support implicit column creation. In that case a `DynamicReference` is returned.</li>
+     *  <li>They can return `Reference` symbols for subscripts; In that case on the `topLevel` part of the column appears in the `output`</li>
+     * </p>
+     */
+    @Nullable
+    Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException;
+
+    RelationName relationName();
 
     @Nonnull
-    List<Field> fields();
-
-    QualifiedName getQualifiedName();
-
-    /** * @return The outputs of the relation */
+    @Override
     List<Symbol> outputs();
-
-    /**
-     * @return WHERE clause of the relation.
-     *         This is {@link WhereClause#MATCH_ALL} if there was no WhereClause in the statement
-     */
-    WhereClause where();
-
-    /**
-     * @return The GROUP BY keys. Empty if there are none.
-     */
-    List<Symbol> groupBy();
-
-    /**
-     * @return The HAVING clause or null
-     */
-    @Nullable
-    HavingClause having();
-
-    /**
-     * @return ORDER BY clause or null if not present
-     */
-    @Nullable
-    OrderBy orderBy();
-
-    @Nullable
-    Symbol limit();
-
-    @Nullable
-    Symbol offset();
 
     /**
      * Calls the consumer for each top-level symbol in the relation
@@ -89,26 +82,6 @@ public interface AnalyzedRelation extends AnalyzedStatement {
     default void visitSymbols(Consumer<? super Symbol> consumer) {
         for (Symbol output : outputs()) {
             consumer.accept(output);
-        }
-        where().accept(consumer);
-        for (Symbol groupKey : groupBy()) {
-            consumer.accept(groupKey);
-        }
-        HavingClause having = having();
-        if (having != null) {
-            having.accept(consumer);
-        }
-        OrderBy orderBy = orderBy();
-        if (orderBy != null) {
-            orderBy.accept(consumer);
-        }
-        Symbol limit = limit();
-        if (limit != null) {
-            consumer.accept(limit);
-        }
-        Symbol offset = offset();
-        if (offset != null) {
-            consumer.accept(offset);
         }
     }
 
@@ -121,6 +94,4 @@ public interface AnalyzedRelation extends AnalyzedStatement {
     default boolean isWriteOperation() {
         return false;
     }
-
-    boolean isDistinct();
 }

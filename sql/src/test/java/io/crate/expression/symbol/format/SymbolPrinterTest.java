@@ -22,14 +22,11 @@
 
 package io.crate.expression.symbol.format;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -42,7 +39,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
@@ -56,6 +52,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.is;
 
 public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
@@ -76,14 +73,12 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             "  idx int," +
             "  s_arr array(text)" +
             ")";
+        RelationName name = new RelationName(DocSchemaInfo.NAME, TABLE_NAME);
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
-            new RelationName(DocSchemaInfo.NAME, TABLE_NAME),
+            name,
             createTableStmt,
             clusterService);
-
-        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>builder()
-            .put(QualifiedName.of(TABLE_NAME), new TableRelation(tableInfo))
-            .build();
+        Map<RelationName, AnalyzedRelation> sources = Map.of(name, new TableRelation(tableInfo));
         sqlExpressions = new SqlExpressions(sources);
     }
 
@@ -326,10 +321,10 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPrintFetchRefs() throws Exception {
-        Field field = (Field) sqlExpressions.asSymbol("bar");
-        Reference reference = ((AbstractTableRelation) field.relation()).resolveField(field);
-        Symbol fetchRef = new FetchReference(new InputColumn(1,reference.valueType()), reference);
-        assertPrint(fetchRef, "FETCH(INPUT(1), doc.formatter.bar)");
+        Symbol field = sqlExpressions.asSymbol("bar");
+        assertThat(field, isReference("bar"));
+        FetchReference fetchRef = new FetchReference(new InputColumn(0, field.valueType()), ((Reference) field));
+        assertPrint(fetchRef, "FETCH(INPUT(0), doc.formatter.bar)");
     }
 
     @Test

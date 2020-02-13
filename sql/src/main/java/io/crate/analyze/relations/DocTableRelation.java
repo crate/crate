@@ -24,8 +24,6 @@ package io.crate.analyze.relations;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
-import io.crate.expression.symbol.DynamicReference;
-import io.crate.expression.symbol.Field;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
@@ -48,29 +46,23 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
     @Nullable
     @Override
-    public Field getField(ColumnIdent path) {
+    public Reference getField(ColumnIdent path) {
         return getField(path, Operation.READ);
     }
 
     @Override
-    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+    public Reference getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         if (operation == Operation.UPDATE) {
-            ensureColumnCanBeUpdated(path);
+            ensureColumnCanBeUpdated(column);
         }
-        Reference reference = tableInfo.getReadReference(path);
+        Reference reference = tableInfo.getReadReference(column);
         if (reference == null) {
-            reference = tableInfo.indexColumn(path);
+            reference = tableInfo.indexColumn(column);
             if (reference == null) {
-                DynamicReference dynamic = tableInfo.getDynamic(path,
-                    operation == Operation.INSERT || operation == Operation.UPDATE);
-                if (dynamic == null) {
-                    return null;
-                } else {
-                    return allocate(path, dynamic);
-                }
+                return tableInfo.getDynamic(column, operation == Operation.INSERT || operation == Operation.UPDATE);
             }
         }
-        return allocate(path, reference);
+        return reference;
     }
 
     /**

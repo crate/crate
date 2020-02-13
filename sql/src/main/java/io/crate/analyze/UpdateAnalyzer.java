@@ -68,7 +68,7 @@ public final class UpdateAnalyzer {
 
     private static final Predicate<Reference> IS_OBJECT_ARRAY =
         input -> input.valueType().id() == ArrayType.ID
-                 && ((ArrayType) input.valueType()).innerType().id() == ObjectType.ID;
+                 && ((ArrayType<?>) input.valueType()).innerType().id() == ObjectType.ID;
 
     private final Functions functions;
     private final RelationAnalyzer relationAnalyzer;
@@ -99,7 +99,7 @@ public final class UpdateAnalyzer {
         if (!(relation instanceof AbstractTableRelation)) {
             throw new UnsupportedOperationException("UPDATE is only supported on base-tables");
         }
-        AbstractTableRelation table = (AbstractTableRelation) relation;
+        AbstractTableRelation<?> table = (AbstractTableRelation<?>) relation;
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, table);
         SubqueryAnalyzer subqueryAnalyzer =
             new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnCtx));
@@ -127,24 +127,25 @@ public final class UpdateAnalyzer {
         query = maybeAliasedStatement.maybeMapFields(query);
 
         Symbol normalizedQuery = normalizer.normalize(query, txnCtx);
-
         SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(
             update.returningClause(),
             relCtx.sources(),
             sourceExprAnalyzer,
             exprCtx
         );
-
         List<Symbol> outputSymbol = Lists2.map(selectAnalysis.outputSymbols(), x -> normalizer.normalize(x, txnCtx));
-        List<ColumnIdent> outputNames = selectAnalysis.outputNames();
-
-        return new AnalyzedUpdateStatement(table, assignmentByTargetCol, normalizedQuery, outputNames, outputSymbol);
+        return new AnalyzedUpdateStatement(
+            table,
+            assignmentByTargetCol,
+            normalizedQuery,
+            outputSymbol.isEmpty() ? null : outputSymbol
+        );
     }
 
     private HashMap<Reference, Symbol> getAssignments(List<Assignment<Expression>> assignments,
                                                       ParamTypeHints typeHints,
                                                       CoordinatorTxnCtx txnCtx,
-                                                      AbstractTableRelation table,
+                                                      AbstractTableRelation<?> table,
                                                       EvaluatingNormalizer normalizer,
                                                       SubqueryAnalyzer subqueryAnalyzer,
                                                       ExpressionAnalyzer sourceExprAnalyzer,

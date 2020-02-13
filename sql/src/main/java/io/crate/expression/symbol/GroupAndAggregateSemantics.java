@@ -134,19 +134,51 @@ public final class GroupAndAggregateSemantics {
         }
 
         @Override
+        public Symbol visitAlias(AliasSymbol aliasSymbol, List<Symbol> groupBy) {
+            /* valid:
+             *      SELECT x AS xx, count(*) FROM tbl GROUP BY xx;
+             *      SELECT x AS xx, count(*) FROM tbl GROUP BY x;
+             *
+             * not valid:
+             *
+             *      SELECT x AS xx, count(*) FROM tbl GROUP BY y;
+             */
+            if (groupBy.contains(aliasSymbol)) {
+                return null;
+            }
+            return aliasSymbol.symbol().accept(this, groupBy);
+        }
+
+        @Override
         public Symbol visitReference(Reference ref, List<Symbol> groupBy) {
-            if (groupBy.contains(ref)) {
+            if (containedIn(ref, groupBy)) {
                 return null;
             }
             return ref;
         }
 
         @Override
-        public Symbol visitField(Field field, List<Symbol> groupBy) {
-            if (groupBy.contains(field)) {
+        public Symbol visitField(ScopedSymbol symbol, List<Symbol> groupBy) {
+            if (containedIn(symbol, groupBy)) {
                 return null;
             }
-            return field;
+            return symbol;
+        }
+
+        public static boolean containedIn(Symbol symbol, List<Symbol> groupBy) {
+            // SELECT count(*), x AS xx, x FROM tbl GROUP BY 2
+            // GROUP BY is on `xx`, but `x` is implicitly also present in GROUP BY, so must be valid.
+            for (Symbol groupExpr : groupBy) {
+                if (symbol.equals(groupExpr)) {
+                    return true;
+                }
+                if (groupExpr instanceof AliasSymbol) {
+                    if (symbol.equals(((AliasSymbol) groupExpr).symbol())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         @Override

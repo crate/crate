@@ -60,7 +60,7 @@ public final class InsertFromSubQueryPlanner {
                                    LogicalPlanner logicalPlanner,
                                    SubqueryPlanner subqueryPlanner) {
 
-        if (!statement.returnValues().isEmpty() &&
+        if (statement.outputs() != null &&
             !plannerContext.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
@@ -78,7 +78,7 @@ public final class InsertFromSubQueryPlanner {
             new InputColumns.SourceSymbols(statement.columns()));
 
         // if fields are null default to number of rows imported
-        var outputs = statement.fields() == null ? List.of(new InputColumn(0, DataTypes.LONG)) : statement.fields();
+        var outputs = statement.outputs() == null ? List.of(new InputColumn(0, DataTypes.LONG)) : statement.outputs();
 
         ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
             statement.tableInfo().ident(),
@@ -96,7 +96,7 @@ public final class InsertFromSubQueryPlanner {
             Settings.EMPTY,
             statement.tableInfo().isPartitioned(),
             outputs,
-            statement.returnValues()
+            statement.outputs() == null ? List.of() : statement.outputs()
         );
         LogicalPlan plannedSubQuery = logicalPlanner.normalizeAndPlan(
             statement.subQueryRelation(),

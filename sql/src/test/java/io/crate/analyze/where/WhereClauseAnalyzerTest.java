@@ -142,27 +142,29 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private WhereClause analyzeSelectWhere(String stmt) {
-        AnalyzedRelation rel = e.normalize(
-            e.analyze(stmt),
-            new CoordinatorTxnCtx(SessionContext.systemSessionContext())
-        );
-        if (rel instanceof QueriedSelectRelation && ((QueriedSelectRelation<?>) rel).subRelation() instanceof DocTableRelation) {
-            DocTableRelation docTableRelation = (DocTableRelation) ((QueriedSelectRelation<?>) rel).subRelation();
-            WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-                new EvaluatingNormalizer(getFunctions(), RowGranularity.CLUSTER, null, docTableRelation),
-                rel.where().queryOrFallback(),
-                docTableRelation.tableInfo(),
-                coordinatorTxnCtx
-            );
-            return detailedQuery.toBoundWhereClause(
-                docTableRelation.tableInfo(),
-                getFunctions(),
-                Row.EMPTY,
-                SubQueryResults.EMPTY,
-                coordinatorTxnCtx
-            );
+        AnalyzedRelation rel = e.analyze(stmt);
+        if (rel instanceof QueriedSelectRelation) {
+            QueriedSelectRelation queriedRelation = ((QueriedSelectRelation) rel);
+            if (queriedRelation.from().get(0) instanceof DocTableRelation) {
+                DocTableRelation docTableRelation = (DocTableRelation) queriedRelation.from().get(0);
+                WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
+                    new EvaluatingNormalizer(getFunctions(), RowGranularity.CLUSTER, null, docTableRelation),
+                    queriedRelation.where().queryOrFallback(),
+                    docTableRelation.tableInfo(),
+                    coordinatorTxnCtx
+                );
+                return detailedQuery.toBoundWhereClause(
+                    docTableRelation.tableInfo(),
+                    getFunctions(),
+                    Row.EMPTY,
+                    SubQueryResults.EMPTY,
+                    coordinatorTxnCtx
+                );
+            }
+            return queriedRelation.where();
+        } else {
+            return WhereClause.MATCH_ALL;
         }
-        return rel.where();
     }
 
     @Test

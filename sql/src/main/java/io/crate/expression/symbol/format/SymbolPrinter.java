@@ -22,10 +22,6 @@
 
 package io.crate.expression.symbol.format;
 
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationPrinter;
-import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.any.AnyOperator;
@@ -34,19 +30,22 @@ import io.crate.expression.predicate.MatchPredicate;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.ExtractFunctions;
 import io.crate.expression.scalar.SubscriptFunction;
+import io.crate.expression.scalar.SubscriptObjectFunction;
+import io.crate.expression.scalar.SubscriptRecordFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.LiteralValueFormatter;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -142,8 +141,16 @@ public final class SymbolPrinter {
         }
 
         @Override
+        public Void visitAlias(AliasSymbol aliasSymbol, Void context) {
+            aliasSymbol.symbol().accept(this, null);
+            builder.append(" AS ");
+            builder.append(aliasSymbol.alias());
+            return null;
+        }
+
+        @Override
         public Void visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
-            return visitSymbol(selectSymbol, context);
+            return super.visitSelectSymbol(selectSymbol, context);
         }
 
         @Override
@@ -164,7 +171,12 @@ public final class SymbolPrinter {
                     break;
 
                 case SubscriptFunction.NAME:
+                case SubscriptObjectFunction.NAME:
                     printSubscriptFunction(function);
+                    break;
+
+                case SubscriptRecordFunction.NAME:
+                    printSubscriptRecord(function);
                     break;
 
                 case "current_user":
@@ -231,6 +243,13 @@ public final class SymbolPrinter {
                     }
             }
             return null;
+        }
+
+        private void printSubscriptRecord(Function function) {
+            builder.append("(");
+            function.arguments().get(0).accept(this, null);
+            builder.append(").");
+            function.arguments().get(1).accept(this, null);
         }
 
         private void printExtract(Function function) {
@@ -353,6 +372,7 @@ public final class SymbolPrinter {
             return visitFunction(symbol, context);
         }
 
+
         @Override
         public Void visitReference(Reference symbol, Void context) {
             if (style == Style.QUALIFIED && !isTableFunctionReference(symbol)) {
@@ -369,12 +389,13 @@ public final class SymbolPrinter {
         }
 
         @Override
-        public Void visitField(Field field, Void context) {
-            if (style == Style.QUALIFIED && !isTableFunctionField(field)) {
-                builder.append(RelationPrinter.INSTANCE.process(field.relation(), null))
+        public Void visitField(ScopedSymbol field, Void context) {
+            if (style == Style.QUALIFIED) {
+                builder
+                    .append(field.relation().toString())
                     .append(DOT);
             }
-            builder.append(field.path().quotedOutputName());
+            builder.append(field.column().quotedOutputName());
             return null;
         }
 
@@ -415,12 +436,6 @@ public final class SymbolPrinter {
         private static boolean isTableFunctionReference(Reference reference) {
             RelationName relationName = reference.ident().tableIdent();
             return "".equals(relationName.schema());
-        }
-
-        private static boolean isTableFunctionField(Field field) {
-            AnalyzedRelation relation = field.relation();
-            return relation instanceof QueriedSelectRelation
-                   && ((QueriedSelectRelation<?>) relation).subRelation() instanceof TableFunctionRelation;
         }
     }
 

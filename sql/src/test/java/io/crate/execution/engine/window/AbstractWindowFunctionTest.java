@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.window;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -51,7 +50,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
@@ -99,10 +97,15 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
             "create table doc.t1 (x int, y bigint, z string, d double)",
             clusterService);
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-        Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableName), tableRelation);
+        Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
         memoryManager = new OnHeapMemoryManager(bytes -> {});
-        sqlExpressions = new SqlExpressions(tableSources, tableRelation,
-            null, User.CRATE_USER, additionalModules);
+        sqlExpressions = new SqlExpressions(
+            tableSources,
+            tableRelation,
+            null,
+            User.CRATE_USER,
+            additionalModules
+        );
         functions = sqlExpressions.functions();
         inputFactory = new InputFactory(functions);
     }

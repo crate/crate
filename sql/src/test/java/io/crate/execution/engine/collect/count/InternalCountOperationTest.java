@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect.count;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Literal;
@@ -31,7 +30,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.SqlExpressions;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -63,7 +61,7 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         Schemas schemas = internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t"));
         TableRelation tableRelation = new TableRelation(tableInfo);
-        Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName(tableInfo.ident().name()), tableRelation);
+        Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
 
         Symbol filter = sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'"));

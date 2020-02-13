@@ -24,7 +24,9 @@ package io.crate.expression.symbol;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -84,10 +86,12 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     private Function twoArgs(Function func, C context) {
         assert func.arguments().size() == 2 : "size of arguments must be two";
         Symbol arg1 = func.arguments().get(0);
-        Symbol newArg1 = requireNonNull(arg1.accept(this, context), "function arguments must never be NULL");
+        Symbol newArg1 = arg1.accept(this, context);
+        assert newArg1 != null : arg1 + " became NULL, symbols must never convert to NULL";
 
         Symbol arg2 = func.arguments().get(1);
-        Symbol newArg2 = requireNonNull(arg2.accept(this, context), "function arguments must never be NULL");
+        Symbol newArg2 = arg2.accept(this, context);
+        assert newArg2 != null : arg2 + " became NULL, symbols must never convert to NULL";
 
         Symbol filter = func.filter();
         Symbol newFilter = processNullable(filter, context);
@@ -149,6 +153,35 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
             processNullable(windowFunction.filter(), context),
             windowFunction.windowDefinition().map(s -> s.accept(this, context))
         );
+    }
+
+    @Override
+    public Symbol visitMatchPredicate(MatchPredicate matchPredicate, C context) {
+        Symbol queryTerm = matchPredicate.queryTerm().accept(this, context);
+        HashMap<Symbol, Symbol> identBootMap = new HashMap<>();
+        for (Map.Entry<Symbol, Symbol> entry : matchPredicate.identBoostMap().entrySet()) {
+            identBootMap.put(
+                entry.getKey().accept(this, context),
+                entry.getValue().accept(this, context)
+            );
+        }
+        return new MatchPredicate(
+            identBootMap,
+            queryTerm,
+            matchPredicate.matchType(),
+            matchPredicate.options().accept(this, context)
+        );
+    }
+
+    @Override
+    public Symbol visitAlias(AliasSymbol aliasSymbol, C context) {
+        Symbol symbol = aliasSymbol.symbol();
+        Symbol newSymbol = symbol.accept(this, context);
+        if (symbol == newSymbol) {
+            return aliasSymbol;
+        } else {
+            return new AliasSymbol(aliasSymbol.alias(), newSymbol);
+        }
     }
 
     @Override

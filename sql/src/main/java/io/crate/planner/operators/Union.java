@@ -24,8 +24,6 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.UnionSelect;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
@@ -34,23 +32,18 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
-import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
 
@@ -69,22 +62,8 @@ public class Union implements LogicalPlan {
     final LogicalPlan rhs;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
 
-    static LogicalPlan create(UnionSelect union,
-                              SubqueryPlanner subqueryPlanner,
-                              Functions functions,
-                              CoordinatorTxnCtx txnCtx,
-                              Set<PlanHint> hints,
-                              TableStats tableStats,
-                              Row params) {
-        AnalyzedRelation left = union.left();
-        AnalyzedRelation right = union.right();
-        LogicalPlan lhsPlan = LogicalPlanner.plan(left, subqueryPlanner, true, functions, txnCtx, hints, tableStats, params);
-        LogicalPlan rhsPlan = LogicalPlanner.plan(right, subqueryPlanner, true, functions, txnCtx, hints, tableStats, params);
 
-        return new Union(lhsPlan, rhsPlan, union.outputs());
-    }
-
-    private Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
+    public Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.outputs = outputs;

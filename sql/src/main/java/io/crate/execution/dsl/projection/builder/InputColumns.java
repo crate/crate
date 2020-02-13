@@ -24,13 +24,14 @@ package io.crate.execution.dsl.projection.builder;
 import com.google.common.base.MoreObjects;
 import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.FetchReference;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
@@ -82,17 +83,29 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
                 // only non-literals should be replaced with input columns.
                 // otherwise {@link io.crate.metadata.Scalar#compile} won't do anything which
                 // results in poor performance of some scalar implementations
-                SymbolType symbolType = input.symbolType();
-                if (!symbolType.isValueSymbol()) {
-                    DataType valueType = input.valueType();
-                    if ((symbolType == SymbolType.FUNCTION || symbolType == SymbolType.WINDOW_FUNCTION)
-                        && !((Function) input).info().isDeterministic()) {
-                        nonDeterministicFunctions.put(input, new InputColumn(i, valueType));
-                    } else {
-                        this.inputs.put(input, new InputColumn(i, valueType));
-                    }
+                add(i, input);
+
+                /* SELECT count(*), x AS xx, x GROUP by 2
+                 * GROUP operator would outputs: [x AS xx, count(*)]
+                 * Eval wouldn't find `x`
+                 */
+                if (input instanceof AliasSymbol) {
+                    add(i, ((AliasSymbol) input).symbol());
                 }
                 i++;
+            }
+        }
+
+        public void add(int i, Symbol input) {
+            SymbolType symbolType = input.symbolType();
+            if (!symbolType.isValueSymbol()) {
+                DataType<?> valueType = input.valueType();
+                if ((symbolType == SymbolType.FUNCTION || symbolType == SymbolType.WINDOW_FUNCTION)
+                    && !((Function) input).info().isDeterministic()) {
+                    nonDeterministicFunctions.put(input, new InputColumn(i, valueType));
+                } else {
+                    this.inputs.put(input, new InputColumn(i, valueType));
+                }
             }
         }
 
@@ -207,6 +220,19 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     }
 
     @Override
+    public Symbol visitAlias(AliasSymbol aliasSymbol, SourceSymbols sourceSymbols) {
+        InputColumn inputColumn = sourceSymbols.inputs.get(aliasSymbol);
+        if (inputColumn == null) {
+            Symbol column = aliasSymbol.symbol().accept(this, sourceSymbols);
+            if (column == null) {
+                throw new IllegalArgumentException("Couldn't find " + aliasSymbol + " in " + sourceSymbols);
+            }
+            return column;
+        }
+        return inputColumn;
+    }
+
+    @Override
     public Symbol visitLiteral(Literal symbol, SourceSymbols context) {
         return symbol;
     }
@@ -221,16 +247,19 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         InputColumn inputColumn = sourceSymbols.inputs.get(ref);
         if (inputColumn == null) {
             Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref, ref.column(), sourceSymbols.inputs);
-            return subscriptOnRoot == null ? ref : subscriptOnRoot;
+            if (subscriptOnRoot == null) {
+                return ref;
+            }
+            return subscriptOnRoot;
         }
         return inputColumn;
     }
 
     @Override
-    public Symbol visitField(Field field, SourceSymbols sourceSymbols) {
+    public Symbol visitField(ScopedSymbol field, SourceSymbols sourceSymbols) {
         InputColumn inputColumn = sourceSymbols.inputs.get(field);
         if (inputColumn == null) {
-            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(field, field.path(), sourceSymbols.inputs);
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(field, field.column(), sourceSymbols.inputs);
             if (subscriptOnRoot == null) {
                 throw new IllegalArgumentException("Couldn't find " + field + " in " + sourceSymbols);
             } else {

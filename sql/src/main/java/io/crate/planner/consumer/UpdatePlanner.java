@@ -42,7 +42,6 @@ import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Assignments;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -67,15 +66,14 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-
-import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import javax.annotation.Nullable;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.singletonList;
@@ -94,12 +92,12 @@ public final class UpdatePlanner {
                             PlannerContext plannerCtx,
                             SubqueryPlanner subqueryPlanner) {
 
-        if (!update.returnValues().isEmpty() &&
+        if (update.outputs() != null &&
             !plannerCtx.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
 
-        AbstractTableRelation table = update.table();
+        AbstractTableRelation<?> table = update.table();
 
         Plan plan;
         if (table instanceof DocTableRelation) {
@@ -109,8 +107,7 @@ public final class UpdatePlanner {
                         update.query(),
                         functions,
                         plannerCtx,
-                        update.returnValues(),
-                        update.fields());
+                        update.outputs());
         } else {
             plan = new Update((plannerContext, params, subQueryValues) ->
                 sysUpdate(
@@ -120,8 +117,7 @@ public final class UpdatePlanner {
                     update.query(),
                     params,
                     subQueryValues,
-                    update.returnValues(),
-                    update.fields()
+                    update.outputs()
                 )
             );
         }
@@ -134,8 +130,7 @@ public final class UpdatePlanner {
                              Symbol query,
                              Functions functions,
                              PlannerContext plannerCtx,
-                             List<Symbol> returnValues,
-                             @Nullable List<Field> outputFields) {
+                             @Nullable List<Symbol> returnValues) {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         DocTableInfo tableInfo = docTable.tableInfo();
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
@@ -153,8 +148,7 @@ public final class UpdatePlanner {
                                             detailedQuery,
                                             params,
                                             subQueryValues,
-                                            returnValues,
-                                            outputFields));
+                                            returnValues));
     }
 
     @FunctionalInterface
@@ -212,28 +206,27 @@ public final class UpdatePlanner {
                                            Symbol query,
                                            Row params,
                                            SubQueryResults subQueryResults,
-                                           List<Symbol> returnValues,
-                                           @Nullable List<Field> outputFields) {
+                                           @Nullable List<Symbol> returnValues) {
         TableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
         Symbol[] outputSymbols;
-        if (returnValues.isEmpty() && outputFields == null) {
+        if (returnValues == null) {
             outputSymbols = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
         } else {
-            outputSymbols = new Symbol[outputFields.size()];
-            for (int i = 0; i < outputFields.size(); i++) {
-                outputSymbols[i] = new InputColumn(i, outputFields.get(i).valueType());
+            outputSymbols = new Symbol[returnValues.size()];
+            for (int i = 0; i < returnValues.size(); i++) {
+                outputSymbols[i] = new InputColumn(i, returnValues.get(i).valueType());
             }
         }
         SysUpdateProjection updateProjection = new SysUpdateProjection(
             new InputColumn(0, idReference.valueType()),
             assignmentByTargetCol,
             outputSymbols,
-            returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[]{})
+            returnValues == null ? null : returnValues.toArray(new Symbol[0])
         );
         WhereClause where = new WhereClause(SubQueryAndParamBinder.convert(query, params, subQueryResults));
 
-        if (returnValues.isEmpty()) {
+        if (returnValues == null) {
             return createCollectAndMerge(plannerContext,
                                          tableInfo,
                                          idReference,
@@ -261,21 +254,20 @@ public final class UpdatePlanner {
                                                WhereClauseOptimizer.DetailedQuery detailedQuery,
                                                Row params,
                                                SubQueryResults subQueryResults,
-                                               List<Symbol> returnValues,
-                                               @Nullable List<Field> outputFields) {
+                                               @Nullable List<Symbol> returnValues) {
         DocTableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
                                                "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol);
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
         Symbol[] outputSymbols;
-        if (returnValues.isEmpty() && outputFields == null) {
+        if (returnValues == null) {
             //When there are no return values, set the output to a long representing the count of updated rows
             outputSymbols = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
         } else {
-            outputSymbols = new Symbol[outputFields.size()];
-            for (int i = 0; i < outputFields.size(); i++) {
-                outputSymbols[i] = new InputColumn(i, outputFields.get(i).valueType());
+            outputSymbols = new Symbol[returnValues.size()];
+            for (int i = 0; i < returnValues.size(); i++) {
+                outputSymbols[i] = new InputColumn(i, returnValues.get(i).valueType());
             }
         }
         UpdateProjection updateProjection = new UpdateProjection(
@@ -283,7 +275,7 @@ public final class UpdatePlanner {
             assignments.targetNames(),
             assignmentSources,
             outputSymbols,
-            returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[]{}),
+            returnValues == null ? null : returnValues.toArray(new Symbol[0]),
             null);
 
         WhereClause where = detailedQuery.toBoundWhereClause(
@@ -294,7 +286,7 @@ public final class UpdatePlanner {
             throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
         }
 
-        if (returnValues.isEmpty()) {
+        if (returnValues == null) {
             return createCollectAndMerge(plannerCtx,
                                          tableInfo,
                                          idReference,

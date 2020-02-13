@@ -46,9 +46,9 @@ public class SysExpressionsBytesRefTest extends CrateUnitTest {
 
     }
 
-    static class NullFieldSysObjectReference extends NestedObjectExpression {
+    static class NullScopedSymbolSysObjectReference extends NestedObjectExpression {
 
-        protected NullFieldSysObjectReference() {
+        protected NullScopedSymbolSysObjectReference() {
             childImplementations.put("n", new BytesRefNullSysExpression());
         }
 
@@ -58,13 +58,13 @@ public class SysExpressionsBytesRefTest extends CrateUnitTest {
     static class NullSysObjectArrayReference extends SysStaticObjectArrayReference {
 
         protected NullSysObjectArrayReference() {
-            childImplementations.add(new NullFieldSysObjectReference());
+            childImplementations.add(new NullScopedSymbolSysObjectReference());
         }
     }
 
     @Test
     public void testSysObjectReferenceNull() throws Exception {
-        NullFieldSysObjectReference nullRef = new NullFieldSysObjectReference();
+        NullScopedSymbolSysObjectReference nullRef = new NullScopedSymbolSysObjectReference();
         NestableInput n = nullRef.getChild("n");
         assertThat(n, instanceOf(BytesRefNullSysExpression.class));
 

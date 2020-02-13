@@ -28,6 +28,7 @@ import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.RelationName;
@@ -1061,8 +1062,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableGeneratedColumnWithMatch() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("can only MATCH on columns, not on name");
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("Cannot use MATCH in CREATE TABLE statements");
         analyze("create table foo (name string, bar as match(name, 'crate'))");
     }
 

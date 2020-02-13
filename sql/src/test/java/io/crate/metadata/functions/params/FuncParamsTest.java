@@ -22,20 +22,18 @@
 
 package io.crate.metadata.functions.params;
 
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.ConversionException;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FuncArg;
-import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -143,7 +141,7 @@ public class FuncParamsTest extends CrateUnitTest {
     @Test
     public void testFieldsAreNotCastable() {
         ColumnIdent path = new ColumnIdent("test");
-        Field field = new Field(Mockito.mock(AnalyzedRelation.class), path, new InputColumn(0, DataTypes.INTEGER));
+        ScopedSymbol field = new ScopedSymbol(new RelationName("doc", "dummy"), path, DataTypes.INTEGER);
         FuncParams params = FuncParams.builder(Param.LONG).build();
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `test` of type `integer` to type `bigint`");

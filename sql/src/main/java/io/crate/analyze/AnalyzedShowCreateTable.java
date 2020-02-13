@@ -24,28 +24,28 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
 public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelation {
 
     private final DocTableInfo tableInfo;
-    private final List<Field> fields;
+    private final List<ScopedSymbol> fields;
+    private final RelationName relationName;
 
     public AnalyzedShowCreateTable(DocTableInfo tableInfo) {
         String columnName = "SHOW CREATE TABLE " + tableInfo.ident().fqn();
-        this.fields = Collections.singletonList(new Field(this, new ColumnIdent(columnName), new InputColumn(0, DataTypes.STRING)));
+        relationName = new RelationName(null, "SHOW CREATE TABLE");
+        this.fields = Collections.singletonList(new ScopedSymbol(relationName, new ColumnIdent(columnName), DataTypes.STRING));
         this.tableInfo = tableInfo;
     }
 
@@ -64,14 +64,8 @@ public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelat
     }
 
     @Override
-    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField() is not supported on AnalyzedShowCreateTable");
-    }
-
-    @Override
-    @Nonnull
-    public List<Field> fields() {
-        return fields;
+    public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("Cannot use getField on " + getClass().getSimpleName());
     }
 
     @Override
@@ -80,51 +74,13 @@ public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelat
     }
 
     @Override
-    public QualifiedName getQualifiedName() {
-        throw new UnsupportedOperationException("method not supported");
+    public RelationName relationName() {
+        return relationName;
     }
 
+    @Nonnull
     @Override
     public List<Symbol> outputs() {
         return List.copyOf(fields);
-    }
-
-    @Override
-    public WhereClause where() {
-        return WhereClause.MATCH_ALL;
-    }
-
-    @Override
-    public List<Symbol> groupBy() {
-        return List.of();
-    }
-
-    @Nullable
-    @Override
-    public HavingClause having() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public OrderBy orderBy() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol limit() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol offset() {
-        return null;
-    }
-
-    @Override
-    public boolean isDistinct() {
-        return false;
     }
 }

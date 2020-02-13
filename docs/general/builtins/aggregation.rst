@@ -153,26 +153,29 @@ The ``count`` aggregate function also supports the ``distinct`` keyword. This
 keyword changes the behaviour of the function so that it will only count the
 number of distinct values in this column that are not ``NULL``::
 
-    cr> select count(distinct kind), count(*), date
+    cr> select 
+    ...   count(distinct kind) AS num_kind,
+    ...   count(*),
+    ...   date
     ... from locations group by date
-    ... order by count(distinct kind) desc, count(*) desc;
-    +----------------------+----------+---------------+
-    | count(DISTINCT kind) | count(*) | date          |
-    +----------------------+----------+---------------+
-    | 3                    | 8        | 1373932800000 |
-    | 3                    | 4        | 308534400000  |
-    | 1                    | 1        | 1367366400000 |
-    +----------------------+----------+---------------+
-     SELECT 3 rows in set (... sec)
+    ... order by num_kind, count(*) desc;
+    +----------+----------+---------------+
+    | num_kind | count(*) |          date |
+    +----------+----------+---------------+
+    |        1 |        1 | 1367366400000 |
+    |        3 |        8 | 1373932800000 |
+    |        3 |        4 |  308534400000 |
+    +----------+----------+---------------+
+    SELECT 3 rows in set (... sec)
 
 ::
 
-    cr> select count(distinct kind) from locations;
-    +----------------------+
-    | count(DISTINCT kind) |
-    +----------------------+
-    | 3                    |
-    +----------------------+
+    cr> select count(distinct kind) AS num_kind from locations;
+    +----------+
+    | num_kind |
+    +----------+
+    |        3 |
+    +----------+
     SELECT 1 row in set (... sec)
 
 ``min``
@@ -332,26 +335,29 @@ The ``avg`` aggregate function also supports the ``distinct`` keyword. This
 keyword changes the behaviour of the function so that it will only average the
 number of distinct values in this column that are not ``NULL``::
 
-    cr> select avg(distinct position), count(*), date
+    cr> select 
+    ...   avg(distinct position) AS avg_pos,
+    ...   count(*),
+    ...   date
     ... from locations group by date
-    ... order by avg(distinct position) desc, count(*) desc;
-    +------------------------+----------+---------------+
-    | avg(DISTINCT position) | count(*) |          date |
-    +------------------------+----------+---------------+
-    |                    4.0 |        1 | 1367366400000 |
-    |                    3.6 |        8 | 1373932800000 |
-    |                    2.0 |        4 |  308534400000 |
-    +------------------------+----------+---------------+
+    ... order by 1 desc, count(*) desc;
+    +---------+----------+---------------+
+    | avg_pos | count(*) |          date |
+    +---------+----------+---------------+
+    |     4.0 |        1 | 1367366400000 |
+    |     3.6 |        8 | 1373932800000 |
+    |     2.0 |        4 |  308534400000 |
+    +---------+----------+---------------+
     SELECT 3 rows in set (... sec)
 
 ::
 
-    cr> select avg(distinct position) from locations;
-    +------------------------+
-    | avg(DISTINCT position) |
-    +------------------------+
-    |                    3.5 |
-    +------------------------+
+    cr> select avg(distinct position) AS avg_pos from locations;
+    +---------+
+    | avg_pos |
+    +---------+
+    |     3.5 |
+    +---------+
     SELECT 1 row in set (... sec)
 
 

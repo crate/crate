@@ -74,12 +74,20 @@ public class SymbolVisitors {
             if (symbolPredicate.test(matchPredicate)) {
                 return true;
             }
-            for (Field field : matchPredicate.identBoostMap().keySet()) {
+            for (Symbol field : matchPredicate.identBoostMap().keySet()) {
                 if (field.accept(this, symbolPredicate)) {
                     return true;
                 }
             }
             return false;
+        }
+
+        @Override
+        public Boolean visitAlias(AliasSymbol aliasSymbol, Predicate<? super Symbol> predicate) {
+            if (predicate.test(aliasSymbol)) {
+                return true;
+            }
+            return predicate.test(aliasSymbol.symbol());
         }
 
         @Override

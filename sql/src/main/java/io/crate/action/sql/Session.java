@@ -38,7 +38,7 @@ import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
@@ -313,7 +313,7 @@ public class Session implements AutoCloseable {
             case 'P':
                 Portal portal = getSafePortal(portalOrStatement);
                 var analyzedStmt = portal.analyzedStatement();
-                return new DescribeResult(analyzedStmt.fields());
+                return new DescribeResult(analyzedStmt.outputs());
             case 'S':
                 /*
                  * describe might be called without prior bind call.
@@ -344,7 +344,7 @@ public class Session implements AutoCloseable {
                 if (parameterSymbols.length > 0) {
                     preparedStmt.setDescribedParameters(parameterSymbols);
                 }
-                return new DescribeResult(analyzedStatement.fields(), parameterSymbols);
+                return new DescribeResult(analyzedStatement.outputs(), parameterSymbols);
             default:
                 throw new AssertionError("Unsupported type: " + type);
         }
@@ -575,7 +575,7 @@ public class Session implements AutoCloseable {
     public List<? extends DataType> getOutputTypes(String portalName) {
         Portal portal = getSafePortal(portalName);
         var analyzedStatement = portal.analyzedStatement();
-        List<Field> fields = analyzedStatement.fields();
+        List<Symbol> fields = analyzedStatement.outputs();
         if (fields != null) {
             return Symbols.typeView(fields);
         }
@@ -586,7 +586,7 @@ public class Session implements AutoCloseable {
         return getSafePortal(portalName).preparedStmt().rawStatement();
     }
 
-    public DataType getParamType(String statementName, int idx) {
+    public DataType<?> getParamType(String statementName, int idx) {
         PreparedStmt stmt = getSafeStmt(statementName);
         return stmt.getEffectiveParameterType(idx);
     }

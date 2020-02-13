@@ -22,14 +22,11 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.Fields;
-import io.crate.analyze.HavingClause;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionName;
@@ -39,43 +36,36 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
+import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
 
     private final TableFunctionImplementation<?> functionImplementation;
     private final Function function;
-    private final QualifiedName qualifiedName;
-    private final Fields fields;
-    private final List<Symbol> outputs;
+    private final List<Reference> outputs;
+    private final RelationName relationName;
 
-    public TableFunctionRelation(TableFunctionImplementation<?> functionImplementation,
-                                 Function function,
-                                 QualifiedName qualifiedName) {
+    public TableFunctionRelation(TableFunctionImplementation<?> functionImplementation, Function function) {
         this.functionImplementation = functionImplementation;
         this.function = function;
-        this.qualifiedName = qualifiedName;
         RowType rowType = functionImplementation.returnType();
-        this.fields = new Fields(rowType.numElements());
         this.outputs = new ArrayList<>(rowType.numElements());
         int idx = 0;
         FunctionName functionName = function.info().ident().fqnName();
-        var relationName = new RelationName(Objects.requireNonNullElse(functionName.schema(), ""), functionName.name());
+        this.relationName = new RelationName(null, functionName.name());
         for (int i = 0; i < rowType.numElements(); i++) {
             DataType<?> type = rowType.getFieldType(i);
             String fieldName = rowType.getFieldName(i);
             var ref = new Reference(new ReferenceIdent(relationName, fieldName), RowGranularity.DOC, type, idx, null);
             outputs.add(ref);
-            fields.add(new Field(this, new ColumnIdent(fieldName), ref));
             idx++;
         }
     }
@@ -94,61 +84,32 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
     }
 
     @Override
-    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        if (operation == Operation.READ) {
-            return fields.get(path);
+    public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException {
+        for (Symbol output : outputs) {
+            ColumnIdent outputColumn = Symbols.pathFromSymbol(output);
+            if (column.equals(outputColumn)) {
+                return output;
+            }
         }
-        throw new UnsupportedOperationException("Table functions don't support write operations");
+        ColumnIdent rootColumn = column.getRoot();
+        for (Symbol output : outputs) {
+            ColumnIdent outputRoot = Symbols.pathFromSymbol(output).getRoot();
+            if (output.valueType().id() == ObjectType.ID && rootColumn.equals(outputRoot)) {
+                return SubscriptFunctions.makeObjectSubscript(output, column);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public RelationName relationName() {
+        return relationName;
     }
 
     @Nonnull
     @Override
-    public List<Field> fields() {
-        return fields.asList();
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
-        return qualifiedName;
-    }
-
-    @Override
     public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public WhereClause where() {
-        return WhereClause.MATCH_ALL;
-    }
-
-    @Override
-    public List<Symbol> groupBy() {
-        return List.of();
-    }
-
-    @Nullable
-    @Override
-    public HavingClause having() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public OrderBy orderBy() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol limit() {
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Symbol offset() {
-        return null;
+        return List.copyOf(outputs);
     }
 
     @Override
@@ -161,16 +122,10 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
         }
     }
 
-    @Override
-    public boolean isDistinct() {
-        return false;
-    }
-
     @Nullable
     @Override
-    public Symbol resolveField(Field field) {
-        Field resolvedField = fields.get(field.path());
-        return resolvedField == null ? null : resolvedField.pointer();
+    public Symbol resolveField(ScopedSymbol field) {
+        return getField(field.column(), Operation.READ);
     }
 
     @Override

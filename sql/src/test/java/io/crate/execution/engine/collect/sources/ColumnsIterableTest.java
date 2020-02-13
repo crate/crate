@@ -51,9 +51,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.crate.testing.T3.T1_DEFINITION;
-import static io.crate.testing.T3.T1_RN;
+import static io.crate.testing.T3.T1;
 import static io.crate.testing.T3.T4_DEFINITION;
-import static io.crate.testing.T3.T4_RN;
+import static io.crate.testing.T3.T4;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -65,8 +65,8 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        t1Info = SQLExecutor.tableInfo(T1_RN, T1_DEFINITION, clusterService);
-        t4Info = SQLExecutor.tableInfo(T4_RN, T4_DEFINITION, clusterService);
+        t1Info = SQLExecutor.tableInfo(T1, T1_DEFINITION, clusterService);
+        t4Info = SQLExecutor.tableInfo(T4, T4_DEFINITION, clusterService);
     }
 
     @Test

@@ -52,6 +52,7 @@ import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
+import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.AnalyzedPromoteReplica;
@@ -72,7 +73,6 @@ import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
 import io.crate.analyze.ExplainAnalyzedStatement;
-import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.UserManager;
@@ -142,6 +142,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     private final ClusterService clusterService;
     private final Functions functions;
+    private final TableStats tableStats;
     private final LogicalPlanner logicalPlanner;
     private final IsStatementExecutionAllowed isStatementExecutionAllowed;
     private final NumberOfShards numberOfShards;
@@ -186,6 +187,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    BooleanSupplier hasValidLicense) {
         this.clusterService = clusterService;
         this.functions = functions;
+        this.tableStats = tableStats;
         this.logicalPlanner = new LogicalPlanner(functions, tableStats, () -> clusterService.state().nodes().getMinNodeVersion());
         this.isStatementExecutionAllowed = new IsStatementExecutionAllowed(hasValidLicense);
         this.numberOfShards = numberOfShards;
@@ -297,8 +299,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     protected Plan visitCopyToStatement(AnalyzedCopyTo analysis, PlannerContext context) {
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-        return new CopyToPlan(analysis, logicalPlanner, subqueryPlanner);
+        return new CopyToPlan(analysis, tableStats);
     }
 
     @Override

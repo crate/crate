@@ -38,7 +38,7 @@ import org.junit.Test;
 import java.util.Collections;
 
 import static io.crate.testing.T3.T1_DEFINITION;
-import static io.crate.testing.T3.T1_RN;
+import static io.crate.testing.T3.T1;
 import static org.hamcrest.Matchers.is;
 
 public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
@@ -52,7 +52,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         executor = SQLExecutor.builder(clusterService)
             .addTable(T1_DEFINITION)
             .build();
-        t1Info = executor.schemas().getTableInfo(T1_RN);
+        t1Info = executor.schemas().getTableInfo(T1);
 
         DocTableRelation tableRelation = new DocTableRelation(t1Info);
         tableRelation.getField(new ColumnIdent("a"));   // allocate field so it can be resolved

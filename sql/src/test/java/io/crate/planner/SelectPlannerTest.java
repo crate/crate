@@ -35,7 +35,6 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -59,7 +58,6 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
-import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.LogicalPlan;
@@ -243,7 +241,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCollectAndMergePlan() throws Exception {
         Merge merge = e.plan("select name from users where name = 'x' order by id limit 10");
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
-        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, text} = x"));
+        assertThat(collectPhase.where().representation(), is("(name = 'x')"));
 
         TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
         assertThat(topNProjection.limit(), is(10));
@@ -260,7 +258,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = e.plan("select name from users where name = 'x' order by name limit 10");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, text} = x"));
+        assertThat(collectPhase.where().representation(), is("(name = 'x')"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(1));
@@ -314,7 +312,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             new PartitionName(new RelationName("doc", "parted_pks"), Arrays.asList("1395874800000")).asIndexName(),
             new PartitionName(new RelationName("doc", "parted_pks"), Arrays.asList("1395961200000")).asIndexName()));
 
-        assertThat(collectPhase.where().representation(), is("Ref{doc.parted_pks.name, text} = x"));
+        assertThat(collectPhase.where().representation(), is("(name = 'x')"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(3));
@@ -325,7 +323,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = e.plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
-        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, text} = x"));
+        assertThat(collectPhase.where().representation(), is("(name = 'x')"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(2));
@@ -515,6 +513,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projections, contains(
             instanceOf(GroupProjection.class), // parallel on shard-level
             instanceOf(GroupProjection.class), // node-level
+            instanceOf(EvalProjection.class),
             instanceOf(FilterProjection.class),
             instanceOf(EvalProjection.class)
         ));
@@ -536,7 +535,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                                     "  and u2.name = u1.name");
         Join innerNl = (Join) outerNl.left();
 
-        assertThat(innerNl.joinPhase().joinCondition(), isSQL("((INPUT(0) = INPUT(17)) AND (INPUT(2) = INPUT(19)))"));
+        assertThat(innerNl.joinPhase().joinCondition(), isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))"));
         assertThat(innerNl.joinPhase().projections().size(), is(1));
         assertThat(innerNl.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
 
@@ -623,7 +622,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                             "where t1.id = t2.id and t2.id = t3.id");
         assertThat(plan.subPlan(), instanceOf(Join.class));
         Join outerNL = (Join)plan.subPlan();
-        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(17) = INPUT(34))"));
+        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(1) = INPUT(2))"));
         assertThat(outerNL.joinPhase().projections().size(), is(2));
         assertThat(outerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(outerNL.joinPhase().projections().get(1), instanceOf(AggregationProjection.class));
@@ -631,17 +630,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerNL.joinPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
 
         Join innerNL = (Join) outerNL.left();
-        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(0) = INPUT(17))"));
+        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(0) = INPUT(1))"));
         assertThat(innerNL.joinPhase().projections().size(), is(1));
         assertThat(innerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
-        assertThat(innerNL.joinPhase().outputTypes().size(), is(34));
+        assertThat(innerNL.joinPhase().outputTypes().size(), is(2));
         assertThat(innerNL.joinPhase().outputTypes().get(0), is(DataTypes.LONG));
 
         plan = e.plan("select count(t1.other_id) from users t1, users t2, users t3 " +
                       "where t1.id = t2.id and t2.id = t3.id");
         assertThat(plan.subPlan(), instanceOf(Join.class));
         outerNL = (Join)plan.subPlan();
-        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(17) = INPUT(34))"));
+        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(2) = INPUT(3))"));
         assertThat(outerNL.joinPhase().projections().size(), is(2));
         assertThat(outerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(outerNL.joinPhase().projections().get(1), instanceOf(AggregationProjection.class));
@@ -649,10 +648,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerNL.joinPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
 
         innerNL = (Join) outerNL.left();
-        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(0) = INPUT(17))"));
+        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(1) = INPUT(2))"));
         assertThat(innerNL.joinPhase().projections().size(), is(1));
         assertThat(innerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
-        assertThat(innerNL.joinPhase().outputTypes().size(), is(34));
+        assertThat(innerNL.joinPhase().outputTypes().size(), is(3));
         assertThat(innerNL.joinPhase().outputTypes().get(0), is(DataTypes.LONG));
         assertThat(innerNL.joinPhase().outputTypes().get(1), is(DataTypes.LONG));
     }
@@ -800,8 +799,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan logicalPlan = e.logicalPlan(statement);
         assertThat(logicalPlan, isPlan(e.functions(),
             "RootBoundary[id, name, date, obj]\n" +
-            "Boundary[id, name, date, obj]\n" +
-            "Boundary[id, name, date, obj]\n" +
+            "Rename[id, name, date, obj] AS t\n" +
             "Collect[doc.parted | [id, name, date, obj] | (date IS NULL)]\n"
         ));
         ExecutionPlan plan = e.plan(statement);
@@ -851,8 +849,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[address['postcode']]\n" +
             "GroupBy[address['postcode'] | ]\n" +
-            "Boundary[address]\n" +
-            "Boundary[address]\n" +
+            "Rename[address] AS u\n" +
             "Collect[doc.users | [address] | true]\n"
         ));
     }
@@ -864,16 +861,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[address['postcode']]\n" +
             "Eval[address['postcode']]\n" +
-            "Boundary[address, subscript_obj(address, 'postcode')]\n" +
-            "Boundary[address, address['postcode']]\n" +
             "OrderBy[address['postcode'] ASC]\n" +
+            "Rename[address] AS u\n" +
             "Collect[doc.users | [address] | true]\n"
         ));
 
         Merge merge = e.plan(stmt);
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
-        assertThat(collectPhase.projections(), contains(instanceOf(OrderedTopNProjection.class)));
+        assertThat(collectPhase.projections(), contains(
+            instanceOf(OrderedTopNProjection.class),
+            instanceOf(EvalProjection.class)
+        ));
     }
 
     @Test
@@ -889,16 +888,53 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
             "RootBoundary[nspacl, nspname, nspowner, oid]\n" +
-            "Eval[nspacl, nspname, nspowner, oid]\n" +
             "NestedLoopJoin[\n" +
-            "    Boundary[nspacl, nspname, nspowner, oid]\n" +
-            "    Boundary[nspacl, nspname, nspowner, oid]\n" +
+            "    Rename[nspacl, nspname, nspowner, oid] AS n\n" +
             "    Collect[pg_catalog.pg_namespace | [nspacl, nspname, nspowner, oid] | false]\n" +
             "    --- CROSS ---\n" +
-            "    Boundary[oid, relacl, relallvisible, relam, relchecks, relfilenode, relforcerowsecurity, relfrozenxid, relhasindex, relhasoids, relhaspkey, relhasrules, relhassubclass, relhastriggers, relispartition, relispopulated, relisshared, relkind, relminmxid, relname, relnamespace, relnatts, reloftype, reloptions, relowner, relpages, relpartbound, relpersistence, relreplident, relrowsecurity, reltablespace, reltoastrelid, reltuples, reltype]\n" +
-            "    Boundary[oid, relacl, relallvisible, relam, relchecks, relfilenode, relforcerowsecurity, relfrozenxid, relhasindex, relhasoids, relhaspkey, relhasrules, relhassubclass, relhastriggers, relispartition, relispopulated, relisshared, relkind, relminmxid, relname, relnamespace, relnatts, reloftype, reloptions, relowner, relpages, relpartbound, relpersistence, relreplident, relrowsecurity, reltablespace, reltoastrelid, reltuples, reltype]\n" +
-            "    Collect[pg_catalog.pg_class | [oid, relacl, relallvisible, relam, relchecks, relfilenode, relforcerowsecurity, relfrozenxid, relhasindex, relhasoids, relhaspkey, relhasrules, relhassubclass, relhastriggers, relispartition, relispopulated, relisshared, relkind, relminmxid, relname, relnamespace, relnatts, reloftype, reloptions, relowner, relpages, relpartbound, relpersistence, relreplident, relrowsecurity, reltablespace, reltoastrelid, reltuples, reltype] | false]\n" +
+            "    Rename[] AS c\n" +
+            "    Collect[pg_catalog.pg_class | [] | false]\n" +
             "]\n";
         assertThat(plan, isPlan(e.functions(), expectedPlan));
+    }
+
+    @Test
+    public void test_window_function_with_function_used_in_order_by_injects_eval_below_window_agg_ordering() {
+        // `WindowProjector.createUpdateProbeValueFunction` doesn't support function evaluation
+        // because it is not using the InputFactory to evaluate the order by expressions
+        // Injecting an Eval operator as a workaround
+        String stmt =
+            "SELECT\n" +
+            "   col1,\n" +
+            "   sum(col1) OVER(ORDER BY power(col1, 2) RANGE BETWEEN 3 PRECEDING and CURRENT ROW)\n" +
+            "FROM\n" +
+            "   unnest(ARRAY[2.5, 4, 5, 6, 7.5, 8.5, 10, 12]) as t(col1)";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "RootBoundary[col1, sum(col1)]\n" +
+            "Eval[col1, sum(col1)]\n" +
+            "WindowAgg[sum(col1) | ORDER BY power(col1, 2.0) ASC]\n" +
+            "Eval[col1, power(col1, 2.0)]\n" +
+            "Rename[col1] AS t\n" +
+            "TableFunction[unnest | [col1] | true]\n";
+        assertThat(plan, isPlan(e.functions(), expectedPlan));
+    }
+
+    @Test
+    public void test_select_from_table_function_with_filter_on_not_selected_column() {
+        String stmt =
+            "SELECT word " +
+            "FROM pg_catalog.pg_get_keywords() " +
+            "WHERE catcode = 'R' " +
+            "ORDER BY 1";
+        LogicalPlan plan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "RootBoundary[word]\n" +
+            "Eval[word]\n" +
+            "OrderBy[word ASC]\n" +
+            "Filter[(catcode = 'R')]\n" +
+            "TableFunction[pg_get_keywords | [word, catcode, catdesc] | true]\n";
+        assertThat(plan, isPlan(e.functions(), expectedPlan));
+
     }
 }

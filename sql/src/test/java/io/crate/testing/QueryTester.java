@@ -40,7 +40,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.sql.tree.QualifiedName;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -78,7 +77,6 @@ public final class QueryTester implements AutoCloseable {
         private final SQLExecutor sqlExecutor;
         private final SqlExpressions expressions;
         private final DocTableRelation docTableRelation;
-        private final QualifiedName tableName;
         private final IndexEnv indexEnv;
         private final LuceneQueryBuilder queryBuilder;
 
@@ -103,10 +101,9 @@ public final class QueryTester implements AutoCloseable {
                 tempDir
             );
             queryBuilder = new LuceneQueryBuilder(sqlExecutor.functions());
-            tableName = new QualifiedName(table.ident().name());
             docTableRelation = new DocTableRelation(table);
             expressions = new SqlExpressions(
-                Collections.singletonMap(tableName, docTableRelation),
+                Collections.singletonMap(table.ident(), docTableRelation),
                 docTableRelation
             );
         }
@@ -181,7 +178,7 @@ public final class QueryTester implements AutoCloseable {
                         return expressions.normalize(expressions.asSymbol(expr));
                     } else {
                         SqlExpressions sqlExpressions = new SqlExpressions(
-                            Collections.singletonMap(tableName, docTableRelation),
+                            Collections.singletonMap(table.ident(), docTableRelation),
                             docTableRelation,
                             params,
                             User.CRATE_USER

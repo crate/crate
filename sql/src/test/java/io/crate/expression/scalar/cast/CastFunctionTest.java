@@ -22,6 +22,7 @@
 
 package io.crate.expression.scalar.cast;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -81,6 +82,13 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         Map<String, Object> object = Map.of("x", 10);
         assertEvaluate("'{\"x\": 10}'::object", object);
         assertEvaluate("cast(name as object)", object, Literal.of("{\"x\": 10}"));
+    }
+
+    @Test
+    public void test_cannot_cast_text_to_object_array() {
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast expressions from type `text` to type `object_array`");
+        assertEvaluate("cast(name as array(object))", null);
     }
 
     @Test

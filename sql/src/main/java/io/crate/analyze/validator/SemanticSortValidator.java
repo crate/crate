@@ -21,7 +21,6 @@
 
 package io.crate.analyze.validator;
 
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
@@ -97,23 +96,18 @@ public class SemanticSortValidator {
         }
 
         @Override
-        public Void visitField(Field field, SortContext context) {
+        public Void visitSymbol(Symbol symbol, SortContext context) {
             // if we are in a function, we do not need to check the data type.
             // the function will do that for us.
-            if (!context.inFunction && !DataTypes.PRIMITIVE_TYPES.contains(field.valueType())) {
+            if (!context.inFunction && !DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH,
                                   "Cannot %s '%s': invalid data type '%s'.",
                                   context.operation,
-                                  SymbolPrinter.printUnqualified(field),
-                                  field.valueType())
+                                  SymbolPrinter.printUnqualified(symbol),
+                                  symbol.valueType())
                 );
             }
-            return null;
-        }
-
-        @Override
-        public Void visitSymbol(Symbol symbol, SortContext context) {
             return null;
         }
     }

@@ -23,7 +23,7 @@ package io.crate.execution.dsl.projection.builder;
 
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
@@ -82,7 +82,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         }
     }
 
-    public static SplitPoints create(AnalyzedRelation relation) {
+    public static SplitPoints create(QueriedSelectRelation relation) {
         Context context = new Context();
         INSTANCE.process(relation.outputs(), context);
         OrderBy orderBy = relation.orderBy();

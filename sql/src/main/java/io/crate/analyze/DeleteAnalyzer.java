@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import java.util.Objects;
-
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -40,6 +38,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Delete;
+
+import java.util.Objects;
 
 final class DeleteAnalyzer {
 

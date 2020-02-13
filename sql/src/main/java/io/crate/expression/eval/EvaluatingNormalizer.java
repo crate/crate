@@ -27,7 +27,7 @@ import io.crate.data.Input;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.scalar.arithmetic.MapFunction;
-import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
@@ -55,7 +55,7 @@ import java.util.Map;
  * The normalizer does several things:
  *
  *  - Convert functions into a simpler form by using {@link FunctionImplementation#normalizeSymbol(Function, TransactionContext)}
- *  - Convert {@link Field} to {@link Reference} if {@link FieldResolver} is available.
+ *  - Convert {@link ScopedSymbol} to {@link Reference} if {@link FieldResolver} is available.
  *  - Convert {@link MatchPredicate} to a {@link Function} if {@link FieldResolver} is available
  *  - Convert {@link Reference} into a Literal value if {@link ReferenceResolver} is available
  *    and {@link NestableInput}s can be retrieved for the Reference.
@@ -92,7 +92,7 @@ public class EvaluatingNormalizer {
 
     private class BaseVisitor extends FunctionCopyVisitor<TransactionContext> {
         @Override
-        public Symbol visitField(Field field, TransactionContext context) {
+        public Symbol visitField(ScopedSymbol field, TransactionContext context) {
             if (fieldResolver != null) {
                 Symbol resolved = fieldResolver.resolveField(field);
                 if (resolved != null) {
@@ -106,11 +106,11 @@ public class EvaluatingNormalizer {
         public Symbol visitMatchPredicate(MatchPredicate matchPredicate, TransactionContext context) {
             if (fieldResolver != null) {
                 // Once the fields can be resolved, rewrite matchPredicate to function
-                Map<Field, Symbol> fieldBoostMap = matchPredicate.identBoostMap();
+                Map<Symbol, Symbol> fieldBoostMap = matchPredicate.identBoostMap();
 
                 List<Symbol> columnBoostMapArgs = new ArrayList<>(fieldBoostMap.size() * 2);
-                for (Map.Entry<Field, Symbol> entry : fieldBoostMap.entrySet()) {
-                    Symbol resolved = ((Symbol) entry.getKey()).accept(this, null);
+                for (Map.Entry<Symbol, Symbol> entry : fieldBoostMap.entrySet()) {
+                    Symbol resolved = entry.getKey().accept(this, null);
                     if (resolved instanceof Reference) {
                         columnBoostMapArgs.add(Literal.of(((Reference) resolved).column().fqn()));
                         columnBoostMapArgs.add(entry.getValue());
