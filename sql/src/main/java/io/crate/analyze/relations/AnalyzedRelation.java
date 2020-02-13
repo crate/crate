@@ -81,8 +81,6 @@ public interface AnalyzedRelation extends AnalyzedStatement {
     @Nullable
     Symbol offset();
 
-    boolean hasAggregates();
-
     /**
      * Calls the consumer for each top-level symbol in the relation
      * (Arguments/children of function symbols are not visited)

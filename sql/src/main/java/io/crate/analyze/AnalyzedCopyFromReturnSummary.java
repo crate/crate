@@ -127,11 +127,6 @@ public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements A
     }
 
     @Override
-    public boolean hasAggregates() {
-        return false;
-    }
-
-    @Override
     public boolean isDistinct() {
         return false;
     }

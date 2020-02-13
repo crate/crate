@@ -140,11 +140,6 @@ public final class AnalyzedView implements AnalyzedRelation {
     }
 
     @Override
-    public boolean hasAggregates() {
-        return false;
-    }
-
-    @Override
     public String toString() {
         return "AnalyzedView{" + "qualifiedName=" + qualifiedName +
                ", relation=" + relation +

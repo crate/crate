@@ -115,11 +115,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return null;
     }
 
-    @Override
-    public boolean hasAggregates() {
-        return false;
-    }
-
     @Nullable
     public Field getField(ColumnIdent path) {
         Reference reference = tableInfo.getReadReference(path);
