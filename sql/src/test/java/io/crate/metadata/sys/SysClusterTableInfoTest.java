@@ -24,6 +24,7 @@ package io.crate.metadata.sys;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.expression.reference.sys.cluster.ClusterLicenseExpression;
 import io.crate.license.LicenseData;
 import io.crate.license.LicenseService;
 import io.crate.metadata.ColumnIdent;
@@ -68,5 +69,22 @@ public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
             "max_nodes")));
         maxNodes.setNextRow(null);
         assertThat(maxNodes.value(), Matchers.is(270));
+    }
+
+    @Test
+    public void test_issued_to_is_set_with_dummy_value_if_data_is_null_and_mode_is_enterprise() {
+        LicenseService licenseService = mock(LicenseService.class);
+        when(licenseService.getMode()).thenReturn(LicenseService.Mode.ENTERPRISE);
+        SysClusterTableInfo clusterTable = SysClusterTableInfo.of(
+            clusterService,
+            new CrateSettings(clusterService, clusterService.getSettings()),
+            licenseService);
+
+        StaticTableReferenceResolver<Void> refResolver = new StaticTableReferenceResolver<>(clusterTable.expressions());
+        NestableCollectExpression<Void, ?> issuedTo = refResolver.getImplementation(clusterTable.getReference(new ColumnIdent(
+            "license",
+            "issued_to")));
+        issuedTo.setNextRow(null);
+        assertThat(issuedTo.value(), Matchers.is(ClusterLicenseExpression.LICENSE_IS_LOADING));
     }
 }

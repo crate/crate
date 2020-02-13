@@ -57,4 +57,6 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue which may result in showing the CE admin-ui view even if
+  running in Enterprise mode on early node startup.
+

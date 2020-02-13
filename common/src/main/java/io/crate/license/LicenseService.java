@@ -35,6 +35,11 @@ public interface LicenseService {
         MAX_NODES_VIOLATED
     }
 
+    enum Mode {
+        CE,
+        ENTERPRISE
+    }
+
 
     CompletableFuture<Long> registerLicense(String licenseKey);
 
@@ -45,4 +50,8 @@ public interface LicenseService {
 
     @Nullable
     ClusterStateListener clusterStateListener();
+
+    default Mode getMode() {
+        return Mode.CE;
+    }
 }
