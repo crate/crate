@@ -65,6 +65,8 @@ None
 Changes
 =======
 
+- Added the :ref:`now <now>` scalar function.
+
 - Introduced new optional ``RETURNING`` clause for :ref:`Insert <ref-insert>` to
   return specified values from each row inserted.
 

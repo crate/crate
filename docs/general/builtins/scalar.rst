@@ -782,6 +782,22 @@ are given.
    ``System.currentTimeMillis()``. So its actual result depends on the
    underlying operating system.
 
+.. _now:
+
+``now()``
+---------
+
+Returns the current date and time.
+
+This is the same as ``current_timestamp``
+
+Returns: ``timestamp with time zone``
+
+Synopsis::
+
+  now()
+
+
 ``date_format([format_string, [timezone,]] timestamp)``
 -------------------------------------------------------
 

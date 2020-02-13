@@ -69,6 +69,7 @@ import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.systeminformation.PgTypeofFunction;
 import io.crate.expression.scalar.systeminformation.VersionFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
+import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.scalar.timestamp.TimezoneFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -136,6 +137,7 @@ public class ScalarFunctionModule extends AbstractModule {
         DateTruncFunction.register(this);
         ExtractFunctions.register(this);
         CurrentTimestampFunction.register(this);
+        NowFunction.register(this);
         TimezoneFunction.register(this);
         DateFormatFunction.register(this);
         CastFunction.register(this);
