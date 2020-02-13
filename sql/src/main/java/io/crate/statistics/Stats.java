@@ -88,8 +88,11 @@ public class Stats implements Writeable {
     public long averageSizePerRowInBytes() {
         if (numDocs == -1) {
             return -1;
+        } else if (numDocs == 0) {
+            return 0;
+        } else {
+            return sizeInBytes / numDocs;
         }
-        return sizeInBytes / numDocs;
     }
 
     public Map<ColumnIdent, ColumnStats> statsByColumn() {

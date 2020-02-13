@@ -132,6 +132,10 @@ Changes
 Fixes
 =====
 
+- Fixed a regression that caused a ``ArithmeticException: / by zero`` error
+  when querying an empty table, or a non-empty table with outdated table
+  statistics.
+
 - Fixed a regression that caused ``INSERT INTO`` statements containing an
   ``object`` column as target and a matching JSON string literal in the source
   to fail with a type cast error.
