@@ -59,6 +59,7 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -183,6 +184,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
     }
 
     @Test
+    @Ignore("Currently flaky, needs fixing")
     public void test_lucene_ordered_collector_thread_dies_on_kill() throws Exception {
         LuceneOrderedDocCollector luceneOrderedDocCollector = createOrderedCollector(searcher1, 1);
         AtomicReference<Thread> collectThread = new AtomicReference<>();
