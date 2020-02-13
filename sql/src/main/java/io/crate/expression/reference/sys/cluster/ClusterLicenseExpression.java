@@ -41,6 +41,8 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
     public static final String ISSUED_TO = "issued_to";
     public static final String MAX_NODES = "max_nodes";
 
+    public static final String LICENSE_IS_LOADING = "License is loading";
+
     private final LicenseService licenseService;
 
     @Inject
@@ -66,6 +68,12 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
             }));
             childImplementations.put(ISSUED_TO, forFunction(ignored -> licenseData.issuedTo()));
             childImplementations.put(MAX_NODES, forFunction(ignored -> licenseData.maxNumberOfNodes()));
+        } else if (licenseService.getMode() == LicenseService.Mode.ENTERPRISE) {
+            // The admin-ui will switch it's view between CE and Enterprise based on a non-null value of `issued_to`.
+            // To prevent a race-condition (wrong admin-ui view) on node startup, we set a dummy value here.
+            childImplementations.put(EXPIRY_DATE, constant(null));
+            childImplementations.put(ISSUED_TO, constant(LICENSE_IS_LOADING));
+            childImplementations.put(MAX_NODES, constant(null));
         } else {
             childImplementations.put(EXPIRY_DATE, constant(null));
             childImplementations.put(ISSUED_TO, constant(null));
