@@ -89,10 +89,10 @@ elif [ -r "$CRATE_INCLUDE" ]; then
     . "$CRATE_INCLUDE"
 fi
 
-if [ -x "$JAVA_HOME/bin/java" ]; then
-    JAVA="$JAVA_HOME/bin/java"
+if [ "$(uname -s)" = "Darwin" ]; then
+    JAVA="$CRATE_HOME/jdk/Contents/Home/bin/java"
 else
-    JAVA=java
+    JAVA="$CRATE_HOME/jdk/bin/java"
 fi
 
 if [ -z "$CRATE_CLASSPATH" ]; then

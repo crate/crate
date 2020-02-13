@@ -186,6 +186,17 @@ tasks.withType(Zip) {
 
 installDist.dependsOn(chooseReleaseNotes)
 
+def jdkCopySpec = copySpec {
+    from project.jdks.runtime
+    exclude "demo/**"
+    eachFile { details ->
+        if (details.name == 'src.zip') {
+            details.exclude()
+        }
+        details.mode = 0755
+    }
+}
+
 distributions {
     communityEdition {
         baseName = 'crate-ce'
@@ -231,6 +242,9 @@ distributions {
             }
             into('lib/site') {
                 from('adminui/_site')
+            }
+            into('jdk') {
+                with jdkCopySpec
             }
         }
     }
@@ -280,6 +294,9 @@ distributions {
             }
             into('lib/site') {
                 from('adminui/_site')
+            }
+            into('jdk') {
+                with jdkCopySpec
             }
         }
     }

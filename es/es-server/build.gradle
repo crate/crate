@@ -1,6 +1,3 @@
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-
 dependencies {
     compile project(':es:es-core')
     compile project(':es:es-x-content')
@@ -53,6 +50,7 @@ task getVersion(dependsOn: 'classes') {
     doLast {
         def stdout = new ByteArrayOutputStream()
         javaexec {
+            executable = rootProject.jdks.runtime.getBinJavaPath()
             classpath = sourceSets.main.runtimeClasspath
             main = 'org.elasticsearch.Version'
             standardOutput = stdout

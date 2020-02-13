@@ -2,8 +2,6 @@
 
 SETLOCAL EnableDelayedExpansion
 
-if NOT DEFINED JAVA_HOME goto err
-
 set SCRIPT_DIR=%~dp0
 for %%I in ("%SCRIPT_DIR%..") do set CRATE_HOME=%%~dpfI
 
@@ -106,14 +104,12 @@ for /F "usebackq tokens=* delims= " %%A in (!params!) do (
     )
 )
 
+set JAVA_HOME="%CRATE_HOME%\jdk"
+if not exist !JAVA_HOME! (
+    ECHO JAVA_HOME environment variable must be set! 1>&2
+    EXIT /B 1
+)
+
 "%JAVA_HOME%\bin\java" %JAVA_OPTS% %CRATE_JAVA_OPTS% -cp "%CRATE_CLASSPATH%" "io.crate.bootstrap.CrateDB" %CRATE_PARAMS% !newparams!
-goto finally
-
-:err
-echo JAVA_HOME environment variable must be set!
-pause
-
-
-:finally
 
 ENDLOCAL

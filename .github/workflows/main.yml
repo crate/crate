@@ -4,18 +4,18 @@ on: [push]
 
 jobs:
   test:
-    name: Test CrateDB SQL on ${{ matrix.os }} with Java ${{ matrix.java }}
+    name: Test CrateDB SQL on ${{ matrix.os }} with Java ${{ matrix.bundled-jdk }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        java: [11]
+        bundled-jdk: [13.0.2+8]
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Java ${{ matrix.java }}
+      - name: Setup Gradle Java
         uses: actions/setup-java@v1
         with:
-          java-version: ${{ matrix.java }}
+          java-version: 11
       - name: Run tests
         run: |
-          ./gradlew :sql:test
+          ./gradlew :sql:test -Dbundled_jdk_version="${{ matrix.bundled-jdk }}"
