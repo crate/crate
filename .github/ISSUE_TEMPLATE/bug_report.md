@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-
+labels: triage
 ---
 
 
@@ -31,14 +31,19 @@ If using docker:
 **Problem description**:
 
 <!-- 
-Please be precise about errors. Instead of saying "doesn't work" or "fails",
-describe the behavior you're observing and what you'd expect to see.
+Please don't write "doesn't work". Instead, try to write a detailed description
+of the behavior you observe and explain what behavior you'd expect.
 
-Include relevant logs and error messages or stacktraces if possible.
+If a query returns an error message, please include the error message and a
+stacktrace of the error.  To get the stack trace either run the query in crash
+with \verbose on, or run it in the AdminUI Console with `[x] Show error trace`
+set.
 
-If there are memory issues please provide the garbage collection log file if
-possible.
+If a query behaves in an unexpected way but doesn't return an error, please
+include the server logs.
 
+If you are experiencing performance issues, please provide the garbage
+collection logs.
 -->
 
 **Steps to reproduce**:
