@@ -46,4 +46,6 @@ None
 Fixes
 =====
 
-None
+- Fixed a regression that caused ``INSERT INTO`` statements containing an
+  ``object`` column as target and a matching JSON string literal in the source
+  to fail with a type cast error.

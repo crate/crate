@@ -92,9 +92,9 @@ public class TypeConversionTest extends CrateUnitTest {
 
     @Test
     public void numberConversionTest() throws Exception {
-
         for (Byte byteVal : bytes(10)) {
-            for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.BYTE.id())) {
+            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.BYTE.id())) {
+                var t = DataTypes.fromId(id);
                 if (t.equals(DataTypes.IP)) {
                     byteVal = (byte) Math.abs(byteVal == Byte.MIN_VALUE ? byteVal >> 1 : byteVal);
                 }
@@ -103,35 +103,40 @@ public class TypeConversionTest extends CrateUnitTest {
         }
 
         for (Integer shortVal : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
-            for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
+            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
+                var t = DataTypes.fromId(id);
                 shortVal = t.equals(DataTypes.IP) ? Math.abs(shortVal) : shortVal;
                 t.value(shortVal.shortValue());
             }
         }
 
         for (Integer intValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
-            for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.INTEGER.id())) {
+            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.INTEGER.id())) {
+                var t = DataTypes.fromId(id);
                 intValue = t.equals(DataTypes.IP) ? Math.abs(intValue) : intValue;
                 t.value(intValue);
             }
         }
 
         for (Integer longValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
-            for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.LONG.id())) {
+            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.LONG.id())) {
+                var t = DataTypes.fromId(id);
                 longValue = t.equals(DataTypes.IP) ? Math.abs(longValue) : longValue;
                 t.value(longValue.longValue());
             }
         }
 
         for (Integer floatValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
-            for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.FLOAT.id())) {
+            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.FLOAT.id())) {
+                var t = DataTypes.fromId(id);
                 floatValue = t.equals(DataTypes.IP) ? Math.abs(floatValue) : floatValue;
                 t.value(floatValue.floatValue());
             }
         }
 
         for (Integer doubleValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
-            for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.DOUBLE.id())) {
+            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.DOUBLE.id())) {
+                var t = DataTypes.fromId(id);
                 doubleValue = t.equals(DataTypes.IP) ? Math.abs(doubleValue) : doubleValue;
                 t.value(doubleValue.doubleValue());
             }

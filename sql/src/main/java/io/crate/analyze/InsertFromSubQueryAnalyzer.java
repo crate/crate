@@ -222,7 +222,7 @@ class InsertFromSubQueryAnalyzer {
         for (int i = 0; i < targetColumns.size(); i++) {
             Reference targetCol = targetColumns.get(i);
             Symbol source = sources.get(i);
-            DataType targetType = targetCol.valueType();
+            DataType<?> targetType = targetCol.valueType();
             if (targetType.id() == DataTypes.UNDEFINED.id() || source.valueType().isConvertableTo(targetType)) {
                 continue;
             }
