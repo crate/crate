@@ -44,17 +44,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
-public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Comparable<Literal> {
+public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T>> {
 
-    private final Object value;
-    private final DataType type;
+    private final T value;
+    private final DataType<T> type;
 
-    public static final Literal<Void> NULL = new Literal<>(DataTypes.UNDEFINED, null);
+    public static final Literal<Object> NULL = new Literal<>(DataTypes.UNDEFINED, null);
     public static final Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
     public static final Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
     public static final Literal<Map<String, Object>> EMPTY_OBJECT = Literal.of(Collections.emptyMap());
@@ -83,18 +82,19 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     }
 
     public Literal(StreamInput in) throws IOException {
-        type = DataTypes.fromStream(in);
+        //noinspection unchecked
+        type = (DataType<T>) DataTypes.fromStream(in);
         value = type.streamer().readValueFrom(in);
     }
 
-    protected Literal(DataType type, ReturnType value) {
+    protected Literal(DataType<T> type, T value) {
         assert typeMatchesValue(type, value) :
             String.format(Locale.ENGLISH, "value %s is not of type %s", value, type.getName());
         this.type = type;
         this.value = value;
     }
 
-    private static boolean typeMatchesValue(DataType type, Object value) {
+    private static <T> boolean typeMatchesValue(DataType<T> type, T value) {
         if (value == null) {
             return true;
         }
@@ -103,8 +103,9 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
             Map<String, Object> mapValue = (Map<String, Object>) value;
             ObjectType objectType = ((ObjectType) type);
             for (String key : mapValue.keySet()) {
-                DataType innerType = objectType.innerType(key);
-                if (typeMatchesValue(innerType, mapValue.get(key)) == false) {
+                DataType<?> innerType = objectType.innerType(key);
+                //noinspection unchecked
+                if (typeMatchesValue((DataType<Object>) innerType, mapValue.get(key)) == false) {
                     return false;
                 }
             }
@@ -117,19 +118,17 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public int compareTo(Literal o) {
+    public int compareTo(Literal<T> o) {
         return type.compareValueTo(value, o.value);
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public ReturnType value() {
-        return (ReturnType) value;
+    public T value() {
+        return value;
     }
 
     @Override
-    public DataType valueType() {
+    public DataType<T> valueType() {
         return type;
     }
 
@@ -144,7 +143,8 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
             return this;
         }
         try {
-            return new Literal<>(targetType, targetType.value(value));
+            //noinspection unchecked
+            return new Literal<>((DataType<Object>) targetType, targetType.value(value));
         } catch (IllegalArgumentException | ClassCastException e) {
             throw new ConversionException(this, targetType);
         }
@@ -179,15 +179,15 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return value.hashCode();
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
-        Literal literal = (Literal) obj;
+        Literal<?> literal = (Literal<?>) obj;
         if (valueType().equals(literal.valueType())) {
-            if (valueType().compareValueTo(value, literal.value) == 0) {
-                return true;
-            }
+            DataType type = valueType();
+            return type.compareValueTo(value, literal.value) == 0;
         }
         return false;
     }
@@ -228,15 +228,15 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return new Literal<>(dataType, value);
     }
 
-    public static Literal<Set> of(Set value, DataType dataType) {
-        return new Literal<>(dataType, value);
-    }
-
     public static Literal<Long> of(Long value) {
         return new Literal<>(DataTypes.LONG, value);
     }
 
-    public static Literal<Object> of(DataType type, Object value) {
+    public static Literal<?> ofUnchecked(DataType<?> type, Object value) {
+        return new Literal(type, value);
+    }
+
+    public static <T> Literal<T> of(DataType<T> type, T value) {
         return new Literal<>(type, value);
     }
 

@@ -25,13 +25,13 @@ import io.crate.Streamer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -179,7 +179,7 @@ public final class DataTypes {
         LONG.id(), Set.of(TIMESTAMPZ, TIMESTAMP, DOUBLE),
         FLOAT.id(), Set.of(DOUBLE));
 
-    public static boolean isArray(DataType type) {
+    public static boolean isArray(DataType<?> type) {
         return type.id() == ArrayType.ID;
     }
 

@@ -72,7 +72,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
             inputs[i] = ((Input) function.arguments().get(i));
         }
         //noinspection unchecked
-        return Literal.of(functionInfo.returnType(), evaluate(txnCtx, inputs));
+        return Literal.ofUnchecked(functionInfo.returnType(), evaluate(txnCtx, inputs));
     }
 
     private static class StringConcatFunction extends ConcatFunction {

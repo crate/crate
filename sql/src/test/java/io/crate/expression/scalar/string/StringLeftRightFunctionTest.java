@@ -24,14 +24,13 @@ package io.crate.expression.scalar.string;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
-import io.crate.types.DataTypes;
 import org.junit.Test;
 
 public class StringLeftRightFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateLeftFunc() throws Exception {
-        Literal<Object> value = Literal.of(DataTypes.STRING, "crate.io");
+        Literal<String> value = Literal.of("crate.io");
         assertEvaluate("left(name, 10)", null, Literal.of((String) null));
         assertEvaluate("left(name, null)", null, value);
         assertEvaluate("left(name, 0)", "", value);
@@ -44,7 +43,7 @@ public class StringLeftRightFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateRightFunc() throws Exception {
-        Literal<Object> value = Literal.of(DataTypes.STRING, "crate.io");
+        Literal<String> value = Literal.of("crate.io");
         assertEvaluate("right(name, 10)", null, Literal.of((String) null));
         assertEvaluate("right(name, null)", null, value);
         assertEvaluate("right(name, 0)", "", value);

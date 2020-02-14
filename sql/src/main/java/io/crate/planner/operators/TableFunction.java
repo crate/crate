@@ -80,7 +80,7 @@ public final class TableFunction implements LogicalPlan {
         for (Symbol arg : args) {
             // It's not possible to use columns as argument to a table function, so it's safe to evaluate at this point.
             functionArguments.add(
-                Literal.of(
+                Literal.ofUnchecked(
                     arg.valueType(),
                     SymbolEvaluator.evaluate(
                         plannerContext.transactionContext(), plannerContext.functions(), arg, params, subQueryResults)
