@@ -22,8 +22,6 @@
 
 package io.crate.planner.operators;
 
-import java.util.Locale;
-
 import io.crate.data.Row;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
@@ -32,6 +30,8 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import java.util.Locale;
 
 public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
     implements java.util.function.Function<Symbol, Symbol> {
@@ -63,7 +63,7 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
     @Override
     public Symbol visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
         Object value = subQueryResults.getSafe(selectSymbol);
-        return Literal.of(selectSymbol.valueType(), selectSymbol.valueType().value(value));
+        return Literal.ofUnchecked(selectSymbol.valueType(), selectSymbol.valueType().value(value));
     }
 
     @Override
@@ -87,6 +87,6 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
         if (type.equals(DataTypes.UNDEFINED)) {
             type = DataTypes.guessType(value);
         }
-        return Literal.of(type, type.value(value));
+        return Literal.ofUnchecked(type, type.value(value));
     }
 }

@@ -53,7 +53,7 @@ public class LiteralTest extends CrateUnitTest {
                 value = type.value("0");
             }
             var nestedValue = List.of(List.of(value));
-            Literal nestedLiteral = Literal.of(nestedType, nestedValue);
+            Literal nestedLiteral = Literal.ofUnchecked(nestedType, nestedValue);
             assertThat(nestedLiteral.valueType(), is(nestedType));
             assertThat(nestedLiteral.value(), is(nestedValue));
         }
