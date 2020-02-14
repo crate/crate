@@ -120,7 +120,7 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
         for (String nodeId : context.nodeToReaderIds.keySet()) {
             fetchOperation.fetch(nodeId, new IntObjectHashMap<>(0), true)
                 .exceptionally(e -> {
-                    LOGGER.error("Error sending close fetchRequest to node={}", e, nodeId);
+                    LOGGER.error("An error happened while sending close fetchRequest to node=" + nodeId, e);
                     return null;
                 });
         }

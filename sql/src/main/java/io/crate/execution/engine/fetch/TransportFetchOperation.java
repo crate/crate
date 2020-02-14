@@ -24,8 +24,10 @@ package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
+import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 
@@ -33,6 +35,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+
+import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 
 public class TransportFetchOperation implements FetchOperation {
 
@@ -64,8 +68,22 @@ public class TransportFetchOperation implements FetchOperation {
             nodeId,
             nodeIdToReaderIdToStreamers.get(nodeId),
             new NodeFetchRequest(jobId, fetchPhaseId, closeContext, toFetch),
-            ramAccounting,
+            ramAccountingForIncomingResponse(ramAccounting, toFetch, closeContext),
             listener);
         return listener;
+    }
+
+    @VisibleForTesting
+    static RamAccounting ramAccountingForIncomingResponse(RamAccounting ramAccounting,
+                                                          IntObjectMap<? extends IntContainer> toFetch,
+                                                          boolean closeContext) {
+        if (toFetch.isEmpty() && closeContext) {
+            // No data will arrive, so no ram accounting needed.
+            // Indeed, with valid ram accounting, incoming accounted bytes may never be released because the release
+            // logic may already happened (BatchAccumulator.close() calls do not block/wait for asynchronous responses)
+            return RamAccounting.NO_ACCOUNTING;
+        }
+        // Each response may run in a different thread and thus should use its own ram accounting instance
+        return new BlockBasedRamAccounting(ramAccounting::addBytes, MAX_BLOCK_SIZE_IN_BYTES);
     }
 }
