@@ -1,0 +1,46 @@
+.. _version_4.1.2:
+
+=============
+Version 4.1.2
+=============
+
+Released on 2020-02-14.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.1.2.
+
+    We recommend that you upgrade to the latest 4.0 release before moving to
+    4.1.2.
+
+    A rolling upgrade to 4.1.2 from 4.0.2+ is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.1.0` release notes for a full list of changes in the
+4.1 series.
+
+
+Fixes
+=====
+
+- Fixed a regression that caused a ``ArithmeticException: / by zero`` error
+  when querying an empty table, or a non-empty table with outdated table
+  statistics.
+
+- Fixed a regression that caused ``INSERT INTO`` statements containing an
+  ``object`` column as target and a matching JSON string literal in the source
+  to fail with a type cast error.
+
+- Fixed an issue which may result in showing the CE admin-ui view even if
+  running in Enterprise mode on early node startup.
