@@ -183,11 +183,6 @@ public class MultiSourceSelect implements AnalyzedRelation {
     }
 
     @Override
-    public boolean hasAggregates() {
-        return querySpec.hasAggregates();
-    }
-
-    @Override
     public boolean isDistinct() {
         return isDistinct;
     }

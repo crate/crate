@@ -480,7 +480,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testAggregationDistinct() {
         AnalyzedRelation relation = analyze("select count(distinct load['1']) from sys.nodes");
 
-        assertThat(relation.hasAggregates(), is(true));
         Symbol output = relation.outputs().get(0);
         assertThat(output, isFunction("collection_count"));
 

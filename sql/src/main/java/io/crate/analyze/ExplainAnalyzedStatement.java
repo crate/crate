@@ -134,11 +134,6 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     }
 
     @Override
-    public boolean hasAggregates() {
-        return false;
-    }
-
-    @Override
     public boolean isDistinct() {
         return false;
     }

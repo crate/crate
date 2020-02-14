@@ -24,7 +24,6 @@ package io.crate.expression.scalar.string;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
-import io.crate.types.DataTypes;
 import org.junit.Test;
 
 public class EncodeDecodeFunctionTest extends AbstractScalarFunctionsTest {
@@ -105,7 +104,7 @@ public class EncodeDecodeFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEncodeFuncBase64() {
         // input in hex format
-        final Literal<Object> name = Literal.of(DataTypes.STRING, "\\x3132330001");
+        final Literal<String> name = Literal.of("\\x3132330001");
         assertEvaluate("encode('\\x3132330001', 'base64')", "MTIzAAE=");
         assertEvaluate("encode(name, 'Base64')", "MTIzAAE=", name);
         // input in escape format
@@ -115,7 +114,7 @@ public class EncodeDecodeFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testDecodeFuncBase64() {
-        final Literal<Object> name = Literal.of(DataTypes.STRING, "MTIzAAE=");
+        Literal<String> name = Literal.of("MTIzAAE=");
         assertEvaluate("decode('MTIzAAE=', 'base64')", "\\x3132330001");
         assertEvaluate("decode('MTIzAAE=', 'BASE64')", "\\x3132330001");
         assertEvaluate("decode(name, 'base64')", "\\x3132330001", name);

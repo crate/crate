@@ -151,11 +151,6 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation {
     }
 
     @Override
-    public boolean hasAggregates() {
-        return false;
-    }
-
-    @Override
     public boolean isDistinct() {
         return false;
     }

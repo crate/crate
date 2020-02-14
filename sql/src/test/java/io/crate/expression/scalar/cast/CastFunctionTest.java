@@ -198,7 +198,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     public void test_try_cast_for_all_data_types() {
         for (DataType dataType : DataTypes.PRIMITIVE_TYPES) {
             DataType<?> randomType = randomType();
-            Literal val = Literal.of(randomType, getDataGenerator(randomType).get());
+            Literal val = Literal.ofUnchecked(randomType, getDataGenerator(randomType).get());
             assertEvaluate(
                 "try_cast(" + SymbolPrinter.INSTANCE.printQualified(val) + " as " + dataType.getName() + ")",
                 anyOf(notNullValue(), nullValue()));

@@ -258,8 +258,7 @@ public final class CopyToPlan implements Plan {
             null,
             null,
             null,
-            null,
-            false
+            null
         );
         QueriedSelectRelation<DocTableRelation> subRelation = new QueriedSelectRelation<>(
             false,
@@ -272,7 +271,7 @@ public final class CopyToPlan implements Plan {
 
         return new BoundCopyTo(
             subRelation,
-            Literal.of(DataTypes.STRING, eval.apply(copyTo.uri())),
+            Literal.of(DataTypes.STRING.value(eval.apply(copyTo.uri()))),
             compressionType,
             outputFormat,
             outputNames,

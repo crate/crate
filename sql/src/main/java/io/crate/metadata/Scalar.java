@@ -122,7 +122,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             idx++;
         }
         //noinspection unchecked
-        return Literal.of(function.info().returnType(), scalar.evaluate(txnCtx, inputs));
+        return Literal.ofUnchecked(function.info().returnType(), scalar.evaluate(txnCtx, inputs));
     }
 
     public static class OperatorScalar<R, I> extends Scalar<R, I> implements OperatorFormatSpec {

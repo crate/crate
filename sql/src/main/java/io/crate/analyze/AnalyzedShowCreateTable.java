@@ -124,11 +124,6 @@ public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelat
     }
 
     @Override
-    public boolean hasAggregates() {
-        return false;
-    }
-
-    @Override
     public boolean isDistinct() {
         return false;
     }

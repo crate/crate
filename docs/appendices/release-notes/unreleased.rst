@@ -65,6 +65,8 @@ None
 Changes
 =======
 
+- Added the :ref:`now <now>` scalar function.
+
 - Introduced new optional ``RETURNING`` clause for :ref:`Insert <ref-insert>` to
   return specified values from each row inserted.
 
@@ -130,9 +132,4 @@ Changes
 Fixes
 =====
 
-- Fixed a regression that caused ``INSERT INTO`` statements containing an
-  ``object`` column as target and a matching JSON string literal in the source
-  to fail with a type cast error.
-
-- Fixed an issue which may result in showing the CE admin-ui view even if
-  running in Enterprise mode on early node startup.
+None

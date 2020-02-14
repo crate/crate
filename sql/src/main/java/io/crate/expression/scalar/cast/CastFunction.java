@@ -91,7 +91,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         if (argument instanceof Input) {
             Object value = ((Input<?>) argument).value();
             try {
-                return Literal.of(returnType, returnType.value(value));
+                return Literal.ofUnchecked(returnType, returnType.value(value));
             } catch (ClassCastException | IllegalArgumentException e) {
                 return onNormalizeException.apply(argument, returnType);
             }
@@ -110,9 +110,9 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
 
     @Override
     public String afterArgs(Function function) {
-        DataType dataType = function.valueType();
+        DataType<?> dataType = function.valueType();
         if (DataTypes.isArray(dataType)) {
-            ArrayType arrayType = ((ArrayType) dataType);
+            ArrayType<?> arrayType = ((ArrayType<?>) dataType);
             return " AS " + ArrayType.NAME +
                    PAREN_OPEN + arrayType.innerType().getName() + PAREN_CLOSE
                    + PAREN_CLOSE;
