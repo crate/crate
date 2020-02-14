@@ -57,13 +57,4 @@ None
 Fixes
 =====
 
-- Fixed a regression that caused a ``ArithmeticException: / by zero`` error
-  when querying an empty table, or a non-empty table with outdated table
-  statistics.
-
-- Fixed a regression that caused ``INSERT INTO`` statements containing an
-  ``object`` column as target and a matching JSON string literal in the source
-  to fail with a type cast error.
-
-- Fixed an issue which may result in showing the CE admin-ui view even if
-  running in Enterprise mode on early node startup.
+None
