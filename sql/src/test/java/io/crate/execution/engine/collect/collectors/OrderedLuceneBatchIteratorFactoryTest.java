@@ -182,8 +182,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
     }
 
     @Test
-    @Ignore("Currently flaky, needs fixing")
-    public void test_lucene_ordered_collector_thread_dies_on_kill() throws Exception {
+    public void test_ensure_lucene_ordered_collector_propagates_kill() throws Exception {
         LuceneOrderedDocCollector luceneOrderedDocCollector = createOrderedCollector(searcher1, 1);
         AtomicReference<Thread> collectThread = new AtomicReference<>();
         CountDownLatch latch = new CountDownLatch(1);
@@ -209,10 +208,8 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
 
         rowBatchIterator.kill(new InterruptedException("killed"));
 
-        // The collect thread must stop "almost" immediately, 10ms should be enough to wait.
-        // Without any kill logic implementation at the lucene collector, it will continue and may not complete in 10ms.
-        assertBusy(() -> assertThat(collectThread.get().isAlive(), is(false)),
-                   10, TimeUnit.MILLISECONDS);
+        expectedException.expect(InterruptedException.class);
+        consumer.getResult();
     }
 
     private void consumeIteratorAndVerifyResultIsException(BatchIterator<Row> rowBatchIterator, Exception exception)
