@@ -31,11 +31,16 @@ Description
 
 ``INSERT`` creates one or more rows specified by value expressions.
 
-The target column names can be listed in any order. If no list of column names
-is given at all, the default is all the columns of the table in lexical order;
-or the first N column names, if there are only N columns supplied by the
-``VALUES`` clause. The values supplied by the ``VALUES`` clause are associated
-with the explicit or implicit column list left-to-right.
+The target column names can be listed in any order. If the target column names
+are omitted, they default to all columns of the table or up to N columns if
+there are fewer values in the ``VALUES`` clause or ``query``.
+
+Implicitly inferred column names are ordered by their ordinal value. The
+ordinal value depends on the ordering of the columns within the ``CREATE
+TABLE`` statement.
+
+The values supplied by the ``VALUES`` clause or ``query`` are associated with
+the explicit or implicit column list left-to-right.
 
 Each column not present in the explicit or implicit column list will not be
 filled.
