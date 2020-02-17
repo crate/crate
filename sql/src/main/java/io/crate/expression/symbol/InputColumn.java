@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
-    private final DataType dataType;
+    private final DataType<?> dataType;
     private final int index;
 
     /**
@@ -65,7 +65,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
         return inputColumns;
     }
 
-    public InputColumn(int index, @Nullable DataType dataType) {
+    public InputColumn(int index, @Nullable DataType<?> dataType) {
         assert index >= 0 : "index must be >= 0";
         this.index = index;
         this.dataType = MoreObjects.firstNonNull(dataType, DataTypes.UNDEFINED);
@@ -90,7 +90,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     }
 
     @Override
-    public DataType valueType() {
+    public DataType<?> valueType() {
         return dataType;
     }
 
@@ -127,9 +127,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
         InputColumn that = (InputColumn) o;
 
-        if (index != that.index) return false;
-
-        return true;
+        return index == that.index;
     }
 
     @Override

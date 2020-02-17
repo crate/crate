@@ -33,14 +33,14 @@ import java.io.IOException;
 public class ParameterSymbol extends Symbol {
 
     private final int index;
-    private final DataType boundType;
-    private final DataType internalType;
+    private final DataType<?> boundType;
+    private final DataType<?> internalType;
 
-    public ParameterSymbol(int index, DataType type) {
+    public ParameterSymbol(int index, DataType<?> type) {
         this(index, type, type);
     }
 
-    private ParameterSymbol(int index, DataType boundType, DataType internalType) {
+    private ParameterSymbol(int index, DataType<?> boundType, DataType<?> internalType) {
         this.index = index;
         this.boundType = boundType;
         this.internalType = internalType;
@@ -65,7 +65,7 @@ public class ParameterSymbol extends Symbol {
     }
 
     @Override
-    public ParameterSymbol cast(DataType targetType, boolean tryCast) {
+    public ParameterSymbol cast(DataType<?> targetType, boolean tryCast) {
         return new ParameterSymbol(index, boundType, targetType);
     }
 
@@ -89,7 +89,7 @@ public class ParameterSymbol extends Symbol {
      * upfront by the client or become defined during the Analysis.
      * @return The effective bound {@link DataType}.
      */
-    public DataType getBoundType() {
+    public DataType<?> getBoundType() {
         if (boundType.id() == UndefinedType.ID) {
             return internalType;
         }
@@ -97,7 +97,7 @@ public class ParameterSymbol extends Symbol {
     }
 
     @Override
-    public DataType valueType() {
+    public DataType<?> valueType() {
         return internalType;
     }
 
@@ -112,6 +112,6 @@ public class ParameterSymbol extends Symbol {
 
     @Override
     public String representation() {
-        return "$" + Integer.toString(index + 1);
+        return "$" + (index + 1);
     }
 }

@@ -22,7 +22,7 @@
 package io.crate.expression.symbol;
 
 import io.crate.planner.ExplainLeaf;
-import io.crate.types.DataType;
+import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -76,7 +76,7 @@ public class MatchPredicate extends Symbol {
     }
 
     @Override
-    public DataType valueType() {
+    public BooleanType valueType() {
         return DataTypes.BOOLEAN;
     }
 

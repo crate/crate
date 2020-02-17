@@ -29,9 +29,8 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 public abstract class Symbol implements FuncArg, Writeable, ExplainLeaf {
 
-    public static boolean isLiteral(Symbol symbol, DataType expectedType) {
-        return symbol.symbolType() == SymbolType.LITERAL
-               && symbol.valueType().equals(expectedType);
+    public static boolean isLiteral(Symbol symbol, DataType<?> expectedType) {
+        return symbol.symbolType() == SymbolType.LITERAL && symbol.valueType().equals(expectedType);
     }
 
     public abstract SymbolType symbolType();
