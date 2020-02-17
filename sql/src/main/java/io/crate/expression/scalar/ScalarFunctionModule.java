@@ -35,6 +35,7 @@ import io.crate.expression.scalar.arithmetic.RandomFunction;
 import io.crate.expression.scalar.arithmetic.RoundFunction;
 import io.crate.expression.scalar.arithmetic.SquareRootFunction;
 import io.crate.expression.scalar.arithmetic.TrigonometricFunctions;
+import io.crate.expression.scalar.arithmetic.TruncFunction;
 import io.crate.expression.scalar.cast.CastFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.scalar.conditional.GreatestFunction;
@@ -127,6 +128,7 @@ public class ScalarFunctionModule extends AbstractModule {
         RandomFunction.register(this);
         AbsFunction.register(this);
         FloorFunction.register(this);
+        TruncFunction.register(this);
         SquareRootFunction.register(this);
         LogFunction.register(this);
         TrigonometricFunctions.register(this);
