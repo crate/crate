@@ -37,6 +37,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -189,10 +190,12 @@ public final class TransportAnalyzeAction {
                     columnValues.add(value);
                 }
             }
-            columnValues.sort(primitiveColumn.valueType()::compareValueTo);
-            ColumnStats columnStats = ColumnStats.fromSortedValues(
+            @SuppressWarnings("unchecked")
+            DataType<Object> dataType = (DataType<Object>) primitiveColumn.valueType();
+            columnValues.sort(dataType::compareValueTo);
+            ColumnStats<?> columnStats = ColumnStats.fromSortedValues(
                 columnValues,
-                primitiveColumn.valueType(),
+                dataType,
                 nullCount,
                 samples.numTotalDocs
             );

@@ -76,7 +76,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
             new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
-                r -> Literal.of(r.valueType(), r.valueType().value("1")),
+                r -> Literal.ofUnchecked(r.valueType(), r.valueType().value("1")),
                 null),
             t -> null,
             t -> null,

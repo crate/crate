@@ -50,15 +50,15 @@ public class Aggregation extends Symbol {
 
     private final FunctionInfo functionInfo;
     private final List<Symbol> inputs;
-    private final DataType valueType;
+    private final DataType<?> valueType;
     private final Symbol filter;
 
-    public Aggregation(FunctionInfo functionInfo, DataType valueType, List<Symbol> inputs) {
+    public Aggregation(FunctionInfo functionInfo, DataType<?> valueType, List<Symbol> inputs) {
         this(functionInfo, valueType, inputs, Literal.BOOLEAN_TRUE);
     }
 
     public Aggregation(FunctionInfo functionInfo,
-                       DataType valueType,
+                       DataType<?> valueType,
                        List<Symbol> inputs,
                        Symbol filter) {
         Preconditions.checkNotNull(inputs, "inputs must not be null");
@@ -81,7 +81,7 @@ public class Aggregation extends Symbol {
     }
 
     @Override
-    public DataType valueType() {
+    public DataType<?> valueType() {
         return valueType;
     }
 
