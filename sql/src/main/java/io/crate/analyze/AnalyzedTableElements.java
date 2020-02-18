@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.TableReferenceResolver;
@@ -36,6 +37,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.sql.tree.CheckColumnConstraint;
+import io.crate.sql.tree.CheckConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -45,12 +48,14 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -62,6 +67,7 @@ public class AnalyzedTableElements<T> {
     private Map<ColumnIdent, DataType> columnTypes = new HashMap<>();
     private Set<String> primaryKeys;
     private Set<String> notNullColumns;
+    private Map<String, String> checkConstraints = new LinkedHashMap<>();
     private List<List<String>> partitionedBy;
     private int numGeneratedColumns = 0;
 
@@ -81,6 +87,7 @@ public class AnalyzedTableElements<T> {
                                   Map<ColumnIdent, DataType> columnTypes,
                                   Set<String> primaryKeys,
                                   Set<String> notNullColumns,
+                                  Map<String, String> checkConstraints,
                                   List<List<String>> partitionedBy,
                                   int numGeneratedColumns,
                                   List<T> additionalPrimaryKeys,
@@ -91,6 +98,7 @@ public class AnalyzedTableElements<T> {
         this.columnTypes = columnTypes;
         this.primaryKeys = primaryKeys;
         this.notNullColumns = notNullColumns;
+        this.checkConstraints = checkConstraints;
         this.partitionedBy = partitionedBy;
         this.numGeneratedColumns = numGeneratedColumns;
         this.additionalPrimaryKeys = additionalPrimaryKeys;
@@ -128,6 +136,9 @@ public class AnalyzedTableElements<T> {
             Map<String, Object> constraints = new HashMap<>();
             constraints.put("not_null", notNullColumns(elements));
             meta.put("constraints", constraints);
+        }
+        if (!elements.checkConstraints.isEmpty()) {
+            meta.put("check_constraints", elements.checkConstraints);
         }
 
         mapping.put("_meta", meta);
@@ -172,6 +183,7 @@ public class AnalyzedTableElements<T> {
             columnTypes,
             primaryKeys,
             notNullColumns,
+            checkConstraints,
             partitionedBy,
             numGeneratedColumns,
             additionalPrimaryKeys,
@@ -552,6 +564,45 @@ public class AnalyzedTableElements<T> {
 
     public List<AnalyzedColumnDefinition<T>> columns() {
         return columns;
+    }
+
+    private void addCheckConstraint(String fqRelationName,
+                                    @Nullable String columnName,
+                                    @Nullable String name,
+                                    String expressionStr) {
+        String uniqueName = name;
+        if (uniqueName == null) {
+            uniqueName = uniqueCheckConstraintName(fqRelationName, columnName);
+        }
+        if (checkConstraints.put(uniqueName, expressionStr) != null) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH, "a check constraint of the same name is already declared [%s]", uniqueName));
+        }
+    }
+
+    private static String uniqueCheckConstraintName(String fqTableName, @Nullable String columnName) {
+        StringBuilder sb = new StringBuilder(fqTableName.replaceAll("\\.", "_"));
+        if (columnName != null) {
+            sb.append("_").append(columnName);
+        }
+        sb.append("_check_");
+        String uuid = UUID.randomUUID().toString();
+        int idx = uuid.lastIndexOf("-");
+        sb.append(idx > 0 ? uuid.substring(idx + 1) : uuid);
+        return sb.toString();
+    }
+
+    public void addCheckConstraint(RelationName relationName, CheckConstraint<?> check) {
+        addCheckConstraint(relationName.fqn(), check.columnName(), check.name(), check.expressionStr());
+    }
+
+    public void addCheckColumnConstraint(RelationName relationName, CheckColumnConstraint<?> check) {
+        addCheckConstraint(relationName.fqn(), check.columnName(), check.name(), check.expressionStr());
+    }
+
+    @VisibleForTesting
+    Map<String, String> getCheckConstraints() {
+        return Map.copyOf(checkConstraints);
     }
 
     public boolean hasGeneratedColumns() {

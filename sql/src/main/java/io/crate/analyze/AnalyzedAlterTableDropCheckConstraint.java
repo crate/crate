@@ -20,33 +20,30 @@
  * agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.analyze;
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import org.junit.Test;
+import io.crate.metadata.doc.DocTableInfo;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+public class AnalyzedAlterTableDropCheckConstraint implements DDLStatement {
 
-import static org.hamcrest.Matchers.is;
+    private final DocTableInfo tableInfo;
+    private final String name;
 
-public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
+    public AnalyzedAlterTableDropCheckConstraint(DocTableInfo tableInfo, String name) {
+        this.tableInfo = tableInfo;
+        this.name = name;
+    }
 
-    @Test
-    public void test_pg_get_keywords() {
-        var it = execute("pg_catalog.pg_get_keywords()").iterator();
-        List<Row> rows = new ArrayList<>();
-        while (it.hasNext()) {
-            rows.add(new RowN(it.next().materialize()));
-        }
-        rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows.size(), is(236));
-        Row row = rows.get(0);
+    public DocTableInfo tableInfo() {
+        return tableInfo;
+    }
 
-        assertThat(row.get(0), is("add"));
-        assertThat(row.get(1), is("R"));
-        assertThat(row.get(2), is("reserved"));
+    public String name() {
+        return name;
+    }
+
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitAlterTableDropCheckConstraint(this, context);
     }
 }

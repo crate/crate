@@ -66,6 +66,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.PrimitiveIterator;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -127,7 +128,17 @@ public class InformationSchemaIterables implements ClusterStateListener {
             .flatMap(r -> sequentialStream(new NotNullConstraintIterable(r)))
             .iterator();
 
-        constraints = () -> concat(sequentialStream(primaryKeyConstraints), sequentialStream(notnullConstraints))
+        Iterable<ConstraintInfo> checkConstraints = () ->
+            sequentialStream(relations)
+                .flatMap(r -> r.checkConstraints()
+                    .stream()
+                    .map(chk -> new ConstraintInfo(r, chk.name(), ConstraintInfo.Type.CHECK)))
+                .iterator();
+
+        constraints = () -> Stream.of(sequentialStream(primaryKeyConstraints),
+                                      sequentialStream(notnullConstraints),
+                                      sequentialStream(checkConstraints))
+            .flatMap(Function.identity())
             .iterator();
 
         partitionInfos = new PartitionInfos(clusterService);

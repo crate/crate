@@ -54,13 +54,13 @@ public class ColumnDefinition<T> extends TableElement<T> {
         this(ident, defaultExpression, generatedExpression, type, constraints, true, generatedExpression != null);
     }
 
-    private ColumnDefinition(String ident,
-                             @Nullable T defaultExpression,
-                             @Nullable T generatedExpression,
-                             @Nullable ColumnType<T> type,
-                             List<ColumnConstraint<T>> constraints,
-                             boolean validate,
-                             boolean generated) {
+    public ColumnDefinition(String ident,
+                            @Nullable T defaultExpression,
+                            @Nullable T generatedExpression,
+                            @Nullable ColumnType<T> type,
+                            List<ColumnConstraint<T>> constraints,
+                            boolean validate,
+                            boolean generated) {
         this.ident = ident;
         this.defaultExpression = defaultExpression;
         this.generatedExpression = generatedExpression;

@@ -440,6 +440,7 @@ infinite recursion of your mind, beware!)::
 |                               | column is generated or not.                   |               |
 +-------------------------------+-----------------------------------------------+---------------+
 
+.. _information_schema_table_constraints:
 
 ``table_constraints``
 ---------------------

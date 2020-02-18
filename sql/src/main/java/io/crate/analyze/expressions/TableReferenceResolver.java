@@ -48,16 +48,20 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
         this.relationName = relationName;
     }
 
-    @Override
-    public Reference resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
-        List<String> parts = qualifiedName.getParts();
-        ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
-        if (parts.size() != 1) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+    public static ColumnIdent columnIdent(QualifiedName qualifiedName, @Nullable List<String> path) {
+        List<String> qualifiedNameParts = qualifiedName.getParts();
+        if (qualifiedNameParts.size() != 1) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
                 "Column reference \"%s\" has too many parts. " +
                 "A column must not have a schema or a table here.", qualifiedName));
         }
+        return new ColumnIdent(qualifiedNameParts.get(qualifiedNameParts.size() - 1), path);
+    }
 
+    @Override
+    public Reference resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
+        ColumnIdent columnIdent = columnIdent(qualifiedName, path);
         for (Reference reference : tableReferences) {
             if (reference.column().equals(columnIdent)) {
                 if (reference instanceof GeneratedReference) {

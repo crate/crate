@@ -57,6 +57,7 @@ import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
@@ -97,6 +98,7 @@ public class Analyzer {
 
     private final RelationAnalyzer relationAnalyzer;
     private final DropTableAnalyzer dropTableAnalyzer;
+    private final DropCheckConstraintAnalyzer dropCheckConstraintAnalyzer;
     private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
     private final ExplainStatementAnalyzer explainStatementAnalyzer;
     private final ShowStatementAnalyzer showStatementAnalyzer;
@@ -144,6 +146,7 @@ public class Analyzer {
                     UserManager userManager) {
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
+        this.dropCheckConstraintAnalyzer = new DropCheckConstraintAnalyzer(schemas);
         this.userManager = userManager;
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(functions);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, functions);
@@ -228,6 +231,14 @@ public class Analyzer {
             return alterTableAnalyzer.analyze(
                 (AlterTable<Expression>) node,
                 context.paramTypeHints(),
+                context.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropCheckConstraint(DropCheckConstraint<?> node, Analysis context) {
+            return dropCheckConstraintAnalyzer.analyze(
+                node.table(),
+                node.name(),
                 context.transactionContext());
         }
 

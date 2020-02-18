@@ -33,7 +33,8 @@ where ``column_constraint`` is::
     { PRIMARY KEY |
       NOT NULL |
       INDEX { OFF | USING { PLAIN |
-                            FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
+                            FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  } |
+      [ CONSTRAINT check_constraint_name ] CHECK (boolean_expression)
     }
 
 
@@ -118,7 +119,9 @@ can be used. For more more info on that, see :ref:`alter_change_number_of_shard`
 Can be used to add an additional column to a table. While columns can be added
 at any time, adding a new :ref:`generated column <ref-generated-columns>` is
 only possible if the table is empty. In addition, adding a base column with
-:ref:`ref-default-clause` is not supported.
+:ref:`ref-default-clause` is not supported. It is possible to define a CHECK
+constraint with the restriction that only the column being added may be used
+in the boolean expression.
 
 :data_type:
   Data type of the column which should be added.

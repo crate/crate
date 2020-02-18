@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.common.collections.Maps;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidColumnNameException;
@@ -28,12 +29,15 @@ import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
+import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
@@ -59,6 +63,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -121,6 +126,19 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 plannerContext.functions(),
                 new RowN(arguments),
                 SubQueryResults.EMPTY
+            );
+        } else if (analyzedStatement instanceof AnalyzedAlterTableAddColumn) {
+            return (S) AlterTableAddColumnPlan.bind(
+                (AnalyzedAlterTableAddColumn) analyzedStatement,
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                new RowN(arguments),
+                SubQueryResults.EMPTY,
+                null
+            );
+        } else if (analyzedStatement instanceof AnalyzedAlterTableDropCheckConstraint) {
+            return (S) AlterTableDropCheckConstraintPlan.bind(
+                (AnalyzedAlterTableDropCheckConstraint) analyzedStatement
             );
         } else {
             return (S) analyzedStatement;
@@ -1202,6 +1220,27 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 fail("Exception message is expected to contain: " + msg);
             }
         }
+    }
+
+    @Test
+    public void testAlterTableAddColumnWithCheckConstraint() throws Exception {
+        SQLExecutor.builder(clusterService)
+            .addTable("create table t (" +
+                      "    id int primary key, " +
+                      "    qty int constraint check_qty_gt_zero check(qty > 0), " +
+                      "    constraint check_id_ge_zero check (id >= 0)" +
+                      ")")
+            .build();
+        String alterStmt = "alter table t add column bazinga int constraint bazinga_check check(bazinga != 42)";
+        BoundAddColumn analysis = analyze(alterStmt);
+        Map<String, Object> mapping = analysis.mapping();
+        Map<String, String> checkConstraints = analysis.analyzedTableElements().getCheckConstraints();
+        assertEquals(checkConstraints.get("check_id_ge_zero"),
+                     Maps.getByPath(mapping, Arrays.asList("_meta", "check_constraints", "check_id_ge_zero")));
+        assertEquals(checkConstraints.get("check_qty_gt_zero"),
+                     Maps.getByPath(mapping, Arrays.asList("_meta", "check_constraints", "check_qty_gt_zero")));
+        assertEquals(checkConstraints.get("bazinga_check"),
+                     Maps.getByPath(mapping, Arrays.asList("_meta", "check_constraints", "bazinga_check")));
     }
 
     @Test

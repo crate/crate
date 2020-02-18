@@ -31,6 +31,7 @@ SQL Statements
     drop-repository
     drop-snapshot
     drop-table
+    drop-constraint
     drop-user
     drop-view
     explain

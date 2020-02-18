@@ -360,6 +360,18 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
+    public R visitCheckConstraint(CheckConstraint<?> node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitCheckColumnConstraint(CheckColumnConstraint<?> node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitDropCheckConstraint(DropCheckConstraint<?> node, C context) {
+        return visitNode(node, context);
+    }
+
     public R visitIndexDefinition(IndexDefinition<?> node, C context) {
         return visitNode(node, context);
     }

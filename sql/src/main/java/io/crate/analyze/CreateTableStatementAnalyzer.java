@@ -25,18 +25,24 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.EnsureNoMatchPredicate;
+import io.crate.sql.tree.CheckColumnConstraint;
+import io.crate.sql.tree.CheckConstraint;
+import io.crate.sql.tree.ColumnConstraint;
+import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.TableElement;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 
 public final class CreateTableStatementAnalyzer {
 
@@ -58,33 +64,85 @@ public final class CreateTableStatementAnalyzer {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
+        Function<Expression, Symbol> exprMapper = y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx);
 
-        // 1st phase, map and analyze everything BESIDE generated and default expressions and
+        // 1st phase, map and analyze everything EXCEPT:
+        //   - check constraints defined at any level (table or column)
+        //   - generated expressions
+        //   - default expressions
+        Map<TableElement<Symbol>, TableElement<Expression>> analyzed = new LinkedHashMap<>();
+        List<CheckConstraint<Expression>> checkConstraints = new ArrayList<>();
+        for (int i = 0; i < createTable.tableElements().size(); i++) {
+            TableElement<Expression> te = createTable.tableElements().get(i);
+            if (te instanceof CheckConstraint) {
+                checkConstraints.add((CheckConstraint<Expression>) te);
+                continue;
+            }
+            TableElement<Symbol> analyzedTe = null;
+            if (te instanceof ColumnDefinition) {
+                ColumnDefinition<Expression> def = (ColumnDefinition<Expression>) te;
+                List<ColumnConstraint<Symbol>> analyzedColumnConstraints = new ArrayList<>();
+                for (int j = 0; j < def.constraints().size(); j++) {
+                    ColumnConstraint<Expression> cc = def.constraints().get(j);
+                    if (cc instanceof CheckColumnConstraint) {
+                        // Re-frame the column check constraint as a table check constraint
+                        CheckColumnConstraint<Expression> columnCheck = (CheckColumnConstraint<Expression>) cc;
+                        checkConstraints.add(new CheckConstraint<>(
+                            columnCheck.name(),
+                            def.ident(),
+                            columnCheck.expression(),
+                            columnCheck.expressionStr()
+                        ));
+                        continue;
+                    }
+                    analyzedColumnConstraints.add(cc.map(exprMapper));
+                }
+                analyzedTe = new ColumnDefinition<>(
+                    def.ident(),
+                    null,
+                    null,
+                    def.type() == null ? null : def.type().map(exprMapper),
+                    analyzedColumnConstraints,
+                    false,
+                    def.isGenerated());
+            }
+            analyzed.put(analyzedTe == null ? te.map(exprMapper) : analyzedTe, te);
+        }
         CreateTable<Symbol> analyzedCreateTable = new CreateTable<>(
-            createTable.name().map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx)),
-            Lists2.map(createTable.tableElements(), x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx))),
-            createTable.partitionedBy().map(x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx))),
-            createTable.clusteredBy().map(x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx))),
+            createTable.name().map(exprMapper),
+            new ArrayList<>(analyzed.keySet()),
+            createTable.partitionedBy().map(x -> x.map(exprMapper)),
+            createTable.clusteredBy().map(x -> x.map(exprMapper)),
             createTable.properties().map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx)),
             createTable.ifNotExists()
         );
         AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
             analyzedCreateTable.tableElements(), relationName, null);
 
-        // 2nd phase, analyze possible generatedExpressions and defaultExpressions with a reference resolver
+        // 2nd phase, analyze and map with a reference resolver:
+        //   - generated/default expressions
+        //   - check constraints
         TableReferenceResolver referenceResolver = analyzedTableElements.referenceResolver(relationName);
         var exprAnalyzerWithReferences = new ExpressionAnalyzer(
             functions, txnCtx, paramTypeHints, referenceResolver, null);
-        List<TableElement<Symbol>> tableElementsWithExpressions = new ArrayList<>(analyzedCreateTable.tableElements().size());
+        List<TableElement<Symbol>> tableElementsWithExpressions = new ArrayList<>();
         for (int i = 0; i < analyzedCreateTable.tableElements().size(); i++) {
-            TableElement<Expression> elementExpression = createTable.tableElements().get(i);
             TableElement<Symbol> elementSymbol = analyzedCreateTable.tableElements().get(i);
+            TableElement<Expression> elementExpression = analyzed.get(elementSymbol);
             tableElementsWithExpressions.add(elementExpression.mapExpressions(elementSymbol, x -> {
                 Symbol symbol = exprAnalyzerWithReferences.convert(x, exprCtx);
                 EnsureNoMatchPredicate.ensureNoMatchPredicate(symbol, "Cannot use MATCH in CREATE TABLE statements");
                 return symbol;
             }));
         }
+        checkConstraints
+            .stream()
+            .map(x -> x.map(y -> exprAnalyzerWithReferences.convert(y, exprCtx)))
+            .forEach(te -> {
+                analyzedCreateTable.tableElements().add(te);
+                tableElementsWithExpressions.add(te);
+                analyzedTableElements.addCheckConstraint(relationName, (CheckConstraint<Symbol>) te);
+            });
         AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
             tableElementsWithExpressions, relationName, null, false);
         return new AnalyzedCreateTable(
