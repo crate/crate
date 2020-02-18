@@ -73,8 +73,8 @@ public final class TrimFunctions {
             }
         });
 
-        module.register(LTRIM_NAME, new SingleSideTrimFunctionResolver((i, c) -> trimChars(i, c, TrimMode.LEADING)));
-        module.register(RTRIM_NAME, new SingleSideTrimFunctionResolver((i, c) -> trimChars(i, c, TrimMode.TRAILING)));
+        module.register(LTRIM_NAME, new SingleSideTrimFunctionResolver(LTRIM_NAME, (i, c) -> trimChars(i, c, TrimMode.LEADING)));
+        module.register(RTRIM_NAME, new SingleSideTrimFunctionResolver(RTRIM_NAME, (i, c) -> trimChars(i, c, TrimMode.TRAILING)));
     }
 
     private static class TrimFunction extends Scalar<String, String> {
@@ -207,9 +207,11 @@ public final class TrimFunctions {
     }
 
     private static class SingleSideTrimFunctionResolver extends BaseFunctionResolver {
+
+        private final String functionName;
         private final BiFunction<String, String, String> trimFunction;
 
-        SingleSideTrimFunctionResolver(BiFunction<String, String, String> trimFunction) {
+        SingleSideTrimFunctionResolver(String functionName, BiFunction<String, String, String> trimFunction) {
             super(
                 FuncParams
                     .builder(Param.STRING)
@@ -217,15 +219,14 @@ public final class TrimFunctions {
                     .limitVarArgOccurrences(1)
                     .build()
             );
+            this.functionName = functionName;
             this.trimFunction = trimFunction;
         }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             return new SingleSideTrimFunction(
-                new FunctionInfo(
-                    new FunctionIdent(LTRIM_NAME, dataTypes), DataTypes.STRING
-                ),
+                new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.STRING),
                 trimFunction
             );
         }
