@@ -22,11 +22,21 @@
 
 package io.crate.expression.symbol;
 
+import java.util.List;
 import java.util.function.Predicate;
 
 public class SymbolVisitors {
 
     private static final AnyPredicateVisitor ANY_VISITOR = new AnyPredicateVisitor();
+
+    public static boolean any(Predicate<? super Symbol> predicate, List<? extends Symbol> symbols) {
+        for (int i = 0; i < symbols.size(); i++) {
+            if (any(predicate, symbols.get(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static boolean any(Predicate<? super Symbol> symbolPredicate, Symbol symbol) {
         return symbol.accept(ANY_VISITOR, symbolPredicate);

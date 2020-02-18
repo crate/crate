@@ -46,13 +46,12 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
-import io.crate.expression.symbol.Aggregations;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.GroupAndAggregateSemantics;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
@@ -336,7 +335,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalysisContext);
 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates()) {
-            ensureNonAggregatesInGroupBy(symbolPrinter, selectAnalysis.outputSymbols(), groupBy);
+            GroupAndAggregateSemantics.validate(symbolPrinter, selectAnalysis.outputSymbols(), groupBy);
         }
 
         boolean isDistinct = node.getSelect().isDistinct();
@@ -435,43 +434,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             return symbol.cast(DataTypes.LONG);
         }
         return null;
-    }
-
-    private static void ensureNonAggregatesInGroupBy(SymbolPrinter symbolPrinter,
-                                                     List<Symbol> outputSymbols,
-                                                     List<Symbol> groupBy) throws IllegalArgumentException {
-        for (int i = 0; i < outputSymbols.size(); i++) {
-            Symbol output = outputSymbols.get(i);
-            if (groupBy == null || !groupBy.contains(output)) {
-                SymbolType symbolType = output.symbolType();
-                if (symbolType.isValueSymbol()) {
-                    // values and window functions are allowed even if not present in group by
-                    continue;
-                }
-
-                if (Aggregations.containsAggregationOrscalar(output) == false ||
-                    Aggregations.matchGroupBySymbol(output, groupBy) == false) {
-                    String offendingSymbolName = symbolPrinter.printUnqualified(output);
-                    if (output instanceof Function) {
-                        Function function = (Function) output;
-                        if (function.info().type() == FunctionInfo.Type.TABLE
-                            || function.symbolType() == SymbolType.WINDOW_FUNCTION) {
-                            // table or window function can occur in the outputs without being present in the GROUP BY
-                            // if the arguments to it are within GROUP BY
-                            ensureNonAggregatesInGroupBy(symbolPrinter, function.arguments(), groupBy);
-                            return;
-                        }
-                    }
-                    throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH,
-                            "'%s' must appear in the GROUP BY clause " +
-                            "or be used in an aggregation function." +
-                            " Perhaps you grouped by an alias that clashes with a column in the relations",
-                            offendingSymbolName
-                        ));
-                }
-            }
-        }
     }
 
     @Nullable
