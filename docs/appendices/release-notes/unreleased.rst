@@ -134,4 +134,5 @@ Changes
 Fixes
 =====
 
-None
+- Fixed an issue that caused :ref:`RTRIM <scalar-rtrim>` to behave like
+  :ref:`LRTRIM <scalar-ltrim>`.
