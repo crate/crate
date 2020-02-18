@@ -93,7 +93,7 @@ public class Field extends Symbol {
     }
 
     @Override
-    public DataType valueType() {
+    public DataType<?> valueType() {
         return pointer.valueType();
     }
 

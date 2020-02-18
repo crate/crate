@@ -1409,6 +1409,36 @@ See below for an example::
     +-------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-trunc:
+
+``trunc(number[, precision])``
+------------------------------
+
+Returns ``number`` truncated to the specified ``precision`` (decimal places).
+
+When `precision` is not specified, the result's type is an ``integer``, or
+``bigint``. When it is specified, the result's type is ``double precision``.
+Notice that `trunc(number)` and `trunc(number, 0)` return different result
+types.
+
+See below for examples::
+
+    cr> select trunc(29.999999, 3);
+    +---------------------+
+    | trunc(29.999999, 3) |
+    +---------------------+
+    |              29.999 |
+    +---------------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select trunc(29.999999);
+    +------------------+
+    | trunc(29.999999) |
+    +------------------+
+    |               29 |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
 ``sqrt(number)``
 ----------------
 

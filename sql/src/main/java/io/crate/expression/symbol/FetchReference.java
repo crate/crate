@@ -50,7 +50,7 @@ public class FetchReference extends Symbol {
     }
 
     @Override
-    public DataType valueType() {
+    public DataType<?> valueType() {
         return ref.valueType();
     }
 

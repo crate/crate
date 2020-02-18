@@ -48,7 +48,7 @@ public class Reference extends Symbol {
         NO;
     }
 
-    protected DataType type;
+    protected DataType<?> type;
     private final Integer position;
     private final ReferenceIdent ident;
     private final ColumnPolicy columnPolicy;
@@ -78,7 +78,7 @@ public class Reference extends Symbol {
 
     public Reference(ReferenceIdent ident,
                      RowGranularity granularity,
-                     DataType type,
+                     DataType<?> type,
                      @Nullable Integer position,
                      @Nullable Symbol defaultExpression) {
         this(ident,
@@ -93,7 +93,7 @@ public class Reference extends Symbol {
 
     public Reference(ReferenceIdent ident,
                      RowGranularity granularity,
-                     DataType type,
+                     DataType<?> type,
                      ColumnPolicy columnPolicy,
                      IndexType indexType,
                      boolean nullable,
@@ -112,7 +112,7 @@ public class Reference extends Symbol {
 
     public Reference(ReferenceIdent ident,
                      RowGranularity granularity,
-                     DataType type,
+                     DataType<?> type,
                      ColumnPolicy columnPolicy,
                      IndexType indexType,
                      boolean nullable,
@@ -157,10 +157,9 @@ public class Reference extends Symbol {
     }
 
     @Override
-    public DataType valueType() {
+    public DataType<?> valueType() {
         return type;
     }
-
 
     public ReferenceIdent ident() {
         return ident;
@@ -272,6 +271,7 @@ public class Reference extends Symbol {
     }
 
     public static <R extends Reference> R fromStream(StreamInput in) throws IOException {
+        //noinspection unchecked
         return (R) SymbolType.VALUES.get(in.readVInt()).newInstance(in);
     }
 }

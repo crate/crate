@@ -84,7 +84,7 @@ public class Function extends Symbol implements Cloneable {
     }
 
     @Override
-    public DataType valueType() {
+    public DataType<?> valueType() {
         return info.returnType();
     }
 
@@ -119,8 +119,8 @@ public class Function extends Symbol implements Cloneable {
         }
     }
 
-    private Symbol castArrayElements(DataType newDataType, boolean tryCast) {
-        DataType<?> innerType = ((ArrayType) newDataType).innerType();
+    private Symbol castArrayElements(DataType<?> newDataType, boolean tryCast) {
+        DataType<?> innerType = ((ArrayType<?>) newDataType).innerType();
         ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
         for (Symbol arg : arguments) {
             newArgs.add(arg.cast(innerType, tryCast));
@@ -160,7 +160,9 @@ public class Function extends Symbol implements Cloneable {
         }
         var sb = new StringBuilder(name + '(' + ExplainLeaf.printList(arguments) + ')');
         if (filter != null) {
-            sb.append(" FILTER (" + filter.representation() + ')');
+            sb.append(" FILTER (")
+                .append(filter.representation())
+                .append(')');
         }
         return sb.toString();
     }

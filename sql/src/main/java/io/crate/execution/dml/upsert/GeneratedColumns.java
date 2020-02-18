@@ -30,6 +30,7 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import io.crate.types.DataType;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -112,7 +113,8 @@ public final class GeneratedColumns<T> {
             Object generatedValue = entry.getValue().value();
 
             //noinspection unchecked
-            if (ref.valueType().compareValueTo(generatedValue, providedValue) != 0) {
+            DataType<Object> dataType = (DataType<Object>) ref.valueType();
+            if (dataType.compareValueTo(dataType.value(generatedValue), dataType.value(providedValue)) != 0) {
                 throw new IllegalArgumentException(
                     "Given value " + providedValue +
                     " for generated column " + ref.column() +

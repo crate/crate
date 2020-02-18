@@ -140,7 +140,7 @@ public class EvaluatingNormalizer {
 
             Input<?> input = referenceResolver.getImplementation(symbol);
             if (input != null) {
-                return Literal.of(symbol.valueType(), input.value());
+                return Literal.ofUnchecked(symbol.valueType(), input.value());
             }
 
             if (LOGGER.isTraceEnabled()) {

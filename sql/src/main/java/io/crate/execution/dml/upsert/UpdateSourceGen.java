@@ -162,7 +162,7 @@ final class UpdateSourceGen {
 
         @Override
         public Input<?> visitInputColumn(InputColumn inputColumn, Values context) {
-            return Literal.of(inputColumn.valueType(), context.insertValues[inputColumn.index()]);
+            return Literal.ofUnchecked(inputColumn.valueType(), context.insertValues[inputColumn.index()]);
         }
 
         @Override
