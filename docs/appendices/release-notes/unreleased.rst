@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that would cause ``COPY FROM`` statements that used a HTTPS
+  source using a Let's Encrypt certificate to fail.
+
 - Fixed a regression that caused ``INSERT INTO`` statements containing an
   ``object`` column as target and a matching JSON string literal in the source
   to fail with a type cast error.
