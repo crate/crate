@@ -29,7 +29,6 @@ import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.not;
 
 public class TrimFunctionTest extends AbstractScalarFunctionsTest {
@@ -49,6 +48,11 @@ public class TrimFunctionTest extends AbstractScalarFunctionsTest {
         String input = "  Hello World   ";
         assertNormalize(String.format("ltrim('%s')", input), isLiteral("Hello World   "));
         assertNormalize(String.format("rtrim('%s')", input), isLiteral("  Hello World"));
+    }
+
+    @Test
+    public void test_rtrim_trims_right_side_on_evaluate() {
+        assertEvaluate("rtrim(name)", "  Arthur", Literal.of("  Arthur  "));
     }
 
     @Test
