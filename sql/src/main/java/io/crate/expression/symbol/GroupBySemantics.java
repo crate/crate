@@ -23,26 +23,68 @@
 package io.crate.expression.symbol;
 
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionInfo;
 
 import java.util.List;
+import java.util.Locale;
 
-public final class Aggregations {
+public final class GroupBySemantics {
 
     private static final AggregationOrScalarSearcher AGGREGATION_OR_SCALAR_SEARCHER = new AggregationOrScalarSearcher();
     private static final GroupBySymbolMatcher GROUP_BY_MATCHER = new GroupBySymbolMatcher();
 
     /**
+     * Ensures that selected columns are present in the GROUP BY clause
+     */
+    public static void ensureOutputsPresentInGroupBy(SymbolPrinter symbolPrinter,
+                                                     List<Symbol> outputSymbols,
+                                                     List<Symbol> groupBy) throws IllegalArgumentException {
+        for (int i = 0; i < outputSymbols.size(); i++) {
+            Symbol output = outputSymbols.get(i);
+            if (groupBy == null || !groupBy.contains(output)) {
+                SymbolType symbolType = output.symbolType();
+                if (symbolType.isValueSymbol()) {
+                    // values and window functions are allowed even if not present in group by
+                    continue;
+                }
+
+                if (GroupBySemantics.containsAggregationOrscalar(output) == false ||
+                    GroupBySemantics.matchGroupBySymbol(output, groupBy) == false) {
+                    String offendingSymbolName = symbolPrinter.printUnqualified(output);
+                    if (output instanceof Function) {
+                        Function function = (Function) output;
+                        if (function.info().type() == FunctionInfo.Type.TABLE
+                            || function.symbolType() == SymbolType.WINDOW_FUNCTION) {
+                            // table or window function can occur in the outputs without being present in the GROUP BY
+                            // if the arguments to it are within GROUP BY
+                            ensureOutputsPresentInGroupBy(symbolPrinter, function.arguments(), groupBy);
+                            return;
+                        }
+                    }
+                    throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH,
+                                      "'%s' must appear in the GROUP BY clause " +
+                                      "or be used in an aggregation function." +
+                                      " Perhaps you grouped by an alias that clashes with a column in the relations",
+                                      offendingSymbolName
+                        ));
+                }
+            }
+        }
+    }
+
+    /**
      * @return true if the symbol is an aggregation or function which contains an aggregation or a scalar.
      */
-    public static boolean containsAggregationOrscalar(Symbol s) {
+    private static boolean containsAggregationOrscalar(Symbol s) {
         return s.accept(AGGREGATION_OR_SCALAR_SEARCHER, null);
     }
 
     /**
      * @return true if the symbol is found in the group by, if the symbol is a scalar function all column arguments must be found in the group by.
      */
-    public static boolean matchGroupBySymbol(Symbol s, List<Symbol> groupBy) {
+    private static boolean matchGroupBySymbol(Symbol s, List<Symbol> groupBy) {
         return s.accept(GROUP_BY_MATCHER, groupBy);
     }
 
