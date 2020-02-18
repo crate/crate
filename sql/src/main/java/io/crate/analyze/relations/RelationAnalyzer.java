@@ -49,7 +49,7 @@ import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.GroupBySemantics;
+import io.crate.expression.symbol.GroupAndAggregateSemantics;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -335,7 +335,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalysisContext);
 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates()) {
-            GroupBySemantics.ensureOutputsPresentInGroupBy(symbolPrinter, selectAnalysis.outputSymbols(), groupBy);
+            GroupAndAggregateSemantics.validate(symbolPrinter, selectAnalysis.outputSymbols(), groupBy);
         }
 
         boolean isDistinct = node.getSelect().isDistinct();
