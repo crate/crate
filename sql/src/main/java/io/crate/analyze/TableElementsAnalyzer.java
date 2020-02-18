@@ -27,6 +27,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AddColumnDefinition;
+import io.crate.sql.tree.CheckColumnConstraint;
+import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
@@ -239,6 +241,18 @@ public class TableElementsAnalyzer {
             for (T name : primaryKeyConstraint.columns()) {
                 context.analyzedTableElements.addPrimaryKey(name);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitCheckConstraint(CheckConstraint<?> node, ColumnDefinitionContext<T> context) {
+            context.analyzedTableElements.addCheckConstraint(context.relationName, node);
+            return null;
+        }
+
+        @Override
+        public Void visitCheckColumnConstraint(CheckColumnConstraint<?> node, ColumnDefinitionContext<T> context) {
+            context.analyzedTableElements.addCheckColumnConstraint(context.relationName, node);
             return null;
         }
 
