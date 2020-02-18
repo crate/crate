@@ -26,6 +26,7 @@ import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
@@ -680,6 +681,36 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testExtractCheckConstraints() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject(Constants.DEFAULT_MAPPING_TYPE)
+            .startObject("_meta")
+            .startObject("check_constraints")
+            .field("test3_check_1", "id >= 0")
+            .field("test3_check_2", "title != 'Programming Clojure'")
+            .endObject()
+            .endObject()
+            .startObject("properties")
+            .startObject("id").field("type", "integer").endObject()
+            .startObject("title").field("type", "string").endObject()
+            .endObject()
+            .endObject()
+            .endObject();
+        IndexMetaData metaData = getIndexMetaData("test3", builder);
+        DocIndexMetaData md = newMeta(metaData, "test3");
+        assertThat(md.checkConstraints().size(), is(2));
+        assertThat(md.checkConstraints()
+                       .stream()
+                       .map(CheckConstraint::expressionStr)
+                       .collect(Collectors.toList()),
+                   containsInAnyOrder(
+                       equalTo("id >= 0"),
+                       equalTo("title != 'Programming Clojure'")
+        ));
+    }
+
+    @Test
     public void testExtractNoPrimaryKey() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
             .startObject()
@@ -701,7 +732,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test_no_pk");
         assertThat(md.primaryKey().size(), is(1));
         assertThat(md.primaryKey(), hasItems(ColumnIdent.fromPath("_id")));
-
 
         builder = XContentFactory.jsonBuilder()
             .startObject()

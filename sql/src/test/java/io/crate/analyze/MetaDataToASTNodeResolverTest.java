@@ -222,6 +222,56 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
     }
 
     @Test
+    public void testBuildCreateTableCheckConstraints() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table doc.test (" +
+                      " floats float constraint test_floats_check check (floats != -1)," +
+                      " shorts short," +
+                      " constraint test_shorts_check check (shorts >= 0)" +
+                      ") " +
+                      "clustered into 5 shards " +
+                      "with (" +
+                      " number_of_replicas = '0-all'" +
+                      ")")
+            .build();
+        DocTableInfo tableInfo = e.resolveTableInfo("doc.test");
+
+        CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
+        assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+                     "   \"floats\" REAL,\n" +
+                     "   \"shorts\" SMALLINT,\n" +
+                     "   CONSTRAINT test_shorts_check CHECK(\"shorts\" >= 0),\n" +
+                     "   CONSTRAINT test_floats_check CHECK(\"floats\" <> - 1)\n" +
+                     ")\n" +
+                     "CLUSTERED INTO 5 SHARDS\n" +
+                     "WITH (\n" +
+                     "   \"allocation.max_retries\" = 5,\n" +
+                     "   \"blocks.metadata\" = false,\n" +
+                     "   \"blocks.read\" = false,\n" +
+                     "   \"blocks.read_only\" = false,\n" +
+                     "   \"blocks.read_only_allow_delete\" = false,\n" +
+                     "   \"blocks.write\" = false,\n" +
+                     "   codec = 'default',\n" +
+                     "   column_policy = 'strict',\n" +
+                     "   \"mapping.total_fields.limit\" = 1000,\n" +
+                     "   max_ngram_diff = 1,\n" +
+                     "   max_shingle_diff = 3,\n" +
+                     "   number_of_replicas = '0-all',\n" +
+                     "   refresh_interval = 1000,\n" +
+                     "   \"routing.allocation.enable\" = 'all',\n" +
+                     "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
+                     "   \"store.type\" = 'fs',\n" +
+                     "   \"translog.durability\" = 'REQUEST',\n" +
+                     "   \"translog.flush_threshold_size\" = 536870912,\n" +
+                     "   \"translog.sync_interval\" = 5000,\n" +
+                     "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
+                     "   \"warmer.enabled\" = true,\n" +
+                     "   \"write.wait_for_active_shards\" = '1'\n" +
+                     ")",
+                     SqlFormatter.formatSql(node));
+    }
+
+    @Test
     public void testBuildCreateTableClusteredByPartitionedBy() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addPartitionedTable("create table myschema.test (" +

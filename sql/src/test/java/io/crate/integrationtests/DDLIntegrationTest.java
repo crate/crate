@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
@@ -327,6 +328,32 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         // filtering on the actual values does still work
         execute("select title from novels where title = ?", new Object[]{title});
         assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void test_create_table_with_check_fail_on_insert() {
+        execute("create table t (id integer primary key, qty integer, constraint check_1 check (qty > 0))");
+        execute("insert into t(id, qty) values(0, null), (1, 1)");
+        refresh();
+        execute("select id, qty from t order by id");
+        assertEquals(printedTable(response.rows()),
+                     "0| NULL\n" +
+                     "1| 1\n");
+        expectedException.expectMessage(containsString("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values"));
+        execute("insert into t(id, qty) values(2, -1)");
+    }
+
+    @Test
+    public void test_create_table_with_check_fail_on_update() {
+        execute("create table t (id integer primary key, qty integer constraint check_1 check (qty > 0))");
+        execute("insert into t(id, qty) values(0, 1)");
+        refresh();
+        execute("select id, qty from t order by id");
+        assertEquals(printedTable(response.rows()), "0| 1\n");
+        execute("update t set qty = 1 where id = 0 returning id, qty");
+        assertEquals(printedTable(response.rows()), "0| 1\n");
+        expectedException.expectMessage(containsString("Failed CONSTRAINT check_1 CHECK (\"qty\" > 0) and values"));
+        execute("update t set qty = -1 where id = 0");
     }
 
     @Test

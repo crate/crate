@@ -22,7 +22,9 @@
 
 package io.crate.metadata;
 
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.CheckConstraint;
 
 import java.util.Collection;
 import java.util.List;
@@ -59,6 +61,10 @@ public interface RelationInfo extends Iterable<Reference> {
     RelationName ident();
 
     List<ColumnIdent> primaryKey();
+
+    default List<CheckConstraint<Symbol>> checkConstraints() {
+        return List.of();
+    }
 
     Map<String, Object> parameters();
 

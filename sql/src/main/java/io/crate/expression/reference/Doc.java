@@ -108,4 +108,9 @@ public final class Doc {
             }
         );
     }
+
+    @Override
+    public String toString() {
+        return source != null ? source.toString() : null;
+    }
 }
