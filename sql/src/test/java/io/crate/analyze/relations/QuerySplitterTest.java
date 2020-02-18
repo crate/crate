@@ -28,6 +28,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,6 +50,7 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws Exception {
         expressions = new SqlExpressions(T3.sources(clusterService));
+        expressions.context().allowEagerNormalize(false);
     }
 
     private Symbol asSymbol(String expression) {

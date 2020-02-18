@@ -83,7 +83,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testTwoArraysOfIncompatibleInnerTypes() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `[1, 2]` of type `bigint_array` to type `text`");
+        expectedException.expectMessage("Cannot cast `_array(1, 2)` of type `bigint_array` to type `text`");
         assertNormalize("concat([1, 2], [[1, 2]])", null);
     }
 

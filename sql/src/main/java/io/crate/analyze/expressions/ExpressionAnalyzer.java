@@ -67,7 +67,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.interval.IntervalParser;
@@ -1133,7 +1132,7 @@ public class ExpressionAnalyzer {
                 filter,
                 windowDefinition);
         }
-        if (context.isEagerNormalizationAllowed() && functionInfo.isDeterministic() && Symbols.allLiterals(newFunction)) {
+        if (context.isEagerNormalizationAllowed() && functionInfo.isDeterministic()) {
             return funcImpl.normalizeSymbol(newFunction, coordinatorTxnCtx);
         }
         return newFunction;
