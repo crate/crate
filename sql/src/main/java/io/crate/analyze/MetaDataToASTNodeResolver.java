@@ -32,6 +32,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
@@ -99,6 +100,14 @@ public class MetaDataToASTNodeResolver {
             if (pk != null) elements.add(pk);
             // index definitions
             elements.addAll(extractIndexDefinitions());
+            tableInfo.checkConstraints()
+                .stream()
+                .map(chk -> new CheckConstraint<>(
+                    chk.name(),
+                    chk.columnName(),
+                    SqlParser.createExpression(chk.expressionStr()),
+                    chk.expressionStr()))
+                .forEach(elements::add);
             return elements;
         }
 
