@@ -23,6 +23,7 @@
 package io.crate.sql.parser;
 
 import io.crate.common.collections.Lists2;
+import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
@@ -50,6 +51,8 @@ import io.crate.sql.tree.BetweenPredicate;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.CharFilters;
+import io.crate.sql.tree.CheckColumnConstraint;
+import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
@@ -782,6 +785,25 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitPrimaryKeyConstraint(SqlBaseParser.PrimaryKeyConstraintContext context) {
         return new PrimaryKeyConstraint<>(visitCollection(context.columns().primaryExpression(), Expression.class));
+    }
+
+    @Override
+    public Node visitTableCheckConstraint(SqlBaseParser.TableCheckConstraintContext context) {
+        SqlBaseParser.CheckConstraintContext ctx = context.checkConstraint();
+        String name = ctx.CONSTRAINT() != null ? getIdentText(ctx.name) : null;
+        Expression expression = (Expression) visit(ctx.expression);
+        String expressionStr = ExpressionFormatter.formatStandaloneExpression(expression);
+        return new CheckConstraint<>(name, null, expression, expressionStr);
+    }
+
+    @Override
+    public Node visitColumnCheckConstraint(SqlBaseParser.ColumnCheckConstraintContext context) {
+        SqlBaseParser.CheckConstraintContext ctx = context.checkConstraint();
+        String name = ctx.CONSTRAINT() != null ? getIdentText(ctx.name) : null;
+        Expression expression = (Expression) visit(ctx.expression);
+        String expressionStr = ExpressionFormatter.formatStandaloneExpression(expression);
+        // column name is obtained during analysis
+        return new CheckColumnConstraint<>(name, null, expression, expressionStr);
     }
 
     @Override

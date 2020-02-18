@@ -1453,6 +1453,16 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testCreateTableWithCheckConstraints() {
+        printStatement("create table t (a int check(a >= 0), b boolean)");
+        printStatement("create table t (a int constraint over_zero check(a >= 0), b boolean)");
+        printStatement("create table t (a int, b boolean, check(a >= 0))");
+        printStatement("create table t (a int, b boolean, constraint over_zero check(a >= 0))");
+        printStatement("create table t (a int, b boolean check(b))");
+        printStatement("create table t (a int, b boolean constraint b check(b))");
+    }
+
+    @Test
     public void testAddGeneratedColumn() {
         printStatement("alter table t add col2 AS date_trunc('day', col1)");
         printStatement("alter table t add col2 AS date_trunc('day', col1) INDEX USING PLAIN");
