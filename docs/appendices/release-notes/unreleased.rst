@@ -57,5 +57,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that would cause ``COPY FROM`` statements that used a HTTPS
+  source using a Let's Encrypt certificate to fail.
+
 - Fixed an issue that caused :ref:`RTRIM <scalar-rtrim>` to behave like
   :ref:`LRTRIM <scalar-ltrim>`.
+
