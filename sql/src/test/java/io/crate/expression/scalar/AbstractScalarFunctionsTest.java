@@ -129,12 +129,13 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
      * If the result of normalize is a Literal and all arguments were Literals evaluate is also called and
      * compared to the result of normalize - the resulting value of normalize must match evaluate.
      */
-    @SuppressWarnings("unchecked")
     public void assertNormalize(String functionExpression, Matcher<? super Symbol> expectedSymbol) {
         assertNormalize(functionExpression, expectedSymbol, true);
     }
 
     public void assertNormalize(String functionExpression, Matcher<? super Symbol> expectedSymbol, boolean evaluate) {
+        // Explicit normalization happens further below
+        sqlExpressions.context().allowEagerNormalize(false);
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         if (functionSymbol instanceof Literal) {
             assertThat(functionSymbol, expectedSymbol);
@@ -175,6 +176,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
         if (expectedValue == null) {
             expectedValue = (Matcher<T>) nullValue();
         }
+        sqlExpressions.context().allowEagerNormalize(true);
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         if (functionSymbol instanceof Literal) {

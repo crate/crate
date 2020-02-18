@@ -44,6 +44,7 @@ public class NullEliminatorTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws Exception {
         sqlExpressions = new SqlExpressions(T3.sources(clusterService));
+        sqlExpressions.context().allowEagerNormalize(false);
     }
 
     private void assertReplaced(String expression, String expectedString) {

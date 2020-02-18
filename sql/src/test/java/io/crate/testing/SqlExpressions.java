@@ -114,6 +114,10 @@ public class SqlExpressions {
         return expressionAnalyzer.convert(SqlParser.createExpression(expression), expressionAnalysisCtx);
     }
 
+    public ExpressionAnalysisContext context() {
+        return expressionAnalysisCtx;
+    }
+
     public Symbol normalize(Symbol symbol) {
         return normalizer.normalize(symbol, coordinatorTxnCtx);
     }
