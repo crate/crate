@@ -356,6 +356,27 @@ new master node is elected.
    explicitly list the names or IP addresses of the master-eligible nodes whose
    votes should be counted in the very first election.
 
+.. _conf_discovery_type:
+
+**discovery.type**
+  | *Default:* ``zen``
+  | *Runtime:* ``no``
+  | *Allowed Values:*  ``zen | single-node``
+
+  Specifies whether CrateDB should form a multiple-node cluster. By default,
+  CrateDB discovers other nodes when forming a cluster and allows other nodes to
+  join the cluster later. If ``discovery.type`` is set to ``single-node``,
+  CrateDB forms a single-node cluster and the node won't join any other
+  clusters. This can be useful for testing. It is not recommend to use this for
+  production setups. The ``single-node`` mode also skips `bootstrap checks`_.
+
+.. NOTE::
+
+   If a node was started once using ``single-node``, it will never join any
+   cluster even if the configuration is changed. It is possible to force the
+   node to forget its current cluster state by using the :ref:`cli-crate-node`
+   CLI tool. However, be aware that this may result in data loss.
+
 .. _conf_host_discovery:
 
 Unicast host discovery
@@ -1156,3 +1177,6 @@ Metadata gateway
   because you only want the cluster state to be recovered once all nodes are
   started. However, the value must be bigger than the half of the expected
   number of nodes in the cluster.
+
+
+.. _bootstrap checks: https://crate.io/docs/crate/guide/en/latest/admin/bootstrap-checks.html
