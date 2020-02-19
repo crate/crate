@@ -25,7 +25,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.where.DocKeys;
 import io.crate.common.collections.Lists2;
-import io.crate.common.collections.Sorted;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.window.WindowFunctionModule;
@@ -33,6 +32,7 @@ import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.LiteralValueFormatter;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -99,72 +99,25 @@ public class TestingHelpers {
     }
 
     public static String printRows(Iterable<Object[]> rows) {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        PrintStream out = new PrintStream(os);
+        var sb = new StringBuilder();
         for (Object[] row : rows) {
-            boolean first = true;
-            for (Object o : row) {
-                first = printObject(out, first, o);
+            for (int c = 0; c < row.length; c++) {
+                Object cell = row[c];
+                LiteralValueFormatter.format(cell, sb);
+                if (c + 1 < row.length) {
+                    sb.append("| ");
+                }
             }
-            out.print("\n");
+            sb.append("\n");
         }
-        return os.toString();
+        return sb.toString();
     }
 
-    private static boolean printObject(PrintStream out, boolean first, Object o) {
-        if (!first) {
-            out.print("| ");
-        } else {
-            first = false;
-        }
-        if (o == null) {
-            out.print("NULL");
-        } else if (o instanceof Object[]) {
-            out.print("[");
-            Object[] oArray = (Object[]) o;
-            for (int i = 0; i < oArray.length; i++) {
-                printObject(out, true, oArray[i]);
-                if (i < oArray.length - 1) {
-                    out.print(", ");
-                }
-            }
-            out.print("]");
-        } else if (o.getClass().isArray()) {
-            out.print("[");
-            boolean arrayFirst = true;
-            for (int i = 0, length = Array.getLength(o); i < length; i++) {
-                if (!arrayFirst) {
-                    out.print(",v");
-                } else {
-                    arrayFirst = false;
-                }
-                printObject(out, first, Array.get(o, i));
-            }
-            out.print("]");
-        } else if (o instanceof Map) {
-            out.print("{");
-            //noinspection unchecked
-            Map<String, Object> map = Sorted.sortRecursive((Map<String, Object>) o, true);
-            Iterator<String> it = map.keySet().iterator();
-            while (it.hasNext()) {
-                String key = it.next();
-                out.print(key + "=");
-                printObject(out, true, map.get(key));
-                if (it.hasNext()) {
-                    out.print(", ");
-                }
-            }
-            out.print("}");
-        } else {
-            out.print(o.toString());
-        }
-        return first;
-    }
-
-    private final static Joiner.MapJoiner MAP_JOINER = Joiner.on(", ").useForNull("null").withKeyValueSeparator("=");
 
     public static String mapToSortedString(Map<String, Object> map) {
-        return MAP_JOINER.join(Sorted.sortRecursive(map));
+        var sb = new StringBuilder();
+        LiteralValueFormatter.format(map, sb);
+        return sb.toString();
     }
 
     public static Functions getFunctions() {
