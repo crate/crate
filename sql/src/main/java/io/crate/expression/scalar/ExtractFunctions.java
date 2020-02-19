@@ -22,13 +22,9 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.format.FunctionFormatSpec;
-import io.crate.expression.symbol.format.SymbolPrinter;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -42,23 +38,11 @@ import java.util.Locale;
 import static io.crate.sql.tree.Extract.Field.DAY_OF_MONTH;
 import static io.crate.sql.tree.Extract.Field.DAY_OF_WEEK;
 import static io.crate.sql.tree.Extract.Field.DAY_OF_YEAR;
+import static io.crate.sql.tree.Extract.Field.EPOCH;
 
 public class ExtractFunctions {
 
-    private static final String NAME_PREFIX = "extract_";
-
-    private static final String EXTRACT_EPOCH_PREFIX = "extract(epoch from ";
-    private static final String EXTRACT_CENTURY_PREFIX = "extract(century from ";
-    private static final String EXTRACT_YEAR_PREFIX = "extract(year from ";
-    private static final String EXTRACT_QUARTER_PREFIX = "extract(quarter from ";
-    private static final String EXTRACT_MONTH_PREFIX = "extract(month from ";
-    private static final String EXTRACT_WEEK_PREFIX = "extract(week from ";
-    private static final String EXTRACT_DAY_OF_MONTH_PREFIX = "extract(day_of_month from ";
-    private static final String EXTRACT_DAY_OF_WEEK_PREFIX = "extract(day_of_week from ";
-    private static final String EXTRACT_SECOND_PREFIX = "extract(second from ";
-    private static final String EXTRACT_MINUTE_PREFIX = "extract(minute from ";
-    private static final String EXTRACT_HOUR_PREFIX = "extract(hour from ";
-    private static final String EXTRACT_DAY_OF_YEAR_PREFIX = "extract(day_of_year from ";
+    public static final String NAME_PREFIX = "extract_";
 
     public static void register(ScalarFunctionModule module) {
         for (var argType : List.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP)) {
@@ -106,28 +90,17 @@ public class ExtractFunctions {
         }
     }
 
-    private abstract static class GenericExtractFunction extends Scalar<Number, Long> implements FunctionFormatSpec {
+    private abstract static class GenericExtractFunction extends Scalar<Number, Long> {
 
         private final FunctionInfo info;
 
-        GenericExtractFunction(Extract.Field field, DataType argumentType) {
+        GenericExtractFunction(Extract.Field field, DataType<?> argumentType) {
             info = createFunctionInfo(field, argumentType);
         }
 
-        private static FunctionInfo createFunctionInfo(Extract.Field field, DataType argumentType) {
-            final DataType returnType;
-            switch (field) {
-                case EPOCH:
-                    returnType = DataTypes.DOUBLE;
-                    break;
-                default:
-                    returnType = DataTypes.INTEGER;
-            }
-            return new FunctionInfo(
-                new FunctionIdent(functionNameFrom(field), List.of(argumentType)),
-                returnType,
-                FunctionInfo.Type.SCALAR
-            );
+        private static FunctionInfo createFunctionInfo(Extract.Field field, DataType<?> argumentType) {
+            final DataType<?> returnType = field == EPOCH ? DataTypes.DOUBLE : DataTypes.INTEGER;
+            return FunctionInfo.of(functionNameFrom(field), List.of(argumentType), returnType);
         }
 
         @Override
@@ -138,24 +111,14 @@ public class ExtractFunctions {
         public abstract Number evaluate(long value);
 
         @Override
-        public Number evaluate(TransactionContext txnCtx, Input... args) {
+        @SafeVarargs
+        public final Number evaluate(TransactionContext txnCtx, Input<Long>... args) {
             assert args.length == 1 : "extract only takes one argument";
-            Object value = args[0].value();
+            Long value = args[0].value();
             if (value == null) {
                 return null;
             }
-            assert value instanceof Long : "value of argument to extract must be of type long (timestamp)";
-            return evaluate((Long) value);
-        }
-
-        @Override
-        public boolean formatArgs(Function function) {
-            return true;
-        }
-
-        @Override
-        public String afterArgs(Function function) {
-            return SymbolPrinter.Strings.PAREN_CLOSE;
+            return evaluate(value);
         }
     }
 
@@ -171,11 +134,6 @@ public class ExtractFunctions {
         public Integer evaluate(long value) {
             return CENTURY.get(value);
         }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_CENTURY_PREFIX;
-        }
     }
 
     private static class ExtractYear extends GenericExtractFunction {
@@ -189,11 +147,6 @@ public class ExtractFunctions {
         @Override
         public Integer evaluate(long value) {
             return YEAR.get(value);
-        }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_YEAR_PREFIX;
         }
     }
 
@@ -209,11 +162,6 @@ public class ExtractFunctions {
         public Integer evaluate(long value) {
             return QUARTER.get(value);
         }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_QUARTER_PREFIX;
-        }
     }
 
     private static class ExtractMonth extends GenericExtractFunction {
@@ -227,11 +175,6 @@ public class ExtractFunctions {
         @Override
         public Integer evaluate(long value) {
             return MONTH.get(value);
-        }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_MONTH_PREFIX;
         }
     }
 
@@ -247,11 +190,6 @@ public class ExtractFunctions {
         public Integer evaluate(long value) {
             return WEEK_OF_WEEK_YEAR.get(value);
         }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_WEEK_PREFIX;
-        }
     }
 
     private static class ExtractDayOfMonth extends GenericExtractFunction {
@@ -265,11 +203,6 @@ public class ExtractFunctions {
         @Override
         public Integer evaluate(long value) {
             return DAY_OF_MONTH.get(value);
-        }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_DAY_OF_MONTH_PREFIX;
         }
     }
 
@@ -285,11 +218,6 @@ public class ExtractFunctions {
         public Integer evaluate(long value) {
             return DAY_OF_WEEK.get(value);
         }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_DAY_OF_WEEK_PREFIX;
-        }
     }
 
     private static class ExtractSecond extends GenericExtractFunction {
@@ -303,11 +231,6 @@ public class ExtractFunctions {
         @Override
         public Integer evaluate(long value) {
             return SECOND_OF_MINUTE.get(value);
-        }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_SECOND_PREFIX;
         }
     }
 
@@ -323,11 +246,6 @@ public class ExtractFunctions {
         public Integer evaluate(long value) {
             return MINUTE_OF_HOUR.get(value);
         }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_MINUTE_PREFIX;
-        }
     }
 
     private static class ExtractHour extends GenericExtractFunction {
@@ -341,11 +259,6 @@ public class ExtractFunctions {
         @Override
         public Integer evaluate(long value) {
             return HOUR_OF_DAY.get(value);
-        }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_HOUR_PREFIX;
         }
     }
 
@@ -361,11 +274,6 @@ public class ExtractFunctions {
         public Integer evaluate(long value) {
             return DAY_OF_YEAR.get(value);
         }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_DAY_OF_YEAR_PREFIX;
-        }
     }
 
     private static class ExtractEpoch extends GenericExtractFunction {
@@ -377,11 +285,6 @@ public class ExtractFunctions {
         @Override
         public Double evaluate(long value) {
             return (double) value / 1000;
-        }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return EXTRACT_EPOCH_PREFIX;
         }
     }
 }

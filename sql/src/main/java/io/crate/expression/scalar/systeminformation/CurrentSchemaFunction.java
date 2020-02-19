@@ -28,7 +28,6 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
@@ -41,7 +40,7 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 
 
-public class CurrentSchemaFunction extends Scalar<String, Object> implements FunctionFormatSpec {
+public class CurrentSchemaFunction extends Scalar<String, Object> {
 
     public static final String NAME = "current_schema";
 
@@ -74,20 +73,5 @@ public class CurrentSchemaFunction extends Scalar<String, Object> implements Fun
             return Literal.NULL;
         }
         return Literal.of(txnCtx.sessionSettings().currentSchema());
-    }
-
-    @Override
-    public String beforeArgs(Function function) {
-        return NAME;
-    }
-
-    @Override
-    public String afterArgs(Function function) {
-        return "";
-    }
-
-    @Override
-    public boolean formatArgs(Function function) {
-        return false;
     }
 }

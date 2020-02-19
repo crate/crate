@@ -117,8 +117,8 @@ public class AlterTableAddColumnPlan implements Plan {
         Map<String, Object> mapping = AnalyzedTableElements.finalizeAndValidate(
             tableInfo.ident(),
             tableElementsUnboundWithExpressions,
-            tableElementsBound,
-            functions);
+            tableElementsBound
+        );
 
 
         int numCurrentPks = tableInfo.primaryKey().size();

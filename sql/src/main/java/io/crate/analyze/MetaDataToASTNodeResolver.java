@@ -59,8 +59,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import javax.annotation.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -168,7 +168,7 @@ public class MetaDataToASTNodeResolver {
                 }
                 Expression defaultExpression = null;
                 if (info.defaultExpression() != null) {
-                    String symbol = SymbolPrinter.INSTANCE.printUnqualified(info.defaultExpression());
+                    String symbol = SymbolPrinter.printUnqualified(info.defaultExpression());
                     defaultExpression = SqlParser.createExpression(symbol);
                 }
 

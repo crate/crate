@@ -134,7 +134,7 @@ public class SQLPrinter {
         }
 
         public void process(Symbol symbol, StringBuilder sb) {
-            sb.append(SymbolPrinter.INSTANCE.printQualified(symbol));
+            sb.append(SymbolPrinter.printQualified(symbol));
         }
 
         public void process(OrderBy orderBy, StringBuilder sb) {

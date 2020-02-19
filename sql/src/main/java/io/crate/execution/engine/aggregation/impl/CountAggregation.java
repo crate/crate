@@ -29,7 +29,6 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
@@ -49,7 +48,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-public class CountAggregation extends AggregationFunction<CountAggregation.LongState, Long> implements FunctionFormatSpec {
+public class CountAggregation extends AggregationFunction<CountAggregation.LongState, Long> {
 
     public static final String NAME = "count";
     private final FunctionInfo info;
@@ -60,28 +59,10 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     }
 
     public static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
-        ImmutableList.<DataType>of()), DataTypes.LONG, FunctionInfo.Type.AGGREGATE);
+        ImmutableList.of()), DataTypes.LONG, FunctionInfo.Type.AGGREGATE);
 
     public static void register(AggregationImplModule mod) {
         mod.register(NAME, new CountAggregationFunctionResolver());
-    }
-
-    @Override
-    public String beforeArgs(Function function) {
-        return "count(";
-    }
-
-    @Override
-    public String afterArgs(Function function) {
-        if (function.arguments().isEmpty()) {
-            return "*)";
-        }
-        return ")";
-    }
-
-    @Override
-    public boolean formatArgs(Function function) {
-        return true;
     }
 
     private static class CountAggregationFunctionResolver extends BaseFunctionResolver {

@@ -358,14 +358,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
             @Override
             protected String featureValueOf(LogicalPlan actual) {
-                Printer printer = new Printer(new SymbolPrinter(functions));
+                Printer printer = new Printer();
                 return printer.printPlan(actual);
             }
         };
     }
 
     public String printPlan(LogicalPlan plan) {
-        Printer printer = new Printer(new SymbolPrinter(sqlExecutor.functions()));
+        Printer printer = new Printer();
         return printer.printPlan(plan);
     }
 
@@ -376,13 +376,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     private static class Printer {
 
         private final StringBuilder sb;
-        private final SymbolPrinter symbolPrinter;
 
         private int indentation = 0;
 
-        Printer(SymbolPrinter symbolPrinter) {
+        Printer() {
             this.sb = new StringBuilder();
-            this.symbolPrinter = symbolPrinter;
         }
 
         private void startLine(String start) {
@@ -441,9 +439,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             if (plan instanceof Limit) {
                 Limit limit = (Limit) plan;
                 startLine("Limit[");
-                sb.append(symbolPrinter.printUnqualified(limit.limit));
+                sb.append(SymbolPrinter.printUnqualified(limit.limit));
                 sb.append(';');
-                sb.append(symbolPrinter.printUnqualified(limit.offset));
+                sb.append(SymbolPrinter.printUnqualified(limit.offset));
                 sb.append("]\n");
                 plan = limit.source;
             }
@@ -453,7 +451,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 OrderBy.explainRepresentation(
                     sb,
                     order.orderBy.orderBySymbols()
-                        .stream().map(s -> Literal.of(symbolPrinter.printUnqualified(s))).collect(Collectors.toList()),
+                        .stream().map(s -> Literal.of(SymbolPrinter.printUnqualified(s))).collect(Collectors.toList()),
                     order.orderBy.reverseFlags(),
                     order.orderBy.nullsFirst());
                 sb.append("]\n");
@@ -462,7 +460,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             if (plan instanceof Filter) {
                 Filter filter = (Filter) plan;
                 startLine("Filter[");
-                sb.append(symbolPrinter.printUnqualified(filter.query));
+                sb.append(SymbolPrinter.printUnqualified(filter.query));
                 sb.append("]\n");
                 plan = filter.source;
             }
@@ -476,7 +474,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             if (plan instanceof TopNDistinct) {
                 var topNDistinct = (TopNDistinct) plan;
                 startLine("TopNDistinct[");
-                sb.append(symbolPrinter.printUnqualified(topNDistinct.limit()));
+                sb.append(SymbolPrinter.printUnqualified(topNDistinct.limit()));
                 sb.append(" | [");
                 addSymbolsList(topNDistinct.outputs());
                 sb.append("]\n");
@@ -515,7 +513,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 sb.append(" | [");
                 addSymbolsList(collect.outputs());
                 sb.append("] | ");
-                sb.append(symbolPrinter.printUnqualified(collect.where.queryOrFallback()));
+                sb.append(SymbolPrinter.printUnqualified(collect.where.queryOrFallback()));
                 sb.append("]\n");
                 return sb.toString();
             }
@@ -524,7 +522,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 startLine("Count[");
                 sb.append(count.tableRelation.tableInfo().ident());
                 sb.append(" | ");
-                sb.append(symbolPrinter.printUnqualified(count.where.queryOrFallback()));
+                sb.append(SymbolPrinter.printUnqualified(count.where.queryOrFallback()));
                 sb.append("]\n");
                 return sb.toString();
             }
@@ -554,7 +552,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 sb.append(" | [");
                 addSymbolsList(tableFunction.outputs());
                 sb.append("] | ");
-                sb.append(symbolPrinter.printUnqualified(tableFunction.where.queryOrFallback()));
+                sb.append(SymbolPrinter.printUnqualified(tableFunction.where.queryOrFallback()));
                 sb.append("]\n");
                 return sb.toString();
             }
@@ -591,7 +589,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         private void addSymbolsList(Iterable<? extends Symbol> symbols) {
             StringJoiner commaJoiner = new StringJoiner(", ");
             for (Symbol symbol : symbols) {
-                commaJoiner.add(symbolPrinter.printUnqualified(symbol));
+                commaJoiner.add(SymbolPrinter.printUnqualified(symbol));
             }
             sb.append(commaJoiner.toString());
         }

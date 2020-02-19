@@ -150,8 +150,8 @@ public class CreateTablePlan implements Plan {
         AnalyzedTableElements.finalizeAndValidate(
             relationName,
             tableElementsWithExpressions,
-            tableElements,
-            functions);
+            tableElements
+        );
 
         // update table settings
         Settings tableSettings = AnalyzedTableElements.validateAndBuildSettings(

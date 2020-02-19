@@ -302,7 +302,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByOnLiteral() throws Exception {
         AnalyzedRelation relation = analyze(
             "select [1,2,3], count(*) from users group by 1");
-        assertThat(relation.outputs(), isSQL("[1, 2, 3], count()"));
+        assertThat(relation.outputs(), isSQL("[1, 2, 3], count(*)"));
         assertThat(relation.groupBy(), isSQL("[1, 2, 3]"));
     }
 
@@ -310,7 +310,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByOnNullLiteral() throws Exception {
         AnalyzedRelation relation = analyze(
             "select null, count(*) from users group by 1");
-        assertThat(relation.outputs(), isSQL("NULL, count()"));
+        assertThat(relation.outputs(), isSQL("NULL, count(*)"));
         assertThat(relation.groupBy(), isSQL("NULL"));
     }
 
@@ -429,8 +429,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "having sum(power(power(id::double, id::double), id::double)) > 0");
         assertThat(
             relation.having().query(),
-            isSQL("(sum(power(" +
-                "power(\"to_double precision\"(doc.users.id), \"to_double precision\"(doc.users.id)), " +
-                "\"to_double precision\"(doc.users.id))) > 0.0)"));
+            isSQL("(sum(power(power(cast(doc.users.id AS double precision), cast(doc.users.id AS double precision)), cast(doc.users.id AS double precision))) > 0.0)")
+        );
     }
 }

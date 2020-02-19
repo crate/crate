@@ -858,7 +858,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "FetchOrEval[id, name, date, obj]\n" +
             "Boundary[_fetchid, date]\n" +  // aliased relation boundary
             "Boundary[_fetchid, date]\n" +
-            "Collect[doc.parted | [_fetchid, date] | date IS NULL]\n"
+            "Collect[doc.parted | [_fetchid, date] | (date IS NULL)]\n"
         ));
         QueryThenFetch qtf = e.plan(statement);
         ExecutionPlan subPlan = qtf.subPlan();

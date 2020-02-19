@@ -212,7 +212,7 @@ public final class CopyToPlan implements Plan {
         if (!copyTo.columns().isEmpty()) {
             outputNames = new ArrayList<>(copyTo.columns().size());
             for (Symbol symbol : copyTo.columns()) {
-                outputNames.add(SymbolPrinter.INSTANCE.printUnqualified(symbol));
+                outputNames.add(SymbolPrinter.printUnqualified(symbol));
                 outputs.add(DocReferences.toSourceLookup(symbol));
             }
             columnsDefined = true;

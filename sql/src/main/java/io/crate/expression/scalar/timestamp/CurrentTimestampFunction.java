@@ -24,8 +24,6 @@ package io.crate.expression.scalar.timestamp;
 import com.google.common.math.LongMath;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -37,7 +35,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-public class CurrentTimestampFunction extends Scalar<Long, Integer> implements FunctionFormatSpec {
+public class CurrentTimestampFunction extends Scalar<Long, Integer> {
 
     public static final String NAME = "current_timestamp";
     public static final int DEFAULT_PRECISION = 3;
@@ -91,20 +89,5 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
     @Override
     public FunctionInfo info() {
         return INFO;
-    }
-
-    @Override
-    public String beforeArgs(Function function) {
-        return "current_timestamp" + (function.arguments().isEmpty() ? "" : "(");
-    }
-
-    @Override
-    public String afterArgs(Function function) {
-        return function.arguments().isEmpty() ? "" : ")";
-    }
-
-    @Override
-    public boolean formatArgs(Function function) {
-        return !function.arguments().isEmpty();
     }
 }

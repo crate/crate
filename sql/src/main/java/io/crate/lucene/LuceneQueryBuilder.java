@@ -142,7 +142,7 @@ public class LuceneQueryBuilder {
             s -> normalizer.normalize(s, coordinatorTxnCtx)
         ).accept(VISITOR, ctx);
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolPrinter.INSTANCE.printUnqualified(query), ctx.query);
+            LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolPrinter.printUnqualified(query), ctx.query);
         }
         return ctx;
     }

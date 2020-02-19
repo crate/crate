@@ -127,8 +127,8 @@ public class ExplainLogicalPlan {
         @Override
         public ImmutableMap.Builder<String, Object> visitLimit(Limit logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("limit", SymbolPrinter.INSTANCE.printQualified(logicalPlan.limit))
-                .put("offset", SymbolPrinter.INSTANCE.printQualified(logicalPlan.offset))
+                .put("limit", SymbolPrinter.printQualified(logicalPlan.limit))
+                .put("offset", SymbolPrinter.printQualified(logicalPlan.offset))
                 .put("source", explainMap(logicalPlan.source, context)));
         }
 
@@ -177,7 +177,7 @@ public class ExplainLogicalPlan {
                 .put("joinType", logicalPlan.joinType()));
 
             if (logicalPlan.joinCondition() != null) {
-                mapBuilder.put("joinCondition", SymbolPrinter.INSTANCE.printQualified(logicalPlan.joinCondition()));
+                mapBuilder.put("joinCondition", SymbolPrinter.printQualified(logicalPlan.joinCondition()));
             }
             return mapBuilder;
         }
@@ -189,7 +189,7 @@ public class ExplainLogicalPlan {
                 .put("right", explainMap(logicalPlan.rhs, context))
                 .put("joinType", logicalPlan.joinType())
                 .put("joinCondition",
-                    SymbolPrinter.INSTANCE.printQualified(logicalPlan.joinCondition())));
+                    SymbolPrinter.printQualified(logicalPlan.joinCondition())));
         }
 
         @Override

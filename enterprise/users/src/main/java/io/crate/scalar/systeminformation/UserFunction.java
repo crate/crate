@@ -23,7 +23,6 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -33,7 +32,7 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.Collections;
 
-public class UserFunction extends Scalar<String, Object> implements FunctionFormatSpec {
+public class UserFunction extends Scalar<String, Object> {
 
     public static final String CURRENT_USER_FUNCTION_NAME = "current_user";
     public static final String SESSION_USER_FUNCTION_NAME = "session_user";
@@ -67,20 +66,5 @@ public class UserFunction extends Scalar<String, Object> implements FunctionForm
             return Literal.NULL;
         }
         return Literal.of(txnCtx.sessionSettings().userName());
-    }
-
-    @Override
-    public String beforeArgs(Function function) {
-        return name;
-    }
-
-    @Override
-    public String afterArgs(Function function) {
-        return "";
-    }
-
-    @Override
-    public boolean formatArgs(Function function) {
-        return false;
     }
 }
