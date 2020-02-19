@@ -35,7 +35,7 @@ import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.expression.symbol.format.SymbolFormatter;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -144,7 +144,7 @@ public class EvaluatingNormalizer {
             }
 
             if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace(SymbolFormatter.format("Can't resolve reference %s", symbol));
+                LOGGER.trace(SymbolPrinter.format("Can't resolve reference %s", symbol));
             }
             return symbol;
         }

@@ -28,7 +28,6 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -97,7 +96,7 @@ public final class ValueNormalizer {
             throw new ColumnValidationException(
                 reference.column().name(),
                 tableInfo.ident(),
-                SymbolFormatter.format(
+                SymbolPrinter.format(
                     "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" +
                     reference.valueType().getName() + ")",
                     literal,
