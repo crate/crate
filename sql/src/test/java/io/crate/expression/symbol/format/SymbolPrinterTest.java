@@ -53,6 +53,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
@@ -210,13 +211,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testObjectLiteral() throws Exception {
-        Literal<Map<String, Object>> l = Literal.of(new HashMap<String, Object>() {{
-            put("field", "value");
-            put("array", new Integer[]{1, 2, 3});
-            put("nestedMap", new HashMap<String, Object>() {{
-                put("inner", -0.00005d);
-            }});
-        }});
+        Literal<Map<String, Object>> l = Literal.of(Map.ofEntries(
+            Map.entry("field", "value"),
+            Map.entry("array", List.of(1, 2, 3)),
+            Map.entry("nestedMap", Map.of("inner", -0.00005d))
+        ));
         assertPrint(l, "{\"array\"=[1, 2, 3], \"field\"='value', \"nestedMap\"={\"inner\"=-5.0E-5}}");
     }
 
@@ -287,8 +286,12 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNativeArray() throws Exception {
         assertPrint(
-            Literal.of(DataTypes.GEO_SHAPE, ImmutableMap.of("type", "Point", "coordinates", new double[]{1.0d, 2.0d})),
-            "{\"coordinates\"=[1.0, 2.0], \"type\"='Point'}");
+            Literal.of(
+                DataTypes.GEO_SHAPE,
+                DataTypes.GEO_SHAPE.value(Map.of("type", "Point", "coordinates", new double[]{1.0d, 2.0d}))
+            ),
+            "{\"coordinates\"=[1.0, 2.0], \"type\"='Point'}"
+        );
     }
 
     @Test
