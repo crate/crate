@@ -32,7 +32,7 @@ public class LiteralValueFormatterTest {
     @Test
     public void testFormatOnArrayWithNullEntriesDoesNotCauseNPE() throws Exception {
         StringBuilder sb = new StringBuilder();
-        LiteralValueFormatter.INSTANCE.format(new Object[] { null, null}, sb);
+        LiteralValueFormatter.format(new Object[] { null, null}, sb);
         assertThat(sb.toString(), is("[NULL, NULL]"));
     }
 }

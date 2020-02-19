@@ -290,7 +290,7 @@ public final class SymbolPrinter {
 
         @Override
         public Void visitLiteral(Literal symbol, SymbolPrinterContext context) {
-            LiteralValueFormatter.INSTANCE.format(symbol.value(), context.builder);
+            LiteralValueFormatter.format(symbol.value(), context.builder);
             return null;
         }
 
