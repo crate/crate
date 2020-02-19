@@ -25,7 +25,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolFormatter;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -90,7 +90,7 @@ public class GroupByConsumer {
         public Void visitReference(Reference symbol, Void context) {
             if (symbol.indexType() == Reference.IndexType.ANALYZED) {
                 throw new IllegalArgumentException(
-                    SymbolFormatter.format("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible", symbol));
+                        SymbolPrinter.format("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible", symbol));
             }
             return null;
         }

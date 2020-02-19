@@ -40,7 +40,6 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -95,7 +94,7 @@ class InsertAnalyzer {
             Reference reference = targetTableRelation.resolveField(argumentColumn);
             int i = targetColumns.indexOf(reference);
             if (i < 0) {
-                throw new IllegalArgumentException(SymbolFormatter.format(
+                throw new IllegalArgumentException(SymbolPrinter.format(
                     "Column '%s' that is used in the VALUES() expression is not part of the target column list",
                     argumentColumn));
             }

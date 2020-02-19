@@ -58,6 +58,7 @@ import java.util.Locale;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.ANY;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.COMMA;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.DOT;
+import static io.crate.expression.symbol.format.SymbolPrinter.Strings.NULL_UPPER;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.WS;
@@ -72,6 +73,23 @@ public final class SymbolPrinter {
             "function.info().ident().name() must start with 'op_'";
         return function.info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
     };
+
+    /**
+     * format symbols in simple style and use the formatted symbols as {@link String#format(Locale, String, Object...)} arguments
+     * for the given <code>messageTmpl</code>.
+     */
+    public static String format(String messageTmpl, Symbol... symbols) {
+        Object[] formattedSymbols = new String[symbols.length];
+        for (int i = 0; i < symbols.length; i++) {
+            Symbol s = symbols[i];
+            if (s == null) {
+                formattedSymbols[i] = NULL_UPPER;
+            } else {
+                formattedSymbols[i] = INSTANCE.printUnqualified(s);
+            }
+        }
+        return String.format(Locale.ENGLISH, messageTmpl, formattedSymbols);
+    }
 
     public enum Style {
         UNQUALIFIED,
