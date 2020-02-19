@@ -75,7 +75,7 @@ public final class ValueNormalizer {
                 String.format(
                     Locale.ENGLISH,
                     "Cannot cast expression `%s` of type `%s` to `%s`",
-                    SymbolPrinter.INSTANCE.printUnqualified(valueSymbol),
+                    SymbolPrinter.printUnqualified(valueSymbol),
                     valueSymbol.valueType().getName(),
                     reference.valueType().getName()
                 )

@@ -499,7 +499,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testSelectDistinctWithFunction() {
         AnalyzedRelation relation = analyze("select distinct id + 1 from users");
         assertThat(relation.isDistinct(), is(true));
-        assertThat(relation.outputs(), isSQL("\"add\"(doc.users.id, 1)"));
+        assertThat(relation.outputs(), isSQL("(doc.users.id + 1)"));
     }
 
     @Test
@@ -780,7 +780,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation relation = analyze("select count(*) from users u1, users_multi_pk u2 " +
                                             "order by 1");
         MultiSourceSelect mss = (MultiSourceSelect) relation;
-        assertThat(mss.orderBy(), isSQL("count()"));
+        assertThat(mss.orderBy(), isSQL("count(*)"));
     }
 
     @Test

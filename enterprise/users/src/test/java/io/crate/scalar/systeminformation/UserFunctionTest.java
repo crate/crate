@@ -60,14 +60,13 @@ public class UserFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testFormatFunctionsWithoutBrackets() {
         setupFunctionsFor(TEST_USER);
-        SymbolPrinter printer = new SymbolPrinter(sqlExpressions.functions());
         Symbol f = sqlExpressions.asSymbol("current_user");
-        assertThat(printer.printQualified(f), is("current_user"));
+        assertThat(SymbolPrinter.printQualified(f), is("CURRENT_USER"));
 
         f = sqlExpressions.asSymbol("session_user");
-        assertThat(printer.printQualified(f), is("session_user"));
+        assertThat(SymbolPrinter.printQualified(f), is("SESSION_USER"));
 
         f = sqlExpressions.asSymbol("user");
-        assertThat(printer.printQualified(f), is("current_user"));
+        assertThat(SymbolPrinter.printQualified(f), is("CURRENT_USER"));
     }
 }

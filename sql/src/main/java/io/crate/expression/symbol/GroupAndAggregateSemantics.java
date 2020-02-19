@@ -54,8 +54,7 @@ public final class GroupAndAggregateSemantics {
      * }
      * </pre>
      */
-    public static void validate(SymbolPrinter printer,
-                                List<Symbol> outputSymbols,
+    public static void validate(List<Symbol> outputSymbols,
                                 List<Symbol> groupBy) throws IllegalArgumentException {
         boolean containsAggregations = SymbolVisitors.any(
             x -> x instanceof Function && ((Function) x).info().type() == FunctionInfo.Type.AGGREGATE,
@@ -71,7 +70,7 @@ public final class GroupAndAggregateSemantics {
                 continue;
             }
             throw new IllegalArgumentException(
-                "'" + printer.printUnqualified(offender) +
+                "'" + SymbolPrinter.printUnqualified(offender) +
                 "' must appear in the GROUP BY clause or be used in an aggregation function. " +
                 "Perhaps you grouped by an alias that clashes with a column in the relations"
             );

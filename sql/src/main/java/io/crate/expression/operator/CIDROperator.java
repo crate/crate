@@ -108,7 +108,7 @@ public final class CIDROperator {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return Scalar.withOperator(new ContainedWithinOperator(), CONTAINED_WITHIN);
+            return new ContainedWithinOperator();
         }
 
         private static class ContainedWithinOperator extends Scalar<Boolean, Object> {

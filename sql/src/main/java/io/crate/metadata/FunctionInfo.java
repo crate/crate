@@ -36,6 +36,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 
@@ -50,6 +51,10 @@ public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
     private final DataType<?> returnType;
     private final Type type;
     private final Set<Feature> features;
+
+    public static FunctionInfo of(String name, List<DataType> argTypes, DataType<?> returnType) {
+        return new FunctionInfo(new FunctionIdent(name, argTypes), returnType);
+    }
 
     public FunctionInfo(FunctionIdent ident, DataType<?> returnType) {
         this(ident, returnType, Type.SCALAR);

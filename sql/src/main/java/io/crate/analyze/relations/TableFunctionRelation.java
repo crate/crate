@@ -175,6 +175,6 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
 
     @Override
     public String toString() {
-        return SymbolPrinter.INSTANCE.printUnqualified(function);
+        return SymbolPrinter.printUnqualified(function);
     }
 }

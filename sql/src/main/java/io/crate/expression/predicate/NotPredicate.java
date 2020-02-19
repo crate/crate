@@ -25,22 +25,17 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.OperatorFormatSpec;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
-import io.crate.types.DataType;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
-import java.util.Arrays;
+import java.util.List;
 
-public class NotPredicate extends Scalar<Boolean, Boolean> implements OperatorFormatSpec {
+public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
-    public static final String OPERATOR_ALIAS = "NOT";
-    public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN)), DataTypes.BOOLEAN);
+    public static final FunctionInfo INFO = FunctionInfo.of(NAME, List.of(DataTypes.BOOLEAN), DataTypes.BOOLEAN);
 
     public static void register(PredicateModule module) {
         module.register(new NotPredicate());
@@ -75,10 +70,5 @@ public class NotPredicate extends Scalar<Boolean, Boolean> implements OperatorFo
         assert args.length == 1 : "number of args must be 1";
         Boolean value = args[0].value();
         return value != null ? !value : null;
-    }
-
-    @Override
-    public String operator(Function function) {
-        return OPERATOR_ALIAS;
     }
 }

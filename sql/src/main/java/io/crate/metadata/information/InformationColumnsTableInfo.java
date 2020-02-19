@@ -38,14 +38,15 @@ import io.crate.types.ShortType;
 import org.elasticsearch.common.collect.MapBuilder;
 
 import java.util.Map;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.INTEGER;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.NUMERIC_PRIMITIVE_TYPES;
+import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMP;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
-import static io.crate.types.DataTypes.NUMERIC_PRIMITIVE_TYPES;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
 
 public class InformationColumnsTableInfo extends InformationTableInfo<ColumnContext> {
@@ -90,7 +91,7 @@ public class InformationColumnsTableInfo extends InformationTableInfo<ColumnCont
             .register("column_default", STRING,
                 () -> forFunction(r -> {
                     if (r.info.defaultExpression() != null) {
-                        return SymbolPrinter.INSTANCE.printUnqualified(r.info.defaultExpression());
+                        return SymbolPrinter.printUnqualified(r.info.defaultExpression());
                     } else {
                         return null;
                     }

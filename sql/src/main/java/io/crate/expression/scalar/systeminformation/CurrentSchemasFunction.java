@@ -25,8 +25,6 @@ package io.crate.expression.scalar.systeminformation;
 import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
@@ -39,9 +37,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> implements FunctionFormatSpec {
+public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
 
-    private static final String NAME = "current_schemas";
+    public static final String NAME = "current_schemas";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
     public static final FunctionInfo INFO = new FunctionInfo(
@@ -77,20 +75,5 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> implem
             schemas.add(schema);
         }
         return schemas;
-    }
-
-    @Override
-    public String beforeArgs(Function function) {
-        return NAME;
-    }
-
-    @Override
-    public String afterArgs(Function function) {
-        return "";
-    }
-
-    @Override
-    public boolean formatArgs(Function function) {
-        return false;
     }
 }

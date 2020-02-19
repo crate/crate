@@ -42,7 +42,7 @@ import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
 
 public class CastFunctionResolver {
 
-    static final String TRY_CAST_PREFIX = "try_";
+    public static final String TRY_CAST_PREFIX = "try_";
     private static final String TO_PREFIX = "to_";
 
     static final Map<String, DataType> CAST_SIGNATURES; // cast function name -> data type

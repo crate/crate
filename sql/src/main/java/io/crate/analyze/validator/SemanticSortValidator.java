@@ -74,7 +74,7 @@ public class SemanticSortValidator {
                     String.format(Locale.ENGLISH,
                                   "Cannot %s '%s': invalid return type '%s'.",
                                   context.operation,
-                                  SymbolPrinter.INSTANCE.printUnqualified(symbol),
+                                  SymbolPrinter.printUnqualified(symbol),
                                   symbol.valueType())
                 );
             }
@@ -105,7 +105,7 @@ public class SemanticSortValidator {
                     String.format(Locale.ENGLISH,
                                   "Cannot %s '%s': invalid data type '%s'.",
                                   context.operation,
-                                  SymbolPrinter.INSTANCE.printUnqualified(field),
+                                  SymbolPrinter.printUnqualified(field),
                                   field.valueType())
                 );
             }

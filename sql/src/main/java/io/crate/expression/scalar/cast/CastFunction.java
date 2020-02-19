@@ -28,7 +28,6 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -37,9 +36,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
 
 import java.util.List;
@@ -48,13 +45,11 @@ import java.util.function.BiFunction;
 
 import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_SIGNATURES;
 import static io.crate.expression.scalar.cast.CastFunctionResolver.TRY_CAST_PREFIX;
-import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
-import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
 
-public class CastFunction extends Scalar<Object, Object> implements FunctionFormatSpec {
+public class CastFunction extends Scalar<Object, Object> {
 
-    private static final String TRY_CAST_SQL_NAME = "try_cast";
-    private static final String CAST_SQL_NAME = "cast";
+    public static final String TRY_CAST_SQL_NAME = "try_cast";
+    public static final String CAST_SQL_NAME = "cast";
 
     private final DataType<?> returnType;
     private final FunctionInfo info;
@@ -97,32 +92,6 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
             }
         }
         return symbol;
-    }
-
-    @Override
-    public String beforeArgs(Function function) {
-        if (function.info().ident().name().startsWith(TRY_CAST_PREFIX)) {
-            return TRY_CAST_SQL_NAME + PAREN_OPEN;
-        } else {
-            return CAST_SQL_NAME + PAREN_OPEN;
-        }
-    }
-
-    @Override
-    public String afterArgs(Function function) {
-        DataType<?> dataType = function.valueType();
-        if (DataTypes.isArray(dataType)) {
-            ArrayType<?> arrayType = ((ArrayType<?>) dataType);
-            return " AS " + ArrayType.NAME +
-                   PAREN_OPEN + arrayType.innerType().getName() + PAREN_CLOSE
-                   + PAREN_CLOSE;
-        }
-        return " AS " + dataType.getName() + PAREN_CLOSE;
-    }
-
-    @Override
-    public boolean formatArgs(Function function) {
-        return true;
     }
 
     private static class CastResolver extends BaseFunctionResolver {

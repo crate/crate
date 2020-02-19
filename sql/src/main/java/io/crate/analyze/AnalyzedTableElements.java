@@ -31,7 +31,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -301,10 +300,9 @@ public class AnalyzedTableElements<T> {
 
     public static Map<String, Object> finalizeAndValidate(RelationName relationName,
                                                           AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
-                                                          AnalyzedTableElements<Object> tableElementsEvaluated,
-                                                          Functions functions) {
+                                                          AnalyzedTableElements<Object> tableElementsEvaluated) {
         tableElementsEvaluated.expandColumnIdents();
-        validateExpressions(tableElementsWithExpressionSymbols, tableElementsEvaluated, functions);
+        validateExpressions(tableElementsWithExpressionSymbols, tableElementsEvaluated);
         for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns) {
             column.validate();
             tableElementsEvaluated.addCopyToInfo(column);
@@ -315,14 +313,12 @@ public class AnalyzedTableElements<T> {
     }
 
     private static void validateExpressions(AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
-                                            AnalyzedTableElements<Object> tableElementsEvaluated,
-                                            Functions functions) {
-        SymbolPrinter printer = new SymbolPrinter(functions);
+                                            AnalyzedTableElements<Object> tableElementsEvaluated) {
         for (int i = 0; i < tableElementsWithExpressionSymbols.columns.size(); i++) {
             processExpressions(
                 tableElementsWithExpressionSymbols.columns.get(i),
-                tableElementsEvaluated.columns.get(i),
-                printer);
+                tableElementsEvaluated.columns.get(i)
+            );
         }
     }
 
@@ -335,15 +331,13 @@ public class AnalyzedTableElements<T> {
     }
 
     private static void processExpressions(AnalyzedColumnDefinition<Symbol> columnDefinitionWithExpressionSymbols,
-                                           AnalyzedColumnDefinition<Object> columnDefinitionEvaluated,
-                                           SymbolPrinter printer) {
+                                           AnalyzedColumnDefinition<Object> columnDefinitionEvaluated) {
         Symbol generatedExpression = columnDefinitionWithExpressionSymbols.generatedExpression();
         if (generatedExpression != null) {
             validateAndFormatExpression(
                 generatedExpression,
                 columnDefinitionWithExpressionSymbols,
                 columnDefinitionEvaluated,
-                printer,
                 columnDefinitionEvaluated::formattedGeneratedExpression);
         }
         Symbol defaultExpression = columnDefinitionWithExpressionSymbols.defaultExpression();
@@ -357,14 +351,12 @@ public class AnalyzedTableElements<T> {
                 defaultExpression,
                 columnDefinitionWithExpressionSymbols,
                 columnDefinitionEvaluated,
-                printer,
                 columnDefinitionEvaluated::formattedDefaultExpression);
         }
         for (int i = 0; i < columnDefinitionWithExpressionSymbols.children().size(); i++) {
             processExpressions(
                 columnDefinitionWithExpressionSymbols.children().get(i),
-                columnDefinitionEvaluated.children().get(i),
-                printer
+                columnDefinitionEvaluated.children().get(i)
             );
         }
     }
@@ -372,17 +364,16 @@ public class AnalyzedTableElements<T> {
     private static void validateAndFormatExpression(Symbol function,
                                                     AnalyzedColumnDefinition<Symbol> columnDefinitionWithExpressionSymbols,
                                                     AnalyzedColumnDefinition<Object> columnDefinitionEvaluated,
-                                                    SymbolPrinter symbolPrinter,
                                                     Consumer<String> formattedExpressionConsumer) {
         String formattedExpression;
-        DataType valueType = function.valueType();
-        DataType definedType = columnDefinitionWithExpressionSymbols.dataType();
+        DataType<?> valueType = function.valueType();
+        DataType<?> definedType = columnDefinitionWithExpressionSymbols.dataType();
 
         // check for optional defined type and add `cast` to expression if possible
         if (definedType != null && !definedType.equals(valueType)) {
-            final DataType columnDataType;
+            final DataType<?> columnDataType;
             if (ArrayType.NAME.equals(columnDefinitionWithExpressionSymbols.collectionType())) {
-                columnDataType = new ArrayType(definedType);
+                columnDataType = new ArrayType<>(definedType);
             } else {
                 columnDataType = definedType;
             }
@@ -392,7 +383,7 @@ public class AnalyzedTableElements<T> {
                 valueType, columnDataType.getName());
 
             Symbol castFunction = CastFunctionResolver.generateCastFunction(function, columnDataType, false);
-            formattedExpression = symbolPrinter.printUnqualified(castFunction);
+            formattedExpression = SymbolPrinter.printUnqualified(castFunction);
         } else {
             if (valueType instanceof ArrayType) {
                 columnDefinitionEvaluated.collectionType(ArrayType.NAME);
@@ -400,7 +391,7 @@ public class AnalyzedTableElements<T> {
             } else {
                 columnDefinitionEvaluated.dataType(valueType.getName());
             }
-            formattedExpression = symbolPrinter.printUnqualified(function);
+            formattedExpression = SymbolPrinter.printUnqualified(function);
         }
         formattedExpressionConsumer.accept(formattedExpression);
     }
