@@ -85,7 +85,6 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.ConfigurationException;
@@ -110,6 +109,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Documented;
@@ -375,7 +375,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args) {
-        response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isHashJoinEnabled()), stmt, args);
+        SQLResponse response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isHashJoinEnabled()), stmt, args);
+        this.response = response;
         return response;
     }
 
@@ -388,7 +389,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
-        response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isHashJoinEnabled()), stmt, args, timeout);
+        SQLResponse response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isHashJoinEnabled()), stmt, args, timeout);
+        this.response = response;
         return response;
     }
 
@@ -529,8 +531,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args, Session session) {
-        response = SQLTransportExecutor.execute(stmt, args, session)
+        SQLResponse response = SQLTransportExecutor.execute(stmt, args, session)
             .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+        this.response = response;
         return response;
     }
 
@@ -541,7 +544,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
         try (Session session = sqlOperations.createSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER)) {
-            response = SQLTransportExecutor.execute(stmt, args, session).actionGet(timeout);
+            SQLResponse response = SQLTransportExecutor.execute(stmt, args, session).actionGet(timeout);
+            this.response = response;
             return response;
         }
     }
