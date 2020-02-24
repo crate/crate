@@ -42,6 +42,7 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -63,11 +64,20 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);
 
+    @After
+    public void resetSettings() throws Exception {
+        execute("RESET GLOBAL cluster.routing.rebalance.enable");
+    }
+
     /**
      * Test depends on 2 data nodes
      */
     @Test
     public void testSelectWhileShardsAreRelocating() throws Throwable {
+        // Automatic rebalancing would disturb our manual allocation and could lead to test failures as reallocation
+        // may be issued/run concurrently (by the test and by the cluster itself).
+        execute("SET GLOBAL cluster.routing.rebalance.enable = 'none'");
+
         execute("create table t (name string, p string) " +
                 "clustered into 2 shards " +
                 "partitioned by (p) with (number_of_replicas = 0)");
