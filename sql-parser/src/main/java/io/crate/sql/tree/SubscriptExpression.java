@@ -22,18 +22,30 @@
 package io.crate.sql.tree;
 
 
+/**
+ * <pre>
+ * {@code
+ *      <base>[<index>]
+ *
+ *  Examples:
+ *
+ *      obj['fieldName']
+ *      arr[2]
+ * }
+ * </pre>
+ */
 public class SubscriptExpression extends Expression {
 
-    private Expression name;
+    private Expression base;
     private Expression index;
 
-    public SubscriptExpression(Expression nameExpression, Expression indexExpression) {
-        this.name = nameExpression;
-        this.index = indexExpression;
+    public SubscriptExpression(Expression base, Expression index) {
+        this.base = base;
+        this.index = index;
     }
 
-    public Expression name() {
-        return name;
+    public Expression base() {
+        return base;
     }
 
     public Expression index() {
@@ -47,7 +59,7 @@ public class SubscriptExpression extends Expression {
 
     @Override
     public int hashCode() {
-        int result = name != null ? name.hashCode() : 0;
+        int result = base != null ? base.hashCode() : 0;
         result = 31 * result + (index != null ? index.hashCode() : 0);
         return result;
     }
@@ -60,7 +72,7 @@ public class SubscriptExpression extends Expression {
         SubscriptExpression that = (SubscriptExpression) o;
 
         if (index != null ? !index.equals(that.index) : that.index != null) return false;
-        if (name != null ? !name.equals(that.name) : that.name != null) return false;
+        if (base != null ? !base.equals(that.base) : that.base != null) return false;
 
         return true;
     }

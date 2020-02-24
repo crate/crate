@@ -22,7 +22,11 @@
 package io.crate.expression.scalar;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.SelectSymbol;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -33,6 +37,19 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void test_long_can_be_used_as_array_index() {
         assertEvaluate("['Youri', 'Ruben'][x]", "Youri", Literal.of(1L));
+    }
+
+    @Test
+    public void test_subscript_can_retrieve_items_of_objects_within_array() {
+        assertEvaluate("[{x=10}, {x=2}]['x']", List.of(10L, 2L));
+    }
+
+    @Test
+    public void test_subscript_can_be_used_on_subqueries_returning_objects() {
+        assertNormalize(
+            "(select {x=10})['x']",
+            isFunction("subscript", Matchers.instanceOf(SelectSymbol.class), isLiteral("x"))
+        );
     }
 
     @Test
@@ -52,8 +69,9 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testIndexExpressionIsNotInteger() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Array literals can only be accessed via numeric index");
+        expectedException.expectMessage(
+            "`index` in subscript expression (`base[index]`) " +
+            "must be a numeric type if the base expression is text_array");
         assertNormalize("subscript(['Youri', 'Ruben'], '1')", isLiteral("Ruben"));
     }
 }

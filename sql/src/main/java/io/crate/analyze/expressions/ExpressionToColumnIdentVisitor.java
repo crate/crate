@@ -79,14 +79,12 @@ public class ExpressionToColumnIdentVisitor extends AstVisitor<ColumnIdent, List
     @Override
     protected ColumnIdent visitSubscriptExpression(SubscriptExpression node, List<String> context) {
         if (node.index() instanceof QualifiedNameReference) {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Key of subscript must not be a reference")
-            );
+            throw new IllegalArgumentException("Key of subscript must not be a reference");
         }
         if (context == null) {
             context = new ArrayList<>();
         }
-        ColumnIdent colIdent = node.name().accept(this, context);
+        ColumnIdent colIdent = node.base().accept(this, context);
         node.index().accept(this, context);
 
 

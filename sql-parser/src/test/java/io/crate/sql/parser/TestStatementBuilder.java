@@ -1221,14 +1221,14 @@ public class TestStatementBuilder {
         assertThat(subscript.index(), instanceOf(StringLiteral.class));
         assertThat(((StringLiteral) subscript.index()).getValue(), is("sub"));
 
-        assertThat(subscript.name(), instanceOf(QualifiedNameReference.class));
+        assertThat(subscript.base(), instanceOf(QualifiedNameReference.class));
 
         expression = SqlParser.createExpression("[1,2,3][1]");
         assertThat(expression, instanceOf(SubscriptExpression.class));
         subscript = (SubscriptExpression) expression;
         assertThat(subscript.index(), instanceOf(LongLiteral.class));
         assertThat(((LongLiteral) subscript.index()).getValue(), is(1L));
-        assertThat(subscript.name(), instanceOf(ArrayLiteral.class));
+        assertThat(subscript.base(), instanceOf(ArrayLiteral.class));
     }
 
     @Test

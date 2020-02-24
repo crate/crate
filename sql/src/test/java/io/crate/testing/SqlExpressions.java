@@ -28,12 +28,14 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.auth.user.User;
-import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.window.WindowFunctionModule;
@@ -46,6 +48,8 @@ import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -55,6 +59,8 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
+
+import static org.mockito.Mockito.mock;
 
 public class SqlExpressions {
 
@@ -99,12 +105,15 @@ public class SqlExpressions {
             coordinatorTxnCtx,
             parameters == null
                 ? ParamTypeHints.EMPTY
-                : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
+                : new ParameterContext(new RowN(parameters), Collections.emptyList()),
             new FullQualifiedNameFieldProvider(
                 sources,
                 ParentRelations.NO_PARENTS,
                 coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
-            null
+            new SubqueryAnalyzer(
+                new RelationAnalyzer(functions, mock(Schemas.class)),
+                new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, coordinatorTxnCtx)
+            )
         );
         normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, null, fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
