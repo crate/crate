@@ -519,20 +519,6 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGroupByOnAnalyzed() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'text': grouping on analyzed/fulltext columns is not possible");
-        e.plan("select text from users u group by 1");
-    }
-
-    @Test
-    public void testSelectAnalyzedReferenceInFunctionGroupBy() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'text': grouping on analyzed/fulltext columns is not possible");
-        e.plan("select substr(text, 0, 2) from users u group by 1");
-    }
-
-    @Test
     public void testDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
         Merge distributedGroupByMerge = e.plan("select count(*) from users group by name");
         Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
