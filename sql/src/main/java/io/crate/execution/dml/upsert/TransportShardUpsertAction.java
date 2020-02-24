@@ -429,12 +429,24 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         switch (indexResult.getResultType()) {
             case SUCCESS:
                 // update the seqNo and version on request for the replicas
+                if (logger.isTraceEnabled()) {
+                    logger.trace("SUCCESS - id={}, primary_term={}, seq_no={}",
+                                 item.id(),
+                                 primaryTerm,
+                                 indexResult.getSeqNo());
+                }
                 item.seqNo(indexResult.getSeqNo());
                 item.version(indexResult.getVersion());
                 return indexResult;
 
             case FAILURE:
                 Exception failure = indexResult.getFailure();
+                if (logger.isTraceEnabled()) {
+                    logger.trace("FAILURE - id={}, primary_term={}, seq_no={}",
+                                item.id(),
+                                primaryTerm,
+                                indexResult.getSeqNo());
+                }
                 assert failure != null : "Failure must not be null if resultType is FAILURE";
                 throw failure;
 

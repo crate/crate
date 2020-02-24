@@ -141,7 +141,7 @@ public class Symbols {
         } else if (symbol instanceof Reference) {
             return ((Reference) symbol).column();
         }
-        return new ColumnIdent(SymbolPrinter.INSTANCE.printUnqualified(symbol));
+        return new ColumnIdent(SymbolPrinter.printUnqualified(symbol));
     }
 
     private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {

@@ -36,17 +36,19 @@ import java.util.Map;
 class MatchPrinter {
 
     static void printMatchPredicate(Function matchPredicate,
-                                    SymbolPrinterContext context,
-                                    SymbolPrinter.SymbolPrintVisitor symbolPrintVisitor) {
-        StringBuilder sb = context.builder;
+                                    StringBuilder sb,
+                                    SymbolPrinter.SymbolPrintVisitor printVisitor) {
         List<Symbol> arguments = matchPredicate.arguments();
 
         sb.append("MATCH((");
         printColumns(arguments.get(0), sb);
         sb.append("), ");
-        printKeyWord(arguments.get(1), symbolPrintVisitor, context);
+        // second argument (keyword)
+        arguments.get(1).accept(printVisitor, null);
         sb.append(") USING ");
-        printMethod(arguments.get(2), sb);
+        // third argument (method)
+        // need to print as identifier without quotes
+        sb.append((String) ((Literal<?>) arguments.get(2)).value());
         printProperties(arguments.get(3), sb);
     }
 
@@ -69,29 +71,16 @@ class MatchPrinter {
         }
     }
 
-    private static void printKeyWord(Symbol keyword,
-                                     SymbolPrinter.SymbolPrintVisitor symbolPrintVisitor,
-                                     SymbolPrinterContext context) {
-        // second argument (keyword)
-        keyword.accept(symbolPrintVisitor, context);
-    }
-
-    private static void printMethod(Symbol method, StringBuilder sb) {
-        // third argument (method)
-        // need to print as identifier without quotes
-        sb.append((String) ((Literal) method).value());
-    }
-
     private static void printProperties(Symbol propSymbol, StringBuilder sb) {
         // fourth argument (properties)
-        Map properties = (Map) ((Literal) propSymbol).value();
+        Map<?, ?> properties = (Map<?, ?>) ((Literal<?>) propSymbol).value();
         if (properties.isEmpty()) {
             return;
         }
         sb.append(" WITH (");
-        Iterator<Map.Entry> propertiesIterator = properties.entrySet().iterator();
-        while (propertiesIterator.hasNext()) {
-            Map.Entry entry = propertiesIterator.next();
+        var it = properties.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<?, ?> entry = it.next();
             sb.append(entry.getKey()).append(" = ");
             Object value = entry.getValue();
             if (value != null) {
@@ -99,11 +88,10 @@ class MatchPrinter {
                 sb.append(value);
                 sb.append("'");
             }
-            if (propertiesIterator.hasNext()) {
+            if (it.hasNext()) {
                 sb.append(", ");
             }
         }
         sb.append(")");
     }
-
 }

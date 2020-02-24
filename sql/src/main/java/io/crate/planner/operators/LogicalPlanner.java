@@ -33,12 +33,9 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.TableFunctionRelation;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;
@@ -46,7 +43,6 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.dsl.projection.builder.SplitPointsBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -55,14 +51,11 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.planner.WhereClauseOptimizer;
-import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
@@ -95,7 +88,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -157,8 +149,9 @@ public class LogicalPlanner {
     }
 
     public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext) {
+        CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
         AnalyzedRelation relation = relationNormalizer.normalize(
-            selectSymbol.relation(), plannerContext.transactionContext());
+            selectSymbol.relation(), txnCtx);
 
         final int fetchSize;
         final java.util.function.Function<LogicalPlan, LogicalPlan> maybeApplySoftLimit;
@@ -177,20 +170,18 @@ public class LogicalPlanner {
         }
         PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, fetchSize);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext));
-        LogicalPlan.Builder planBuilder = prePlan(
+        LogicalPlan plan = prePlan(
             relation,
-            FetchMode.NEVER_CLEAR,
             subqueryPlanner,
-            true,
             functions,
-            plannerContext.transactionContext());
-
-        planBuilder = tryOptimizeForInSubquery(selectSymbol, relation, planBuilder);
-        LogicalPlan optimizedPlan = optimizer.optimize(
-            maybeApplySoftLimit.apply(planBuilder.build(tableStats, Set.of(), Set.of(), subSelectPlannerContext.params())),
+            txnCtx,
+            Set.of(),
             tableStats,
-            plannerContext.transactionContext()
+            subSelectPlannerContext.params()
         );
+
+        plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
+        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), tableStats, txnCtx);
         return new RootRelationBoundary(optimizedPlan);
     }
 
@@ -198,7 +189,7 @@ public class LogicalPlanner {
     // the building of TermInSetQuery which does a sort on the collection of values.
     // See issue https://github.com/crate/crate/issues/6755
     // If the output values are already sorted (even in desc order) no optimization is needed
-    private LogicalPlan.Builder tryOptimizeForInSubquery(SelectSymbol selectSymbol, AnalyzedRelation relation, LogicalPlan.Builder planBuilder) {
+    private LogicalPlan tryOptimizeForInSubquery(SelectSymbol selectSymbol, AnalyzedRelation relation, LogicalPlan planBuilder) {
         if (selectSymbol.getResultType() == SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES) {
             OrderBy relationOrderBy = relation.orderBy();
             Symbol firstOutput = relation.outputs().get(0);
@@ -214,45 +205,54 @@ public class LogicalPlanner {
     public LogicalPlan normalizeAndPlan(AnalyzedRelation analyzedRelation,
                                         PlannerContext plannerContext,
                                         SubqueryPlanner subqueryPlanner,
-                                        FetchMode fetchMode,
                                         Set<PlanHint> hints) {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         AnalyzedRelation relation = relationNormalizer.normalize(analyzedRelation, coordinatorTxnCtx);
-        LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, coordinatorTxnCtx)
-            .build(tableStats, hints, Set.copyOf(relation.outputs()), plannerContext.params());
-
+        LogicalPlan logicalPlan = plan(
+            relation,
+            subqueryPlanner,
+            true,
+            functions,
+            coordinatorTxnCtx,
+            hints,
+            tableStats,
+            plannerContext.params()
+        );
         return optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
     }
 
-    static LogicalPlan.Builder plan(AnalyzedRelation relation,
-                                    FetchMode fetchMode,
-                                    SubqueryPlanner subqueryPlanner,
-                                    boolean isLastFetch,
-                                    Functions functions,
-                                    CoordinatorTxnCtx txnCtx) {
-        LogicalPlan.Builder builder = prePlan(relation, fetchMode, subqueryPlanner, isLastFetch, functions, txnCtx);
+    static LogicalPlan plan(AnalyzedRelation relation,
+                            SubqueryPlanner subqueryPlanner,
+                            boolean isLastFetch,
+                            Functions functions,
+                            CoordinatorTxnCtx txnCtx,
+                            Set<PlanHint> hints,
+                            TableStats tableStats,
+                            Row params) {
+        LogicalPlan plan = prePlan(relation, subqueryPlanner, functions, txnCtx, hints, tableStats, params);
         if (isLastFetch) {
-            return builder;
+            return plan;
         }
         if (relation instanceof UnionSelect) {
             // Union already acts as boundary and doesn't require a additional dedicated boundary symbol.
             // Using a boundary would even break some optimization rules
             // E.g. Order -> Boundary -> Union; MoveOrderBeneathBoundary would prematurely remap
             // Fields to point to the left child of the Union.
-            return builder;
+            return plan;
         }
-        return RelationBoundary.create(builder, relation);
+        return RelationBoundary.create(plan, relation);
     }
 
-    private static LogicalPlan.Builder prePlan(AnalyzedRelation relation,
-                                               FetchMode fetchMode,
-                                               SubqueryPlanner subqueryPlanner,
-                                               boolean isLastFetch,
-                                               Functions functions,
-                                               CoordinatorTxnCtx txnCtx) {
+    private static LogicalPlan prePlan(AnalyzedRelation relation,
+                                       SubqueryPlanner subqueryPlanner,
+                                       Functions functions,
+                                       CoordinatorTxnCtx txnCtx,
+                                       Set<PlanHint> hints,
+                                       TableStats tableStats,
+                                       Row params) {
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
         return MultiPhase.createIfNeeded(
-            FetchOrEval.create(
+            Eval.create(
                 Limit.create(
                     Order.create(
                         Distinct.create(
@@ -265,12 +265,16 @@ public class LogicalPlanner {
                                                 splitPoints.toCollect(),
                                                 relation.where(),
                                                 subqueryPlanner,
-                                                fetchMode,
                                                 functions,
-                                                txnCtx
+                                                txnCtx,
+                                                hints,
+                                                tableStats,
+                                                params
                                             ),
                                             relation.groupBy(),
-                                            splitPoints.aggregates()
+                                            splitPoints.aggregates(),
+                                            tableStats,
+                                            params
                                         ),
                                         relation.having()
                                     ),
@@ -279,94 +283,83 @@ public class LogicalPlanner {
                                 splitPoints.tableFunctions()
                             ),
                             relation.isDistinct(),
-                            relation.outputs()
+                            relation.outputs(),
+                            tableStats
                         ),
                         relation.orderBy()
                     ),
                     relation.limit(),
                     relation.offset()
                 ),
-                relation.outputs(),
-                fetchMode,
-                isLastFetch,
-                relation.limit() != null
+                relation.outputs()
             ),
             relation,
             subqueryPlanner
         );
     }
 
-    private static LogicalPlan.Builder groupByOrAggregate(LogicalPlan.Builder source,
-                                                          List<Symbol> groupKeys,
-                                                          List<Function> aggregates) {
+
+    private static LogicalPlan groupByOrAggregate(LogicalPlan source,
+                                                  List<Symbol> groupKeys,
+                                                  List<Function> aggregates,
+                                                  TableStats tableStats,
+                                                  Row params) {
         if (!groupKeys.isEmpty()) {
-            return GroupHashAggregate.create(source, groupKeys, aggregates);
+            long numExpectedRows = GroupHashAggregate.approximateDistinctValues(source.numExpectedRows(), tableStats, groupKeys);
+            return new GroupHashAggregate(source, groupKeys, aggregates, numExpectedRows);
         }
         if (!aggregates.isEmpty()) {
-            return (tableStats, hints, usedColumns, params) ->
-                new HashAggregate(source.build(tableStats, hints, extractColumns(aggregates), params), aggregates);
+            return new HashAggregate(source, aggregates);
         }
         return source;
     }
 
-    private static LogicalPlan.Builder collectAndFilter(AnalyzedRelation analyzedRelation,
-                                                        List<Symbol> toCollect,
-                                                        WhereClause where,
-                                                        SubqueryPlanner subqueryPlanner,
-                                                        FetchMode fetchMode,
-                                                        Functions functions,
-                                                        CoordinatorTxnCtx txnCtx) {
+    private static LogicalPlan collectAndFilter(AnalyzedRelation analyzedRelation,
+                                                List<Symbol> toCollect,
+                                                WhereClause where,
+                                                SubqueryPlanner subqueryPlanner,
+                                                Functions functions,
+                                                CoordinatorTxnCtx txnCtx,
+                                                Set<PlanHint> hints,
+                                                TableStats tableStats,
+                                                Row params) {
         if (analyzedRelation instanceof AnalyzedView) {
-            return plan(((AnalyzedView) analyzedRelation).relation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
+            return plan(((AnalyzedView) analyzedRelation).relation(), subqueryPlanner, false, functions, txnCtx, hints, tableStats, params);
         }
         if (analyzedRelation instanceof AliasedAnalyzedRelation) {
-            return plan(((AliasedAnalyzedRelation) analyzedRelation).relation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
+            return plan(((AliasedAnalyzedRelation) analyzedRelation).relation(), subqueryPlanner, false, functions, txnCtx, hints, tableStats, params);
         }
         if (analyzedRelation instanceof AbstractTableRelation) {
-            return Collect.create(((AbstractTableRelation<?>) analyzedRelation), toCollect, where);
+            return Collect.create(((AbstractTableRelation<?>) analyzedRelation), toCollect, where, hints, tableStats, params);
         }
         if (analyzedRelation instanceof MultiSourceSelect) {
-            return JoinPlanBuilder.createNodes((MultiSourceSelect) analyzedRelation, where, subqueryPlanner, functions, txnCtx);
+            return JoinPlanBuilder.createNodes(
+                (MultiSourceSelect) analyzedRelation,
+                where,
+                subqueryPlanner,
+                functions,
+                txnCtx,
+                hints,
+                tableStats,
+                params
+            );
         }
         if (analyzedRelation instanceof UnionSelect) {
-            return Union.create((UnionSelect) analyzedRelation, subqueryPlanner, functions, txnCtx);
+            return Union.create((UnionSelect) analyzedRelation, subqueryPlanner, functions, txnCtx, hints, tableStats, params);
         }
         if (analyzedRelation instanceof TableFunctionRelation) {
             return TableFunction.create(((TableFunctionRelation) analyzedRelation), toCollect, where);
         }
         if (analyzedRelation instanceof QueriedSelectRelation) {
             QueriedSelectRelation<?> selectRelation = (QueriedSelectRelation<?>) analyzedRelation;
-
             AnalyzedRelation subRelation = selectRelation.subRelation();
-            if (subRelation instanceof DocTableRelation) {
-                DocTableRelation docTableRelation = (DocTableRelation) subRelation;
-                EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-                    functions, RowGranularity.CLUSTER, null, docTableRelation);
-
-                WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-                    normalizer,
-                    where.queryOrFallback(),
-                    docTableRelation.tableInfo(),
-                    txnCtx
-                );
-
-                Optional<DocKeys> docKeys = detailedQuery.docKeys();
-                if (docKeys.isPresent()) {
-                    return (tableStats, hints, usedBeforeNextFetch, params) ->
-                        new Get(docTableRelation, docKeys.get(), toCollect, tableStats);
-                }
-                return Collect.create(docTableRelation, toCollect, new WhereClause(
-                    detailedQuery.query(),
-                    where.partitions(),
-                    detailedQuery.clusteredBy()
-                ));
-            } else if (subRelation instanceof TableRelation) {
-                return Collect.create(((TableRelation) subRelation), toCollect, where);
+            if (subRelation instanceof AbstractTableRelation<?>) {
+                return Collect.create(((AbstractTableRelation<?>) subRelation), toCollect, where, hints, tableStats, params);
             } else if (subRelation instanceof TableFunctionRelation) {
                 return TableFunction.create(((TableFunctionRelation) subRelation), toCollect, where);
             }
             return Filter.create(
-                plan(subRelation, fetchMode, subqueryPlanner, false, functions, txnCtx),
+                plan(subRelation, subqueryPlanner, false, functions, txnCtx, hints, tableStats, params),
                 where
             );
         }
@@ -466,7 +459,7 @@ public class LogicalPlanner {
         @Override
         public LogicalPlan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
-            LogicalPlan logicalPlan = normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR, Set.of());
+            LogicalPlan logicalPlan = normalizeAndPlan(relation, context, subqueryPlanner, Set.of());
             return new RootRelationBoundary(logicalPlan);
         }
 

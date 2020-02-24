@@ -26,10 +26,19 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationPrinter;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.any.AnyOperator;
+import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.MatchPredicate;
+import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.scalar.ExtractFunctions;
 import io.crate.expression.scalar.SubscriptFunction;
+import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
+import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
+import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
+import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;
@@ -43,302 +52,364 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.types.ArrayType;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
+import static io.crate.expression.scalar.cast.CastFunction.CAST_SQL_NAME;
+import static io.crate.expression.scalar.cast.CastFunction.TRY_CAST_SQL_NAME;
+import static io.crate.expression.scalar.cast.CastFunctionResolver.TRY_CAST_PREFIX;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.ANY;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.COMMA;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.DOT;
+import static io.crate.expression.symbol.format.SymbolPrinter.Strings.NULL_UPPER;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.WS;
 
-@Singleton
 public final class SymbolPrinter {
 
-    public static final SymbolPrinter INSTANCE = new SymbolPrinter(null);
-
-    private static final OperatorFormatSpec SIMPLE_OPERATOR_FORMAT_SPEC = function -> {
-        assert function.info().ident().name().startsWith("op_") :
-            "function.info().ident().name() must start with 'op_'";
-        return function.info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
-    };
+    /**
+     * format symbols in simple style and use the formatted symbols as {@link String#format(Locale, String, Object...)} arguments
+     * for the given <code>messageTmpl</code>.
+     */
+    public static String format(String messageTmpl, Symbol... symbols) {
+        Object[] formattedSymbols = new String[symbols.length];
+        for (int i = 0; i < symbols.length; i++) {
+            Symbol s = symbols[i];
+            if (s == null) {
+                formattedSymbols[i] = NULL_UPPER;
+            } else {
+                formattedSymbols[i] = printUnqualified(s);
+            }
+        }
+        return String.format(Locale.ENGLISH, messageTmpl, formattedSymbols);
+    }
 
     public enum Style {
         UNQUALIFIED,
-        QUALIFIED;
-
-        SymbolPrinterContext createNewContext() {
-            return new SymbolPrinterContext(this);
-        }
+        QUALIFIED
     }
 
-    private final SymbolPrintVisitor symbolPrintVisitor;
+    private static final Map<String, String> ARITHMETIC_OPERATOR_MAPPING = Map.ofEntries(
+        Map.entry(ArithmeticFunctions.Names.ADD, "+"),
+        Map.entry(ArithmeticFunctions.Names.SUBTRACT, "-"),
+        Map.entry(ArithmeticFunctions.Names.MULTIPLY, "*"),
+        Map.entry(ArithmeticFunctions.Names.DIVIDE, "/"),
+        Map.entry(ArithmeticFunctions.Names.MOD, "%"),
+        Map.entry(ArithmeticFunctions.Names.MODULUS, "%")
+    );
 
-    @Inject
-    public SymbolPrinter(@Nullable Functions functions) {
-        this.symbolPrintVisitor = new SymbolPrintVisitor(functions);
-    }
-
-    public String printUnqualified(Symbol symbol) {
+    public static String printUnqualified(Symbol symbol) {
         return print(symbol, Style.UNQUALIFIED);
     }
 
-    public String printQualified(Symbol symbol) {
+    public static String printQualified(Symbol symbol) {
         return print(symbol, Style.QUALIFIED);
     }
 
     /**
      * format a symbol with the given style
      */
-    private String print(Symbol symbol, Style style) {
-        SymbolPrinterContext context = style.createNewContext();
-        symbol.accept(symbolPrintVisitor, context);
-        return context.formatted();
+    private static String print(Symbol symbol, Style style) {
+        SymbolPrintVisitor printVisitor = new SymbolPrintVisitor(style);
+        symbol.accept(printVisitor, null);
+        return printVisitor.builder.toString();
     }
 
-    static final class SymbolPrintVisitor extends SymbolVisitor<SymbolPrinterContext, Void> {
+    static final class SymbolPrintVisitor extends SymbolVisitor<Void, Void> {
 
-        @Nullable
-        private final Functions functions;
+        private final StringBuilder builder;
+        private final Style style;
 
-        private SymbolPrintVisitor(@Nullable Functions functions) {
-            this.functions = functions;
+        private SymbolPrintVisitor(Style style) {
+            this.builder = new StringBuilder();
+            this.style = style;
         }
 
         @Override
-        protected Void visitSymbol(Symbol symbol, SymbolPrinterContext context) {
-            context.builder.append(symbol.toString());
+        protected Void visitSymbol(Symbol symbol, Void context) {
+            builder.append(symbol);
             return null;
         }
 
         @Override
-        public Void visitSelectSymbol(SelectSymbol selectSymbol, SymbolPrinterContext context) {
-            return super.visitSelectSymbol(selectSymbol, context);
+        public Void visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
+            return visitSymbol(selectSymbol, context);
         }
 
         @Override
-        public Void visitAggregation(Aggregation symbol, SymbolPrinterContext context) {
-
-            context.builder.append(symbol.functionIdent().name()).append(PAREN_OPEN);
-            printArgs(symbol.inputs(), context);
-            context.builder.append(PAREN_CLOSE);
+        public Void visitAggregation(Aggregation symbol, Void context) {
+            builder.append(symbol.functionIdent().name()).append(PAREN_OPEN);
+            printArgs(symbol.inputs());
+            builder.append(PAREN_CLOSE);
             return null;
         }
 
         @Override
-        public Void visitFunction(Function function, SymbolPrinterContext context) {
-            String functionName = function.info().ident().name();
-            if (functionName.startsWith(AnyOperator.OPERATOR_PREFIX)) {
-                printAnyOperator(function, context);
-            } else if (functionName.equals(MatchPredicate.NAME)) {
-                printMatchPredicate(function, context);
-            } else if (functionName.equals(SubscriptFunction.NAME)) {
-                printSubscriptFunction(function, context);
-            } else if (CastFunctionResolver.isCastFunction(functionName)) {
-                FunctionFormatSpec formatter;
-                if (functions != null) {
-                    formatter = (FunctionFormatSpec) functions.getQualified(function.info().ident());
-                } else {
-                    formatter = FunctionFormatSpec.NAME_PARENTHESISED_ARGS;
-                }
-                context.builder.append(formatter.beforeArgs(function));
-                if (formatter.formatArgs(function)) {
-                    // do not print the second argument such as it always null.
-                    // we use only the function info of the second argument to
-                    // resolve a cast function.
-                    printArgs(List.of(function.arguments().get(0)), context);
-                }
-                context.builder.append(formatter.afterArgs(function));
-            } else {
-                printGenericFunction(function, context);
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitWindowFunction(WindowFunction symbol, SymbolPrinterContext context) {
-            return visitFunction(symbol, context);
-        }
-
-        private void printGenericFunction(Function function, SymbolPrinterContext context) {
-            FunctionFormatSpec functionFormatSpec = null;
-            OperatorFormatSpec operatorFormatSpec = null;
-
+        public Void visitFunction(Function function, Void context) {
             FunctionIdent ident = function.info().ident();
-            if (functions != null) {
-                FunctionImplementation impl = functions.getQualified(ident);
-                if (impl instanceof FunctionFormatSpec) {
-                    functionFormatSpec = (FunctionFormatSpec) impl;
-                } else if (impl instanceof OperatorFormatSpec) {
-                    operatorFormatSpec = (OperatorFormatSpec) impl;
-                }
-            } else if (ident.name().startsWith("op_")) {
-                operatorFormatSpec = SIMPLE_OPERATOR_FORMAT_SPEC;
+            String name = ident.name();
+            switch (name) {
+                case MatchPredicate.NAME:
+                    MatchPrinter.printMatchPredicate(function, builder, this);
+                    break;
+
+                case SubscriptFunction.NAME:
+                    printSubscriptFunction(function);
+                    break;
+
+                case "current_user":
+                    builder.append("CURRENT_USER");
+                    break;
+
+                case "session_user":
+                    builder.append("SESSION_USER");
+                    break;
+
+                case CurrentSchemasFunction.NAME:
+                    builder.append(CurrentSchemasFunction.NAME);
+                    break;
+
+                case CurrentSchemaFunction.NAME:
+                    builder.append(CurrentSchemaFunction.NAME);
+                    break;
+
+                case IsNullPredicate.NAME:
+                    builder.append("(");
+                    function.arguments().get(0).accept(this, context);
+                    builder.append(" IS NULL)");
+                    break;
+
+                case NotPredicate.NAME:
+                    builder.append("(NOT ");
+                    function.arguments().get(0).accept(this, context);
+                    builder.append(")");
+                    break;
+
+                case CountAggregation.NAME:
+                    if (function.arguments().isEmpty()) {
+                        builder.append("count(*)");
+                        printFilter(function.filter());
+                    } else {
+                        printFunctionWithParenthesis(function);
+                    }
+                    break;
+
+                case CurrentTimestampFunction.NAME:
+                    if (function.arguments().isEmpty()) {
+                        builder.append("CURRENT_TIMESTAMP");
+                    } else {
+                        printFunctionWithParenthesis(function);
+                    }
+                    break;
+
+                default:
+                    if (name.startsWith(AnyOperator.OPERATOR_PREFIX)) {
+                        printAnyOperator(function);
+                    } else if (CastFunctionResolver.isCastFunction(name)) {
+                        printCastFunction(function);
+                    } else if (name.startsWith(Operator.PREFIX)) {
+                        printOperator(function, null);
+                    } else if (name.startsWith(ExtractFunctions.NAME_PREFIX)) {
+                        printExtract(function);
+                    } else {
+                        String arithmeticOperator = ARITHMETIC_OPERATOR_MAPPING.get(name);
+                        if (arithmeticOperator != null) {
+                            printOperator(function, arithmeticOperator);
+                        } else {
+                            printFunctionWithParenthesis(function);
+                        }
+                    }
             }
-            if (operatorFormatSpec != null) {
-                printOperator(function, operatorFormatSpec, context);
-            } else {
-                if (functionFormatSpec == null) {
-                    functionFormatSpec = FunctionFormatSpec.NAME_PARENTHESISED_ARGS;
-                }
-                printFunction(function, functionFormatSpec, context);
+            return null;
+        }
+
+        private void printExtract(Function function) {
+            String name = function.info().ident().name();
+            assert name.startsWith(ExtractFunctions.NAME_PREFIX) : "name of function passed to printExtract must start with extract_";
+            String fieldName = name.substring(ExtractFunctions.NAME_PREFIX.length());
+            builder.append("extract(")
+                .append(fieldName)
+                .append(" FROM ");
+            function.arguments().get(0).accept(this, null);
+            builder.append(")");
+        }
+
+        public void printFunctionWithParenthesis(Function function) {
+            FunctionName functionName = function.info().ident().fqnName();
+            String schema = functionName.schema();
+            if (style == Style.QUALIFIED && schema != null) {
+                builder.append(schema).append(DOT);
+            }
+            builder
+                .append(functionName.name())
+                .append("(");
+            printArgs(function.arguments())
+                .append(")");
+            printFilter(function.filter());
+        }
+
+        public void printFilter(@Nullable Symbol filter) {
+            if (filter != null) {
+                builder.append(" FILTER (WHERE ");
+                filter.accept(this, null);
+                builder.append(")");
             }
         }
 
-        private void printAnyOperator(Function function, SymbolPrinterContext context) {
+        private void printOperator(Function function, @Nullable String operator) {
+            if (operator == null) {
+                String name = function.info().ident().name();
+                assert name.startsWith(Operator.PREFIX);
+                operator = name.substring(Operator.PREFIX.length()).toUpperCase(Locale.ENGLISH);
+            }
+            builder.append("(");
+            List<Symbol> arguments = function.arguments();
+            arguments.get(0).accept(this, null);
+            builder
+                .append(WS)
+                .append(operator)
+                .append(WS);
+            arguments.get(1).accept(this, null);
+            builder.append(")");
+        }
 
+        private void printCastFunction(Function function) {
+            String prefix = function.info().ident().name().startsWith(TRY_CAST_PREFIX)
+                ? TRY_CAST_SQL_NAME
+                : CAST_SQL_NAME;
+            final String asTypeName;
+            DataType<?> dataType = function.valueType();
+            if (DataTypes.isArray(dataType)) {
+                ArrayType<?> arrayType = ((ArrayType<?>) dataType);
+                asTypeName = " AS "
+                             + ArrayType.NAME
+                             + PAREN_OPEN
+                             + arrayType.innerType().getName()
+                             + PAREN_CLOSE;
+            } else {
+                asTypeName = " AS " + dataType.getName();
+            }
+            builder.append(prefix)
+                .append("(");
+            function.arguments().get(0).accept(this, null);
+            builder
+                .append(asTypeName)
+                .append(")");
+        }
+
+        private void printAnyOperator(Function function) {
+            String name = function.info().ident().name();
+            assert name.startsWith(AnyOperator.OPERATOR_PREFIX) : "function for printAnyOperator must start with any prefix";
             List<Symbol> args = function.arguments();
             assert args.size() == 2 : "function's number of arguments must be 2";
-            context.builder.append(PAREN_OPEN); // wrap operator in parens to ensure precedence
-            args.get(0).accept(this, context);
-
-            // print operator
-            String operatorName = anyOperatorName(function.info().ident().name());
-            context.builder
+            builder.append(PAREN_OPEN); // wrap operator in parens to ensure precedence
+            args.get(0).accept(this, null);
+            String operatorName = name.substring(4).replace('_', ' ').toUpperCase(Locale.ENGLISH);
+            builder
                 .append(WS)
                 .append(operatorName)
                 .append(WS);
 
-            context.builder.append(ANY).append(PAREN_OPEN);
-            args.get(1).accept(this, context);
-            context.builder.append(PAREN_CLOSE)
+            builder.append(ANY).append(PAREN_OPEN);
+            args.get(1).accept(this, null);
+            builder.append(PAREN_CLOSE)
                 .append(PAREN_CLOSE);
         }
 
-        private String anyOperatorName(String functionName) {
-            // handles NOT_LIKE -> NOT LIKE
-            return functionName.substring(4).replace('_', ' ').toUpperCase(Locale.ENGLISH);
-        }
-
-        private void printMatchPredicate(Function matchPredicate, SymbolPrinterContext context) {
-            MatchPrinter.printMatchPredicate(matchPredicate, context, this);
-        }
-
-        private void printSubscriptFunction(Function function, SymbolPrinterContext context) {
+        private void printSubscriptFunction(Function function) {
             List<Symbol> arguments = function.arguments();
-            if (arguments.get(0) instanceof Reference &&
-                    arguments.get(0).valueType() instanceof ArrayType &&
-                    ((Reference) arguments.get(0)).column().path().size() > 0) {
-                Reference firstArgument = (Reference) arguments.get(0);
-                context.builder.append(firstArgument.column().name());
-                context.builder.append("[");
-                arguments.get(1).accept(this, context);
-                context.builder.append("]");
-                context.builder.append("['");
-                context.builder.append(firstArgument.column().path().get(0));
-                context.builder.append("']");
+            Symbol base = arguments.get(0);
+            if (base instanceof Reference && base.valueType() instanceof ArrayType
+                && ((Reference) base).column().path().size() > 0) {
+
+                Reference firstArgument = (Reference) base;
+                builder.append(firstArgument.column().name());
+                builder.append("[");
+                arguments.get(1).accept(this, null);
+                builder.append("]");
+                builder.append("['");
+                builder.append(firstArgument.column().path().get(0));
+                builder.append("']");
             } else {
-                arguments.get(0).accept(this, context);
-                context.builder.append("[");
-                arguments.get(1).accept(this, context);
-                context.builder.append("]");
+                base.accept(this, null);
+                builder.append("[");
+                arguments.get(1).accept(this, null);
+                builder.append("]");
             }
         }
 
         @Override
-        public Void visitReference(Reference symbol, SymbolPrinterContext context) {
-            if (context.isFullQualified() && !isTableFunctionReference(symbol)) {
-                context.builder.append(symbol.ident().tableIdent().sqlFqn())
+        public Void visitWindowFunction(WindowFunction symbol, Void context) {
+            return visitFunction(symbol, context);
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, Void context) {
+            if (style == Style.QUALIFIED && !isTableFunctionReference(symbol)) {
+                builder.append(symbol.ident().tableIdent().sqlFqn())
                     .append(DOT);
             }
-            context.builder.append(symbol.column().quotedOutputName());
+            builder.append(symbol.column().quotedOutputName());
             return null;
         }
 
         @Override
-        public Void visitDynamicReference(DynamicReference symbol, SymbolPrinterContext context) {
+        public Void visitDynamicReference(DynamicReference symbol, Void context) {
             return visitReference(symbol, context);
         }
 
         @Override
-        public Void visitField(Field field, SymbolPrinterContext context) {
-            if (context.isFullQualified() && !isTableFunctionField(field)) {
-                context.builder.append(RelationPrinter.INSTANCE.process(field.relation(), null))
+        public Void visitField(Field field, Void context) {
+            if (style == Style.QUALIFIED && !isTableFunctionField(field)) {
+                builder.append(RelationPrinter.INSTANCE.process(field.relation(), null))
                     .append(DOT);
             }
-            context.builder.append(field.path().quotedOutputName());
+            builder.append(field.path().quotedOutputName());
             return null;
         }
 
         @Override
-        public Void visitInputColumn(InputColumn inputColumn, SymbolPrinterContext context) {
-            context.builder.append("INPUT(")
+        public Void visitInputColumn(InputColumn inputColumn, Void context) {
+            builder.append("INPUT(")
                 .append(inputColumn.index())
                 .append(")");
             return null;
         }
 
         @Override
-        public Void visitFetchReference(FetchReference fetchReference, SymbolPrinterContext context) {
-            context.builder.append("FETCH(");
-            ((Symbol) fetchReference.fetchId()).accept(this, context);
-            context.builder.append(", ");
-            ((Symbol) fetchReference.ref()).accept(this, context);
-            context.builder.append(")");
+        public Void visitFetchReference(FetchReference fetchReference, Void context) {
+            builder.append("FETCH(");
+            fetchReference.fetchId().accept(this, context);
+            builder.append(", ");
+            fetchReference.ref().accept(this, context);
+            builder.append(")");
             return null;
         }
 
         @Override
-        public Void visitLiteral(Literal symbol, SymbolPrinterContext context) {
-            LiteralValueFormatter.INSTANCE.format(symbol.value(), context.builder);
+        public Void visitLiteral(Literal symbol, Void context) {
+            LiteralValueFormatter.format(symbol.value(), builder);
             return null;
         }
 
-        private void printOperator(Function function, OperatorFormatSpec formatter, SymbolPrinterContext context) {
-            int numArgs = function.arguments().size();
-            context.builder.append(PAREN_OPEN);
-            switch (numArgs) {
-                case 1:
-                    context.builder.append(formatter.operator(function))
-                        .append(" ");
-                    function.arguments().get(0).accept(this, context);
-                    break;
-                case 2:
-                    function.arguments().get(0).accept(this, context);
-                    context.builder.append(WS)
-                        .append(formatter.operator(function))
-                        .append(WS);
-                    function.arguments().get(1).accept(this, context);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("cannot format operators with more than 2 operands");
-            }
-            context.builder.append(PAREN_CLOSE);
-        }
-
-        private void printFunction(Function function, FunctionFormatSpec formatter, SymbolPrinterContext context) {
-            context.builder.append(formatter.beforeArgs(function));
-            if (formatter.formatArgs(function)) {
-                printArgs(function.arguments(), context);
-            }
-            context.builder.append(formatter.afterArgs(function));
-            printFunctionFilterIfPresent(function.filter(), context);
-        }
-
-        private void printFunctionFilterIfPresent(@Nullable Symbol filter, SymbolPrinterContext context) {
-            if (filter != null) {
-                context.builder.append(" : ");
-                filter.accept(this, context);
-            }
-        }
-
-        private void printArgs(List<Symbol> args, SymbolPrinterContext context) {
+        private StringBuilder printArgs(List<Symbol> args) {
             for (int i = 0, size = args.size(); i < size; i++) {
-                args.get(i).accept(this, context);
+                args.get(i).accept(this, null);
                 if (i < size - 1) {
-                    context.builder.append(COMMA).append(WS);
+                    builder.append(COMMA).append(WS);
                 }
             }
+            return builder;
         }
 
         private static boolean isTableFunctionReference(Reference reference) {
@@ -349,7 +420,7 @@ public final class SymbolPrinter {
         private static boolean isTableFunctionField(Field field) {
             AnalyzedRelation relation = field.relation();
             return relation instanceof QueriedSelectRelation
-                   && ((QueriedSelectRelation) relation).subRelation() instanceof TableFunctionRelation;
+                   && ((QueriedSelectRelation<?>) relation).subRelation() instanceof TableFunctionRelation;
         }
     }
 

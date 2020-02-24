@@ -194,8 +194,8 @@ public class ArithmeticFunctions {
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             assert dataTypes.size() == 2 : "Arithmetic operator must receive two arguments";
 
-            DataType fst = dataTypes.get(0);
-            DataType snd = dataTypes.get(1);
+            DataType<?> fst = dataTypes.get(0);
+            DataType<?> snd = dataTypes.get(1);
 
             if (fst.equals(snd)) {
                 final Scalar<?, ?> scalar;
@@ -228,7 +228,7 @@ public class ArithmeticFunctions {
                         throw new UnsupportedOperationException(
                             operator + " is not supported on expressions of type " + fst.getName());
                 }
-                return Scalar.withOperator(scalar, operator);
+                return scalar;
             }
 
             if (isInterval(fst) && isTimestamp(snd)) {

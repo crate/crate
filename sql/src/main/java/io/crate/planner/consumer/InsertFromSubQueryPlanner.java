@@ -98,9 +98,12 @@ public final class InsertFromSubQueryPlanner {
             outputs,
             statement.returnValues()
         );
-
         LogicalPlan plannedSubQuery = logicalPlanner.normalizeAndPlan(
-            statement.subQueryRelation(), plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP));
+            statement.subQueryRelation(),
+            plannerContext,
+            subqueryPlanner,
+            EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP)
+        );
         EvalProjection castOutputs = createCastProjection(statement.columns(), plannedSubQuery.outputs());
         return new Insert(plannedSubQuery, indexWriterProjection, castOutputs);
     }

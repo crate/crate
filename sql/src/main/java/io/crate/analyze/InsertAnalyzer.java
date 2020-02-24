@@ -40,7 +40,6 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -95,7 +94,7 @@ class InsertAnalyzer {
             Reference reference = targetTableRelation.resolveField(argumentColumn);
             int i = targetColumns.indexOf(reference);
             if (i < 0) {
-                throw new IllegalArgumentException(SymbolFormatter.format(
+                throw new IllegalArgumentException(SymbolPrinter.format(
                     "Column '%s' that is used in the VALUES() expression is not part of the target column list",
                     argumentColumn));
             }
@@ -282,7 +281,7 @@ class InsertAnalyzer {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Number of target columns (%s) of insert statement doesn't match number of source columns (%s)",
                 targetColumns.stream().map(r -> r.column().sqlFqn()).collect(commaJoiner),
-                sources.stream().map(SymbolPrinter.INSTANCE::printUnqualified).collect(commaJoiner)));
+                sources.stream().map(SymbolPrinter::printUnqualified).collect(commaJoiner)));
         }
 
         for (int i = 0; i < targetColumns.size(); i++) {
@@ -295,7 +294,7 @@ class InsertAnalyzer {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "The type '%s' of the insert source '%s' is not convertible to the type '%s' of target column '%s'",
                 source.valueType(),
-                SymbolPrinter.INSTANCE.printQualified(source),
+                SymbolPrinter.printQualified(source),
                 targetType,
                 targetCol.column().fqn()
             ));

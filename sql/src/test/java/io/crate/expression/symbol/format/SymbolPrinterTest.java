@@ -53,6 +53,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
@@ -60,7 +61,6 @@ import static org.hamcrest.Matchers.is;
 public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions sqlExpressions;
-    private SymbolPrinter printer;
 
     private static final String TABLE_NAME = "formatter";
 
@@ -85,20 +85,15 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             .put(QualifiedName.of(TABLE_NAME), new TableRelation(tableInfo))
             .build();
         sqlExpressions = new SqlExpressions(sources);
-        printer = new SymbolPrinter(sqlExpressions.functions());
     }
 
     private void assertPrint(Symbol s, String formatted) {
-        assertThat(printer.printQualified(s), is(formatted));
-    }
-
-    private void assertPrintStatic(Symbol s, String formatted) {
-        assertThat(SymbolPrinter.INSTANCE.printQualified(s), is(formatted));
+        assertThat(SymbolPrinter.printQualified(s), is(formatted));
     }
 
     private void assertPrintIsParseable(String sql) {
         Symbol symbol = sqlExpressions.asSymbol(sql);
-        String formatted = printer.printUnqualified(symbol);
+        String formatted = SymbolPrinter.printUnqualified(symbol);
         Symbol formattedSymbol = sqlExpressions.asSymbol(formatted);
         assertThat(symbol, is(formattedSymbol));
     }
@@ -106,7 +101,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     private void assertPrintingRoundTrip(String sql, String expected) {
         Symbol sym = sqlExpressions.asSymbol(sql);
         assertPrint(sym, expected);
-        assertPrintStatic(sym, expected);
+        assertPrint(sym, expected);
         assertPrintIsParseable(sql);
     }
 
@@ -210,13 +205,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testObjectLiteral() throws Exception {
-        Literal<Map<String, Object>> l = Literal.of(new HashMap<String, Object>() {{
-            put("field", "value");
-            put("array", new Integer[]{1, 2, 3});
-            put("nestedMap", new HashMap<String, Object>() {{
-                put("inner", -0.00005d);
-            }});
-        }});
+        Literal<Map<String, Object>> l = Literal.of(Map.ofEntries(
+            Map.entry("field", "value"),
+            Map.entry("array", List.of(1, 2, 3)),
+            Map.entry("nestedMap", Map.of("inner", -0.00005d))
+        ));
         assertPrint(l, "{\"array\"=[1, 2, 3], \"field\"='value', \"nestedMap\"={\"inner\"=-5.0E-5}}");
     }
 
@@ -287,40 +280,44 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNativeArray() throws Exception {
         assertPrint(
-            Literal.of(DataTypes.GEO_SHAPE, ImmutableMap.of("type", "Point", "coordinates", new double[]{1.0d, 2.0d})),
-            "{\"coordinates\"=[1.0, 2.0], \"type\"='Point'}");
+            Literal.of(
+                DataTypes.GEO_SHAPE,
+                DataTypes.GEO_SHAPE.value(Map.of("type", "Point", "coordinates", new double[]{1.0d, 2.0d}))
+            ),
+            "{\"coordinates\"=[1.0, 2.0], \"type\"='Point'}"
+        );
     }
 
     @Test
     public void testFormatQualified() {
         Symbol ref = sqlExpressions.asSymbol("formatter.\"CraZy\"");
-        assertThat(printer.printQualified(ref), is("doc.formatter.\"CraZy\""));
-        assertThat(printer.printUnqualified(ref), is("\"CraZy\""));
+        assertThat(SymbolPrinter.printQualified(ref), is("doc.formatter.\"CraZy\""));
+        assertThat(SymbolPrinter.printUnqualified(ref), is("\"CraZy\""));
 
         ref = sqlExpressions.asSymbol("formatter.\"1a\"");
-        assertThat(printer.printQualified(ref), is("doc.formatter.\"1a\""));
-        assertThat(printer.printUnqualified(ref), is("\"1a\""));
+        assertThat(SymbolPrinter.printQualified(ref), is("doc.formatter.\"1a\""));
+        assertThat(SymbolPrinter.printUnqualified(ref), is("\"1a\""));
     }
 
     @Test
     public void testMaxDepthEllipsis() throws Exception {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+1+1+1+1)))");
-        assertThat(printer.printUnqualified(nestedFn), is("1.442026886600883"));
+        assertThat(SymbolPrinter.printUnqualified(nestedFn), is("1.442026886600883"));
     }
 
     @Test
     public void testStyles() throws Exception {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
-        assertThat(printer.printQualified(nestedFn),
+        assertThat(SymbolPrinter.printQualified(nestedFn),
             is("abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
-        assertThat(printer.printUnqualified(nestedFn),
+        assertThat(SymbolPrinter.printUnqualified(nestedFn),
             is("abs(sqrt(ln((((((((bar + cast(\"select\" AS bigint)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
     }
 
     @Test
     public void testFormatOperatorWithStaticInstance() throws Exception {
         Symbol comparisonOperator = sqlExpressions.asSymbol("bar = 1 and foo = 2");
-        String printed = SymbolPrinter.INSTANCE.printQualified(comparisonOperator);
+        String printed = SymbolPrinter.printQualified(comparisonOperator);
         assertThat(
             printed,
             is("((doc.formatter.bar = 1) AND (doc.formatter.foo = '2'))")
@@ -345,7 +342,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testPrintLikeOperator() throws Exception {
         Symbol likeQuery = sqlExpressions.asSymbol("foo like '%bla%'");
         assertPrint(likeQuery, "(doc.formatter.foo LIKE '%bla%')");
-        assertPrintStatic(likeQuery, "(doc.formatter.foo LIKE '%bla%')");
+        assertPrint(likeQuery, "(doc.formatter.foo LIKE '%bla%')");
         assertPrintIsParseable("(foo LIKE 'a')");
     }
 
@@ -353,7 +350,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testPrintILikeOperator() throws Exception {
         Symbol likeQuery = sqlExpressions.asSymbol("foo ilike '%bla%'");
         assertPrint(likeQuery, "(doc.formatter.foo ILIKE '%bla%')");
-        assertPrintStatic(likeQuery, "(doc.formatter.foo ILIKE '%bla%')");
+        assertPrint(likeQuery, "(doc.formatter.foo ILIKE '%bla%')");
         assertPrintIsParseable("(foo ILIKE 'a')");
     }
 

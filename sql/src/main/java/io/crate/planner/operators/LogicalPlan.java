@@ -35,7 +35,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -81,35 +80,6 @@ import java.util.stream.Collectors;
  * </pre>
  */
 public interface LogicalPlan extends Plan {
-
-    interface Builder {
-
-        /**
-         * Create a LogicalPlan node
-         *
-         * @param usedBeforeNextFetch The columns the "parent" is using.
-         *                    This is used to create plans which utilize query-then-fetch.
-         *                    For example:
-         *                    <pre>
-         *                       select a, b, c from t1 order by a limit 10
-         *
-         *                       EvalFetch (usedColumns: [a, b, c])
-         *                         outputs: [a, b, c]   (b, c resolved using _fetch)
-         *                         |
-         *                       Limit 10 (usedColumns: [])
-         *                         |
-         *                       Order (usedColumns: [a]
-         *                         |
-         *                       Collect (usedColumns: [a] - inherited from Order)
-         *                         outputs: [_fetch, a]
-         *                    </pre>
-         * @param params See {@link PlannerContext#params()}
-         */
-        LogicalPlan build(TableStats tableStats,
-                          Set<PlanHint> hints,
-                          Set<Symbol> usedBeforeNextFetch,
-                          @Nullable Row params);
-    }
 
     /**
      * Uses the current shard allocation information to create a physical execution plan.

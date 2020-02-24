@@ -27,26 +27,18 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.OperatorFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import java.util.Locale;
+public abstract class Operator<I> extends Scalar<Boolean, I> {
 
-public abstract class Operator<I> extends Scalar<Boolean, I> implements OperatorFormatSpec {
-
-    public static final io.crate.types.DataType RETURN_TYPE = DataTypes.BOOLEAN;
+    public static final BooleanType RETURN_TYPE = DataTypes.BOOLEAN;
     public static final String PREFIX = "op_";
-
-    @Override
-    public String operator(Function function) {
-        // strip "op_" from function name
-        return info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
-    }
 
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {

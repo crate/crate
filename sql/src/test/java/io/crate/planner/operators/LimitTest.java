@@ -50,21 +50,28 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
-        QueriedSelectRelation<?> queriedDocTable = e.analyze("select name from users");
+        QueriedSelectRelation<?> queriedDocTable = e.normalize("select name from users");
 
         LogicalPlan plan = Limit.create(
             Limit.create(
-                Collect.create(((AbstractTableRelation<?>) queriedDocTable.subRelation()), queriedDocTable.outputs(), queriedDocTable.where()),
+                Collect.create(
+                    ((AbstractTableRelation<?>) queriedDocTable.subRelation()),
+                    queriedDocTable.outputs(),
+                    queriedDocTable.where(),
+                    Set.of(),
+                    new TableStats(),
+                    null
+                ),
                 Literal.of(10L),
                 Literal.of(5L)
             ),
             Literal.of(20L),
             Literal.of(7L)
-        ).build(new TableStats(), Set.of(), Set.of(), null);
+        );
 
         assertThat(plan, isPlan(e.functions(), "Limit[20;7]\n" +
                                                "Limit[10;5]\n" +
-                                               "Collect[doc.users | [_fetchid] | true]\n"));
+                                               "Collect[doc.users | [name] | true]\n"));
 
         PlannerContext ctx = e.getPlannerContext(clusterService.state());
         Merge merge = (Merge) plan.build(

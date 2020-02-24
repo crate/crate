@@ -420,7 +420,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"col1\" TEXT,\n" +
                      "   \"col2\" INTEGER DEFAULT 2,\n" +
                      "   \"col3\" TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp(3),\n" +
-                     "   \"col4\" TIMESTAMP WITHOUT TIME ZONE DEFAULT to_timestamp without time zone(current_timestamp(3))\n" +
+                     "   \"col4\" TIMESTAMP WITHOUT TIME ZONE DEFAULT CAST(current_timestamp(3) AS timestamp without time zone)\n" +
                      ")\n" +
                      "CLUSTERED INTO 4 SHARDS\n" +
                      "WITH (\n" +

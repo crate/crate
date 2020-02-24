@@ -25,7 +25,6 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.OperatorFormatSpec;
 
 import java.util.Collection;
 import java.util.List;
@@ -59,11 +58,6 @@ import java.util.List;
  * @param <ReturnType> the class of the returned value
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation {
-
-    public static <R, I> Scalar<R, I> withOperator(Scalar<R, I> func, String operator) {
-        return new OperatorScalar<>(func, operator);
-    }
-
 
     /**
      * Evaluate the function using the provided arguments
@@ -123,30 +117,5 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         }
         //noinspection unchecked
         return Literal.ofUnchecked(function.info().returnType(), scalar.evaluate(txnCtx, inputs));
-    }
-
-    public static class OperatorScalar<R, I> extends Scalar<R, I> implements OperatorFormatSpec {
-        private final Scalar<R, I> func;
-        private final String operator;
-
-        OperatorScalar(Scalar<R, I> func, String operator) {
-            this.func = func;
-            this.operator = operator;
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return func.info();
-        }
-
-        @Override
-        public R evaluate(TransactionContext txnCtx, Input<I>... args) {
-            return func.evaluate(txnCtx, args);
-        }
-
-        @Override
-        public String operator(Function function) {
-            return operator;
-        }
     }
 }

@@ -27,7 +27,6 @@ import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -43,7 +42,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 
-public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFormatSpec {
+public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
     private final FunctionInfo info;
@@ -84,21 +83,6 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
     public Boolean evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 1 : "number of args must be 1";
         return args[0] == null || args[0].value() == null;
-    }
-
-    @Override
-    public String beforeArgs(Function function) {
-        return "";
-    }
-
-    @Override
-    public String afterArgs(Function function) {
-        return " IS NULL";
-    }
-
-    @Override
-    public boolean formatArgs(Function function) {
-        return true;
     }
 
     private static class Resolver implements FunctionResolver {

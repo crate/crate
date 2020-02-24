@@ -117,7 +117,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     private final Functions functions;
     private final Schemas schemas;
-    private final SymbolPrinter symbolPrinter;
 
     private static final List<Relation> EMPTY_ROW_TABLE_RELATION = ImmutableList.of(
         new TableFunction(new FunctionCall(QualifiedName.of("empty_row"), Collections.emptyList()))
@@ -126,7 +125,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Inject
     public RelationAnalyzer(Functions functions, Schemas schemas) {
         this.functions = functions;
-        this.symbolPrinter = new SymbolPrinter(functions);
         this.schemas = schemas;
     }
 
@@ -335,7 +333,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalysisContext);
 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates()) {
-            GroupAndAggregateSemantics.validate(symbolPrinter, selectAnalysis.outputSymbols(), groupBy);
+            GroupAndAggregateSemantics.validate(selectAnalysis.outputSymbols(), groupBy);
         }
 
         boolean isDistinct = node.getSelect().isDistinct();
@@ -562,13 +560,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
-                "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(ordinal), clause));
+                "Cannot use %s in %s clause", SymbolPrinter.printUnqualified(ordinal), clause));
         }
         Integer ord = intOrdinal.value();
         if (ord == null) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
-                "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(ordinal), clause));
+                "Cannot use %s in %s clause", SymbolPrinter.printUnqualified(ordinal), clause));
         }
         return ordinalOutputReference(outputSymbols, ord, clause);
     }

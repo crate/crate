@@ -25,10 +25,12 @@ import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.locationtech.spatial4j.shape.Point;
 
 import java.util.Arrays;
 import java.util.List;
 
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.core.Is.is;
 
 public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
@@ -221,7 +223,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
 
 
         execute("select * from auto_id where _id=''");
-        assertThat(response.cols(), is(Matchers.arrayContaining("location", "name")));
+        assertThat(response.cols(), is(arrayContaining("location", "name")));
         assertThat(response.rowCount(), is(0L));
     }
 
@@ -236,13 +238,15 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into explicit_routing (name, location) values (',', [36.567, 52.998]), ('Dornbirn', [54.45, 4.567])");
         execute("refresh table explicit_routing");
         execute("select * from explicit_routing where name=''");
-        assertThat(response.cols(), is(Matchers.arrayContaining("location", "name")));
+        assertThat(response.cols(), is(arrayContaining("location", "name")));
         assertThat(response.rowCount(), is(0L));
 
         execute("select * from explicit_routing where name=','");
-        assertThat(response.cols(), is(Matchers.arrayContaining("location", "name")));
+        assertThat(response.cols(), is(arrayContaining("location", "name")));
         assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("Pt(x=36.567,y=52.998)| ,\n"));
+        Point point = (Point) response.rows()[0][0];
+        assertThat(point.getX(), Matchers.closeTo(36.567d, 0.01));
+        assertThat(point.getY(), Matchers.closeTo(52.998d, 0.01));
     }
 
     @Test

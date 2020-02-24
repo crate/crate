@@ -73,7 +73,7 @@ public class ConversionException extends IllegalArgumentException {
 
     private static String formatFuncArg(FuncArg source) {
         return source instanceof Symbol
-            ? SymbolPrinter.INSTANCE.printUnqualified(((Symbol) source))
+            ? SymbolPrinter.printUnqualified(((Symbol) source))
             : source.toString();
     }
 }

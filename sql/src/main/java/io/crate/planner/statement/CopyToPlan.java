@@ -59,7 +59,6 @@ import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
@@ -170,7 +169,6 @@ public final class CopyToPlan implements Plan {
             boundedCopyTo.relation(),
             context,
             subqueryPlanner,
-            FetchMode.NEVER_CLEAR,
             Set.of());
 
         ExecutionPlan executionPlan = logicalPlan.build(
@@ -212,7 +210,7 @@ public final class CopyToPlan implements Plan {
         if (!copyTo.columns().isEmpty()) {
             outputNames = new ArrayList<>(copyTo.columns().size());
             for (Symbol symbol : copyTo.columns()) {
-                outputNames.add(SymbolPrinter.INSTANCE.printUnqualified(symbol));
+                outputNames.add(SymbolPrinter.printUnqualified(symbol));
                 outputs.add(DocReferences.toSourceLookup(symbol));
             }
             columnsDefined = true;

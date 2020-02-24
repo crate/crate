@@ -766,7 +766,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateSetInvalidGeneratedColumnOnly() {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Given value 1745 for generated column gen_col does not match calculation extract(year from ts) = 1970");
+        expectedException.expectMessage("Given value 1745 for generated column gen_col does not match calculation extract(YEAR FROM ts) = 1970");
         execute("create table computed (" +
                 " ts timestamp with time zone," +
                 " gen_col as extract(year from ts)" +

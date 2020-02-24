@@ -31,16 +31,14 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolFormatter;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 
 import javax.annotation.Nullable;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 
 public class Order extends ForwardingLogicalPlan {
@@ -48,16 +46,12 @@ public class Order extends ForwardingLogicalPlan {
     final OrderBy orderBy;
     private final List<Symbol> outputs;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable OrderBy orderBy) {
+    static LogicalPlan create(LogicalPlan source, @Nullable OrderBy orderBy) {
         if (orderBy == null) {
             return source;
+        } else {
+            return new Order(source, orderBy);
         }
-        return (tableStats, hints, usedColumns, params) -> {
-            Set<Symbol> allUsedColumns = new LinkedHashSet<>();
-            allUsedColumns.addAll(orderBy.orderBySymbols());
-            allUsedColumns.addAll(usedColumns);
-            return new Order(source.build(tableStats, hints, allUsedColumns, params), orderBy);
-        };
     }
 
     public Order(LogicalPlan source, OrderBy orderBy) {
@@ -114,7 +108,7 @@ public class Order extends ForwardingLogicalPlan {
     private static void ensureOrderByColumnsArePresentInOutputs(List<Symbol> orderByInputColumns) {
         Consumer<? super Symbol> raiseExpressionMissingInOutputsError = symbol -> {
             throw new UnsupportedOperationException(
-                SymbolFormatter.format(
+                    SymbolPrinter.format(
                     "Cannot ORDER BY `%s`, the column does not appear in the outputs of the underlying relation",
                     symbol));
         };

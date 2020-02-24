@@ -22,38 +22,36 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.common.collections.Sorted;
 import io.crate.sql.Literals;
 import org.joda.time.Period;
 import org.locationtech.spatial4j.shape.Point;
 
 import java.lang.reflect.Array;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 public class LiteralValueFormatter {
 
-    public static final LiteralValueFormatter INSTANCE = new LiteralValueFormatter();
+    private static final LiteralValueFormatter INSTANCE = new LiteralValueFormatter();
+
+    public static void format(Object value, StringBuilder builder) {
+        INSTANCE.formatValue(value, builder);
+    }
+
+    private LiteralValueFormatter() {
+    }
 
     @SuppressWarnings("unchecked")
-    public void format(Object value, StringBuilder builder) {
+    public void formatValue(Object value, StringBuilder builder) {
         if (value == null) {
             builder.append("NULL");
         } else if (value instanceof Map) {
             formatMap((Map<String, Object>) value, builder);
-        } else if (value instanceof Set) {
-            formatIterable(Sorted.sortRecursive((Collection) value), builder);
         } else if (value instanceof Collection) {
             formatIterable((Iterable<?>) value, builder);
-        } else if (value instanceof Object[]) {
-            formatIterable(Arrays.asList((Object[]) value), builder);
         } else if (value.getClass().isArray()) {
             formatArray(value, builder);
-        } else if (value instanceof String
-                   || value instanceof Point
-                   || value instanceof Period) {
+        } else if (value instanceof String || value instanceof Point || value instanceof Period) {
             builder.append(Literals.quoteStringLiteral(value.toString()));
         } else {
             builder.append(value.toString());
@@ -62,30 +60,32 @@ public class LiteralValueFormatter {
 
     private void formatIterable(Iterable<?> iterable, StringBuilder builder) {
         builder.append('[');
-        boolean first = true;
-        for (Object elem : iterable) {
-            if (!first) {
+        var it = iterable.iterator();
+        while (it.hasNext()) {
+            var elem = it.next();
+            formatValue(elem, builder);
+            if (it.hasNext()) {
                 builder.append(", ");
-            } else {
-                first = false;
             }
-            format(elem, builder);
         }
         builder.append(']');
     }
 
     private void formatMap(Map<String, Object> map, StringBuilder builder) {
         builder.append("{");
-        boolean first = true;
-        for (Map.Entry<String, Object> entry : Sorted.sortRecursive(map, true).entrySet()) {
-            if (!first) {
-                builder.append(", ");
-            } else {
-                first = false;
-            }
+        var it = map
+            .entrySet()
+            .stream()
+            .sorted(Map.Entry.comparingByKey())
+            .iterator();
+        while (it.hasNext()) {
+            var entry = it.next();
             formatIdentifier(entry.getKey(), builder);
             builder.append("=");
-            format(entry.getValue(), builder);
+            formatValue(entry.getValue(), builder);
+            if (it.hasNext()) {
+                builder.append(", ");
+            }
         }
         builder.append("}");
     }
@@ -96,14 +96,11 @@ public class LiteralValueFormatter {
 
     private void formatArray(Object array, StringBuilder builder) {
         builder.append('[');
-        boolean first = true;
         for (int i = 0, length = Array.getLength(array); i < length; i++) {
-            if (!first) {
+            formatValue(Array.get(array, i), builder);
+            if (i + 1 < length) {
                 builder.append(", ");
-            } else {
-                first = false;
             }
-            format(Array.get(array, i), builder);
         }
         builder.append(']');
     }
