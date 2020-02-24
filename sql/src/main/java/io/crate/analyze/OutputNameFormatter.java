@@ -51,7 +51,7 @@ public class OutputNameFormatter {
 
         @Override
         protected String visitSubscriptExpression(SubscriptExpression node, List<Expression> parameters) {
-            return node.name().accept(this, null) + '[' + node.index().accept(this, null) + ']';
+            return node.base().accept(this, null) + '[' + node.index().accept(this, null) + ']';
         }
 
         @Override

@@ -1424,7 +1424,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(arguments.size(), is(2));
 
         assertThat(arguments.get(0), isFunction(MatchesFunction.NAME));
-        assertThat(arguments.get(1), isLiteral(1L));
+        assertThat(arguments.get(1), isLiteral(1));
 
         List<Symbol> scalarArguments = ((Function) arguments.get(0)).arguments();
         assertThat(scalarArguments.size(), is(2));

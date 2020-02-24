@@ -99,7 +99,7 @@ public class ExpressionToStringVisitor extends AstVisitor<String, Row> {
     @Override
     protected String visitSubscriptExpression(SubscriptExpression node, Row context) {
         return String.format(Locale.ENGLISH, "%s.%s",
-                             node.name().accept(this, context),
+                             node.base().accept(this, context),
                              node.index().accept(this, context));
     }
 

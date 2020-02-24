@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Cast;
@@ -34,6 +33,7 @@ import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.TryCast;
 
@@ -57,7 +57,7 @@ public final class SubscriptValidator {
         @Override
         protected Void visitSubscriptExpression(SubscriptExpression node, SubscriptContext context) {
             node.index().accept(SubscriptIndexVisitor.INSTANCE, context);
-            node.name().accept(this, context);
+            node.base().accept(this, context);
             return null;
         }
 
@@ -69,9 +69,6 @@ public final class SubscriptValidator {
 
         @Override
         public Void visitArrayLiteral(ArrayLiteral node, SubscriptContext context) {
-            Preconditions.checkArgument(
-                context.index() != null,
-                "Array literals can only be accessed via numeric index.");
             context.expression(node);
             return null;
         }
@@ -96,6 +93,12 @@ public final class SubscriptValidator {
 
         @Override
         protected Void visitFunctionCall(FunctionCall node, SubscriptContext context) {
+            context.expression(node);
+            return null;
+        }
+
+        @Override
+        protected Void visitSubqueryExpression(SubqueryExpression node, SubscriptContext context) {
             context.expression(node);
             return null;
         }

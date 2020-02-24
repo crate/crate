@@ -22,31 +22,46 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.FunctionIdent;
+import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
 
+/** Supported subscript expressions:
+ * <ul>
+ *     <li>obj['x']</li>
+ *     <li>arr[1]</li>
+ *     <li>obj_array[1]</li>
+ *     <li>obj_array['x']</li>
+ * </ul>
+ **/
 public class SubscriptFunction extends Scalar<Object, Object[]> {
 
     public static final String NAME = "subscript";
-    private FunctionInfo info;
+
+    private final FunctionInfo info;
+    private final BiFunction<Object, Object, Object> lookup;
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
     }
 
-    private SubscriptFunction(FunctionInfo info) {
+    private SubscriptFunction(FunctionInfo info, BiFunction<Object, Object, Object> lookup) {
         this.info = info;
+        this.lookup = lookup;
     }
 
     @Override
@@ -62,32 +77,81 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         if (element == null || index == null) {
             return null;
         }
-        assert element instanceof List : "first argument is typed as array and must be a List";
-        assert index instanceof Number : "second argument must be of type integer";
+        return lookup.apply(element, index);
+    }
 
-        // 1 based arrays as SQL standard says
-        int idx = DataTypes.INTEGER.value(index) - 1;
+    private static class Resolver implements FunctionResolver {
+
+        private static final Set<DataType<?>> NUMERIC_ARRAY_INDEX_TYPES = Set.of(
+            DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG
+        );
+
+        @Nullable
+        @Override
+        public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
+            // Only size check and normalizing numeric index to integer is done here
+            // The rest of the validation happens in getForTypes.
+            if (funcArgs.size() != 2) {
+                return null;
+            }
+            DataType<?> baseType = funcArgs.get(0).valueType();
+            DataType<?> indexType = funcArgs.get(1).valueType();
+            if (baseType.id() == ArrayType.ID && NUMERIC_ARRAY_INDEX_TYPES.contains(indexType)) {
+                return List.of(baseType, DataTypes.INTEGER);
+            }
+            return List.of(baseType, indexType);
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            assert dataTypes.size() == 2 : "Subscript function must have 2 arguments";
+            DataType<?> baseType = dataTypes.get(0);
+            DataType<?> returnType;
+            BiFunction<Object, Object, Object> lookupElement;
+            if (baseType instanceof ArrayType<?>) {
+                if (dataTypes.get(1).equals(DataTypes.STRING)) {
+                    if (ArrayType.unnest(baseType).id() == ObjectType.ID) {
+                        returnType = new ArrayType<>(DataTypes.UNDEFINED);
+                        lookupElement = SubscriptFunction::lookupIntoListObjectsByName;
+                    } else {
+                        throw new IllegalArgumentException(
+                            "`index` in subscript expression (`base[index]`) must be a numeric type if the base expression is " + baseType);
+                    }
+                } else {
+                    returnType = ((ArrayType<?>) baseType).innerType();
+                    lookupElement = SubscriptFunction::lookupByNumericIndex;
+                }
+            } else {
+                returnType = DataTypes.UNDEFINED;
+                lookupElement = SubscriptFunction::lookupByName;
+            }
+            FunctionInfo info = FunctionInfo.of(NAME, dataTypes, returnType);
+            return new SubscriptFunction(info, lookupElement);
+        }
+    }
+
+    static Object lookupIntoListObjectsByName(Object base, Object name) {
+        List<?> values = (List<?>) base;
+        List<Object> result = new ArrayList<>(values.size());
+        for (int i = 0; i < values.size(); i++) {
+            Map<?, ?> map = (Map<?, ?>) values.get(i);
+            result.add(map.get(name));
+        }
+        return result;
+    }
+
+    static Object lookupByNumericIndex(Object base, Object index) {
+        List<?> values = (List<?>) base;
+        int idx = (Integer) index;
         try {
-            return ((List<?>) element).get(idx);
+            return values.get(idx - 1); // SQL array indices start with 1
         } catch (IndexOutOfBoundsException e) {
             return null;
         }
     }
 
-    private static class Resolver extends BaseFunctionResolver {
-
-        private static FunctionInfo createInfo(List<DataType> argumentTypes, DataType returnType) {
-            return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), returnType);
-        }
-
-        protected Resolver() {
-            super(FuncParams.builder(Param.ANY_ARRAY, Param.of(DataTypes.INTEGER, DataTypes.LONG)).build());
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            DataType<?> returnType = ((ArrayType<?>) dataTypes.get(0)).innerType();
-            return new SubscriptFunction(createInfo(dataTypes, returnType));
-        }
+    static Object lookupByName(Object base, Object name) {
+        Map<?, ?> map = (Map<?, ?>) base;
+        return map.get(name);
     }
 }

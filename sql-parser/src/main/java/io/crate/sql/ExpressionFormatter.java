@@ -39,7 +39,6 @@ import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
-import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.ExistsPredicate;
@@ -67,6 +66,7 @@ import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.SimpleCaseExpression;
 import io.crate.sql.tree.SortItem;
@@ -213,7 +213,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitSubscriptExpression(SubscriptExpression node, @Nullable List<Expression> parameters) {
-            return node.name() + "[" + node.index() + "]";
+            return node.base() + "[" + node.index() + "]";
         }
 
         @Override

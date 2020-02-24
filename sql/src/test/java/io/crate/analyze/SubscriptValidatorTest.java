@@ -114,13 +114,6 @@ public class SubscriptValidatorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testStringSubscriptOnArrayLiteral() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Array literals can only be accessed via numeric index.");
-        analyzeSubscript("[1,2,3]['abc']");
-    }
-
-    @Test
     public void testNestedArrayAccess() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Nested array access is not supported");

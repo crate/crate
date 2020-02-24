@@ -56,7 +56,6 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.ExtractFunctions;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.scalar.SubscriptFunctions;
-import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
@@ -129,7 +128,6 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 import org.joda.time.Period;
 
@@ -147,7 +145,6 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.crate.common.collections.Lists2.mapTail;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
@@ -647,47 +644,25 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitSubscriptExpression(SubscriptExpression node, ExpressionAnalysisContext context) {
-            return resolveSubscriptSymbol(node, context);
-        }
-
-        Symbol resolveSubscriptSymbol(SubscriptExpression subscript, ExpressionAnalysisContext context) {
             SubscriptContext subscriptContext = new SubscriptContext();
-            SubscriptValidator.validate(subscript, subscriptContext);
+            SubscriptValidator.validate(node, subscriptContext);
             QualifiedName qualifiedName = subscriptContext.qualifiedName();
             List<String> parts = subscriptContext.parts();
 
             if (qualifiedName == null) {
-                if (parts == null || parts.isEmpty()) {
-                    Symbol name = subscript.name().accept(this, context);
-                    Symbol index = subscript.index().accept(this, context);
-                    return createSubscript(name, index, context);
-                } else {
-                    Symbol name = subscriptContext.expression().accept(this, context);
-                    return createSubscript(name, parts, context);
-                }
+                Symbol base = node.base().accept(this, context);
+                Symbol index = node.index().accept(this, context);
+                return allocateFunction(SubscriptFunction.NAME, List.of(base, index), context);
             } else {
                 Symbol name;
                 name = fieldProvider.resolveField(qualifiedName, parts, operation);
                 Expression idxExpression = subscriptContext.index();
                 if (idxExpression != null) {
                     Symbol index = idxExpression.accept(this, context);
-                    return createSubscript(name, index, context);
+                    return allocateFunction(SubscriptFunction.NAME, List.of(name, index), context);
                 }
                 return name;
             }
-        }
-
-        private Symbol createSubscript(Symbol name, Symbol index, ExpressionAnalysisContext context) {
-            String function = name.valueType().id() == ObjectType.ID
-                // we don't know the the concrete object element (return) type
-                ? SubscriptObjectFunction.NAME
-                : SubscriptFunction.NAME;
-            return allocateFunction(function, ImmutableList.of(name, index), context);
-        }
-
-        private Symbol createSubscript(Symbol symbol, List<String> parts, ExpressionAnalysisContext context) {
-            List<Symbol> arguments = mapTail(symbol, parts, Literal::of);
-            return allocateFunction(SubscriptObjectFunction.NAME, arguments, context);
         }
 
         @Override
