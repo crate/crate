@@ -65,6 +65,9 @@ None
 Changes
 =======
 
+- Added support for ``GROUP BY`` operations on analysed columns of type
+  ``text``.
+
 - Added the :ref:`trunc <scalar-trunc>` scalar function.
 
 - Added the :ref:`now <now>` scalar function.

@@ -106,7 +106,6 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         this.outputs = Lists2.concat(groupKeys, aggregates);
         this.groupKeys = groupKeys;
         this.aggregates = aggregates;
-        GroupByConsumer.validateGroupBySymbols(groupKeys);
     }
 
     @Override
