@@ -449,8 +449,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         // the ORDER BY id, name is here to avoid a collect-then-fetch, which would (currently) break the Get optimization
         var plan = plan(
             "SELECT id, name FROM (SELECT id, name FROM users ORDER BY id, name) AS u WHERE id = 1 ORDER BY 1, 2");
-        var expectedPlan = "OrderBy[id ASC name ASC]\n" +
-                           "Boundary[id, name]\n" +
+        var expectedPlan = "Boundary[id, name]\n" +
+                           "OrderBy[id ASC name ASC]\n" +
                            "Boundary[id, name]\n" +
                            "OrderBy[id ASC name ASC]\n" +
                            "Get[doc.users | id, name | DocKeys{1}";

@@ -49,7 +49,11 @@ public class Optimizer {
 
     public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
         LogicalPlan optimizedRoot = tryApplyRules(plan, tableStats, txnCtx);
-        return optimizedRoot.replaceSources(Lists2.map(optimizedRoot.sources(), x -> optimize(x, tableStats, txnCtx)));
+        return tryApplyRules(
+            optimizedRoot.replaceSources(Lists2.map(optimizedRoot.sources(), x -> optimize(x, tableStats, txnCtx))),
+            tableStats,
+            txnCtx
+        );
     }
 
     private LogicalPlan tryApplyRules(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
