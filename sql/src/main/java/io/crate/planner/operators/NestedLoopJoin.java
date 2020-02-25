@@ -71,6 +71,7 @@ public class NestedLoopJoin implements LogicalPlan {
     private final List<AbstractTableRelation> baseTables;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
     private boolean orderByWasPushedDown = false;
+    private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
 
     NestedLoopJoin(LogicalPlan lhs,
                    LogicalPlan rhs,
@@ -99,9 +100,15 @@ public class NestedLoopJoin implements LogicalPlan {
                           @Nullable Symbol joinCondition,
                           boolean isFiltered,
                           AnalyzedRelation topMostLeftRelation,
-                          boolean orderByWasPushedDown) {
+                          boolean orderByWasPushedDown,
+                          boolean rewriteFilterOnOuterJoinToInnerJoinDone) {
         this(lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation);
         this.orderByWasPushedDown = orderByWasPushedDown;
+        this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
+    }
+
+    public boolean isRewriteFilterOnOuterJoinToInnerJoinDone() {
+        return rewriteFilterOnOuterJoinToInnerJoinDone;
     }
 
     public boolean isFiltered() {
@@ -241,7 +248,8 @@ public class NestedLoopJoin implements LogicalPlan {
             joinCondition,
             isFiltered,
             topMostLeftRelation,
-            orderByWasPushedDown
+            orderByWasPushedDown,
+            rewriteFilterOnOuterJoinToInnerJoinDone
         );
     }
 

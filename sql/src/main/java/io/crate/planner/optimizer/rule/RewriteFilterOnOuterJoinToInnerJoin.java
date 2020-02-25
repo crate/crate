@@ -31,7 +31,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
-import io.crate.statistics.TableStats;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -41,6 +40,7 @@ import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -109,7 +109,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         this.nlCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
                 .with(source(), typeOf(NestedLoopJoin.class).capturedAs(nlCapture)
-                    .with(nl -> nl.joinType().isOuter())
+                    .with(nl -> nl.joinType().isOuter() && !nl.isRewriteFilterOnOuterJoinToInnerJoinDone())
                 );
     }
 
@@ -204,8 +204,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                  * +------+------+
                  */
 
-                // Don't repeat pushing down a query, if source is a Filter we expect that the push-down already happened.
-                if (couldMatchOnNull(leftQuery) || (lhs instanceof Filter)) {
+                if (couldMatchOnNull(leftQuery)) {
                     newLhs = lhs;
                 } else {
                     newLhs = getNewSource(leftQuery, lhs);
@@ -213,7 +212,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                         splitQueries.put(leftName, leftQuery);
                     }
                 }
-                if (couldMatchOnNull(rightQuery) || (rhs instanceof Filter)) {
+                if (couldMatchOnNull(rightQuery)) {
                     newRhs = rhs;
                 } else {
                     newRhs = getNewSource(rightQuery, rhs);
@@ -257,7 +256,8 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
             nl.joinCondition(),
             nl.isFiltered(),
             nl.topMostLeftRelation(),
-            nl.orderByWasPushedDown()
+            nl.orderByWasPushedDown(),
+            true
         );
         assert newJoin.outputs().equals(nl.outputs()) : "Outputs after rewrite must be the same as before";
         return splitQueries.isEmpty() ? newJoin : new Filter(newJoin, AndOperator.join(splitQueries.values()));
