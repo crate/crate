@@ -101,7 +101,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
             isAlias("table_name", isReference("table_name"))
         ));
         assertThat(
-            relation.where().queryOrFallback(),
+            relation.where(),
             isFunction(
                 "op_and",
                 isFunction("op_and"),

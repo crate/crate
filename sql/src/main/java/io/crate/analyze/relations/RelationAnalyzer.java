@@ -28,7 +28,6 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -175,7 +174,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             List.of(childRelation),
             List.of(),
             selectAnalysis.outputSymbols(),
-            WhereClause.MATCH_ALL,
+            Literal.BOOLEAN_TRUE,
             List.of(),
             null,
             analyzeOrderBy(
@@ -332,15 +331,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
 
         boolean isDistinct = node.getSelect().isDistinct();
-        Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
-        WhereClause whereClause = new WhereClause(querySymbol);
-        WhereClauseValidator.validate(whereClause.queryOrFallback());
+        Symbol where = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
+        WhereClauseValidator.validate(where);
         QueriedSelectRelation relation = new QueriedSelectRelation(
             isDistinct,
             List.copyOf(context.sources().values()),
             context.joinPairs(),
             selectAnalysis.outputSymbols(),
-            whereClause,
+            where,
             groupBy,
             analyzeHaving(
                 node.getHaving(),

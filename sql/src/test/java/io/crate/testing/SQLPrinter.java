@@ -27,6 +27,7 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueryClause;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 
@@ -84,9 +85,9 @@ public class SQLPrinter {
         sb.append("SELECT ");
         TESTING_SYMBOL_PRINTER.process(relation.outputs(), sb);
 
-        if (relation.where().hasQuery()) {
+        if (relation.where() != Literal.BOOLEAN_TRUE) {
             sb.append(" WHERE ");
-            TESTING_SYMBOL_PRINTER.process(relation.where().query(), sb);
+            TESTING_SYMBOL_PRINTER.process(relation.where(), sb);
         }
         if (!relation.groupBy().isEmpty()) {
             sb.append(" GROUP BY ");
