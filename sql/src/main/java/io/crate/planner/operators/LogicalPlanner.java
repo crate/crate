@@ -319,7 +319,7 @@ public class LogicalPlanner {
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
             LogicalPlan source = JoinPlanBuilder.buildJoinTree(
                 relation.from(),
-                relation.where().queryOrFallback(),
+                relation.where(),
                 relation.joinPairs(),
                 rel -> {
                     if (relation.from().size() == 1) {
@@ -345,8 +345,8 @@ public class LogicalPlanner {
                             RefVisitor.visitRefs(symbol, addRefIfMatch);
                             FieldsVisitor.visitFields(symbol, addFieldIfMatch);
                         }
-                        FieldsVisitor.visitFields(relation.where().queryOrFallback(), addFieldIfMatch);
-                        RefVisitor.visitRefs(relation.where().queryOrFallback(), addRefIfMatch);
+                        FieldsVisitor.visitFields(relation.where(), addFieldIfMatch);
+                        RefVisitor.visitRefs(relation.where(), addRefIfMatch);
                         for (var joinPair : relation.joinPairs()) {
                             var condition = joinPair.condition();
                             if (condition != null) {

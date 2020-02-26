@@ -45,7 +45,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     private final List<JoinPair> joinPairs;
     private final boolean isDistinct;
     private final List<Symbol> outputs;
-    private final WhereClause whereClause;
+    private final Symbol whereClause;
     private final List<Symbol> groupBy;
     @Nullable
     private final HavingClause having;
@@ -60,7 +60,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
                                  List<AnalyzedRelation> from,
                                  List<JoinPair> joinPairs,
                                  List<Symbol> outputs,
-                                 WhereClause whereClause,
+                                 Symbol whereClause,
                                  List<Symbol> groupBy,
                                  @Nullable HavingClause having,
                                  @Nullable OrderBy orderBy,
@@ -131,7 +131,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         return outputs;
     }
 
-    public WhereClause where() {
+    public Symbol where() {
         return whereClause;
     }
 
@@ -170,26 +170,22 @@ public class QueriedSelectRelation implements AnalyzedRelation {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
-        for (Symbol output : outputs()) {
+        for (Symbol output : outputs) {
             consumer.accept(output);
         }
-        where().accept(consumer);
-        for (Symbol groupKey : groupBy()) {
+        consumer.accept(whereClause);
+        for (Symbol groupKey : groupBy) {
             consumer.accept(groupKey);
         }
-        HavingClause having = having();
         if (having != null) {
             having.accept(consumer);
         }
-        OrderBy orderBy = orderBy();
         if (orderBy != null) {
             orderBy.accept(consumer);
         }
-        Symbol limit = limit();
         if (limit != null) {
             consumer.accept(limit);
         }
-        Symbol offset = offset();
         if (offset != null) {
             consumer.accept(offset);
         }

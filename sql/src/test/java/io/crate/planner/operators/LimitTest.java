@@ -25,6 +25,7 @@ package io.crate.planner.operators;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -57,7 +58,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
                 Collect.create(
                     ((AbstractTableRelation<?>) queriedDocTable.from().get(0)),
                     queriedDocTable.outputs(),
-                    queriedDocTable.where(),
+                    new WhereClause(queriedDocTable.where()),
                     Set.of(),
                     new TableStats(),
                     null
