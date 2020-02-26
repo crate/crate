@@ -28,7 +28,6 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -175,22 +174,20 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             false,
             List.of(childRelation),
             List.of(),
-            new QuerySpec(
-                selectAnalysis.outputSymbols(),
-                WhereClause.MATCH_ALL,
-                List.of(),
-                null,
-                analyzeOrderBy(
-                    selectAnalysis,
-                    node.getOrderBy(),
-                    expressionAnalyzer,
-                    expressionAnalysisContext,
-                    false,
-                    false
-                ),
-                longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
-                longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext)
-            )
+            selectAnalysis.outputSymbols(),
+            WhereClause.MATCH_ALL,
+            List.of(),
+            null,
+            analyzeOrderBy(
+                selectAnalysis,
+                node.getOrderBy(),
+                expressionAnalyzer,
+                expressionAnalysisContext,
+                false,
+                false
+            ),
+            longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
+            longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext)
         );
     }
 
@@ -338,7 +335,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
         WhereClause whereClause = new WhereClause(querySymbol);
         WhereClauseValidator.validate(whereClause.queryOrFallback());
-        QuerySpec querySpec = new QuerySpec(
+        QueriedSelectRelation relation = new QueriedSelectRelation(
+            isDistinct,
+            List.copyOf(context.sources().values()),
+            context.joinPairs(),
             selectAnalysis.outputSymbols(),
             whereClause,
             groupBy,
@@ -358,12 +358,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ),
             longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
             longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext)
-        );
-        QueriedSelectRelation relation = new QueriedSelectRelation(
-            isDistinct,
-            List.copyOf(context.sources().values()),
-            context.joinPairs(),
-            querySpec
         );
         statementContext.endRelation();
         return relation;
