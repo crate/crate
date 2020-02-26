@@ -340,8 +340,8 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGroupByHaving() throws Exception {
         QueriedSelectRelation relation = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
-        assertThat(relation.having().query(), isFunction(LikeOperators.OP_LIKE));
-        Function havingFunction = (Function) relation.having().query();
+        assertThat(relation.having(), isFunction(LikeOperators.OP_LIKE));
+        Function havingFunction = (Function) relation.having();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
@@ -352,22 +352,21 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze(
             "select id as name from users group by id, name having name != null;");
 
-        HavingClause havingClause = relation.having();
-        assertThat(havingClause.query(), isLiteral(null));
+        Symbol havingClause = relation.having();
+        assertThat(havingClause, isLiteral(null));
     }
 
     @Test
     public void testGroupByHavingNormalize() throws Exception {
         QueriedSelectRelation rel = analyze("select sum(floats) from users group by name having 1 > 4");
-        HavingClause having = rel.having();
-        assertThat(having.queryOrFallback(), isLiteral(false));
+        assertThat(rel.having(), isLiteral(false));
     }
 
     @Test
     public void testGroupByHavingOtherColumnInAggregate() throws Exception {
         QueriedSelectRelation relation = analyze("select sum(floats), name from users group by name having max(bytes) = 4");
-        assertThat(relation.having().query(), isFunction("op_="));
-        Function havingFunction = (Function) relation.having().query();
+        assertThat(relation.having(), isFunction("op_="));
+        Function havingFunction = (Function) relation.having();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isFunction("max"));
         Function maxFunction = (Function) havingFunction.arguments().get(0);
@@ -394,8 +393,8 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByHavingByGroupKey() throws Exception {
         QueriedSelectRelation relation = analyze(
             "select sum(floats), name from users group by name having name like 'Slartibart%'");
-        assertThat(relation.having().query(), isFunction(LikeOperators.OP_LIKE));
-        Function havingFunction = (Function) relation.having().query();
+        assertThat(relation.having(), isFunction(LikeOperators.OP_LIKE));
+        Function havingFunction = (Function) relation.having();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
@@ -405,8 +404,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByHavingComplex() throws Exception {
         QueriedSelectRelation relation = analyze("select sum(floats), name from users " +
                                             "group by name having 1=0 or sum(bytes) in (42, 43, 44) and name not like 'Slartibart%'");
-        assertThat(relation.having().hasQuery(), is(true));
-        Function andFunction = (Function) relation.having().query();
+        Function andFunction = (Function) relation.having();
         assertThat(andFunction, is(notNullValue()));
         assertThat(andFunction.info().ident().name(), is("op_and"));
         assertThat(andFunction.arguments().size(), is(2));
@@ -423,7 +421,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "group by name " +
             "having sum(power(power(id::double, id::double), id::double)) > 0");
         assertThat(
-            relation.having().query(),
+            relation.having(),
             isSQL("(sum(power(power(cast(doc.users.id AS double precision), cast(doc.users.id AS double precision)), cast(doc.users.id AS double precision))) > 0.0)")
         );
     }

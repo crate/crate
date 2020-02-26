@@ -22,15 +22,14 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.core.Is.is;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import org.junit.Before;
+import org.junit.Test;
+
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.core.Is.is;
 
 public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
 
@@ -45,7 +44,7 @@ public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
     public void testAddWithNoMatch() {
         WhereClause where1 = WhereClause.NO_MATCH;
         WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
-        WhereClause where1_where2 = where1.add(where2.query);
+        WhereClause where1_where2 = where1.add(where2.query());
 
         assertThat(where1_where2.queryOrFallback(), isLiteral(false));
     }
@@ -54,7 +53,7 @@ public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
     public void testAddWithMatchAll() {
         WhereClause where1 = WhereClause.MATCH_ALL;
         WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
-        WhereClause where1_where2 = where1.add(where2.query);
+        WhereClause where1_where2 = where1.add(where2.query());
 
         assertThat(where1_where2.hasQuery(), is(true));
         assertThat(where1_where2.query(), is(where2.query()));
@@ -64,7 +63,7 @@ public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
     public void testAddWithNullQuery() {
         WhereClause where1 = new WhereClause(null);
         WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
-        WhereClause where1_where2 = where1.add(where2.query);
+        WhereClause where1_where2 = where1.add(where2.query());
 
         assertThat(where1_where2.hasQuery(), is(true));
         assertThat(where1_where2.query(), is(where2.query()));

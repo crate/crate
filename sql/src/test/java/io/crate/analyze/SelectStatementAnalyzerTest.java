@@ -1212,7 +1212,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testGlobalAggregateHaving() throws Exception {
         QueriedSelectRelation relation = analyze("select sum(floats) from users having sum(bytes) in (42, 43, 44)");
-        Function havingFunction = (Function) relation.having().query();
+        Function havingFunction = (Function) relation.having();
 
         // assert that the in was converted to or
         assertThat(havingFunction.info().ident().name(), is(AnyOperators.Names.EQ));
@@ -1709,7 +1709,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "having collect_set(recovery['size']['percent']) != [100.0] " +
             "order by 2, 3");
         assertThat(relation.having(), notNullValue());
-        assertThat(relation.having().query(),
+        assertThat(relation.having(),
             isSQL("(NOT (collect_set(sys.shards.recovery['size']['percent']) = [100.0]))"));
     }
 
@@ -1730,10 +1730,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testUnnestWithMoreThat10Columns() {
         AnalyzedRelation relation =
             analyze("select * from unnest(['a'], ['b'], [0], [0], [0], [0], [0], [0], [0], [0], [0])");
-
-        String sqlFields = "col1, col2, col3, col4, " +
-                           "col5, col6, col7, col8, " +
-                           "col9, col10, col11";
         assertThat(relation.outputs(), contains(
             isReference("col1"),
             isReference("col2"),

@@ -21,7 +21,6 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.Aggregation;
@@ -89,9 +88,9 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         if (orderBy != null) {
             INSTANCE.process(orderBy.orderBySymbols(), context);
         }
-        HavingClause having = relation.having();
-        if (having != null && having.hasQuery()) {
-            having.query().accept(INSTANCE, context);
+        Symbol having = relation.having();
+        if (having != null) {
+            having.accept(INSTANCE, context);
         }
         LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
         for (Function tableFunction : context.tableFunctions) {

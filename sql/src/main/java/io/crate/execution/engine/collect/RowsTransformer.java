@@ -25,7 +25,7 @@ package io.crate.execution.engine.collect;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueryClause;
+import io.crate.analyze.WhereClause;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -57,7 +57,7 @@ public final class RowsTransformer {
                                                RoutedCollectPhase collectPhase,
                                                Iterable<?> iterable,
                                                boolean sort) {
-        if (!QueryClause.canMatch(collectPhase.where())) {
+        if (!WhereClause.canMatch(collectPhase.where())) {
             return Collections.emptyList();
         }
         InputFactory.Context ctx = inputFactory.ctxForRefs(txnCtx, referenceResolver);

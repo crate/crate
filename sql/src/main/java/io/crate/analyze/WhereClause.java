@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.data.Input;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
@@ -33,20 +34,38 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class WhereClause extends QueryClause {
+public class WhereClause {
 
     // Using null here instead of Literal.BOOLEAN_TRUE
     // so that printers can distinguish between explicit `WHERE TRUE` and absence of WHERE
     public static final WhereClause MATCH_ALL = new WhereClause(null);
     public static final WhereClause NO_MATCH = new WhereClause(Literal.BOOLEAN_FALSE);
 
+    public static boolean canMatch(Symbol query) {
+        if (query instanceof Input) {
+            Object value = ((Input<?>) query).value();
+            if (value == null) {
+                return false;
+            }
+            if (value instanceof Boolean) {
+                return (Boolean) value;
+            } else {
+                throw new IllegalArgumentException("Expected query value to be of type `Boolean`, but got: " + value);
+            }
+        }
+        return true;
+    }
+
+    @Nullable
+    private final Symbol query;
     private final Set<Symbol> clusteredBy;
     private final List<String> partitions;
 
     public WhereClause(@Nullable Symbol query) {
-        super(query);
+        this.query = query;
         this.partitions = List.of();
         this.clusteredBy = Set.of();
     }
@@ -54,11 +73,30 @@ public class WhereClause extends QueryClause {
     public WhereClause(@Nullable Symbol normalizedQuery,
                        @Nullable List<String> partitions,
                        Set<Symbol> clusteredBy) {
-        super(normalizedQuery);
         this.clusteredBy = clusteredBy;
         this.partitions = Objects.requireNonNullElse(partitions, List.of());
-        if (query != null) {
+        this.query = normalizedQuery;
+        if (normalizedQuery != null) {
             validateVersioningColumnsUsage();
+        }
+    }
+
+    public boolean hasQuery() {
+        return query != null;
+    }
+
+    @Nullable
+    public Symbol query() {
+        return query;
+    }
+
+    public Symbol queryOrFallback() {
+        return query == null ? Literal.BOOLEAN_TRUE : query;
+    }
+
+    public void accept(Consumer<? super Symbol> consumer) {
+        if (query != null) {
+            consumer.accept(query);
         }
     }
 
