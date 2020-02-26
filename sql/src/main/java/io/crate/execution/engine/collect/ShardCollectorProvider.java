@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.analyze.QueryClause;
+import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -109,7 +109,7 @@ public abstract class ShardCollectorProvider {
             return fusedIterator;
         }
         final BatchIterator<Row> iterator;
-        if (QueryClause.canMatch(normalizedCollectNode.where())) {
+        if (WhereClause.canMatch(normalizedCollectNode.where())) {
             iterator = getUnorderedIterator(normalizedCollectNode, requiresScroll, collectTask);
         } else {
             iterator = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);

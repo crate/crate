@@ -23,7 +23,6 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.Lists;
-import io.crate.analyze.QueryClause;
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -77,7 +76,7 @@ public class NodeStatsCollectSource implements CollectSource {
                                           CollectTask collectTask,
                                           boolean supportMoveToStart) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-        if (!QueryClause.canMatch(collectPhase.where())) {
+        if (!WhereClause.canMatch(collectPhase.where())) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
         Collection<DiscoveryNode> nodes = filterNodes(

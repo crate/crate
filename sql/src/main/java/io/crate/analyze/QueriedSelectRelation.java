@@ -48,7 +48,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     private final Symbol whereClause;
     private final List<Symbol> groupBy;
     @Nullable
-    private final HavingClause having;
+    private final Symbol having;
     @Nullable
     private final OrderBy orderBy;
     @Nullable
@@ -62,7 +62,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
                                  List<Symbol> outputs,
                                  Symbol whereClause,
                                  List<Symbol> groupBy,
-                                 @Nullable HavingClause having,
+                                 @Nullable Symbol having,
                                  @Nullable OrderBy orderBy,
                                  @Nullable Symbol limit,
                                  @Nullable Symbol offset) {
@@ -140,7 +140,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     }
 
     @Nullable
-    public HavingClause having() {
+    public Symbol having() {
         return having;
     }
 
@@ -178,7 +178,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
             consumer.accept(groupKey);
         }
         if (having != null) {
-            having.accept(consumer);
+            consumer.accept(having);
         }
         if (orderBy != null) {
             orderBy.accept(consumer);

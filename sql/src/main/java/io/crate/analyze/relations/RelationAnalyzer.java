@@ -24,7 +24,6 @@ package io.crate.analyze.relations;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
@@ -405,17 +404,18 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return groupBySymbols;
     }
 
-    private HavingClause analyzeHaving(Optional<Expression> having,
-                                       @Nullable List<Symbol> groupBy,
-                                       ExpressionAnalyzer expressionAnalyzer,
-                                       ExpressionAnalysisContext expressionAnalysisContext) {
+    @Nullable
+    private Symbol analyzeHaving(Optional<Expression> having,
+                                 @Nullable List<Symbol> groupBy,
+                                 ExpressionAnalyzer expressionAnalyzer,
+                                 ExpressionAnalysisContext expressionAnalysisContext) {
         if (having.isPresent()) {
             if (!expressionAnalysisContext.hasAggregates() && (groupBy == null || groupBy.isEmpty())) {
                 throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
             }
             Symbol symbol = expressionAnalyzer.convert(having.get(), expressionAnalysisContext);
             HavingSymbolValidator.validate(symbol, groupBy);
-            return new HavingClause(symbol);
+            return symbol;
         }
         return null;
     }

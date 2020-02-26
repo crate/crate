@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueryClause;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.FilterProjection;
@@ -42,18 +41,10 @@ public final class Filter extends ForwardingLogicalPlan {
 
     final Symbol query;
 
-    static LogicalPlan create(LogicalPlan source, @Nullable QueryClause queryClause) {
-        if (queryClause == null) {
+    public static LogicalPlan create(LogicalPlan source, @Nullable Symbol query) {
+        if (query == null) {
             return source;
         }
-        Symbol query = queryClause.queryOrFallback();
-        if (isMatchAll(query)) {
-            return source;
-        }
-        return new Filter(source, query);
-    }
-
-    public static LogicalPlan create(LogicalPlan source, Symbol query) {
         assert query.valueType().equals(DataTypes.BOOLEAN)
             : "query must have a boolean result type, got: " + query.valueType();
         if (isMatchAll(query)) {

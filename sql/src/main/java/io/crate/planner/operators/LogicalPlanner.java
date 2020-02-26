@@ -25,7 +25,6 @@ package io.crate.planner.operators;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
@@ -359,7 +358,6 @@ public class LogicalPlanner {
                 },
                 txnCtx.sessionContext().isHashJoinEnabled()
             );
-            HavingClause having = relation.having();
             return MultiPhase.createIfNeeded(
                 Eval.create(
                     Limit.create(
@@ -374,7 +372,7 @@ public class LogicalPlanner {
                                                 splitPoints.aggregates(),
                                                 tableStats
                                             ),
-                                            having
+                                            relation.having()
                                         ),
                                         splitPoints.windowFunctions()
                                     ),
