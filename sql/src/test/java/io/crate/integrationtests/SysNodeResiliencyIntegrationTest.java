@@ -64,7 +64,7 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
         partition.startDisrupting();
         try {
 
-            execute("select version, hostname, id, name from sys.nodes where name = ?",
+            execute("select version['number'], hostname, id, name from sys.nodes where name = ?",
                 new Object[]{n2},
                 createSessionOnNode(n1));
 

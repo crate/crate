@@ -27,12 +27,11 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.AbstractList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
-public class FsInfo implements Iterable<FsInfo.Path>, Writeable {
+public class FsInfo extends AbstractList<FsInfo.Path> implements Writeable {
 
     public static class Path implements Writeable {
 
@@ -409,7 +408,12 @@ public class FsInfo implements Iterable<FsInfo.Path>, Writeable {
     }
 
     @Override
-    public Iterator<Path> iterator() {
-        return Arrays.stream(paths).iterator();
+    public Path get(int index) {
+        return paths[index];
+    }
+
+    @Override
+    public int size() {
+        return paths.length;
     }
 }

@@ -99,7 +99,7 @@ public class NodeStatsContextFieldResolverTest {
         NodeStatsContext statsContext = resolver.forTopColumnIdents(
             Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
         RowCollectExpressionFactory<NodeStatsContext> expressionFactory =
-            SysNodesTableInfo.expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
+            SysNodesTableInfo.create().expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
         NestableCollectExpression<NodeStatsContext, ?> expression = expressionFactory.create();
 
         NestableCollectExpression http = (NestableCollectExpression) expression.getChild("http");
@@ -118,7 +118,7 @@ public class NodeStatsContextFieldResolverTest {
         NodeStatsContext statsContext = resolver.forTopColumnIdents(
             Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
         RowCollectExpressionFactory<NodeStatsContext> expressionFactory =
-            SysNodesTableInfo.expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
+            SysNodesTableInfo.create().expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
         NestableCollectExpression<NodeStatsContext, ?> expression = expressionFactory.create();
 
         NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("psql");
@@ -137,7 +137,7 @@ public class NodeStatsContextFieldResolverTest {
         NodeStatsContext statsContext = resolver.forTopColumnIdents(
             Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
         RowCollectExpressionFactory<NodeStatsContext> expressionFactory =
-            SysNodesTableInfo.expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
+            SysNodesTableInfo.create().expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
         NestableCollectExpression<NodeStatsContext, ?> expression = expressionFactory.create();
 
         NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("transport");

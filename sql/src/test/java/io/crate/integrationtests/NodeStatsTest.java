@@ -229,7 +229,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
                                " from sys.nodes limit 1");
             assertThat(response.rowCount(), is(1L));
             for (int i = 0; i <= 10; i++) {
-                assertNull(response.rows()[0][i]);
+                assertThat(response.rows()[0][1], Matchers.is(Map.of()));
             }
         }
 

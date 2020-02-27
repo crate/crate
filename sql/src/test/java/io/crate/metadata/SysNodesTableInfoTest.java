@@ -37,7 +37,6 @@ import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Iterator;
 import java.util.List;
 
 import static org.hamcrest.core.Is.is;
@@ -49,17 +48,16 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
      */
     @Test
     public void testRegistered() {
-        SysNodesTableInfo info = new SysNodesTableInfo();
-        ReferenceResolver<?> referenceResolver = new StaticTableReferenceResolver<>(SysNodesTableInfo.expressions());
-        Iterator<Reference> iter = info.iterator();
-        while (iter.hasNext()) {
-            assertNotNull(referenceResolver.getImplementation(iter.next()));
+        var info = SysNodesTableInfo.create();
+        ReferenceResolver<?> referenceResolver = new StaticTableReferenceResolver<>(info.expressions());
+        for (Reference reference : info) {
+            assertNotNull(referenceResolver.getImplementation(reference));
         }
     }
 
     @Test
     public void testCompatibilityVersion() {
-        RowCollectExpressionFactory<NodeStatsContext> sysNodeTableStatws = SysNodesTableInfo.expressions().get(
+        RowCollectExpressionFactory<NodeStatsContext> sysNodeTableStatws = SysNodesTableInfo.create().expressions().get(
             SysNodesTableInfo.Columns.VERSION);
 
         assertThat(sysNodeTableStatws.create().getChild("minimum_index_compatibility_version").value(),
@@ -71,9 +69,9 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_column_that_is_a_child_of_an_array_has_array_type_on_select() {
-        SysNodesTableInfo table = new SysNodesTableInfo();
+        var table = SysNodesTableInfo.create();
         Reference ref = table.getReference(new ColumnIdent("fs", List.of("data", "path")));
-        assertThat(ref.valueType(), is(DataTypes.STRING));
+        assertThat(ref.valueType(), is(new ArrayType<>(DataTypes.STRING)));
 
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
         AnalyzedRelation statement = e.analyze("select fs['data']['path'] from sys.nodes");
@@ -82,8 +80,9 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_fs_data_is_a_object_array() {
-        SysNodesTableInfo table = new SysNodesTableInfo();
+        var table = SysNodesTableInfo.create();
         Reference ref = table.getReference(new ColumnIdent("fs", "data"));
-        assertThat(ref.valueType(), Matchers.is(new ArrayType<>(ObjectType.untyped())));
+        assertThat(ref.valueType().id(), Matchers.is(ArrayType.ID));
+        assertThat(((ArrayType<?>) ref.valueType()).innerType().id(), is(ObjectType.ID));
     }
 }

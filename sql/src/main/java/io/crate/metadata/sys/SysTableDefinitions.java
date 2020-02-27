@@ -33,6 +33,7 @@ import io.crate.expression.reference.sys.shard.ShardSegments;
 import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -119,11 +120,13 @@ public class SysTableDefinitions {
             SysSummitsTableInfo.expressions(),
             false));
 
-        tableDefinitions.put(SysHealthTableInfo.IDENT, new StaticTableDefinition<>(
+        SystemTable<TableHealth> sysHealth = SysHealth.create();
+        tableDefinitions.put(SysHealth.IDENT, new StaticTableDefinition<>(
             tableHealthService::computeResults,
-            SysHealthTableInfo.expressions(),
+            sysHealth.expressions(),
             (user, tableHealth) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableHealth.fqn()),
-            true));
+            true)
+        );
         tableDefinitions.put(SysMetricsTableInfo.NAME, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.metrics()),
             SysMetricsTableInfo.expressions(localNode),

@@ -26,6 +26,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import io.crate.common.StringUtils;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.sql.Identifiers;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -410,6 +411,14 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
             return name;
         } else {
             return path.get(path.size() - 1);
+        }
+    }
+
+    public ColumnIdent append(String childName) {
+        if (path.isEmpty()) {
+            return new ColumnIdent(name, childName);
+        } else {
+            return new ColumnIdent(name, Lists2.concat(path, childName));
         }
     }
 }

@@ -47,7 +47,7 @@ public class SysSchemaInfo implements SchemaInfo {
     public SysSchemaInfo(ClusterService clusterService, CrateSettings crateSettings, LicenseService licenseService) {
         tableInfos = new HashMap<>();
         tableInfos.put(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService, crateSettings, licenseService));
-        tableInfos.put(SysNodesTableInfo.IDENT.name(), new SysNodesTableInfo());
+        tableInfos.put(SysNodesTableInfo.IDENT.name(), SysNodesTableInfo.create());
         tableInfos.put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo());
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
         tableInfos.put(SysJobsTableInfo.IDENT.name(), new SysJobsTableInfo(localNode));
@@ -60,7 +60,7 @@ public class SysSchemaInfo implements SchemaInfo {
         tableInfos.put(SysSnapshotsTableInfo.IDENT.name(), new SysSnapshotsTableInfo());
         tableInfos.put(SysSummitsTableInfo.IDENT.name(), new SysSummitsTableInfo());
         tableInfos.put(SysAllocationsTableInfo.IDENT.name(), new SysAllocationsTableInfo());
-        tableInfos.put(SysHealthTableInfo.IDENT.name(), new SysHealthTableInfo());
+        tableInfos.put(SysHealth.IDENT.name(), SysHealth.create());
         tableInfos.put(SysMetricsTableInfo.NAME.name(), new SysMetricsTableInfo(localNode));
         tableInfos.put(SysSegmentsTableInfo.IDENT.name(), new SysSegmentsTableInfo(clusterService::localNode));
         tableInfos.put(SysMetricsTableInfo.NAME.name(), new SysMetricsTableInfo(clusterService::localNode));

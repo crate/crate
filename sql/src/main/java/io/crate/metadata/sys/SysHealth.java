@@ -20,25 +20,28 @@
  * agreement.
  */
 
-package io.crate.expression.reference.sys.node;
+package io.crate.metadata.sys;
 
-import org.elasticsearch.monitor.process.ProcessStats;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 
-class NodeProcessCpuStatsExpression extends NestedNodeStatsExpression {
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
 
-    private static final String PERCENT = "percent";
+public class SysHealth {
 
-    NodeProcessCpuStatsExpression() {
-        childImplementations.put(PERCENT, new SimpleNodeStatsExpression<Short>() {
-            @Override
-            public Short innerValue(NodeStatsContext nodeStatsContext) {
-                ProcessStats.Cpu cpuStats = nodeStatsContext.processStats().getCpu();
-                if (cpuStats != null) {
-                    return cpuStats.getPercent();
-                } else {
-                    return -1;
-                }
-            }
-        });
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "health");
+
+    static SystemTable<TableHealth> create() {
+        return SystemTable.<TableHealth>builder()
+            .add("table_name", STRING, TableHealth::getTableName)
+            .add("table_schema", STRING, TableHealth::getTableSchema)
+            .add("partition_ident", STRING, TableHealth::getPartitionIdent)
+            .add("health", STRING, TableHealth::getHealth)
+            .add("severity", SHORT, TableHealth::getSeverity)
+            .add("missing_shards", LONG, TableHealth::getMissingShards)
+            .add("underreplicated_shards", LONG, TableHealth::getUnderreplicatedShards)
+            .build(IDENT);
     }
 }
