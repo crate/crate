@@ -220,9 +220,8 @@ public class ExpressionAnalyzer {
         return expression.accept(innerAnalyzer, expressionAnalysisContext);
     }
 
-    @Nullable
     public Symbol generateQuerySymbol(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
-        return whereExpression.map(expression -> convert(expression, context)).orElse(null);
+        return whereExpression.map(expression -> convert(expression, context)).orElse(Literal.BOOLEAN_TRUE);
     }
 
     private Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {

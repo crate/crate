@@ -24,12 +24,9 @@ package io.crate.analyze.relations;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QuerySpec;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -175,22 +172,20 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             false,
             List.of(childRelation),
             List.of(),
-            new QuerySpec(
-                selectAnalysis.outputSymbols(),
-                WhereClause.MATCH_ALL,
-                List.of(),
-                null,
-                analyzeOrderBy(
-                    selectAnalysis,
-                    node.getOrderBy(),
-                    expressionAnalyzer,
-                    expressionAnalysisContext,
-                    false,
-                    false
-                ),
-                longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
-                longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext)
-            )
+            selectAnalysis.outputSymbols(),
+            Literal.BOOLEAN_TRUE,
+            List.of(),
+            null,
+            analyzeOrderBy(
+                selectAnalysis,
+                node.getOrderBy(),
+                expressionAnalyzer,
+                expressionAnalysisContext,
+                false,
+                false
+            ),
+            longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
+            longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext)
         );
     }
 
@@ -335,12 +330,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
 
         boolean isDistinct = node.getSelect().isDistinct();
-        Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
-        WhereClause whereClause = new WhereClause(querySymbol);
-        WhereClauseValidator.validate(whereClause.queryOrFallback());
-        QuerySpec querySpec = new QuerySpec(
+        Symbol where = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
+        WhereClauseValidator.validate(where);
+        QueriedSelectRelation relation = new QueriedSelectRelation(
+            isDistinct,
+            List.copyOf(context.sources().values()),
+            context.joinPairs(),
             selectAnalysis.outputSymbols(),
-            whereClause,
+            where,
             groupBy,
             analyzeHaving(
                 node.getHaving(),
@@ -358,12 +355,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ),
             longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
             longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext)
-        );
-        QueriedSelectRelation relation = new QueriedSelectRelation(
-            isDistinct,
-            List.copyOf(context.sources().values()),
-            context.joinPairs(),
-            querySpec
         );
         statementContext.endRelation();
         return relation;
@@ -413,17 +404,18 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return groupBySymbols;
     }
 
-    private HavingClause analyzeHaving(Optional<Expression> having,
-                                       @Nullable List<Symbol> groupBy,
-                                       ExpressionAnalyzer expressionAnalyzer,
-                                       ExpressionAnalysisContext expressionAnalysisContext) {
+    @Nullable
+    private Symbol analyzeHaving(Optional<Expression> having,
+                                 @Nullable List<Symbol> groupBy,
+                                 ExpressionAnalyzer expressionAnalyzer,
+                                 ExpressionAnalysisContext expressionAnalysisContext) {
         if (having.isPresent()) {
             if (!expressionAnalysisContext.hasAggregates() && (groupBy == null || groupBy.isEmpty())) {
                 throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
             }
             Symbol symbol = expressionAnalyzer.convert(having.get(), expressionAnalysisContext);
             HavingSymbolValidator.validate(symbol, groupBy);
-            return new HavingClause(symbol);
+            return symbol;
         }
         return null;
     }

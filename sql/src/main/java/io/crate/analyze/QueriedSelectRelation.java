@@ -43,18 +43,40 @@ public class QueriedSelectRelation implements AnalyzedRelation {
 
     private final List<AnalyzedRelation> from;
     private final List<JoinPair> joinPairs;
-    private final QuerySpec querySpec;
     private final boolean isDistinct;
+    private final List<Symbol> outputs;
+    private final Symbol whereClause;
+    private final List<Symbol> groupBy;
+    @Nullable
+    private final Symbol having;
+    @Nullable
+    private final OrderBy orderBy;
+    @Nullable
+    private final Symbol offset;
+    @Nullable
+    private final Symbol limit;
 
     public QueriedSelectRelation(boolean isDistinct,
                                  List<AnalyzedRelation> from,
                                  List<JoinPair> joinPairs,
-                                 QuerySpec querySpec) {
+                                 List<Symbol> outputs,
+                                 Symbol whereClause,
+                                 List<Symbol> groupBy,
+                                 @Nullable Symbol having,
+                                 @Nullable OrderBy orderBy,
+                                 @Nullable Symbol limit,
+                                 @Nullable Symbol offset) {
+        this.outputs = outputs;
+        this.whereClause = whereClause;
+        this.groupBy = groupBy;
+        this.having = having;
+        this.orderBy = orderBy;
+        this.offset = offset;
+        this.limit = limit;
         assert from.size() >= 1 : "QueriedSelectRelation must have at least 1 relation in FROM";
         this.isDistinct = isDistinct;
         this.from = from;
         this.joinPairs = joinPairs;
-        this.querySpec = querySpec;
     }
 
     public List<AnalyzedRelation> from() {
@@ -106,35 +128,35 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     @Nonnull
     @Override
     public List<Symbol> outputs() {
-        return querySpec.outputs();
+        return outputs;
     }
 
-    public WhereClause where() {
-        return querySpec.where();
+    public Symbol where() {
+        return whereClause;
     }
 
     public List<Symbol> groupBy() {
-        return querySpec.groupBy();
+        return groupBy;
     }
 
     @Nullable
-    public HavingClause having() {
-        return querySpec.having();
+    public Symbol having() {
+        return having;
     }
 
     @Nullable
     public OrderBy orderBy() {
-        return querySpec.orderBy();
+        return orderBy;
     }
 
     @Nullable
     public Symbol limit() {
-        return querySpec.limit();
+        return limit;
     }
 
     @Nullable
     public Symbol offset() {
-        return querySpec.offset();
+        return offset;
     }
 
     @Override
@@ -148,26 +170,22 @@ public class QueriedSelectRelation implements AnalyzedRelation {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
-        for (Symbol output : outputs()) {
+        for (Symbol output : outputs) {
             consumer.accept(output);
         }
-        where().accept(consumer);
-        for (Symbol groupKey : groupBy()) {
+        consumer.accept(whereClause);
+        for (Symbol groupKey : groupBy) {
             consumer.accept(groupKey);
         }
-        HavingClause having = having();
         if (having != null) {
-            having.accept(consumer);
+            consumer.accept(having);
         }
-        OrderBy orderBy = orderBy();
         if (orderBy != null) {
             orderBy.accept(consumer);
         }
-        Symbol limit = limit();
         if (limit != null) {
             consumer.accept(limit);
         }
-        Symbol offset = offset();
         if (offset != null) {
             consumer.accept(offset);
         }

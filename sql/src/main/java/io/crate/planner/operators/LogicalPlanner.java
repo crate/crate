@@ -25,7 +25,6 @@ package io.crate.planner.operators;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
@@ -319,7 +318,7 @@ public class LogicalPlanner {
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
             LogicalPlan source = JoinPlanBuilder.buildJoinTree(
                 relation.from(),
-                relation.where().queryOrFallback(),
+                relation.where(),
                 relation.joinPairs(),
                 rel -> {
                     if (relation.from().size() == 1) {
@@ -345,8 +344,8 @@ public class LogicalPlanner {
                             RefVisitor.visitRefs(symbol, addRefIfMatch);
                             FieldsVisitor.visitFields(symbol, addFieldIfMatch);
                         }
-                        FieldsVisitor.visitFields(relation.where().queryOrFallback(), addFieldIfMatch);
-                        RefVisitor.visitRefs(relation.where().queryOrFallback(), addRefIfMatch);
+                        FieldsVisitor.visitFields(relation.where(), addFieldIfMatch);
+                        RefVisitor.visitRefs(relation.where(), addRefIfMatch);
                         for (var joinPair : relation.joinPairs()) {
                             var condition = joinPair.condition();
                             if (condition != null) {
@@ -359,7 +358,6 @@ public class LogicalPlanner {
                 },
                 txnCtx.sessionContext().isHashJoinEnabled()
             );
-            HavingClause having = relation.having();
             return MultiPhase.createIfNeeded(
                 Eval.create(
                     Limit.create(
@@ -374,7 +372,7 @@ public class LogicalPlanner {
                                                 splitPoints.aggregates(),
                                                 tableStats
                                             ),
-                                            having
+                                            relation.having()
                                         ),
                                         splitPoints.windowFunctions()
                                     ),

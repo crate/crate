@@ -23,10 +23,10 @@
 package io.crate.testing;
 
 import com.google.common.collect.Ordering;
-import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueryClause;
+import io.crate.analyze.WhereClause;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 
@@ -50,10 +50,10 @@ public class SQLPrinter {
             return print((Collection<Symbol>) o);
         } else if (o == null) {
             return "null";
-        } else if (o instanceof QueryClause) {
-            QueryClause queryClause = (QueryClause) o;
+        } else if (o instanceof WhereClause) {
+            WhereClause queryClause = (WhereClause) o;
             if (queryClause.hasQuery()) {
-                return print(((QueryClause) o).query());
+                return print(queryClause.query());
             }
         }
         return o.toString();
@@ -84,18 +84,18 @@ public class SQLPrinter {
         sb.append("SELECT ");
         TESTING_SYMBOL_PRINTER.process(relation.outputs(), sb);
 
-        if (relation.where().hasQuery()) {
+        if (relation.where() != Literal.BOOLEAN_TRUE) {
             sb.append(" WHERE ");
-            TESTING_SYMBOL_PRINTER.process(relation.where().query(), sb);
+            TESTING_SYMBOL_PRINTER.process(relation.where(), sb);
         }
         if (!relation.groupBy().isEmpty()) {
             sb.append(" GROUP BY ");
             TESTING_SYMBOL_PRINTER.process(relation.groupBy(), sb);
         }
-        HavingClause having = relation.having();
+        Symbol having = relation.having();
         if (having != null) {
             sb.append(" HAVING ");
-            TESTING_SYMBOL_PRINTER.process(having.query(), sb);
+            TESTING_SYMBOL_PRINTER.process(having, sb);
         }
         OrderBy orderBy = relation.orderBy();
         if (orderBy != null) {

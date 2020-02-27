@@ -149,7 +149,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 DocTableRelation docTableRelation = (DocTableRelation) queriedRelation.from().get(0);
                 WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
                     new EvaluatingNormalizer(getFunctions(), RowGranularity.CLUSTER, null, docTableRelation),
-                    queriedRelation.where().queryOrFallback(),
+                    queriedRelation.where(),
                     docTableRelation.tableInfo(),
                     coordinatorTxnCtx
                 );
@@ -161,7 +161,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     coordinatorTxnCtx
                 );
             }
-            return queriedRelation.where();
+            return new WhereClause(queriedRelation.where());
         } else {
             return WhereClause.MATCH_ALL;
         }

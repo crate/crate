@@ -54,7 +54,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void testSingleRowSubselectInWhereClause() throws Exception {
         QueriedSelectRelation relation = e.analyze("select * from t1 where x = (select y from t2)");
-        assertThat(relation.where().query(),
+        assertThat(relation.where(),
             isSQL("(doc.t1.x = SelectSymbol{integer_array})"));
     }
 
@@ -62,7 +62,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     public void testSingleRowSubselectInWhereClauseNested() throws Exception {
         QueriedSelectRelation relation = e.analyze(
             "select a from t1 where x = (select y from t2 where y = (select z from t3))");
-        assertThat(relation.where().query(),
+        assertThat(relation.where(),
             isSQL("(doc.t1.x = SelectSymbol{integer_array})"));
     }
 
@@ -96,8 +96,8 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     public void testMatchPredicateWithSingleRowSubselect() throws Exception {
         QueriedSelectRelation relation = e.analyze(
             "select * from users where match(shape 1.2, (select shape from users limit 1))");
-        assertThat(relation.where().query(), instanceOf(MatchPredicate.class));
-        MatchPredicate match = (MatchPredicate) relation.where().queryOrFallback();
+        assertThat(relation.where(), instanceOf(MatchPredicate.class));
+        MatchPredicate match = (MatchPredicate) relation.where();
         assertThat(match.identBoostMap(), hasEntry(isReference("shape"), isLiteral(1.2)));
         assertThat(match.queryTerm(), instanceOf(SelectSymbol.class));
         assertThat(match.matchType(), is("intersects"));
@@ -106,18 +106,18 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void testLikeSupportsSubQueries() {
         QueriedSelectRelation relation = e.analyze("select * from users where name like (select 'foo')");
-        assertThat(relation.where().query(),
+        assertThat(relation.where(),
             isSQL("(doc.users.name LIKE SelectSymbol{text_array})"));
     }
 
     @Test
     public void testAnySupportsSubQueries() {
         QueriedSelectRelation relation = e.analyze("select * from users where (select 'bar') = ANY (tags)");
-        assertThat(relation.where().query(),
+        assertThat(relation.where(),
             isSQL("(SelectSymbol{text_array} = ANY(doc.users.tags))"));
 
         relation = e.analyze("select * from users where 'bar' = ANY (select 'bar')");
-        assertThat(relation.where().query(),
+        assertThat(relation.where(),
             isSQL("('bar' = ANY(SelectSymbol{text_array}))"));
     }
 }

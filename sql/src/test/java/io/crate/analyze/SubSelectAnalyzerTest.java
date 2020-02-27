@@ -194,7 +194,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) relation.from().get(1);
         QueriedSelectRelation t2sub = (QueriedSelectRelation) t2Alias.relation();
-        assertThat(t2sub.where().query(), isFunction("op_>", isReference("b"), isLiteral("10")));
+        assertThat(t2sub.where(), isFunction("op_>", isReference("b"), isLiteral("10")));
     }
 
     @Test
@@ -205,18 +205,18 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  "where t1.a > 50 and t2.b > 100 " +
                                                  "order by 2 limit 10");
         assertThat(relation.outputs(), contains(isField("a"), isField("i"), isField("b"), isField("i")));
-        assertThat(relation.where().queryOrFallback(), isSQL("((t1.a > '50') AND (t2.b > '100'))"));
+        assertThat(relation.where(), isSQL("((t1.a > '50') AND (t2.b > '100'))"));
         assertThat(relation.orderBy().orderBySymbols(), contains(isField("i")));
         assertThat(relation.limit(), isLiteral(10L));
 
         AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) relation.from().get(0);
         QueriedSelectRelation t1 = ((QueriedSelectRelation) t1Alias.relation());
-        assertThat(t1.where().queryOrFallback(), isSQL("true"));
+        assertThat(t1.where(), isSQL("true"));
         assertThat(t1.orderBy(), isSQL("doc.t1.a"));
 
         AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) relation.from().get(1);
         QueriedSelectRelation t2 = ((QueriedSelectRelation) t2Alias.relation());
-        assertThat(t2.where().query(), isFunction("op_>", isReference("b"), isLiteral("10")));
+        assertThat(t2.where(), isFunction("op_>", isReference("b"), isLiteral("10")));
         assertThat(t2.orderBy(), Matchers.nullValue());
     }
 
@@ -229,7 +229,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  "on t1.i = t2.i where t1.ma > 50 and t2.mb > 100");
         assertThat(relation.outputs(), isSQL("t1.ma, t1.i, t2.mb, t2.i"));
         assertThat(relation.joinPairs().get(0).condition(), isSQL("(t1.i = t2.i)"));
-        assertThat(relation.where().queryOrFallback(), isSQL("((t1.ma > '50') AND (t2.mb > '100'))"));
+        assertThat(relation.where(), isSQL("((t1.ma > '50') AND (t2.mb > '100'))"));
 
         AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) relation.from().get(0);
         QueriedSelectRelation t1Sel = (QueriedSelectRelation) t1Alias.relation();
