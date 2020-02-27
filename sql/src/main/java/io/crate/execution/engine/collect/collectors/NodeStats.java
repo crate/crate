@@ -38,6 +38,7 @@ import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.Reference;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.action.ActionListener;
@@ -50,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -90,6 +92,7 @@ public final class NodeStats {
         private final Collection<DiscoveryNode> nodes;
         private final TransactionContext txnCtx;
         private final InputFactory inputFactory;
+        private final Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> expressions;
 
         LoadNodeStats(TransportNodeStatsAction nodeStatsAction,
                       RoutedCollectPhase collectPhase,
@@ -101,12 +104,13 @@ public final class NodeStats {
             this.nodes = nodes;
             this.txnCtx = txnCtx;
             this.inputFactory = inputFactory;
+            this.expressions = SysNodesTableInfo.create().expressions();
         }
 
         @Override
         public CompletableFuture<Iterable<Row>> get() {
             StaticTableReferenceResolver<NodeStatsContext> referenceResolver =
-                new StaticTableReferenceResolver<>(SysNodesTableInfo.expressions());
+                new StaticTableReferenceResolver<>(expressions);
             return getNodeStatsContexts()
                 .thenApply(result -> RowsTransformer.toRowsIterable(txnCtx, inputFactory, referenceResolver, collectPhase, result));
         }

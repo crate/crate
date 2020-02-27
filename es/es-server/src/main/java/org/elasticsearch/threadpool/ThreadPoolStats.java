@@ -23,12 +23,14 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.AbstractList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class ThreadPoolStats implements Writeable, Iterable<ThreadPoolStats.Stats> {
+public class ThreadPoolStats extends AbstractList<ThreadPoolStats.Stats> implements Writeable {
 
     public static class Stats implements Writeable, Comparable<Stats> {
 
@@ -134,7 +136,18 @@ public class ThreadPoolStats implements Writeable, Iterable<ThreadPoolStats.Stat
     }
 
     @Override
+    public Stats get(int index) {
+        return stats.get(index);
+    }
+
+    @Override
+    @Nonnull
     public Iterator<Stats> iterator() {
         return stats.iterator();
+    }
+
+    @Override
+    public int size() {
+        return stats.size();
     }
 }

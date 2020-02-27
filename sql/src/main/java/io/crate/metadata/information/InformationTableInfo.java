@@ -21,10 +21,8 @@
 
 package io.crate.metadata.information;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -35,12 +33,6 @@ import org.elasticsearch.cluster.ClusterState;
 
 
 public abstract class InformationTableInfo<T> extends StaticTableInfo<T> {
-
-    InformationTableInfo(RelationName ident,
-                         ColumnRegistrar<T> columnRegistrar,
-                         ImmutableList<ColumnIdent> primaryKey) {
-        super(ident, columnRegistrar, primaryKey);
-    }
 
     InformationTableInfo(RelationName ident,
                          ColumnRegistrar<T> columnRegistrar,

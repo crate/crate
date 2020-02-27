@@ -64,7 +64,6 @@ public class PgClassTable extends StaticTableInfo<RelationInfo> {
         return columnRegistrar.expressions();
     }
 
-    @SuppressWarnings({"unchecked"})
     private static ColumnRegistrar<RelationInfo> columnRegistrar(TableStats tableStats) {
         return new ColumnRegistrar<RelationInfo>(IDENT, RowGranularity.DOC)
             .register("oid", INTEGER, () -> forFunction(OidHash::relationOid))
@@ -98,7 +97,7 @@ public class PgClassTable extends StaticTableInfo<RelationInfo> {
             .register("relispartition", BOOLEAN, () -> constant(false))
             .register("relfrozenxid", INTEGER,() -> constant(0))
             .register("relminmxid", INTEGER, () -> constant(0))
-            .register("relacl", new ArrayType(ObjectType.untyped()), () -> constant(null))
+            .register("relacl", new ArrayType<>(ObjectType.untyped()), () -> constant(null))
             .register("reloptions", STRING_ARRAY, () -> constant(null))
             .register("relpartbound", ObjectType.untyped(), () -> constant(null));
     }

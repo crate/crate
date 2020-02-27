@@ -31,6 +31,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
@@ -47,8 +48,6 @@ import java.util.Map;
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class NodeStatsCollectSourceTest extends CrateUnitTest {
 
@@ -64,34 +63,7 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
 
     private List<DiscoveryNode> filterNodes(String where) throws NoSuchFieldException, IllegalAccessException {
         // build where clause with id = ?
-        SysNodesTableInfo tableInfo = mock(SysNodesTableInfo.class);
-        when(tableInfo.ident()).thenReturn(new RelationName("sys", "nodes"));
-        when(tableInfo.getReadReference(new ColumnIdent("id"))).thenReturn(
-            new Reference(new ReferenceIdent(new RelationName("sys", "nodes"), "id"),
-                          RowGranularity.DOC,
-                          DataTypes.STRING,
-                          null,
-                          null));
-        when(tableInfo.getReadReference(SysNodesTableInfo.Columns.NAME)).thenReturn(
-            new Reference(
-                new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.NAME),
-                RowGranularity.DOC,
-                DataTypes.STRING,
-                null,
-                null
-            )
-        );
-        when(tableInfo.getReadReference(SysNodesTableInfo.Columns.HOSTNAME)).thenReturn(
-            new Reference(
-                new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
-                RowGranularity.DOC,
-                DataTypes.STRING,
-                null,
-                null
-            )
-        );
-
-
+        TableInfo tableInfo = SysNodesTableInfo.create();
         TableRelation tableRelation = new TableRelation(tableInfo);
         Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);

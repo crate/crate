@@ -21,51 +21,19 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.expression.reference.ObjectCollectExpression;
-import io.crate.expression.reference.sys.node.NodeHeapStatsExpression;
-import io.crate.expression.reference.sys.node.NodeLoadStatsExpression;
-import io.crate.expression.reference.sys.node.NodeMemoryStatsExpression;
-import io.crate.expression.reference.sys.node.NodeNetworkStatsExpression;
-import io.crate.expression.reference.sys.node.NodeOsInfoStatsExpression;
-import io.crate.expression.reference.sys.node.NodeOsStatsExpression;
-import io.crate.expression.reference.sys.node.NodePortStatsExpression;
-import io.crate.expression.reference.sys.node.NodeProcessStatsExpression;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
-import io.crate.expression.reference.sys.node.NodeStatsThreadPoolExpression;
-import io.crate.expression.reference.sys.node.NodeThreadPoolsExpression;
-import io.crate.expression.reference.sys.node.NodeVersionStatsExpression;
-import io.crate.expression.reference.sys.node.SimpleNodeStatsExpression;
-import io.crate.expression.reference.sys.node.fs.NodeFsStatsExpression;
-import io.crate.expression.reference.sys.node.fs.NodeFsTotalStatsExpression;
-import io.crate.expression.reference.sys.node.fs.NodeStatsFsArrayExpression;
-import io.crate.expression.reference.sys.node.fs.NodeStatsFsDataExpression;
-import io.crate.expression.reference.sys.node.fs.NodeStatsFsDisksExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
+import io.crate.metadata.SystemTable;
 import io.crate.monitor.FsInfoHelpers;
-import io.crate.protocols.ConnectionStats;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.http.HttpStats;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.monitor.fs.FsInfo;
+import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 
-import java.util.Map;
 
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.DOUBLE;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
@@ -73,11 +41,9 @@ import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
 
-public class SysNodesTableInfo extends StaticTableInfo<NodeStatsContext> {
+public class SysNodesTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "nodes");
-
-    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     private static final String SYS_COL_ID = "id";
     private static final String SYS_COL_NODE_NAME = "name";
@@ -128,323 +94,163 @@ public class SysNodesTableInfo extends StaticTableInfo<NodeStatsContext> {
         public static final ColumnIdent FS = new ColumnIdent(SYS_COL_FS);
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> expressions() {
-        return columnRegistrar().expressions();
-    }
 
-    private static ObjectCollectExpression<NodeStatsContext> createConnectionsExpression() {
-        return new ObjectCollectExpression<>(
-            ImmutableMap.of(
-                "http",
-                new ObjectCollectExpression<NodeStatsContext>(
-                    ImmutableMap.of(
-                        "open",
-                        NestableCollectExpression.<NodeStatsContext, HttpStats>withNullableProperty(
-                            NodeStatsContext::httpStats,
-                            HttpStats::getServerOpen),
-                        "total",
-                        NestableCollectExpression.<NodeStatsContext, HttpStats>withNullableProperty(
-                            NodeStatsContext::httpStats,
-                            HttpStats::getTotalOpen)
-                    )
-                ),
-                "psql",
-                new ObjectCollectExpression<NodeStatsContext>(
-                    ImmutableMap.of(
-                        "open",
-                        NestableCollectExpression.<NodeStatsContext, ConnectionStats>withNullableProperty(
-                            NodeStatsContext::psqlStats,
-                            ConnectionStats::open),
-                        "total",
-                        NestableCollectExpression.<NodeStatsContext, ConnectionStats>withNullableProperty(
-                            NodeStatsContext::psqlStats,
-                            ConnectionStats::total)
-                    )
-                ),
-                "transport",
-                new ObjectCollectExpression<NodeStatsContext>(
-                    ImmutableMap.of(
-                        "open",
-                        forFunction(NodeStatsContext::openTransportConnections)
-                    )
-                )
-            )
-        );
-    }
-
-    @SuppressWarnings({"unchecked"})
-    private static ColumnRegistrar<NodeStatsContext> columnRegistrar() {
-        return new ColumnRegistrar<NodeStatsContext>(IDENT, GRANULARITY)
-            .register("id", STRING, () -> forFunction(NodeStatsContext::id))
-            .register("name", STRING, () -> forFunction(NodeStatsContext::name))
-            .register("hostname", STRING, () -> forFunction(r -> r.isComplete() ? r.hostname() : null))
-            .register("rest_url", STRING, () -> forFunction(r -> r.isComplete() ? r.restUrl() : null))
-
-            .register("port", ObjectType.builder()
-                .setInnerType("http", INTEGER)
-                .setInnerType("transport", INTEGER)
-                .setInnerType("psql", INTEGER)
-                .build(), NodePortStatsExpression::new)
-
-            .register("load", ObjectType.builder()
-                .setInnerType("1", DOUBLE)
-                .setInnerType("5", DOUBLE)
-                .setInnerType("15", DOUBLE)
-                .setInnerType("probe_timestamp", TIMESTAMPZ)
-                .build(), NodeLoadStatsExpression::new)
-
-            .register("mem", ObjectType.builder()
-                .setInnerType("free", LONG)
-                .setInnerType("used", LONG)
-                .setInnerType("free_percent", SHORT)
-                .setInnerType("used_percent", SHORT)
-                .setInnerType("probe_timestamp", TIMESTAMPZ)
-                .build(), NodeMemoryStatsExpression::new)
-
-            .register("heap", ObjectType.builder()
-                .setInnerType("free", LONG)
-                .setInnerType("used", LONG)
-                .setInnerType("max", LONG)
-                .setInnerType("probe_timestamp", TIMESTAMPZ)
-                .build(), NodeHeapStatsExpression::new)
-
-            .register("version", ObjectType.builder()
-                .setInnerType("number", STRING)
-                .setInnerType("build_hash", STRING)
-                .setInnerType("build_snapshot", DataTypes.BOOLEAN)
-                .setInnerType("minimum_index_compatibility_version", STRING)
-                .setInnerType("minimum_wire_compatibility_version", STRING)
-                .build(), NodeVersionStatsExpression::new)
-
-            .register("cluster_state_version", LONG, () -> new SimpleNodeStatsExpression<Long>() {
-                @Override
-                public Long innerValue(NodeStatsContext nodeStatsContext) {
-                    return nodeStatsContext.clusterStateVersion();
-                }
-            })
-
-            .register("thread_pools", "name", STRING, () -> new NodeStatsThreadPoolExpression<String>() {
-                @Override
-                protected String valueForItem(ThreadPoolStats.Stats input) {
-                    return input.getName();
-                }
-            })
-
-            .register("thread_pools", new ArrayType<>(ObjectType.untyped()), NodeThreadPoolsExpression::new)
-
-            .register("thread_pools", "active", INTEGER, () -> new NodeStatsThreadPoolExpression<Integer>() {
-                @Override
-                protected Integer valueForItem(ThreadPoolStats.Stats stats) {
-                    return stats.getActive();
-                }
-            })
-            .register("thread_pools", "rejected", LONG, () -> new NodeStatsThreadPoolExpression<Long>() {
-                @Override
-                protected Long valueForItem(ThreadPoolStats.Stats stats) {
-                    return stats.getRejected();
-                }
-            })
-            .register("thread_pools","largest", INTEGER, () -> new NodeStatsThreadPoolExpression<Integer>() {
-                @Override
-                protected Integer valueForItem(ThreadPoolStats.Stats stats) {
-                    return stats.getLargest();
-                }
-            })
-            .register("thread_pools", "completed", LONG, () -> new NodeStatsThreadPoolExpression<Long>() {
-                @Override
-                protected Long valueForItem(ThreadPoolStats.Stats stats) {
-                    return stats.getCompleted();
-                }
-            })
-            .register("thread_pools", "threads", INTEGER, () -> new NodeStatsThreadPoolExpression<Integer>() {
-                @Override
-                protected Integer valueForItem(ThreadPoolStats.Stats stats) {
-                    return stats.getThreads();
-                }
-            })
-            .register("thread_pools","queue", INTEGER, () -> new NodeStatsThreadPoolExpression<Integer>() {
-                @Override
-                protected Integer valueForItem(ThreadPoolStats.Stats stats) {
-                    return stats.getQueue();
-                }
-            })
-
-            .register("network", ObjectType.builder()
-                .setInnerType("probe_timestamp", TIMESTAMPZ)
-                .setInnerType("tcp", ObjectType.builder()
-                    .setInnerType("connections", ObjectType.builder()
-                        .setInnerType("initiated", LONG)
-                        .setInnerType("accepted", LONG)
-                        .setInnerType("curr_established", LONG)
-                        .setInnerType("dropped", LONG)
-                        .setInnerType("embryonic_dropped", LONG)
-                        .build())
-                    .setInnerType("packets", ObjectType.builder()
-                        .setInnerType("sent", LONG)
-                        .setInnerType("received", LONG)
-                        .setInnerType("retransmitted", LONG)
-                        .setInnerType("errors_received", LONG)
-                        .setInnerType("rst_sent", LONG)
-                        .build())
-                    .build())
-                .build(), NodeNetworkStatsExpression::new)
-
-            .register("connections", ObjectType.builder()
-                .setInnerType("http", ObjectType.builder()
-                    .setInnerType("open", LONG)
-                    .setInnerType("total", LONG)
-                    .build())
-                .setInnerType("psql", ObjectType.builder()
-                    .setInnerType("open", LONG)
-                    .setInnerType("total", LONG)
-                    .build())
-                .setInnerType("transport", ObjectType.builder()
-                    .setInnerType("open", LONG)
-                    .build())
-                .build(),SysNodesTableInfo::createConnectionsExpression)
-
-            .register("os", ObjectType.builder()
-                .setInnerType("uptime", LONG)
-                .setInnerType("timestamp", TIMESTAMPZ)
-                .setInnerType("probe_timestamp", TIMESTAMPZ)
-                .setInnerType("cpu", ObjectType.builder()
-                    .setInnerType("used", SHORT)
-                    .build())
-                .setInnerType("cgroup", ObjectType.builder()
-                    .setInnerType("cpuacct", ObjectType.builder()
-                        .setInnerType("control_group", STRING)
-                        .setInnerType("usage_nanos", LONG)
-                        .build())
-                    .setInnerType("cpu", ObjectType.builder()
-                        .setInnerType("control_group", STRING)
-                        .setInnerType("cfs_period_micros", LONG)
-                        .setInnerType("cfs_quota_micros", LONG)
-                        .setInnerType("num_elapsed_periods", LONG)
-                        .setInnerType("num_times_throttled", LONG)
-                        .setInnerType("time_throttled_nanos", LONG)
-                        .build())
-                    .setInnerType("mem", ObjectType.builder()
-                        .setInnerType("control_group", STRING)
-                        .setInnerType("limit_bytes", STRING)
-                        .setInnerType("usage_bytes", STRING)
-                        .build())
-                    .build())
-                .build(), NodeOsStatsExpression::new)
-
-            .register("os_info", ObjectType.builder()
-                .setInnerType("available_processors", INTEGER)
-                .setInnerType("name", STRING)
-                .setInnerType("arch", STRING)
-                .setInnerType("version", STRING)
-                .setInnerType("jvm", ObjectType.builder()
-                    .setInnerType("version", STRING)
-                    .setInnerType("vm_name", STRING)
-                    .setInnerType("vm_vendor", STRING)
-                    .setInnerType("vm_version", STRING)
-                    .build())
-                .build(), NodeOsInfoStatsExpression::new)
-
-            .register("process", ObjectType.builder()
-                .setInnerType("open_file_descriptors", LONG)
-                .setInnerType("max_open_file_descriptors", LONG)
-                .setInnerType("probe_timestamp", TIMESTAMPZ)
-                .setInnerType("cpu", ObjectType.builder()
-                    .setInnerType("percent", SHORT)
-                    .build())
-                .build(), NodeProcessStatsExpression::new)
-
-            .register("fs", ObjectType.builder()
-                .setInnerType("total", ObjectType.builder()
-                    .setInnerType("size", LONG)
-                    .setInnerType("used", LONG)
-                    .setInnerType("available", LONG)
-                    .setInnerType("reads", LONG)
-                    .setInnerType("bytes_read", LONG)
-                    .setInnerType("writes", LONG)
-                    .setInnerType("bytes_written", LONG)
-                    .build())
-                .setInnerType("disks", new ArrayType<>(ObjectType.builder()
-                                                         .setInnerType("dev", STRING)
-                                                         .setInnerType("size", LONG)
-                                                         .setInnerType("used", LONG)
-                                                         .setInnerType("available", LONG)
-                                                         .build()))
-                .setInnerType("data", new ArrayType<>(ObjectType.builder()
-                                                        .setInnerType("dev", STRING)
-                                                        .setInnerType("path", STRING)
-                                                        .build()))
-                .build(), NodeFsStatsExpression::new)
-
-            .register("fs", "total", ObjectType.untyped(), NodeFsTotalStatsExpression::new)
-            .register("fs", ImmutableList.of("total", "size"), LONG,
-                () -> forFunction((NodeStatsContext r) -> r.isComplete() ? FsInfoHelpers.Path.size(r.fsInfo().getTotal()) : null))
-            .register("fs", ImmutableList.of("total", "used"), LONG,
-                () -> forFunction((NodeStatsContext r) -> r.isComplete() ? FsInfoHelpers.Path.used(r.fsInfo().getTotal()) : null))
-            .register("fs", ImmutableList.of("total", "available"), LONG,
-                () -> forFunction((NodeStatsContext r) -> r.isComplete() ? FsInfoHelpers.Path.available(r.fsInfo().getTotal()) : null))
-            .register("fs", ImmutableList.of("total", "reads"), LONG,
-                () -> forFunction((NodeStatsContext r) -> r.isComplete() ? FsInfoHelpers.Stats.readOperations(r.fsInfo().getIoStats()) : null))
-            .register("fs", ImmutableList.of("total", "bytes_read"), LONG,
-                () -> forFunction((NodeStatsContext r) -> r.isComplete() ? FsInfoHelpers.Stats.bytesRead(r.fsInfo().getIoStats()) : null))
-            .register("fs", ImmutableList.of("total", "writes"), LONG,
-                () -> forFunction((NodeStatsContext r) -> r.isComplete() ? FsInfoHelpers.Stats.writeOperations(r.fsInfo().getIoStats()) : null))
-            .register("fs", ImmutableList.of("total", "bytes_written"), LONG,
-                () -> forFunction((NodeStatsContext r) -> r.isComplete() ? FsInfoHelpers.Stats.bytesWritten(r.fsInfo().getIoStats()) : null))
-            .register("fs", ImmutableList.of("disks"), new ArrayType<>(ObjectType.untyped()), NodeStatsFsDisksExpression::new)
-            .register("fs", ImmutableList.of("disks", "dev"), DataTypes.STRING, () -> new NodeStatsFsArrayExpression<String>() {
-                @Override
-                protected String valueForItem(FsInfo.Path input) {
-                    return FsInfoHelpers.Path.dev(input);
-                }
-            })
-            .register("fs", ImmutableList.of("disks", "size"), LONG, () -> new NodeStatsFsArrayExpression<Long>() {
-                @Override
-                protected Long valueForItem(FsInfo.Path input) {
-                    return FsInfoHelpers.Path.size(input);
-                }
-            })
-            .register("fs", ImmutableList.of("disks", "used"), LONG, () -> new NodeStatsFsArrayExpression<Long>() {
-                @Override
-                protected Long valueForItem(FsInfo.Path input) {
-                    return FsInfoHelpers.Path.used(input);
-                }
-            })
-            .register("fs", ImmutableList.of("disks", "available"), LONG, () -> new NodeStatsFsArrayExpression<Long>() {
-                @Override
-                protected Long valueForItem(FsInfo.Path input) {
-                    return FsInfoHelpers.Path.available(input);
-                }
-            })
-            .register("fs","data", new ArrayType<>(ObjectType.untyped()), NodeStatsFsDataExpression::new)
-            .register("fs", ImmutableList.of("data", "dev"), DataTypes.STRING, () -> new NodeStatsFsArrayExpression<String>() {
-                @Override
-                protected String valueForItem(FsInfo.Path input) {
-                    return FsInfoHelpers.Path.dev(input);
-                }
-            })
-            .register("fs", ImmutableList.of("data", "path"), DataTypes.STRING, () -> new NodeStatsFsArrayExpression<String>() {
-                @Override
-                protected String valueForItem(FsInfo.Path input) {
-                    return input.getPath();
-                }
-            });
-    }
-
-    public SysNodesTableInfo() {
-        super(IDENT, columnRegistrar(), "id");
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return GRANULARITY;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState clusterState,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
+    public static SystemTable<NodeStatsContext> create() {
+        return SystemTable.<NodeStatsContext>builder()
+            .add("id", STRING, NodeStatsContext::id)
+            .add("name", STRING, NodeStatsContext::name)
+            .add("hostname", STRING, NodeStatsContext::hostname)
+            .add("rest_url", STRING, NodeStatsContext::restUrl)
+            .startObject("port")
+                .add("http", INTEGER, NodeStatsContext::httpPort)
+                .add("transport", INTEGER, NodeStatsContext::transportPort)
+                .add("psql", INTEGER, NodeStatsContext::pgPort)
+            .endObject()
+            .startObject("load")
+                .add("1", DOUBLE, x -> x.extendedOsStats().loadAverage()[0])
+                .add("5", DOUBLE, x -> x.extendedOsStats().loadAverage()[1])
+                .add("15", DOUBLE, x -> x.extendedOsStats().loadAverage()[2])
+                .add("probe_timestamp", TIMESTAMPZ, x -> x.extendedOsStats().timestamp())
+            .endObject()
+            .startObject("mem")
+                .add("free", LONG, x -> x.osStats().getMem().getFree().getBytes())
+                .add("used", LONG, x -> x.osStats().getMem().getUsed().getBytes())
+                .add("free_percent", SHORT, x -> x.osStats().getMem().getFreePercent())
+                .add("used_percent", SHORT, x -> x.osStats().getMem().getUsedPercent())
+                .add("probe_timestamp", TIMESTAMPZ, x -> x.osStats().getTimestamp())
+            .endObject()
+            .startObject("heap")
+                .add("free", LONG, x -> {
+                    JvmStats.Mem mem = x.jvmStats().getMem();
+                    return mem.getHeapMax().getBytes() - mem.getHeapUsed().getBytes();
+                })
+                .add("used", LONG, x -> x.jvmStats().getMem().getHeapUsed().getBytes())
+                .add("max", LONG, x -> x.jvmStats().getMem().getHeapMax().getBytes())
+                .add("probe_timestamp", TIMESTAMPZ, x -> x.jvmStats().getTimestamp())
+            .endObject()
+            .startObject("version")
+                .add("number", STRING, x -> x.version().externalNumber())
+                .add("build_hash", STRING, x -> x.build().hash())
+                .add("build_snapshot", DataTypes.BOOLEAN, x -> x.version().isSnapshot())
+                .add("minimum_index_compatibility_version", STRING, x -> Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber())
+                .add("minimum_wire_compatibility_version", STRING, x -> Version.CURRENT.minimumCompatibilityVersion().externalNumber())
+            .endObject()
+            .add("cluster_state_version", LONG, NodeStatsContext::clusterStateVersion)
+            .startObjectArray("thread_pools", NodeStatsContext::threadPools)
+                .add("name", STRING, ThreadPoolStats.Stats::getName)
+                .add("active", INTEGER, ThreadPoolStats.Stats::getActive)
+                .add("rejected", LONG, ThreadPoolStats.Stats::getRejected)
+                .add("largest", INTEGER, ThreadPoolStats.Stats::getLargest)
+                .add("completed", LONG, ThreadPoolStats.Stats::getCompleted)
+                .add("threads", INTEGER, ThreadPoolStats.Stats::getThreads)
+                .add("queue", INTEGER, ThreadPoolStats.Stats::getQueue)
+            .endObjectArray()
+            .startObject("network")
+                .add("probe_timestamp", TIMESTAMPZ, x -> 0L)
+                .startObject("tcp")
+                    .startObject("connections")
+                        .add("initiated", LONG, x -> 0L)
+                        .add("accepted", LONG, x -> 0L)
+                        .add("curr_established", LONG, x -> 0L)
+                        .add("dropped", LONG, x -> 0L)
+                        .add("embryonic_dropped", LONG, x -> 0L)
+                    .endObject()
+                    .startObject("packets")
+                        .add("sent", LONG, x -> 0L)
+                        .add("received", LONG, x -> 0L)
+                        .add("retransmitted", LONG, x -> 0L)
+                        .add("errors_received", LONG, x -> 0L)
+                        .add("rst_sent", LONG, x -> 0L)
+                    .endObject()
+                .endObject()
+            .endObject()
+            .startObject("connections")
+                .startObject("http")
+                    .add("open", LONG, x -> x.httpStats().getServerOpen())
+                    .add("total", LONG, x -> x.httpStats().getTotalOpen())
+                .endObject()
+                .startObject("psql")
+                    .add("open", LONG, x -> x.psqlStats().open())
+                    .add("total", LONG, x -> x.psqlStats().total())
+                .endObject()
+                .startObject("transport")
+                    .add("open", LONG, NodeStatsContext::openTransportConnections)
+                .endObject()
+            .endObject()
+            .startObject("os")
+                .add("uptime", LONG, x -> x.extendedOsStats().uptime().millis())
+                .add("timestamp", TIMESTAMPZ, NodeStatsContext::timestamp)
+                .add("probe_timestamp", TIMESTAMPZ, x -> x.extendedOsStats().timestamp())
+                .startObject("cpu")
+                    .add("used", SHORT, x -> (short) -1)
+                    .add("system", SHORT, x -> (short) - 1)
+                    .add("user", SHORT, x -> (short) -1)
+                .endObject()
+                .startObject("cgroup")
+                    .startObject("cpuacct")
+                        .add("control_group", STRING, x -> x.extendedOsStats().osStats().getCgroup().getCpuAcctControlGroup())
+                        .add("usage_nanos", LONG, x -> x.extendedOsStats().osStats().getCgroup().getCpuAcctUsageNanos())
+                    .endObject()
+                    .startObject("cpu")
+                        .add("control_group", STRING, x -> x.extendedOsStats().osStats().getCgroup().getCpuControlGroup())
+                        .add("cfs_period_micros", LONG, x -> x.extendedOsStats().osStats().getCgroup().getCpuCfsPeriodMicros())
+                        .add("cfs_quota_micros", LONG, x -> x.extendedOsStats().osStats().getCgroup().getCpuCfsQuotaMicros())
+                        .add("num_elapsed_periods", LONG,
+                            x -> x.extendedOsStats().osStats().getCgroup().getCpuStat().getNumberOfElapsedPeriods())
+                        .add("num_times_throttled", LONG,
+                            x -> x.extendedOsStats().osStats().getCgroup().getCpuStat().getNumberOfTimesThrottled())
+                        .add("time_throttled_nanos", LONG,
+                            x -> x.extendedOsStats().osStats().getCgroup().getCpuStat().getTimeThrottledNanos())
+                    .endObject()
+                    .startObject("mem")
+                        .add("control_group", STRING, x -> x.extendedOsStats().osStats().getCgroup().getMemoryControlGroup())
+                        .add("limit_bytes", STRING, x -> x.extendedOsStats().osStats().getCgroup().getMemoryLimitInBytes())
+                        .add("usage_bytes", STRING, x -> x.extendedOsStats().osStats().getCgroup().getMemoryUsageInBytes())
+                    .endObject()
+                .endObject()
+            .endObject()
+            .startObject("os_info")
+                .add("available_processors", INTEGER, x -> x.osInfo().getAvailableProcessors())
+                .add("name", STRING, NodeStatsContext::osName)
+                .add("arch", STRING, NodeStatsContext::osArch)
+                .add("version", STRING, NodeStatsContext::osVersion)
+                .startObject("jvm")
+                    .add("version", STRING, NodeStatsContext::javaVersion)
+                    .add("vm_name", STRING, NodeStatsContext::jvmName)
+                    .add("vm_vendor", STRING, NodeStatsContext::jvmVendor)
+                    .add("vm_version", STRING, NodeStatsContext::jvmVersion)
+                .endObject()
+            .endObject()
+            .startObject("process")
+                .add("open_file_descriptors", LONG, x -> x.processStats().getOpenFileDescriptors())
+                .add("max_open_file_descriptors", LONG, x -> x.processStats().getMaxFileDescriptors())
+                .add("probe_timestamp", TIMESTAMPZ, x -> x.processStats().getTimestamp())
+                .startObject("cpu")
+                    .add("percent", SHORT, x -> x.processStats().getCpu().getPercent())
+                .endObject()
+            .endObject()
+            .startObject("fs")
+                .startObject("total")
+                    .add("size", LONG, x -> FsInfoHelpers.Path.size(x.fsInfo().getTotal()))
+                    .add("used", LONG, x -> FsInfoHelpers.Path.used(x.fsInfo().getTotal()))
+                    .add("available", LONG, x -> FsInfoHelpers.Path.available(x.fsInfo().getTotal()))
+                    .add("reads", LONG, x -> FsInfoHelpers.Stats.readOperations(x.fsInfo().getIoStats()))
+                    .add("bytes_read", LONG, x -> FsInfoHelpers.Stats.bytesRead(x.fsInfo().getIoStats()))
+                    .add("writes", LONG, x -> FsInfoHelpers.Stats.writeOperations(x.fsInfo().getIoStats()))
+                    .add("bytes_written", LONG, x -> FsInfoHelpers.Stats.bytesWritten(x.fsInfo().getIoStats()))
+                .endObject()
+                .startObjectArray("disks", NodeStatsContext::fsInfo)
+                    .add("dev", STRING, FsInfoHelpers.Path::dev)
+                    .add("size", LONG, FsInfoHelpers.Path::size)
+                    .add("used", LONG, FsInfoHelpers.Path::used)
+                    .add("available", LONG, FsInfoHelpers.Path::available)
+                .endObjectArray()
+                .startObjectArray("data", NodeStatsContext::fsInfo)
+                    .add("dev", STRING, FsInfoHelpers.Path::dev)
+                    .add("path", STRING, FsInfo.Path::getPath)
+                .endObjectArray()
+            .endObject()
+            .setPrimaryKeys(new ColumnIdent("id"))
+            .build(IDENT);
     }
 }
