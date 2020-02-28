@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.exceptions.ConversionException;
 import org.junit.Test;
 
 import java.util.List;
@@ -31,16 +30,14 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testTooFewArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: concat(text)");
-        assertNormalize("concat('foo')", null);
+    public void testOneArgument() {
+        assertNormalize("concat('foo')", isLiteral("foo"));
     }
 
     @Test
     public void testArgumentThatHasNoStringRepr() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint_array`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: concat(text, bigint_array)");
         assertNormalize("concat('foo', [1])", null);
     }
 
@@ -71,6 +68,11 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testNumberAndString() {
+        assertNormalize("concat(3, 2, 'foo')", isLiteral("32foo"));
+    }
+
+    @Test
     public void testTwoArrays() throws Exception {
         assertNormalize("concat([1, 2], [2, 3])", isLiteral(List.of(1L, 2L, 2L, 3L)));
     }
@@ -82,15 +84,16 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTwoArraysOfIncompatibleInnerTypes() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `_array(1, 2)` of type `bigint_array` to type `text`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: concat(bigint_array, bigint_array_array)");
         assertNormalize("concat([1, 2], [[1, 2]])", null);
     }
 
     @Test
     public void testTwoArraysOfUndefinedTypes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
+        expectedException.expectMessage(
+            "When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
         assertNormalize("concat([], [])", null);
     }
 

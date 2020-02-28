@@ -21,28 +21,19 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.base.Preconditions;
 import io.crate.data.Input;
-import io.crate.exceptions.ConversionException;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Locale;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public abstract class ConcatFunction extends Scalar<String, String> {
 
@@ -50,7 +41,44 @@ public abstract class ConcatFunction extends Scalar<String, String> {
     private FunctionInfo functionInfo;
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
+        module.register(
+            Signature.builder()
+                .name(NAME)
+                .kind(FunctionInfo.Type.SCALAR)
+                .argumentTypes(parseTypeSignature("text"), parseTypeSignature("text"))
+                .returnType(parseTypeSignature("text"))
+                .setVariableArity(false)
+                .build(),
+            args -> new StringConcatFunction(
+                new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING)
+            )
+        );
+
+        module.register(
+            Signature.builder()
+                .name(NAME)
+                .kind(FunctionInfo.Type.SCALAR)
+                .argumentTypes(parseTypeSignature("text"))
+                .returnType(parseTypeSignature("text"))
+                .setVariableArity(true)
+                .build(),
+            args -> new GenericConcatFunction(
+                new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING)
+            )
+        );
+
+        // concat(array[], array[]) -> same as `array_cat(...)`
+        module.register(
+            Signature.builder()
+                .name(NAME)
+                .kind(FunctionInfo.Type.SCALAR)
+                .typeVariableConstraints(typeVariable("E"))
+                .argumentTypes(parseTypeSignature("array(E)"), parseTypeSignature("array(E)"))
+                .returnType(parseTypeSignature("array(E)"))
+                .setVariableArity(false)
+                .build(),
+            args -> new ArrayCatFunction(ArrayCatFunction.createInfo(args))
+        );
     }
 
     ConcatFunction(FunctionInfo functionInfo) {
@@ -114,62 +142,6 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 }
             }
             return sb.toString();
-        }
-    }
-
-    private static class Resolver implements FunctionResolver {
-
-        private static final FuncParams STRINGS = FuncParams
-            .builder(Param.STRING, Param.STRING)
-            .withVarArgs(Param.STRING)
-            .build();
-        private static final FuncParams ARRAYS = FuncParams
-            .builder(
-                Param.of(new ArrayType<>(DataTypes.UNDEFINED)).withInnerType(Param.ANY),
-                Param.of(new ArrayType<>(DataTypes.UNDEFINED)).withInnerType(Param.ANY)
-            )
-            .build();
-
-        @Nullable
-        @Override
-        public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
-            try {
-                return STRINGS.match(funcArgs);
-            } catch (ConversionException e1) {
-                try {
-                    return ARRAYS.match(funcArgs);
-                } catch (ConversionException e2) {
-                    throw e1; // prefer error message with casts to string instead of casts to arrays
-                }
-            }
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            if (dataTypes.size() == 2 && dataTypes.get(0).equals(DataTypes.STRING) &&
-                       dataTypes.get(1).equals(DataTypes.STRING)) {
-                return new StringConcatFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.STRING));
-            } else if (dataTypes.size() == 2 && dataTypes.get(0) instanceof ArrayType &&
-                       dataTypes.get(1) instanceof ArrayType) {
-
-                DataType innerType0 = ((ArrayType) dataTypes.get(0)).innerType();
-                DataType innerType1 = ((ArrayType) dataTypes.get(1)).innerType();
-
-                Preconditions.checkArgument(
-                    !innerType0.equals(DataTypes.UNDEFINED) || !innerType1.equals(DataTypes.UNDEFINED),
-                    "When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
-
-                if (!innerType0.equals(DataTypes.UNDEFINED)) {
-                    Preconditions.checkArgument(innerType1.isConvertableTo(innerType0),
-                        String.format(Locale.ENGLISH,
-                            "Second argument's inner type (%s) of the array_cat function cannot be converted to the first argument's inner type (%s)",
-                            innerType1, innerType0));
-                }
-
-                return new ArrayCatFunction(ArrayCatFunction.createInfo(dataTypes));
-            } else {
-                return new GenericConcatFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.STRING));
-            }
         }
     }
 }

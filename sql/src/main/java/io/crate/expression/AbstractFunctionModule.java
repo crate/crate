@@ -22,14 +22,17 @@
 
 package io.crate.expression;
 
+import io.crate.metadata.FuncResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionResolver;
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractFunctionModule<T extends FunctionImplementation> extends AbstractModule {
@@ -38,6 +41,9 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
     private Map<FunctionName, FunctionResolver> resolver = new HashMap<>();
     private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
     private MapBinder<FunctionName, FunctionResolver> resolverBinder;
+
+    private HashMap<FunctionName, List<FuncResolver>> functionImplementations = new HashMap<>();
+    private MapBinder<FunctionName, List<FuncResolver>> implementationsBinder;
 
     public void register(T impl) {
         functions.put(impl.info().ident(), impl);
@@ -69,5 +75,17 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
         // clear registration maps
         functions = null;
         resolver = null;
+
+        // V2
+        implementationsBinder = MapBinder.newMapBinder(
+            binder(),
+            new TypeLiteral<FunctionName>() {},
+            new TypeLiteral<List<FuncResolver>>() {});
+        for (Map.Entry<FunctionName, List<FuncResolver>> entry : functionImplementations.entrySet()) {
+            implementationsBinder.addBinding(entry.getKey()).toProvider(entry::getValue);
+        }
+
+        // clear registration maps
+        functionImplementations = null;
     }
 }

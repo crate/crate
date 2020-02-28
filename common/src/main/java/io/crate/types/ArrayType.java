@@ -60,6 +60,16 @@ public class ArrayType<T> extends DataType<List<T>> {
         return arrayType;
     }
 
+    @Override
+    public TypeSignature getTypeSignature() {
+        return new TypeSignature(NAME, List.of(innerType.getTypeSignature()));
+    }
+
+    @Override
+    public List<DataType<?>> getTypeParameters() {
+        return List.of(innerType);
+    }
+
     /**
      * Defaults to the {@link ArrayStreamer} but subclasses may override this method.
      */

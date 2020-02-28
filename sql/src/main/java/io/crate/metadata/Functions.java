@@ -25,14 +25,19 @@ package io.crate.metadata;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.FuncArg;
+import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.SignatureBinder;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
+import io.crate.types.TypeSignature;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,12 +50,20 @@ public class Functions {
 
     private final Map<FunctionName, FunctionResolver> functionResolvers;
     private final Map<FunctionName, FunctionResolver> udfResolvers = new ConcurrentHashMap<>();
+    private final Map<FunctionName, List<FuncResolver>> functionImplementations;
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
-                     Map<FunctionName, FunctionResolver> functionResolvers) {
+                     Map<FunctionName, FunctionResolver> functionResolvers,
+                     Map<FunctionName, List<FuncResolver>> functionImplementationsBySignature) {
         this.functionResolvers = Maps.newHashMap(functionResolvers);
         this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
+        this.functionImplementations = functionImplementationsBySignature;
+    }
+
+    public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
+                     Map<FunctionName, FunctionResolver> functionResolvers) {
+        this(functionImplementations, functionResolvers, Collections.emptyMap());
     }
 
     public Map<FunctionName, FunctionResolver> functionResolvers() {
@@ -60,6 +73,7 @@ public class Functions {
     public Map<FunctionName, FunctionResolver> udfFunctionResolvers() {
         return udfResolvers;
     }
+
 
     private Map<FunctionName, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
         Multimap<FunctionName, Tuple<FunctionIdent, FunctionImplementation>> signatures = getSignatures(functionImplementations);
@@ -150,6 +164,16 @@ public class Functions {
      */
     @Nullable
     private FunctionImplementation getBuiltin(FunctionName functionName, List<DataType> dataTypes) {
+        // Try new signature registry first
+        FunctionImplementation impl = resolveFunctionBySignature(
+            functionName,
+            dataTypes,
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
+        if (impl != null) {
+            return impl;
+        }
+
         FunctionResolver resolver = functionResolvers.get(functionName);
         if (resolver == null) {
             return null;
@@ -169,12 +193,50 @@ public class Functions {
     private FunctionImplementation getBuiltinByArgs(FunctionName functionName,
                                                     List<? extends FuncArg> argumentsTypes,
                                                     SearchPath searchPath) {
+        // V2
+        FunctionImplementation impl = resolveFunctionBySignature(
+            functionName,
+            Lists2.map(argumentsTypes, FuncArg::valueType),
+            searchPath
+        );
+        if (impl != null) {
+            return impl;
+        }
+
         FunctionResolver resolver = lookupFunctionResolver(functionName, searchPath, functionResolvers::get);
         if (resolver == null) {
             return null;
         }
         return resolveFunctionForArgumentTypes(argumentsTypes, resolver);
     }
+
+    @Nullable
+    private FunctionImplementation resolveFunctionBySignature(FunctionName name,
+                                                              List<DataType> arguments,
+                                                              SearchPath searchPath) {
+        var candidates = functionImplementations.get(name);
+        if (candidates == null && name.schema() == null) {
+            for (String pathSchema : searchPath) {
+                FunctionName searchPathFunctionName = new FunctionName(pathSchema, name.name());
+                candidates = functionImplementations.get(searchPathFunctionName);
+                if (candidates != null) {
+                    break;
+                }
+            }
+        }
+        if (candidates != null) {
+            for (FuncResolver candidate : candidates) {
+                Signature boundSignature = new SignatureBinder(candidate.getSignature(), true)
+                    .bind(arguments);
+                if (boundSignature != null) {
+                    // TODO: check for more specific function
+                    return candidate.apply(Lists2.map(boundSignature.getArgumentTypes(), TypeSignature::createType));
+                }
+            }
+        }
+        return null;
+    }
+
 
     /**
      * Returns the user-defined function implementation for the given function name and argTypes.

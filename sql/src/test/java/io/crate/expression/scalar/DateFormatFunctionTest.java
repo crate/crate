@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataTypes;
@@ -122,8 +123,8 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testInvalidTimestamp() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Text 'NO TIMESTAMP' could not be parsed");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast `'NO TIMESTAMP'` of type `text` to type `timestamp with time zone`");
         assertEvaluate("date_format('%d.%m.%Y', 'NO TIMESTAMP')", null);
     }
 

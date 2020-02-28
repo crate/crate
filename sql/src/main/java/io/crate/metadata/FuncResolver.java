@@ -20,38 +20,31 @@
  * agreement.
  */
 
-package io.crate.expression.scalar.arithmetic;
+package io.crate.metadata;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import org.junit.Test;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.function.Function;
 
-public class MapFunctionTest extends AbstractScalarFunctionsTest {
+public class FuncResolver implements Function<List<DataType>, FunctionImplementation> {
 
-    @Test
-    public void testMapWithWrongNumOfArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: _map(text, bigint, text)");
-        assertEvaluate("_map('foo', 1, 'bar')", null);
+    private final Signature signature;
+    private final Function<List<DataType>, FunctionImplementation> factory;
+
+    public FuncResolver(Signature signature,
+                        Function<List<DataType>, FunctionImplementation> factory) {
+        this.signature = signature;
+        this.factory = factory;
     }
 
-    @Test
-    public void testKeyNotOfTypeString() {
-        assertEvaluate("_map(10, 2)", Collections.singletonMap("10", 2L));
+    public Signature getSignature() {
+        return signature;
     }
 
-    @Test
-    public void testEvaluation() {
-        Map<String, Object> m = new HashMap<>();
-        m.put("foo", 10L);
-        // minimum args
-        assertEvaluate("_map('foo', 10)", m);
-
-        // variable args
-        m.put("bar", "some");
-        assertEvaluate("_map('foo', 10, 'bar', 'some')", m);
+    @Override
+    public FunctionImplementation apply(List<DataType> dataTypes) {
+        return factory.apply(dataTypes);
     }
 }
