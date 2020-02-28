@@ -137,6 +137,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could lead to a ``Values less than -1 bytes are not
+  supported`` error, if one or more CrateDB nodes have few disk space
+  available.
+
 - Fixed an issue that would cause ``COPY FROM`` statements that used a HTTPS
   source using a Let's Encrypt certificate to fail.
 
