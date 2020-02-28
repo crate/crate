@@ -61,20 +61,20 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_cat(bigint_array)");
+        expectedException.expectMessage("unknown function: array_cat(array(bigint))");
         assertEvaluate("array_cat([1])", null);
     }
 
     @Test
     public void testThreeArguments() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The number of arguments is incorrect");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: array_cat(array(bigint), array(bigint), array(bigint))");
         assertEvaluate("array_cat([1], [2], [3])", null);
     }
 
     @Test
     public void testDifferentConvertableInnerTypes() throws Exception {
-        assertEvaluate("array_cat([1::integer], [1::long])", Arrays.asList(1, 1));
+        assertEvaluate("array_cat([1::integer], [1::long])", Arrays.asList(1L, 1L));
     }
 
     @Test
@@ -111,7 +111,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEmptyArrays() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("One of the arguments of the array_cat function can be of undefined inner type, but not both");
+        expectedException.expectMessage("When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
         assertNormalize("array_cat([], [])", null);
     }
 }

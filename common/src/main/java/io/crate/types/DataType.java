@@ -26,7 +26,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -82,6 +84,14 @@ public abstract class DataType<T> implements Comparable, Writeable {
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
 
     public abstract int compareValueTo(T val1, T val2);
+
+    public TypeSignature getTypeSignature() {
+        return new TypeSignature(getName());
+    }
+
+    public List<DataType<?>> getTypeParameters() {
+        return Collections.emptyList();
+    }
 
     /**
      * Returns true if this DataType precedes the supplied DataType.
