@@ -43,9 +43,6 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
-import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.AllocationCommands;
-import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -662,8 +659,12 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         Map<String, DiskUsage> usages = new HashMap<>();
         usages.put("node2", new DiskUsage("node2", "n2", "/dev/null", 100, 50)); // 50% used
         usages.put("node3", new DiskUsage("node3", "n3", "/dev/null", 100, 0));  // 100% used
-
-        Double after = decider.freeDiskPercentageAfterShardAssigned(new DiskUsage("node2", "n2", "/dev/null", 100, 30), 11L);
+        Double after = decider.freeDiskPercentageAfterShardAssigned(
+            new DiskThresholdDecider.DiskUsageWithRelocations(
+                new DiskUsage("node2", "n2", "/dev/null", 100, 30), 0L
+            ),
+            11L
+        );
         assertThat(after, equalTo(19.0));
     }
 
@@ -953,6 +954,37 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                     rn.shardsWithState(INITIALIZING),
                     rn.shardsWithState(RELOCATING),
                     rn.shardsWithState(STARTED));
+    }
+
+    @Test
+    public void testDiskUsageWithRelocations() {
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), 0).getFreeBytes(),
+                   equalTo(1000L));
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), 9).getFreeBytes(),
+                   equalTo(991L));
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), -9).getFreeBytes(),
+                   equalTo(1009L));
+
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), 0)
+                       .getFreeDiskAsPercentage(), equalTo(100.0));
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 500L), 0)
+                       .getFreeDiskAsPercentage(), equalTo(50.0));
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 500L), 100)
+                       .getFreeDiskAsPercentage(), equalTo(40.0));
+
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), 0)
+                       .getUsedDiskAsPercentage(), equalTo(0.0));
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 500L), 0)
+                       .getUsedDiskAsPercentage(), equalTo(50.0));
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 500L), 100)
+                       .getUsedDiskAsPercentage(), equalTo(60.0));
+
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(
+            new DiskUsage("n", "n", "/dev/null", Long.MAX_VALUE, Long.MAX_VALUE), 0).getFreeBytes(), equalTo(Long.MAX_VALUE));
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(
+            new DiskUsage("n", "n", "/dev/null", Long.MAX_VALUE, Long.MAX_VALUE), 10).getFreeBytes(), equalTo(Long.MAX_VALUE - 10));
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(
+            new DiskUsage("n", "n", "/dev/null", Long.MAX_VALUE, Long.MAX_VALUE), -10).getFreeBytes(), equalTo(Long.MAX_VALUE));
     }
 
     /**
