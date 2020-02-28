@@ -32,6 +32,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -255,5 +256,27 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             out.writeString(entry.getKey());
             DataTypes.toStream(entry.getValue(), out);
         }
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        ArrayList<TypeSignature> parameters = new ArrayList<>(innerTypes.size() * 2);
+        for (var type : innerTypes.values()) {
+            // all keys are of type 'text'
+            parameters.add(StringType.INSTANCE.getTypeSignature());
+            parameters.add(type.getTypeSignature());
+        }
+        return new TypeSignature(NAME, parameters);
+    }
+
+    @Override
+    public List<DataType<?>> getTypeParameters() {
+        ArrayList<DataType<?>> parameters = new ArrayList<>(innerTypes.size() * 2);
+        for (var type : innerTypes.values()) {
+            // all keys are of type 'text'
+            parameters.add(StringType.INSTANCE);
+            parameters.add(type);
+        }
+        return parameters;
     }
 }

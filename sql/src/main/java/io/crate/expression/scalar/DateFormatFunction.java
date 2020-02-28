@@ -21,12 +21,14 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimestampType;
@@ -34,6 +36,9 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.List;
+import java.util.function.Function;
+
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class DateFormatFunction extends Scalar<String, Object> {
 
@@ -41,24 +46,50 @@ public class DateFormatFunction extends Scalar<String, Object> {
     public static final String DEFAULT_FORMAT = "%Y-%m-%dT%H:%i:%s.%fZ";
 
     public static void register(ScalarFunctionModule module) {
+        FunctionName name = new FunctionName(null, NAME);
+        Function<List<DataType>, FunctionImplementation> functionFactory = args -> new DateFormatFunction(
+            new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING)
+        );
+
         List<DataType> supportedTimestampTypes = List.of(
             DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
         for (DataType dataType : supportedTimestampTypes) {
             // without format
-            module.register(new DateFormatFunction(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.of(dataType)),
-                DataTypes.STRING)
-            ));
+            module.register(
+                Signature.builder()
+                    .name(NAME)
+                    .kind(FunctionInfo.Type.SCALAR)
+                    .argumentTypes(parseTypeSignature(dataType.getName()))
+                    .returnType(parseTypeSignature("text"))
+                    .build(),
+                functionFactory
+            );
+
             // with format
-            module.register(new DateFormatFunction(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.of(DataTypes.STRING, dataType)),
-                DataTypes.STRING)
-            ));
+            module.register(
+                Signature.builder()
+                    .name(NAME)
+                    .kind(FunctionInfo.Type.SCALAR)
+                    .argumentTypes(parseTypeSignature("text"), parseTypeSignature(dataType.getName()))
+                    .returnType(parseTypeSignature("text"))
+                    .build(),
+                functionFactory
+            );
+
             // time zone aware variant
-            module.register(new DateFormatFunction(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.of(DataTypes.STRING, DataTypes.STRING, dataType)),
-                DataTypes.STRING)
-            ));
+            module.register(
+                Signature.builder()
+                    .name(NAME)
+                    .kind(FunctionInfo.Type.SCALAR)
+                    .argumentTypes(
+                        parseTypeSignature("text"),
+                        parseTypeSignature("text"),
+                        parseTypeSignature(dataType.getName())
+                    )
+                    .returnType(parseTypeSignature("text"))
+                    .build(),
+                functionFactory
+            );
         }
     }
 

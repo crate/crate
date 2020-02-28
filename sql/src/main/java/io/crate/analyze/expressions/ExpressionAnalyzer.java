@@ -1011,7 +1011,7 @@ public class ExpressionAnalyzer {
                 mapArgs.add(Literal.of(e.getKey()));
                 mapArgs.add(e.getValue().accept(this, context));
             }
-            Symbol options = allocateFunction(MapFunction.NAME, mapArgs, context);
+            Symbol options = mapArgs.isEmpty() ? Literal.of(Map.of()) : allocateFunction(MapFunction.NAME, mapArgs, context);
             return new io.crate.expression.symbol.MatchPredicate(identBoostMap, queryTerm, matchType, options);
         }
 
