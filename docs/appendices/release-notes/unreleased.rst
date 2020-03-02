@@ -65,6 +65,8 @@ None
 Changes
 =======
 
+- Added entries for primary keys to ``pg_class`` and ``pg_index`` table.
+
 - Added support for ``GROUP BY`` operations on analysed columns of type
   ``text``.
 

@@ -28,6 +28,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
@@ -76,8 +77,8 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testPgIndexTable() {
-        execute("select * from pg_catalog.pg_index");
-        assertThat(printedTable(response.rows()), is(""));
+        execute("select count(*) from pg_catalog.pg_index");
+        assertThat(printedTable(response.rows()), is("20\n"));
     }
 
     @Test
@@ -104,5 +105,19 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
             "enable_hashjoin| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL\n" +
             "max_index_keys| 32| Shows the maximum number of index keys.| NULL| NULL\n"
         ));
+    }
+
+    @Test
+    public void test_primary_key_in_pg_index() {
+        execute(" select i.indexrelid, i.indrelid, i.indkey from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid;");
+        assertThat(printedTable(response.rows()), is("-649073482| 728874843| [1]\n"));
+    }
+
+    @Test
+    public void test_primary_key_in_pg_class() {
+        execute("select ct.oid, ct.relkind, ct.relname, ct.relnamespace, ct.relnatts, ct.relpersistence, ct.relreplident, ct.reltuples" +
+                " from pg_class ct, (select * from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid) i" +
+                " where ct.oid = i.indexrelid;");
+        assertThat(printedTable(response.rows()), is("-649073482| i| t1_pkey| -2048275947| 2| p| p| 0.0\n"));
     }
 }

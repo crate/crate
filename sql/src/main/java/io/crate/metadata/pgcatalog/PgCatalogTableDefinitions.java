@@ -62,10 +62,10 @@ public class PgCatalogTableDefinitions {
             PgTypeTable.expressions(),
             false));
         tableDefinitions.put(PgClassTable.IDENT, new StaticTableDefinition<>(
-            informationSchemaIterables::relations,
-            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn())
+            informationSchemaIterables::pgClasses,
+            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident.fqn())
                          // we also need to check for views which have privileges set
-                         || user.hasAnyPrivilege(Privilege.Clazz.VIEW, t.ident().fqn()),
+                         || user.hasAnyPrivilege(Privilege.Clazz.VIEW, t.ident.fqn()),
             pgCatalogSchemaInfo.pgClassTable().expressions()
         ));
         tableDefinitions.put(PgDatabaseTable.NAME, new StaticTableDefinition<>(
@@ -88,8 +88,8 @@ public class PgCatalogTableDefinitions {
             PgAttributeTable.expressions()
         ));
         tableDefinitions.put(PgIndexTable.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(Collections.emptyList()),
-            PgIndexTable.expressions(),
+            () -> completedFuture(informationSchemaIterables.pgIndices()),
+            PgIndexTable.create().expressions(),
             false));
         tableDefinitions.put(PgConstraintTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::constraints,
@@ -101,7 +101,6 @@ public class PgCatalogTableDefinitions {
             PgDescriptionTable.expressions(),
             false)
         );
-
         Iterable<NamedSessionSetting> sessionSettings =
             () -> SessionSettingRegistry.SETTINGS.entrySet().stream()
                 .map(s -> new NamedSessionSetting(s.getKey(), s.getValue()))

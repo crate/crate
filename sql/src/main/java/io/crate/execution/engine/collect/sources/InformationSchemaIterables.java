@@ -39,7 +39,10 @@ import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.metadata.pgcatalog.PgClassTable;
+import io.crate.metadata.pgcatalog.PgIndexTable;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -53,6 +56,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -82,6 +86,8 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final Iterable<ConstraintInfo> constraints;
     private final SqlFeaturesIterable sqlFeatures;
     private final Iterable<Void> referentialConstraints;
+    private final Iterable<PgIndexTable.Entry> pgIndices;
+    private final Iterable<PgClassTable.Entry> pgClasses;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     private Iterable<RoutineInfo> routines;
@@ -96,8 +102,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         views = () -> viewsStream(schemas).iterator();
         relations = () -> concat(tablesStream(schemas), viewsStream(schemas)).iterator();
         primaryKeys = () -> sequentialStream(relations)
-            .filter(i -> i != null && (i.primaryKey().size() > 1 ||
-                                       (i.primaryKey().size() == 1 && !i.primaryKey().get(0).name().equals("_id"))))
+            .filter(this::isPrimaryKey)
             .iterator();
 
         columns = () -> sequentialStream(relations)
@@ -125,6 +130,63 @@ public class InformationSchemaIterables implements ClusterStateListener {
         // these are initialized on a clusterState change
         routines = emptyList();
         clusterService.addListener(this);
+
+        pgIndices = () -> tablesStream(schemas).filter(this::isPrimaryKey).map(this::pgIndex).iterator();
+
+        pgClasses = () -> concat(sequentialStream(relations).map(this::relationToPgClassEntry),
+                                 sequentialStream(primaryKeys).map(this::primaryKeyToPgClassEntry)).iterator();
+
+    }
+
+    private boolean isPrimaryKey(RelationInfo relationInfo) {
+        return (relationInfo.primaryKey().size() > 1 ||
+            (relationInfo.primaryKey().size() == 1 &&
+            !relationInfo.primaryKey().get(0).name().equals("_id")));
+    }
+
+    private PgClassTable.Entry relationToPgClassEntry(RelationInfo info) {
+        return new PgClassTable.Entry(
+            OidHash.relationOid(info),
+            OidHash.schemaOid(info.ident().schema()),
+            info.ident(),
+            info.ident().name(),
+            toEntryType(info.relationType()),
+            info.columns().size(),
+            info.primaryKey().size() > 0);
+    }
+
+    private PgClassTable.Entry primaryKeyToPgClassEntry(RelationInfo info) {
+        return new PgClassTable.Entry(
+            OidHash.primaryKeyOid(info),
+            OidHash.schemaOid(info.ident().schema()),
+            info.ident(),
+            info.ident().name() + "_pkey",
+            PgClassTable.Entry.Type.INDEX,
+            info.columns().size(),
+            info.primaryKey().size() > 0);
+    }
+
+    private PgClassTable.Entry.Type toEntryType(RelationInfo.RelationType type) {
+        switch (type) {
+            case BASE_TABLE:
+                return PgClassTable.Entry.Type.RELATION;
+            case VIEW:
+                return PgClassTable.Entry.Type.VIEW;
+            default:
+                return null;
+        }
+    }
+
+    private PgIndexTable.Entry pgIndex(TableInfo tableInfo) {
+        var primaryKey = tableInfo.primaryKey();
+        var positions = new ArrayList<Integer>();
+        for (var columnIdent : primaryKey) {
+            var pkRef = tableInfo.getReference(columnIdent);
+            assert pkRef != null : "`getReference(..)` must not return null for columns retrieved from `primaryKey()`";
+            var position = pkRef.position();
+            positions.add(position);
+        }
+        return new PgIndexTable.Entry(OidHash.relationOid(tableInfo), OidHash.primaryKeyOid(tableInfo), positions);
     }
 
     private static Stream<ViewInfo> viewsStream(Schemas schemas) {
@@ -152,6 +214,10 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return relations;
     }
 
+    public Iterable<PgIndexTable.Entry> pgIndices() {
+        return pgIndices;
+    }
+
     public Iterable<ViewInfo> views() {
         return views;
     }
@@ -174,6 +240,10 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Iterable<SqlFeatureContext> features() {
         return sqlFeatures;
+    }
+
+    public Iterable<PgClassTable.Entry> pgClasses() {
+        return pgClasses;
     }
 
     public Iterable<KeyColumnUsage> keyColumnUsage() {
