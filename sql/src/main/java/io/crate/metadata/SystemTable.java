@@ -180,7 +180,7 @@ public final class SystemTable<T> implements TableInfo {
             LinkedHashMap<ColumnIdent, Reference> refByColumns = new LinkedHashMap<>();
             HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions = new HashMap<>();
             columns.sort(Comparator.comparing(x -> x.column));
-            int rootColIdx = 0;
+            int rootColIdx = 1;
             for (int i = 0; i < columns.size(); i++) {
                 Column<T, ?> column = columns.get(i);
                 refByColumns.put(
