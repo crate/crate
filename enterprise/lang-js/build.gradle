@@ -31,9 +31,5 @@ dependencies {
     testImplementation project(path: ':dex', configuration: 'testOutput')
     testImplementation 'org.skyscreamer:jsonassert:1.3.0'
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testImplementation("io.crate:crate-jdbc:${versions.crate_jdbc}") {
-        exclude group: 'net.java.dev.jna', module: 'jna'
-        exclude group: 'commons-logging', module: 'commons-logging'
-        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
-    }
+    testImplementation "org.postgresql:postgresql:${versions.jdbc}"
 }

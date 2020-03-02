@@ -38,11 +38,7 @@ dependencies {
     testCompile 'org.skyscreamer:jsonassert:1.3.0'
     testCompile "org.hamcrest:hamcrest:${versions.hamcrest}"
     testCompile "org.slf4j:slf4j-api:${versions.slf4j}"
-    testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {
-        exclude group: 'net.java.dev.jna', module: 'jna'
-        exclude group: 'commons-logging', module: 'commons-logging'
-        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
-    }
+    testCompile "org.postgresql:postgresql:${versions.jdbc}"
     testCompile 'com.pholser:junit-quickcheck-core:0.9'
     testCompile 'com.pholser:junit-quickcheck-generators:0.9'
     // These plugins are dynamically loaded and need to be present here.

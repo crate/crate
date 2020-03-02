@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
@@ -183,9 +184,12 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         setUpObjectTable();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(
-            "Validation failed for object_field: " +
-            "Invalid value '{size=127, created=true}' for type 'object'");
+        // Value formatting differs between jdbc & non jdbc
+        expectedException.expectMessage(allOf(
+            containsString("Validation failed for object_field"),
+            containsString("Invalid value"),
+            containsString("for type 'object'"))
+        );
         execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
             new HashMap<String, Object>() {{
                 put("created", true);

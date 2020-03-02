@@ -25,19 +25,21 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLOperations;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.shade.org.postgresql.PGProperty;
-import io.crate.shade.org.postgresql.geometric.PGpoint;
-import io.crate.shade.org.postgresql.jdbc.PreferQueryMode;
-import io.crate.shade.org.postgresql.util.PGobject;
-import io.crate.shade.org.postgresql.util.PSQLException;
-import io.crate.shade.org.postgresql.util.PSQLState;
 import io.crate.testing.UseJdbc;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.postgresql.PGProperty;
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import java.sql.Array;
 import java.sql.BatchUpdateException;
@@ -84,9 +86,9 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         PostgresNetty postgresNetty = internalCluster().getInstance(PostgresNetty.class, nodeName);
         int port = postgresNetty.boundAddress().publishAddress().getPort();
         if (useIPv6) {
-            return "jdbc:crate://::1:" + port + '/';
+            return "jdbc:postgresql://::1:" + port + '/';
         }
-        return "jdbc:crate://127.0.0.1:" + port + '/';
+        return "jdbc:postgresql://127.0.0.1:" + port + '/';
     }
 
     @Override
@@ -302,7 +304,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
             ResultSet resultSet = conn.createStatement().executeQuery("SELECT chars, strings FROM t");
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getArray(1).getArray(), is(new Byte[]{'c', '3'}));
+            assertThat(resultSet.getArray(1).getArray(), is(new String[]{"99", "51"}));
             assertThat(resultSet.getArray(2).getArray(), is(new String[]{"fo,o", "bar"}));
         } catch (BatchUpdateException e) {
             throw e.getNextException();
@@ -351,9 +353,14 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 "point",
                 new PGpoint[]{new PGpoint(1.1, 2.2), new PGpoint(3.3, 4.4)}));
             preparedStatement.setArray(2, conn.createArrayOf(
-                "object",
-                new Object[]{Map.of(
-                    "coordinates", new double[][]{{0, 0}, {1, 1}}, "type", "LineString")
+                "json",
+                new Object[]{
+                    DataTypes.STRING.value(
+                        Map.of(
+                            "coordinates", new double[][]{{0, 0}, {1, 1}},
+                            "type", "LineString"
+                        )
+                    )
                 }));
             preparedStatement.executeUpdate();
             conn.createStatement().execute("REFRESH TABLE t");
@@ -507,7 +514,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.setString(1, Integer.toString(3));
             preparedStatement.addBatch();
 
-            assertThat(preparedStatement.executeBatch(), is(new int[]{-3, -3, -3}));
+            assertThat(preparedStatement.executeBatch(), is(new int[]{0, 0, 0}));
 
             conn.createStatement().executeUpdate("refresh table t");
             ResultSet rs = conn.createStatement().executeQuery("select count(*) from t");
@@ -540,7 +547,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
             preparedStatement.setInt(1, 2);
             preparedStatement.addBatch();
-            assertThat(preparedStatement.executeBatch(), is(new int[]{-3, 1}));
+            assertThat(preparedStatement.executeBatch(), is(new int[]{0, 1}));
             conn.createStatement().executeUpdate("refresh table t");
 
             ResultSet rs = conn.createStatement().executeQuery("select x from t order by id");

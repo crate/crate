@@ -59,11 +59,7 @@ dependencies {
     testCompile project(':integration-testing')
     testCompile project(':http')
     testCompile project(path: ':sql', configuration: 'testOutput')
-    testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {
-        exclude group: 'net.java.dev.jna', module: 'jna'
-        exclude group: 'commons-logging', module: 'commons-logging'
-        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
-    }
+    testCompile("org.postgresql:postgresql:${versions.jdbc}")
     testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
     testImplementation project(path: ':dex', configuration: 'testOutput')
 

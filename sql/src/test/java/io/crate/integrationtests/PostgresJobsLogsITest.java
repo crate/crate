@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
@@ -31,6 +30,7 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.postgresql.util.PSQLException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

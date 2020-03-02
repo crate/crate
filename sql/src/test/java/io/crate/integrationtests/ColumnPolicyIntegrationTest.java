@@ -258,11 +258,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 "   title string" +
                 ")");
         ensureYellow();
-        Map<String, Object> authorMap = new HashMap<String, Object>() {{
-            put("name", new HashMap<String, Object>() {{
-                put("first_name", "Douglas");
-            }});
-        }};
+        Map<String, Object> authorMap = Map.of("name", Map.of("first_name", "Douglas"));
         execute("insert into books (title, author) values (?,?)",
             new Object[]{
                 "The Hitchhiker's Guide to the Galaxy",
@@ -272,12 +268,13 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(
             containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"));
-        authorMap = new HashMap<>() {{
-            put("name", new HashMap<String, Object>() {{
-                put("first_name", "Douglas");
-                put("middle_name", "Noel");
-            }});
-        }};
+        authorMap = Map.of(
+            "name",
+            Map.of(
+                "first_name", "Douglas",
+                "middle_name", "Noel"
+            )
+        );
         execute("insert into books (title, author) values (?,?)",
             new Object[]{
                 "Life, the Universe and Everything",

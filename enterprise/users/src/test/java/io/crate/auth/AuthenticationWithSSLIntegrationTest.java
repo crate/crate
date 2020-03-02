@@ -20,12 +20,12 @@ package io.crate.auth;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.postgresql.util.PSQLException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -135,7 +135,7 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
             System.setProperty("javax.net.ssl.trustStorePassword", "keystorePassword");
             properties.setProperty("user", "localhost");
             properties.setProperty("ssl", "true");
-            properties.setProperty("sslfactory", "io.crate.shade.org.postgresql.ssl.DefaultJavaSSLFactory");
+            properties.setProperty("sslfactory", "org.postgresql.ssl.DefaultJavaSSLFactory");
             try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             }
         } finally {
