@@ -22,12 +22,13 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 
-class VarCharType extends PGType<String> {
+class VarCharType extends PGType<Object> {
 
     static final int OID = 1043;
     private static final int ARRAY_OID = 1015;
@@ -59,21 +60,21 @@ class VarCharType extends PGType<String> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull String value) {
-        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
+        byte[] bytes = DataTypes.STRING.value(value).getBytes(StandardCharsets.UTF_8);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
         return INT32_BYTE_SIZE + bytes.length;
     }
 
     @Override
-    public int writeAsText(ByteBuf buffer, @Nonnull String value) {
+    public int writeAsText(ByteBuf buffer, @Nonnull Object value) {
         return writeAsBinary(buffer, value);
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@Nonnull String value) {
-        return value.getBytes(StandardCharsets.UTF_8);
+    protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
+        return DataTypes.STRING.value(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

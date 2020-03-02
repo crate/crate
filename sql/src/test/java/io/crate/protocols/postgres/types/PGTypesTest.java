@@ -66,6 +66,12 @@ public class PGTypesTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_undefined_type_can_stream_non_string_values() {
+        PGType pgType = PGTypes.get(DataTypes.UNDEFINED);
+        pgType.writeAsBinary(Unpooled.buffer(), 30);
+    }
+
+    @Test
     public void testPG2CrateType() {
         assertThat(PGTypes.fromOID(VarCharType.OID), instanceOf(StringType.class));
         assertThat(PGTypes.fromOID(JsonType.OID), instanceOf(ObjectType.class));
