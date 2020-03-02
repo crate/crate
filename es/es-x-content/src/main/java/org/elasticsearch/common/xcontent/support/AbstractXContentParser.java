@@ -163,7 +163,7 @@ public abstract class AbstractXContentParser implements XContentParser {
         } catch (ArithmeticException e) {
             throw new IllegalArgumentException("Value [" + stringValue + "] has a decimal part");
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("For input string: \"" + stringValue + "\"");
+            throw new IllegalArgumentException("Cannot convert input string: \"" + stringValue + "\" to biginteger");
         }
 
         if (bigIntegerValue.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0 ||

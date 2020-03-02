@@ -1313,6 +1313,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(0) // test-layer converts Map to string, but for geo-shape strings should be WKT, not JSON.
     public void testWithinQuery() throws Exception {
         execute("create table t (id int primary key, p geo_point) " +
                 "clustered into 1 shards " +

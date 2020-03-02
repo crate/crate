@@ -44,11 +44,7 @@ dependencies {
     testImplementation project(path: ':sql', configuration: 'testOutput')
     testImplementation project(path: ':dex', configuration: 'testOutput')
     testImplementation "junit:junit:${versions.junit}"
-    testImplementation("io.crate:crate-jdbc:${versions.crate_jdbc}") {
-        exclude group: 'net.java.dev.jna', module: 'jna'
-        exclude group: 'commons-logging', module: 'commons-logging'
-        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
-    }
+    testImplementation "org.postgresql:postgresql:${versions.jdbc}"
 }
 
 processResources {
