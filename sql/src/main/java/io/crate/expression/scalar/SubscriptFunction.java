@@ -168,7 +168,11 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     static Object lookupByName(Object base, Object name) {
+        assert base instanceof Map : "Base argument to subscript must be a Map, not " + base;
         Map<?, ?> map = (Map<?, ?>) base;
+        if (!map.containsKey(name)) {
+            throw new IllegalArgumentException("The object `" + base + "` does not contain the key `" + name + "`");
+        }
         return map.get(name);
     }
 }

@@ -42,13 +42,12 @@ import io.crate.types.StringType;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
  * Scalar function to resolve elements inside a map.
  */
-public class SubscriptObjectFunction extends Scalar<Object, Map> {
+public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>> {
 
     public static final String NAME = "subscript_obj";
     private static final FuncParams FUNCTION_PARAMS = FuncParams
@@ -124,28 +123,13 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
     }
 
     @Override
-    public Object evaluate(TransactionContext txnCtx, Input[] args) {
-        assert args.length >= 2 : "invalid number of arguments";
-
+    @SafeVarargs
+    public final Object evaluate(TransactionContext txnCtx, Input<Map<String, Object>>... args) {
+        assert args.length >= 2 : NAME + " takes 2 or more arguments, got " + args.length;
         Object mapValue = args[0].value();
         for (var i = 1; i < args.length; i++) {
-            mapValue = evaluate(mapValue, args[i].value());
+            mapValue = SubscriptFunction.lookupByName(mapValue, args[i].value());
         }
         return mapValue;
-    }
-
-    private static Object evaluate(Object element, Object key) {
-        if (element == null || key == null) {
-            return null;
-        }
-        assert element instanceof Map : "first argument must be of type Map";
-        assert key instanceof String : "second argument must be of type String";
-
-        Map m = (Map) element;
-        String k = (String) key;
-        if (!m.containsKey(k)) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The object does not contain [%s] key", k));
-        }
-        return m.get(k);
     }
 }
