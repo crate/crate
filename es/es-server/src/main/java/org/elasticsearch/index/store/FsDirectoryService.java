@@ -92,7 +92,8 @@ public class FsDirectoryService extends DirectoryService {
                 // Use Lucene defaults
                 final FSDirectory primaryDirectory = FSDirectory.open(location, lockFactory);
                 if (primaryDirectory instanceof MMapDirectory) {
-                    return new HybridDirectory(location, lockFactory, primaryDirectory);
+                    MMapDirectory mMapDirectory = (MMapDirectory) primaryDirectory;
+                    return new HybridDirectory(lockFactory, mMapDirectory);
                 } else {
                     return primaryDirectory;
                 }
@@ -131,44 +132,66 @@ public class FsDirectoryService extends DirectoryService {
 
     static final class HybridDirectory extends NIOFSDirectory {
 
-        private final FSDirectory randomAccessDirectory;
+        private final MMapDirectory delegate;
 
-        HybridDirectory(Path location, LockFactory lockFactory, FSDirectory randomAccessDirectory) throws IOException {
-            super(location, lockFactory);
-            this.randomAccessDirectory = randomAccessDirectory;
+
+        HybridDirectory(LockFactory lockFactory, MMapDirectory delegate) throws IOException {
+            super(delegate.getDirectory(), lockFactory);
+            this.delegate = delegate;
         }
 
         @Override
         public IndexInput openInput(String name, IOContext context) throws IOException {
+            if (useDelegate(name)) {
+                // we need to do these checks on the outer directory since the inner doesn't know about pending deletes
+                ensureOpen();
+                ensureCanRead(name);
+                // we only use the mmap to open inputs. Everything else is managed by the NIOFSDirectory otherwise
+                // we might run into trouble with files that are pendingDelete in one directory but still
+                // listed in listAll() from the other. We on the other hand don't want to list files from both dirs
+                // and intersect for perf reasons.
+                return delegate.openInput(name, context);
+            } else {
+                return super.openInput(name, context);
+            }
+        }
+
+        boolean useDelegate(String name) {
             String extension = FileSwitchDirectory.getExtension(name);
             switch(extension) {
-                // We are mmapping norms, docvalues as well as term dictionaries, all other files are served
-                // through NIOFS this provides good random access performance and does not lead to page cache
-                // thrashing.
+                // Norms, doc values and term dictionaries are typically performance-sensitive and hot in the page
+                // cache, so we use mmap, which provides better performance.
                 case "nvd":
                 case "dvd":
                 case "tim":
+                // We want to open the terms index and KD-tree index off-heap to save memory, but this only performs
+                // well if using mmap.
+                case "tip":
+                case "dim":
+                // Compound files are tricky because they store all the information for the segment. Benchmarks
+                // suggested that not mapping them hurts performance.
                 case "cfs":
-                    // we need to do these checks on the outer directory since the inner doesn't know about pending deletes
-                    ensureOpen();
-                    ensureCanRead(name);
-                    // we only use the mmap to open inputs. Everything else is managed by the NIOFSDirectory otherwise
-                    // we might run into trouble with files that are pendingDelete in one directory but still
-                    // listed in listAll() from the other. We on the other hand don't want to list files from both dirs
-                    // and intersect for perf reasons.
-                    return randomAccessDirectory.openInput(name, context);
+                // MMapDirectory has special logic to read long[] arrays in little-endian order that helps speed
+                // up the decoding of postings. The same logic applies to positions (.pos) of offsets (.pay) but we
+                // are not mmaping them as queries that leverage positions are more costly and the decoding of postings
+                // tends to be less a bottleneck.
+                case "doc":
+                    return true;
+                // Other files are either less performance-sensitive (e.g. stored field index, norms metadata)
+                // or are large and have a random access pattern and mmap leads to page cache trashing
+                // (e.g. stored fields and term vectors).
                 default:
-                    return super.openInput(name, context);
+                    return false;
             }
         }
 
         @Override
         public void close() throws IOException {
-            IOUtils.close(super::close, randomAccessDirectory);
+            IOUtils.close(super::close, delegate);
         }
 
-        Directory randomAccessDirectory() {
-            return randomAccessDirectory;
+        MMapDirectory getDelegate() {
+            return delegate;
         }
     }
 }
