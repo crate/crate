@@ -99,7 +99,7 @@ public class IndexStoreTests extends ESTestCase {
 
     private void assertHybridDirectory(Directory directory) {
         assertTrue(directory.toString(), directory instanceof FsDirectoryService.HybridDirectory);
-        Directory randomAccessDirectory = ((FsDirectoryService.HybridDirectory) directory).randomAccessDirectory();
+        Directory randomAccessDirectory = ((FsDirectoryService.HybridDirectory) directory).getDelegate();
         assertTrue("randomAccessDirectory:  " +  randomAccessDirectory.toString(), randomAccessDirectory instanceof MMapDirectory);
     }
 }
