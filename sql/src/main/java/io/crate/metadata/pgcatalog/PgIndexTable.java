@@ -22,75 +22,57 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.metadata.SystemTable;
 
-import java.util.Map;
+import java.util.List;
 
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.SHORT_ARRAY;
+import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.SHORT_ARRAY;
 
-public class PgIndexTable extends StaticTableInfo<Void> {
+public class PgIndexTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_index");
 
-    static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
-        return columnRegistrar().expressions();
+    public static SystemTable<Entry> create() {
+        return SystemTable.<Entry>builder()
+            .add("indrelid", INTEGER, x -> x.indRelId)
+            .add("indexrelid", INTEGER, x -> x.indexRelId)
+            .add("indnatts", SHORT, x -> (short) 0)
+            .add("indisunique", BOOLEAN, x -> false)
+            .add("indisprimary", BOOLEAN, x -> true)
+            .add("indisexclusion", BOOLEAN, x -> false)
+            .add("indimmediate", BOOLEAN, x -> true)
+            .add("indisclustered", BOOLEAN, x -> false)
+            .add("indisvalid", BOOLEAN, x -> true)
+            .add("indcheckxmin", BOOLEAN, x -> false)
+            .add("indisready", BOOLEAN, x -> true)
+            .add("indislive", BOOLEAN, x -> true)
+            .add("indisreplident", BOOLEAN, x -> false)
+            .add("indkey", INTEGER_ARRAY, x -> x.indKey)
+            .add("indcollation", INTEGER_ARRAY, x -> null)
+            .add("indclass", INTEGER_ARRAY, x -> null)
+            .add("indoption", SHORT_ARRAY, x -> null)
+            .startObjectArray("indexprs", x -> null)
+            .endObjectArray()
+            .startObjectArray("indpred", x -> null)
+            .endObjectArray()
+            .build(IDENT);
     }
 
-    @SuppressWarnings({"unchecked"})
-    private static ColumnRegistrar<Void> columnRegistrar() {
-        return new ColumnRegistrar<Void>(IDENT, RowGranularity.DOC)
-            .register("indrelid", INTEGER, () -> constant(0))
-            .register("indexrelid", INTEGER, () -> constant(0))
-            .register("indnatts", SHORT, () -> constant((short) 0))
-            .register("indisunique", BOOLEAN, () -> constant(false))
-            .register("indisprimary", BOOLEAN, () -> constant(false))
-            .register("indisexclusion", BOOLEAN, () -> constant(false))
-            .register("indimmediate", BOOLEAN, () -> constant(true))
-            .register("indisclustered", BOOLEAN, () -> constant(false))
-            .register("indisvalid", BOOLEAN, () -> constant(true))
-            .register("indcheckxmin", BOOLEAN, () -> constant(false))
-            .register("indisready", BOOLEAN, () -> constant(true))
-            .register("indislive", BOOLEAN, () -> constant(true))
-            .register("indisreplident", BOOLEAN, () -> constant(false))
-            .register("indkey", SHORT_ARRAY, () -> constant((short) 0))
-            .register("indcollation", INTEGER_ARRAY, () -> constant(null))
-            .register("indclass", INTEGER_ARRAY, () -> constant(null))
-            .register("indoption", SHORT_ARRAY, () -> constant(null))
-            .register("indexprs", ObjectType.untyped(), () -> constant(null))
-            .register("indpred", ObjectType.untyped(), () -> constant(null));
-    }
+    public static final class Entry {
 
-    PgIndexTable() {
-        super(IDENT, columnRegistrar());
-    }
+        final int indRelId;
+        final int indexRelId;
+        final List<Integer> indKey;
 
-    @Override
-    public Routing getRouting(ClusterState state,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
+        public Entry(int indRelId, int indexRelId, List<Integer> indKey) {
+            this.indRelId = indRelId;
+            this.indexRelId = indexRelId;
+            this.indKey = indKey;
+        }
     }
 }

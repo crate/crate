@@ -22,27 +22,10 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
+import io.crate.metadata.SystemTable;
 import io.crate.statistics.TableStats;
-import io.crate.types.ArrayType;
-import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
 
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.FLOAT;
 import static io.crate.types.DataTypes.INTEGER;
@@ -50,79 +33,88 @@ import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class PgClassTable extends StaticTableInfo<RelationInfo> {
+public class PgClassTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_class");
-    private static final String KIND_TABLE = "r";
-    private static final String KIND_VIEW = "v";
-
     private static final String PERSISTENCE_PERMANENT = "p";
 
-    private final ColumnRegistrar<RelationInfo> columnRegistrar;
-
-    Map<ColumnIdent, RowCollectExpressionFactory<RelationInfo>> expressions() {
-        return columnRegistrar.expressions();
+    public static SystemTable<Entry> create(TableStats tableStats) {
+        return SystemTable.<Entry>builder()
+            .add("oid", INTEGER, x -> x.oid)
+            .add("relname", STRING, x -> x.name)
+            .add("relnamespace", INTEGER, x -> x.schemaOid)
+            .add("reltype", INTEGER, x -> 0)
+            .add("reloftype", INTEGER, x -> 0)
+            .add("relowner", INTEGER, x -> 0)
+            .add("relam", INTEGER, x -> 0)
+            .add("relfilenode", INTEGER, x -> 0)
+            .add("reltablespace", INTEGER, x -> 0)
+            .add("relpages", INTEGER, x -> 0)
+            .add("reltuples", FLOAT, x -> x.type.equals(Entry.Type.INDEX) ? 0f : (float) tableStats.numDocs(x.ident))
+            .add("relallvisible", INTEGER, x -> 0)
+            .add("reltoastrelid", INTEGER, x -> 0)
+            .add("relhasindex", BOOLEAN, x -> false)
+            .add("relisshared", BOOLEAN, x -> false)
+            .add("relpersistence", STRING, x -> PERSISTENCE_PERMANENT)
+            .add("relkind", STRING, x -> x.type.relKind)
+            .add("relnatts", SHORT, x -> (short) x.numberOfAttributes)
+            .add("relchecks", SHORT, x -> (short) 0)
+            .add("relhasoids", BOOLEAN, x -> false)
+            .add("relhaspkey", BOOLEAN, x -> x.hasPrimaryKey)
+            .add("relhasrules", BOOLEAN, x -> false)
+            .add("relhastriggers", BOOLEAN, x -> false)
+            .add("relhassubclass", BOOLEAN, x -> false)
+            .add("relrowsecurity", BOOLEAN, x -> false)
+            .add("relforcerowsecurity", BOOLEAN, x -> false)
+            .add("relispopulated", BOOLEAN, x -> true)
+            .add("relreplident", STRING, x -> "p")
+            .add("relispartition", BOOLEAN, x -> false)
+            .add("relfrozenxid", INTEGER,x -> 0)
+            .add("relminmxid", INTEGER, x -> 0)
+            .startObjectArray("relacl", x -> null)
+            .endObjectArray()
+            .add("reloptions", STRING_ARRAY, x -> null)
+            .startObjectArray("relpartbound", x -> null)
+            .endObjectArray()
+            .build(IDENT);
     }
 
-    private static ColumnRegistrar<RelationInfo> columnRegistrar(TableStats tableStats) {
-        return new ColumnRegistrar<RelationInfo>(IDENT, RowGranularity.DOC)
-            .register("oid", INTEGER, () -> forFunction(OidHash::relationOid))
-            .register("relname", STRING, () -> forFunction(r -> r.ident().name()))
-            .register("relnamespace", INTEGER,() -> forFunction(r -> schemaOid(r.ident().schema())))
-            .register("reltype", INTEGER, () -> constant(0))
-            .register("reloftype", INTEGER, () -> constant(0))
-            .register("relowner", INTEGER, () -> constant(0))
-            .register("relam", INTEGER, () -> constant(0))
-            .register("relfilenode", INTEGER, () -> constant(0))
-            .register("reltablespace", INTEGER, () -> constant(0))
-            .register("relpages", INTEGER, () -> constant(0))
-            .register("reltuples", FLOAT, () -> forFunction(r -> (float) tableStats.numDocs(r.ident())))
-            .register("relallvisible", INTEGER, () -> constant(0))
-            .register("reltoastrelid", INTEGER, () -> constant(0))
-            .register("relhasindex", BOOLEAN, () -> constant(false))
-            .register("relisshared", BOOLEAN, () -> constant(false))
-            .register("relpersistence", STRING, () -> constant(PERSISTENCE_PERMANENT))
-            .register("relkind", STRING, () -> forFunction(r -> r.relationType() == RelationType.VIEW ? KIND_VIEW : KIND_TABLE))
-            .register("relnatts", SHORT, () -> forFunction(r -> (short) r.columns().size()))
-            .register("relchecks", SHORT, () -> constant((short) 0))
-            .register("relhasoids", BOOLEAN, () -> constant(false))
-            .register("relhaspkey", BOOLEAN, () -> forFunction(r -> r.primaryKey().size() > 0))
-            .register("relhasrules", BOOLEAN, () -> constant(false))
-            .register("relhastriggers", BOOLEAN, () -> constant(false))
-            .register("relhassubclass", BOOLEAN, () -> constant(false))
-            .register("relrowsecurity", BOOLEAN, () -> constant(false))
-            .register("relforcerowsecurity", BOOLEAN, () -> constant(false))
-            .register("relispopulated", BOOLEAN, () -> constant(true))
-            .register("relreplident", STRING, () -> constant("p"))
-            .register("relispartition", BOOLEAN, () -> constant(false))
-            .register("relfrozenxid", INTEGER,() -> constant(0))
-            .register("relminmxid", INTEGER, () -> constant(0))
-            .register("relacl", new ArrayType<>(ObjectType.untyped()), () -> constant(null))
-            .register("reloptions", STRING_ARRAY, () -> constant(null))
-            .register("relpartbound", ObjectType.untyped(), () -> constant(null));
-    }
+    public static final class Entry {
 
-    static PgClassTable create(TableStats tableStats) {
-        ColumnRegistrar<RelationInfo> columnRegistrar = columnRegistrar(tableStats);
-        return new PgClassTable(columnRegistrar);
-    }
+        public enum Type {
+            VIEW("v"),
+            RELATION("r"),
+            INDEX("i");
 
-    private PgClassTable(ColumnRegistrar<RelationInfo> columnRegistrar) {
-        super(IDENT, columnRegistrar);
-        this.columnRegistrar = columnRegistrar;
-    }
+            final String relKind;
 
-    @Override
-    public Routing getRouting(ClusterState state,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
-    }
+            Type(String relKind) {
+                this.relKind = relKind;
+            }
+        }
 
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
+        final int oid;
+        final boolean hasPrimaryKey;
+        final int schemaOid;
+        final RelationName ident;
+        final Type type;
+        final int numberOfAttributes;
+        final String name;
+
+        public Entry(int oid,
+                     int schemaOid,
+                     RelationName ident,
+                     String name,
+                     Type type,
+                     int numberOfAttributes,
+                     boolean hasPrimaryKey) {
+            this.oid = oid;
+            this.schemaOid = schemaOid;
+            this.hasPrimaryKey = hasPrimaryKey;
+            this.ident = ident;
+            this.type = type;
+            this.name = name;
+            this.numberOfAttributes = numberOfAttributes;
+        }
     }
 }

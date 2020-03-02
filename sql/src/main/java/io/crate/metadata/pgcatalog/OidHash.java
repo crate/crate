@@ -22,28 +22,37 @@
 
 package io.crate.metadata.pgcatalog;
 
+import io.crate.common.collections.Lists2;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationInfo;
 import org.apache.lucene.util.BytesRef;
 
 import static org.apache.lucene.util.StringHelper.murmurhash3_x86_32;
 
-final class OidHash {
+public final class OidHash {
 
     enum Type {
         SCHEMA,
         TABLE,
         VIEW,
-        CONSTRAINT
+        CONSTRAINT,
+        PRIMARY_KEY
     }
 
-    static int relationOid(RelationInfo relationInfo) {
+    public static int relationOid(RelationInfo relationInfo) {
         Type t = relationInfo.relationType() == RelationInfo.RelationType.VIEW ? Type.VIEW : Type.TABLE;
         BytesRef b = new BytesRef(t.toString() + relationInfo.ident().fqn());
         return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
     }
 
-    static int schemaOid(String name) {
+    public static int schemaOid(String name) {
         BytesRef b = new BytesRef(Type.SCHEMA.toString() + name);
+        return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
+    }
+
+    public static int primaryKeyOid(RelationInfo relationInfo) {
+        var primaryKey = Lists2.joinOn(" ", relationInfo.primaryKey(), ColumnIdent::name);
+        var b = new BytesRef(Type.PRIMARY_KEY.toString() + relationInfo.ident().fqn() + primaryKey);
         return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
     }
 

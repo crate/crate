@@ -25,6 +25,7 @@ package io.crate.metadata.pgcatalog;
 import com.google.common.collect.ImmutableSortedMap;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.metadata.SystemTable;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
@@ -43,7 +44,7 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
     public static final String NAME = "pg_catalog";
     private final ImmutableSortedMap<String, TableInfo> tableInfoMap;
     private final UserDefinedFunctionService udfService;
-    private final PgClassTable pgClassTable;
+    private final SystemTable<PgClassTable.Entry> pgClassTable;
 
     @Inject
     public PgCatalogSchemaInfo(UserDefinedFunctionService udfService, TableStats tableStats) {
@@ -56,7 +57,7 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
             .put(PgNamespaceTable.IDENT.name(), new PgNamespaceTable())
             .put(PgAttrDefTable.IDENT.name(), new PgAttrDefTable())
             .put(PgAttributeTable.IDENT.name(), new PgAttributeTable())
-            .put(PgIndexTable.IDENT.name(), new PgIndexTable())
+            .put(PgIndexTable.IDENT.name(), PgIndexTable.create())
             .put(PgConstraintTable.IDENT.name(), new PgConstraintTable())
             .put(PgDatabaseTable.NAME.name(), new PgDatabaseTable())
             .put(PgDescriptionTable.NAME.name(), new PgDescriptionTable())
@@ -64,7 +65,7 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
             .build();
     }
 
-    PgClassTable pgClassTable() {
+    SystemTable<PgClassTable.Entry> pgClassTable() {
         return pgClassTable;
     }
 
