@@ -1574,49 +1574,162 @@ Tables need to be recreated
    cluster check is failing. Follow the instructions below to get this cluster
    check passing.
 
-This check warns you if there are tables that need to be recreated for
-compatibility with future major versions of CrateDB.
+This check warns you if your cluster contains tables that you need to reindex
+before you can upgrade to a future major version of CrateDB.
 
-If you try to upgrade to the next major version of CrateDB with tables that
-have not been recreated, CrateDB will refuse to start.
+If you try to upgrade to a later major CrateDB version without reindexing the
+tables, CrateDB will refuse to start.
 
-To recreate a table, you have to create new tables, copy over the data and
-rename or remove the old table.
+CrateDB table version compatibility scheme
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1) Use :ref:`ref-show-create-table` to get the schema required to create an
-empty copy of the table to recreate::
+CrateDB maintains backward compatibility for tables created in ``majorVersion - 1``:
 
-    SHOW CREATE TABLE your_table;
+.. list-table::
 
-2) Create a new temporary table, using the schema returned from
-:ref:`ref-show-create-table`::
-
-    CREATE TABLE tmp_your_table (...);
-
-3) Prevent inserts to the original table::
-
-    ALTER TABLE your_table SET ("blocks.read_only" = true);
-
-4) Copy the data::
-
-    INSERT INTO tmp_your_table (...) (SELECT ... FROM your_table);
-
-5) Swap the tables::
-
-    ALTER CLUSTER SWAP TABLE tmp_your_table TO your_table;
-
-6) Confirm the new ``your_table`` contains all data and has the new version::
-
-    SELECT count(*) FROM your_table;
-    SELECT version FROM information_schema.tables where table_name = 'your_table';
-
-7) Drop the now obsolete old table::
-
-    ALTER TABLE tmp_your_table SET ("blocks.read_only" = false);
-    DROP TABLE tmp_your_table;
+    * - Table Origin
+      - Current Version
+      - Current Version
+      - Current Version
+    * - 
+      - 3.x
+      - 4.x
+      - 5.x
+    * - 3.x
+      - ✔️
+      - ✔️
+      - ❌
+    * - 4.x
+      - ❌
+      - ✔️
+      - ✔️
+    * - 5.x
+      - ❌
+      - ❌
+      - ✔️
 
 
-When all tables have been recreated, this cluster check will pass.
+Avoiding reindex using partitioned tables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Reindexing tables is an expensive operation which can take a long time. If you
+are storing time series data for a certain retention period and intend to
+delete old data, it is possible to use the :ref:`partitioned_tables` feature to
+avoid reindex operations.
+
+You will have to partition a table by a column that denotes time. For example,
+if you have a retention period of nine months, you could partition a table by a
+``month`` column. Then, every month, the system will create a new partition.
+This new partition is created using the active CrateDB version and is
+compatible with the next major CrateDB version. Now to achieve your goal of
+avoiding a reindex, you must manually delete any partition older than nine
+months. If you do that, then after nine months you rolled through all
+partitions and the remaining nine are compatible with the next major CrateDB
+version.
+
+
+How to reindex
+~~~~~~~~~~~~~~
+
+.. hide:
+
+    cr> CREATE TABLE rx.metrics (id TEXT PRIMARY KEY, temperature REAL);
+    CREATE OK, 1 row affected (... sec)
+
+    cr> INSERT INTO rx.metrics (id, temperature) VALUES ('1', 38.4), ('2', 42.7);
+    INSERT OK, 2 rows affected  (... sec)
+
+    cr> REFRESH TABLE rx.metrics;
+    REFRESH OK, 1 row affected  (... sec)
+
+1. Use :ref:`ref-show-create-table` to get the schema required to create an
+   empty copy of the table to recreate::
+
+    cr> SHOW CREATE TABLE rx.metrics;
+    +-----------------------------------------------------+
+    | SHOW CREATE TABLE rx.metrics                        |
+    +-----------------------------------------------------+
+    | CREATE TABLE IF NOT EXISTS "rx"."metrics" (         |
+    |    "id" TEXT,                                       |
+    |    "temperature" REAL,                              |
+    |    PRIMARY KEY ("id")                               |
+    | )                                                   |
+    | CLUSTERED BY ("id") INTO 4 SHARDS                   |
+    | WITH (                                              |
+    |    "allocation.max_retries" = 5,                    |
+    |    "blocks.metadata" = false,                       |
+    |    "blocks.read" = false,                           |
+    |    "blocks.read_only" = false,                      |
+    |    "blocks.read_only_allow_delete" = false,         |
+    |    "blocks.write" = false,                          |
+    |    codec = 'default',                               |
+    |    column_policy = 'strict',                        |
+    |    "mapping.total_fields.limit" = 1000,             |
+    |    max_ngram_diff = 1,                              |
+    |    max_shingle_diff = 3,                            |
+    |    number_of_replicas = '0-1',                      |
+    |    refresh_interval = 1000,                         |
+    |    "routing.allocation.enable" = 'all',             |
+    |    "routing.allocation.total_shards_per_node" = -1, |
+    |    "store.type" = 'fs',                             |
+    |    "translog.durability" = 'REQUEST',               |
+    |    "translog.flush_threshold_size" = 536870912,     |
+    |    "translog.sync_interval" = 5000,                 |
+    |    "unassigned.node_left.delayed_timeout" = 60000,  |
+    |    "warmer.enabled" = true,                         |
+    |    "write.wait_for_active_shards" = '1'             |
+    | )                                                   |
+    +-----------------------------------------------------+
+    SHOW 1 row in set (... sec)
+
+2. Create a new temporary table, using the schema returned from
+   :ref:`ref-show-create-table`::
+
+    cr> CREATE TABLE rx.tmp_metrics (id TEXT PRIMARY KEY, temperature REAL);
+    CREATE OK, 1 row affected (... sec)
+
+3. Copy the data::
+
+    cr> INSERT INTO rx.tmp_metrics (id, temperature) (SELECT id, temperature FROM rx.metrics);
+    INSERT OK, 2 rows affected (... sec)
+
+4. Swap the tables::
+
+    cr> ALTER CLUSTER SWAP TABLE rx.tmp_metrics TO rx.metrics;
+    ALTER OK, 1 row affected  (... sec)
+
+5. Confirm the new ``your_table`` contains all data and has the new version::
+
+    cr> SELECT count(*) FROM rx.metrics;
+    +----------+
+    | count(*) |
+    +----------+
+    |        2 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+    cr> SELECT version['created'] FROM information_schema.tables 
+    ... WHERE table_schema = 'rx' AND table_name = 'metrics';
+    +--------------------+
+    | version['created'] |
+    +--------------------+
+    | 4.2.0              |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
+6. Drop the old table, as it is now obsolete::
+
+    cr> DROP TABLE rx.tmp_metrics;
+    DROP OK, 1 row affected  (... sec)
+
+
+.. hide:
+
+    cr> DROP TABLE rx.metrics;
+    DROP OK, 1 row affected  (... sec)
+
+
+After you reindexed all tables, this cluster check will pass.
 
 .. NOTE::
 
