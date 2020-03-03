@@ -911,9 +911,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "   unnest(ARRAY[2.5, 4, 5, 6, 7.5, 8.5, 10, 12]) as t(col1)";
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
-            "RootBoundary[col1, sum(col1)]\n" +
-            "Eval[col1, sum(col1)]\n" +
-            "WindowAgg[sum(col1) | ORDER BY power(col1, 2.0) ASC]\n" +
+            "RootBoundary[col1, sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
+            "Eval[col1, sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
+            "WindowAgg[sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
             "Eval[col1, power(col1, 2.0)]\n" +
             "Rename[col1] AS t\n" +
             "TableFunction[unnest | [col1] | true]\n";

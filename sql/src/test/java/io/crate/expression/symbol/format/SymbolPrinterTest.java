@@ -127,7 +127,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testWindowFunction() throws Exception {
         Symbol f = sqlExpressions.asSymbol("avg(idx) over (partition by idx order by foo)");
-        assertPrint(f, "avg(doc.formatter.idx)");
+        assertPrint(f, "avg(doc.formatter.idx) OVER (PARTITION BY doc.formatter.idx ORDER BY doc.formatter.foo ASC)");
     }
 
     @Test

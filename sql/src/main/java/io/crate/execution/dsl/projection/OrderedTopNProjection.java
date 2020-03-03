@@ -174,7 +174,7 @@ public class OrderedTopNProjection extends Projection {
             "offset", offset,
             "outputs", Lists2.joinOn(", ", outputs, Symbol::toString),
             "orderBy", OrderBy.explainRepresentation(
-                new StringBuilder("["), orderBy, reverseFlags, nullsFirst).append("]").toString()
+                new StringBuilder("["), orderBy, reverseFlags, nullsFirst, Symbol::toString).append("]").toString()
         );
     }
 }

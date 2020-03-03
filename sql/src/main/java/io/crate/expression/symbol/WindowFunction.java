@@ -22,7 +22,12 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.analyze.FrameBoundDefinition;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
+import io.crate.analyze.WindowFrameDefinition;
+import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionInfo;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -92,5 +97,67 @@ public class WindowFunction extends Function {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), windowDefinition);
+    }
+
+    @Override
+    public String toString(Style style) {
+        var builder = new StringBuilder(super.toString(style));
+        builder.append(" OVER (");
+
+        var partitions = windowDefinition.partitions();
+        if (!partitions.isEmpty()) {
+            builder.append("PARTITION BY ");
+            builder.append(Lists2.joinOn(", ", partitions, x -> x.toString(style)));
+        }
+        var orderBy = windowDefinition.orderBy();
+        if (orderBy != null) {
+            if (!partitions.isEmpty()) {
+                builder.append(" ");
+            }
+            builder.append("ORDER BY ");
+            OrderBy.explainRepresentation(
+                builder,
+                orderBy.orderBySymbols(),
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst(),
+                x -> x.toString(style)
+            );
+        }
+        WindowFrameDefinition frameDefinition = windowDefinition.windowFrameDefinition();
+        if (frameDefinition != WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW) {
+            builder.append(" ");
+            builder.append(frameDefinition.mode().name());
+            builder.append(" BETWEEN ");
+            appendFrameBound(builder, style, frameDefinition.start());
+            builder.append(" AND ");
+            appendFrameBound(builder, style, frameDefinition.end());
+        }
+        builder.append(")");
+        return builder.toString();
+    }
+
+    private void appendFrameBound(StringBuilder builder, Style style, FrameBoundDefinition frameBound) {
+        switch (frameBound.type()) {
+            case UNBOUNDED_PRECEDING:
+                builder.append("UNBOUNDED PRECEDING");
+                break;
+            case PRECEDING:
+                builder.append(frameBound.value().toString(style));
+                builder.append(" PRECEDING");
+                break;
+            case CURRENT_ROW:
+                builder.append("CURRENT ROW");
+                break;
+            case FOLLOWING:
+                builder.append(frameBound.value().toString(style));
+                builder.append("FOLLOWING");
+                break;
+            case UNBOUNDED_FOLLOWING:
+                builder.append("UNBOUNDED FOLLOWING");
+                break;
+
+            default:
+                throw new AssertionError("Unexpected frame bound type: " + frameBound.type());
+        }
     }
 }

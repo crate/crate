@@ -396,9 +396,9 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "WHERE sums.x = 10 "
         );
         var expectedPlan =
-            "RootBoundary[x, \"sum(x)\"]\n" +
-            "Rename[x, \"sum(x)\"] AS sums\n" +     // Aliased relation boundary
-            "WindowAgg[sum(x) | PARTITION BY x]\n" +
+            "RootBoundary[x, \"sum(x) OVER (PARTITION BY x)\"]\n" +
+            "Rename[x, \"sum(x) OVER (PARTITION BY x)\"] AS sums\n" +     // Aliased relation boundary
+            "WindowAgg[sum(x) OVER (PARTITION BY x)]\n" +
             "Collect[doc.t1 | [x] | (x = 10)]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
     }
