@@ -215,22 +215,23 @@ public class OrderBy implements Writeable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("OrderBy{");
-        explainRepresentation(sb, orderBySymbols, reverseFlags, nullsFirst);
+        explainRepresentation(sb, orderBySymbols, reverseFlags, nullsFirst, Symbol::toString);
         return sb.toString();
     }
 
     public String explainRepresentation() {
         StringBuilder sb = new StringBuilder();
-        return explainRepresentation(sb, orderBySymbols, reverseFlags, nullsFirst).toString();
+        return explainRepresentation(sb, orderBySymbols, reverseFlags, nullsFirst, Symbol::toString).toString();
     }
 
     public static StringBuilder explainRepresentation(StringBuilder sb,
                                                       List<? extends Symbol> symbols,
                                                       boolean[] reverseFlags,
-                                                      boolean[] nullsFirst) {
+                                                      boolean[] nullsFirst,
+                                                      Function<? super Symbol, String> toString) {
         for (int i = 0; i < symbols.size(); i++) {
             Symbol symbol = symbols.get(i);
-            sb.append(symbol.toString());
+            sb.append(toString.apply(symbol));
             sb.append(" ");
             if (reverseFlags[i]) {
                 sb.append("DESC");

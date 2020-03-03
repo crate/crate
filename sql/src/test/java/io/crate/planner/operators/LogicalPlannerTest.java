@@ -71,8 +71,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAvgWindowFunction() {
         LogicalPlan plan = plan("select avg(x) OVER() from t1");
-        assertThat(plan, isPlan("Eval[avg(x)]\n" +
-                                "WindowAgg[avg(x)]\n" +
+        assertThat(plan, isPlan("Eval[avg(x) OVER ()]\n" +
+                                "WindowAgg[avg(x) OVER ()]\n" +
                                 "Collect[doc.t1 | [x] | true]\n"));
     }
 
@@ -436,7 +436,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                     sb,
                     order.orderBy.orderBySymbols(),
                     order.orderBy.reverseFlags(),
-                    order.orderBy.nullsFirst());
+                    order.orderBy.nullsFirst(),
+                    Symbol::toString
+                );
                 sb.append("]\n");
                 plan = order.source;
             }
@@ -554,15 +556,6 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 WindowAgg windowAgg = (WindowAgg) plan;
                 startLine("WindowAgg[");
                 addSymbolsList(windowAgg.windowFunctions());
-                if (!windowAgg.windowDefinition.partitions().isEmpty()) {
-                    sb.append(" | PARTITION BY ");
-                    addSymbolsList(windowAgg.windowDefinition.partitions());
-                }
-                OrderBy orderBy = windowAgg.windowDefinition.orderBy();
-                if (orderBy != null) {
-                    sb.append(" | ORDER BY ");
-                    OrderBy.explainRepresentation(sb, orderBy.orderBySymbols(), orderBy.reverseFlags(), orderBy.nullsFirst());
-                }
                 sb.append("]\n");
                 plan = windowAgg.source;
             }

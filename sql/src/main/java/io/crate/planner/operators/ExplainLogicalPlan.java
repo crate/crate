@@ -156,7 +156,7 @@ public class ExplainLogicalPlan {
         public ImmutableMap.Builder<String, Object> visitOrder(Order logicalPlan, Context context) {
             OrderBy orderBy = logicalPlan.orderBy;
             StringBuilder sb = new StringBuilder();
-            OrderBy.explainRepresentation(sb, orderBy.orderBySymbols(), orderBy.reverseFlags(), orderBy.nullsFirst());
+            OrderBy.explainRepresentation(sb, orderBy.orderBySymbols(), orderBy.reverseFlags(), orderBy.nullsFirst(), Symbol::toString);
             return createMap(logicalPlan, createSubMap()
                 .put("orderBy", sb.toString())
                 .put("source", explainMap(logicalPlan.source, context)));
