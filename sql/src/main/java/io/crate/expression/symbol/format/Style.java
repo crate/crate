@@ -20,25 +20,9 @@
  * agreement.
  */
 
-package io.crate.planner;
+package io.crate.expression.symbol.format;
 
-import java.util.Collection;
-import java.util.stream.Collectors;
-
-/**
- * A leaf of a {@link ExplainNode} - part of the output of a EXPLAIN statement.
- */
-public interface ExplainLeaf {
-
-    /**
-     * @return Human readable representation of the component
-     */
-    String representation();
-
-
-    static String printList(Collection<? extends ExplainLeaf> leaves) {
-        return leaves.stream()
-            .map(ExplainLeaf::representation)
-            .collect(Collectors.joining(", "));
-    }
+public enum Style {
+    UNQUALIFIED,
+    QUALIFIED
 }

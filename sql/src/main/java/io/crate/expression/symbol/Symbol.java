@@ -22,12 +22,12 @@
 package io.crate.expression.symbol;
 
 import io.crate.expression.scalar.cast.CastFunctionResolver;
-import io.crate.planner.ExplainLeaf;
+import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
 import io.crate.types.UndefinedType;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public abstract class Symbol implements FuncArg, Writeable, ExplainLeaf {
+public abstract class Symbol implements FuncArg, Writeable {
 
     public static boolean isLiteral(Symbol symbol, DataType<?> expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL && symbol.valueType().equals(expectedType);
@@ -64,9 +64,11 @@ public abstract class Symbol implements FuncArg, Writeable, ExplainLeaf {
     }
 
     @Override
-    public String toString() {
-        return representation();
+    public final String toString() {
+        return toString(Style.UNQUALIFIED);
     }
+
+    public abstract String toString(Style style);
 
     /**
      * We only allow casting of

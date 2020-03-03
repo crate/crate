@@ -27,7 +27,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Reference;
@@ -130,6 +130,6 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
 
     @Override
     public String toString() {
-        return SymbolPrinter.printUnqualified(function);
+        return function.toString(Style.UNQUALIFIED);
     }
 }

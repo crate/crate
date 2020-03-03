@@ -23,11 +23,11 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -94,7 +94,7 @@ public class EvalProjection extends Projection {
     public Map<String, Object> mapRepresentation() {
         return ImmutableMap.of(
             "type", "Eval",
-            "outputs", ExplainLeaf.printList(outputs)
+            "outputs", Lists2.joinOn(", ", outputs, Symbol::toString)
         );
     }
 }

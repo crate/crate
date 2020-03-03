@@ -28,7 +28,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
@@ -383,7 +383,7 @@ public class AnalyzedTableElements<T> {
                 valueType, columnDataType.getName());
 
             Symbol castFunction = CastFunctionResolver.generateCastFunction(function, columnDataType, false);
-            formattedExpression = SymbolPrinter.printUnqualified(castFunction);
+            formattedExpression = castFunction.toString(Style.UNQUALIFIED);
         } else {
             if (valueType instanceof ArrayType) {
                 columnDefinitionEvaluated.collectionType(ArrayType.NAME);
@@ -391,7 +391,7 @@ public class AnalyzedTableElements<T> {
             } else {
                 columnDefinitionEvaluated.dataType(valueType.getName());
             }
-            formattedExpression = SymbolPrinter.printUnqualified(function);
+            formattedExpression = function.toString(Style.UNQUALIFIED);
         }
         formattedExpressionConsumer.accept(formattedExpression);
     }

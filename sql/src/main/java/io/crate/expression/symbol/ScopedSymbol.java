@@ -21,6 +21,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
@@ -88,13 +89,11 @@ public final class ScopedSymbol extends Symbol {
     }
 
     @Override
-    public String toString() {
-        return representation();
-    }
-
-    @Override
-    public String representation() {
-        return relation.toString() + '.' + column.sqlFqn();
+    public String toString(Style style) {
+        if (style == Style.QUALIFIED) {
+            return relation.toString() + '.' + column.quotedOutputName();
+        }
+        return column.quotedOutputName();
     }
 
     @Override

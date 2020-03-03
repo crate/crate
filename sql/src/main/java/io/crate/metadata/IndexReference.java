@@ -130,14 +130,6 @@ public class IndexReference extends Reference {
     }
 
     @Override
-    public String toString() {
-        return "IndexReference{" +
-               "analyzer='" + analyzer + '\'' +
-               ", columns=" + columns +
-               '}';
-    }
-
-    @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeOptionalString(analyzer);

@@ -25,6 +25,7 @@ package io.crate.expression.symbol.format;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.test.integration.CrateUnitTest;
@@ -44,13 +45,13 @@ public class SymbolFormatterTest extends CrateUnitTest {
         Function f = new Function(new FunctionInfo(
             new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED)), DataTypes.DOUBLE),
             Arrays.<Symbol>asList(Literal.of("bar"), Literal.of(3.4)));
-        assertThat(SymbolPrinter.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo('bar', 3.4)"));
+        assertThat(Symbols.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo('bar', 3.4)"));
     }
 
     @Test
     public void testFormatInvalidEscape() throws Exception {
         expectedException.expect(IllegalFormatConversionException.class);
         expectedException.expectMessage("d != java.lang.String");
-        assertThat(SymbolPrinter.format("%d", Literal.of(42L)), is(""));
+        assertThat(Symbols.format("%d", Literal.of(42L)), is(""));
     }
 }

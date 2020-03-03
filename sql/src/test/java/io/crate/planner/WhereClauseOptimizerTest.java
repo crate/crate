@@ -152,6 +152,6 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
     public void testFilterOnPKAndVersionResultsInDocKeys() {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from bystring where name = 'foo' and _version = 2");
-        assertThat(query.docKeys().toString(), is("Optional[DocKeys{foo, 2}]"));
+        assertThat(query.docKeys().toString(), is("Optional[DocKeys{'foo', 2}]"));
     }
 }

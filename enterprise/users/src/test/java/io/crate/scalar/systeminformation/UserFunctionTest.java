@@ -21,7 +21,6 @@ package io.crate.scalar.systeminformation;
 import io.crate.auth.user.User;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.scalar.UsersScalarFunctionModule;
 import io.crate.testing.SqlExpressions;
 import org.junit.Test;
@@ -61,12 +60,12 @@ public class UserFunctionTest extends AbstractScalarFunctionsTest {
     public void testFormatFunctionsWithoutBrackets() {
         setupFunctionsFor(TEST_USER);
         Symbol f = sqlExpressions.asSymbol("current_user");
-        assertThat(SymbolPrinter.printQualified(f), is("CURRENT_USER"));
+        assertThat(f.toString(), is("CURRENT_USER"));
 
         f = sqlExpressions.asSymbol("session_user");
-        assertThat(SymbolPrinter.printQualified(f), is("SESSION_USER"));
+        assertThat(f.toString(), is("SESSION_USER"));
 
         f = sqlExpressions.asSymbol("user");
-        assertThat(SymbolPrinter.printQualified(f), is("CURRENT_USER"));
+        assertThat(f.toString(), is("CURRENT_USER"));
     }
 }

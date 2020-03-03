@@ -22,11 +22,11 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -112,7 +112,7 @@ public class TopNProjection extends Projection {
             "type", "TopN",
             "limit", limit,
             "offset", offset,
-            "outputs", ExplainLeaf.printList(outputs)
+            "outputs", Lists2.joinOn(", ", outputs, Symbol::toString)
         );
     }
 

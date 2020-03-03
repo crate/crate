@@ -22,7 +22,6 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 
@@ -70,7 +69,7 @@ public final class GroupAndAggregateSemantics {
                 continue;
             }
             throw new IllegalArgumentException(
-                "'" + SymbolPrinter.printUnqualified(offender) +
+                "'" + offender +
                 "' must appear in the GROUP BY clause or be used in an aggregation function. " +
                 "Perhaps you grouped by an alias that clashes with a column in the relations"
             );

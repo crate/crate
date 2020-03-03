@@ -112,7 +112,7 @@ public class FilterProjection extends Projection {
     public Map<String, Object> mapRepresentation() {
         return ImmutableMap.of(
             "type", "Filter",
-            "filter", query.representation()
+            "filter", query.toString()
         );
     }
 }

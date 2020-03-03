@@ -32,7 +32,7 @@ import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -195,7 +195,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     @Override
     protected SortField visitSymbol(Symbol symbol, SortSymbolContext context) {
         throw new UnsupportedOperationException(
-                SymbolPrinter.format("Using a non-integer constant in ORDER BY is not supported", symbol));
+                Symbols.format("Using a non-integer constant in ORDER BY is not supported", symbol));
     }
 
     private SortField customSortField(String name,

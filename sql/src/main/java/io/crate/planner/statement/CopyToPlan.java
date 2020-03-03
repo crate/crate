@@ -41,7 +41,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
@@ -196,7 +196,7 @@ public final class CopyToPlan implements Plan {
             // TODO: remove outputNames?
             outputNames = new ArrayList<>(copyTo.columns().size());
             for (Symbol symbol : copyTo.columns()) {
-                outputNames.add(SymbolPrinter.printUnqualified(symbol));
+                outputNames.add(symbol.toString(Style.UNQUALIFIED));
                 outputs.add(DocReferences.toSourceLookup(symbol));
             }
             columnsDefined = true;

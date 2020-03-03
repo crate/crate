@@ -25,7 +25,6 @@ import com.google.common.primitives.Booleans;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -226,12 +225,12 @@ public class OrderBy implements Writeable {
     }
 
     public static StringBuilder explainRepresentation(StringBuilder sb,
-                                                      List<? extends ExplainLeaf> leaves,
+                                                      List<? extends Symbol> symbols,
                                                       boolean[] reverseFlags,
                                                       boolean[] nullsFirst) {
-        for (int i = 0; i < leaves.size(); i++) {
-            ExplainLeaf leaf = leaves.get(i);
-            sb.append(leaf.representation());
+        for (int i = 0; i < symbols.size(); i++) {
+            Symbol symbol = symbols.get(i);
+            sb.append(symbol.toString());
             sb.append(" ");
             if (reverseFlags[i]) {
                 sb.append("DESC");
@@ -243,7 +242,7 @@ public class OrderBy implements Writeable {
                 sb.append(" ");
                 sb.append(nullFirst ? "NULLS FIRST" : "NULLS LAST");
             }
-            if (i + 1 < leaves.size()) {
+            if (i + 1 < symbols.size()) {
                 sb.append(" ");
             }
         }

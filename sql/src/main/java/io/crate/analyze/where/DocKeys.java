@@ -25,11 +25,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.ExplainLeaf;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
@@ -170,7 +170,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
     @Override
     public String toString() {
         return "DocKeys{" + docKeys.stream()
-            .map(ExplainLeaf::printList)
+            .map(xs -> Lists2.joinOn(", ", xs, Symbol::toString))
             .sorted()
             .collect(Collectors.joining("; ")) + '}';
     }

@@ -23,12 +23,12 @@
 package io.crate.execution.dsl.projection;
 
 import io.crate.analyze.WindowDefinition;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.WindowFunctionContext;
-import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -159,7 +159,7 @@ public class WindowAggProjection extends Projection {
     public Map<String, Object> mapRepresentation() {
         return Map.of(
             "type", "WindowAggregation",
-            "windowFunctions", ExplainLeaf.printList(windowFunctions)
+            "windowFunctions", Lists2.joinOn(", ", windowFunctions, Symbol::toString)
         );
     }
 }

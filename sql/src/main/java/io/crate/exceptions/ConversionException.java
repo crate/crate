@@ -22,8 +22,6 @@
 package io.crate.exceptions;
 
 import io.crate.expression.symbol.FuncArg;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.types.DataType;
 
 import java.util.Collection;
@@ -35,7 +33,7 @@ public class ConversionException extends IllegalArgumentException {
         super(String.format(
             Locale.ENGLISH,
             "Cannot cast `%s` of type `%s` to %s",
-            formatFuncArg(source),
+            source,
             source.valueType(),
             targetTypeCandidates.size() > 1
                 ? "any of the types: " + targetTypeCandidates.toString()
@@ -47,7 +45,7 @@ public class ConversionException extends IllegalArgumentException {
         super(String.format(
             Locale.ENGLISH,
             "Cannot cast `%s` of type `%s` to %s",
-            formatFuncArg(source),
+            source,
             source.valueType(),
             "type `" + targetType.getName() + "`"
         ));
@@ -69,11 +67,5 @@ public class ConversionException extends IllegalArgumentException {
             sourceValue,
             targetType.getName()
         ));
-    }
-
-    private static String formatFuncArg(FuncArg source) {
-        return source instanceof Symbol
-            ? SymbolPrinter.printUnqualified(((Symbol) source))
-            : source.toString();
     }
 }

@@ -31,7 +31,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -108,7 +108,7 @@ public class Order extends ForwardingLogicalPlan {
     private static void ensureOrderByColumnsArePresentInOutputs(List<Symbol> orderByInputColumns) {
         Consumer<? super Symbol> raiseExpressionMissingInOutputsError = symbol -> {
             throw new UnsupportedOperationException(
-                    SymbolPrinter.format(
+                    Symbols.format(
                     "Cannot ORDER BY `%s`, the column does not appear in the outputs of the underlying relation",
                     symbol));
         };

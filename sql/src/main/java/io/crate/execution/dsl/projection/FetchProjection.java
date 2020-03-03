@@ -24,13 +24,13 @@ package io.crate.execution.dsl.projection;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Paging;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
-import io.crate.planner.ExplainLeaf;
 import io.crate.planner.node.fetch.FetchSource;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.jvm.JvmInfo;
@@ -166,7 +166,7 @@ public class FetchProjection extends Projection {
     public Map<String, Object> mapRepresentation() {
         return ImmutableMap.of(
             "type", "Fetch",
-            "outputs", ExplainLeaf.printList(outputSymbols),
+            "outputs", Lists2.joinOn(", ", outputSymbols, Symbol::toString),
             "fetchSize", fetchSize
         );
     }

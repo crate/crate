@@ -48,7 +48,6 @@ import io.crate.expression.symbol.GroupAndAggregateSemantics;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -498,13 +497,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
-                "Cannot use %s in %s clause", SymbolPrinter.printUnqualified(ordinal), clause));
+                "Cannot use %s in %s clause", ordinal, clause));
         }
         Integer ord = intOrdinal.value();
         if (ord == null) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
-                "Cannot use %s in %s clause", SymbolPrinter.printUnqualified(ordinal), clause));
+                "Cannot use %s in %s clause", ordinal, clause));
         }
         return ordinalOutputReference(outputSymbols, ord, clause);
     }

@@ -22,6 +22,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
@@ -102,16 +103,11 @@ public class ParameterSymbol extends Symbol {
     }
 
     @Override
-    public String toString() {
-        return representation();
+    public String toString(Style style) {
+        return "$" + (index + 1);
     }
 
     public int index() {
         return index;
-    }
-
-    @Override
-    public String representation() {
-        return "$" + (index + 1);
     }
 }

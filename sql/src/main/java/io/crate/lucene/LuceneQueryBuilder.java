@@ -59,7 +59,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.FunctionInfo;
@@ -142,7 +143,7 @@ public class LuceneQueryBuilder {
             s -> normalizer.normalize(s, coordinatorTxnCtx)
         ).accept(VISITOR, ctx);
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolPrinter.printUnqualified(query), ctx.query);
+            LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", query.toString(Style.UNQUALIFIED), ctx.query);
         }
         return ctx;
     }
@@ -568,7 +569,7 @@ public class LuceneQueryBuilder {
         @Override
         protected Query visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException(
-                SymbolPrinter.format("Can't build query from symbol %s", symbol));
+                    Symbols.format("Can't build query from symbol %s", symbol));
         }
     }
 
@@ -598,6 +599,6 @@ public class LuceneQueryBuilder {
 
     private static void raiseUnsupported(Function function) {
         throw new UnsupportedOperationException(
-            SymbolPrinter.format("Cannot convert function %s into a query", function));
+                Symbols.format("Cannot convert function %s into a query", function));
     }
 }

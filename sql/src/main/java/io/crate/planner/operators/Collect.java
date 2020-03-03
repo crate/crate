@@ -46,7 +46,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.ExecutionPlan;
-import io.crate.planner.ExplainLeaf;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.consumer.OrderByPositionVisitor;
@@ -297,7 +296,7 @@ public class Collect implements LogicalPlan {
     public String toString() {
         return "Collect{" +
                tableInfo.ident() +
-               ", [" + ExplainLeaf.printList(outputs) +
+               ", [" + Lists2.joinOn(", ", outputs, Symbol::toString) +
                "], " + where +
                '}';
     }

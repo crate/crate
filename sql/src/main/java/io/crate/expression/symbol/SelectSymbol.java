@@ -23,6 +23,7 @@
 package io.crate.expression.symbol;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.symbol.format.Style;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -97,13 +98,8 @@ public class SelectSymbol extends Symbol {
     }
 
     @Override
-    public String toString() {
-        return "SelectSymbol{" + dataType.toString() + "}";
-    }
-
-    @Override
-    public String representation() {
-        return "SubQuery{" + relation + "@" + hashCode();
+    public String toString(Style style) {
+        return "(" + relation + ")";
     }
 
     public ResultType getResultType() {

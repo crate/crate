@@ -26,7 +26,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.format.Style;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.FunctionIdent;
 import io.crate.types.ArrayType;
@@ -204,11 +204,11 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
      */
     @Test
     public void test_try_cast_for_all_data_types() {
-        for (DataType dataType : DataTypes.PRIMITIVE_TYPES) {
+        for (DataType<?> dataType : DataTypes.PRIMITIVE_TYPES) {
             DataType<?> randomType = randomType();
-            Literal val = Literal.ofUnchecked(randomType, getDataGenerator(randomType).get());
+            Literal<?> val = Literal.ofUnchecked(randomType, getDataGenerator(randomType).get());
             assertEvaluate(
-                "try_cast(" + SymbolPrinter.printQualified(val) + " as " + dataType.getName() + ")",
+                "try_cast(" + val.toString(Style.QUALIFIED) + " as " + dataType.getName() + ")",
                 anyOf(notNullValue(), nullValue()));
         }
     }

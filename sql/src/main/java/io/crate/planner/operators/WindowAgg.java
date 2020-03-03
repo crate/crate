@@ -37,7 +37,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.WindowFunctionContext;
 import io.crate.planner.ExecutionPlan;
-import io.crate.planner.ExplainLeaf;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
@@ -233,6 +232,6 @@ public class WindowAgg extends ForwardingLogicalPlan {
 
     @Override
     public String toString() {
-        return "WindowAgg{[" + ExplainLeaf.printList(windowFunctions) + "]}";
+        return "WindowAgg{[" + Lists2.joinOn(", ", windowFunctions, WindowFunction::toString) + "]}";
     }
 }

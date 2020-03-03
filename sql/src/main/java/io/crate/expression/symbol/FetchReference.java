@@ -22,6 +22,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -72,12 +73,11 @@ public class FetchReference extends Symbol {
     }
 
     @Override
-    public String toString() {
-        return representation();
-    }
-
-    @Override
-    public String representation() {
-        return "Fetch{" + fetchId.representation() + ", " + ref.representation() + '}';
+    public String toString(Style style) {
+        return "FETCH("
+            + fetchId.toString(style)
+            + ", "
+            + ref.toString(style)
+            + ')';
     }
 }

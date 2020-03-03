@@ -25,7 +25,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.types.DataTypes;
 
 import java.util.Locale;
@@ -73,7 +72,7 @@ public class SemanticSortValidator {
                     String.format(Locale.ENGLISH,
                                   "Cannot %s '%s': invalid return type '%s'.",
                                   context.operation,
-                                  SymbolPrinter.printUnqualified(symbol),
+                                  symbol,
                                   symbol.valueType())
                 );
             }
@@ -104,7 +103,7 @@ public class SemanticSortValidator {
                     String.format(Locale.ENGLISH,
                                   "Cannot %s '%s': invalid data type '%s'.",
                                   context.operation,
-                                  SymbolPrinter.printUnqualified(symbol),
+                                  symbol,
                                   symbol.valueType())
                 );
             }

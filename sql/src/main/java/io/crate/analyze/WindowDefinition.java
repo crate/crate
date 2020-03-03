@@ -27,7 +27,6 @@ import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -131,8 +130,8 @@ public class WindowDefinition implements Writeable {
         StringBuilder sb = new StringBuilder("Window{");
         if (partitions.size() > 0) {
             sb.append("PARTITION BY ");
-            for (ExplainLeaf partition : partitions) {
-                sb.append(partition.representation());
+            for (Symbol symbol : partitions) {
+                sb.append(symbol.toString());
             }
         }
         if (orderBy != null) {

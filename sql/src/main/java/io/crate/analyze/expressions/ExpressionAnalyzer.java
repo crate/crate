@@ -66,8 +66,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.interval.IntervalParser;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
@@ -1001,7 +1001,7 @@ public class ExpressionAnalyzer {
                 }
                 Preconditions.checkArgument(
                     column instanceof ScopedSymbol || column instanceof Reference,
-                    SymbolPrinter.format("can only MATCH on columns, not on %s", column));
+                    Symbols.format("can only MATCH on columns, not on %s", column));
                 Symbol boost = ident.boost().accept(this, context);
                 identBoostMap.put(column, boost);
                 if (column instanceof ScopedSymbol) {

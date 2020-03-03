@@ -22,7 +22,7 @@
 package io.crate.metadata.information;
 
 import io.crate.expression.reference.information.ColumnContext;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RelationName;
@@ -90,8 +90,9 @@ public class InformationColumnsTableInfo extends InformationTableInfo<ColumnCont
                 }))
             .register("column_default", STRING,
                 () -> forFunction(r -> {
-                    if (r.info.defaultExpression() != null) {
-                        return SymbolPrinter.printUnqualified(r.info.defaultExpression());
+                    Symbol defaultExpression = r.info.defaultExpression();
+                    if (defaultExpression != null) {
+                        return defaultExpression.toString();
                     } else {
                         return null;
                     }
