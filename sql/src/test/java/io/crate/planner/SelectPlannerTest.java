@@ -180,7 +180,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan("select name from bystring where name = 'one'");
         assertThat(plan, isPlan(e.functions(),
             "RootBoundary[name]\n" +
-            "Get[doc.bystring | name | DocKeys{one}"
+            "Get[doc.bystring | name | DocKeys{'one'}"
         ));
     }
 
@@ -241,7 +241,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCollectAndMergePlan() throws Exception {
         Merge merge = e.plan("select name from users where name = 'x' order by id limit 10");
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
-        assertThat(collectPhase.where().representation(), is("(name = 'x')"));
+        assertThat(collectPhase.where().toString(), is("(name = 'x')"));
 
         TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
         assertThat(topNProjection.limit(), is(10));
@@ -258,7 +258,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = e.plan("select name from users where name = 'x' order by name limit 10");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.where().representation(), is("(name = 'x')"));
+        assertThat(collectPhase.where().toString(), is("(name = 'x')"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(1));
@@ -312,7 +312,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             new PartitionName(new RelationName("doc", "parted_pks"), Arrays.asList("1395874800000")).asIndexName(),
             new PartitionName(new RelationName("doc", "parted_pks"), Arrays.asList("1395961200000")).asIndexName()));
 
-        assertThat(collectPhase.where().representation(), is("(name = 'x')"));
+        assertThat(collectPhase.where().toString(), is("(name = 'x')"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(3));
@@ -323,7 +323,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = e.plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
-        assertThat(collectPhase.where().representation(), is("(name = 'x')"));
+        assertThat(collectPhase.where().toString(), is("(name = 'x')"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(2));

@@ -30,8 +30,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
@@ -58,12 +56,12 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(map.toString(),
             is("{Collect={type=executionPlan, " +
                "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
-                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t1.x, integer}, Ref{doc.t1.a, text}, " +
+                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=[x, a], " +
                    "projections=[" +
-                       "{type=HashAggregation, keys=IC{1, text}, aggregations=Aggregation{max, args=[IC{0, integer}], filter=true}}, " +
-                       "{type=HashAggregation, keys=IC{0, text}, aggregations=Aggregation{max, args=[IC{1, integer}], filter=true}}, " +
+                       "{type=HashAggregation, keys=INPUT(1), aggregations=max(INPUT(0))}, " +
+                       "{type=HashAggregation, keys=INPUT(0), aggregations=max(INPUT(1))}, " +
                        "{type=Filter, filter=(INPUT(1) > 10)}, " +
-                       "{type=OrderByTopN, limit=-1, offset=0, outputs=IC{0, text}, IC{1, integer}, orderBy=[IC{0, text} ASC]}], " +
+                       "{type=OrderByTopN, limit=-1, offset=0, outputs=INPUT(0), INPUT(1), orderBy=[INPUT(0) ASC]}], " +
                     "routing={n1={t1=[0, 1, 2, 3]}}, where=true}}}}"));
     }
 
@@ -97,15 +95,15 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
             is("{UnionExecutionPlan={type=executionPlan, " +
                "left={Collect={type=executionPlan, " +
                    "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
-                       "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t1.x, integer}, " +
-                       "routing={n1={t1=[0, 1, 2, 3]}}, where=true, orderBy=Ref{doc.t1.x, integer} ASC}}}}, " +
+                       "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=[x], " +
+                       "routing={n1={t1=[0, 1, 2, 3]}}, where=true, orderBy=x ASC}}}}, " +
                "right={Collect={type=executionPlan, " +
                    "collectPhase={COLLECT={type=executionPhase, id=1, executionNodes=[n1], " +
-                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t2.y, integer}, " +
-                   "routing={n1={t2=[0, 1, 2, 3]}}, where=true, orderBy=Ref{doc.t2.y, integer} ASC}}}}, " +
+                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=[y], " +
+                   "routing={n1={t2=[0, 1, 2, 3]}}, where=true, orderBy=y ASC}}}}, " +
                "mergePhase={MERGE={type=executionPhase, id=2, executionNodes=[n1], " +
                    "distribution={distributedByColumn=0, type=BROADCAST}, " +
-                   "projections=[{type=TopN, limit=10, offset=0, outputs=IC{0, integer}}]}}}}"));
+                   "projections=[{type=TopN, limit=10, offset=0, outputs=INPUT(0)}]}}}}"));
     }
 
     @Test

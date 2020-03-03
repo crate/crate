@@ -33,7 +33,7 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -184,7 +184,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             if (context.insideAggregation) {
                 Reference.IndexType indexType = symbol.indexType();
                 if (indexType == Reference.IndexType.ANALYZED) {
-                    throw new IllegalArgumentException(SymbolPrinter.format(
+                    throw new IllegalArgumentException(Symbols.format(
                         "Cannot select analyzed column '%s' within grouping or aggregations", symbol));
                 }
             }

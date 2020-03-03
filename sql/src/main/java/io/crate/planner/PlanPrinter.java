@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
+import io.crate.common.collections.Lists2;
 import io.crate.execution.dsl.phases.AbstractProjectionsPhase;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.CountPhase;
@@ -39,6 +40,8 @@ import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.phases.UpstreamPhase;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
@@ -123,10 +126,10 @@ public final class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitRoutedCollectPhase(RoutedCollectPhase phase, Void context) {
             ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
-            builder.put("toCollect", ExplainLeaf.printList(phase.toCollect()));
+            builder.put("toCollect", "[" + Lists2.joinOn(", ", phase.toCollect(), Symbol::toString) + "]");
             dqlPlanNode(phase, builder);
             builder.put("routing", xContentSafeRoutingLocations(phase.routing().locations()));
-            builder.put("where", phase.where().representation());
+            builder.put("where", phase.where().toString());
             OrderBy orderBy = phase.orderBy();
             if (orderBy != null) {
                 builder.put("orderBy", orderBy.explainRepresentation());
@@ -137,7 +140,7 @@ public final class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitPKLookup(PKLookupPhase phase, Void context) {
             ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
-            builder.put("toCollect", ExplainLeaf.printList(phase.toCollect()));
+            builder.put("toCollect", Lists2.joinOn(", ", phase.toCollect(), Symbol::toString));
             dqlPlanNode(phase, builder);
             Map<String, List<String>> shardsByNode = new HashMap<>();
             for (String nodeId : phase.nodeIds()) {
@@ -153,7 +156,7 @@ public final class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitCollectPhase(CollectPhase phase, Void context) {
             ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
-            builder.put("toCollect", ExplainLeaf.printList(phase.toCollect()));
+            builder.put("toCollect", Lists2.joinOn(", ", phase.toCollect(), Symbol::toString));
             return createMap(phase, builder);
         }
 
@@ -161,14 +164,14 @@ public final class PlanPrinter {
         public ImmutableMap.Builder<String, Object> visitCountPhase(CountPhase phase, Void context) {
             ImmutableMap.Builder<String, Object> builder = upstreamPhase(phase, visitExecutionPhase(phase, context));
             builder.put("routing", xContentSafeRoutingLocations(phase.routing().locations()));
-            builder.put("where", phase.where().representation());
+            builder.put("where", phase.where().toString());
             return builder;
         }
 
         @Override
         public ImmutableMap.Builder<String, Object> visitFetchPhase(FetchPhase phase, Void context) {
             return createMap(phase, createSubMap(phase)
-                .put("fetchRefs", ExplainLeaf.printList(phase.fetchRefs())));
+                .put("fetchRefs", Lists2.joinOn(", ", phase.fetchRefs(), Reference::toString)));
         }
 
         @Override

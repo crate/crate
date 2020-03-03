@@ -26,16 +26,15 @@ import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.format.Style;
 
 import java.util.Collection;
 import java.util.HashSet;
 
 public class SQLPrinter {
-
-    private static final TestingSymbolPrinter TESTING_SYMBOL_PRINTER = new TestingSymbolPrinter();
 
     public static String print(Object o) {
         if (o instanceof QueriedSelectRelation) {
@@ -60,21 +59,19 @@ public class SQLPrinter {
     }
 
     public static String print(Collection<Symbol> symbols) {
-        StringBuilder sb = new StringBuilder();
-        TESTING_SYMBOL_PRINTER.process(symbols, sb);
-        return sb.toString();
+        return Lists2.joinOn(", ", symbols, x -> x.toString(Style.QUALIFIED));
     }
 
 
     public static String print(Symbol symbol) {
         StringBuilder sb = new StringBuilder();
-        TESTING_SYMBOL_PRINTER.process(symbol, sb);
+        sb.append(symbol.toString(Style.QUALIFIED));
         return sb.toString();
     }
 
     public static String print(OrderBy orderBy) {
         StringBuilder sb = new StringBuilder();
-        TESTING_SYMBOL_PRINTER.process(orderBy, sb);
+        process(orderBy, sb);
         return sb.toString();
     }
 
@@ -82,25 +79,25 @@ public class SQLPrinter {
         StringBuilder sb = new StringBuilder();
 
         sb.append("SELECT ");
-        TESTING_SYMBOL_PRINTER.process(relation.outputs(), sb);
+        sb.append(Lists2.joinOn(", ", relation.outputs(), x -> x.toString(Style.QUALIFIED)));
 
         if (relation.where() != Literal.BOOLEAN_TRUE) {
             sb.append(" WHERE ");
-            TESTING_SYMBOL_PRINTER.process(relation.where(), sb);
+            sb.append(relation.where().toString(Style.QUALIFIED));
         }
         if (!relation.groupBy().isEmpty()) {
             sb.append(" GROUP BY ");
-            TESTING_SYMBOL_PRINTER.process(relation.groupBy(), sb);
+            sb.append(Lists2.joinOn(", ", relation.groupBy(), x -> x.toString(Style.QUALIFIED)));
         }
         Symbol having = relation.having();
         if (having != null) {
             sb.append(" HAVING ");
-            TESTING_SYMBOL_PRINTER.process(having, sb);
+            sb.append(having.toString(Style.QUALIFIED));
         }
         OrderBy orderBy = relation.orderBy();
         if (orderBy != null) {
             sb.append(" ORDER BY ");
-            TESTING_SYMBOL_PRINTER.process(orderBy, sb);
+            process(orderBy, sb);
         }
         Symbol limit = relation.limit();
         if (limit != null) {
@@ -115,50 +112,26 @@ public class SQLPrinter {
         return sb.toString();
     }
 
-
-    /**
-     * produces same results as with {@link SymbolPrinter#printQualified(Symbol)} but is
-     * able to format other symbols that {@link SymbolPrinter} is not able to.
-     */
-    private static class TestingSymbolPrinter {
-
-        public void process(Iterable<? extends Symbol> symbols, StringBuilder sb) {
-            boolean first = true;
-            for (Symbol arg : symbols) {
-                if (!first) {
-                    sb.append(", ");
-                }
-                first = false;
-                process(arg, sb);
+    public static void process(OrderBy orderBy, StringBuilder sb) {
+        int i = 0;
+        for (Symbol symbol : orderBy.orderBySymbols()) {
+            if (i > 0) {
+                sb.append(", ");
             }
-        }
-
-        public void process(Symbol symbol, StringBuilder sb) {
-            sb.append(SymbolPrinter.printQualified(symbol));
-        }
-
-        public void process(OrderBy orderBy, StringBuilder sb) {
-            int i = 0;
-            for (Symbol symbol : orderBy.orderBySymbols()) {
-                if (i > 0) {
-                    sb.append(", ");
-                }
-                process(symbol, sb);
-                if (orderBy.reverseFlags()[i]) {
-                    sb.append(" DESC");
-                }
-                boolean nullsFirst = orderBy.nullsFirst()[i];
-                if (orderBy.reverseFlags()[i] != nullsFirst) {
-                    sb.append(" NULLS");
-                    if (nullsFirst) {
-                        sb.append(" FIRST");
-                    } else {
-                        sb.append(" LAST");
-                    }
-                }
-                i++;
+            sb.append(symbol.toString(Style.QUALIFIED));
+            if (orderBy.reverseFlags()[i]) {
+                sb.append(" DESC");
             }
+            boolean nullsFirst = orderBy.nullsFirst()[i];
+            if (orderBy.reverseFlags()[i] != nullsFirst) {
+                sb.append(" NULLS");
+                if (nullsFirst) {
+                    sb.append(" FIRST");
+                } else {
+                    sb.append(" LAST");
+                }
+            }
+            i++;
         }
     }
-
 }

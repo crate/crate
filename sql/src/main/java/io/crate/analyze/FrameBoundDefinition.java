@@ -103,7 +103,7 @@ public class FrameBoundDefinition implements Writeable {
     public String toString() {
         return "FrameBound{" +
                "type=" + type +
-               ", value=" + (value != null ? value.representation() : null) +
+               ", value=" + value +
                '}';
     }
 }

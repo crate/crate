@@ -22,6 +22,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -73,8 +74,8 @@ public final class AliasSymbol extends Symbol {
     }
 
     @Override
-    public String representation() {
-        return alias;
+    public String toString(Style style) {
+        return symbol.toString(style) + " AS " + alias;
     }
 
     @Override

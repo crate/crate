@@ -22,6 +22,7 @@
 package io.crate.expression.symbol;
 
 import com.google.common.base.MoreObjects;
+import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -95,6 +96,11 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     }
 
     @Override
+    public String toString(Style style) {
+        return "INPUT(" + index + ")";
+    }
+
+    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitInputColumn(this, context);
     }
@@ -108,16 +114,6 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     @Override
     public int compareTo(InputColumn o) {
         return Integer.compare(index, o.index);
-    }
-
-    @Override
-    public String toString() {
-        return representation();
-    }
-
-    @Override
-    public String representation() {
-        return "IC{" + index + ", " + dataType + '}';
     }
 
     @Override

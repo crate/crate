@@ -25,8 +25,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 
@@ -63,8 +63,8 @@ public class HavingSymbolValidator {
         private static void ensurePresentInGroupBY(Symbol symbol, HavingContext context) {
             if (!context.insideAggregation && !context.groupByContains(symbol)) {
                 throw new IllegalArgumentException(
-                    SymbolPrinter.format("Cannot use column %s outside of an Aggregation in HAVING clause. " +
-                                         "Only GROUP BY keys allowed here.", symbol));
+                        Symbols.format("Cannot use column %s outside of an Aggregation in HAVING clause. " +
+                                       "Only GROUP BY keys allowed here.", symbol));
             }
         }
 

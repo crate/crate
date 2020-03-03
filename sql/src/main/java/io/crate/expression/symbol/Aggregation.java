@@ -22,9 +22,9 @@
 package io.crate.expression.symbol;
 
 import com.google.common.base.Preconditions;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -109,18 +109,6 @@ public class Aggregation extends Symbol {
     }
 
     @Override
-    public String toString() {
-        return representation();
-    }
-
-    @Override
-    public String representation() {
-        return "Aggregation{" + functionInfo.ident().name() +
-               ", args=[" + ExplainLeaf.printList(inputs) + "]" +
-               ", filter=" + filter.representation() + "}";
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -138,5 +126,19 @@ public class Aggregation extends Symbol {
     @Override
     public int hashCode() {
         return Objects.hash(functionInfo, inputs, valueType, filter);
+    }
+
+    @Override
+    public String toString(Style style) {
+        StringBuilder sb = new StringBuilder(functionInfo.ident().name())
+            .append("(");
+        for (int i = 0; i < inputs.size(); i++) {
+            sb.append(inputs.get(i).toString(style));
+            if (i + 1 < inputs.size()) {
+                sb.append(", ");
+            }
+        }
+        sb.append(")");
+        return sb.toString();
     }
 }

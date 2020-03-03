@@ -21,15 +21,15 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.planner.ExplainLeaf;
+import io.crate.expression.symbol.format.Style;
 import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class MatchPredicate extends Symbol {
 
@@ -86,10 +86,25 @@ public class MatchPredicate extends Symbol {
     }
 
     @Override
-    public String representation() {
-        return "MATCH{" + identBoostMap.keySet()
-            .stream()
-            .map(ExplainLeaf::representation)
-            .collect(Collectors.joining(", ")) + '}';
+    public String toString(Style style) {
+        StringBuilder sb = new StringBuilder("MATCH((");
+        Iterator<Map.Entry<Symbol, Symbol>> it = identBoostMap.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Symbol, Symbol> entry = it.next();
+            sb.append(entry.getKey().toString(style));
+            sb.append(" ");
+            sb.append(entry.getValue().toString(style));
+            if (it.hasNext()) {
+                sb.append(", ");
+            }
+        }
+        sb.append("), ");
+        sb.append(queryTerm.toString(style));
+        sb.append(") USING ");
+        sb.append(matchType);
+        sb.append(" WITH (");
+        sb.append(options.toString(style));
+        sb.append(")");
+        return sb.toString();
     }
 }

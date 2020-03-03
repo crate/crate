@@ -33,18 +33,15 @@ import java.util.Map;
 /**
  * Due to the match predicate not being an actual function, we have to manually print it here.
  */
-class MatchPrinter {
+public class MatchPrinter {
 
-    static void printMatchPredicate(Function matchPredicate,
-                                    StringBuilder sb,
-                                    SymbolPrinter.SymbolPrintVisitor printVisitor) {
+    public static void printMatchPredicate(Function matchPredicate, Style style, StringBuilder sb) {
         List<Symbol> arguments = matchPredicate.arguments();
-
         sb.append("MATCH((");
         printColumns(arguments.get(0), sb);
         sb.append("), ");
         // second argument (keyword)
-        arguments.get(1).accept(printVisitor, null);
+        sb.append(arguments.get(1).toString(style));
         sb.append(") USING ");
         // third argument (method)
         // need to print as identifier without quotes

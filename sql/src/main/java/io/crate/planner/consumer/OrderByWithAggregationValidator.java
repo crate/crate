@@ -26,7 +26,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 
@@ -70,7 +70,7 @@ public class OrderByWithAggregationValidator {
             if (context.outputSymbols.contains(symbol)) {
                 return null;
             } else if (context.isDistinct) {
-                throw new UnsupportedOperationException(SymbolPrinter.format(INVALID_FIELD_IN_DISTINCT_TEMPLATE, symbol));
+                throw new UnsupportedOperationException(Symbols.format(INVALID_FIELD_IN_DISTINCT_TEMPLATE, symbol));
             }
             if (symbol.info().type() == FunctionInfo.Type.SCALAR) {
                 for (Symbol arg : symbol.arguments()) {
@@ -78,8 +78,8 @@ public class OrderByWithAggregationValidator {
                 }
             } else {
                 throw new UnsupportedOperationException(
-                        SymbolPrinter.format("ORDER BY function '%s' is not allowed. " +
-                                             "Only scalar functions can be used", symbol));
+                        Symbols.format("ORDER BY function '%s' is not allowed. " +
+                                       "Only scalar functions can be used", symbol));
             }
             return null;
         }
@@ -106,7 +106,7 @@ public class OrderByWithAggregationValidator {
                     }
                 }
                 String template = context.isDistinct ? INVALID_FIELD_IN_DISTINCT_TEMPLATE : INVALID_FIELD_TEMPLATE;
-                throw new UnsupportedOperationException(SymbolPrinter.format(template, symbol));
+                throw new UnsupportedOperationException(Symbols.format(template, symbol));
             }
         }
 

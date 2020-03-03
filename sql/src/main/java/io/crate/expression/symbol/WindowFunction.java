@@ -68,12 +68,6 @@ public class WindowFunction extends Function {
         return SymbolType.WINDOW_FUNCTION;
     }
 
-
-    @Override
-    public String representation() {
-        return super.representation() + " " + windowDefinition.representation();
-    }
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);

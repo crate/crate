@@ -23,7 +23,7 @@ package io.crate.expression.symbol;
 
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 
@@ -149,7 +150,24 @@ public class Symbols {
         } else if (symbol instanceof Reference) {
             return ((Reference) symbol).column();
         }
-        return new ColumnIdent(SymbolPrinter.printUnqualified(symbol));
+        return new ColumnIdent(symbol.toString(Style.UNQUALIFIED));
+    }
+
+    /**
+     * format symbols in simple style and use the formatted symbols as {@link String#format(Locale, String, Object...)} arguments
+     * for the given <code>messageTmpl</code>.
+     */
+    public static String format(String messageTmpl, Symbol... symbols) {
+        Object[] formattedSymbols = new String[symbols.length];
+        for (int i = 0; i < symbols.length; i++) {
+            Symbol s = symbols[i];
+            if (s == null) {
+                formattedSymbols[i] = "NULL";
+            } else {
+                formattedSymbols[i] = s.toString(Style.UNQUALIFIED);
+            }
+        }
+        return String.format(Locale.ENGLISH, messageTmpl, formattedSymbols);
     }
 
     private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {

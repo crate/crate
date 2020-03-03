@@ -24,11 +24,11 @@ package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -172,7 +172,7 @@ public class OrderedTopNProjection extends Projection {
             "type", "OrderByTopN",
             "limit", limit,
             "offset", offset,
-            "outputs", ExplainLeaf.printList(outputs),
+            "outputs", Lists2.joinOn(", ", outputs, Symbol::toString),
             "orderBy", OrderBy.explainRepresentation(
                 new StringBuilder("["), orderBy, reverseFlags, nullsFirst).append("]").toString()
         );

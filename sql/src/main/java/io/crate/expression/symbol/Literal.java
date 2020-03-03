@@ -25,11 +25,11 @@ package io.crate.expression.symbol;
 import com.google.common.base.Preconditions;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
+import io.crate.expression.symbol.format.Style;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.joda.time.Period;
@@ -44,8 +44,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T>> {
@@ -150,6 +148,13 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
         }
     }
 
+    @Override
+    public String toString(Style style) {
+        StringBuilder sb = new StringBuilder();
+        LiteralValueFormatter.format(value, sb);
+        return sb.toString();
+    }
+
     /**
      * Literals always may be casted if required.
      */
@@ -190,24 +195,6 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
             return type.compareValueTo(value, literal.value) == 0;
         }
         return false;
-    }
-
-    @Override
-    public String toString() {
-        return "Literal{" + stringRepresentation(value) + ", type=" + type + '}';
-    }
-
-    private static String stringRepresentation(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value.getClass().isArray()) {
-            return '[' + Stream.of((Object[]) value).map(Literal::stringRepresentation).collect(Collectors.joining(", ")) + ']';
-        }
-        if (value instanceof BytesRef) {
-            return "'" + ((BytesRef) value).utf8ToString() + "'";
-        }
-        return value.toString();
     }
 
     @Override
@@ -273,10 +260,5 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
 
     public static Literal<Map<String, Object>> newGeoShape(String value) {
         return new Literal<>(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value(value));
-    }
-
-    @Override
-    public String representation() {
-        return stringRepresentation(value);
     }
 }

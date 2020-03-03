@@ -21,7 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
@@ -167,8 +168,9 @@ public class MetaDataToASTNodeResolver {
                     generatedExpression = SqlParser.createExpression(formattedExpression);
                 }
                 Expression defaultExpression = null;
-                if (info.defaultExpression() != null) {
-                    String symbol = SymbolPrinter.printUnqualified(info.defaultExpression());
+                Symbol defaultExpr = info.defaultExpression();
+                if (defaultExpr != null) {
+                    String symbol = defaultExpr.toString(Style.UNQUALIFIED);
                     defaultExpression = SqlParser.createExpression(symbol);
                 }
 

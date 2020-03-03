@@ -25,6 +25,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -35,8 +36,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Objects;
-
-import static io.crate.metadata.RowGranularity.DOC;
 
 public class Reference extends Symbol {
 
@@ -161,6 +160,14 @@ public class Reference extends Symbol {
         return type;
     }
 
+    @Override
+    public String toString(Style style) {
+        if (style == Style.QUALIFIED) {
+            return ident.tableIdent().sqlFqn() + '.' + column().quotedOutputName();
+        }
+        return column().quotedOutputName();
+    }
+
     public ReferenceIdent ident() {
         return ident;
     }
@@ -228,24 +235,6 @@ public class Reference extends Symbol {
                             defaultExpression);
     }
 
-    @Override
-    public String representation() {
-        return "Ref{" + ident.tableIdent() + '.' + ident.columnIdent() + ", " + type + '}';
-    }
-
-    @Override
-    public String toString() {
-        return "Ref{"
-               + ident.tableIdent().fqn() + '.' + ident.columnIdent().sqlFqn() + "::" + type +
-               ", pos=" + position +
-               (columnPolicy != ColumnPolicy.DYNAMIC ? ", columnPolicy=" + columnPolicy : "") +
-               (granularity != DOC ? ", granularity=" + granularity : "") +
-               (indexType != IndexType.NOT_ANALYZED ? ", index=" + indexType : "") +
-               ", nullable=" + nullable +
-               (columnStoreDisabled ? ", columnStoreOff=" + columnStoreDisabled : "") +
-               (defaultExpression != null ? ", defaultExpression=" + defaultExpression : "") +
-               '}';
-    }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {

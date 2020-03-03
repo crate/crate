@@ -35,6 +35,7 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -308,13 +309,21 @@ public class EqualityExtractor {
         }
 
         @Override
-        public String toString() {
-            return representation();
-        }
+        public String toString(Style style) {
+            if (this == NULL_MARKER_PROXY) {
+                return "NULL";
+            }
+            StringBuilder sb = new StringBuilder()
+                .append("(")
+                .append(origin.arguments().get(0).toString(style))
+                .append("=")
+                .append(origin.arguments().get(1).toString(style))
+                .append(")");
 
-        @Override
-        public String representation() {
-            return "EqProxy{" + forDisplay() + "}";
+            if (current != origin) {
+                sb.append(" TRUE");
+            }
+            return sb.toString();
         }
     }
 

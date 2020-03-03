@@ -25,10 +25,10 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.types.DataTypes;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class GeoReference extends Reference {
@@ -98,16 +98,6 @@ public class GeoReference extends Reference {
     @Override
     public int hashCode() {
         return Objects.hashCode(super.hashCode(), geoTree, precision, treeLevels, distanceErrorPct);
-    }
-
-    @Override
-    public String toString() {
-        return "GeoReference{" +
-               "geoTree='" + geoTree + '\'' +
-               ", precision=" + precision +
-               ", treeLevels=" + treeLevels +
-               ", distanceErrorPct=" + distanceErrorPct +
-               '}';
     }
 
     public GeoReference(StreamInput in) throws IOException {

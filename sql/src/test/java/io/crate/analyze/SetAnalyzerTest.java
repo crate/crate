@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 
 public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -199,6 +200,6 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSetLicense() throws Exception {
         AnalyzedSetLicenseStatement analysis = analyze("SET LICENSE 'ThisShouldBeAnEncryptedLicenseKey'");
-        assertThat(analysis.licenseKey().representation(), is("ThisShouldBeAnEncryptedLicenseKey"));
+        assertThat(analysis.licenseKey(), isLiteral("ThisShouldBeAnEncryptedLicenseKey"));
     }
 }

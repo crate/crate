@@ -26,6 +26,7 @@ import com.google.common.base.Objects;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -118,9 +119,8 @@ public class GeneratedReference extends Reference {
     }
 
     @Override
-    public String toString() {
-        return "Generated{" + column() + " AS " + formattedGeneratedExpression
-               + ", type=" + valueType() + '}';
+    public String toString(Style style) {
+        return column().quotedOutputName() + " AS " + formattedGeneratedExpression;
     }
 
     @Override

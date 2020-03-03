@@ -253,4 +253,15 @@ public final class Lists2 {
         }
         return joiner.toString();
     }
+
+    /**
+     * Same as {@link #joinOn(String, List, Function)} but uses iterator loop instead for random access on List
+     */
+    public static <T> String joinOn(String delimiter, Iterable<? extends T> items, Function<? super T, String> mapper) {
+        StringJoiner joiner = new StringJoiner(delimiter);
+        for (T item : items) {
+            joiner.add(mapper.apply(item));
+        }
+        return joiner.toString();
+    }
 }

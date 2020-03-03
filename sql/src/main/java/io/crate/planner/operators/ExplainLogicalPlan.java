@@ -24,14 +24,14 @@ package io.crate.planner.operators;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
-import io.crate.planner.ExplainLeaf;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
 
@@ -103,7 +103,7 @@ public class ExplainLogicalPlan {
         public ImmutableMap.Builder<String, Object> visitMultiPhase(MultiPhase logicalPlan, Context context) {
             Map<String, Map<String, Object>> dependencies = new HashMap<>(logicalPlan.dependencies().size());
             for (Map.Entry<LogicalPlan, SelectSymbol> entry : logicalPlan.dependencies().entrySet()) {
-                dependencies.put(entry.getValue().representation(), explainMap(entry.getKey(), context));
+                dependencies.put(entry.getValue().toString(), explainMap(entry.getKey(), context));
             }
             return createMap(logicalPlan, createSubMap()
                 .put("source", explainMap(logicalPlan.source, context))
@@ -113,42 +113,42 @@ public class ExplainLogicalPlan {
         @Override
         public ImmutableMap.Builder<String, Object> visitEval(Eval logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("fetchRefs", ExplainLeaf.printList(logicalPlan.outputs()))
+                .put("fetchRefs", Lists2.joinOn(", ", logicalPlan.outputs(), Symbol::toString))
                 .put("source", explainMap(logicalPlan.source, context)));
         }
 
         @Override
         public ImmutableMap.Builder<String, Object> visitCollect(Collect logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("toCollect", ExplainLeaf.printList(logicalPlan.outputs()))
-                .put("where", logicalPlan.where.query().representation()));
+                .put("toCollect", Lists2.joinOn(", ", logicalPlan.outputs(), Symbol::toString))
+                .put("where", logicalPlan.where.queryOrFallback().toString()));
         }
 
         @Override
         public ImmutableMap.Builder<String, Object> visitLimit(Limit logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("limit", SymbolPrinter.printQualified(logicalPlan.limit))
-                .put("offset", SymbolPrinter.printQualified(logicalPlan.offset))
+                .put("limit", logicalPlan.limit)
+                .put("offset", logicalPlan.offset)
                 .put("source", explainMap(logicalPlan.source, context)));
         }
 
         @Override
         public ImmutableMap.Builder<String, Object> visitCount(Count logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("where", logicalPlan.where.query().representation()));
+                .put("where", logicalPlan.where.queryOrFallback().toString()));
         }
 
         @Override
         public ImmutableMap.Builder<String, Object> visitGet(Get logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("toCollect", ExplainLeaf.printList(logicalPlan.outputs()))
+                .put("toCollect", Lists2.joinOn(", ", logicalPlan.outputs(), Symbol::toString))
                 .put("docKeys", logicalPlan.docKeys.toString()));
         }
 
         @Override
         public ImmutableMap.Builder<String, Object> visitFilter(Filter logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("filter", logicalPlan.query.representation())
+                .put("filter", logicalPlan.query)
                 .put("source", explainMap(logicalPlan.source, context)));
         }
 
@@ -176,8 +176,9 @@ public class ExplainLogicalPlan {
                 .put("right", explainMap(logicalPlan.rhs, context))
                 .put("joinType", logicalPlan.joinType()));
 
-            if (logicalPlan.joinCondition() != null) {
-                mapBuilder.put("joinCondition", SymbolPrinter.printQualified(logicalPlan.joinCondition()));
+            Symbol joinCondition = logicalPlan.joinCondition();
+            if (joinCondition != null) {
+                mapBuilder.put("joinCondition", joinCondition.toString());
             }
             return mapBuilder;
         }
@@ -189,21 +190,21 @@ public class ExplainLogicalPlan {
                 .put("right", explainMap(logicalPlan.rhs, context))
                 .put("joinType", logicalPlan.joinType())
                 .put("joinCondition",
-                    SymbolPrinter.printQualified(logicalPlan.joinCondition())));
+                    logicalPlan.joinCondition().toString()));
         }
 
         @Override
         public ImmutableMap.Builder<String, Object> visitGroupHashAggregate(GroupHashAggregate logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("aggregates", ExplainLeaf.printList(logicalPlan.aggregates))
-                .put("groupKeys", ExplainLeaf.printList(logicalPlan.groupKeys))
+                .put("aggregates", Lists2.joinOn(", ", logicalPlan.aggregates, Symbol::toString))
+                .put("groupKeys", Lists2.joinOn(", ", logicalPlan.groupKeys, Symbol::toString))
                 .put("source", explainMap(logicalPlan.source, context)));
         }
 
         @Override
         public ImmutableMap.Builder<String, Object> visitHashAggregate(HashAggregate logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("aggregates", ExplainLeaf.printList(logicalPlan.aggregates))
+                .put("aggregates", Lists2.joinOn(", ", logicalPlan.aggregates, Symbol::toString))
                 .put("source", explainMap(logicalPlan.source, context)));
         }
 

@@ -285,7 +285,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testInPredicateWithSubqueryIsRewrittenToAnyEq() {
         Symbol symbol = executor.asSymbol("t1.x in (select t2.y from t2)");
-        assertThat(symbol, isSQL("(doc.t1.x = ANY(SelectSymbol{integer_array}))"));
+        assertThat(symbol, isSQL("(doc.t1.x = ANY((SELECT y FROM (doc.t2))))"));
     }
 
     @Test

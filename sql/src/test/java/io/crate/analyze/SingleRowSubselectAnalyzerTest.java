@@ -55,7 +55,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     public void testSingleRowSubselectInWhereClause() throws Exception {
         QueriedSelectRelation relation = e.analyze("select * from t1 where x = (select y from t2)");
         assertThat(relation.where(),
-            isSQL("(doc.t1.x = SelectSymbol{integer_array})"));
+            isSQL("(doc.t1.x = (SELECT y FROM (doc.t2)))"));
     }
 
     @Test
@@ -63,13 +63,13 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
         QueriedSelectRelation relation = e.analyze(
             "select a from t1 where x = (select y from t2 where y = (select z from t3))");
         assertThat(relation.where(),
-            isSQL("(doc.t1.x = SelectSymbol{integer_array})"));
+            isSQL("(doc.t1.x = (SELECT y FROM (doc.t2)))"));
     }
 
     @Test
     public void testSingleRowSubselectInSelectList() {
         AnalyzedRelation relation = e.analyze("select (select b from t2 limit 1) from t1");
-        assertThat(relation.outputs(), isSQL("SelectSymbol{text_array}"));
+        assertThat(relation.outputs(), isSQL("(SELECT b FROM (doc.t2))"));
     }
 
     @Test
@@ -107,17 +107,17 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     public void testLikeSupportsSubQueries() {
         QueriedSelectRelation relation = e.analyze("select * from users where name like (select 'foo')");
         assertThat(relation.where(),
-            isSQL("(doc.users.name LIKE SelectSymbol{text_array})"));
+            isSQL("(doc.users.name LIKE (SELECT 'foo' FROM (empty_row)))"));
     }
 
     @Test
     public void testAnySupportsSubQueries() {
         QueriedSelectRelation relation = e.analyze("select * from users where (select 'bar') = ANY (tags)");
         assertThat(relation.where(),
-            isSQL("(SelectSymbol{text_array} = ANY(doc.users.tags))"));
+            isSQL("((SELECT 'bar' FROM (empty_row)) = ANY(doc.users.tags))"));
 
         relation = e.analyze("select * from users where 'bar' = ANY (select 'bar')");
         assertThat(relation.where(),
-            isSQL("('bar' = ANY(SelectSymbol{text_array}))"));
+            isSQL("('bar' = ANY((SELECT 'bar' FROM (empty_row))))"));
     }
 }

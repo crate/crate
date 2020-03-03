@@ -28,7 +28,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -75,7 +75,7 @@ public final class ValueNormalizer {
                 String.format(
                     Locale.ENGLISH,
                     "Cannot cast expression `%s` of type `%s` to `%s`",
-                    SymbolPrinter.printUnqualified(valueSymbol),
+                    valueSymbol,
                     valueSymbol.valueType().getName(),
                     reference.valueType().getName()
                 )
@@ -94,9 +94,9 @@ public final class ValueNormalizer {
             }
         } catch (PgArrayParsingException | ConversionException e) {
             throw new ColumnValidationException(
-                reference.column().name(),
-                tableInfo.ident(),
-                SymbolPrinter.format(
+                    reference.column().name(),
+                    tableInfo.ident(),
+                    Symbols.format(
                     "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" +
                     reference.valueType().getName() + ")",
                     literal,
