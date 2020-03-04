@@ -1466,4 +1466,19 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                "5| cr8\n")
         );
     }
+
+    @Test
+    public void test_insert_with_on_conflict_containing_case() {
+        execute("create table test(a int primary key, b timestamp)");
+        execute("insert into test (a, b) values (1, '2020-01-01')");
+        execute("insert into test (a, b)\n" +
+                "  values (1, '2020-01-02T00:00:00Z'::timestamp)\n" +
+                "  on conflict (a)\n" +
+                "  do update set b = case when excluded.b > b then excluded.b else b end");
+        execute("select date_format('%Y-%m-%d', b) from test where a = 1");
+        assertThat(
+            printedTable(response.rows()),
+            is("2020-01-02\n")
+        );
+    }
 }
