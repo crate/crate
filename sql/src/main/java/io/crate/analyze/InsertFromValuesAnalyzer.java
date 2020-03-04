@@ -68,6 +68,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -420,8 +421,8 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         if (!onDuplicateKeyAssignments.isEmpty()) {
             valuesResolver.insertValues = insertValues;
             valuesResolver.columns = context.columns();
-            Symbol[] onDupKeyAssignments = new Symbol[onDuplicateKeyAssignments.size()];
             valuesResolver.assignmentColumns = new ArrayList<>(onDuplicateKeyAssignments.size());
+            Map<Reference, Symbol> assignmentByTargetColumn = new LinkedHashMap<>();
             for (int i = 0; i < onDuplicateKeyAssignments.size(); i++) {
                 Assignment<Expression> assignment = onDuplicateKeyAssignments.get(i);
                 Reference columnName = tableRelation.resolveField(
@@ -433,15 +434,14 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     coordinatorTxnCtx);
                 Symbol assignmentExpression = ValueNormalizer.normalizeInputForReference(valueSymbol, columnName,
                     tableRelation.tableInfo());
-                onDupKeyAssignments[i] = assignmentExpression;
-
-                if (valuesResolver.assignmentColumns.size() == i) {
-                    valuesResolver.assignmentColumns.add(columnName.column().fqn());
-                }
+                assignmentByTargetColumn.put(columnName, assignmentExpression);
             }
-            context.addOnDuplicateKeyAssignments(onDupKeyAssignments);
+            context.addOnDuplicateKeyAssignments(assignmentByTargetColumn.values().toArray(new Symbol[0]));
             context.addOnDuplicateKeyAssignmentsColumns(
-                valuesResolver.assignmentColumns.toArray(new String[valuesResolver.assignmentColumns.size()]));
+                assignmentByTargetColumn.keySet().stream()
+                .map(x -> x.column().fqn())
+                .toArray(String[]::new)
+            );
         }
 
         // process generated column expressions and add columns + values

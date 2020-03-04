@@ -57,6 +57,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that led to an ``ArrayIndexOutOfBoundsException`` if using
+  ``ON CONFLICT (...) UPDATE SET`` in an ``INSERT`` statement.
+
 - Fixed an issue that could lead to a ``Values less than -1 bytes are not
   supported`` error, if one or more CrateDB nodes have few disk space
   available.
