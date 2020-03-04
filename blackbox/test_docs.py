@@ -65,13 +65,6 @@ class CrateTestShell(CrateShell):
         super(CrateTestShell, self).__init__(is_tty=False)
         self.logger = ColorPrinter(False, stream=PrintWrapper(), line_end='\n')
 
-    def stmt(self, stmt):
-        stmt = stmt.replace('\n', ' ')
-        if stmt.startswith('\\'):
-            self.process(stmt)
-        else:
-            self.execute(stmt)
-
 
 cmd = CrateTestShell()
 
@@ -118,7 +111,7 @@ def crash_transform(s):
         return s[1:]
     if hasattr(crate, 'addresses'):
         s = s.replace(':4200', ':{0}'.format(crate.addresses.http.port))
-    return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
+    return u'cmd.process({0})'.format(repr(s.strip().rstrip(';')))
 
 
 def bash_transform(s):
@@ -129,7 +122,7 @@ def bash_transform(s):
         s = s.replace(':4200', ':{0}'.format(crate.addresses.http.port))
     if s.startswith("crash"):
         s = re.search(r"crash\s+-c\s+\"(.*?)\"", s).group(1)
-        return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
+        return u'cmd.process({0})'.format(repr(s.strip().rstrip(';')))
     return (r'pretty_print(sh("""%s""").stdout.decode("utf-8"))' % s) + '\n'
 
 
