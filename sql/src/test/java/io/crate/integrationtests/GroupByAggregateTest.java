@@ -1308,4 +1308,16 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select obj['x'] from (select obj from tbl) as t group by obj['x']");
         assertThat(printedTable(response.rows()), Is.is("10\n"));
     }
+
+    @Test
+    public void test_group_by_nested_partition_by_column() {
+        execute("create table tbl (pk object as (id text primary key, part text primary key)) partitioned by (pk['part'])");
+        execute("insert into tbl (pk) values ({ id = '1', part = 'x' })");
+        execute("refresh table tbl");
+        execute("select distinct pk['part'] from tbl");
+        assertThat(
+            printedTable(response.rows()),
+            is("x\n")
+        );
+    }
 }

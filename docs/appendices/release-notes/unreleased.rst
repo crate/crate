@@ -57,6 +57,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that led to a ``NullPointerException`` when using ``GROUP BY``
+  on a nested ``PARTITIONED BY`` column.
+
 - Fixed an issue that led to an ``ArrayIndexOutOfBoundsException`` if using
   ``ON CONFLICT (...) UPDATE SET`` in an ``INSERT`` statement.
 
