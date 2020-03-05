@@ -102,6 +102,15 @@ Supported session settings
   Shows the emulated ``PostgreSQL`` server version.
 
 
+.. _conf-session-server_version:
+
+**server_version**
+
+  | *Default:* ``10.5``
+  | *Modifiable:* ``no``
+
+  Shows the emulated ``PostgreSQL`` server version.
+
 .. _experimental-warning:
 
 .. WARNING::

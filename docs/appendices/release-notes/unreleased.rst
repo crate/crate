@@ -65,6 +65,10 @@ None
 Changes
 =======
 
+- Added the :ref:`server_version_num <conf-session-server_version_num>` and
+  :ref:`server_version <conf-session-server_version>` read-only session
+  settings.
+
 - Added the :ref:`array_agg <array_agg>` aggregation function.
 
 - Added entries for primary keys to ``pg_class`` and ``pg_index`` table.

@@ -398,7 +398,8 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
             "search_path| pg_catalog, doc| Sets the schema search order.\n" +
             "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.\n" +
             "max_index_keys| 32| Shows the maximum number of index keys.\n" +
-            "server_version_num| 100500| Reports the emulated PostgreSQL version number\n")
+            "server_version_num| 100500| Reports the emulated PostgreSQL version number\n" +
+            "server_version| 10.5| Reports the emulated PostgreSQL version number\n")
         );
     }
 }
