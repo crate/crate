@@ -57,23 +57,4 @@ None
 Fixes
 =====
 
-- Fixed an issue that led to more than one expressions in the form
-  ``<literalValue> AS <alias>`` to be interpreted as the same column if all
-  ``<literalValue>`` expressions are equal.
-
-- Fixed an issue that led to a ``NullPointerException`` when using ``GROUP BY``
-  on a nested ``PARTITIONED BY`` column.
-
-- Fixed an issue that led to an ``ArrayIndexOutOfBoundsException`` if using
-  ``ON CONFLICT (...) UPDATE SET`` in an ``INSERT`` statement.
-
-- Fixed an issue that could lead to a ``Values less than -1 bytes are not
-  supported`` error, if one or more CrateDB nodes have few disk space
-  available.
-
-- Fixed an issue that would cause ``COPY FROM`` statements that used a HTTPS
-  source using a Let's Encrypt certificate to fail.
-
-- Fixed an issue that caused :ref:`RTRIM <scalar-rtrim>` to behave like
-  :ref:`LRTRIM <scalar-ltrim>`.
-
+None
