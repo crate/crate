@@ -32,9 +32,6 @@ import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.ParameterExpression;
-
-import java.util.function.Function;
 
 public class UserAnalyzer {
 
@@ -45,33 +42,32 @@ public class UserAnalyzer {
     }
 
     public AnalyzedCreateUser analyze(CreateUser<Expression> node,
-                                      Function<ParameterExpression, Symbol> convertParamFunction,
+                                      ParamTypeHints paramTypeHints,
                                       CoordinatorTxnCtx txnContext) {
         return new AnalyzedCreateUser(
             node.name(),
-            mappedProperties(node.properties(), convertParamFunction, txnContext));
+            mappedProperties(node.properties(), paramTypeHints, txnContext));
     }
 
     public AnalyzedAlterUser analyze(AlterUser<Expression> node,
-                                     Function<ParameterExpression, Symbol> convertParamFunction,
+                                     ParamTypeHints paramTypeHints,
                                      CoordinatorTxnCtx txnContext) {
         return new AnalyzedAlterUser(
             node.name(),
-            mappedProperties(node.properties(), convertParamFunction, txnContext));
+            mappedProperties(node.properties(), paramTypeHints, txnContext));
     }
 
     private GenericProperties<Symbol> mappedProperties(GenericProperties<Expression> properties,
-                                                              Function<ParameterExpression, Symbol> convertParamFunction,
-                                                              CoordinatorTxnCtx txnContext) {
+                                                       ParamTypeHints paramTypeHints,
+                                                       CoordinatorTxnCtx txnContext) {
         ExpressionAnalysisContext exprContext = new ExpressionAnalysisContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             txnContext,
-            convertParamFunction,
+            paramTypeHints,
             FieldProvider.UNSUPPORTED,
             null
         );
-
         return properties.map(x -> expressionAnalyzer.convert(x, exprContext));
     }
 }

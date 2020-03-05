@@ -81,10 +81,6 @@ class Samples implements Writeable {
         }
     }
 
-    public Samples merge(int maxSampleSize, Samples other, Random random) {
-        return Samples.merge(maxSampleSize, this, other, random);
-    }
-
     public static Samples merge(int maxSampleSize, Samples s1, Samples s2, Random random) {
         List<Row> newSamples = createNewSamples(maxSampleSize, s1, s2, random);
         return new Samples(

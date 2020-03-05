@@ -31,12 +31,10 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Table;
 
 import java.util.HashMap;
-import java.util.function.Function;
 
 class RefreshTableAnalyzer {
 
@@ -49,10 +47,10 @@ class RefreshTableAnalyzer {
     }
 
     public AnalyzedRefreshTable analyze(RefreshStatement<Expression> refreshStatement,
-                                        Function<ParameterExpression, Symbol> convertParamFunction,
+                                        ParamTypeHints paramTypeHints,
                                         CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
 
         HashMap<Table<Symbol>, DocTableInfo> analyzedTables = new HashMap<>();

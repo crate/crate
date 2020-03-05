@@ -33,11 +33,9 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.OptimizeStatement;
-import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.Table;
 
 import java.util.HashMap;
-import java.util.function.Function;
 
 public class OptimizeTableAnalyzer {
 
@@ -50,10 +48,10 @@ public class OptimizeTableAnalyzer {
     }
 
     public AnalyzedOptimizeTable analyze(OptimizeStatement<Expression> statement,
-                                         Function<ParameterExpression, Symbol> convertParamFunction,
+                                         ParamTypeHints paramTypeHints,
                                          CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
 
         var exprCtx = new ExpressionAnalysisContext();
         OptimizeStatement<Symbol> analyzedStatement =

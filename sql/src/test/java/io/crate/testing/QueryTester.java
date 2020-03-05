@@ -23,7 +23,6 @@
 package io.crate.testing;
 
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.auth.user.User;
 import io.crate.data.BatchIterators;
 import io.crate.data.Input;
 import io.crate.execution.dml.upsert.GeneratedColumns;
@@ -32,6 +31,9 @@ import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.symbol.FunctionCopyVisitor;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.ColumnIdent;
@@ -174,17 +176,15 @@ public final class QueryTester implements AutoCloseable {
             return new QueryTester(
                 this::getIterator,
                 (expr, params) -> {
-                    if (params == null) {
-                        return expressions.normalize(expressions.asSymbol(expr));
-                    } else {
-                        SqlExpressions sqlExpressions = new SqlExpressions(
-                            Collections.singletonMap(table.ident(), docTableRelation),
-                            docTableRelation,
-                            params,
-                            User.CRATE_USER
-                        );
-                        return sqlExpressions.normalize(sqlExpressions.asSymbol(expr));
-                    }
+                    Symbol symbol = expressions.asSymbol(expr);
+                    Symbol boundSymbol = symbol.accept(new FunctionCopyVisitor<>() {
+                        @Override
+                        public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, Object context) {
+                            Object param = params[parameterSymbol.index()];
+                            return Literal.ofUnchecked(parameterSymbol.valueType(), parameterSymbol.valueType().value(param));
+                        }
+                    }, null);
+                    return expressions.normalize(boundSymbol);
                 },
                 symbol -> queryBuilder.convert(
                     symbol,

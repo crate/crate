@@ -32,12 +32,10 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
 
 import java.util.List;
-import java.util.function.Function;
 
 class RestoreSnapshotAnalyzer {
 
@@ -50,7 +48,7 @@ class RestoreSnapshotAnalyzer {
     }
 
     public AnalyzedRestoreSnapshot analyze(RestoreSnapshot<Expression> restoreSnapshot,
-                                           Function<ParameterExpression, Symbol> convertParamFunction,
+                                           ParamTypeHints paramTypeHints,
                                            CoordinatorTxnCtx txnCtx) {
         List<String> nameParts = restoreSnapshot.name().getParts();
         if (nameParts.size() != 2) {
@@ -63,9 +61,9 @@ class RestoreSnapshotAnalyzer {
 
         var exprCtx = new ExpressionAnalysisContext();
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
 
         List<Table<Symbol>> tables = Lists2.map(
             restoreSnapshot.tables(),

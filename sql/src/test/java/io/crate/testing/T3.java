@@ -88,23 +88,6 @@ public class T3 {
         T4, T4_DEFINITION,
         T5, T5_DEFINITION);
 
-    public static List<AnalyzedRelation> relations(ClusterService clusterService) {
-        SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService);
-        RELATION_DEFINITIONS.forEach((key, value) -> {
-            try {
-                executorBuilder.addTable(value);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
-        SQLExecutor executor = executorBuilder.build();
-        Schemas schemas = executor.schemas();
-
-        return RELATION_DEFINITIONS.keySet().stream()
-            .map(rn -> new DocTableRelation(schemas.getTableInfo(rn)))
-            .collect(Collectors.toList());
-    }
-
     public static Map<RelationName, AnalyzedRelation> sources(ClusterService clusterService) {
         return sources(RELATION_DEFINITIONS.keySet(), clusterService);
     }

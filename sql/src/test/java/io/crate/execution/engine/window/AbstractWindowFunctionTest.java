@@ -91,7 +91,6 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
 
     @Before
     public void prepareFunctions() {
-        final String tableName = "t1";
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
             new RelationName("doc", "t1"),
             "create table doc.t1 (x int, y bigint, z string, d double)",
@@ -102,7 +101,6 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         sqlExpressions = new SqlExpressions(
             tableSources,
             tableRelation,
-            null,
             User.CRATE_USER,
             additionalModules
         );

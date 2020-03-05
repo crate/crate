@@ -32,9 +32,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.ParameterExpression;
-
-import java.util.function.Function;
 
 public class CreateBlobTableAnalyzer {
 
@@ -47,10 +44,10 @@ public class CreateBlobTableAnalyzer {
     }
 
     public AnalyzedCreateBlobTable analyze(CreateBlobTable<Expression> node,
-                                           Function<ParameterExpression, Symbol> convertParamFunction,
+                                           ParamTypeHints paramTypeHints,
                                            CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprCtx = new ExpressionAnalysisContext();
 
         CreateBlobTable<Symbol> createBlobTable = node.map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx));

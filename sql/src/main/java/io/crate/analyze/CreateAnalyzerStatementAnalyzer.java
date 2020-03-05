@@ -36,7 +36,6 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.NamedProperties;
-import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.TokenFilters;
 import io.crate.sql.tree.Tokenizer;
 import org.elasticsearch.common.collect.Tuple;
@@ -45,7 +44,6 @@ import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
 
 class CreateAnalyzerStatementAnalyzer {
 
@@ -71,7 +69,7 @@ class CreateAnalyzerStatementAnalyzer {
 
         Context(Functions functions,
                 CoordinatorTxnCtx transactionContext,
-                Function<ParameterExpression, Symbol> convertParamFunction) {
+                ParamTypeHints paramTypeHints) {
             this.genericAnalyzerProperties = new GenericProperties<>();
             this.charFilters = new HashMap<>();
             this.tokenFilters = new HashMap<>();
@@ -80,14 +78,14 @@ class CreateAnalyzerStatementAnalyzer {
             this.exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
                 functions,
                 transactionContext,
-                convertParamFunction,
+                paramTypeHints,
                 FieldProvider.FIELDS_AS_LITERAL,
                 null);
         }
     }
 
     public AnalyzedStatement analyze(CreateAnalyzer<Expression> createAnalyzer,
-                                     Function<ParameterExpression, Symbol> convertParamFunction,
+                                     ParamTypeHints paramTypeHints,
                                      CoordinatorTxnCtx transactionContext) {
         String analyzerIdent = createAnalyzer.ident();
         if (analyzerIdent.equalsIgnoreCase("default")) {
@@ -112,7 +110,7 @@ class CreateAnalyzerStatementAnalyzer {
         var context = new Context(
             functions,
             transactionContext,
-            convertParamFunction
+            paramTypeHints
         );
 
         for (AnalyzerElement<Expression> element : createAnalyzer.elements()) {

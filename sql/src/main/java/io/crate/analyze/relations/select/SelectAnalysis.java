@@ -41,7 +41,6 @@ public class SelectAnalysis {
     private final Map<RelationName, AnalyzedRelation> sources;
     private final ExpressionAnalyzer expressionAnalyzer;
     private final ExpressionAnalysisContext expressionAnalysisContext;
-    private final List<ColumnIdent> outputNames;
     private final List<Symbol> outputSymbols;
     private final Multimap<String, Symbol> outputMultiMap;
 
@@ -53,12 +52,7 @@ public class SelectAnalysis {
         this.expressionAnalyzer = expressionAnalyzer;
         this.expressionAnalysisContext = expressionAnalysisContext;
         outputMultiMap = HashMultimap.create(expectedItems, 1);
-        outputNames = new ArrayList<>(expectedItems);
         outputSymbols = new ArrayList<>(expectedItems);
-    }
-
-    public List<ColumnIdent> outputNames() {
-        return outputNames;
     }
 
     public List<Symbol> outputSymbols() {
@@ -83,7 +77,6 @@ public class SelectAnalysis {
     }
 
     public void add(ColumnIdent path, Symbol symbol) {
-        outputNames.add(path);
         outputSymbols.add(symbol);
         outputMultiMap.put(path.sqlFqn(), symbol);
     }
