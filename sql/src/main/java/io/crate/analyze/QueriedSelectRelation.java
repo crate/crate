@@ -27,6 +27,7 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
@@ -37,6 +38,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -192,8 +194,13 @@ public class QueriedSelectRelation<T extends AnalyzedRelation> implements Analyz
     private static List<ColumnIdent> outputNamesOfFieldsWithUnifiedPossibleAliases(List<Field> fieldList) {
         HashMap<Symbol, Field> fieldMap = new HashMap<>();
         for (Field f : fieldList) {
-            fieldMap.put(f.pointer(), f);
+            if (!(f.pointer() instanceof Literal)) {
+                fieldMap.put(f.pointer(), f);
+            }
         }
-        return fieldList.stream().map(f -> fieldMap.get(f.pointer()).path()).collect(Collectors.toList());
+        return fieldList.stream().map(f -> {
+            Field field = fieldMap.get(f.pointer());
+            return Objects.requireNonNullElse(field, f).path();
+        }).collect(Collectors.toList());
     }
 }

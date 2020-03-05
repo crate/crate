@@ -57,6 +57,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that led to more than one expressions in the form
+  ``<literalValue> AS <alias>`` to be interpreted as the same column if all
+  ``<literalValue>`` expressions are equal.
+
 - Fixed an issue that led to a ``NullPointerException`` when using ``GROUP BY``
   on a nested ``PARTITIONED BY`` column.
 

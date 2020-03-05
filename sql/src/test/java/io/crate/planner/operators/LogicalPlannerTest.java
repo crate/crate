@@ -33,8 +33,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.statistics.TableStats;
 import io.crate.planner.consumer.FetchMode;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -62,6 +62,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws IOException {
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
+            .addTable("create table zmx.metrics (id_asset long, fields object as (\"contador_total:dx\" int), name text)")
             .addView(new RelationName("doc", "v2"), "select a, x from doc.t1")
             .addView(new RelationName("doc", "v3"), "select a, x from doc.t1")
             .build();
@@ -336,6 +337,57 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("select name from users u where id = 1");
         assertThat(plan, isPlan("Boundary[name]\n" +
                                 "Get[doc.users | name | DocKeys{1}"));
+    }
+
+    @Test
+    public void test_literal_with_alias_are_not_duplicated() {
+        LogicalPlan plan = plan(
+            "SELECT\n" +
+            "        id_asset,\n" +
+            "        sum(hora),\n" +
+            "        sum(dia),\n" +
+            "        SUM(mes)\n" +
+            "    FROM (\n" +
+            "        SELECT\n" +
+            "            id_asset,\n" +
+            "            sum(fields['contador_total:dx']) AS hora,\n" +
+            "            0 AS dia,\n" +
+            "            0 as mes\n" +
+            "        FROM\n" +
+            "            zmx.metrics\n" +
+            "        GROUP BY\n" +
+            "            id_asset\n" +
+            "        UNION ALL\n" +
+            "        SELECT\n" +
+            "            id_asset,\n" +
+            "            0 AS hora,\n" +
+            "            sum(fields['contador_total:dx']) AS dia,\n" +
+            "            0 as mes\n" +
+            "        FROM\n" +
+            "            zmx.metrics\n" +
+            "        GROUP BY\n" +
+            "            id_asset\n" +
+            "        ) AS subquery\n" +
+            "    GROUP BY\n" +
+            "        id_asset limit 100;"
+        );
+        assertThat(
+            plan,
+            isPlan(
+                "Limit[100;0]\n" +
+                "GroupBy[id_asset | sum(hora), sum(dia), sum(mes)]\n" +
+                "Boundary[id_asset, hora, dia, mes]\n" +
+                "Union[\n" +
+                    "FetchOrEval[id_asset, sum(fields['contador_total:dx']), 0, 0]\n" +
+                    "GroupBy[id_asset | sum(fields['contador_total:dx'])]\n" +
+                    "Collect[zmx.metrics | [fields['contador_total:dx'], id_asset] | All]\n" +
+                "---\n" +
+                    "FetchOrEval[id_asset, 0, sum(fields['contador_total:dx']), 0]\n" +
+                    "GroupBy[id_asset | sum(fields['contador_total:dx'])]\n" +
+                    "Collect[zmx.metrics | [fields['contador_total:dx'], id_asset] | All]\n" +
+                "]\n"
+            )
+        );
     }
 
     public static LogicalPlan plan(String statement,
