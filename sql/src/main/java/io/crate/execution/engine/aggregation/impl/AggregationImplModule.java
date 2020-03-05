@@ -37,6 +37,7 @@ public class AggregationImplModule extends AbstractFunctionModule<AggregationFun
         CollectSetAggregation.register(this);
         PercentileAggregation.register(this);
         StringAgg.register(this);
+        ArrayAgg.register(this);
 
         VarianceAggregation.register(this);
         GeometricMeanAggregation.register(this);

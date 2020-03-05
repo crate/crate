@@ -65,6 +65,8 @@ None
 Changes
 =======
 
+- Added the :ref:`array_agg <array_agg>` aggregation function.
+
 - Added entries for primary keys to ``pg_class`` and ``pg_index`` table.
 
 - Added support for ``GROUP BY`` operations on analysed columns of type
