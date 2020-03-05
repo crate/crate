@@ -25,7 +25,6 @@ package io.crate.testing;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -36,7 +35,6 @@ import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.auth.user.User;
-import io.crate.data.RowN;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -57,7 +55,6 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.Map;
 
 import static org.mockito.Mockito.mock;
@@ -72,17 +69,16 @@ public class SqlExpressions {
     private final Functions functions;
 
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources) {
-        this(sources, null, null, User.CRATE_USER);
+        this(sources, null, User.CRATE_USER);
     }
 
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver) {
-        this(sources, fieldResolver, null, User.CRATE_USER);
+        this(sources, fieldResolver, User.CRATE_USER);
     }
 
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
-                          @Nullable Object[] parameters,
                           User user,
                           AbstractModule... additionalModules) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
@@ -103,9 +99,7 @@ public class SqlExpressions {
         expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             coordinatorTxnCtx,
-            parameters == null
-                ? ParamTypeHints.EMPTY
-                : new ParameterContext(new RowN(parameters), Collections.emptyList()),
+            ParamTypeHints.EMPTY,
             new FullQualifiedNameFieldProvider(
                 sources,
                 ParentRelations.NO_PARENTS,

@@ -35,10 +35,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.SearchPath;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.ParameterExpression;
 
 import java.util.List;
-import java.util.function.Function;
 
 import static io.crate.analyze.FunctionArgumentDefinition.toFunctionArgumentDefinitions;
 
@@ -51,11 +49,11 @@ public class CreateFunctionAnalyzer {
     }
 
     public AnalyzedCreateFunction analyze(CreateFunction<Expression> node,
-                                          Function<ParameterExpression, Symbol> convertParamFunction,
+                                          ParamTypeHints paramTypeHints,
                                           CoordinatorTxnCtx txnCtx,
                                           SearchPath searchPath) {
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprCtx = new ExpressionAnalysisContext();
 
         CreateFunction<Symbol> createFunction = node.map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx));

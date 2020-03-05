@@ -104,10 +104,6 @@ public class ColumnRegistrar<T> {
         this.expressionBuilder = ImmutableSortedMap.naturalOrder();
     }
 
-    public ColumnRegistrar<T> register(String column, DataType type) {
-        return register(column, type, true, null);
-    }
-
     public ColumnRegistrar<T> register(String column, ObjectRegistration<T> object) {
         ObjectType.Builder objTypeBuilder = ObjectType.builder();
         HashMap<String, NestableInput> childExpressions = new HashMap<>();
@@ -126,13 +122,6 @@ public class ColumnRegistrar<T> {
                                            DataType<R> type,
                                            @Nullable RowCollectExpressionFactory<T> expression) {
         return register(new ColumnIdent(column, child), type, true, expression);
-    }
-
-    public <R> ColumnRegistrar<T> register(String column,
-                                           List<String> children,
-                                           DataType<R> type,
-                                           @Nullable RowCollectExpressionFactory<T> expression) {
-        return register(new ColumnIdent(column, children), type, true, expression);
     }
 
     public <R> ColumnRegistrar<T> register(String column,

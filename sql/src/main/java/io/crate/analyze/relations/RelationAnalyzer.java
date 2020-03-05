@@ -152,7 +152,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             statementContext.transactionContext(),
-            statementContext.convertParamFunction(),
+            statementContext.paramTyeHints(),
             new FullQualifiedNameFieldProvider(
                 relationAnalysisContext.sources(),
                 relationAnalysisContext.parentSources(),
@@ -247,7 +247,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                     functions,
                     coordinatorTxnCtx,
-                    statementContext.convertParamFunction(),
+                    statementContext.paramTyeHints(),
                     new FullQualifiedNameFieldProvider(
                         relationContext.sources(),
                         relationContext.parentSources(),
@@ -302,7 +302,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             coordinatorTxnCtx,
-            statementContext.convertParamFunction(),
+            statementContext.paramTyeHints(),
             new FullQualifiedNameFieldProvider(
                 context.sources(),
                 context.parentSources(),
@@ -592,7 +592,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             statementContext.transactionContext(),
-            statementContext.convertParamFunction(),
+            statementContext.paramTyeHints(),
             FieldProvider.UNSUPPORTED,
             null
         );
@@ -634,7 +634,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         var expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             context.transactionContext(),
-            context.convertParamFunction(),
+            context.paramTyeHints(),
             FieldProvider.UNSUPPORTED,
             new SubqueryAnalyzer(this, context)
         );

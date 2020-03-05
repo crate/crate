@@ -60,10 +60,7 @@ public class ExplainStatementAnalyzer {
             subStatement = analyzer.analyzedStatement(statement, analysis);
         }
         String columnName = SqlFormatter.formatSql(node);
-        ExplainAnalyzedStatement explainAnalyzedStatement =
-            new ExplainAnalyzedStatement(columnName, subStatement, profilingContext);
-        analysis.rootRelation(explainAnalyzedStatement);
-        return explainAnalyzedStatement;
+        return new ExplainAnalyzedStatement(columnName, subStatement, profilingContext);
     }
 
     private static final AstVisitor<Void, Void> CHECK_VISITOR = new AstVisitor<>() {

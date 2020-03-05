@@ -32,9 +32,6 @@ import io.crate.metadata.Functions;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.ParameterExpression;
-
-import java.util.function.Function;
 
 class CreateRepositoryAnalyzer {
 
@@ -47,7 +44,7 @@ class CreateRepositoryAnalyzer {
     }
 
     public AnalyzedCreateRepository analyze(CreateRepository<Expression> createRepository,
-                                            Function<ParameterExpression, Symbol> convertParamFunction,
+                                            ParamTypeHints paramTypeHints,
                                             CoordinatorTxnCtx txnCtx) {
         String repositoryName = createRepository.repository();
         if (repositoryService.getRepository(repositoryName) != null) {
@@ -55,7 +52,7 @@ class CreateRepositoryAnalyzer {
         }
 
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
         GenericProperties<Symbol> genericProperties = createRepository.properties()
             .map(p -> exprAnalyzerWithFieldsAsString.convert(p, exprCtx));

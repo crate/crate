@@ -24,7 +24,6 @@ package io.crate.execution.dsl.projection;
 import com.google.common.collect.ImmutableMap;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
-import io.crate.planner.ExplainNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -33,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
-public abstract class Projection implements ExplainNode {
+public abstract class Projection {
 
     static final Predicate<Projection> IS_SHARD_PROJECTION = p -> p.requiredGranularity() == RowGranularity.SHARD;
     static final Predicate<Projection> IS_NODE_PROJECTION = IS_SHARD_PROJECTION.negate();

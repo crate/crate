@@ -29,9 +29,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.KillStatement;
-import io.crate.sql.tree.ParameterExpression;
-
-import java.util.function.Function;
 
 public class KillAnalyzer {
 
@@ -42,12 +39,12 @@ public class KillAnalyzer {
     }
 
     public AnalyzedKill analyze(KillStatement<Expression> killStatement,
-                                Function<ParameterExpression, Symbol> convertParamFunction,
+                                ParamTypeHints paramTypeHints,
                                 CoordinatorTxnCtx txnCtx) {
         Symbol jobId;
         if (killStatement.jobId() != null) {
             var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
-                functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+                functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
             jobId = exprAnalyzerWithoutFields.convert(
                 killStatement.jobId(),
                 new ExpressionAnalysisContext());

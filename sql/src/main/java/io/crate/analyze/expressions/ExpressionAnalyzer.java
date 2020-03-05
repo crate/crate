@@ -32,6 +32,7 @@ import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.NegateLiterals;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.SubscriptContext;
 import io.crate.analyze.SubscriptValidator;
 import io.crate.analyze.WindowDefinition;
@@ -172,7 +173,7 @@ public class ExpressionAnalyzer {
             .build();
 
     private final CoordinatorTxnCtx coordinatorTxnCtx;
-    private final java.util.function.Function<ParameterExpression, Symbol> convertParamFunction;
+    private final ParamTypeHints paramTypeHints;
     private final FieldProvider<?> fieldProvider;
 
     @Nullable
@@ -185,21 +186,21 @@ public class ExpressionAnalyzer {
 
     public ExpressionAnalyzer(Functions functions,
                               CoordinatorTxnCtx coordinatorTxnCtx,
-                              java.util.function.Function<ParameterExpression, Symbol> convertParamFunction,
+                              ParamTypeHints paramTypeHints,
                               FieldProvider<?> fieldProvider,
                               @Nullable SubqueryAnalyzer subQueryAnalyzer) {
-        this(functions, coordinatorTxnCtx, convertParamFunction, fieldProvider, subQueryAnalyzer, Operation.READ);
+        this(functions, coordinatorTxnCtx, paramTypeHints, fieldProvider, subQueryAnalyzer, Operation.READ);
     }
 
     public ExpressionAnalyzer(Functions functions,
                               CoordinatorTxnCtx coordinatorTxnCtx,
-                              java.util.function.Function<ParameterExpression, Symbol> convertParamFunction,
+                              ParamTypeHints paramTypeHints,
                               FieldProvider<?> fieldProvider,
                               @Nullable SubqueryAnalyzer subQueryAnalyzer,
                               Operation operation) {
         this.functions = functions;
         this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.convertParamFunction = convertParamFunction;
+        this.paramTypeHints = paramTypeHints;
         this.fieldProvider = fieldProvider;
         this.subQueryAnalyzer = subQueryAnalyzer;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
@@ -385,17 +386,6 @@ public class ExpressionAnalyzer {
         Expression offsetExpression = frameBound.getValue();
         Symbol offsetSymbol = offsetExpression == null ? Literal.NULL : convert(offsetExpression, context);
         return new FrameBoundDefinition(frameBound.getType(), offsetSymbol);
-    }
-
-    public ExpressionAnalyzer copyForOperation(Operation operation) {
-        return new ExpressionAnalyzer(
-            functions,
-            coordinatorTxnCtx,
-            convertParamFunction,
-            fieldProvider,
-            subQueryAnalyzer,
-            operation
-        );
     }
 
     /**
@@ -961,7 +951,7 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitParameterExpression(ParameterExpression node, ExpressionAnalysisContext context) {
-            return convertParamFunction.apply(node);
+            return paramTypeHints.apply(node);
         }
 
         @Override

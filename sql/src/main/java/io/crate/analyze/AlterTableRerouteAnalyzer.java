@@ -38,7 +38,6 @@ import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.PromoteReplica;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
 import io.crate.sql.tree.RerouteCancelShard;
@@ -46,7 +45,6 @@ import io.crate.sql.tree.RerouteMoveShard;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.Function;
 
 import static io.crate.metadata.RelationName.fromBlobTable;
 
@@ -63,7 +61,7 @@ public class AlterTableRerouteAnalyzer {
     }
 
     public AnalyzedStatement analyze(AlterTableReroute<Expression> alterTableReroute,
-                                     Function<ParameterExpression, Symbol> convertParamFunction,
+                                     ParamTypeHints paramTypeHints,
                                      CoordinatorTxnCtx transactionContext) {
         // safe to expect a `ShardedTable` since getTableInfo with
         // Operation.ALTER_REROUTE raises a appropriate error for sys tables
@@ -84,7 +82,7 @@ public class AlterTableRerouteAnalyzer {
                 alterTableReroute.table().partitionProperties(),
                 functions,
                 transactionContext,
-                convertParamFunction
+                paramTypeHints
             ));
     }
 
@@ -100,14 +98,14 @@ public class AlterTableRerouteAnalyzer {
                         List<Assignment<Expression>> partitionProperties,
                         Functions functions,
                         CoordinatorTxnCtx txnCtx,
-                        Function<ParameterExpression, Symbol> convertParamFunction) {
+                        ParamTypeHints paramTypeHints) {
             this.tableInfo = tableInfo;
             this.partitionProperties = partitionProperties;
             this.exprCtx = new ExpressionAnalysisContext();
             this.exprAnalyzer = new ExpressionAnalyzer(
-                functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+                functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
             this.exprAnalyzerWithFields = new ExpressionAnalyzer(
-                functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+                functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         }
     }
 

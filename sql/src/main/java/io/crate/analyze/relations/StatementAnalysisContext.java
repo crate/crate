@@ -22,37 +22,36 @@
 package io.crate.analyze.relations;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.ParamTypeHints;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.ParameterExpression;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 public class StatementAnalysisContext {
 
+    private final ParamTypeHints paramTypeHints;
     private final Operation currentOperation;
     private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final List<? extends Symbol> parentOutputColumns;
-    private final Function<ParameterExpression, Symbol> convertParamFunction;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
 
-    public StatementAnalysisContext(Function<ParameterExpression, Symbol> convertParamFunction,
+    public StatementAnalysisContext(ParamTypeHints paramTypeHints,
                                     Operation currentOperation,
                                     CoordinatorTxnCtx coordinatorTxnCtx,
                                     List<? extends Symbol> parentOutputColumns) {
-        this.convertParamFunction = convertParamFunction;
+        this.paramTypeHints = paramTypeHints;
         this.currentOperation = currentOperation;
         this.coordinatorTxnCtx = coordinatorTxnCtx;
         this.parentOutputColumns = parentOutputColumns;
     }
 
-    public StatementAnalysisContext(Function<ParameterExpression, Symbol> convertParamFunction,
+    public StatementAnalysisContext(ParamTypeHints paramTypeHints,
                                     Operation currentOperation,
                                     CoordinatorTxnCtx coordinatorTxnCtx) {
-        this(convertParamFunction, currentOperation, coordinatorTxnCtx, List.of());
+        this(paramTypeHints, currentOperation, coordinatorTxnCtx, List.of());
     }
 
     public CoordinatorTxnCtx transactionContext() {
@@ -96,8 +95,8 @@ public class StatementAnalysisContext {
         return coordinatorTxnCtx.sessionContext();
     }
 
-    public Function<ParameterExpression,Symbol> convertParamFunction() {
-        return convertParamFunction;
+    public ParamTypeHints paramTyeHints() {
+        return paramTypeHints;
     }
 
     List<? extends Symbol> parentOutputColumns() {
