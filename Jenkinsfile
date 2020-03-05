@@ -60,6 +60,7 @@ pipeline {
         stage('itest jdk11') {
           agent { label 'medium' }
           steps {
+            sh '''ps aux | grep CrateDB | awk '{ print $2 }' | xargs -I {} kill -9 {} || true'''
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_11'
@@ -69,6 +70,7 @@ pipeline {
         stage('ce itest jdk11') {
           agent { label 'medium' }
           steps {
+            sh '''ps aux | grep CrateDB | awk '{ print $2 }' | xargs -I {} kill -9 {} || true'''
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_11'
@@ -87,6 +89,7 @@ pipeline {
         stage('itest jdk12') {
           agent { label 'medium' }
           steps {
+            sh '''ps aux | grep CrateDB | awk '{ print $2 }' | xargs -I {} kill -9 {} || true'''
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_12'
@@ -96,6 +99,7 @@ pipeline {
         stage('itest jdk13') {
           agent { label 'medium' }
           steps {
+            sh '''ps aux | grep CrateDB | awk '{ print $2 }' | xargs -I {} kill -9 {} || true'''
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_13'
@@ -105,6 +109,7 @@ pipeline {
         stage('itest adopt-jdk-12') {
           agent { label 'medium' }
           steps {
+            sh '''ps aux | grep CrateDB | awk '{ print $2 }' | xargs -I {} kill -9 {} || true'''
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $ADOPT_JDK_12'
@@ -114,6 +119,7 @@ pipeline {
         stage('blackbox tests') {
           agent { label 'medium' }
           steps {
+            sh '''ps aux | grep CrateDB | awk '{ print $2 }' | xargs -I {} kill -9 {} || true'''
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_11'
