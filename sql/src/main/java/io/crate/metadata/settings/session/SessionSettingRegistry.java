@@ -40,6 +40,7 @@ public class SessionSettingRegistry {
     public static final String HASH_JOIN_KEY = "enable_hashjoin";
     static final String MAX_INDEX_KEYS = "max_index_keys";
     private static final String SERVER_VERSION_NUM = "server_version_num";
+    private static final String SERVER_VERSION = "server_version";
 
     public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()
             .put(SEARCH_PATH_KEY,
@@ -87,6 +88,20 @@ public class SessionSettingRegistry {
                     () -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
                     "Reports the emulated PostgreSQL version number",
                     DataTypes.INTEGER.getName()
+                )
+            )
+            .put(
+                SERVER_VERSION,
+                new SessionSetting<>(
+                    objects -> {},
+                    Function.identity(),
+                    (s, v) -> {
+                        throw new UnsupportedOperationException("\"" + SERVER_VERSION + "\" cannot be changed.");
+                    },
+                    s -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
+                    () -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
+                    "Reports the emulated PostgreSQL version number",
+                    DataTypes.STRING.getName()
                 )
             )
             .build();

@@ -186,7 +186,7 @@ public class PostgresWireProtocol {
     private static final String PASSWORD_AUTH_NAME = "password";
 
     public static int SERVER_VERSION_NUM = 100500;
-    private static String PG_SERVER_VERSION = "10.5";
+    public static String PG_SERVER_VERSION = "10.5";
 
     final MessageDecoder decoder;
     final MessageHandler handler;
