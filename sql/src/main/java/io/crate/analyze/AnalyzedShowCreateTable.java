@@ -60,7 +60,7 @@ public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelat
 
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.process(this, context);
+        return visitor.visitShowCreateTable(this, context);
     }
 
     @Override

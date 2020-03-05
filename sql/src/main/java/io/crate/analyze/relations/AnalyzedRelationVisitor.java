@@ -21,17 +21,13 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
 
-import javax.annotation.Nullable;
 import java.util.Locale;
 
 public abstract class AnalyzedRelationVisitor<C, R> {
-
-    public R process(AnalyzedRelation relation, @Nullable C context) {
-        return relation.accept(this, context);
-    }
 
     protected R visitAnalyzedRelation(AnalyzedRelation relation, C context) {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "relation \"%s\" is not supported", relation));
@@ -67,5 +63,9 @@ public abstract class AnalyzedRelationVisitor<C, R> {
 
     public R visitAliasedAnalyzedRelation(AliasedAnalyzedRelation relation, C context) {
         return relation.relation().accept(this, context);
+    }
+
+    public R visitShowCreateTable(AnalyzedShowCreateTable analyzedShowCreateTable, C context) {
+        return visitAnalyzedRelation(analyzedShowCreateTable, context);
     }
 }
