@@ -84,9 +84,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
             TableRelation tableRelation = new TableRelation(tableInfo);
             Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
-            SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation, new Object[]{null}, User.CRATE_USER);
+            SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation, User.CRATE_USER);
 
-            Query query = convert(sqlExpressions.normalize(sqlExpressions.asSymbol("x = ?")));
+            Query query = convert(sqlExpressions.normalize(sqlExpressions.asSymbol("x = null")));
 
             // must always become a MatchNoDocsQuery
             // string: term query with null would cause NPE

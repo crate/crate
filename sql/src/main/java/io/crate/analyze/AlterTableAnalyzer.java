@@ -39,11 +39,9 @@ import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.Table;
 
 import java.util.List;
-import java.util.function.Function;
 
 class AlterTableAnalyzer {
 
@@ -56,10 +54,10 @@ class AlterTableAnalyzer {
     }
 
     AnalyzedAlterTable analyze(AlterTable<Expression> node,
-                               Function<ParameterExpression, Symbol> convertParamFunction,
+                               ParamTypeHints paramTypeHints,
                                CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
 
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
@@ -74,12 +72,12 @@ class AlterTableAnalyzer {
     }
 
     AnalyzedAlterBlobTable analyze(AlterBlobTable<Expression> node,
-                                   Function<ParameterExpression, Symbol> convertParamFunction,
+                                   ParamTypeHints paramTypeHints,
                                    CoordinatorTxnCtx txnCtx) {
         RelationName relationName = RelationName.fromBlobTable(node.table());
 
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
 
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
@@ -117,10 +115,10 @@ class AlterTableAnalyzer {
     }
 
     public AnalyzedAlterTableOpenClose analyze(AlterTableOpenClose<Expression> node,
-                                               Function<ParameterExpression, Symbol> convertParamFunction,
+                                               ParamTypeHints paramTypeHints,
                                                CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsStrings = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
 
         Table<Symbol> table = node.table().map(x -> exprAnalyzerWithFieldsAsStrings.convert(x, exprCtx));

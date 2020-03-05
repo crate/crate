@@ -33,7 +33,6 @@ import io.crate.metadata.Functions;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.snapshots.Snapshot;
@@ -42,7 +41,6 @@ import org.elasticsearch.snapshots.SnapshotId;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import java.util.function.Function;
 
 class CreateSnapshotAnalyzer {
 
@@ -55,7 +53,7 @@ class CreateSnapshotAnalyzer {
     }
 
     public AnalyzedCreateSnapshot analyze(CreateSnapshot<Expression> createSnapshot,
-                                          Function<ParameterExpression, Symbol> convertParamFunction,
+                                          ParamTypeHints paramTypeHints,
                                           CoordinatorTxnCtx txnCtx) {
         String repositoryName = createSnapshot.name().getPrefix()
             .map(name -> {
@@ -70,9 +68,9 @@ class CreateSnapshotAnalyzer {
 
         var exprCtx = new ExpressionAnalysisContext();
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
 
         List<Table<Symbol>> tables = Lists2.map(
             createSnapshot.tables(),

@@ -41,10 +41,7 @@ import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.Table;
-
-import java.util.function.Function;
 
 class CopyAnalyzer {
 
@@ -57,7 +54,7 @@ class CopyAnalyzer {
     }
 
     AnalyzedCopyFrom analyzeCopyFrom(CopyFrom<Expression> node,
-                                     Function<ParameterExpression, Symbol> convertParamFunction,
+                                     ParamTypeHints paramTypeHints,
                                      CoordinatorTxnCtx txnCtx) {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             node.table().getName(),
@@ -68,9 +65,9 @@ class CopyAnalyzer {
         var exprCtx = new ExpressionAnalysisContext();
 
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.UNSUPPORTED, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
 
         var normalizer = new EvaluatingNormalizer(
             functions,
@@ -99,7 +96,7 @@ class CopyAnalyzer {
     }
 
     AnalyzedCopyTo analyzeCopyTo(CopyTo<Expression> node,
-                                 Function<ParameterExpression, Symbol> convertParamFunction,
+                                 ParamTypeHints paramTypeHints,
                                  CoordinatorTxnCtx txnCtx) {
         if (!node.directoryUri()) {
             throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is not supported");
@@ -123,13 +120,13 @@ class CopyAnalyzer {
         var expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             txnCtx,
-            convertParamFunction,
+            paramTypeHints,
             new NameFieldProvider(tableRelation),
             null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             functions,
             txnCtx,
-            convertParamFunction,
+            paramTypeHints,
             FieldProvider.FIELDS_AS_LITERAL,
             null);
 

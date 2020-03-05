@@ -22,36 +22,16 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 
 public class Analysis {
 
     private final CoordinatorTxnCtx coordinatorTxnCtx;
-
     private final ParamTypeHints paramTypeHints;
-    private AnalyzedStatement analyzedStatement;
-    private AnalyzedRelation rootRelation;
 
     public Analysis(CoordinatorTxnCtx coordinatorTxnCtx, ParamTypeHints paramTypeHints) {
         this.paramTypeHints = paramTypeHints;
         this.coordinatorTxnCtx = coordinatorTxnCtx;
-    }
-
-    public void analyzedStatement(AnalyzedStatement analyzedStatement) {
-        this.analyzedStatement = analyzedStatement;
-    }
-
-    public AnalyzedStatement analyzedStatement() {
-        return analyzedStatement;
-    }
-
-    public void rootRelation(AnalyzedRelation rootRelation) {
-        this.rootRelation = rootRelation;
-    }
-
-    public AnalyzedRelation rootRelation() {
-        return rootRelation;
     }
 
     public CoordinatorTxnCtx transactionContext() {

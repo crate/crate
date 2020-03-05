@@ -35,9 +35,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.ParameterExpression;
-
-import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 
@@ -53,7 +50,7 @@ class AlterTableAddColumnAnalyzer {
     }
 
     public AnalyzedAlterTableAddColumn analyze(AlterTableAddColumn<Expression> alterTable,
-                                               Function<ParameterExpression, Symbol> convertParamFunction,
+                                               ParamTypeHints paramTypeHints,
                                                CoordinatorTxnCtx txnCtx) {
         if (!alterTable.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
@@ -66,9 +63,9 @@ class AlterTableAddColumnAnalyzer {
         TableReferenceResolver referenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
 
         var exprAnalyzerWithReferenceResolver = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, referenceResolver, null);
+            functions, txnCtx, paramTypeHints, referenceResolver, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
-            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+            functions, txnCtx, paramTypeHints, FieldProvider.FIELDS_AS_LITERAL, null);
         var exprCtx = new ExpressionAnalysisContext();
 
         AddColumnDefinition<Expression> tableElement = alterTable.tableElement();

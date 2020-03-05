@@ -172,7 +172,6 @@ public class RestoreSnapshotPlan implements Plan {
                     throw new RelationAlreadyExists(relationName);
                 }
                 var partitionName = toPartitionName(
-                    relationName,
                     docTableInfo,
                     Lists2.map(table.partitionProperties(), x -> x.map(eval)));
                 if (docTableInfo.partitions().contains(partitionName)) {
@@ -185,7 +184,6 @@ public class RestoreSnapshotPlan implements Plan {
                 } else {
                     var partitionName = toPartitionName(
                         relationName,
-                        null,
                         Lists2.map(table.partitionProperties(), x -> x.map(eval)));
                     restoreTables.add(
                         new BoundRestoreSnapshot.RestoreTableInfo(relationName, partitionName));

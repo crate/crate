@@ -396,14 +396,6 @@ public class AnalyzedTableElements<T> {
         formattedExpressionConsumer.accept(formattedExpression);
     }
 
-    public Settings settings() {
-        Settings.Builder builder = Settings.builder();
-        for (AnalyzedColumnDefinition column : columns) {
-            builder.put(column.builtAnalyzerSettings());
-        }
-        return builder.build();
-    }
-
     private static <T> void buildReference(RelationName relationName,
                                            AnalyzedColumnDefinition<T> columnDefinition,
                                            List<Reference> references) {

@@ -66,7 +66,6 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     }
 
     private void consumeIt(BatchIterator<Row> iterator) {
-        boolean allLoaded;
         try {
             while (iterator.moveNext()) {
                 rowCount++;

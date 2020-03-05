@@ -22,8 +22,6 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.User;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
@@ -87,13 +85,13 @@ class ShowStatementAnalyzer {
     }
 
     public AnalyzedStatement analyzeShowCreateTable(Table table, Analysis analysis) {
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(table.getName(),
-                                                                         Operation.SHOW_CREATE,
-                                                                         User.CRATE_USER,
-                                                                         analysis.sessionContext().searchPath());
-        AnalyzedShowCreateTable analyzedStatement = new AnalyzedShowCreateTable(tableInfo);
-        analysis.rootRelation(analyzedStatement);
-        return analyzedStatement;
+        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+            table.getName(),
+            Operation.SHOW_CREATE,
+            User.CRATE_USER,
+            analysis.sessionContext().searchPath()
+        );
+        return new AnalyzedShowCreateTable(tableInfo);
     }
 
     static Query rewriteShowSessionParameter(ShowSessionParameter node) {
@@ -122,11 +120,6 @@ class ShowStatementAnalyzer {
             singleQuote(sb, sessionSetting.toString());
         }
         return (Query) SqlParser.createStatement(sb.toString());
-    }
-
-    public AnalyzedStatement analyze(ShowSessionParameter node, Analysis analysis) {
-        validateSessionSetting(node.parameter());
-        return unboundAnalyze(rewriteShowSessionParameter(node), analysis);
     }
 
     static void validateSessionSetting(@Nullable QualifiedName settingParameter) {
@@ -162,11 +155,6 @@ class ShowStatementAnalyzer {
         sb.append("ORDER BY schema_name");
         return (Query) SqlParser.createStatement(sb.toString());
     }
-
-    public AnalyzedStatement analyze(ShowSchemas node, Analysis analysis) {
-        return unboundAnalyze(rewriteShowSchemas(node), analysis);
-    }
-
 
     Query rewriteShowColumns(ShowColumns node, String defaultSchema) {
         /*
@@ -207,22 +195,11 @@ class ShowStatementAnalyzer {
         return (Query) SqlParser.createStatement(sb.toString());
     }
 
-    public AnalyzedStatement analyze(ShowColumns node, Analysis analysis) {
-        SessionContext sessionContext = analysis.sessionContext();
-        return unboundAnalyze(rewriteShowColumns(node, sessionContext.searchPath().currentSchema()), analysis);
-    }
-
-    public AnalyzedStatement analyze(ShowTables node, Analysis analysis) {
-        return unboundAnalyze(rewriteShowTables(node), analysis);
-    }
-
     private AnalyzedStatement unboundAnalyze(Query query, Analysis analysis) {
-        AnalyzedStatement analyzedStatement = analyzer.analyze(
+        return analyzer.analyze(
             query,
             analysis.sessionContext(),
             analysis.paramTypeHints());
-        analysis.rootRelation((AnalyzedRelation) analyzedStatement);
-        return analyzedStatement;
     }
 
     public Query rewriteShowTables(ShowTables node) {

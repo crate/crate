@@ -33,8 +33,7 @@ public class UserFunctionTest extends AbstractScalarFunctionsTest {
     private static final User TEST_USER = User.of("testUser");
 
     private void setupFunctionsFor(User user) {
-        sqlExpressions = new SqlExpressions(tableSources, null, null, user,
-            new UsersScalarFunctionModule());
+        sqlExpressions = new SqlExpressions(tableSources, null, user, new UsersScalarFunctionModule());
         functions = sqlExpressions.functions();
     }
 
