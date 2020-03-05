@@ -25,6 +25,7 @@ package io.crate.metadata.settings.session;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.SearchPath;
+import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.types.DataTypes;
 
 import java.util.Iterator;
@@ -38,6 +39,7 @@ public class SessionSettingRegistry {
     private static final String SEARCH_PATH_KEY = "search_path";
     public static final String HASH_JOIN_KEY = "enable_hashjoin";
     static final String MAX_INDEX_KEYS = "max_index_keys";
+    private static final String SERVER_VERSION_NUM = "server_version_num";
 
     public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()
             .put(SEARCH_PATH_KEY,
@@ -73,6 +75,20 @@ public class SessionSettingRegistry {
                     () -> String.valueOf(32),
                     "Shows the maximum number of index keys.",
                     DataTypes.INTEGER.getName()))
+            .put(
+                SERVER_VERSION_NUM,
+                new SessionSetting<>(
+                    objects -> {},
+                    Function.identity(),
+                    (s, v) -> {
+                        throw new UnsupportedOperationException("\"" + SERVER_VERSION_NUM + "\" cannot be changed.");
+                    },
+                    s -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
+                    () -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
+                    "Reports the emulated PostgreSQL version number",
+                    DataTypes.INTEGER.getName()
+                )
+            )
             .build();
 
     private static String[] objectsToStringArray(Object[] objects) {
