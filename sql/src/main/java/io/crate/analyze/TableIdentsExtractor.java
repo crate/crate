@@ -144,7 +144,7 @@ public class TableIdentsExtractor {
 
         @Override
         public Collection<RelationName> visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
-            return RELATION_TABLE_IDENT_EXTRACTOR.process(selectSymbol.relation(), context);
+            return selectSymbol.relation().accept(RELATION_TABLE_IDENT_EXTRACTOR, context);
         }
     }
 

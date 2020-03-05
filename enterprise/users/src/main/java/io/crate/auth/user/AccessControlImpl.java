@@ -19,45 +19,45 @@
 package io.crate.auth.user;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalyzedAlterUser;
 import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
+import io.crate.analyze.AnalyzedAlterUser;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.AnalyzedCreateAnalyzer;
-import io.crate.analyze.AnalyzedCreateSnapshot;
-import io.crate.analyze.AnalyzedCreateTable;
-import io.crate.analyze.AnalyzedDeleteStatement;
-import io.crate.analyze.AnalyzedRefreshTable;
-import io.crate.analyze.AnalyzedDropTable;
-import io.crate.analyze.AnalyzedRestoreSnapshot;
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
+import io.crate.analyze.AnalyzedCreateSnapshot;
+import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateUser;
-import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.AnalyzedDeallocate;
+import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropSnapshot;
+import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedDropView;
-import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.AnalyzedPrivileges;
-import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.AnalyzedResetStatement;
+import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.AnalyzedSetStatement;
 import io.crate.analyze.AnalyzedShowCreateTable;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.AnalyzedUpdateStatement;
+import io.crate.analyze.CreateViewStmt;
+import io.crate.analyze.ExplainAnalyzedStatement;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
@@ -147,8 +147,8 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitUnionSelect(UnionSelect unionSelect, RelationContext context) {
-            process(unionSelect.left(), context);
-            process(unionSelect.right(), context);
+            unionSelect.left().accept(this, context);
+            unionSelect.right().accept(this, context);
             return null;
         }
 
@@ -203,7 +203,7 @@ public final class AccessControlImpl implements AccessControl {
             }
             User currentUser = context.user;
             context.user = owner;
-            process(analyzedView.relation(), context);
+            analyzedView.relation().accept(this, context);
             context.user = currentUser;
             return null;
         }
@@ -220,7 +220,7 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         private void visitRelation(AnalyzedRelation relation, User user, Privilege.Type type) {
-            relationVisitor.process(relation, new RelationContext(user, type));
+            relation.accept(relationVisitor, new RelationContext(user, type));
         }
 
         @Override

@@ -77,7 +77,7 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
 
         @Override
         public boolean test(AnalyzedRelation relation) {
-            return process(relation, null);
+            return relation.accept(this, null);
         }
 
         @Override
@@ -87,7 +87,7 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
 
         @Override
         public Boolean visitUnionSelect(UnionSelect unionSelect, Void context) {
-            return process(unionSelect.left(), context) && process(unionSelect.right(), context);
+            return unionSelect.left().accept(this, context) && unionSelect.right().accept(this, context);
         }
 
         @Override
@@ -117,7 +117,7 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
 
         @Override
         public Boolean visitView(AnalyzedView analyzedView, Void context) {
-            return process(analyzedView.relation(), context);
+            return analyzedView.relation().accept(this, context);
         }
     }
 }

@@ -69,14 +69,14 @@ public class Relations {
         private static final TraverseDeepSymbolsRelations INSTANCE = new TraverseDeepSymbolsRelations();
 
         static void traverse(AnalyzedRelation relation, Consumer<? super Symbol> consumer) {
-            INSTANCE.process(relation, consumer);
+            relation.accept(INSTANCE, consumer);
         }
 
         @Override
         public Void visitUnionSelect(UnionSelect unionSelect, Consumer<? super Symbol> consumer) {
             unionSelect.visitSymbols(consumer);
-            process(unionSelect.left(), consumer);
-            process(unionSelect.right(), consumer);
+            unionSelect.left().accept(this, consumer);
+            unionSelect.right().accept(this, consumer);
             return null;
         }
 
@@ -110,7 +110,7 @@ public class Relations {
         @Override
         public Void visitView(AnalyzedView analyzedView, Consumer<? super Symbol> consumer) {
             analyzedView.visitSymbols(consumer);
-            process(analyzedView.relation(), consumer);
+            analyzedView.relation().accept(this, consumer);
             return null;
         }
     }
