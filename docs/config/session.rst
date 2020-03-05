@@ -89,8 +89,18 @@ Supported session settings
 
   .. NOTE::
 
-     The session setting has not effect on CrateDB and was added to enhance
-     compatibility with ``PostgreSQL``.
+     The session setting has no effect in CrateDB and exists for compatibility
+     with ``PostgreSQL``.
+
+.. _conf-session-server_version_num:
+
+**server_version_num**
+
+  | *Default:* ``100500``
+  | *Modifiable:* ``no``
+
+  Shows the emulated ``PostgreSQL`` server version.
+
 
 .. _experimental-warning:
 

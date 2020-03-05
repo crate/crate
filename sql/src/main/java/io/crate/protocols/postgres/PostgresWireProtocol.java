@@ -180,10 +180,13 @@ import static io.crate.protocols.postgres.PostgresWireProtocol.State.STARTUP_HEA
  * See https://www.postgresql.org/docs/current/static/protocol-flow.html for a more detailed description of the message flow
  */
 
-class PostgresWireProtocol {
+public class PostgresWireProtocol {
 
     private static final Logger LOGGER = LogManager.getLogger(PostgresWireProtocol.class);
     private static final String PASSWORD_AUTH_NAME = "password";
+
+    public static int SERVER_VERSION_NUM = 100500;
+    private static String PG_SERVER_VERSION = "10.5";
 
     final MessageDecoder decoder;
     final MessageHandler handler;
@@ -440,7 +443,7 @@ class PostgresWireProtocol {
 
     private void sendParamsAndRdyForQuery(Channel channel) {
         Messages.sendParameterStatus(channel, "crate_version", Version.CURRENT.externalNumber());
-        Messages.sendParameterStatus(channel, "server_version", "10.5");
+        Messages.sendParameterStatus(channel, "server_version", PG_SERVER_VERSION);
         Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "datestyle", "ISO");
