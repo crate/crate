@@ -387,6 +387,28 @@ If all input values are null, null is returned as a result.
    +------------------------+
    SELECT 1 row in set (... sec)
 
+.. _array_agg:
+
+``array_agg``
+-------------
+
+::
+
+    array_agg(any_non_array) -> array  
+
+The ``array_agg`` aggregate function concatenates all input values into an
+array.
+
+::
+
+    cr> SELECT array_agg(x) FROM (VALUES (42), (832), (null), (17)) as t (x);
+    +---------------------+
+    | array_agg(x)        |
+    +---------------------+
+    | [42, 832, null, 17] |
+    +---------------------+
+    SELECT 1 row in set (... sec)
+
 
 ``geometric_mean``
 ------------------
