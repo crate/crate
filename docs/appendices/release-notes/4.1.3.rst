@@ -1,0 +1,56 @@
+.. _version_4.1.3:
+
+=============
+Version 4.1.3
+=============
+
+Released on 2020-03-05.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.1.3.
+
+    We recommend that you upgrade to the latest 4.0 release before moving to
+    4.1.3.
+
+    A rolling upgrade to 4.1.3 from 4.0.2+ is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.1.0` release notes for a full list of changes in the
+4.1 series.
+
+
+Fixes
+=====
+
+- Fixed an issue that led to more than one expressions in the form
+  ``<literalValue> AS <alias>`` to be interpreted as the same column if all
+  ``<literalValue>`` expressions are equal.
+
+- Fixed an issue that led to a ``NullPointerException`` when using ``GROUP BY``
+  on a nested ``PARTITIONED BY`` column.
+
+- Fixed an issue that led to an ``ArrayIndexOutOfBoundsException`` if using
+  ``ON CONFLICT (...) UPDATE SET`` in an ``INSERT`` statement.
+
+- Fixed an issue that could lead to a ``Values less than -1 bytes are not
+  supported`` error, if one or more CrateDB nodes have few disk space
+  available.
+
+- Fixed an issue that would cause ``COPY FROM`` statements that used a HTTPS
+  source using a Let's Encrypt certificate to fail.
+
+- Fixed an issue that caused :ref:`RTRIM <scalar-rtrim>` to behave like
+  :ref:`LRTRIM <scalar-ltrim>`.
+
