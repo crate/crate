@@ -334,15 +334,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             plan,
             isPlan(
                 "TopNDistinct[20 | [name, other_id]\n" +
-                "Rename[name, awesome, other_id] AS u\n" +
-                "Collect[doc.users | [name, awesome, other_id] | true]\n"
+                "Rename[name, other_id] AS u\n" +
+                "Collect[doc.users | [name, other_id] | true]\n"
             )
         );
         io.crate.planner.node.dql.Collect collect = sqlExecutor.plan(statement);
         assertThat(
             collect.collectPhase().projections(),
             contains(
-                instanceOf(EvalProjection.class),
                 instanceOf(TopNDistinctProjection.class)
             )
         );

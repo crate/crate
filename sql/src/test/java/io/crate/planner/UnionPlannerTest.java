@@ -127,4 +127,27 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(unionExecutionPlan.mergePhase().orderByPositions(), instanceOf(PositionalOrderBy.class));
         assertThat(unionExecutionPlan.mergePhase().orderByPositions().indices(), is(new int[]{0}));
     }
+
+    @Test
+    public void test_select_subset_of_outputs_from_union() {
+        String stmt = "select x from (" +
+                      " select 1 as x, id from users" +
+                      " union all" +
+                      " select 2, id from users" +
+                      ") o" +
+                      " order by x";
+        var logicalPlan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "RootBoundary[x]\n" +
+            "Eval[x]\n" +
+            "Rename[x] AS o\n" +
+            "Union[\n" +
+            "OrderBy[1 AS x ASC]\n" +
+            "Collect[doc.users | [1 AS x] | true]\n" +
+            "---\n" +
+            "OrderBy[2 ASC]\n" +
+            "Collect[doc.users | [2] | true]\n" +
+            "]\n";
+        assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(e.functions(), expectedPlan)));
+    }
 }

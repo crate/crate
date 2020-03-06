@@ -37,9 +37,11 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -111,6 +113,40 @@ public interface LogicalPlan extends Plan {
     List<LogicalPlan> sources();
 
     LogicalPlan replaceSources(List<LogicalPlan> sources);
+
+    /**
+     * Request an operator to return a new version of itself with all outputs removed except the ones contained in `outputsToKeep`.
+     * <p>
+     *  Note that `outputsToKeep` can contain scalars on top of the outputs that the "current" operator outputs.
+     *  This doesn't mean that the operator has to pull-down the scalar as well, but it means it has to provide all outputs
+     *  that are required by the parent.
+     *  Using {@link io.crate.expression.symbol.SymbolVisitors#intersection(Symbol, Collection, Consumer)} is an option
+     *  To find the outputs required by the parent.
+     * </p>
+     *
+     * Example:
+     *
+     * <pre>
+     *     A: [substr(x, 0, 3), y]
+     *     └ B [x, y, z]              // Should provide `x` and `y` after the prune call.
+     * </pre>
+     *
+     * <p>
+     *   This must propagate down the tree:
+     * </p>
+     * <pre>
+     *      root       A call to `root.pruneOutputsExcept(..)` must result in calls on all: A, B and C
+     *       / \
+     *     A   C
+     *     |
+     *     B
+     * </pre>
+     * <p>
+     *  If there are no outputs to prune and if the source also didn't change, `this` must be returned.
+     *  That allows implementations to do a cheap identity check to avoid LogicalPlan re-creations themselves.
+     * </p>
+     */
+    LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep);
 
     /**
      * SubQueries that this plan depends on to be able to execute it.

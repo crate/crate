@@ -784,6 +784,11 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        return this;
+    }
+
+    @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         return Map.of();
     }

@@ -83,7 +83,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                    "Rename[name] AS a\n" +
                    "Eval[name]\n" +
                    "OrderBy[name ASC]\n" +
-                   "Collect[doc.users | [name, text] | true]\n" +
+                   "Collect[doc.users | [name] | true]\n" +
                    "---\n" +
                    "OrderBy[text ASC]\n" +
                    "Collect[doc.users | [text] | true]\n" +
@@ -235,16 +235,16 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWhereClauseIsPushedDownIntoSubQuery() {
-        LogicalPlan plan = sqlExecutor.logicalPlan("SELECT name FROM (SELECT id, name FROM sys.nodes) t " +
-                                                   "WHERE id = 'nodeName'");
-
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT name FROM (SELECT id, name FROM sys.nodes) t " +
+            "WHERE id = 'nodeName'");
         assertThat(
             plan,
             LogicalPlannerTest.isPlan(sqlExecutor.functions(),
                 "RootBoundary[name]\n" +
                 "Eval[name]\n" +
-                "Rename[id, name] AS t\n" +
-                "Collect[sys.nodes | [id, name] | (id = 'nodeName')]\n"));
+                "Rename[name] AS t\n" +
+                "Collect[sys.nodes | [name] | (id = 'nodeName')]\n"));
     }
 
     @Test

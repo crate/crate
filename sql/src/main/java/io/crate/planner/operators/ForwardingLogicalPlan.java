@@ -27,6 +27,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +44,15 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
 
     public LogicalPlan source() {
         return source;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        LogicalPlan newSource = source.pruneOutputsExcept(outputsToKeep);
+        if (newSource == source) {
+            return this;
+        }
+        return replaceSources(List.of(newSource));
     }
 
     @Override

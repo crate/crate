@@ -114,6 +114,15 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        LogicalPlan newSource = source.pruneOutputsExcept(source.outputs());
+        if (newSource == source) {
+            return this;
+        }
+        return replaceSources(List.of(newSource));
+    }
+
+    @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         return source.dependencies();
     }

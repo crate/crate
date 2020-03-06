@@ -35,6 +35,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -85,6 +86,15 @@ public final class Eval extends ForwardingLogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new Eval(Lists2.getOnlyElement(sources), outputs);
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        LogicalPlan newSource = source.pruneOutputsExcept(outputsToKeep);
+        if (source == newSource) {
+            return this;
+        }
+        return new Eval(newSource, List.copyOf(outputsToKeep));
     }
 
     private ExecutionPlan addEvalProjection(PlannerContext plannerContext,

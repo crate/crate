@@ -35,6 +35,7 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -48,8 +49,10 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
@@ -223,6 +226,27 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return outputs;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        HashSet<Symbol> toKeep = new HashSet<>();
+        // We cannot prune groupKeys, even if they are not used in the outputs, because it would change the result semantically
+        for (Symbol groupKey : groupKeys) {
+            SymbolVisitors.intersection(groupKey, source.outputs(), toKeep::add);
+        }
+        ArrayList<Function> newAggregates = new ArrayList<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, aggregates, newAggregates::add);
+        }
+        for (Function newAggregate : newAggregates) {
+            SymbolVisitors.intersection(newAggregate, source.outputs(), toKeep::add);
+        }
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        if (newSource == source && aggregates.size() == newAggregates.size()) {
+            return this;
+        }
+        return new GroupHashAggregate(newSource, groupKeys, newAggregates, numExpectedRows);
     }
 
     @Override

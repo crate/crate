@@ -34,6 +34,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.WindowFunctionContext;
 import io.crate.planner.ExecutionPlan;
@@ -45,6 +46,8 @@ import io.crate.planner.distribution.DistributionType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +103,26 @@ public class WindowAgg extends ForwardingLogicalPlan {
         this.windowDefinition = windowDefinition;
         this.windowFunctions = windowFunctions;
         this.standalone = standalone;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        HashSet<Symbol> toKeep = new HashSet<>();
+        ArrayList<Symbol> newStandalone = new ArrayList<>();
+        ArrayList<WindowFunction> newWindowFunctions = new ArrayList<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, windowFunctions, newWindowFunctions::add);
+            SymbolVisitors.intersection(outputToKeep, standalone, newStandalone::add);
+        }
+        for (WindowFunction newWindowFunction : newWindowFunctions) {
+            SymbolVisitors.intersection(newWindowFunction, source.outputs(), toKeep::add);
+        }
+        toKeep.addAll(newStandalone);
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        if (newSource == source) {
+            return this;
+        }
+        return new WindowAgg(newSource, windowDefinition, List.copyOf(newWindowFunctions), List.copyOf(newStandalone));
     }
 
     List<WindowFunction> windowFunctions() {

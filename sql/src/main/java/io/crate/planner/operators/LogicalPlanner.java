@@ -214,7 +214,8 @@ public class LogicalPlanner {
             hints,
             tableStats,
             plannerContext.params());
-        return optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
+        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
+        return optimizedPlan.pruneOutputsExcept(relation.outputs());
     }
 
     static LogicalPlan plan(AnalyzedRelation relation,

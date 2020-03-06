@@ -43,6 +43,7 @@ import io.crate.planner.node.dql.Collect;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -127,6 +128,14 @@ public final class TableFunction implements LogicalPlan {
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         assert sources.isEmpty() : "TableFunction has no sources, cannot replace them";
         return this;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        if (outputsToKeep.containsAll(toCollect)) {
+            return this;
+        }
+        return new TableFunction(relation, List.copyOf(outputsToKeep), where);
     }
 
     @Override

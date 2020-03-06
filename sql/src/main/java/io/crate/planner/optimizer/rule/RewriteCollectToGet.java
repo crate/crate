@@ -31,7 +31,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.statistics.TableStats;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Get;
@@ -39,6 +38,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 
 import java.util.Optional;
 
@@ -81,7 +81,7 @@ public final class RewriteCollectToGet implements Rule<Collect> {
         Optional<DocKeys> docKeys = detailedQuery.docKeys();
         //noinspection OptionalIsPresent no capturing lambda allocation
         if (docKeys.isPresent()) {
-            return new Get(relation, docKeys.get(), collect.outputs(), tableStats);
+            return new Get(relation, docKeys.get(), collect.outputs(), tableStats.estimatedSizePerRow(relation.relationName()));
         } else {
             return null;
         }

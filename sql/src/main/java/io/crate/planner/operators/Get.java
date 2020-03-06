@@ -39,7 +39,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 import io.crate.planner.node.dql.Collect;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -50,6 +49,7 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,11 +61,11 @@ public class Get implements LogicalPlan {
     final long estimatedSizePerRow;
     private final List<Symbol> outputs;
 
-    public Get(DocTableRelation table, DocKeys docKeys, List<Symbol> outputs, TableStats tableStats) {
+    public Get(DocTableRelation table, DocKeys docKeys, List<Symbol> outputs, long estimatedSizePerRow) {
         this.outputs = outputs;
         this.tableRelation = table;
         this.docKeys = docKeys;
-        this.estimatedSizePerRow = tableStats.estimatedSizePerRow(tableRelation.tableInfo().ident());
+        this.estimatedSizePerRow = estimatedSizePerRow;
     }
 
     @Override
@@ -163,6 +163,23 @@ public class Get implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         assert sources.isEmpty() : "Get has no sources, cannot replace them";
+        return this;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        ArrayList<Symbol> newOutputs = new ArrayList<>();
+        boolean excludedAny = false;
+        for (Symbol output : outputs) {
+            if (outputsToKeep.contains(output)) {
+                newOutputs.add(output);
+            } else {
+                excludedAny = true;
+            }
+        }
+        if (excludedAny) {
+            return new Get(tableRelation, docKeys, newOutputs, estimatedSizePerRow);
+        }
         return this;
     }
 
