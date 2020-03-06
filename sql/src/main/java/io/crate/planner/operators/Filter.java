@@ -29,12 +29,15 @@ import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 public final class Filter extends ForwardingLogicalPlan {
@@ -54,7 +57,7 @@ public final class Filter extends ForwardingLogicalPlan {
     }
 
     private static boolean isMatchAll(Symbol query) {
-        return query instanceof Literal && ((Literal) query).value() == Boolean.TRUE;
+        return query instanceof Literal && ((Literal<?>) query).value() == Boolean.TRUE;
     }
 
     public Filter(LogicalPlan source, Symbol query) {
@@ -84,6 +87,17 @@ public final class Filter extends ForwardingLogicalPlan {
         }
         executionPlan.addProjection(filterProjection);
         return executionPlan;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>(outputsToKeep);
+        SymbolVisitors.intersection(query, source.outputs(), toKeep::add);
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        if (newSource == source) {
+            return this;
+        }
+        return new Filter(newSource, query);
     }
 
     @Override

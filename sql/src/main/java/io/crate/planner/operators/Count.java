@@ -45,6 +45,7 @@ import io.crate.planner.node.dql.CountPlan;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -136,6 +137,11 @@ public class Count implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         assert sources.isEmpty() : "Count has no sources, cannot replace them";
+        return this;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         return this;
     }
 

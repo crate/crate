@@ -22,6 +22,8 @@
 
 package io.crate.planner.operators;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.common.collections.Lists2;
@@ -32,6 +34,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -41,6 +44,8 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -142,6 +147,32 @@ public class Union implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new Union(sources.get(0), sources.get(1), outputs);
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        IntArrayList outputIndicesToKeep = new IntArrayList();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, outputs, s -> {
+                int idx = outputs.indexOf(s);
+                assert idx >= 0 : "outputs must contain symbol " + s + " if intersection called consumer";
+                outputIndicesToKeep.add(idx);
+            });
+        }
+        ArrayList<Symbol> toKeepFromLhs = new ArrayList<>();
+        ArrayList<Symbol> toKeepFromRhs = new ArrayList<>();
+        ArrayList<Symbol> newOutputs = new ArrayList<>();
+        for (IntCursor cursor : outputIndicesToKeep) {
+            toKeepFromLhs.add(lhs.outputs().get(cursor.value));
+            toKeepFromRhs.add(rhs.outputs().get(cursor.value));
+            newOutputs.add(outputs.get(cursor.value));
+        }
+        LogicalPlan newLhs = lhs.pruneOutputsExcept(toKeepFromLhs);
+        LogicalPlan newRhs = rhs.pruneOutputsExcept(toKeepFromRhs);
+        if (newLhs == lhs && newRhs == rhs) {
+            return this;
+        }
+        return new Union(newLhs, newRhs, newOutputs);
     }
 
     @Override

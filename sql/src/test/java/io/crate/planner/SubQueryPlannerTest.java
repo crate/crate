@@ -31,7 +31,6 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
-import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -88,7 +87,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             isTopN(3, 0),
             instanceOf(EvalProjection.class)
         ));
-        assertThat(projections.get(0).outputs(), isSQL("INPUT(1), INPUT(1), INPUT(2)"));
+        assertThat(projections.get(0).outputs(), isSQL("INPUT(1), INPUT(1)"));
         assertThat(projections.get(5).outputs(), isSQL("INPUT(0)"));
     }
 

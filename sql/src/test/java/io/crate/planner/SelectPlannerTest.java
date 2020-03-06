@@ -933,7 +933,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Eval[word]\n" +
             "OrderBy[word ASC]\n" +
             "Filter[(catcode = 'R')]\n" +
-            "TableFunction[pg_get_keywords | [word, catcode, catdesc] | true]\n";
+            "TableFunction[pg_get_keywords | [word, catcode] | true]\n";
         assertThat(plan, isPlan(e.functions(), expectedPlan));
 
     }

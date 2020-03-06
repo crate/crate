@@ -84,9 +84,16 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             return null;
         }
         Symbol field = relation.getField(childColumnName, operation);
-        return field == null
-            ? null
-            : new ScopedSymbol(alias, column, field.valueType());
+        if (field == null) {
+            return null;
+        }
+        ScopedSymbol scopedSymbol = new ScopedSymbol(alias, column, field.valueType());
+        // If the scopedSymbol exists in `outputs`, return that instance so that IdentityHashMaps work
+        int i = outputs.indexOf(scopedSymbol);
+        if (i >= 0) {
+            return outputs.get(i);
+        }
+        return scopedSymbol;
     }
 
     public AnalyzedRelation relation() {

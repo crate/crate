@@ -50,7 +50,7 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "Eval[id]\n" +
             "OrderBy[(id + 10) ASC]\n" +
             "GroupBy[id | ]\n" +
-            "Collect[doc.users | [id, (id + 10)] | true]\n"));
+            "Collect[doc.users | [id] | true]\n"));
     }
 
     @Test

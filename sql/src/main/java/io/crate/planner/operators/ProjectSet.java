@@ -30,10 +30,14 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 public class ProjectSet extends ForwardingLogicalPlan {
@@ -97,6 +101,26 @@ public class ProjectSet extends ForwardingLogicalPlan {
 
     public List<Symbol> standaloneOutputs() {
         return standalone;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        HashSet<Symbol> toKeep = new HashSet<>();
+        LinkedHashSet<Symbol> newStandalone = new LinkedHashSet<>();
+        LinkedHashSet<Function> newTableFunctions = new LinkedHashSet<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, standalone, newStandalone::add);
+            SymbolVisitors.intersection(outputToKeep, tableFunctions, newTableFunctions::add);
+        }
+        for (Function newTableFunction : newTableFunctions) {
+            SymbolVisitors.intersection(newTableFunction, source.outputs(), toKeep::add);
+        }
+        toKeep.addAll(newStandalone);
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        if (newSource == source) {
+            return this;
+        }
+        return new ProjectSet(newSource, List.copyOf(newTableFunctions), List.copyOf(newStandalone));
     }
 
     @Override

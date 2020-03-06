@@ -31,6 +31,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -38,6 +39,8 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -62,6 +65,22 @@ public class Order extends ForwardingLogicalPlan {
 
     public OrderBy orderBy() {
         return orderBy;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, source.outputs(), toKeep::add);
+        }
+        for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
+            SymbolVisitors.intersection(orderBySymbol, source.outputs(), toKeep::add);
+        }
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        if (newSource == source) {
+            return this;
+        }
+        return replaceSources(List.of(newSource));
     }
 
     @Override

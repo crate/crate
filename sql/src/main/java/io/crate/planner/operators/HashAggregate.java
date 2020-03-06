@@ -33,6 +33,7 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
@@ -46,6 +47,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 public class HashAggregate extends ForwardingLogicalPlan {
@@ -140,6 +142,23 @@ public class HashAggregate extends ForwardingLogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new HashAggregate(Lists2.getOnlyElement(sources), aggregates);
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        ArrayList<Function> newAggregates = new ArrayList<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, aggregates, newAggregates::add);
+        }
+        LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
+        for (Function newAggregate : newAggregates) {
+            SymbolVisitors.intersection(newAggregate, source.outputs(), toKeep::add);
+        }
+        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        if (source == newSource && newAggregates == aggregates) {
+            return this;
+        }
+        return new HashAggregate(newSource, newAggregates);
     }
 
     @Override

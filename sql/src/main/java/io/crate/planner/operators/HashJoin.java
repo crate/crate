@@ -37,6 +37,7 @@ import io.crate.execution.engine.join.JoinOperations;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.ExecutionPlan;
@@ -227,6 +228,29 @@ public class HashJoin implements LogicalPlan {
         return new HashJoin(
             sources.get(0),
             sources.get(1),
+            joinCondition,
+            concreteRelation
+        );
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        ArrayList<Symbol> lhsToKeep = new ArrayList<>();
+        ArrayList<Symbol> rhsToKeep = new ArrayList<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
+            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
+        }
+        SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+        SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
+        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
+        if (newLhs == lhs && newRhs == rhs) {
+            return this;
+        }
+        return new HashJoin(
+            newLhs,
+            newRhs,
             joinCondition,
             concreteRelation
         );

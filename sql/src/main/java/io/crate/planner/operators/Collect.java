@@ -55,6 +55,8 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -277,6 +279,27 @@ public class Collect implements LogicalPlan {
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         assert sources.isEmpty() : "Collect has no sources, cannot replace them";
         return this;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        ArrayList<Symbol> newOutputs = new ArrayList<>();
+        for (Symbol output : outputs) {
+            if (outputsToKeep.contains(output)) {
+                newOutputs.add(output);
+            }
+        }
+        if (newOutputs.equals(outputs)) {
+            return this;
+        }
+        return new Collect(
+            preferSourceLookup,
+            relation,
+            newOutputs,
+            where,
+            numExpectedRows,
+            estimatedRowSize
+        );
     }
 
     @Override

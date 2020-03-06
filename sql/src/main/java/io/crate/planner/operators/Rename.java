@@ -29,11 +29,15 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -78,6 +82,41 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     @Override
     public List<Symbol> outputs() {
         return outputs;
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        /* In `SELECT * FROM (SELECT t1.*, t2.* FROM tbl AS t1, tbl AS t2) AS tjoin`
+         * The `ScopedSymbol`s are ambiguous; To map them correctly this uses a IdentityHashMap
+         */
+        IdentityHashMap<Symbol, Symbol> parentToChildMap = new IdentityHashMap<>(outputs.size());
+        IdentityHashMap<Symbol, Symbol> childToParentMap = new IdentityHashMap<>(outputs.size());
+        for (int i = 0; i < outputs.size(); i++) {
+            parentToChildMap.put(outputs.get(i), source.outputs().get(i));
+            childToParentMap.put(source.outputs().get(i), outputs.get(i));
+        }
+        ArrayList<Symbol> mappedToKeep = new ArrayList<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, outputs, s -> {
+                Symbol childSymbol = parentToChildMap.get(s);
+                assert childSymbol != null : "There must be a mapping available for symbol " + s;
+                mappedToKeep.add(childSymbol);
+            });
+        }
+        LogicalPlan newSource = source.pruneOutputsExcept(mappedToKeep);
+        if (newSource == source) {
+            return this;
+        }
+        ArrayList<Symbol> newOutputs = new ArrayList<>(newSource.outputs().size());
+        for (Symbol sourceOutput : newSource.outputs()) {
+            newOutputs.add(childToParentMap.get(sourceOutput));
+        }
+        return new Rename(
+            newOutputs,
+            name,
+            fieldResolver,
+            newSource
+        );
     }
 
     @Override

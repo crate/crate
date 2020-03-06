@@ -38,6 +38,7 @@ import io.crate.execution.engine.join.JoinOperations;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -49,6 +50,7 @@ import io.crate.planner.node.dql.join.JoinType;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -244,6 +246,35 @@ public class NestedLoopJoin implements LogicalPlan {
         return new NestedLoopJoin(
             sources.get(0),
             sources.get(1),
+            joinType,
+            joinCondition,
+            isFiltered,
+            topMostLeftRelation,
+            orderByWasPushedDown,
+            rewriteFilterOnOuterJoinToInnerJoinDone
+        );
+    }
+
+    @Override
+    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        ArrayList<Symbol> lhsToKeep = new ArrayList<>();
+        ArrayList<Symbol> rhsToKeep = new ArrayList<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
+            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
+        }
+        if (joinCondition != null) {
+            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+        }
+        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
+        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
+        if (newLhs == lhs && newRhs == rhs) {
+            return this;
+        }
+        return new NestedLoopJoin(
+            newLhs,
+            newRhs,
             joinType,
             joinCondition,
             isFiltered,

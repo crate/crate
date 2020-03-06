@@ -82,9 +82,15 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
     @Override
     public Symbol getField(ColumnIdent column, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         Symbol field = relation.getField(column, operation);
-        return field == null
-            ? null
-            : new ScopedSymbol(name, column, field.valueType());
+        if (field == null) {
+            return null;
+        }
+        ScopedSymbol scopedSymbol = new ScopedSymbol(name, column, field.valueType());
+        int i = outputSymbols.indexOf(scopedSymbol);
+        if (i >= 0) {
+            return outputSymbols.get(i);
+        }
+        return scopedSymbol;
     }
 
     @Override
