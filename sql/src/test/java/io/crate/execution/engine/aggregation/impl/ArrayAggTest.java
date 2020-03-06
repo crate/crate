@@ -22,13 +22,15 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import java.util.List;
-
-import org.junit.Test;
-
+import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import java.util.List;
 
 
 public class ArrayAggTest extends AggregationTest {
@@ -42,5 +44,12 @@ public class ArrayAggTest extends AggregationTest {
             new Object[] { 24 }
         }, List.of(DataTypes.INTEGER));
         assertThat((List<Object>) result, Matchers.contains(20, null, 42, 24));
+    }
+
+    @Test
+    public void test_array_agg_return_type_is_array_of_argument_type() {
+        DataType<?> returnType = functions.getQualified(
+            new FunctionIdent(ArrayAgg.NAME, List.of(DataTypes.LONG))).info().returnType();
+        assertThat(returnType, Matchers.is(new ArrayType<>(DataTypes.LONG)));
     }
 }
