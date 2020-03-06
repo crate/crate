@@ -22,12 +22,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -40,11 +34,17 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionInfo.Type;
 import io.crate.metadata.functions.params.FuncParams;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public final class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
 
-    private static final String NAME = "array_agg";
+    public static final String NAME = "array_agg";
 
     public static void register(AggregationImplModule module) {
         module.register(NAME, new BaseFunctionResolver(FuncParams.SINGLE_ANY) {
@@ -64,7 +64,7 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
         this.sizeEstimator = SizeEstimatorFactory.create(argType);
         this.info = new FunctionInfo(
             new FunctionIdent(NAME, List.of(argType)),
-            argType,
+            new ArrayType<>(argType),
             Type.AGGREGATE
         );
     }
