@@ -65,7 +65,8 @@ None
 Changes
 =======
 
-- Added the :ref:`length <scalar-length>` scalar function.
+- Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>`
+  scalar functions.
 
 - Added the :ref:`server_version_num <conf-session-server_version_num>` and
   :ref:`server_version <conf-session-server_version>` read-only session
