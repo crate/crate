@@ -585,6 +585,28 @@ Example::
     +--------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-repeat:
+
+``repeat(text, integer)``
+-------------------------
+
+Repeats a string the specified number of times.
+
+If the number of repetitions is equal or less than zero then the function
+returns an empty string.
+
+Returns: ``text``
+
+::
+
+   cr> select repeat('ab', 3) AS repeat;
+   +--------+
+   | repeat |
+   +--------+
+   | ababab |
+   +--------+
+   SELECT 1 row in set (... sec)
+
 Date and time functions
 =======================
 
