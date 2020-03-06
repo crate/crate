@@ -22,7 +22,6 @@
 
 package io.crate.expression.scalar.string;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.types.DataType;
@@ -34,10 +33,10 @@ import java.util.function.Function;
 
 public final class LengthFunction {
 
-    private static final List<DataType> SUPPORTED_INPUT_TYPES = ImmutableList.of(DataTypes.STRING, DataTypes.UNDEFINED);
+    private static final List<DataType<?>> SUPPORTED_TYPES = List.of(DataTypes.STRING, DataTypes.UNDEFINED);
 
     private static void register(ScalarFunctionModule module, String name, Function<String, Integer> func) {
-        for (DataType inputType : SUPPORTED_INPUT_TYPES) {
+        for (DataType<?> inputType : SUPPORTED_TYPES) {
             module.register(new UnaryScalar<>(name, inputType, DataTypes.INTEGER, func));
         }
     }
@@ -46,5 +45,6 @@ public final class LengthFunction {
         register(module, "octet_length", x -> x.getBytes(StandardCharsets.UTF_8).length);
         register(module, "bit_length", x -> x.getBytes(StandardCharsets.UTF_8).length * Byte.SIZE);
         register(module, "char_length", String::length);
+        register(module, "length", String::length);
     }
 }

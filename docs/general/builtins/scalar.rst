@@ -129,6 +129,15 @@ Each character counts only once, regardless of its byte size.
     +-------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-length:
+
+``length(text)``
+----------------
+
+Returns the number of characters in a string.
+
+The same as :ref:`char_length <scalar_char_length>`.
+
 .. _scalar_bit_length:
 
 ``bit_length('string')``
