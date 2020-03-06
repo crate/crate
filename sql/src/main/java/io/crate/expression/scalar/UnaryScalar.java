@@ -43,12 +43,12 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
     private final FunctionInfo info;
     private final Function<T, R> func;
 
-    public UnaryScalar(FunctionIdent functionIdent, DataType returnType, Function<T, R> func) {
+    public UnaryScalar(FunctionIdent functionIdent, DataType<?> returnType, Function<T, R> func) {
         this.info = new FunctionInfo(functionIdent, returnType);
         this.func = func;
     }
 
-    public UnaryScalar(String name, DataType argType, DataType returnType, Function<T, R> func) {
+    public UnaryScalar(String name, DataType<?> argType, DataType<?> returnType, Function<T, R> func) {
         this(new FunctionIdent(name, List.of(argType)), returnType, func);
     }
 

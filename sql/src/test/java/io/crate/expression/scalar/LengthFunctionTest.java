@@ -76,4 +76,16 @@ public class LengthFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("octet_length(name)", 2, Literal.of("©"));
         assertEvaluate("char_length(name)", 1, Literal.of("©"));
     }
+
+    @Test
+    public void test_length_returns_number_of_characters_in_string() {
+        assertEvaluate("length('')", 0);
+        assertEvaluate("length('cra')", 3);
+        assertEvaluate("length('©rate')", 5);
+    }
+
+    @Test
+    public void test_length_returns_null_for_null_input() {
+        assertEvaluate("length(null)", null);
+    }
 }
