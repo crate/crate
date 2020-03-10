@@ -25,6 +25,8 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.TopNDistinctProjection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -50,7 +52,9 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -386,6 +390,32 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                     "GroupBy[id_asset | sum(fields['contador_total:dx'])]\n" +
                     "Collect[zmx.metrics | [fields['contador_total:dx'], id_asset] | All]\n" +
                 "]\n"
+            )
+        );
+    }
+
+    @Test
+    public void test_top_n_distinct_limits_outputs_to_the_group_keys_if_source_has_more_outputs() {
+        String statement = "select name, other_id " +
+                           "from (select name, awesome, other_id from users) u " +
+                           "group by name, other_id limit 20";
+        LogicalPlan plan = plan(
+            statement);
+        assertThat(
+            plan,
+            isPlan(
+                "TopNDistinct[20 | [name, other_id]\n" +
+                "Boundary[_fetchid, name, other_id]\n" +
+                "Boundary[_fetchid, name, other_id]\n" +
+                "Collect[doc.users | [_fetchid, name, other_id] | All]\n"
+            )
+        );
+        io.crate.planner.node.dql.Collect collect = sqlExecutor.plan(statement);
+        assertThat(
+            collect.collectPhase().projections(),
+            contains(
+                instanceOf(EvalProjection.class),
+                instanceOf(TopNDistinctProjection.class)
             )
         );
     }
