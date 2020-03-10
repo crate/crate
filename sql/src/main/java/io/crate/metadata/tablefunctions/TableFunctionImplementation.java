@@ -22,6 +22,7 @@
 
 package io.crate.metadata.tablefunctions;
 
+import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -34,6 +35,13 @@ import io.crate.metadata.table.TableInfo;
  * Interface which needs to be implemented by functions returning whole tables as result.
  */
 public abstract class TableFunctionImplementation<T> extends Scalar<Iterable<Row>, T> {
+
+
+    /**
+     * @return true if the records returned by this table function are generated on-demand.
+     *         See also {@link BatchIterator#hasLazyResultSet()}
+     */
+    public abstract boolean hasLazyResultSet();
 
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {

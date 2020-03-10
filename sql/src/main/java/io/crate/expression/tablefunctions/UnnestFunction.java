@@ -77,6 +77,11 @@ public class UnnestFunction {
             return info;
         }
 
+        @Override
+        public boolean hasLazyResultSet() {
+            return false;
+        }
+
         /**
          *
          * @param arguments collection of array-literals

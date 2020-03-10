@@ -126,5 +126,10 @@ public class TableFunctionFactory {
                 }
             };
         }
+
+        @Override
+        public boolean hasLazyResultSet() {
+            return true;
+        }
     }
 }

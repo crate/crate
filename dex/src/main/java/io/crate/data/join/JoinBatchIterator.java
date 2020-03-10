@@ -113,10 +113,7 @@ public abstract class JoinBatchIterator<L, R, C> implements BatchIterator<C> {
     }
 
     @Override
-    public boolean involvesIO() {
-        if (left.involvesIO()) {
-            return true;
-        }
-        return right.involvesIO();
+    public boolean hasLazyResultSet() {
+        return left.hasLazyResultSet() || right.hasLazyResultSet();
     }
 }

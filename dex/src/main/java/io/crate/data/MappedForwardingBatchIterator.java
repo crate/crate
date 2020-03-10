@@ -63,7 +63,7 @@ public abstract class MappedForwardingBatchIterator<I, O> implements BatchIterat
     }
 
     @Override
-    public boolean involvesIO() {
-        return delegate().involvesIO();
+    public boolean hasLazyResultSet() {
+        return delegate().hasLazyResultSet();
     }
 }

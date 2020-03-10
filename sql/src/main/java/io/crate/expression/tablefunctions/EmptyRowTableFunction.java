@@ -90,6 +90,11 @@ public class EmptyRowTableFunction {
                 }
             };
         }
+
+        @Override
+        public boolean hasLazyResultSet() {
+            return false;
+        }
     }
 
     public static void register(TableFunctionModule module) {

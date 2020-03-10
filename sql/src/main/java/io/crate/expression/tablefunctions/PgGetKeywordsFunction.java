@@ -147,4 +147,9 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     public FunctionInfo info() {
         return info;
     }
+
+    @Override
+    public boolean hasLazyResultSet() {
+        return false;
+    }
 }
