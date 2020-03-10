@@ -32,7 +32,9 @@ import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
+import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.TopNDistinctProjection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.InputColumn;
@@ -52,6 +54,11 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
         super(source);
         this.limit = limit;
         this.outputs = outputs;
+    }
+
+    @Override
+    public List<Symbol> outputs() {
+        return outputs;
     }
 
     public Symbol limit() {
@@ -80,8 +87,12 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
-        assert source.outputs().equals(outputs)
-            : "source outputs must match outputs, TopNDistinct can't re-evaluate outputs";
+        if (!source.outputs().equals(outputs)) {
+            EvalProjection evalProjection = new EvalProjection(
+                InputColumns.create(outputs, new InputColumns.SourceSymbols(source.outputs()))
+            );
+            executionPlan.addProjection(evalProjection);
+        }
         int limit = DataTypes.INTEGER.value(
             evaluate(
                 plannerContext.transactionContext(),
