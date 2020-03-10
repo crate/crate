@@ -57,4 +57,5 @@ None
 Fixes
 =====
 
-None
+Fixed a regression introduced in 4.1 that led to a ``ClassCastException``
+running queries with ``GROUP BY``, no aggregations and a ``LIMIT`` clause.
