@@ -135,6 +135,7 @@ following tables:
  - `pg_type`_
  - `pg_database <pgsql_pg_database_>`__
  - `pg_class <pgsql_pg_class_>`__
+ - `pg_proc <pgsql_pg_proc_>`__
  - `pg_namespace <pgsql_pg_namespace_>`__
  - `pg_attribute <pgsql_pg_attribute_>`__
  - `pg_attrdef <pgsql_pg_attrdef_>`__
@@ -381,6 +382,7 @@ either because of the table is empty or by a not matching where clause.
 .. _Value Expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
 .. _pgsql_pg_type: https://www.postgresql.org/docs/10/static/catalog-pg-type.html
 .. _pgsql_pg_class: https://www.postgresql.org/docs/10/static/catalog-pg-class.html
+.. _pgsql_pg_proc: https://www.postgresql.org/docs/10/static/catalog-pg-proc.html
 .. _pgsql_pg_namespace: https://www.postgresql.org/docs/10/static/catalog-pg-namespace.html
 .. _pgsql_pg_attrdef: https://www.postgresql.org/docs/10/static/catalog-pg-attrdef.html
 .. _pgsql_pg_attribute: https://www.postgresql.org/docs/10/static/catalog-pg-attribute.html
