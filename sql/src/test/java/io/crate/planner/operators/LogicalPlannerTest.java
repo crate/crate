@@ -24,6 +24,8 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.TopNDistinctProjection;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
@@ -46,7 +48,9 @@ import java.util.Set;
 import java.util.StringJoiner;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -317,6 +321,31 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("select name from users u where id = 1");
         assertThat(plan, isPlan("Rename[name] AS u\n" +
                                 "Get[doc.users | name | DocKeys{1}"));
+    }
+
+    @Test
+    public void test_top_n_distinct_limits_outputs_to_the_group_keys_if_source_has_more_outputs() {
+        String statement = "select name, other_id " +
+                           "from (select name, awesome, other_id from users) u " +
+                           "group by name, other_id limit 20";
+        LogicalPlan plan = plan(
+            statement);
+        assertThat(
+            plan,
+            isPlan(
+                "TopNDistinct[20 | [name, other_id]\n" +
+                "Rename[name, awesome, other_id] AS u\n" +
+                "Collect[doc.users | [name, awesome, other_id] | true]\n"
+            )
+        );
+        io.crate.planner.node.dql.Collect collect = sqlExecutor.plan(statement);
+        assertThat(
+            collect.collectPhase().projections(),
+            contains(
+                instanceOf(EvalProjection.class),
+                instanceOf(TopNDistinctProjection.class)
+            )
+        );
     }
 
     public static LogicalPlan plan(String statement,
