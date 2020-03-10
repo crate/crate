@@ -161,7 +161,7 @@ class SemiJoinNLBatchIterator<L, R, C> implements BatchIterator<L> {
     }
 
     @Override
-    public boolean involvesIO() {
+    public boolean hasLazyResultSet() {
         return false;
     }
 }

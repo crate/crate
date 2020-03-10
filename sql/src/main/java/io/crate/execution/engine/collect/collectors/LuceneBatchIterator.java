@@ -197,7 +197,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     }
 
     @Override
-    public boolean involvesIO() {
+    public boolean hasLazyResultSet() {
         return true;
     }
 

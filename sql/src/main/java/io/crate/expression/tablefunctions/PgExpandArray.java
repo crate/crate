@@ -22,9 +22,6 @@
 
 package io.crate.expression.tablefunctions;
 
-import java.util.List;
-import java.util.function.Function;
-
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -33,7 +30,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
@@ -44,11 +40,13 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 
+import java.util.List;
+import java.util.function.Function;
+
 public final class PgExpandArray extends TableFunctionImplementation<List<Object>> {
 
     private static final String NAME = "_pg_expandarray";
     private static final FunctionName FUNCTION_NAME = new FunctionName(InformationSchemaInfo.NAME, NAME);
-    private static final RelationName REL_NAME = new RelationName(InformationSchemaInfo.NAME, NAME);
     private final RowType resultType;
     private final FunctionInfo info;
 
@@ -112,5 +110,10 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
     @Override
     public RowType returnType() {
         return resultType;
+    }
+
+    @Override
+    public boolean hasLazyResultSet() {
+        return true;
     }
 }

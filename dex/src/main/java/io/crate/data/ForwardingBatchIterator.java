@@ -34,7 +34,7 @@ public abstract class ForwardingBatchIterator<T> extends MappedForwardingBatchIt
 
 
     @Override
-    public boolean involvesIO() {
-        return delegate().involvesIO();
+    public boolean hasLazyResultSet() {
+        return delegate().hasLazyResultSet();
     }
 }

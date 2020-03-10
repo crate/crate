@@ -94,7 +94,7 @@ public class CloseAssertingBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public boolean involvesIO() {
-        return delegate.involvesIO();
+    public boolean hasLazyResultSet() {
+        return delegate.hasLazyResultSet();
     }
 }

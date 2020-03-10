@@ -110,4 +110,9 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     public RowType returnType() {
         return returnType;
     }
+
+    @Override
+    public boolean hasLazyResultSet() {
+        return false;
+    }
 }
