@@ -65,6 +65,8 @@ None
 Changes
 =======
 
+- Added the `pg_catalog.pg_proc <postgres_pg_catalog>`_ table.
+
 - Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>`
   scalar functions.
 

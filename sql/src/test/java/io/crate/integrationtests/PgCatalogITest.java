@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 public class PgCatalogITest extends SQLTransportIntegrationTest {
@@ -121,5 +122,21 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
                 " from pg_class ct, (select * from pg_index i, pg_class c where c.relname = 't1' and c.oid = i.indrelid) i" +
                 " where ct.oid = i.indexrelid;");
         assertThat(printedTable(response.rows()), is("-649073482| i| t1_pkey| -2048275947| 2| p| p| 0.0\n"));
+    }
+
+    @Test
+    public void test_pg_proc_return_correct_column_names() {
+        execute("select * from pg_proc");
+        assertThat(
+            response.cols(),
+            arrayContainingInAnyOrder(
+                "oid", "proname", "pronamespace", "proowner", "prolang",
+                "procost", "prorows", "provariadic", "protransform", "proisagg",
+                "proiswindow", "prosecdef", "proleakproof", "proisstrict", "proretset",
+                "provolatile", "proparallel", "pronargs", "pronargdefaults",
+                "prorettype",  "proargtypes", "proallargtypes", "proargmodes",
+                "proargnames", "proargdefaults", "protrftypes", "prosrc", "probin",
+                "proconfig", "proacl")
+        );
     }
 }
