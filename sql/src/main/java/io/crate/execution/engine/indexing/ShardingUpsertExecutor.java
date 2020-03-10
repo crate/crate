@@ -267,7 +267,7 @@ public class ShardingUpsertExecutor
         // fast as possible to free resources.
         Predicate<ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item>> shouldPause =
             this::shouldPauseOnPartitionCreation;
-        if (batchIterator.involvesIO()) {
+        if (batchIterator.hasLazyResultSet()) {
             shouldPause = shouldPause.or(this::shouldPauseOnTargetNodeJobsCounter);
         }
 

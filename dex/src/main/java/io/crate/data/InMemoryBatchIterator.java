@@ -37,7 +37,7 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
 
     private final Iterable<? extends T> items;
     private final T sentinel;
-    private final boolean involvesIO;
+    private final boolean hasLazyResultSet;
 
     private Iterator<? extends T> it;
     private T current;
@@ -53,19 +53,19 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
     /**
      * @param items An iterable over the items. It has to be repeatable if {@code moveToStart()} is used.
      * @param sentinel the value for {@link #currentElement()} if un-positioned
-     * @param involvesIO true if consuming the items or properties of the items can involve disk or network IO
+     * @param hasLazyResultSet See {@link BatchIterator#hasLazyResultSet()}
      */
-    public static <T> BatchIterator<T> of(Iterable<? extends T> items, @Nullable T sentinel, boolean involvesIO) {
-        return new CloseAssertingBatchIterator<>(new InMemoryBatchIterator<>(items, sentinel, involvesIO));
+    public static <T> BatchIterator<T> of(Iterable<? extends T> items, @Nullable T sentinel, boolean hasLazyResultSet) {
+        return new CloseAssertingBatchIterator<>(new InMemoryBatchIterator<>(items, sentinel, hasLazyResultSet));
     }
 
     @VisibleForTesting
-    public InMemoryBatchIterator(Iterable<? extends T> items, T sentinel, boolean involvesIO) {
+    public InMemoryBatchIterator(Iterable<? extends T> items, T sentinel, boolean hasLazyResultSet) {
         this.items = items;
         this.it = items.iterator();
         this.current = sentinel;
         this.sentinel = sentinel;
-        this.involvesIO = involvesIO;
+        this.hasLazyResultSet = hasLazyResultSet;
     }
 
     @Override
@@ -109,7 +109,7 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public boolean involvesIO() {
-        return involvesIO;
+    public boolean hasLazyResultSet() {
+        return hasLazyResultSet;
     }
 }

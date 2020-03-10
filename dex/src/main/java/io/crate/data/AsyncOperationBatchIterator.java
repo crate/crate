@@ -197,8 +197,8 @@ public class AsyncOperationBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public boolean involvesIO() {
-        return source.involvesIO();
+    public boolean hasLazyResultSet() {
+        return source.hasLazyResultSet();
     }
 
     @Override

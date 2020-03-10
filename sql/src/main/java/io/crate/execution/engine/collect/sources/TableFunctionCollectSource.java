@@ -69,7 +69,7 @@ public class TableFunctionCollectSource implements CollectSource {
         TableInfo tableInfo = functionImplementation.createTableInfo();
 
         //noinspection unchecked  Only literals can be passed to table functions. Anything else is invalid SQL
-        List<Input<?>> inputs = (List<Input<?>>) (List) phase.functionArguments();
+        List<Input<?>> inputs = (List<Input<?>>) (List<?>) phase.functionArguments();
         List<Reference> columns = new ArrayList<>(tableInfo.columns());
 
         List<Input<?>> topLevelInputs = new ArrayList<>(phase.toCollect().size());
@@ -89,6 +89,6 @@ public class TableFunctionCollectSource implements CollectSource {
         if (orderBy != null) {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
         }
-        return InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false);
+        return InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, functionImplementation.hasLazyResultSet());
     }
 }

@@ -239,6 +239,11 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         };
     }
 
+    @Override
+    public boolean hasLazyResultSet() {
+        return true;
+    }
+
     private static class GenerateSeriesIntervals extends TableFunctionImplementation<Object> {
 
         private final FunctionInfo info;
@@ -318,5 +323,9 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 .plusNanos(step.getMillis() * 1000_0000L);
         }
 
+        @Override
+        public boolean hasLazyResultSet() {
+            return true;
+        }
     }
 }

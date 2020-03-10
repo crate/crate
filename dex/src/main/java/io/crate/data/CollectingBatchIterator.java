@@ -82,7 +82,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
             source::close,
             source::kill,
             () -> BatchIterators.collect(source, collector),
-            source.involvesIO()
+            source.hasLazyResultSet()
         );
     }
 
@@ -164,7 +164,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public boolean involvesIO() {
+    public boolean hasLazyResultSet() {
         return involvesIO;
     }
 }

@@ -269,7 +269,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     }
 
     @Override
-    public boolean involvesIO() {
+    public boolean hasLazyResultSet() {
         return true;
     }
 

@@ -126,7 +126,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         // If the source batch iterator does not involve IO, mostly in-memory structures are used which we want to free
         // as soon as possible. We do not want to throttle based on the targets node counter in such cases.
         Predicate<TReq> shouldPause = ignored -> true;
-        if (batchIterator.involvesIO()) {
+        if (batchIterator.hasLazyResultSet()) {
             shouldPause = ignored ->
                 nodeJobsCounter.getInProgressJobsForNode(localNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS;
         }

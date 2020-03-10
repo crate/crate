@@ -128,6 +128,11 @@ public class ValuesFunction {
                 }
             };
         }
+
+        @Override
+        public boolean hasLazyResultSet() {
+            return false;
+        }
     }
 
     public static void register(TableFunctionModule module) {
