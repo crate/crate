@@ -28,6 +28,8 @@ import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionInfos;
@@ -43,6 +45,7 @@ import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.pgcatalog.PgClassTable;
 import io.crate.metadata.pgcatalog.PgIndexTable;
+import io.crate.metadata.pgcatalog.PgProcTable;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -88,6 +91,8 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final Iterable<Void> referentialConstraints;
     private final Iterable<PgIndexTable.Entry> pgIndices;
     private final Iterable<PgClassTable.Entry> pgClasses;
+    private final Iterable<PgProcTable.Entry> pgBuiltInFunc;
+    private final Functions functions;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     private Iterable<RoutineInfo> routines;
@@ -95,9 +100,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     @Inject
     public InformationSchemaIterables(final Schemas schemas,
+                                      final Functions functions,
                                       FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                       ClusterService clusterService) throws IOException {
         this.schemas = schemas;
+        this.functions = functions;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         views = () -> viewsStream(schemas).iterator();
         relations = () -> concat(tablesStream(schemas), viewsStream(schemas)).iterator();
@@ -132,10 +139,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
         clusterService.addListener(this);
 
         pgIndices = () -> tablesStream(schemas).filter(this::isPrimaryKey).map(this::pgIndex).iterator();
-
         pgClasses = () -> concat(sequentialStream(relations).map(this::relationToPgClassEntry),
                                  sequentialStream(primaryKeys).map(this::primaryKeyToPgClassEntry)).iterator();
-
+        pgBuiltInFunc = () -> sequentialStream(functions.functionResolvers().keySet())
+            .map(this::pgProc)
+            .iterator();
     }
 
     private boolean isPrimaryKey(RelationInfo relationInfo) {
@@ -187,6 +195,14 @@ public class InformationSchemaIterables implements ClusterStateListener {
             positions.add(position);
         }
         return new PgIndexTable.Entry(OidHash.relationOid(tableInfo), OidHash.primaryKeyOid(tableInfo), positions);
+    }
+
+    private PgProcTable.Entry pgProc(FunctionName functionName) {
+        return new PgProcTable.Entry(
+            OidHash.functionOid(functionName),
+            functionName,
+            OidHash.schemaOid(functionName.schema())
+        );
     }
 
     private static Stream<ViewInfo> viewsStream(Schemas schemas) {
@@ -244,6 +260,13 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Iterable<PgClassTable.Entry> pgClasses() {
         return pgClasses;
+    }
+
+    public Iterable<PgProcTable.Entry> pgProc() {
+        return () -> concat(
+            sequentialStream(pgBuiltInFunc),
+            sequentialStream(functions.udfFunctionResolvers().keySet()).map(this::pgProc)
+        ).iterator();
     }
 
     public Iterable<KeyColumnUsage> keyColumnUsage() {

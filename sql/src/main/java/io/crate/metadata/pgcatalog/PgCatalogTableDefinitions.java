@@ -68,6 +68,11 @@ public class PgCatalogTableDefinitions {
                          || user.hasAnyPrivilege(Privilege.Clazz.VIEW, t.ident.fqn()),
             pgCatalogSchemaInfo.pgClassTable().expressions()
         ));
+        tableDefinitions.put(PgProcTable.IDENT, new StaticTableDefinition<>(
+            informationSchemaIterables::pgProc,
+            (user, f) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, f.functionName.schema()),
+            PgProcTable.create().expressions())
+        );
         tableDefinitions.put(PgDatabaseTable.NAME, new StaticTableDefinition<>(
             () -> completedFuture(singletonList(null)),
             PgDatabaseTable.expressions(),

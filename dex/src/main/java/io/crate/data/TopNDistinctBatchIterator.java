@@ -22,7 +22,7 @@
 
 package io.crate.data;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
@@ -43,7 +43,7 @@ public final class TopNDistinctBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public void kill(@Nullable Throwable throwable) {
+    public void kill(@Nonnull Throwable throwable) {
         source.kill(throwable);
     }
 

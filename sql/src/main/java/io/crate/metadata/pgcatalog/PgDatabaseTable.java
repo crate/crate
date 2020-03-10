@@ -51,7 +51,6 @@ public class PgDatabaseTable extends StaticTableInfo<Void> {
         return columnRegistrar().expressions();
     }
 
-    @SuppressWarnings({"unchecked"})
     private static ColumnRegistrar<Void> columnRegistrar() {
         return new ColumnRegistrar<Void>(NAME, RowGranularity.DOC)
             .register("oid", INTEGER, () -> constant(0))

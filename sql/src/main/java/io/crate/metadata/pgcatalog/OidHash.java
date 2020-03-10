@@ -24,6 +24,7 @@ package io.crate.metadata.pgcatalog;
 
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.RelationInfo;
 import org.apache.lucene.util.BytesRef;
 
@@ -36,7 +37,8 @@ public final class OidHash {
         TABLE,
         VIEW,
         CONSTRAINT,
-        PRIMARY_KEY
+        PRIMARY_KEY,
+        PROC
     }
 
     public static int relationOid(RelationInfo relationInfo) {
@@ -58,6 +60,11 @@ public final class OidHash {
 
     static int constraintOid(String relationName, String constraintName, String constraintType) {
         BytesRef b = new BytesRef(Type.CONSTRAINT.toString() + relationName + constraintName + constraintType);
+        return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
+    }
+
+    public static int functionOid(FunctionName functionName) {
+        BytesRef b = new BytesRef(Type.PROC.toString() + functionName.schema() + functionName.name());
         return murmurhash3_x86_32(b.bytes, b.offset, b.length, 0);
     }
 }

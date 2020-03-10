@@ -65,6 +65,8 @@ None
 Changes
 =======
 
+- Added the `pg_catalog.pg_proc <postgres_pg_catalog>`_ table.
+
 - Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>`
   scalar functions.
 
@@ -148,4 +150,5 @@ Changes
 Fixes
 =====
 
-None
+Fixed a regression introduced in 4.1 that led to a ``ClassCastException``
+running queries with ``GROUP BY``, no aggregations and a ``LIMIT`` clause.

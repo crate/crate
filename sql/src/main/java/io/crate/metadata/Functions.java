@@ -53,6 +53,14 @@ public class Functions {
         this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
     }
 
+    public Map<FunctionName, FunctionResolver> functionResolvers() {
+        return functionResolvers;
+    }
+
+    public Map<FunctionName, FunctionResolver> udfFunctionResolvers() {
+        return udfResolvers;
+    }
+
     private Map<FunctionName, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
         Multimap<FunctionName, Tuple<FunctionIdent, FunctionImplementation>> signatures = getSignatures(functionImplementations);
         return signatures.keys().stream()
