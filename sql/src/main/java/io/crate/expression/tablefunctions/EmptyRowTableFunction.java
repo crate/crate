@@ -68,6 +68,11 @@ public class EmptyRowTableFunction {
         public RowType returnType() {
             return emptyRow;
         }
+
+        @Override
+        public boolean hasLazyResultSet() {
+            return false;
+        }
     }
 
     public static void register(TableFunctionModule module) {

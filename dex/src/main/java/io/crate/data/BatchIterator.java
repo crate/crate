@@ -129,7 +129,10 @@ public interface BatchIterator<T> extends Killable {
     boolean allLoaded();
 
     /**
-     * @return true if any IO (disk, network) is used
+     * @return true if the records returned by this BatchIterator are generated on-demand.
+     *              If the underlying data is materialized in-memory
+     *              *and* could be re-released after this batch-iterator is done,
+     *              then this should return false - even if there is an on-demand transformation.
      */
-    boolean involvesIO();
+    boolean hasLazyResultSet();
 }

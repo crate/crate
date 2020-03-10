@@ -66,7 +66,7 @@ public class TableFunctionCollectSource implements CollectSource {
         RowType rowType = functionImplementation.returnType();
 
         //noinspection unchecked  Only literals can be passed to table functions. Anything else is invalid SQL
-        List<Input<?>> inputs = (List<Input<?>>) (List) phase.functionArguments();
+        List<Input<?>> inputs = (List<Input<?>>) (List<?>) phase.functionArguments();
 
         List<Input<?>> topLevelInputs = new ArrayList<>(phase.toCollect().size());
         List<String> columns = rowType.fieldNames();
@@ -91,6 +91,6 @@ public class TableFunctionCollectSource implements CollectSource {
             new ValueAndInputRow<>(topLevelInputs, ctx.expressions()));
         Input<Boolean> condition = (Input<Boolean>) ctx.add(phase.where());
         rows = Iterables.filter(rows, InputCondition.asPredicate(condition));
-        return InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false);
+        return InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, functionImplementation.hasLazyResultSet());
     }
 }

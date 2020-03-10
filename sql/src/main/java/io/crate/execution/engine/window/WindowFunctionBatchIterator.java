@@ -112,7 +112,7 @@ public final class WindowFunctionBatchIterator {
                     args
                 ))
                 .thenApply(rows -> Iterables.transform(rows, Buckets.arrayToSharedRow()::apply)),
-            source.involvesIO()
+            source.hasLazyResultSet()
         );
     }
 

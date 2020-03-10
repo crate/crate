@@ -37,7 +37,7 @@ public class DMLProjector implements Projector {
 
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
-        return CollectingBatchIterator.newInstance(batchIterator, batchAccumulator, batchIterator.involvesIO());
+        return CollectingBatchIterator.newInstance(batchIterator, batchAccumulator, batchIterator.hasLazyResultSet());
     }
 
     @Override

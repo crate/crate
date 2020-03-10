@@ -22,6 +22,7 @@
 
 package io.crate.metadata.tablefunctions;
 
+import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -89,6 +90,12 @@ public abstract class TableFunctionImplementation<T> extends Scalar<Iterable<Row
      * See the class documentation for more information about that behavior.
      */
     public abstract RowType returnType();
+
+    /**
+     * @return true if the records returned by this table function are generated on-demand.
+     *         See also {@link BatchIterator#hasLazyResultSet()}
+     */
+    public abstract boolean hasLazyResultSet();
 
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {

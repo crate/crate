@@ -117,9 +117,9 @@ public final class CompositeBatchIterator {
         }
 
         @Override
-        public boolean involvesIO() {
+        public boolean hasLazyResultSet() {
             for (BatchIterator<T> iterator : iterators) {
-                if (iterator.involvesIO()) {
+                if (iterator.hasLazyResultSet()) {
                     return true;
                 }
             }

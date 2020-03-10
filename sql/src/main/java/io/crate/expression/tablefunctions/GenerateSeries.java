@@ -201,6 +201,11 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         return returnType;
     }
 
+    @Override
+    public boolean hasLazyResultSet() {
+        return true;
+    }
+
     private static class GenerateSeriesIntervals extends TableFunctionImplementation<Object> {
 
         private final FunctionInfo info;
@@ -278,6 +283,11 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         @Override
         public RowType returnType() {
             return returnType;
+        }
+
+        @Override
+        public boolean hasLazyResultSet() {
+            return true;
         }
     }
 }

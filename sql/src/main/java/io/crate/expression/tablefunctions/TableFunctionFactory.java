@@ -97,5 +97,10 @@ public class TableFunctionFactory {
         public RowType returnType() {
             return returnType;
         }
+
+        @Override
+        public boolean hasLazyResultSet() {
+            return true;
+        }
     }
 }

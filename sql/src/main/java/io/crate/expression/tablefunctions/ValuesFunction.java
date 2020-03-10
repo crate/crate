@@ -98,6 +98,11 @@ public class ValuesFunction {
         public RowType returnType() {
             return returnType;
         }
+
+        @Override
+        public boolean hasLazyResultSet() {
+            return false;
+        }
     }
 
     public static void register(TableFunctionModule module) {
