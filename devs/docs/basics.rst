@@ -5,21 +5,21 @@ Develop Guide - Basics
 Prerequisites
 =============
 
-CrateDB is written in Java_. Some of the (testing) tooling in Python_. So to
-develop on CrateDB you'll need:
+CrateDB is written in Java_ and includes pre-configured bundled version of
+OpenJDK_ in its build. Nevertheless, to develop CrateDB you'd still have to
+install Java_ to run Gradle_ build tool. Some of the tools that are used for
+documentation building, tests, etc. require Python_. To set up you minimal
+development environment, you'll need:
 
  - Java_ (>= 11)
- - Python_ (>= 3.6)
-
-On macOS, we recommend using `Oracle's Java`_. If you're using Linux, we
-recommend OpenJDK_.
+ - Python_ (>= 3.7)
 
 Set Up
 ======
 
 Clone the repository like so::
 
-    $ git clone --recursive https://github.com/crate/crate.git
+    $ git clone https://github.com/crate/crate.git
     $ cd crate
 
 Manual Build
