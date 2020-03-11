@@ -69,6 +69,9 @@ Changes
   built. It means that ``CrateDB`` doesn't rely the ``JAVA_HOME`` of the host
   system any longer.
 
+  - Removed a node check that checks the JVM version under which CrateDB is
+    running.
+
 - Added the `pg_catalog.pg_proc <postgres_pg_catalog>`_ table.
 
 - Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>`

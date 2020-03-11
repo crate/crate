@@ -755,9 +755,8 @@ Example query::
   |  5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
   |  6 | ...         | The low disk watermark is exceeded on the node. The cluster w... |
   |  7 | ...         | The flood stage disk watermark is exceeded on the node. Table... |
-  |  8 | ...         | The JVM version with which CrateDB is running should be >= 11... |
   +----+---------...-+--------------------------------------------------------------...-+
-  SELECT 7 rows in set (... sec)
+  SELECT 6 rows in set (... sec)
 
 .. _sys-node-checks-ack:
 
@@ -844,18 +843,6 @@ watermark for the node disk usage. The check verifies that the low watermark is
 not exceeded on the current node. The verification is done against each disk
 for configured CrateDB data paths. The check is not passed if the verification
 for one or more disk fails.
-
-
-JVM version
-...........
-
-
-The check for the JVM version checks if CrateDB is running under Java 11 or
-later. If not the check fails as we're dropping support for earlier versions in
-future release. This is a low severity check that doesn't require immediate
-action. But to be able to upgrade to future version the JVM should be upgraded
-eventually.
-
 
 .. _sys-shards:
 
