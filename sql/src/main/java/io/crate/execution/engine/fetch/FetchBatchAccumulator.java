@@ -169,8 +169,6 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
                     assert readerBucket != null : "readerBucket must not be null";
                     setPartitionRow(partitionRows, i, readerBucket);
                     fetchRows[i].cells(readerBucket.get(docId));
-                    assert !readerBucket.fetchRequired() || fetchRows[i].cells() != null :
-                        "readerBucket doesn't require fetch or row is fetched";
                 }
                 idx++;
                 if (!hasNext()) {

@@ -21,11 +21,13 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.data.Paging;
-import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
@@ -39,7 +41,7 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         execute("select * from t order by substr(name, 1, 1) = 'M', b");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "1| Trillian\n" +
             "2| Arthur\n" +
             "0| Marvin\n" +
@@ -100,11 +102,10 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
         }
 
         execute("create table t (x int) with (number_of_replicas = 0)");
-        ensureYellow();
         execute("insert into t (x) values (?)", bulkArgs);
         execute("refresh table t");
 
-        Long limit = (long) (docCount - 1);
+        long limit = docCount - 1;
         execute("select * from t limit ?", new Object[]{limit});
         assertThat(response.rowCount(), is(limit));
 
@@ -115,7 +116,7 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
         // test with sorting
         execute("select * from t order by x limit ?", new Object[]{limit});
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n"));
         assertThat(response.rowCount(), is((long) docCount));
     }

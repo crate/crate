@@ -28,6 +28,7 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -43,12 +44,14 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.operators.InsertFromValues;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Randomness;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -272,13 +275,15 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromSubQueryWithLimit() {
-        Merge merge = e.plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
+        QueryThenFetch qtf = e.plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
+        Merge merge = (Merge) qtf.subPlan();
         Collect collect = (Collect) merge.subPlan();
         assertThat(collect.collectPhase().projections(), contains(instanceOf(TopNProjection.class)));
         assertThat(
             merge.mergePhase().projections(),
             contains(
                 instanceOf(TopNProjection.class),
+                instanceOf(FetchProjection.class),
                 instanceOf(ColumnIndexWriterProjection.class)
             )
         );
@@ -286,11 +291,15 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromSubQueryWithOffsetDoesTableWriteOnCollect() {
-        Merge merge = e.plan("insert into users (id, name) (select id, name from users offset 10)");
+        QueryThenFetch qtf = e.plan("insert into users (id, name) (select id, name from users offset 10)");
+        Merge merge = (Merge) qtf.subPlan();
         // We can ignore the offset since SQL semantics don't promise a deterministic order without explicit order by clause
         Collect collect = (Collect) merge.subPlan();
-        assertThat(collect.collectPhase().projections(), contains(instanceOf(ColumnIndexWriterProjection.class)));
-        assertThat(merge.mergePhase().projections(), contains(instanceOf(MergeCountProjection.class)));
+        assertThat(collect.collectPhase().projections(), Matchers.empty());
+        assertThat(merge.mergePhase().projections(), contains(
+            instanceOf(FetchProjection.class),
+            instanceOf(ColumnIndexWriterProjection.class)
+        ));
     }
 
     @Test

@@ -38,6 +38,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Randomness;
+import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -109,8 +110,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(readerAllocations.bases().get(relationName.indexNameOrAlias()), is(0));
 
-        // allocations must stay same on multiple calls
         ReaderAllocations readerAllocations2 = routingBuilder.buildReaderAllocations();
-        assertThat(readerAllocations, is(readerAllocations2));
+        assertThat(readerAllocations, CoreMatchers.not(is(readerAllocations2)));
     }
 }

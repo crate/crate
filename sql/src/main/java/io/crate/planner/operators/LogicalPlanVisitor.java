@@ -111,4 +111,8 @@ public class LogicalPlanVisitor<C, R> {
     public R visitRename(Rename rename, C context) {
         return visitPlan(rename, context);
     }
+
+    public R visitFetch(Fetch fetch, C context) {
+        return visitPlan(fetch, context);
+    }
 }

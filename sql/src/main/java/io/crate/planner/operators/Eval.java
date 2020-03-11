@@ -53,9 +53,8 @@ public final class Eval extends ForwardingLogicalPlan {
     public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
         if (source.outputs().equals(outputs)) {
             return source;
-        } else {
-            return new Eval(source, outputs);
         }
+        return new Eval(source, outputs);
     }
 
     Eval(LogicalPlan source, List<Symbol> outputs) {
@@ -72,9 +71,11 @@ public final class Eval extends ForwardingLogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-
         ExecutionPlan executionPlan = source.build(
             plannerContext, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
+        if (outputs.equals(source.outputs())) {
+            return executionPlan;
+        }
         return addEvalProjection(plannerContext, executionPlan, params, subQueryResults);
     }
 

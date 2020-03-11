@@ -163,8 +163,8 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
                 }
                 idx++;
             }
-            assert input != null
-                : "FetchReference " + fetchReference.ref() + " must be present in fetchRefs: " + fs.references();
+            assert input != null : "FetchReference " + fetchReference.ref() + " must be present in fetchRefs: "
+                    + fs.references();
             return input;
         }
 
@@ -183,6 +183,11 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         @Override
         public Object value() {
             return row.get(index);
+        }
+
+        @Override
+        public String toString() {
+            return "RowInput{" + index + ", row=" + row + '}';
         }
     }
 
@@ -206,8 +211,8 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         if (fetchReference.ref().granularity() == RowGranularity.DOC) {
             return context.allocateInput(fetchReference);
         }
-        assert fetchReference.ref().granularity() == RowGranularity.PARTITION :
-            "fetchReference.ref().granularity() must be " + RowGranularity.PARTITION;
+        assert fetchReference.ref().granularity() == RowGranularity.PARTITION
+            : "fetchReference.ref().granularity() must be " + RowGranularity.PARTITION;
         return context.allocatePartitionedInput(fetchReference);
     }
 }

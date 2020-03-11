@@ -298,7 +298,7 @@ public class Messages {
         buffer.writeShort(row.numColumns());
 
         for (int i = 0; i < row.numColumns(); i++) {
-            DataType dataType = columnTypes.get(i);
+            DataType<?> dataType = columnTypes.get(i);
             PGType pgType;
             Object value;
             try {

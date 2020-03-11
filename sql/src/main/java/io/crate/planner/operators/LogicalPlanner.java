@@ -84,6 +84,7 @@ import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.RewriteCollectToGet;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
+import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -111,6 +112,7 @@ public class LogicalPlanner {
     private final TableStats tableStats;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
+    private final Optimizer fetchOptimizer;
 
     public LogicalPlanner(Functions functions, TableStats tableStats, Supplier<Version> minNodeVersionInCluster) {
         this.optimizer = new Optimizer(
@@ -137,6 +139,10 @@ public class LogicalPlanner {
                 new RewriteCollectToGet(functions),
                 new RewriteGroupByKeysLimitToTopNDistinct()
             ),
+            minNodeVersionInCluster
+        );
+        this.fetchOptimizer = new Optimizer(
+            List.of(new RewriteToQueryThenFetch()),
             minNodeVersionInCluster
         );
         this.writeOptimizer = new Optimizer(
@@ -215,7 +221,11 @@ public class LogicalPlanner {
             tableStats,
             plannerContext.params());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
-        return optimizedPlan.pruneOutputsExcept(relation.outputs());
+        return fetchOptimizer.optimize(
+            optimizedPlan.pruneOutputsExcept(relation.outputs()),
+            tableStats,
+            coordinatorTxnCtx
+        );
     }
 
     static LogicalPlan plan(AnalyzedRelation relation,

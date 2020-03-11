@@ -84,11 +84,10 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             isTopN(10, 0),
             instanceOf(OrderedTopNProjection.class),
             instanceOf(EvalProjection.class),
-            isTopN(3, 0),
-            instanceOf(EvalProjection.class)
+            isTopN(3, 0)
         ));
         assertThat(projections.get(0).outputs(), isSQL("INPUT(1), INPUT(1)"));
-        assertThat(projections.get(5).outputs(), isSQL("INPUT(0)"));
+        assertThat(projections.get(4).outputs(), isSQL("INPUT(0)"));
     }
 
     @Test
