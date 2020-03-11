@@ -58,6 +58,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.LogicalPlan;
@@ -269,24 +270,26 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCollectAndMergePlanHighLimit() throws Exception {
-        Merge merge = e.plan("select name from users limit 100000");
+        QueryThenFetch qtf = e.plan("select name from users limit 100000");
+        Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertThat(collectPhase.nodePageSizeHint(), is(100_000));
 
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections().size(), is(1));
+        assertThat(mergePhase.projections().size(), is(2));
         TopNProjection topN = (TopNProjection) mergePhase.projections().get(0);
         assertThat(topN.limit(), is(100_000));
         assertThat(topN.offset(), is(0));
 
         // with offset
-        merge = e.plan("select name from users limit 100000 offset 20");
+        qtf = e.plan("select name from users limit 100000 offset 20");
+        merge = ((Merge) qtf.subPlan());
 
         collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertThat(collectPhase.nodePageSizeHint(), is(100_000 + 20));
 
         mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections().size(), is(1));
+        assertThat(mergePhase.projections().size(), is(2));
         topN = (TopNProjection) mergePhase.projections().get(0);
         assertThat(topN.limit(), is(100_000));
         assertThat(topN.offset(), is(20));
@@ -577,7 +580,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLimitThatIsBiggerThanPageSizeCausesQTFPUshPlan() throws Exception {
-        Merge merge = e.plan("select * from users limit 2147483647 ");
+        QueryThenFetch qtf = e.plan("select * from users limit 2147483647 ");
+        Merge merge = (Merge) qtf.subPlan();
         assertThat(merge.mergePhase().nodeIds().size(), is(1));
         String localNodeId = merge.mergePhase().nodeIds().iterator().next();
         NodeOperationTree operationTree = NodeOperationTreeGenerator.fromPlan(merge, localNodeId);
@@ -586,7 +590,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(nodeOperation.downstreamNodes(), not(contains(ExecutionPhase.DIRECT_RESPONSE)));
 
 
-        merge = e.plan("select * from users limit 2");
+        qtf = e.plan("select * from users limit 2");
+        merge = (Merge) qtf.subPlan();
         localNodeId = merge.subPlan().resultDescription().nodeIds().iterator().next();
         operationTree = NodeOperationTreeGenerator.fromPlan(merge, localNodeId);
         nodeOperation = operationTree.nodeOperations().iterator().next();

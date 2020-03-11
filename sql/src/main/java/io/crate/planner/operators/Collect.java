@@ -168,7 +168,7 @@ public class Collect implements LogicalPlan {
         return where;
     }
 
-    public AbstractTableRelation relation() {
+    public AbstractTableRelation<?> relation() {
         return relation;
     }
 

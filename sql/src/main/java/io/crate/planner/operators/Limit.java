@@ -71,7 +71,6 @@ public class Limit extends ForwardingLogicalPlan {
         return limit;
     }
 
-
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,

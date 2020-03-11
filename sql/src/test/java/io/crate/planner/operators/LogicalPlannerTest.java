@@ -137,8 +137,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(
             "HashAggregate[sum(x)]\n" +
             "  └ Rename[x] AS tt\n" +
-            "    └ Limit[10;0]\n" +
-            "      └ Collect[doc.t1 | [x] | true]"));
+            "    └ Fetch[x]\n" +
+            "      └ Limit[10;0]\n" +
+            "        └ Collect[doc.t1 | [_fetchid] | true]"));
     }
 
     @Test
@@ -207,8 +208,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    │  └ Eval[count(*) AS cnt]\n" +
             "    │    └ Count[doc.t1 | true]\n" +
             "    └ Rename[i] AS t2\n" +
-            "      └ Limit[1;0]\n" +
-            "        └ Collect[doc.t2 | [i] | true]"));
+            "      └ Fetch[i]\n" +
+            "        └ Limit[1;0]\n" +
+            "          └ Collect[doc.t2 | [_fetchid] | true]"));
     }
 
     @Test
@@ -365,14 +367,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
             @Override
             protected String featureValueOf(LogicalPlan actual) {
-                return printPlan(actual);
+                var printContext = new PrintContext();
+                actual.print(printContext);
+                return printContext.toString();
             }
         };
     }
 
-    public static String printPlan(LogicalPlan plan) {
-        PrintContext printContext = new PrintContext();
-        plan.print(printContext);
-        return printContext.toString();
-    }
 }
