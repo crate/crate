@@ -45,21 +45,19 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
     public void testOrderByCanContainScalarThatIsNotInDistinctOutputs() {
         LogicalPlan logicalPlan = e.logicalPlan(
             "select distinct id from users order by id + 10");
-        assertThat(logicalPlan, isPlan(e.functions(),
-            "RootBoundary[id]\n" +
+        assertThat(logicalPlan, isPlan(
             "Eval[id]\n" +
-            "OrderBy[(id + 10) ASC]\n" +
-            "GroupBy[id | ]\n" +
-            "Collect[doc.users | [id] | true]\n"));
+            "  └ OrderBy[(id + 10) ASC]\n" +
+            "    └ GroupHashAggregate[id]\n" +
+            "      └ Collect[doc.users | [id] | true]"));
     }
 
     @Test
     public void testDistinctOnLiteralResultsInGroupByOnLiteral() {
         LogicalPlan plan = e.logicalPlan("select distinct [1, 2, 3] from users");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[[1, 2, 3]]\n" +
-            "GroupBy[[1, 2, 3] | ]\n" +
-            "Collect[doc.users | [[1, 2, 3]] | true]\n"));
+        assertThat(plan, isPlan(
+            "GroupHashAggregate[[1, 2, 3]]\n" +
+            "  └ Collect[doc.users | [[1, 2, 3]] | true]"));
     }
 
     @Test
@@ -71,11 +69,10 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
     @Test
     public void testDistinctMixedWithTableFunctionInOutput() {
         LogicalPlan plan = e.logicalPlan("select distinct generate_series(1, 2), col1 from unnest([1, 1])");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[generate_series(1, 2), col1]\n" +
-            "GroupBy[generate_series(1, 2), col1 | ]\n" +
-            "ProjectSet[generate_series(1, 2) | col1]\n" +
-            "TableFunction[unnest | [col1] | true]\n"));
+        assertThat(plan, isPlan(
+            "GroupHashAggregate[generate_series(1, 2), col1]\n" +
+            "  └ ProjectSet[generate_series(1, 2), col1]\n" +
+            "    └ TableFunction[unnest | [col1] | true]"));
     }
 
     @Test
@@ -85,15 +82,13 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "inner join departments on users.department_id = departments.id " +
             "group by departments.name"
         );
-        assertThat(logicalPlan, isPlan(e.functions(),
-            "RootBoundary[count(id)]\n" +
-            "GroupBy[count(id) | ]\n" +
-            "GroupBy[name | count(id)]\n" +
-            "HashJoin[\n" +
-            "    Collect[doc.users | [id, department_id] | true]\n" +
-            "    --- INNER ---\n" +
-            "    Collect[doc.departments | [name, id] | true]\n" +
-            "]\n"));
+        assertThat(logicalPlan, isPlan(
+            "GroupHashAggregate[count(id)]\n" +
+            "  └ GroupHashAggregate[name | count(id)]\n" +
+            "    └ HashJoin[(department_id = id)]\n" +
+            "      ├ Collect[doc.users | [id, department_id] | true]\n" +
+            "      └ Collect[doc.departments | [name, id] | true]"
+        ));
     }
 
     @Test
@@ -102,14 +97,12 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "select distinct departments.name from users " +
             "inner join departments on users.department_id = departments.id " +
             "order by departments.name");
-        assertThat(logicalPlan, isPlan(e.functions(),
-            "RootBoundary[name]\n" +
+        assertThat(logicalPlan, isPlan(
             "OrderBy[name ASC]\n" +
-            "GroupBy[name | ]\n" +
-            "HashJoin[\n" +
-            "    Collect[doc.users | [department_id] | true]\n" +
-            "    --- INNER ---\n" +
-            "    Collect[doc.departments | [name, id] | true]\n" +
-            "]\n"));
+            "  └ GroupHashAggregate[name]\n" +
+            "    └ HashJoin[(department_id = id)]\n" +
+            "      ├ Collect[doc.users | [department_id] | true]\n" +
+            "      └ Collect[doc.departments | [name, id] | true]"
+        ));
     }
 }

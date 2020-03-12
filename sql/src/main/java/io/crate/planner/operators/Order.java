@@ -159,4 +159,21 @@ public class Order extends ForwardingLogicalPlan {
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitOrder(this, context);
     }
+
+    @Override
+    public void print(PrintContext printContext) {
+        StringBuilder orderByExprRepr = new StringBuilder();
+        OrderBy.explainRepresentation(
+            orderByExprRepr,
+            orderBy.orderBySymbols(),
+            orderBy.reverseFlags(),
+            orderBy.nullsFirst(),
+            Symbol::toString
+        );
+        printContext
+            .text("OrderBy[")
+            .text(orderByExprRepr.toString())
+            .text("]")
+            .nest(source::print);
+    }
 }

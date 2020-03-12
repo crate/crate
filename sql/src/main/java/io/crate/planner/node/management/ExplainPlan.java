@@ -42,13 +42,15 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.operators.ExplainLogicalPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.operators.PrintContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.common.collect.MapBuilder;
 
 import javax.annotation.Nullable;
@@ -132,26 +134,23 @@ public class ExplainPlan implements Plan {
                                                       "such as queries with scalar subselects."));
             }
         } else {
-            try {
-                Map<String, Object> map;
-                if (subPlan instanceof LogicalPlan) {
-                    map = ExplainLogicalPlan.explainMap((LogicalPlan) subPlan, plannerContext, dependencies.projectionBuilder());
-                } else if (subPlan instanceof CopyFromPlan) {
-                    ExecutionPlan executionPlan = CopyFromPlan.planCopyFromExecution(
+            if (subPlan instanceof LogicalPlan) {
+                PrintContext printContext = new PrintContext();
+                ((LogicalPlan) subPlan).print(printContext);
+                consumer.accept(InMemoryBatchIterator.of(new Row1(printContext.toString()), SENTINEL), null);
+            } else if (subPlan instanceof CopyFromPlan) {
+                ExecutionPlan executionPlan = CopyFromPlan.planCopyFromExecution(
                         ((CopyFromPlan) subPlan).copyFrom(),
                         dependencies.clusterService().state().nodes(),
                         plannerContext,
                         params,
                         subQueryResults
                     );
-                    map = PlanPrinter.objectMap(executionPlan);
-                } else {
-                    consumer.accept(null, new UnsupportedOperationException("EXPLAIN not supported for " + subPlan));
-                    return;
-                }
-                consumer.accept(InMemoryBatchIterator.of(new Row1(map), SENTINEL), null);
-            } catch (Throwable t) {
-                consumer.accept(null, t);
+                String planAsJson = DataTypes.STRING.value(PlanPrinter.objectMap(executionPlan));
+                consumer.accept(InMemoryBatchIterator.of(new Row1(planAsJson), SENTINEL), null);
+            } else {
+                consumer.accept(InMemoryBatchIterator.of(
+                    new Row1("EXPLAIN not supported for " + subPlan.getClass().getSimpleName()), SENTINEL), null);
             }
         }
     }

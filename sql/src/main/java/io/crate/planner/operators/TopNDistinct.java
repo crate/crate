@@ -22,12 +22,6 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.analyze.SymbolEvaluator.evaluate;
-
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -44,6 +38,11 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.types.DataTypes;
+
+import javax.annotation.Nullable;
+import java.util.List;
+
+import static io.crate.analyze.SymbolEvaluator.evaluate;
 
 public final class TopNDistinct extends ForwardingLogicalPlan {
 
@@ -132,5 +131,16 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitTopNDistinct(this, context);
+    }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("TopNDistinct[")
+            .text(limit.toString())
+            .text(" | [")
+            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text("]]")
+            .nest(source::print);
     }
 }

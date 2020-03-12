@@ -92,4 +92,12 @@ public class MultiPhase extends ForwardingLogicalPlan {
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitMultiPhase(this, context);
     }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("MultiPhase")
+            .nest(source::print)
+            .nest(Lists2.map(subQueries.keySet(), x -> x::print));
+    }
 }

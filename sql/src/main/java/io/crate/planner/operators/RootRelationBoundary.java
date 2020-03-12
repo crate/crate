@@ -77,4 +77,9 @@ public class RootRelationBoundary extends ForwardingLogicalPlan {
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitRootRelationBoundary(this, context);
     }
+
+    @Override
+    public void print(PrintContext printContext) {
+        source.print(printContext);
+    }
 }

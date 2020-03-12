@@ -355,7 +355,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select \"id\" from test order by id limit 1 offset 1");
         assertEquals(1, response.rowCount());
-        assertThat((String) response.rows()[0][0], is("id2"));
+        assertThat(
+            printedTable(response.rows()),
+            is("id2\n")
+        );
     }
 
 
@@ -365,7 +368,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into test (id) values ('id1'), ('id2')");
         execute("select _id from test where id = 'id1'");
         assertEquals(1, response.rowCount());
-        assertEquals("id1", response.rows()[0][0]);
+        assertThat(
+            printedTable(response.rows()),
+            is("id1\n")
+        );
     }
 
     @Test

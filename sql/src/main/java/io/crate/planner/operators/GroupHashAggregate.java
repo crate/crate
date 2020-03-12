@@ -306,4 +306,19 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                ", agg=" + aggregates +
                '}';
     }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("GroupHashAggregate[")
+            .text(Lists2.joinOn(", ", groupKeys, Symbol::toString));
+        if (!aggregates.isEmpty()) {
+            printContext
+                .text(" | ")
+                .text(Lists2.joinOn(", ", aggregates, Symbol::toString));
+        }
+        printContext
+            .text("]")
+            .nest(source::print);
+    }
 }

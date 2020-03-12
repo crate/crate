@@ -151,4 +151,14 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     public Set<RelationName> getRelationNames() {
         return Set.of(name);
     }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("Rename[")
+            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text("] AS ")
+            .text(name.toString())
+            .nest(source::print);
+    }
 }

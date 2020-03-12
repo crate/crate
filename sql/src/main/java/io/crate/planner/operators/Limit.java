@@ -150,6 +150,17 @@ public class Limit extends ForwardingLogicalPlan {
         return visitor.visitLimit(this, context);
     }
 
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("Limit[")
+            .text(limit.toString())
+            .text(";")
+            .text(offset.toString())
+            .text("]")
+            .nest(source::print);
+    }
+
     static int limitAndOffset(int limit, int offset) {
         if (limit == TopN.NO_LIMIT) {
             return limit;

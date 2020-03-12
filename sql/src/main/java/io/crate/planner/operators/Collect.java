@@ -333,4 +333,15 @@ public class Collect implements LogicalPlan {
         return preferSourceLookup;
     }
 
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("Collect[")
+            .text(tableInfo.ident().toString())
+            .text(" | [")
+            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text("] | ")
+            .text(where.queryOrFallback().toString())
+            .text("]");
+    }
 }
