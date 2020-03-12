@@ -24,7 +24,8 @@ package io.crate.data;
 
 public final class SentinelRow {
 
-    private SentinelRow() {}
+    private SentinelRow() {
+    }
 
     public static final Row SENTINEL = new Row() {
         @Override

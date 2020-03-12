@@ -113,7 +113,8 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     private Exception failure;
 
 
-    public ShardResponse() { }
+    public ShardResponse() {
+    }
 
     public ShardResponse(@Nullable Symbol[] resultColumns) {
         this.resultColumns = resultColumns;

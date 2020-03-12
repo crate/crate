@@ -32,7 +32,8 @@ import java.util.Locale;
  */
 public class Octal {
 
-    private Octal() {}
+    private Octal() {
+    }
 
     /**
      * Converts an array of bytes into a String where unprintable characters are represented as octal numbers.

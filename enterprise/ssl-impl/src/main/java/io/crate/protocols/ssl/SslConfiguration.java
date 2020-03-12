@@ -67,7 +67,8 @@ import java.util.List;
 @SuppressWarnings("WeakerAccess")
 public final class SslConfiguration {
 
-    private SslConfiguration() {}
+    private SslConfiguration() {
+    }
 
     static KeyStore loadKeyStore(String path, char[] pass) throws Exception {
         KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
