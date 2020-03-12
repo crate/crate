@@ -26,9 +26,8 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import static org.hamcrest.Matchers.contains;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
 public class SysClusterTest extends SQLTransportIntegrationTest {
@@ -55,10 +54,13 @@ public class SysClusterTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testExplainSysCluster() throws Exception {
-        execute("explain select * from sys.cluster limit 2"); // using limit to test projection serialization as well
+        execute("explain select * from sys.cluster limit 2");
         assertThat(response.rowCount(), is(1L));
-        Map<String, Object> map = (Map<String, Object>) response.rows()[0][0];
-        assertThat(map.keySet(), contains("Collect"));
+        assertThat(
+            printedTable(response.rows()),
+            is("Limit[2;0]\n" +
+               "  └ Collect[sys.cluster | [id, license, master_node, name, settings] | true]\n")
+        );
     }
 
     @Test

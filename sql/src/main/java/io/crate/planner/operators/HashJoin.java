@@ -289,6 +289,18 @@ public class HashJoin implements LogicalPlan {
         return visitor.visitHashJoin(this, context);
     }
 
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("HashJoin[")
+            .text(joinCondition.toString())
+            .text("]")
+            .nest(
+                lhs::print,
+                rhs::print
+            );
+    }
+
     private List<Symbol> setModuloDistribution(List<Symbol> joinSymbols,
                                                List<Symbol> planOutputs,
                                                ExecutionPlan executionPlan) {

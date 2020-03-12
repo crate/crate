@@ -25,6 +25,7 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -188,5 +189,14 @@ public interface LogicalPlan extends Plan {
 
     default Set<RelationName> getRelationNames() {
         return baseTables().stream().map(AnalyzedRelation::relationName).collect(Collectors.toSet());
+    }
+
+    default void print(PrintContext printContext) {
+        printContext
+            .text(getClass().getSimpleName())
+            .text("[")
+            .text(Lists2.joinOn(", ", outputs(), Symbol::toString))
+            .text("]")
+            .nest(Lists2.map(sources(), x -> x::print));
     }
 }

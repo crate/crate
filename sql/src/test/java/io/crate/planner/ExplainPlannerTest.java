@@ -28,7 +28,6 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.planner.node.management.ExplainPlan;
-import io.crate.planner.operators.ExplainLogicalPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -91,50 +90,6 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         }
     }
 
-    @Test
-    public void testPrinter() {
-        for (String statement : EXPLAIN_TEST_STATEMENTS) {
-            LogicalPlan plan = e.logicalPlan(statement);
-            Map<String, Object> map = null;
-            try {
-                map = ExplainLogicalPlan.explainMap(
-                    plan,
-                    e.getPlannerContext(clusterService.state()),
-                    new ProjectionBuilder(getFunctions()));
-            } catch (Exception e) {
-                fail("statement not printable: " + statement + " error=" + e.getMessage());
-            }
-            assertNotNull(map);
-            assertThat(map.size(), greaterThan(0));
-        }
-    }
-
-    @Test
-    public void testPrinterToXContent() {
-        for (String statement : EXPLAIN_TEST_STATEMENTS) {
-            LogicalPlan plan = e.logicalPlan(statement);
-            Map<String, Object> map = null;
-            try {
-                map = ExplainLogicalPlan.explainMap(
-                    plan,
-                    e.getPlannerContext(clusterService.state()),
-                    new ProjectionBuilder(getFunctions()));
-            } catch (Exception e) {
-                fail("statement not printable: " + statement);
-            }
-
-            String json = null;
-            try {
-                XContentBuilder xContentBuilder = JsonXContent.contentBuilder();
-                xContentBuilder.value(map);
-                json = BytesReference.bytes(xContentBuilder).utf8ToString();
-            } catch (Exception e) {
-                fail("printed plan cannot be converted to xContent: " + statement);
-            }
-
-            assertNotNull(json);
-        }
-    }
 
     @Test
     public void testExplainAnalyzeMultiPhasePlanNotSupported() {

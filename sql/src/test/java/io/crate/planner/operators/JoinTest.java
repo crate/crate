@@ -450,14 +450,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         String statement = "select * from (select * from t1, t2) tjoin";
         var logicalPlan = e.logicalPlan(statement);
         var expectedPlan =
-            "RootBoundary[x, x]\n" +
             "Rename[x, x] AS tjoin\n" +
-            "NestedLoopJoin[\n" +
-            "    Collect[doc.t1 | [x] | true]\n" +
-            "    --- CROSS ---\n" +
-            "    Collect[doc.t2 | [x] | true]\n" +
-            "]\n";
-        assertThat(logicalPlan, isPlan(e.functions(), expectedPlan));
+            "  └ NestedLoopJoin[CROSS]\n" +
+            "    ├ Collect[doc.t1 | [x] | true]\n" +
+            "    └ Collect[doc.t2 | [x] | true]";
+        assertThat(logicalPlan, isPlan(expectedPlan));
 
         Join join = e.plan(statement);
         assertThat(join.joinPhase().projections().get(0).outputs(), contains(
@@ -487,28 +484,22 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                             " from users, t1" +
                                             " where t1.a = users.address['postcode']");
         var expectedPlan =
-            "RootBoundary[name]\n" +
             "Eval[name]\n" +
-            "HashJoin[\n" +
-            "    Collect[doc.users | [name, address['postcode']] | true]\n" +
-            "    --- INNER ---\n" +
-            "    Collect[doc.t1 | [a] | true]\n" +
-            "]\n";
-        assertThat(logicalPlan, is(isPlan(e.functions(), expectedPlan)));
+            "  └ HashJoin[(a = address['postcode'])]\n" +
+            "    ├ Collect[doc.users | [name, address['postcode']] | true]\n" +
+            "    └ Collect[doc.t1 | [a] | true]";
+        assertThat(logicalPlan, is(isPlan(expectedPlan)));
 
         // Same using an table alias (MSS -> AliasAnalyzedRelation -> AbstractTableRelation)
         logicalPlan = e.logicalPlan("select u.name" +
                                         " from users u, t1" +
                                         " where t1.a = u.address['postcode']");
         expectedPlan =
-            "RootBoundary[name]\n" +
             "Eval[name]\n" +
-            "HashJoin[\n" +
-            "    Rename[name, address] AS u\n" +
-            "    Collect[doc.users | [name, address] | true]\n" +
-            "    --- INNER ---\n" +
-            "    Collect[doc.t1 | [a] | true]\n" +
-            "]\n";
-        assertThat(logicalPlan, is(isPlan(e.functions(), expectedPlan)));
+            "  └ HashJoin[(a = address['postcode'])]\n" +
+            "    ├ Rename[name, address] AS u\n" +
+            "    │  └ Collect[doc.users | [name, address] | true]\n" +
+            "    └ Collect[doc.t1 | [a] | true]";
+        assertThat(logicalPlan, is(isPlan(expectedPlan)));
     }
 }

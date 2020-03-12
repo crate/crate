@@ -352,4 +352,19 @@ public class NestedLoopJoin implements LogicalPlan {
     public boolean orderByWasPushedDown() {
         return orderByWasPushedDown;
     }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("NestedLoopJoin[")
+            .text(joinType.toString());
+        if (joinCondition != null) {
+            printContext
+                .text(" | ")
+                .text(joinCondition.toString());
+        }
+        printContext
+            .text("]")
+            .nest(Lists2.map(sources(), x -> x::print));
+    }
 }

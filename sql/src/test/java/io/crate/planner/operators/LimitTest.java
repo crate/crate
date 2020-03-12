@@ -69,11 +69,10 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             Literal.of(20L),
             Literal.of(7L)
         );
-
-        assertThat(plan, isPlan(e.functions(), "Limit[20;7]\n" +
-                                               "Limit[10;5]\n" +
-                                               "Collect[doc.users | [name] | true]\n"));
-
+        assertThat(plan, isPlan(
+            "Limit[20;7]\n" +
+            "  └ Limit[10;5]\n" +
+            "    └ Collect[doc.users | [name] | true]"));
         PlannerContext ctx = e.getPlannerContext(clusterService.state());
         Merge merge = (Merge) plan.build(
             ctx,
