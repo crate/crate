@@ -102,7 +102,7 @@ public final class AccessControlImpl implements AccessControl {
     @Override
     public void ensureMayExecute(AnalyzedStatement statement) {
         if (!user.isSuperUser()) {
-            new StatementVisitor(userLookup, sessionContext.searchPath().currentSchema()).process(statement, user);
+            statement.accept(new StatementVisitor(userLookup, sessionContext.searchPath().currentSchema()), user);
         }
     }
 
@@ -528,7 +528,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, User user) {
-            return process(explainAnalyzedStatement.statement(), user);
+            return explainAnalyzedStatement.statement().accept(this, user);
         }
 
         @Override

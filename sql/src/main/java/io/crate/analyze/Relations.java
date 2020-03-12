@@ -48,7 +48,7 @@ public class Relations {
         private static final TraverseDeepSymbolsStatements INSTANCE = new TraverseDeepSymbolsStatements();
 
         static void traverse(AnalyzedStatement stmt, Consumer<? super Symbol> consumer) {
-            INSTANCE.process(stmt, consumer);
+            stmt.accept(INSTANCE, consumer);
         }
 
         @Override

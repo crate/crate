@@ -227,7 +227,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         if (isStatementExecutionAllowed.test(analyzedStatement) == false) {
             throw new LicenseViolationException("Statement not allowed");
         }
-        return process(analyzedStatement, plannerContext);
+        return analyzedStatement.accept(this, plannerContext);
     }
 
     @Override
@@ -479,10 +479,10 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
         ProfilingContext ctx = explainAnalyzedStatement.context();
         if (ctx == null) {
-            return new ExplainPlan(process(explainAnalyzedStatement.statement(), context), null);
+            return new ExplainPlan(explainAnalyzedStatement.statement().accept(this, context), null);
         } else {
             Timer timer = ctx.createAndStartTimer(ExplainPlan.Phase.Plan.name());
-            Plan subPlan = process(explainAnalyzedStatement.statement(), context);
+            Plan subPlan = explainAnalyzedStatement.statement().accept(this, context);
             ctx.stopTimerAndStoreDuration(timer);
             return new ExplainPlan(subPlan, ctx);
         }
