@@ -2,7 +2,6 @@ apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'de.thetaphi.forbiddenapis'
 apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'pmd'
 apply plugin: 'checkstyle'
 
 repositories {
@@ -50,45 +49,6 @@ forbiddenApisMain {
     ignoreFailures = false
 }
 
-pmd {
-    consoleOutput = true
-    if (project.hasProperty('pmdFull')) {
-        ignoreFailures = true
-        consoleOutput = false
-        ruleSets = [
-            'java-basic',
-            'java-braces',
-            'java-clone',
-            'java-codesize',
-            'java-controversial',
-            'java-design',
-            'java-empty',
-            'java-finalizers',
-            'java-imports',
-            'java-logging-jakarta-commons',
-            'java-logging-java',
-            'java-naming',
-            'java-optimizations',
-            'java-strictexception',
-            'java-strings',
-            'java-sunsecure',
-            'java-typeresolution',
-            'java-unnecessary',
-            'java-unusedcode'
-        ]
-    } else {
-        ignoreFailures = false
-        consoleOutput = true
-        ruleSetFiles = files("$rootDir/gradle/pmd/customrulesset.xml")
-        ruleSets = []
-    }
-}
-// Required if ignoreFailures = true
-[pmdMain,pmdTest]*.ignoreFailures = project.pmd.ignoreFailures
-
-tasks.withType(Pmd) {
-    pmdClasspath += files("$rootDir/gradle/pmd")
-}
 
 checkstyle {
     toolVersion = "8.16"
