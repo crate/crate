@@ -23,13 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 
-import javax.annotation.Nullable;
-
 public class AnalyzedStatementVisitor<C, R> {
-
-    public R process(AnalyzedStatement analyzedStatement, @Nullable C context) {
-        return analyzedStatement.accept(this, context);
-    }
 
     protected R visitAnalyzedStatement(AnalyzedStatement analyzedStatement, C context) {
         return null;

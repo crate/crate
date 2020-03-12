@@ -147,7 +147,7 @@ public class LogicalPlanner {
     }
 
     public LogicalPlan plan(AnalyzedStatement statement, PlannerContext plannerContext) {
-        return statementVisitor.process(statement, plannerContext);
+        return statement.accept(statementVisitor, plannerContext);
     }
 
     public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext) {
