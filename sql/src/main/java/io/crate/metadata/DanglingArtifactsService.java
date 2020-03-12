@@ -64,7 +64,8 @@ public class DanglingArtifactsService extends AbstractLifecycleComponent impleme
     }
 
     @Override
-    protected void doClose() {}
+    protected void doClose() {
+    }
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {

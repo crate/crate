@@ -38,7 +38,8 @@ public final class SslConfigSettings {
 
     private static final Logger LOGGER = LogManager.getLogger(SslConfigSettings.class);
 
-    private SslConfigSettings() {}
+    private SslConfigSettings() {
+    }
 
     private static final String SSL_HTTP_ENABLED_SETTING_NAME = "ssl.http.enabled";
     private static final String SSL_PSQL_ENABLED_SETTING_NAME = "ssl.psql.enabled";

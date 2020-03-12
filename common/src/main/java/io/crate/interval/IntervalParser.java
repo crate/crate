@@ -39,7 +39,8 @@ public final class IntervalParser {
         SECOND
     }
 
-    private IntervalParser() { }
+    private IntervalParser() {
+    }
 
     /**
      * Parses a period from the given text, returning a new Period.

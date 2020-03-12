@@ -44,7 +44,8 @@ public class FirstColumnConsumers {
 
         private static final AllValues INSTANCE = new AllValues();
 
-        private AllValues() {}
+        private AllValues() {
+        }
 
         @Override
         public Supplier<Collection<Object>> supplier() {
@@ -82,7 +83,8 @@ public class FirstColumnConsumers {
         /* We need this Object to differentiate null values */
         private static final Object SENTINEL = new Object();
 
-        private SingleValue() {}
+        private SingleValue() {
+        }
 
         @Override
         public Supplier<Object[]> supplier() {
