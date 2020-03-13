@@ -53,7 +53,7 @@ The fastest way to try CrateDB out is by running::
 
 Or spin up the official `Docker image`_::
 
-    $ docker run -p 4200:4200 crate
+    $ docker run -p 4200:4200 crate -Cdiscovery.type=single-node
 
 Visit the `getting started`_ page to see all the available download and install options.
 
