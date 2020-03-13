@@ -50,13 +50,10 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE t2.x = 10"
         );
         var expectedPlan =
-            "RootBoundary[x, x]\n" +
-            "NestedLoopJoin[\n" +
-            "    Collect[doc.t1 | [x] | true]\n" +
-            "    --- INNER ---\n" +
-            "    Collect[doc.t2 | [x] | (x = 10)]\n" +
-            "]\n";
-        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+            "NestedLoopJoin[INNER | (x = x)]\n" +
+            "  ├ Collect[doc.t1 | [x] | true]\n" +
+            "  └ Collect[doc.t2 | [x] | (x = 10)]";
+        assertThat(plan, isPlan(expectedPlan));
     }
 
     @Test
@@ -66,14 +63,11 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE coalesce(t2.x, 10) = 10"
         );
         var expectedPlan =
-            "RootBoundary[x, x]\n" +
             "Filter[(coalesce(x, 10) = 10)]\n" +
-            "NestedLoopJoin[\n" +
-            "    Collect[doc.t1 | [x] | true]\n" +
-            "    --- LEFT ---\n" +
-            "    Collect[doc.t2 | [x] | true]\n" +
-            "]\n";
-        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+            "  └ NestedLoopJoin[LEFT | (x = x)]\n" +
+            "    ├ Collect[doc.t1 | [x] | true]\n" +
+            "    └ Collect[doc.t2 | [x] | true]";
+        assertThat(plan, isPlan(expectedPlan));
     }
 
     @Test
@@ -83,14 +77,11 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE coalesce(t2.x, 10) = 10 AND t1.x > 5"
         );
         var expectedPlan =
-            "RootBoundary[x, x]\n" +
             "Filter[(coalesce(x, 10) = 10)]\n" +
-            "NestedLoopJoin[\n" +
-            "    Collect[doc.t1 | [x] | (x > 5)]\n" +
-            "    --- LEFT ---\n" +
-            "    Collect[doc.t2 | [x] | true]\n" +
-            "]\n";
-        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+            "  └ NestedLoopJoin[LEFT | (x = x)]\n" +
+            "    ├ Collect[doc.t1 | [x] | (x > 5)]\n" +
+            "    └ Collect[doc.t2 | [x] | true]";
+        assertThat(plan, isPlan(expectedPlan));
     }
 
     @Test
@@ -100,14 +91,11 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE coalesce(t1.x, 10) = 10 AND t2.x > 5"
         );
         var expectedPlan =
-            "RootBoundary[x, x]\n" +
             "Filter[(coalesce(x, 10) = 10)]\n" +
-            "NestedLoopJoin[\n" +
-            "    Collect[doc.t1 | [x] | true]\n" +
-            "    --- RIGHT ---\n" +
-            "    Collect[doc.t2 | [x] | (x > 5)]\n" +
-            "]\n";
-        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+            "  └ NestedLoopJoin[RIGHT | (x = x)]\n" +
+            "    ├ Collect[doc.t1 | [x] | true]\n" +
+            "    └ Collect[doc.t2 | [x] | (x > 5)]";
+        assertThat(plan, isPlan(expectedPlan));
     }
 
     @Test
@@ -117,13 +105,10 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE coalesce(t1.x, 10) = 10 AND t2.x > 5"
         );
         var expectedPlan =
-            "RootBoundary[x, x]\n" +
             "Filter[((coalesce(x, 10) = 10) AND (x > 5))]\n" +
-            "NestedLoopJoin[\n" +
-            "    Collect[doc.t1 | [x] | true]\n" +
-            "    --- FULL ---\n" +
-            "    Collect[doc.t2 | [x] | (x > 5)]\n" +
-            "]\n";
-        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+            "  └ NestedLoopJoin[FULL | (x = x)]\n" +
+            "    ├ Collect[doc.t1 | [x] | true]\n" +
+            "    └ Collect[doc.t2 | [x] | (x > 5)]";
+        assertThat(plan, isPlan(expectedPlan));
     }
 }

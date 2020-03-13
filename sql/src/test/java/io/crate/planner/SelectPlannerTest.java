@@ -162,43 +162,38 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetPlan() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name from users where id = 1");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[name]\n" +
-            "Get[doc.users | name | DocKeys{1}"));
+        assertThat(plan, isPlan(
+            "Get[doc.users | name | DocKeys{1}]"));
     }
 
     @Test
     public void testGetWithVersion() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name from users where id = 1 and _version = 1");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[name]\n" +
-            "Get[doc.users | name | DocKeys{1, 1}"));
+        assertThat(plan, isPlan(
+            "Get[doc.users | name | DocKeys{1, 1}]"));
     }
 
     @Test
     public void testGetPlanStringLiteral() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name from bystring where name = 'one'");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[name]\n" +
-            "Get[doc.bystring | name | DocKeys{'one'}"
+        assertThat(plan, isPlan(
+            "Get[doc.bystring | name | DocKeys{'one'}]"
         ));
     }
 
     @Test
     public void testGetPlanPartitioned() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name, date from parted_pks where id = 1 and date = 0");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[name, date]\n" +
-            "Get[doc.parted_pks | name, date | DocKeys{1, 0}"
+        assertThat(plan, isPlan(
+            "Get[doc.parted_pks | name, date | DocKeys{1, 0}]"
         ));
     }
 
     @Test
     public void testMultiGetPlan() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name from users where id in (1, 2)");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[name]\n" +
-            "Get[doc.users | name | DocKeys{1; 2}"
+        assertThat(plan, isPlan(
+            "Get[doc.users | name | DocKeys{1; 2}]"
         ));
     }
 
@@ -695,9 +690,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testFilterOnPKSubsetResultsInPKLookupPlanIfTheOtherPKPartIsGenerated() {
         LogicalPlan plan = e.logicalPlan("select 1 from t_pk_part_generated where ts = 0");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[1]\n" +
-            "Get[doc.t_pk_part_generated | 1 | DocKeys{0, 0}"
+        assertThat(plan, isPlan(
+            "Get[doc.t_pk_part_generated | 1 | DocKeys{0, 0}]"
         ));
     }
 
@@ -712,11 +706,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUnnestInSelectListResultsInPlanWithProjectSetOperator() {
         LogicalPlan plan = e.logicalPlan("select unnest([1, 2])");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[unnest([1, 2])]\n" +
+        assertThat(plan, isPlan(
             "ProjectSet[unnest([1, 2])]\n" +
-            "TableFunction[empty_row | [] | true]\n"
-        ));
+            "  └ TableFunction[empty_row | [] | true]"));
         Symbol output = plan.outputs().get(0);
         assertThat(output.valueType(), is(DataTypes.LONG));
     }
@@ -724,12 +716,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testScalarCanBeUsedAroundTableGeneratingFunctionInSelectList() {
         LogicalPlan plan = e.logicalPlan("select unnest([1, 2]) + 1");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[(unnest([1, 2]) + 1)]\n" +
+        assertThat(plan, isPlan(
             "Eval[(unnest([1, 2]) + 1)]\n" +
-            "ProjectSet[unnest([1, 2])]\n" +
-            "TableFunction[empty_row | [] | true]\n"
-        ));
+            "  └ ProjectSet[unnest([1, 2])]\n" +
+            "    └ TableFunction[empty_row | [] | true]"));
     }
 
     @Test
@@ -741,35 +731,29 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testTableFunctionIsExecutedAfterAggregation() {
         LogicalPlan plan = e.logicalPlan("select count(*), generate_series(1, 2) from users");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[count(*), generate_series(1, 2)]\n" +
+        assertThat(plan, isPlan(
             "Eval[count(*), generate_series(1, 2)]\n" +
-            "ProjectSet[generate_series(1, 2) | count(*)]\n" +
-            "Count[doc.users | true]\n"
-        ));
+            "  └ ProjectSet[generate_series(1, 2), count(*)]\n" +
+            "    └ Count[doc.users | true]"));
     }
 
     @Test
     public void testAggregationCanBeUsedAsArgumentToTableFunction() {
         LogicalPlan plan = e.logicalPlan("select count(name), generate_series(1, count(name)) from users");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[count(name), generate_series(1, count(name))]\n" +
+        assertThat(plan, isPlan(
             "Eval[count(name), generate_series(1, count(name))]\n" +
-            "ProjectSet[generate_series(1, count(name)) | count(name)]\n" +
-            "Aggregate[count(name)]\n" +
-            "Collect[doc.users | [name] | true]\n"
-        ));
+            "  └ ProjectSet[generate_series(1, count(name)), count(name)]\n" +
+            "    └ HashAggregate[count(name)]\n" +
+            "      └ Collect[doc.users | [name] | true]"));
     }
 
     @Test
     public void testOrderByOnTableFunctionMustOrderAfterProjectSet() {
         LogicalPlan plan = e.logicalPlan("select unnest([1, 2]) from sys.nodes order by 1");
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[unnest([1, 2])]\n" +
+        assertThat(plan, isPlan(
             "OrderBy[unnest([1, 2]) ASC]\n" +
-            "ProjectSet[unnest([1, 2])]\n" +
-            "Collect[sys.nodes | [] | true]\n"
-        ));
+            "  └ ProjectSet[unnest([1, 2])]\n" +
+            "    └ Collect[sys.nodes | [] | true]"));
     }
 
     @Test
@@ -797,11 +781,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testTablePartitionsAreNarrowedToMatchWhereClauseOfParentQuery() {
         String statement = "select * from (select * from parted) t where date is null";
         LogicalPlan logicalPlan = e.logicalPlan(statement);
-        assertThat(logicalPlan, isPlan(e.functions(),
-            "RootBoundary[id, name, date, obj]\n" +
+        assertThat(logicalPlan, isPlan(
             "Rename[id, name, date, obj] AS t\n" +
-            "Collect[doc.parted | [id, name, date, obj] | (date IS NULL)]\n"
-        ));
+            "  └ Collect[doc.parted | [id, name, date, obj] | (date IS NULL)]"));
         ExecutionPlan plan = e.plan(statement);
         Collect collect = plan instanceof Collect ? (Collect) plan : ((Collect) ((Merge) plan).subPlan());
         RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collect.collectPhase();
@@ -824,48 +806,39 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_distinct_with_limit_is_optimized_to_topn_distinct() throws Exception {
         String stmt = "select distinct name from users limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[name]\n" +
-            "TopNDistinct[1 | [name]\n" +
-            "Collect[doc.users | [name] | true]\n"
-        ));
+        assertThat(plan, isPlan(
+            "TopNDistinct[1 | [name]]\n" +
+            "  └ Collect[doc.users | [name] | true]"));
     }
 
     @Test
     public void test_group_by_without_aggregates_and_with_limit_is_optimized_to_topn_distinct() throws Exception {
         String stmt = "select id, name from users group by id, name limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[id, name]\n" +
-            "TopNDistinct[1 | [id, name]\n" +
-            "Collect[doc.users | [id, name] | true]\n"
-        ));
+        assertThat(plan, isPlan(
+            "TopNDistinct[1 | [id, name]]\n" +
+            "  └ Collect[doc.users | [id, name] | true]"));
     }
 
     @Test
     public void test_group_by_on_subscript_on_obj_output_of_sub_relation() {
         String stmt = "SELECT address['postcode'] FROM (SELECT address FROM users) AS u GROUP BY 1";
         LogicalPlan plan = e.logicalPlan(stmt);
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[address['postcode']]\n" +
-            "GroupBy[address['postcode'] | ]\n" +
-            "Rename[address] AS u\n" +
-            "Collect[doc.users | [address] | true]\n"
-        ));
+        assertThat(plan, isPlan(
+            "GroupHashAggregate[address['postcode']]\n" +
+            "  └ Rename[address] AS u\n" +
+            "    └ Collect[doc.users | [address] | true]"));
     }
 
     @Test
     public void test_order_by_on_subscript_on_obj_output_of_sub_relation() {
         String stmt = "SELECT address['postcode'] FROM (SELECT address FROM users) AS u ORDER BY 1";
         LogicalPlan plan = e.logicalPlan(stmt);
-        assertThat(plan, isPlan(e.functions(),
-            "RootBoundary[address['postcode']]\n" +
+        assertThat(plan, isPlan(
             "Eval[address['postcode']]\n" +
-            "OrderBy[address['postcode'] ASC]\n" +
-            "Rename[address] AS u\n" +
-            "Collect[doc.users | [address] | true]\n"
-        ));
-
+            "  └ OrderBy[address['postcode'] ASC]\n" +
+            "    └ Rename[address] AS u\n" +
+            "      └ Collect[doc.users | [address] | true]"));
         Merge merge = e.plan(stmt);
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
@@ -887,15 +860,12 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                       "   AND (false)";
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
-            "RootBoundary[nspacl, nspname, nspowner, oid]\n" +
-            "NestedLoopJoin[\n" +
-            "    Rename[nspacl, nspname, nspowner, oid] AS n\n" +
-            "    Collect[pg_catalog.pg_namespace | [nspacl, nspname, nspowner, oid] | false]\n" +
-            "    --- CROSS ---\n" +
-            "    Rename[] AS c\n" +
-            "    Collect[pg_catalog.pg_class | [] | false]\n" +
-            "]\n";
-        assertThat(plan, isPlan(e.functions(), expectedPlan));
+            "NestedLoopJoin[CROSS]\n" +
+            "  ├ Rename[nspacl, nspname, nspowner, oid] AS n\n" +
+            "  │  └ Collect[pg_catalog.pg_namespace | [nspacl, nspname, nspowner, oid] | false]\n" +
+            "  └ Rename[] AS c\n" +
+            "    └ Collect[pg_catalog.pg_class | [] | false]";
+        assertThat(plan, isPlan(expectedPlan));
     }
 
     @Test
@@ -911,13 +881,12 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "   unnest(ARRAY[2.5, 4, 5, 6, 7.5, 8.5, 10, 12]) as t(col1)";
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
-            "RootBoundary[col1, sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
             "Eval[col1, sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
-            "WindowAgg[sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
-            "Eval[col1, power(col1, 2.0)]\n" +
-            "Rename[col1] AS t\n" +
-            "TableFunction[unnest | [col1] | true]\n";
-        assertThat(plan, isPlan(e.functions(), expectedPlan));
+            "  └ WindowAgg[col1, power(col1, 2.0), sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
+            "    └ Eval[col1, power(col1, 2.0)]\n" +
+            "      └ Rename[col1] AS t\n" +
+            "        └ TableFunction[unnest | [col1] | true]";
+        assertThat(plan, isPlan(expectedPlan));
     }
 
     @Test
@@ -929,12 +898,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "ORDER BY 1";
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
-            "RootBoundary[word]\n" +
             "Eval[word]\n" +
-            "OrderBy[word ASC]\n" +
-            "Filter[(catcode = 'R')]\n" +
-            "TableFunction[pg_get_keywords | [word, catcode] | true]\n";
-        assertThat(plan, isPlan(e.functions(), expectedPlan));
+            "  └ OrderBy[word ASC]\n" +
+            "    └ Filter[(catcode = 'R')]\n" +
+            "      └ TableFunction[pg_get_keywords | [word, catcode] | true]";
+        assertThat(plan, isPlan(expectedPlan));
 
     }
 }

@@ -109,4 +109,13 @@ public final class Filter extends ForwardingLogicalPlan {
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitFilter(this, context);
     }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("Filter[")
+            .text(query.toString())
+            .text("]")
+            .nest(source::print);
+    }
 }

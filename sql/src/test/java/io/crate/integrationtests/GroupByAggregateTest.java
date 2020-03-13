@@ -26,16 +26,11 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Paging;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -1279,20 +1274,21 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     @Test
     public void test_optimized_topn_distinct_returns_2_unique_items() throws Throwable {
-        execute("create table tbl (id int primary key)");
+        execute("create table m.tbl (id int primary key)");
         Object[][] ids = new Object[100][];
         for (int i = 0; i < ids.length; i++) {
             ids[i] = new Object[] { i };
         }
-        execute("insert into tbl (id) values (?)", ids);
-        execute("refresh table tbl");
+        execute("insert into m.tbl (id) values (?)", ids);
+        execute("refresh table m.tbl");
         execute("analyze");
-        execute("explain select distinct id from tbl limit 2");
-
-        Map explainOutput = (Map) response.rows()[0][0];
-        String explain = Strings.toString(XContentBuilder.builder(JsonXContent.jsonXContent).value(explainOutput));
-        assertThat(explain, Matchers.containsString("{\"type\":\"TOPN_DISTINCT\"}"));
-        execute("select distinct id from tbl limit 2");
+        execute("explain select distinct id from m.tbl limit 2");
+        assertThat(
+            printedTable(response.rows()),
+            is("TopNDistinct[2 | [id]]\n" +
+               "  └ Collect[m.tbl | [id] | true]\n")
+        );
+        execute("select distinct id from m.tbl limit 2");
         assertThat(response.rowCount(), is(2L));
         Object firstId = response.rows()[0][0];
         Object secondId = response.rows()[1][0];

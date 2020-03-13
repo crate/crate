@@ -164,4 +164,14 @@ public class Count implements LogicalPlan {
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitCount(this, context);
     }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("Count[")
+            .text(tableRelation.tableInfo().ident().toString())
+            .text(" | ")
+            .text(where.queryOrFallback().toString())
+            .text("]");
+    }
 }

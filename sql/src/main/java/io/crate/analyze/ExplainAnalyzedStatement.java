@@ -31,6 +31,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.profile.ProfilingContext;
+import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 import javax.annotation.Nonnull;
@@ -44,9 +45,13 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     private final List<Symbol> outputs;
     private final RelationName relationName;
 
-    ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, ProfilingContext context) {
+    ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, @Nullable ProfilingContext context) {
         relationName = new RelationName(null, "explain");
-        ScopedSymbol field = new ScopedSymbol(relationName, new ColumnIdent(columnName), ObjectType.untyped());
+        ScopedSymbol field = new ScopedSymbol(
+            relationName,
+            new ColumnIdent(columnName),
+            context == null ? DataTypes.STRING : ObjectType.untyped()
+        );
         this.statement = statement;
         this.context = context;
         this.outputs = List.of(field);

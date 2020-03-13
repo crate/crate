@@ -111,16 +111,13 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
             " order by x";
         var logicalPlan = e.logicalPlan(stmt);
         String expectedPlan =
-            "RootBoundary[x, id]\n" +
             "Rename[x, id] AS o\n" +
-            "Union[\n" +
-            "OrderBy[1 AS x ASC]\n" +
-            "Collect[doc.users | [1 AS x, id] | true]\n" +
-            "---\n" +
-            "OrderBy[2 ASC]\n" +
-            "Collect[doc.users | [2, id] | true]\n" +
-            "]\n";
-        assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(e.functions(), expectedPlan)));
+            "  └ Union[x, id]\n" +
+            "    ├ OrderBy[1 AS x ASC]\n" +
+            "    │  └ Collect[doc.users | [1 AS x, id] | true]\n" +
+            "    └ OrderBy[2 ASC]\n" +
+            "      └ Collect[doc.users | [2, id] | true]";
+        assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(expectedPlan)));
         ExecutionPlan plan = e.plan(stmt);
         assertThat(plan, instanceOf(UnionExecutionPlan.class));
         UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) plan;
@@ -138,16 +135,13 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
                       " order by x";
         var logicalPlan = e.logicalPlan(stmt);
         String expectedPlan =
-            "RootBoundary[x]\n" +
             "Eval[x]\n" +
-            "Rename[x] AS o\n" +
-            "Union[\n" +
-            "OrderBy[1 AS x ASC]\n" +
-            "Collect[doc.users | [1 AS x] | true]\n" +
-            "---\n" +
-            "OrderBy[2 ASC]\n" +
-            "Collect[doc.users | [2] | true]\n" +
-            "]\n";
-        assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(e.functions(), expectedPlan)));
+            "  └ Rename[x] AS o\n" +
+            "    └ Union[x]\n" +
+            "      ├ OrderBy[1 AS x ASC]\n" +
+            "      │  └ Collect[doc.users | [1 AS x] | true]\n" +
+            "      └ OrderBy[2 ASC]\n" +
+            "        └ Collect[doc.users | [2] | true]";
+        assertThat(logicalPlan, is(LogicalPlannerTest.isPlan(expectedPlan)));
     }
 }

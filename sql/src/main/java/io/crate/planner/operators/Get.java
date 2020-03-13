@@ -212,4 +212,16 @@ public class Get implements LogicalPlan {
             return relation.indexNameOrAlias();
         }
     }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text("Get[")
+            .text(tableRelation.tableInfo().ident().toString())
+            .text(" | ")
+            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text(" | ")
+            .text(docKeys.toString())
+            .text("]");
+    }
 }
