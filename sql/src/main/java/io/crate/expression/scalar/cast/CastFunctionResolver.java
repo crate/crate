@@ -62,7 +62,12 @@ public class CastFunctionResolver {
     }
 
     static String castFuncName(DataType type) {
-        return TO_PREFIX + type.getName();
+        var typeName = type.getName();
+        // turn new `array(elementType)` name into old `elementType_array` name for BWC
+        if (type.id() == ArrayType.ID) {
+            typeName = ((ArrayType<?>) type).innerType().getName() + "_" + ArrayType.NAME;
+        }
+        return TO_PREFIX + typeName;
     }
 
     public static Symbol generateCastFunction(Symbol sourceSymbol, DataType targetType, boolean tryCast) {

@@ -376,7 +376,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
-        expectedException.expectMessage("Cannot cast `xs` of type `integer_array` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `xs` of type `array(integer)` to type `bigint`");
         executor.analyze("select * from tarr where xs = ANY([10, 20])");
     }
 
@@ -395,14 +395,14 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void windowDefinitionOrderedByArrayTypeIsUnsupported() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'xs': invalid data type 'integer_array'");
+        expectedException.expectMessage("Cannot ORDER BY 'xs': invalid data type 'array(integer)'");
         executor.analyze("select count(*) over(order by xs) from tarr");
     }
 
     @Test
     public void windowDefinitionPartitionedByArrayTypeIsUnsupported() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot PARTITION BY 'xs': invalid data type 'integer_array'");
+        expectedException.expectMessage("Cannot PARTITION BY 'xs': invalid data type 'array(integer)'");
         executor.analyze("select count(*) over(partition by xs) from tarr");
     }
 

@@ -68,7 +68,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeWithInvalidReferences() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `name` of type `text` to type `double precision_array`");
+        expectedException.expectMessage("Cannot cast `name` of type `text` to type `array(double precision)`");
         assertNormalize("distance(name, [10.04, 28.02])", null);
     }
 

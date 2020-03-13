@@ -279,7 +279,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnyInvalidArrayType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `['foo', 'bar', 'baz']` of type `text_array` to type `boolean_array`");
+        expectedException.expectMessage("Cannot cast `['foo', 'bar', 'baz']` of type `array(text)` to type `array(boolean)`");
         analyzeSelectWhere("select * from users_multi_pk where awesome = any(['foo', 'bar', 'baz'])");
     }
 

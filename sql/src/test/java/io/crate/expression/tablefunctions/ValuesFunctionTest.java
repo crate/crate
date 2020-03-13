@@ -102,7 +102,7 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_function_arguments_must_have_array_types() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `200` of type `bigint` to type `undefined_array`");
+        expectedException.expectMessage("Cannot cast `200` of type `bigint` to type `array(undefined)`");
         assertExecute("_values(200)", "");
     }
 }

@@ -36,7 +36,7 @@ public class ArrayBoundFunctionResolverTest extends AbstractScalarFunctionsTest 
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_lower(bigint_array)");
+        expectedException.expectMessage("unknown function: array_lower(array(bigint))");
         assertEvaluate("array_lower([1])", null);
     }
 
@@ -50,7 +50,7 @@ public class ArrayBoundFunctionResolverTest extends AbstractScalarFunctionsTest 
     @Test
     public void testSecondArgumentNotANumber() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `[2]` of type `bigint_array` to type `integer`");
+        expectedException.expectMessage("Cannot cast `[2]` of type `array(bigint)` to type `integer`");
         assertEvaluate("array_lower([1], [2])", null);
     }
 

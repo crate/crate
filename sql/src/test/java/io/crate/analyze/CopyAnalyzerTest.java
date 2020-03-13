@@ -324,7 +324,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyFromInvalidTypedExpression() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("fileUri must be of type STRING or STRING ARRAY. Got integer_array");
+        expectedException.expectMessage("fileUri must be of type STRING or STRING ARRAY. Got array(integer)");
         Object[] files = $(1, 2, 3);
         analyze("COPY users FROM ?", new Object[]{files});
     }

@@ -73,7 +73,7 @@ public class RegexpReplaceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbolWithInvalidArgumentType() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foobar'` of type `text` to type `bigint_array`");
+        expectedException.expectMessage("Cannot cast `'foobar'` of type `text` to type `array(bigint)`");
 
         assertNormalize("regexp_replace('foobar', '.*', [1,2])", isLiteral(""));
     }

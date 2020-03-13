@@ -83,7 +83,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Override
     public String getName() {
-        return innerType.getName() + "_" + NAME;
+        return NAME + "(" + innerType.getName() + ")";
     }
 
     @Override

@@ -800,7 +800,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testArrayCompareInvalidArray() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `name` of type `text` to type `undefined_array`");
+        expectedException.expectMessage("Cannot cast `name` of type `text` to type `array(undefined)`");
         analyze("select * from users where 'George' = ANY (name)");
     }
 
@@ -843,7 +843,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // so its fields are selected as arrays,
         // ergo simple comparison does not work here
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `friends['id']` of type `bigint_array` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `friends['id']` of type `array(bigint)` to type `bigint`");
         analyze("select * from users where 5 = friends['id']");
     }
 
@@ -911,7 +911,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testOrderByOnArray() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'friends': invalid data type 'object_array'.");
+        expectedException.expectMessage("Cannot ORDER BY 'friends': invalid data type 'array(object)'.");
         analyze("select * from users order by friends");
     }
 
@@ -981,14 +981,14 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testAnyLikeInvalidArray() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `name` of type `text` to type `undefined_array`");
+        expectedException.expectMessage("Cannot cast `name` of type `text` to type `array(undefined)`");
         analyze("select * from users where 'awesome' LIKE ANY (name)");
     }
 
     @Test
     public void testPositionalArgumentOrderByArrayType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'friends': invalid data type 'object_array'.");
+        expectedException.expectMessage("Cannot ORDER BY 'friends': invalid data type 'array(object)'.");
         analyze("SELECT id, friends FROM users ORDER BY 2");
     }
 
@@ -1092,7 +1092,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testMatchPredicateWithWrongQueryTerm() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `[10, 20]` of type `bigint_array` to type `text`");
+        expectedException.expectMessage("Cannot cast `[10, 20]` of type `array(bigint)` to type `text`");
         analyze("select name from users order by match(name, [10, 20])");
     }
 
@@ -1690,7 +1690,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSelectStarFromUnnestWithInvalidArguments() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `1` of type `bigint` to type `undefined_array`");
+        expectedException.expectMessage("Cannot cast `1` of type `bigint` to type `array(undefined)`");
         analyze("select * from unnest(1, 'foo')");
     }
 

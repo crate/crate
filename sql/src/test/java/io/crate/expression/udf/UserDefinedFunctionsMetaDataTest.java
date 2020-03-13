@@ -141,7 +141,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
     @Test
     public void testSpecificName() throws Exception {
         assertThat(specificName("my_func", ImmutableList.of()), is("my_func()"));
-        assertThat(specificName("my_func", ImmutableList.of(DataTypes.BOOLEAN, new ArrayType(DataTypes.BOOLEAN))),
-            is("my_func(boolean, boolean_array)"));
+        assertThat(specificName("my_func", ImmutableList.of(DataTypes.BOOLEAN, new ArrayType<>(DataTypes.BOOLEAN))),
+            is("my_func(boolean, array(boolean))"));
     }
 }

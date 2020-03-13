@@ -521,7 +521,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.getColumn(response.rows(), 0),
             is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']")));
         assertThat(TestingHelpers.getColumn(response.rows(), 1),
-            is(Matchers.arrayContaining("object", "object", "text_array")));
+            is(Matchers.arrayContaining("object", "object", "array(text)")));
 
         execute("DROP TABLE my_table");
         ensureYellow();
@@ -536,7 +536,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.getColumn(response.rows(), 0),
             is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']", "col1['col2']['col3']['col4']")));
         assertThat(TestingHelpers.getColumn(response.rows(), 1),
-            is(Matchers.arrayContaining("object", "object", "object", "bigint_array")));
+            is(Matchers.arrayContaining("object", "object", "object", "array(bigint)")));
     }
 
     @Test
