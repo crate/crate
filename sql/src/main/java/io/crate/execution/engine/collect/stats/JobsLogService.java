@@ -166,8 +166,9 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         this.scheduler = scheduler;
         this.breakerService = breakerService;
         this.inputFactory = new InputFactory(functions);
-        this.refResolver = new StaticTableReferenceResolver<>(SysJobsLogTableInfo.expressions(localNode));
-        TableRelation sysJobsLogRelation = new TableRelation(new SysJobsLogTableInfo(localNode));
+        var jobsLogTable = SysJobsLogTableInfo.create(localNode);
+        this.refResolver = new StaticTableReferenceResolver<>(jobsLogTable.expressions());
+        TableRelation sysJobsLogRelation = new TableRelation(jobsLogTable);
         systemTransactionCtx = CoordinatorTxnCtx.systemTransactionContext();
         this.expressionAnalyzer = new ExpressionAnalyzer(
             functions,
