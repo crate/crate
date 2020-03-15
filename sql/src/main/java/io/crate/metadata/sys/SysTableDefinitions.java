@@ -76,9 +76,10 @@ public class SysTableDefinitions {
             sysJobsTable.expressions(),
             (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username()),
             false));
+        var sysJobsLogTable = SysJobsLogTableInfo.create(localNode);
         tableDefinitions.put(SysJobsLogTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.jobsLog()),
-            SysJobsLogTableInfo.expressions(localNode),
+            sysJobsLogTable.expressions(),
             (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username()),
             false));
         tableDefinitions.put(SysOperationsTableInfo.IDENT, new StaticTableDefinition<>(
