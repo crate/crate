@@ -131,7 +131,7 @@ public class SysTableDefinitions {
         );
         tableDefinitions.put(SysMetricsTableInfo.NAME, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.metrics()),
-            SysMetricsTableInfo.expressions(localNode),
+            SysMetricsTableInfo.create(localNode).expressions(),
             false));
         tableDefinitions.put(SysSegmentsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(shardSegmentInfos),

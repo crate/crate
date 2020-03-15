@@ -61,9 +61,8 @@ public class SysSchemaInfo implements SchemaInfo {
         tableInfos.put(SysSummitsTableInfo.IDENT.name(), new SysSummitsTableInfo());
         tableInfos.put(SysAllocationsTableInfo.IDENT.name(), new SysAllocationsTableInfo());
         tableInfos.put(SysHealth.IDENT.name(), SysHealth.create());
-        tableInfos.put(SysMetricsTableInfo.NAME.name(), new SysMetricsTableInfo(localNode));
+        tableInfos.put(SysMetricsTableInfo.NAME.name(), SysMetricsTableInfo.create(localNode));
         tableInfos.put(SysSegmentsTableInfo.IDENT.name(), new SysSegmentsTableInfo(clusterService::localNode));
-        tableInfos.put(SysMetricsTableInfo.NAME.name(), new SysMetricsTableInfo(clusterService::localNode));
     }
 
     @Override
