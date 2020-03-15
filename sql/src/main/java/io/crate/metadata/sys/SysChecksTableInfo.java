@@ -21,58 +21,26 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.expression.reference.sys.check.SysCheck;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterState;
-
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
 
-public class SysChecksTableInfo extends StaticTableInfo<SysCheck> {
+import io.crate.expression.reference.sys.check.SysCheck;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+
+public final class SysChecksTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "checks");
-    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    static Map<ColumnIdent, RowCollectExpressionFactory<SysCheck>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    private static ColumnRegistrar<SysCheck> columnRegistrar() {
-        return new ColumnRegistrar<SysCheck>(IDENT, GRANULARITY)
-            .register("id", INTEGER, () -> forFunction(SysCheck::id))
-            .register("severity", INTEGER, () -> forFunction((SysCheck r) -> r.severity().value()))
-            .register("description", STRING, () -> forFunction(SysCheck::description))
-            .register("passed", BOOLEAN, () -> forFunction(SysCheck::isValid));
-    }
-
-    SysChecksTableInfo() {
-        super(IDENT, columnRegistrar(),"id");
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return GRANULARITY;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState clusterState,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
+    public static SystemTable<SysCheck> create() {
+        return SystemTable.<SysCheck>builder()
+            .add("id", INTEGER, SysCheck::id)
+            .add("severity", INTEGER, x -> x.severity().value())
+            .add("description", STRING, SysCheck::description)
+            .add("passed", BOOLEAN, SysCheck::isValid)
+            .setPrimaryKeys(new ColumnIdent("id"))
+            .build(IDENT);
     }
 }

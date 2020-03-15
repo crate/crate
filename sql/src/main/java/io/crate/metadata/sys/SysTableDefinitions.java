@@ -94,7 +94,7 @@ public class SysTableDefinitions {
         SysChecker<SysCheck> sysChecker = new SysChecker<>(sysChecks);
         tableDefinitions.put(SysChecksTableInfo.IDENT, new StaticTableDefinition<>(
             sysChecker::computeResultAndGet,
-            SysChecksTableInfo.expressions(),
+            SysChecksTableInfo.create().expressions(),
             true));
 
         tableDefinitions.put(SysNodeChecksTableInfo.IDENT, new StaticTableDefinition<>(
