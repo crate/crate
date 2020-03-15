@@ -70,9 +70,10 @@ public class SysTableDefinitions {
             sysClusterTableInfo.expressions(),
             false
         ));
+        var sysJobsTable = SysJobsTableInfo.create(localNode);
         tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeJobs()),
-            SysJobsTableInfo.expressions(localNode),
+            sysJobsTable.expressions(),
             (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username()),
             false));
         tableDefinitions.put(SysJobsLogTableInfo.IDENT, new StaticTableDefinition<>(

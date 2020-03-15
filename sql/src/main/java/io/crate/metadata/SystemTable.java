@@ -33,6 +33,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -56,13 +57,18 @@ public final class SystemTable<T> implements TableInfo {
     private final Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions;
     private final List<ColumnIdent> primaryKeys;
     private final List<Reference> rootColumns;
+    private final Function<DiscoveryNodes, Routing> getRouting;
 
     public SystemTable(RelationName name,
                        Map<ColumnIdent, Reference> columns,
                        Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions,
-                       List<ColumnIdent> primaryKeys) {
+                       List<ColumnIdent> primaryKeys,
+                       @Nullable Function<DiscoveryNodes, Routing> getRouting) {
         this.name = name;
         this.columns = columns;
+        this.getRouting = getRouting == null
+            ? nodes -> Routing.forTableOnSingleNode(name, nodes.getLocalNodeId())
+            : getRouting;
         this.rootColumns = columns.values().stream()
             .filter(x -> x.column().isTopLevel())
             .collect(Collectors.toList());
@@ -88,7 +94,7 @@ public final class SystemTable<T> implements TableInfo {
                               WhereClause whereClause,
                               RoutingProvider.ShardSelection shardSelection,
                               SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(name, state.getNodes().getLocalNodeId());
+        return getRouting.apply(state.getNodes());
     }
 
     @Override
@@ -165,6 +171,12 @@ public final class SystemTable<T> implements TableInfo {
 
         private final ArrayList<Column<T, ?>> columns = new ArrayList<>();
         private List<ColumnIdent> primaryKeys = List.of();
+        private Function<DiscoveryNodes, Routing> getRouting;
+
+        public RelationBuilder<T> withRouting(Function<DiscoveryNodes, Routing> getRouting) {
+            this.getRouting = getRouting;
+            return this;
+        }
 
         public <U> RelationBuilder<T> add(String column, DataType<U> type, Function<T, U> getProperty) {
             return add(new ColumnIdent(column), type, getProperty);
@@ -202,7 +214,8 @@ public final class SystemTable<T> implements TableInfo {
                relationName,
                refByColumns,
                expressions,
-               primaryKeys
+               primaryKeys,
+               getRouting
            );
         }
 
