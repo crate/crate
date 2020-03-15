@@ -21,74 +21,35 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
+
+import java.util.function.Supplier;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import io.crate.metadata.SystemTable;
 
-import java.util.Map;
-import java.util.function.Supplier;
-
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.TIMESTAMPZ;
-
-public class SysJobsTableInfo extends StaticTableInfo<JobContext> {
+public class SysJobsTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs");
 
-    static Map<ColumnIdent, RowCollectExpressionFactory<JobContext>> expressions(Supplier<DiscoveryNode> localNode) {
-        return columnRegistrar(localNode).expressions();
-    }
-
-    private static ColumnRegistrar<JobContext> columnRegistrar(Supplier<DiscoveryNode> localNode) {
-        return new ColumnRegistrar<JobContext>(IDENT, RowGranularity.DOC)
-        .register("id", STRING, () -> NestableCollectExpression.forFunction(c -> c.id().toString()))
-        .register("username", STRING, () -> NestableCollectExpression.forFunction(JobContext::username))
-        .register("node", ObjectType.builder()
-                .setInnerType("id", STRING)
-                .setInnerType("name", STRING)
-                .build(), () -> NestableCollectExpression.forFunction(ignored -> ImmutableMap.of(
-                "id", localNode.get().getId(),
-                "name", localNode.get().getName()
-            )))
-        .register("node", "id", STRING, () -> NestableCollectExpression.forFunction(ignored -> localNode.get().getId()))
-        .register("node", "name", STRING, () -> NestableCollectExpression.forFunction(ignored -> localNode.get().getName()))
-        .register("stmt", STRING, () -> NestableCollectExpression.forFunction(JobContext::stmt))
-        .register("started", TIMESTAMPZ, () -> NestableCollectExpression.forFunction(JobContext::started));
-    }
-
-    SysJobsTableInfo(Supplier<DiscoveryNode> localNode) {
-        super(IDENT, columnRegistrar(localNode), "id");
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
-    }
-
-    @Override
-    public RelationName ident() {
-        return IDENT;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState clusterState,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnAllNodes(IDENT, clusterState.getNodes());
+    public static SystemTable<JobContext> create(Supplier<DiscoveryNode> localNode) {
+        return SystemTable.<JobContext>builder()
+            .add("id", STRING, c -> c.id().toString())
+            .add("username", STRING, JobContext::username)
+            .startObject("node")
+                .add("id", STRING, ignored -> localNode.get().getId())
+                .add("name", STRING, ignored -> localNode.get().getName())
+            .endObject()
+            .add("stmt", STRING, JobContext::stmt)
+            .add("started", TIMESTAMPZ, JobContext::started)
+            .withRouting(nodes -> Routing.forTableOnAllNodes(IDENT, nodes))
+            .setPrimaryKeys(new ColumnIdent("id"))
+            .build(IDENT);
     }
 }
