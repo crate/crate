@@ -93,10 +93,11 @@ public class UserManagerService implements UserManager, ClusterStateListener {
             false
         );
 
+        var privilegesTable = SysPrivilegesTableInfo.create();
         sysTableRegistry.registerSysTable(
-            new SysPrivilegesTableInfo(),
+            privilegesTable,
             () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(users())),
-            SysPrivilegesTableInfo.expressions(),
+            privilegesTable.expressions(),
             false
         );
 
