@@ -86,10 +86,11 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         this.transportAlterUserAction = transportAlterUserAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
         clusterService.addListener(this);
+        var userTable = SysUsersTableInfo.create();
         sysTableRegistry.registerSysTable(
-            new SysUsersTableInfo(),
+            userTable,
             () -> CompletableFuture.completedFuture(users()),
-            SysUsersTableInfo.expressions(),
+            userTable.expressions(),
             false
         );
 

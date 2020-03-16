@@ -18,57 +18,25 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.STRING;
+
 import io.crate.auth.user.User;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.metadata.SystemTable;
 
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.BOOLEAN;
-
-public class SysUsersTableInfo extends StaticTableInfo<User> {
+public class SysUsersTableInfo {
 
     private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "users");
-    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
     private static final String PASSWORD_PLACEHOLDER = "********";
 
-    public SysUsersTableInfo() {
-        super(IDENT, columnRegistrar(), "name");
-    }
-
-    private static ColumnRegistrar<User> columnRegistrar() {
-        return new ColumnRegistrar<User>(IDENT, GRANULARITY)
-            .register("name", STRING, () -> forFunction(User::name))
-            .register("superuser", BOOLEAN, () -> forFunction(User::isSuperUser))
-            .register("password", STRING, () -> forFunction(u -> u.password() != null ? PASSWORD_PLACEHOLDER : null));
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return GRANULARITY;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState state,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
-    }
-
-    public static Map<ColumnIdent, RowCollectExpressionFactory<User>> expressions() {
-        return columnRegistrar().expressions();
+    public static SystemTable<User> create() {
+        return SystemTable.<User>builder()
+            .add("name", STRING, User::name)
+            .add("superuser", BOOLEAN, User::isSuperUser)
+            .add("password", STRING, x -> x.password() == null ? null : PASSWORD_PLACEHOLDER)
+            .setPrimaryKeys(new ColumnIdent("name"))
+            .build(IDENT);
     }
 }
