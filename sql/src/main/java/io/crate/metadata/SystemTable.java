@@ -219,8 +219,8 @@ public final class SystemTable<T> implements TableInfo {
            );
         }
 
-        public static <T, U> void addExpression(HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions,
-                                                Column<T, U> column) {
+        private static <T, U> void addExpression(HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions,
+                                                 Column<T, U> column) {
             expressions.put(column.column, () -> new Expression<>(column.column, column.getProperty, expressions));
         }
 

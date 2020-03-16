@@ -18,30 +18,19 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
+import static io.crate.types.DataTypes.STRING;
+
+import java.util.stream.StreamSupport;
+
 import io.crate.analyze.user.Privilege;
 import io.crate.auth.user.User;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.metadata.SystemTable;
 
-import java.util.Map;
-import java.util.stream.StreamSupport;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.types.DataTypes.STRING;
-
-public class SysPrivilegesTableInfo extends StaticTableInfo<SysPrivilegesTableInfo.PrivilegeRow> {
+public class SysPrivilegesTableInfo {
 
     private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "privileges");
-    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     @SuppressWarnings("WeakerAccess")
     public static class PrivilegeRow {
@@ -54,36 +43,22 @@ public class SysPrivilegesTableInfo extends StaticTableInfo<SysPrivilegesTableIn
         }
     }
 
-    public SysPrivilegesTableInfo() {
-        super(IDENT, columnRegistrar(), "grantee", "state", "type", "class","ident");
-    }
-
-    private static ColumnRegistrar<PrivilegeRow> columnRegistrar() {
-        return new ColumnRegistrar<PrivilegeRow>(IDENT, GRANULARITY)
-            .register("grantee", STRING, () -> forFunction(r -> r.grantee))
-            .register("grantor", STRING, () -> forFunction(r -> r.privilege.grantor()))
-            .register("state", STRING, () -> forFunction(r -> r.privilege.state().toString()))
-            .register("type", STRING, () -> forFunction(r -> r.privilege.ident().type().toString()))
-            .register("class", STRING, () -> forFunction(r -> r.privilege.ident().clazz().toString()))
-            .register("ident", STRING, () -> forFunction(r -> r.privilege.ident().ident()));
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return GRANULARITY;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState state,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
-    }
-
-    public static Map<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>> expressions() {
-        return columnRegistrar().expressions();
+    public static SystemTable<PrivilegeRow> create() {
+        return SystemTable.<PrivilegeRow>builder()
+            .add("grantee", STRING, x -> x.grantee)
+            .add("grantor", STRING, x -> x.privilege.grantor())
+            .add("state", STRING, x -> x.privilege.state().toString())
+            .add("type", STRING, x -> x.privilege.ident().type().toString())
+            .add("class", STRING, x -> x.privilege.ident().clazz().toString())
+            .add("ident", STRING, x -> x.privilege.ident().ident())
+            .setPrimaryKeys(
+                new ColumnIdent("grantee"),
+                new ColumnIdent("state"),
+                new ColumnIdent("type"),
+                new ColumnIdent("class"),
+                new ColumnIdent("ident")
+            )
+            .build(IDENT);
     }
 
     public static Iterable<PrivilegeRow> buildPrivilegesRows(Iterable<User> users) {
