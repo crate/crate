@@ -27,16 +27,13 @@ import io.crate.metadata.Reference;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.List;
 
 public class FetchSource {
 
-    private final List<Reference> partitionedByColumns;
     private final LinkedHashSet<InputColumn> fetchIdCols = new LinkedHashSet<>();
     private final LinkedHashSet<Reference> references = new LinkedHashSet<>();
 
-    public FetchSource(List<Reference> partitionedByColumns) {
-        this.partitionedByColumns = partitionedByColumns;
+    public FetchSource() {
     }
 
     public void addFetchIdColumn(InputColumn fetchIdColumn) {
@@ -49,10 +46,6 @@ public class FetchSource {
 
     public Collection<InputColumn> fetchIdCols() {
         return fetchIdCols;
-    }
-
-    public List<Reference> partitionedByColumns() {
-        return partitionedByColumns;
     }
 
     public Collection<Reference> references() {

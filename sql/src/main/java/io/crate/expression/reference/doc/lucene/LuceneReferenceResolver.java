@@ -42,7 +42,6 @@ import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
@@ -77,8 +76,6 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
     @Override
     public LuceneCollectorExpression<?> getImplementation(final Reference ref) {
-        assert ref.granularity() == RowGranularity.DOC : "lucene collector expressions are required to be on DOC granularity";
-
         final ColumnIdent column = ref.column();
         switch (column.name()) {
             case DocSysColumns.Names.RAW:

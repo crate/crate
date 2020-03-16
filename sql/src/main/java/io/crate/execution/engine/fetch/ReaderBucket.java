@@ -27,19 +27,16 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 
-import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.Locale;
 
 class ReaderBucket {
 
     private final boolean fetchRequired;
-    final Object[] partitionValues;
     final IntObjectHashMap<Object[]> docs = new IntObjectHashMap<>();
 
-    ReaderBucket(boolean fetchRequired, @Nullable Object[] partitionValues) {
+    ReaderBucket(boolean fetchRequired) {
         this.fetchRequired = fetchRequired;
-        this.partitionValues = partitionValues;
     }
 
     void require(int doc) {

@@ -22,23 +22,22 @@
 
 package io.crate.execution.engine.fetch;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+
 import io.crate.Streamer;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.fetch.FetchSource;
-
-import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class FetchProjectorContext {
 
@@ -82,21 +81,7 @@ public class FetchProjectorContext {
         RelationName relationName = indexToTable.get(index);
         FetchSource fetchSource = tableToFetchSource.get(relationName);
         assert fetchSource != null : "fetchSource must be available";
-        return new ReaderBucket(!fetchSource.references().isEmpty(), partitionValues(index, fetchSource.partitionedByColumns()));
-
-    }
-
-    private Object[] partitionValues(String index, List<Reference> partitionByColumns) {
-        if (partitionByColumns.isEmpty()) {
-            return null;
-        }
-        PartitionName pn = PartitionName.fromIndexOrTemplate(index);
-        List<String> partitionRowValues = pn.values();
-        Object[] partitionValues = new Object[partitionRowValues.size()];
-        for (int i = 0; i < partitionRowValues.size(); i++) {
-            partitionValues[i] = partitionByColumns.get(i).valueType().value(partitionRowValues.get(i));
-        }
-        return partitionValues;
+        return new ReaderBucket(!fetchSource.references().isEmpty());
     }
 
     ReaderBucket getReaderBucket(int readerId) {

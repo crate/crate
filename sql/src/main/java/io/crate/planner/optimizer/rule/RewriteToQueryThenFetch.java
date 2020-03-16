@@ -36,7 +36,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.fetch.FetchSource;
@@ -84,7 +83,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
             return null;
         }
         ArrayList<Symbol> newOutputs = new ArrayList<>();
-        FetchSource fetchSource = new FetchSource(relation.tableInfo().partitionedByColumns());
+        FetchSource fetchSource = new FetchSource();
         ArrayList<Reference> allFetchRefs = new ArrayList<>();
         for (Symbol output : collect.outputs()) {
             if (Symbols.containsColumn(output, DocSysColumns.SCORE)) {
@@ -93,12 +92,8 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
                 newOutputs.add(output);
             } else {
                 RefVisitor.visitRefs(output, ref -> {
-                    if (ref.granularity() == RowGranularity.DOC) {
-                        fetchSource.addRefToFetch(ref);
-                        allFetchRefs.add(ref);
-                    } else {
-                        newOutputs.add(output);
-                    }
+                    fetchSource.addRefToFetch(ref);
+                    allFetchRefs.add(ref);
                 });
             }
         }

@@ -139,7 +139,6 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
             final int[] fetchIdPositions = collectRowContext.fetchIdPositions();
             final UnsafeArrayRow inputRow = collectRowContext.inputRow();
             final UnsafeArrayRow[] fetchRows = collectRowContext.fetchRows();
-            final UnsafeArrayRow[] partitionRows = collectRowContext.partitionRows();
             final Object[][] nullCells = collectRowContext.nullCells();
 
             int idx = 0;
@@ -167,7 +166,6 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
                     int docId = FetchId.decodeDocId(fetchId);
                     ReaderBucket readerBucket = context.getReaderBucket(readerId);
                     assert readerBucket != null : "readerBucket must not be null";
-                    setPartitionRow(partitionRows, i, readerBucket);
                     fetchRows[i].cells(readerBucket.get(docId));
                 }
                 idx++;
@@ -207,12 +205,5 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
             }
         }
         return toFetch;
-    }
-
-    private void setPartitionRow(UnsafeArrayRow[] partitionRows, int i, ReaderBucket readerBucket) {
-        if (partitionRows != null && partitionRows[i] != null) {
-            assert readerBucket.partitionValues != null : "readerBucket's partitionValues must not be null";
-            partitionRows[i].cells(readerBucket.partitionValues);
-        }
     }
 }
