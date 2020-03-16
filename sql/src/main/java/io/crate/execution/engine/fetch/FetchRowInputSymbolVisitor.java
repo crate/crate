@@ -31,7 +31,6 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.fetch.FetchSource;
 
@@ -47,7 +46,6 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         private final int[] fetchIdPositions;
         private final Object[][] nullCells;
 
-        private UnsafeArrayRow[] partitionRows;
 
         public Context(Map<RelationName, FetchSource> fetchSources) {
             assert !fetchSources.isEmpty() : "fetchSources must not be empty";
@@ -60,7 +58,6 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
 
             this.fetchRows = new UnsafeArrayRow[numFetchIds];
             this.fetchIdPositions = new int[numFetchIds];
-            this.partitionRows = new UnsafeArrayRow[numFetchIds];
             nullCells = new Object[numFetchIds][];
 
             int idx = 0;
@@ -68,9 +65,6 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
                 for (InputColumn col : fetchSource.fetchIdCols()) {
                     fetchRows[idx] = new UnsafeArrayRow();
                     fetchIdPositions[idx] = col.index();
-                    if (!fetchSource.partitionedByColumns().isEmpty()) {
-                        partitionRows[idx] = new UnsafeArrayRow();
-                    }
                     nullCells[idx] = new Object[fetchSource.references().size()];
                     idx++;
                 }
@@ -88,10 +82,6 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             return fetchRows;
         }
 
-        public UnsafeArrayRow[] partitionRows() {
-            return partitionRows;
-        }
-
         public UnsafeArrayRow inputRow() {
             return inputRow;
         }
@@ -102,37 +92,6 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
 
         public Input<?> allocateInput(int index) {
             return new RowInput(inputRow, index);
-        }
-
-        public Input<?> allocatePartitionedInput(FetchReference fetchReference) {
-            int idx = -1;
-            int fetchIdx = 0;
-            FetchSource fs = null;
-            for (FetchSource fetchSource : fetchSources.values()) {
-                idx = fetchSource.partitionedByColumns().indexOf(fetchReference.ref());
-                if (idx >= 0) {
-                    for (InputColumn col : fetchSource.fetchIdCols()) {
-                        if (col.equals(fetchReference.fetchId())) {
-                            fs = fetchSource;
-                            break;
-                        }
-                    }
-                    if (fs != null) {
-                        break;
-                    }
-                }
-                fetchIdx++;
-            }
-            assert fs != null : "fs must not be null";
-            if (partitionRows == null) {
-                partitionRows = new UnsafeArrayRow[fetchSources.size()];
-            }
-            UnsafeArrayRow row = partitionRows[fetchIdx];
-            if (row == null) {
-                row = new UnsafeArrayRow();
-                partitionRows[fetchIdx] = row;
-            }
-            return new RowInput(row, idx);
         }
 
         public Input<?> allocateInput(FetchReference fetchReference) {
@@ -208,11 +167,6 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
 
     @Override
     public Input<?> visitFetchReference(FetchReference fetchReference, Context context) {
-        if (fetchReference.ref().granularity() == RowGranularity.DOC) {
-            return context.allocateInput(fetchReference);
-        }
-        assert fetchReference.ref().granularity() == RowGranularity.PARTITION
-            : "fetchReference.ref().granularity() must be " + RowGranularity.PARTITION;
-        return context.allocatePartitionedInput(fetchReference);
+        return context.allocateInput(fetchReference);
     }
 }

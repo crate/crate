@@ -317,7 +317,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 " quote string," +
                 " gen_quote as concat(quote, ' Partitioned by awesomeness!')" +
                 ") partitioned by (gen_quote)");
-        ensureYellow();
 
         execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
         refresh();

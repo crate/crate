@@ -66,7 +66,7 @@ class FetchCollector {
     }
 
     private void setNextDocId(LeafReaderContext readerContext, int doc) throws IOException {
-        for (LuceneCollectorExpression e : collectorExpressions) {
+        for (LuceneCollectorExpression<?> e : collectorExpressions) {
             e.setNextReader(readerContext);
             e.setNextDocId(doc);
         }
