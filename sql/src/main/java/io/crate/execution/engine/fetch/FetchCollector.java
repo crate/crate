@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
+import io.crate.exceptions.Exceptions;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -72,13 +73,17 @@ class FetchCollector {
         }
     }
 
-    public StreamBucket collect(IntContainer docIds) throws IOException {
+    public StreamBucket collect(IntContainer docIds) {
         StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccounting);
         for (IntCursor cursor : docIds) {
             int docId = cursor.value;
             int readerIndex = ReaderUtil.subIndex(docId, readerContexts);
             LeafReaderContext subReaderContext = readerContexts.get(readerIndex);
-            setNextDocId(subReaderContext, docId - subReaderContext.docBase);
+            try {
+                setNextDocId(subReaderContext, docId - subReaderContext.docBase);
+            } catch (IOException e) {
+                Exceptions.rethrowRuntimeException(e);
+            }
             builder.add(row);
         }
         return builder.build();

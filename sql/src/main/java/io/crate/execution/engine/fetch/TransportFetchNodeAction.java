@@ -95,7 +95,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
     @Override
     public CompletableFuture<NodeFetchResponse> nodeOperation(final NodeFetchRequest request) {
-        CompletableFuture<IntObjectMap<StreamBucket>> resultFuture = nodeFetchOperation.fetch(
+        CompletableFuture<? extends IntObjectMap<StreamBucket>> resultFuture = nodeFetchOperation.fetch(
             request.jobId(),
             request.fetchPhaseId(),
             request.toFetch(),
