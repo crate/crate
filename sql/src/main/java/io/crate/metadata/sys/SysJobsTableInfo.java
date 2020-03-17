@@ -48,7 +48,7 @@ public class SysJobsTableInfo {
             .endObject()
             .add("stmt", STRING, JobContext::stmt)
             .add("started", TIMESTAMPZ, JobContext::started)
-            .withRouting(nodes -> Routing.forTableOnAllNodes(IDENT, nodes))
+            .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(IDENT, nodes))
             .setPrimaryKeys(new ColumnIdent("id"))
             .build(IDENT);
     }

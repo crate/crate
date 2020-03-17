@@ -53,12 +53,12 @@ public class SysSchemaInfo implements SchemaInfo {
         tableInfos.put(SysJobsTableInfo.IDENT.name(), SysJobsTableInfo.create(localNode));
         tableInfos.put(SysJobsLogTableInfo.IDENT.name(), SysJobsLogTableInfo.create(localNode));
         tableInfos.put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo(localNode));
-        tableInfos.put(SysOperationsLogTableInfo.IDENT.name(), new SysOperationsLogTableInfo());
+        tableInfos.put(SysOperationsLogTableInfo.IDENT.name(), SysOperationsLogTableInfo.create());
         tableInfos.put(SysChecksTableInfo.IDENT.name(), SysChecksTableInfo.create());
         tableInfos.put(SysNodeChecksTableInfo.IDENT.name(), new SysNodeChecksTableInfo());
         tableInfos.put(SysRepositoriesTableInfo.IDENT.name(), new SysRepositoriesTableInfo(clusterService.getClusterSettings().maskedSettings()));
-        tableInfos.put(SysSnapshotsTableInfo.IDENT.name(), new SysSnapshotsTableInfo());
-        tableInfos.put(SysSummitsTableInfo.IDENT.name(), new SysSummitsTableInfo());
+        tableInfos.put(SysSnapshotsTableInfo.IDENT.name(), SysSnapshotsTableInfo.create());
+        tableInfos.put(SysSummitsTableInfo.IDENT.name(), SysSummitsTableInfo.create());
         tableInfos.put(SysAllocationsTableInfo.IDENT.name(), new SysAllocationsTableInfo());
         tableInfos.put(SysHealth.IDENT.name(), SysHealth.create());
         tableInfos.put(SysMetricsTableInfo.NAME.name(), SysMetricsTableInfo.create(localNode));
