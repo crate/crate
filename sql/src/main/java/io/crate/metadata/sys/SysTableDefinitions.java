@@ -88,7 +88,7 @@ public class SysTableDefinitions {
             false));
         tableDefinitions.put(SysOperationsLogTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.operationsLog()),
-            SysOperationsLogTableInfo.expressions(),
+            SysOperationsLogTableInfo.create().expressions(),
             false));
 
         SysChecker<SysCheck> sysChecker = new SysChecker<>(sysChecks);
@@ -107,7 +107,7 @@ public class SysTableDefinitions {
             false));
         tableDefinitions.put(SysSnapshotsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(sysSnapshots.currentSnapshots()),
-            SysSnapshotsTableInfo.expressions(),
+            SysSnapshotsTableInfo.create().expressions(),
             true));
 
         tableDefinitions.put(SysAllocationsTableInfo.IDENT, new StaticTableDefinition<>(
@@ -119,7 +119,7 @@ public class SysTableDefinitions {
         SummitsIterable summits = new SummitsIterable();
         tableDefinitions.put(SysSummitsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(summits),
-            SysSummitsTableInfo.expressions(),
+            SysSummitsTableInfo.create().expressions(),
             false));
 
         SystemTable<TableHealth> sysHealth = SysHealth.create();

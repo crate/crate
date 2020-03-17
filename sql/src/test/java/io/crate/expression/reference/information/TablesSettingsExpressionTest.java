@@ -34,7 +34,7 @@ public class TablesSettingsExpressionTest {
     public void testValueOfStringSettingIsNullOnUnknownParam() {
         TablesSettingsExpression.StringTableParameterExpression foo =
             new TablesSettingsExpression.StringTableParameterExpression("foo");
-        foo.setNextRow(new SysSummitsTableInfo());
+        foo.setNextRow(SysSummitsTableInfo.create());
         assertThat(foo.value(), Matchers.nullValue());
     }
 }

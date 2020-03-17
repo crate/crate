@@ -21,65 +21,29 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.metadata.SystemTable;
 
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
 
-public class SysOperationsLogTableInfo extends StaticTableInfo<OperationContextLog> {
+public class SysOperationsLogTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations_log");
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    private static ColumnRegistrar<OperationContextLog> columnRegistrar() {
-        return new ColumnRegistrar<OperationContextLog>(IDENT, RowGranularity.DOC)
-            .register("id", STRING, () -> forFunction(l -> String.valueOf(l.id())))
-            .register("job_id", STRING, () -> forFunction(l -> l.jobId().toString()))
-            .register("name", STRING, () -> forFunction(OperationContextLog::name))
-            .register("started", TIMESTAMPZ, () -> forFunction(OperationContextLog::started))
-            .register("ended", TIMESTAMPZ, () -> forFunction(OperationContextLog::ended))
-            .register("used_bytes", LONG, () -> forFunction(OperationContextLog::usedBytes))
-            .register("error", STRING, () -> forFunction(OperationContextLog::errorMessage));
-    }
-
-    SysOperationsLogTableInfo() {
-        super(IDENT, columnRegistrar());
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
-    }
-
-    @Override
-    public RelationName ident() {
-        return IDENT;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState clusterState,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnAllNodes(IDENT, clusterState.getNodes());
+    static SystemTable<OperationContextLog> create() {
+        return SystemTable.<OperationContextLog>builder()
+            .add("id", STRING, l -> String.valueOf(l.id()))
+            .add("job_id", STRING, l -> String.valueOf(l.id()))
+            .add("name", STRING, OperationContextLog::name)
+            .add("started", TIMESTAMPZ, OperationContextLog::started)
+            .add("ended", TIMESTAMPZ, OperationContextLog::ended)
+            .add("used_bytes", LONG, OperationContextLog::usedBytes)
+            .add("error", STRING, OperationContextLog::errorMessage)
+            .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(IDENT, nodes))
+            .build(IDENT);
     }
 }
