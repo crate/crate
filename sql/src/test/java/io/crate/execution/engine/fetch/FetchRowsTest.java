@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
+import io.crate.data.RowN;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -80,17 +81,15 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
         );
         long fetchIdRel1 = FetchId.encode(1, 1);
         long fetchIdRel2 = FetchId.encode(2, 1);
-        var readerBuckets = new ReaderBuckets();
-        readerBuckets.require(fetchIdRel1);
-        readerBuckets.require(fetchIdRel2);
-        readerBuckets.getReaderBucket(1).require(1);
-        readerBuckets.getReaderBucket(2).require(1);
+        var readerBuckets = new ReaderBuckets(fetchRows);
+        readerBuckets.add(new RowN(fetchIdRel1, fetchIdRel2, 42));
         IntObjectHashMap<Bucket> results = new IntObjectHashMap<>();
         results.put(1, new ArrayBucket($$($("Arthur"))));
         results.put(2, new ArrayBucket($$($("Trillian"))));
 
-        readerBuckets.applyResults(List.of(results));
-        var outputRow = fetchRows.updatedOutputRow(new Object[] { fetchIdRel1, fetchIdRel2, 42 }, readerBuckets);
+        var it = readerBuckets.getOutputRows(List.of(results));
+        assertThat(it.hasNext(), is(true));
+        var outputRow = it.next();
 
         assertThat(outputRow.get(0), is("Arthur"));
         assertThat(outputRow.get(1), is("Trillian"));

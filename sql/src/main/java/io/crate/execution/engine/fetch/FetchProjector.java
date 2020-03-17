@@ -22,8 +22,9 @@
 
 package io.crate.execution.engine.fetch;
 
-import io.crate.data.AsyncOperationBatchIterator;
+import io.crate.data.AsyncFlatMapBatchIterator;
 import io.crate.data.BatchIterator;
+import io.crate.data.BatchIterators;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.FetchProjection;
@@ -42,15 +43,18 @@ public final class FetchProjector {
             projection.fetchSources(),
             projection.outputSymbols()
         );
-        return (BatchIterator<Row> source) ->
-            new AsyncOperationBatchIterator<>(
+        return (BatchIterator<Row> source) -> {
+            BatchIterator<ReaderBuckets> buckets = BatchIterators.partition(
                 source,
-                new FetchBatchAccumulator(
-                    fetchRows,
-                    fetchOperation,
-                    projection.nodeReaders(),
-                    projection.getFetchSize()
-                )
+                projection.getFetchSize(),
+                () -> new ReaderBuckets(fetchRows),
+                ReaderBuckets::add,
+                x -> false
             );
+            return new AsyncFlatMapBatchIterator<>(
+                buckets,
+                new FetchMapper(fetchOperation, projection.nodeReaders())
+            );
+        };
     }
 }

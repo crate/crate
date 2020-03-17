@@ -22,9 +22,10 @@
 
 package io.crate.execution.engine.fetch;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-
-import javax.annotation.Nullable;
+import java.util.NoSuchElementException;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
@@ -32,23 +33,47 @@ import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.data.Bucket;
+import io.crate.data.Row;
 
+/**
+ * Stores incoming rows and partitions them based on the _fetchIds in the rows into buckets per readerId.
+ *
+ * <pre>
+ * Example use:
+ *
+ *  for row in source:
+ *      readerBuckets.add(row);
+ *
+ *  docIdsByReader = readerBuckets.generateToFetch(readerIds);
+ *  listOfFetchRowsByReader = fetchOperation(docIdsByReader)
+ *  result = readerBuckets.getOutputRows(listOfBucketByReader)
+ * </pre>
+ */
 public class ReaderBuckets {
 
     private final IntObjectHashMap<ReaderBucket> readerBuckets = new IntObjectHashMap<>();
+    private final ArrayList<Object[]> rows = new ArrayList<>();
+    private final FetchRows fetchRows;
 
-    public ReaderBuckets() {
+    public ReaderBuckets(FetchRows fetchRows) {
+        this.fetchRows = fetchRows;
     }
 
-    @Nullable
-    ReaderBucket getReaderBucket(int readerId) {
-        return readerBuckets.get(readerId);
+    public void add(Row row) {
+        Object[] cells = row.materialize();
+        rows.add(cells);
+        for (int i : fetchRows.fetchIdPositions()) {
+            Object fetchId = cells[i];
+            if (fetchId == null) {
+                continue;
+            }
+            require((long) fetchId);
+        }
     }
 
-    ReaderBucket require(long fetchId) {
+    private void require(long fetchId) {
         int readerId = FetchId.decodeReaderId(fetchId);
         int docId = FetchId.decodeDocId(fetchId);
         ReaderBucket readerBucket = readerBuckets.get(readerId);
@@ -57,33 +82,45 @@ public class ReaderBuckets {
             readerBuckets.put(readerId, readerBucket);
         }
         readerBucket.require(docId);
-        return readerBucket;
     }
 
-    void clearBuckets() {
-        for (ObjectCursor<ReaderBucket> bucketCursor : readerBuckets.values()) {
-            bucketCursor.value.docs.clear();
-        }
-    }
-
-    public void applyResults(List<IntObjectMap<? extends Bucket>> resultsByReader) {
+    public Iterator<Row> getOutputRows(List<IntObjectMap<? extends Bucket>> resultsByReader) {
         for (IntObjectMap<? extends Bucket> result : resultsByReader) {
             if (result == null) {
                 continue;
             }
             for (IntObjectCursor<? extends Bucket> cursor : result) {
-                ReaderBucket readerBucket = getReaderBucket(cursor.key);
+                ReaderBucket readerBucket = readerBuckets.get(cursor.key);
                 assert readerBucket != null
                     : "If we get a result for a reader, there must be a readerBucket for it";
                 readerBucket.fetched(cursor.value);
             }
         }
+        return new Iterator<Row>() {
+
+            int idx = 0;
+
+            @Override
+            public boolean hasNext() {
+                return idx < rows.size();
+            }
+
+            @Override
+            public Row next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException("Iterator is exhausted");
+                }
+                Object[] row = rows.get(idx);
+                idx++;
+                return fetchRows.updatedOutputRow(row, readerBuckets::get);
+            }
+        };
     }
 
     public IntObjectHashMap<IntContainer> generateToFetch(IntSet readerIds) {
         IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>(readerIds.size());
         for (IntCursor readerIdCursor : readerIds) {
-            ReaderBucket readerBucket = getReaderBucket(readerIdCursor.value);
+            ReaderBucket readerBucket = readerBuckets.get(readerIdCursor.value);
             if (readerBucket != null && readerBucket.docs.size() > 0) {
                 toFetch.put(readerIdCursor.value, readerBucket.docs.keys());
             }

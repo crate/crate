@@ -25,6 +25,7 @@ package io.crate.execution.engine.fetch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntFunction;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;
@@ -156,7 +157,7 @@ public final class FetchRows {
         this.inputRow = inputRow;
     }
 
-    public Row updatedOutputRow(final Object[] incomingCells, final ReaderBuckets readerBuckets) {
+    public Row updatedOutputRow(Object[] incomingCells, IntFunction<ReaderBucket> getReaderBucket) {
         for (int i = 0; i < fetchIdPositions.length; i++) {
             int fetchIdPos = fetchIdPositions[i];
             Long fetchId = (Long) incomingCells[fetchIdPos];
@@ -166,7 +167,7 @@ public final class FetchRows {
             } else {
                 int readerId = FetchId.decodeReaderId(fetchId);
                 int docId = FetchId.decodeDocId(fetchId);
-                fetchedRow.cells(readerBuckets.getReaderBucket(readerId).get(docId));
+                fetchedRow.cells(getReaderBucket.apply(readerId).get(docId));
             }
         }
         inputRow.cells(incomingCells);

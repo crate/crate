@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 
 import com.carrotsearch.hppc.IntContainer;
@@ -38,65 +37,43 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import io.crate.concurrent.CompletableFutures;
-import io.crate.data.BatchAccumulator;
+import io.crate.data.AsyncFlatMapper;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 
-public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? extends Row>> {
+public class FetchMapper implements AsyncFlatMapper<ReaderBuckets, Row> {
 
-    private static final Logger LOGGER = LogManager.getLogger(FetchBatchAccumulator.class);
+    private static final Logger LOGGER = LogManager.getLogger(FetchMapper.class);
 
     private final FetchOperation fetchOperation;
-    private final ReaderBuckets readerBuckets;
-    private final int fetchSize;
-    private final ArrayList<Object[]> inputValues = new ArrayList<>();
-    private final FetchRows fetchRows;
     private final Map<String, IntSet> readerIdsByNode;
 
-    public FetchBatchAccumulator(FetchRows fetchRows,
-                                 FetchOperation fetchOperation,
-                                 Map<String, IntSet> readerIdsByNode,
-                                 int fetchSize) {
+    public FetchMapper(FetchOperation fetchOperation, Map<String, IntSet> readerIdsByNode) {
         this.fetchOperation = fetchOperation;
         this.readerIdsByNode = readerIdsByNode;
-        this.readerBuckets = new ReaderBuckets();
-        this.fetchSize = fetchSize;
-        this.fetchRows = fetchRows;
     }
 
     @Override
-    public void onItem(Row row) {
-        Object[] cells = row.materialize();
-        for (int i : fetchRows.fetchIdPositions()) {
-            Object fetchId = cells[i];
-            if (fetchId != null) {
-                readerBuckets.require((long) fetchId);
-            }
-        }
-        inputValues.add(cells);
-    }
-
-    @Override
-    public CompletableFuture<Iterator<? extends Row>> processBatch(boolean isLastBatch) {
+    public CompletableFuture<? extends Iterator<Row>> apply(ReaderBuckets readerBuckets, boolean isLastCall) {
         List<CompletableFuture<IntObjectMap<? extends Bucket>>> futures = new ArrayList<>();
         Iterator<Map.Entry<String, IntSet>> it = readerIdsByNode.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, IntSet> entry = it.next();
             IntObjectHashMap<IntContainer> toFetch = readerBuckets.generateToFetch(entry.getValue());
-            if (toFetch.isEmpty() && !isLastBatch) {
+            if (toFetch.isEmpty() && !isLastCall) {
                 continue;
             }
             final String nodeId = entry.getKey();
             try {
-                futures.add(fetchOperation.fetch(nodeId, toFetch, isLastBatch));
+                futures.add(fetchOperation.fetch(nodeId, toFetch, isLastCall));
             } catch (Throwable t) {
                 futures.add(CompletableFuture.failedFuture(t));
             }
-            if (isLastBatch) {
+            if (isLastCall) {
                 it.remove();
             }
         }
-        return CompletableFutures.allAsList(futures).thenApply(this::getRows);
+        return CompletableFutures.allAsList(futures).thenApply(readerBuckets::getOutputRows);
     }
 
     @Override
@@ -108,43 +85,5 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
                     return null;
                 });
         }
-    }
-
-    @Override
-    public void reset() {
-        readerBuckets.clearBuckets();
-        inputValues.clear();
-    }
-
-    private Iterator<? extends Row> getRows(List<IntObjectMap<? extends Bucket>> results) {
-        readerBuckets.applyResults(results);
-        return new Iterator<Row>() {
-
-            int idx = 0;
-
-            @Override
-            public boolean hasNext() {
-                return idx < inputValues.size();
-            }
-
-            @Override
-            public Row next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException("Iterator is exhausted");
-                }
-                Object[] cells = inputValues.get(idx);
-                idx++;
-                Row outputRow = fetchRows.updatedOutputRow(cells, readerBuckets);
-                if (!hasNext()) {
-                    readerBuckets.clearBuckets();
-                }
-                return outputRow;
-            }
-        };
-    }
-
-    @Override
-    public int batchSize() {
-        return fetchSize;
     }
 }
