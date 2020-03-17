@@ -21,10 +21,26 @@
 
 package io.crate.execution.engine.fetch;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.index.IndexService;
+
 import io.crate.Streamer;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.ConcurrentRamAccounting;
@@ -40,21 +56,6 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.index.IndexService;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 public class NodeFetchOperation {
 
@@ -111,43 +112,42 @@ public class NodeFetchOperation {
         this.circuitBreaker = circuitBreaker;
     }
 
-    public CompletableFuture<IntObjectMap<StreamBucket>> fetch(UUID jobId,
-                                                               int phaseId,
-                                                               @Nullable IntObjectMap<? extends IntContainer> docIdsToFetch,
-                                                               boolean closeTaskOnFinish) {
-        CompletableFuture<IntObjectMap<StreamBucket>> resultFuture = new CompletableFuture<>();
-        logStartAndSetupLogFinished(jobId, phaseId, resultFuture);
-
+    public CompletableFuture<? extends IntObjectMap<StreamBucket>> fetch(UUID jobId,
+                                                                         int phaseId,
+                                                                         @Nullable IntObjectMap<? extends IntContainer> docIdsToFetch,
+                                                                         boolean closeTaskOnFinish) {
         if (docIdsToFetch == null) {
             if (closeTaskOnFinish) {
                 tryCloseTask(jobId, phaseId);
             }
-            resultFuture.complete(new IntObjectHashMap<>(0));
-            return resultFuture;
+            jobsLogs.operationStarted(phaseId, jobId, "fetch", () -> -1);
+            jobsLogs.operationFinished(phaseId, jobId, null);
+            return CompletableFuture.completedFuture(new IntObjectHashMap<>(0));
         }
 
         RootTask context = tasksService.getTask(jobId);
         FetchTask fetchTask = context.getTask(phaseId);
-        try {
-            doFetch(fetchTask, resultFuture, docIdsToFetch);
-        } catch (Throwable t) {
-            resultFuture.completeExceptionally(t);
-        }
-        if (closeTaskOnFinish) {
-            return resultFuture.whenComplete(new CloseTaskCallback(fetchTask));
-        }
-        return resultFuture;
-    }
-
-    private void logStartAndSetupLogFinished(final UUID jobId, final int phaseId, CompletableFuture<?> resultFuture) {
         jobsLogs.operationStarted(phaseId, jobId, "fetch", () -> -1);
-        resultFuture.whenComplete((r, t) -> {
-            if (t == null) {
+        BiConsumer<? super IntObjectMap<StreamBucket>, ? super Throwable> whenComplete = (res, err) -> {
+            if (closeTaskOnFinish) {
+                if (err == null) {
+                    fetchTask.close();
+                } else {
+                    fetchTask.kill(err);
+                }
+            }
+            if (err == null) {
                 jobsLogs.operationFinished(phaseId, jobId, null);
             } else {
-                jobsLogs.operationFinished(phaseId, jobId, SQLExceptions.messageOf(t));
+                jobsLogs.operationFinished(phaseId, jobId, SQLExceptions.messageOf(err));
             }
-        });
+        };
+        try {
+            return doFetch(fetchTask, docIdsToFetch).whenComplete(whenComplete);
+        } catch (Throwable t) {
+            whenComplete.accept(null, t);
+            return CompletableFuture.failedFuture(t);
+        }
     }
 
     private void tryCloseTask(UUID jobId, int phaseId) {
@@ -160,7 +160,7 @@ public class NodeFetchOperation {
         }
     }
 
-    private HashMap<RelationName, TableFetchInfo> getTableFetchInfos(FetchTask fetchTask) {
+    private static HashMap<RelationName, TableFetchInfo> getTableFetchInfos(FetchTask fetchTask) {
         HashMap<RelationName, TableFetchInfo> result = new HashMap<>(fetchTask.toFetch().size());
         for (Map.Entry<RelationName, Collection<Reference>> entry : fetchTask.toFetch().entrySet()) {
             TableFetchInfo tableFetchInfo = new TableFetchInfo(entry.getValue(), fetchTask);
@@ -169,21 +169,13 @@ public class NodeFetchOperation {
         return result;
     }
 
-    private void doFetch(FetchTask fetchTask,
-                         CompletableFuture<IntObjectMap<StreamBucket>> resultFuture,
-                         IntObjectMap<? extends IntContainer> toFetch) throws Exception {
-
-        final IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(toFetch.size());
+    private CompletableFuture<? extends IntObjectMap<StreamBucket>> doFetch(FetchTask fetchTask, IntObjectMap<? extends IntContainer> toFetch) throws Exception {
         HashMap<RelationName, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchTask);
-        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>(null);
-        final AtomicInteger threadLatch = new AtomicInteger(toFetch.size());
 
         // RamAccounting is per doFetch call instead of per FetchTask/fetchPhase
         // To be able to free up the memory count when the operation is complete
-        var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("fetch-" + fetchTask.id(), circuitBreaker);
-        resultFuture.whenComplete((r, f) -> ramAccounting.close());
-
-        ArrayList<Supplier<Void>> collectors = new ArrayList<>();
+        final var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("fetch-" + fetchTask.id(), circuitBreaker);
+        ArrayList<Supplier<StreamBucket>> collectors = new ArrayList<>(toFetch.size());
         for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
             final int readerId = toFetchCursor.key;
             final IntContainer docIds = toFetchCursor.value;
@@ -192,96 +184,30 @@ public class NodeFetchOperation {
             final TableFetchInfo tfi = tableFetchInfos.get(ident);
             assert tfi != null : "tfi must not be null";
 
-            CollectRunnable collectRunnable = new CollectRunnable(
-                tfi.createCollector(
-                    readerId,
-                    new BlockBasedRamAccounting(
-                        ramAccounting::addBytes,
-                        BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES)),
-                docIds,
-                fetched,
+            var collector = tfi.createCollector(
                 readerId,
-                lastThrowable,
-                threadLatch,
-                resultFuture,
-                fetchTask.isKilled()
+                new BlockBasedRamAccounting(
+                    ramAccounting::addBytes,
+                    BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES
+                )
             );
-            collectors.add(() -> {
-                collectRunnable.run();
-                return null;
-            });
+            collectors.add(() -> collector.collect(docIds));
         }
-
-        // We're only forwarding the failure case to the resultFuture here (eg. thread pools rejecting the collectors)
-        // When all collectors complete successfully, the last one will complete the resultFuture with the result.
-        ThreadPools.runWithAvailableThreads(
+        return ThreadPools.runWithAvailableThreads(
             executor,
             ThreadPools.numIdleThreads(executor, numProcessors),
             collectors
-        ).whenComplete((r, t) -> {
-            if (t != null) {
-                resultFuture.completeExceptionally(t);
+        ).thenApply(buckets -> {
+            var toFetchIt = toFetch.iterator();
+            assert toFetch.size() == buckets.size()
+                : "Must have a bucket per reader and they must be in the same order";
+            IntObjectHashMap<StreamBucket> bucketByReader = new IntObjectHashMap<>(toFetch.size());
+            for (var bucket : buckets) {
+                assert toFetchIt.hasNext() : "toFetchIt must have an element if there is one in buckets";
+                int readerId = toFetchIt.next().key;
+                bucketByReader.put(readerId, bucket);
             }
-        });
+            return bucketByReader;
+        }).whenComplete((result, err) -> ramAccounting.close());
     }
-
-    private static class CollectRunnable implements Runnable {
-        private final FetchCollector collector;
-        private final IntContainer docIds;
-        private final IntObjectHashMap<StreamBucket> fetched;
-        private final int readerId;
-        private final AtomicReference<Throwable> lastThrowable;
-        private final AtomicInteger threadLatch;
-        private final CompletableFuture<IntObjectMap<StreamBucket>> resultFuture;
-        private final AtomicBoolean contextKilledRef;
-
-        CollectRunnable(FetchCollector collector,
-                        IntContainer docIds,
-                        IntObjectHashMap<StreamBucket> fetched,
-                        int readerId,
-                        AtomicReference<Throwable> lastThrowable,
-                        AtomicInteger threadLatch,
-                        CompletableFuture<IntObjectMap<StreamBucket>> resultFuture,
-                        AtomicBoolean contextKilledRef) {
-            this.collector = collector;
-            this.docIds = docIds;
-            this.fetched = fetched;
-            this.readerId = readerId;
-            this.lastThrowable = lastThrowable;
-            this.threadLatch = threadLatch;
-            this.resultFuture = resultFuture;
-            this.contextKilledRef = contextKilledRef;
-        }
-
-        @Override
-        public void run() {
-            try {
-                StreamBucket bucket = collector.collect(docIds);
-                synchronized (fetched) {
-                    fetched.put(readerId, bucket);
-                }
-            } catch (Exception e) {
-                lastThrowable.set(e);
-            } finally {
-                if (threadLatch.decrementAndGet() == 0) {
-                    Throwable throwable = lastThrowable.get();
-                    if (throwable == null) {
-                        resultFuture.complete(fetched);
-                    } else {
-                        /* If the context gets killed the operation might fail due to the release of the underlying searchers.
-                         * Only a InterruptedException is sent to the fetch-client.
-                         * Otherwise the original exception which caused the kill could be overwritten by some
-                         * side-effect-exception that happened because of the kill.
-                         */
-                        if (contextKilledRef.get()) {
-                            resultFuture.completeExceptionally(new InterruptedException());
-                        } else {
-                            resultFuture.completeExceptionally(throwable);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
 }
