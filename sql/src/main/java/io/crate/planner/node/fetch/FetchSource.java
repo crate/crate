@@ -22,16 +22,18 @@
 
 package io.crate.planner.node.fetch;
 
-import io.crate.expression.symbol.InputColumn;
-import io.crate.metadata.Reference;
-
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
+
+import io.crate.expression.symbol.InputColumn;
+import io.crate.metadata.Reference;
 
 public class FetchSource {
 
     private final LinkedHashSet<InputColumn> fetchIdCols = new LinkedHashSet<>();
-    private final LinkedHashSet<Reference> references = new LinkedHashSet<>();
+    private final ArrayList<Reference> references = new ArrayList<>();
 
     public FetchSource() {
     }
@@ -48,7 +50,7 @@ public class FetchSource {
         return fetchIdCols;
     }
 
-    public Collection<Reference> references() {
+    public List<Reference> references() {
         return references;
     }
 }

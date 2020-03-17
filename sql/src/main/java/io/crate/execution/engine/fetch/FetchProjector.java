@@ -26,52 +26,31 @@ import io.crate.data.AsyncOperationBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
+import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 
-import java.util.List;
+public final class FetchProjector {
 
-public class FetchProjector implements Projector {
-
-    private final TransactionContext txnCtx;
-    private final FetchOperation fetchOperation;
-    private final Functions functions;
-    private final List<Symbol> outputSymbols;
-    private final FetchProjectorContext fetchProjectorContext;
-    private final int fetchSize;
-
-    public FetchProjector(TransactionContext txnCtx,
-                          FetchOperation fetchOperation,
-                          Functions functions,
-                          List<Symbol> outputSymbols,
-                          FetchProjectorContext fetchProjectorContext,
-                          int fetchSize) {
-        this.txnCtx = txnCtx;
-        this.fetchOperation = fetchOperation;
-        this.functions = functions;
-        this.outputSymbols = outputSymbols;
-        this.fetchProjectorContext = fetchProjectorContext;
-        this.fetchSize = fetchSize;
-    }
-
-    @Override
-    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
-        return new AsyncOperationBatchIterator<>(
-            batchIterator,
-            new FetchBatchAccumulator(
-                txnCtx,
-                fetchOperation,
-                functions,
-                outputSymbols,
-                fetchProjectorContext,
-                fetchSize
-            )
+    public static Projector create(FetchProjection projection,
+                                   TransactionContext txnCtx,
+                                   Functions functions,
+                                   FetchOperation fetchOperation) {
+        final FetchRows fetchRows = FetchRows.create(
+            txnCtx,
+            functions,
+            projection.fetchSources(),
+            projection.outputSymbols()
         );
-    }
-
-    @Override
-    public boolean providesIndependentScroll() {
-        return false;
+        return (BatchIterator<Row> source) ->
+            new AsyncOperationBatchIterator<>(
+                source,
+                new FetchBatchAccumulator(
+                    fetchRows,
+                    fetchOperation,
+                    projection.nodeReaders(),
+                    projection.getFetchSize()
+                )
+            );
     }
 }

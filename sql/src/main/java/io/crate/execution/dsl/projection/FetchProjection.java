@@ -21,24 +21,32 @@
 
 package io.crate.execution.dsl.projection;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.monitor.jvm.JvmInfo;
+
+import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Paging;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.fetch.FetchSource;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.monitor.jvm.JvmInfo;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class FetchProjection extends Projection {
 
@@ -169,5 +177,26 @@ public class FetchProjection extends Projection {
             "outputs", Lists2.joinOn(", ", outputSymbols, Symbol::toString),
             "fetchSize", fetchSize
         );
+    }
+
+    @SuppressWarnings({"rawtypes"})
+    public Map<String, ? extends IntObjectMap<Streamer[]>> generateStreamersGroupedByReaderAndNode() {
+        HashMap<String, IntObjectHashMap<Streamer[]>> streamersByReaderByNode = new HashMap<>();
+        for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
+            IntObjectHashMap<Streamer[]> streamersByReaderId = new IntObjectHashMap<>();
+            String nodeId = entry.getKey();
+            streamersByReaderByNode.put(nodeId, streamersByReaderId);
+            for (IntCursor readerIdCursor : entry.getValue()) {
+                int readerId = readerIdCursor.value;
+                String index = readerIndices.floorEntry(readerId).getValue();
+                RelationName relationName = indicesToIdents.get(index);
+                FetchSource fetchSource = fetchSources.get(relationName);
+                if (fetchSource == null) {
+                    continue;
+                }
+                streamersByReaderId.put(readerIdCursor.value, Symbols.streamerArray(fetchSource.references()));
+            }
+        }
+        return streamersByReaderByNode;
     }
 }

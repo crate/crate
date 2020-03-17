@@ -22,25 +22,6 @@
 
 package io.crate.execution.engine.fetch;
 
-import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntSet;
-import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import io.crate.concurrent.CompletableFutures;
-import io.crate.data.BatchAccumulator;
-import io.crate.data.Bucket;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.UnsafeArrayRow;
-import io.crate.expression.InputRow;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Functions;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -48,45 +29,48 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 
+import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
+import com.carrotsearch.hppc.IntSet;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.crate.concurrent.CompletableFutures;
+import io.crate.data.BatchAccumulator;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+
 public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? extends Row>> {
 
     private static final Logger LOGGER = LogManager.getLogger(FetchBatchAccumulator.class);
 
     private final FetchOperation fetchOperation;
-    private final FetchProjectorContext context;
+    private final ReaderBuckets readerBuckets;
     private final int fetchSize;
-    private final FetchRowInputSymbolVisitor.Context collectRowContext;
-    private final InputRow outputRow;
     private final ArrayList<Object[]> inputValues = new ArrayList<>();
+    private final FetchRows fetchRows;
+    private final Map<String, IntSet> readerIdsByNode;
 
-    public FetchBatchAccumulator(TransactionContext txnCtx,
+    public FetchBatchAccumulator(FetchRows fetchRows,
                                  FetchOperation fetchOperation,
-                                 Functions functions,
-                                 List<Symbol> outputSymbols,
-                                 FetchProjectorContext fetchProjectorContext,
+                                 Map<String, IntSet> readerIdsByNode,
                                  int fetchSize) {
         this.fetchOperation = fetchOperation;
-        this.context = fetchProjectorContext;
+        this.readerIdsByNode = readerIdsByNode;
+        this.readerBuckets = new ReaderBuckets();
         this.fetchSize = fetchSize;
-
-        FetchRowInputSymbolVisitor rowInputSymbolVisitor = new FetchRowInputSymbolVisitor(txnCtx, functions);
-        this.collectRowContext = new FetchRowInputSymbolVisitor.Context(fetchProjectorContext.tableToFetchSource);
-
-        List<Input<?>> inputs = new ArrayList<>(outputSymbols.size());
-        for (Symbol symbol : outputSymbols) {
-            inputs.add(symbol.accept(rowInputSymbolVisitor, collectRowContext));
-        }
-        outputRow = new InputRow(inputs);
+        this.fetchRows = fetchRows;
     }
 
     @Override
     public void onItem(Row row) {
         Object[] cells = row.materialize();
-        collectRowContext.inputRow().cells(cells);
-        for (int i : collectRowContext.fetchIdPositions()) {
+        for (int i : fetchRows.fetchIdPositions()) {
             Object fetchId = cells[i];
             if (fetchId != null) {
-                context.require((long) fetchId);
+                readerBuckets.require((long) fetchId);
             }
         }
         inputValues.add(cells);
@@ -95,10 +79,10 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
     @Override
     public CompletableFuture<Iterator<? extends Row>> processBatch(boolean isLastBatch) {
         List<CompletableFuture<IntObjectMap<? extends Bucket>>> futures = new ArrayList<>();
-        Iterator<Map.Entry<String, IntSet>> it = context.nodeToReaderIds.entrySet().iterator();
+        Iterator<Map.Entry<String, IntSet>> it = readerIdsByNode.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, IntSet> entry = it.next();
-            IntObjectHashMap<IntContainer> toFetch = generateToFetch(entry.getValue());
+            IntObjectHashMap<IntContainer> toFetch = readerBuckets.generateToFetch(entry.getValue());
             if (toFetch.isEmpty() && !isLastBatch) {
                 continue;
             }
@@ -117,7 +101,7 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
 
     @Override
     public void close() {
-        for (String nodeId : context.nodeToReaderIds.keySet()) {
+        for (String nodeId : readerIdsByNode.keySet()) {
             fetchOperation.fetch(nodeId, new IntObjectHashMap<>(0), true)
                 .exceptionally(e -> {
                     LOGGER.error("An error happened while sending close fetchRequest to node=" + nodeId, e);
@@ -128,18 +112,13 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
 
     @Override
     public void reset() {
-        context.clearBuckets();
+        readerBuckets.clearBuckets();
         inputValues.clear();
     }
 
     private Iterator<? extends Row> getRows(List<IntObjectMap<? extends Bucket>> results) {
-        applyResultToReaderBuckets(results);
+        readerBuckets.applyResults(results);
         return new Iterator<Row>() {
-
-            final int[] fetchIdPositions = collectRowContext.fetchIdPositions();
-            final UnsafeArrayRow inputRow = collectRowContext.inputRow();
-            final UnsafeArrayRow[] fetchRows = collectRowContext.fetchRows();
-            final Object[][] nullCells = collectRowContext.nullCells();
 
             int idx = 0;
 
@@ -154,25 +133,10 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
                     throw new NoSuchElementException("Iterator is exhausted");
                 }
                 Object[] cells = inputValues.get(idx);
-                inputRow.cells(cells);
-                for (int i = 0; i < fetchIdPositions.length; i++) {
-                    Object fetchIdObj = cells[fetchIdPositions[i]];
-                    if (fetchIdObj == null) {
-                        fetchRows[i].cells(nullCells[i]);
-                        continue;
-                    }
-                    long fetchId = (long) fetchIdObj;
-                    int readerId = FetchId.decodeReaderId(fetchId);
-                    int docId = FetchId.decodeDocId(fetchId);
-                    ReaderBucket readerBucket = context.getReaderBucket(readerId);
-                    assert readerBucket != null : "readerBucket must not be null";
-                    fetchRows[i].cells(readerBucket.get(docId));
-                }
                 idx++;
+                Row outputRow = fetchRows.updatedOutputRow(cells, readerBuckets);
                 if (!hasNext()) {
-                    // free up memory - in case we're streaming data to the client
-                    // this would otherwise grow to hold the whole result in-memory
-                    reset();
+                    readerBuckets.clearBuckets();
                 }
                 return outputRow;
             }
@@ -182,28 +146,5 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
     @Override
     public int batchSize() {
         return fetchSize;
-    }
-
-    private void applyResultToReaderBuckets(List<IntObjectMap<? extends Bucket>> results) {
-        for (IntObjectMap<? extends Bucket> result : results) {
-            if (result == null) {
-                continue;
-            }
-            for (IntObjectCursor<? extends Bucket> cursor : result) {
-                ReaderBucket readerBucket = context.getReaderBucket(cursor.key);
-                readerBucket.fetched(cursor.value);
-            }
-        }
-    }
-
-    private IntObjectHashMap<IntContainer> generateToFetch(IntSet readerIds) {
-        IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>(readerIds.size());
-        for (IntCursor readerIdCursor : readerIds) {
-            ReaderBucket readerBucket = context.readerBucket(readerIdCursor.value);
-            if (readerBucket != null && readerBucket.docs.size() > 0) {
-                toFetch.put(readerIdCursor.value, readerBucket.docs.keys());
-            }
-        }
-        return toFetch;
     }
 }

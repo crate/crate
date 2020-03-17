@@ -29,6 +29,7 @@ import java.util.function.UnaryOperator;
  * Projects a given upstream {@link BatchIterator} object and returns a batch iterator which follows the semantics of
  * the underlying projection.
  */
+@FunctionalInterface
 public interface Projector extends UnaryOperator<BatchIterator<Row>> {
 
     /**

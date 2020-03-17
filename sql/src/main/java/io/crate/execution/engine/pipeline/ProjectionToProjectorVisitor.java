@@ -22,7 +22,33 @@
 
 package io.crate.execution.engine.pipeline;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
+
+import javax.annotation.Nullable;
+
 import com.google.common.collect.Iterables;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RamAccounting;
@@ -65,7 +91,6 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.execution.engine.export.FileWriterProjector;
 import io.crate.execution.engine.fetch.FetchProjector;
-import io.crate.execution.engine.fetch.FetchProjectorContext;
 import io.crate.execution.engine.fetch.TransportFetchOperation;
 import io.crate.execution.engine.indexing.ColumnIndexWriterProjector;
 import io.crate.execution.engine.indexing.DMLProjector;
@@ -101,29 +126,6 @@ import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
 
 public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
@@ -586,25 +588,17 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitFetchProjection(FetchProjection projection, Context context) {
-        FetchProjectorContext projectorContext = new FetchProjectorContext(
-            projection.fetchSources(),
-            projection.nodeReaders(),
-            projection.readerIndices(),
-            projection.indicesToIdents()
-        );
-        return new FetchProjector(
+        return FetchProjector.create(
+            projection,
             context.txnCtx,
+            functions,
             new TransportFetchOperation(
                 transportActionProvider.transportFetchNodeAction(),
-                projectorContext.nodeIdsToStreamers(),
+                projection.generateStreamersGroupedByReaderAndNode(),
                 context.jobId,
                 projection.fetchPhaseId(),
                 context.ramAccounting
-            ),
-            functions,
-            projection.outputSymbols(),
-            projectorContext,
-            projection.getFetchSize()
+            )
         );
     }
 
