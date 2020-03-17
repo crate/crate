@@ -446,7 +446,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testArraySupport() throws Exception {
         execute("create table t1 (id int primary key, strings array(string), integers array(integer)) with (number_of_replicas=0)");
         ensureYellow();

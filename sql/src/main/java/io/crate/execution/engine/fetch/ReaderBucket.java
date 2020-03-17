@@ -32,11 +32,9 @@ import java.util.Locale;
 
 class ReaderBucket {
 
-    private final boolean fetchRequired;
     final IntObjectHashMap<Object[]> docs = new IntObjectHashMap<>();
 
-    ReaderBucket(boolean fetchRequired) {
-        this.fetchRequired = fetchRequired;
+    ReaderBucket() {
     }
 
     void require(int doc) {
@@ -56,9 +54,5 @@ class ReaderBucket {
             docs.indexReplace(intCursor.index, rowIterator.next().materialize());
         }
         assert !rowIterator.hasNext() : "no more rows should exist";
-    }
-
-    boolean fetchRequired() {
-        return fetchRequired;
     }
 }

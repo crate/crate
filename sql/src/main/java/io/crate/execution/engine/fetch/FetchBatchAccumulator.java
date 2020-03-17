@@ -200,7 +200,7 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
         IntObjectHashMap<IntContainer> toFetch = new IntObjectHashMap<>(readerIds.size());
         for (IntCursor readerIdCursor : readerIds) {
             ReaderBucket readerBucket = context.readerBucket(readerIdCursor.value);
-            if (readerBucket != null && readerBucket.fetchRequired() && readerBucket.docs.size() > 0) {
+            if (readerBucket != null && readerBucket.docs.size() > 0) {
                 toFetch.put(readerIdCursor.value, readerBucket.docs.keys());
             }
         }
