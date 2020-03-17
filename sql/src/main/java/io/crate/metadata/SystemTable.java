@@ -47,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -57,17 +58,17 @@ public final class SystemTable<T> implements TableInfo {
     private final Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions;
     private final List<ColumnIdent> primaryKeys;
     private final List<Reference> rootColumns;
-    private final Function<DiscoveryNodes, Routing> getRouting;
+    private final BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting;
 
     public SystemTable(RelationName name,
                        Map<ColumnIdent, Reference> columns,
                        Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions,
                        List<ColumnIdent> primaryKeys,
-                       @Nullable Function<DiscoveryNodes, Routing> getRouting) {
+                       @Nullable BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting) {
         this.name = name;
         this.columns = columns;
         this.getRouting = getRouting == null
-            ? nodes -> Routing.forTableOnSingleNode(name, nodes.getLocalNodeId())
+            ? (nodes, routingProvider) -> Routing.forTableOnSingleNode(name, nodes.getLocalNodeId())
             : getRouting;
         this.rootColumns = columns.values().stream()
             .filter(x -> x.column().isTopLevel())
@@ -94,7 +95,7 @@ public final class SystemTable<T> implements TableInfo {
                               WhereClause whereClause,
                               RoutingProvider.ShardSelection shardSelection,
                               SessionContext sessionContext) {
-        return getRouting.apply(state.getNodes());
+        return getRouting.apply(state.getNodes(), routingProvider);
     }
 
     @Override
@@ -171,9 +172,14 @@ public final class SystemTable<T> implements TableInfo {
 
         private final ArrayList<Column<T, ?>> columns = new ArrayList<>();
         private List<ColumnIdent> primaryKeys = List.of();
-        private Function<DiscoveryNodes, Routing> getRouting;
+        private BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting;
 
         public RelationBuilder<T> withRouting(Function<DiscoveryNodes, Routing> getRouting) {
+            this.getRouting = (node, routingProvider) -> getRouting.apply(node);
+            return this;
+        }
+
+        public RelationBuilder<T> withRouting(BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting) {
             this.getRouting = getRouting;
             return this;
         }
