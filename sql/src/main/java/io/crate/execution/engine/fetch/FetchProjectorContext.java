@@ -59,7 +59,7 @@ public class FetchProjectorContext {
         this.indexToTable = indexToTable;
     }
 
-
+    @Nullable
     ReaderBucket readerBucket(int readerId) {
         return readerBuckets.get(readerId);
     }
@@ -69,19 +69,11 @@ public class FetchProjectorContext {
         int docId = FetchId.decodeDocId(fetchId);
         ReaderBucket readerBucket = readerBuckets.get(readerId);
         if (readerBucket == null) {
-            readerBucket = createReaderBucket(readerId);
+            readerBucket = new ReaderBucket();
             readerBuckets.put(readerId, readerBucket);
         }
         readerBucket.require(docId);
         return readerBucket;
-    }
-
-    private ReaderBucket createReaderBucket(int readerId) {
-        String index = readerIdToIndex.floorEntry(readerId).getValue();
-        RelationName relationName = indexToTable.get(index);
-        FetchSource fetchSource = tableToFetchSource.get(relationName);
-        assert fetchSource != null : "fetchSource must be available";
-        return new ReaderBucket(!fetchSource.references().isEmpty());
     }
 
     ReaderBucket getReaderBucket(int readerId) {
