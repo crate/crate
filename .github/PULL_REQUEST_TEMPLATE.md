@@ -3,9 +3,9 @@
 
 ## Checklist
 
- - [ ] User relevant changes are recorded in ``CHANGES.txt``
+ - [ ] Added an entry in `CHANGES.txt` for user facing changes
+ - [ ] Updated documentation & `sql_features` table for user facing changes
  - [ ] Touched code is covered by tests
- - [ ] Documentation has been updated if necessary
  - [ ] [CLA](https://crate.io/community/contribute/cla/) is signed
  - [ ] This does not contain breaking changes, or if it does:
     - It is released within a major release
