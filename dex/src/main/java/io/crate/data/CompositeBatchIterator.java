@@ -22,14 +22,13 @@
 
 package io.crate.data;
 
-import com.google.common.collect.Iterables;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -185,56 +184,45 @@ public final class CompositeBatchIterator {
             return false;
         }
 
+        private int numIteratorsActive() {
+            int activeIts = 0;
+            for (var it : iterators) {
+                if (!it.allLoaded()) {
+                    activeIts++;
+                }
+            }
+            return activeIts;
+        }
+
         @Override
         public CompletionStage<?> loadNextBatch() throws Exception {
             if (allLoaded()) {
                 throw new IllegalStateException("BatchIterator already loaded");
             }
-            int availableThreads = this.availableThreads.getAsInt();
-            List<BatchIterator<T>> itToLoad = getIteratorsToLoad(iterators);
-
-            List<CompletableFuture<CompletableFuture>> nestedFutures = new ArrayList<>();
-            if (availableThreads < itToLoad.size()) {
-                Iterable<List<BatchIterator<T>>> iteratorsPerThread = Iterables.partition(
-                    itToLoad, itToLoad.size() / availableThreads);
-
-                for (List<BatchIterator<T>> batchIterators: iteratorsPerThread) {
-                    CompletableFuture<CompletableFuture> future = supplyAsync(() -> {
-                        ArrayList<CompletableFuture<?>> futures = new ArrayList<>(batchIterators.size());
-                        for (BatchIterator<T> batchIterator: batchIterators) {
-                            try {
-                                futures.add(batchIterator.loadNextBatch().toCompletableFuture());
-                            } catch (Throwable t) {
-                                return CompletableFuture.failedFuture(t);
-                            }
+            int activeIts = numIteratorsActive();
+            int numThreads = Math.max(1, availableThreads.getAsInt());
+            final int usedThreads = Math.min(numThreads, activeIts);
+            ArrayList<CompletableFuture<CompletableFuture<?>>> nestedFutures = new ArrayList<>(usedThreads);
+            for (int t = 0; t < usedThreads; t++) {
+                final int thread = t;
+                nestedFutures.add(supplyAsync(() -> {
+                    ArrayList<CompletableFuture<?>> futures = new ArrayList<>();
+                    for (int i = 0; i < iterators.length; i++) {
+                        var it = iterators[i];
+                        if (it.allLoaded() || i % usedThreads != thread) {
+                            continue;
                         }
-                        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-                    }, executor);
-                    nestedFutures.add(future);
-                }
-            } else {
-                for (BatchIterator<T> iterator: itToLoad) {
-                    nestedFutures.add(supplyAsync(() -> {
                         try {
-                            return iterator.loadNextBatch().toCompletableFuture();
-                        } catch (Throwable t) {
-                            return CompletableFuture.failedFuture(t);
+                            futures.add(it.loadNextBatch().toCompletableFuture());
+                        } catch (Exception e) {
+                            return Exceptions.rethrowRuntimeException(e);
                         }
-                    }, executor));
-                }
+                    }
+                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+                }, executor));
             }
             return CompletableFutures.allAsList(nestedFutures)
                 .thenCompose(innerFutures -> CompletableFuture.allOf(innerFutures.toArray(new CompletableFuture[0])));
-        }
-
-        private static <T> List<BatchIterator<T>> getIteratorsToLoad(BatchIterator<T>[] allIterators) {
-            ArrayList<BatchIterator<T>> itToLoad = new ArrayList<>(allIterators.length);
-            for (BatchIterator<T> iterator: allIterators) {
-                if (!iterator.allLoaded()) {
-                    itToLoad.add(iterator);
-                }
-            }
-            return itToLoad;
         }
     }
 }

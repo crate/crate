@@ -22,8 +22,6 @@
 
 package io.crate.data;
 
-import com.google.common.base.MoreObjects;
-
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Function;
@@ -55,8 +53,6 @@ public class CollectionBucket implements Bucket {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("numRows", rows.size())
-            .toString();
+        return "Bucket{numRows=" + rows.size() + '}';
     }
 }

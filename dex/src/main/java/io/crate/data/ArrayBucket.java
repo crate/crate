@@ -22,7 +22,6 @@
 
 package io.crate.data;
 
-import com.google.common.base.MoreObjects;
 
 import java.util.Iterator;
 
@@ -82,9 +81,6 @@ public class ArrayBucket implements Bucket {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("numRows", size())
-            .add("numColumns", numColumns)
-            .toString();
+        return "ArrayBucket{numRows=" + rows.length + ", numColumns=" + numColumns + '}';
     }
 }
