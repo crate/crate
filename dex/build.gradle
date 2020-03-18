@@ -11,7 +11,11 @@ dependencies {
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     implementation project(':shared')
 
+    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
     testImplementation "junit:junit:${versions.junit}"
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
     testImplementation "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
 }

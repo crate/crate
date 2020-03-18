@@ -24,7 +24,6 @@ package io.crate.data;
 
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.FailingBatchIterator;
-import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,8 +35,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.junit.jupiter.api.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class BatchIteratorsTest {
 

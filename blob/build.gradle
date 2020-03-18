@@ -4,6 +4,7 @@ archivesBaseName = 'crate-blob'
 
 dependencies {
     implementation project(':es:es-server')
+    implementation project(':shared')
     implementation project(':common')
     implementation project(':http')
     implementation project(':es:es-transport')
