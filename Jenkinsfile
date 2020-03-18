@@ -62,6 +62,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
+            sh 'python3 ./blackbox/kill_4200.py'
             sh 'jabba install $JDK_11'
             sh 'JAVA_HOME=$(jabba which --home $JDK_11) ./gradlew --no-daemon itest'
           }
@@ -71,6 +72,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
+            sh 'python3 ./blackbox/kill_4200.py'
             sh 'jabba install $JDK_11'
             sh 'JAVA_HOME=$(jabba which --home $JDK_11) ./gradlew --no-daemon ceItest'
           }
@@ -89,6 +91,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
+            sh 'python3 ./blackbox/kill_4200.py'
             sh 'jabba install $JDK_12'
             sh 'JAVA_HOME=$(jabba which --home $JDK_12) ./gradlew --no-daemon itest'
           }
@@ -98,6 +101,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
+            sh 'python3 ./blackbox/kill_4200.py'
             sh 'jabba install $JDK_13'
             sh 'JAVA_HOME=$(jabba which --home $JDK_13) ./gradlew --no-daemon itest'
           }
@@ -107,6 +111,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
+            sh 'python3 ./blackbox/kill_4200.py'
             sh 'jabba install $ADOPT_JDK_12'
             sh 'JAVA_HOME=$(jabba which --home $ADOPT_JDK_12) ./gradlew --no-daemon itest'
           }
