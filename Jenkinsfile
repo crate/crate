@@ -43,6 +43,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
+            sh 'python3 ./blackbox/kill_4200.py'
             sh './gradlew --no-daemon itest'
           }
         }
@@ -51,6 +52,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
+            sh 'python3 ./blackbox/kill_4200.py'
             sh './gradlew --no-daemon ceItest'
           }
         }
