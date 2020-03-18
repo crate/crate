@@ -21,21 +21,19 @@
 
 package io.crate.types;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import io.crate.test.integration.CrateUnitTest;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static io.crate.types.DataTypes.compareTypesById;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsNot.not;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+import org.junit.Test;
+
+import io.crate.test.integration.CrateUnitTest;
 import static org.hamcrest.core.IsNot.not;
 
 public class DataTypesTest extends CrateUnitTest {
@@ -136,8 +134,8 @@ public class DataTypesTest extends CrateUnitTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCompareTo() {
-        Map testMapCopy = ImmutableMap.copyOf(testMap);
-        Map emptyMap = ImmutableMap.of();
+        Map testMapCopy = Map.copyOf(testMap);
+        Map emptyMap = Map.of();
         DataType objectType = ObjectType.untyped();
 
         assertThat(objectType.compareValueTo(testMap, testMapCopy), is(0));
@@ -327,7 +325,7 @@ public class DataTypesTest extends CrateUnitTest {
     }
 
     private static void assertCompareValueTo(Object val1, Object val2, int expected) {
-        DataType type = DataTypes.guessType(firstNonNull(val1, val2));
+        DataType type = DataTypes.guessType(Objects.requireNonNullElse(val1, val2));
         assertThat(type, not(instanceOf(DataTypes.UNDEFINED.getClass())));
         assertCompareValueTo(type, val1, val2, expected);
     }

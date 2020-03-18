@@ -22,10 +22,10 @@
 
 package io.crate.common.collections;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
@@ -58,7 +58,7 @@ public class ForEachTest extends CrateUnitTest {
 
     @Test
     public void testCollection() throws Exception {
-        ImmutableSet<Integer> set = ImmutableSet.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        Set<Integer> set = Set.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
         assertForEachCalledOnAllElements(set, 55);
     }
 }

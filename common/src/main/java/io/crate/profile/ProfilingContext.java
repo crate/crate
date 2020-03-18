@@ -22,10 +22,11 @@
 
 package io.crate.profile;
 
-import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.search.profile.ProfileResult;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -41,17 +42,17 @@ import java.util.stream.Collectors;
 public class ProfilingContext {
 
     private static final double NS_TO_MS_FACTOR = 1_000_000.0d;
-    private final ImmutableMap.Builder<String, Double> durationInMSByTimer;
+    private final HashMap<String, Double> durationInMSByTimer;
     private final Supplier<List<ProfileResult>> queryProfilingResults;
 
     public ProfilingContext(Supplier<List<ProfileResult>> queryProfilingResults) {
         this.queryProfilingResults = queryProfilingResults;
-        this.durationInMSByTimer = ImmutableMap.builder();
+        this.durationInMSByTimer = new HashMap<>();
     }
 
     public Map<String, Object> getDurationInMSByTimer() {
-        ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
-        builder.putAll(durationInMSByTimer.build());
+        HashMap<String, Object> builder = new HashMap<>();
+        builder.putAll(durationInMSByTimer);
         ArrayList<Map<String, Object>> queryTimings = new ArrayList<>();
         for (ProfileResult profileResult : queryProfilingResults.get()) {
             queryTimings.add(resultAsMap(profileResult));
@@ -59,26 +60,26 @@ public class ProfilingContext {
         if (!queryTimings.isEmpty()) {
             builder.put("QueryBreakdown", queryTimings);
         }
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
     private static Map<String, Object> resultAsMap(ProfileResult profileResult) {
-        ImmutableMap.Builder<String, Object> queryTimingsBuilder = ImmutableMap.<String, Object>builder()
-            .put("QueryName", profileResult.getQueryName())
-            .put("QueryDescription", profileResult.getLuceneDescription())
-            .put("Time", profileResult.getTime() / NS_TO_MS_FACTOR)
-            .put("BreakDown", profileResult.getTimeBreakdown().entrySet().stream()
-                .collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    e -> e.getKey().endsWith("_count") ? e.getValue() : e.getValue() / NS_TO_MS_FACTOR))
-            );
+        HashMap<String, Object> queryTimingsBuilder = new HashMap<>();
+        queryTimingsBuilder.put("QueryName", profileResult.getQueryName());
+        queryTimingsBuilder.put("QueryDescription", profileResult.getLuceneDescription());
+        queryTimingsBuilder.put("Time", profileResult.getTime() / NS_TO_MS_FACTOR);
+        queryTimingsBuilder.put("BreakDown", profileResult.getTimeBreakdown().entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                e -> e.getKey().endsWith("_count") ? e.getValue() : e.getValue() / NS_TO_MS_FACTOR))
+        );
         List<Map<String, Object>> children = profileResult.getProfiledChildren().stream()
             .map(ProfilingContext::resultAsMap)
             .collect(Collectors.toList());
         if (!children.isEmpty()) {
             queryTimingsBuilder.put("Children", children);
         }
-        return queryTimingsBuilder.build();
+        return Collections.unmodifiableMap(queryTimingsBuilder);
     }
 
     public Timer createAndStartTimer(String name) {

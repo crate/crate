@@ -21,7 +21,6 @@
 
 package io.crate.types;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.Streamer;
 import io.crate.common.collections.MapComparator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -32,6 +31,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +53,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public static class Builder {
 
-        ImmutableMap.Builder<String, DataType<?>> innerTypesBuilder = ImmutableMap.builder();
+        Map<String, DataType<?>> innerTypesBuilder = new HashMap<>();
 
         public Builder setInnerType(String key, DataType<?> innerType) {
             innerTypesBuilder.put(key, innerType);
@@ -61,7 +61,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         }
 
         public ObjectType build() {
-            return new ObjectType(innerTypesBuilder.build());
+            return new ObjectType(Collections.unmodifiableMap(innerTypesBuilder));
         }
     }
 
@@ -69,13 +69,13 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return new Builder();
     }
 
-    private ImmutableMap<String, DataType<?>> innerTypes;
+    private final Map<String, DataType<?>> innerTypes;
 
     private ObjectType() {
-        this(ImmutableMap.of());
+        this(Map.of());
     }
 
-    private ObjectType(ImmutableMap<String, DataType<?>> innerTypes) {
+    private ObjectType(Map<String, DataType<?>> innerTypes) {
         this.innerTypes = innerTypes;
     }
 
@@ -239,13 +239,13 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public ObjectType(StreamInput in) throws IOException {
         int typesSize = in.readVInt();
-        ImmutableMap.Builder<String, DataType<?>> builder = ImmutableMap.builderWithExpectedSize(typesSize);
+        Map<String, DataType<?>> builder = new HashMap<>();
         for (int i = 0; i < typesSize; i++) {
             String key = in.readString();
             DataType<?> type = DataTypes.fromStream(in);
             builder.put(key, type);
         }
-        innerTypes = builder.build();
+        innerTypes = Collections.unmodifiableMap(builder);
     }
 
     @Override
