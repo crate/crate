@@ -53,22 +53,22 @@ public final class Maps {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> T get(Map map, String key) {
+    public static <T> T get(Map<String, ?> map, String key) {
         return (T) map.get(key);
     }
 
-    public static <T> T getOrDefault(@Nullable Map map, String key, T defaultValue) {
+    @SuppressWarnings("unchecked")
+    public static <T> T getOrDefault(@Nullable Map<String, Object> map, String key, T defaultValue) {
         if (map == null) {
             return defaultValue;
         }
-        //noinspection unchecked
         return (T) map.getOrDefault(key, defaultValue);
     }
 
     @Nullable
     public static Object getByPath(Map<String, Object> map, String path) {
         assert path != null : "path should not be null";
-        return getByPath(map, StringUtils.PATH_SPLITTER.splitToList(path));
+        return getByPath(map, StringUtils.splitToList('.', path));
     }
 
     @Nullable
@@ -80,7 +80,7 @@ public final class Maps {
             Object val = map.get(key);
             if (i + 1 == path.size()) {
                 return val;
-            } else if (val instanceof Map) {
+            } else if (val instanceof Map<?, ?>) {
                 //noinspection unchecked
                 map = (Map<String, Object>) val;
             } else {

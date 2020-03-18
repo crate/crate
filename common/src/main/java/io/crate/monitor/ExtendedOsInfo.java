@@ -22,7 +22,6 @@
 
 package io.crate.monitor;
 
-import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
@@ -31,18 +30,18 @@ public class ExtendedOsInfo {
     private final Map<String, String> kernelData;
 
     public ExtendedOsInfo(SysInfo sysInfo) {
-        kernelData = ImmutableMap.<String, String>builder()
-            .put("Arch", sysInfo.arch())
-            .put("Description", sysInfo.description())
-            .put("Machine", sysInfo.machine())
-            .put("Name", sysInfo.name())
-            .put("PatchLevel", sysInfo.patchLevel())
-            .put("Vendor", sysInfo.vendor())
-            .put("VendorCodeName", sysInfo.vendorCodeName())
-            .put("VendorName", sysInfo.vendorName())
-            .put("VendorVersion", sysInfo.vendorVersion())
-            .put("Version", sysInfo.version())
-            .build();
+        kernelData = Map.ofEntries(
+            Map.entry("Arch", sysInfo.arch()),
+            Map.entry("Description", sysInfo.description()),
+            Map.entry("Machine", sysInfo.machine()),
+            Map.entry("Name", sysInfo.name()),
+            Map.entry("PatchLevel", sysInfo.patchLevel()),
+            Map.entry("Vendor", sysInfo.vendor()),
+            Map.entry("VendorCodeName", sysInfo.vendorCodeName()),
+            Map.entry("VendorName", sysInfo.vendorName()),
+            Map.entry("VendorVersion", sysInfo.vendorVersion()),
+            Map.entry("Version", sysInfo.version())
+        );
     }
 
     public Map<String, String> kernelData() {

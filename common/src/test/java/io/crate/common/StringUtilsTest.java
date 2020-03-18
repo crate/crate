@@ -21,35 +21,28 @@
 
 package io.crate.common;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.junit.Test;
 
-import javax.annotation.Nullable;
+public final class StringUtilsTest {
 
-public final class StringUtils {
-
-    public static List<String> splitToList(char delim, String value) {
-        ArrayList<String> result = new ArrayList<>();
-        int lastStart = 0;
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (c == delim) {
-                result.add(value.substring(lastStart, i));
-                lastStart = i + 1;
-            }
-        }
-        if (lastStart <= value.length()) {
-            result.add(value.substring(lastStart));
-        }
-        return result;
+    @Test
+    public void test_split_str_by_dots() throws Exception {
+        var parts = StringUtils.splitToList('.', "a.b.c");
+        assertThat(parts, contains("a", "b", "c"));
     }
 
-    @Nullable
-    public static String nullOrString(@Nullable Object value) {
-        if (value == null) {
-            return null;
-        }
-        return value.toString();
+    @Test
+    public void test_split_str_with_repeated_delim() throws Exception {
+        var parts = StringUtils.splitToList('.', "a..c");
+        assertThat(parts, contains("a", "", "c"));
+    }
+
+    @Test
+    public void test_split_empty_str() throws Exception {
+        var parts = StringUtils.splitToList('.', "");
+        assertThat(parts, contains(""));
     }
 }

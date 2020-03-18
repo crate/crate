@@ -21,8 +21,6 @@
 
 package io.crate.types;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.GeoJSONUtilsTest;
 import io.crate.test.integration.CrateUnitTest;
@@ -47,7 +45,7 @@ import static org.hamcrest.Matchers.startsWith;
 
 public class GeoShapeTypeTest extends CrateUnitTest {
 
-    private static final List<String> WKT = ImmutableList.of(
+    private static final List<String> WKT = List.of(
         "multipolygon empty",
         "MULTIPOLYGON (" +
         "  ((40 40, 20 45, 45 30, 40 40)),\n" +
@@ -72,7 +70,7 @@ public class GeoShapeTypeTest extends CrateUnitTest {
         }
     }
 
-    private static final List<Map<String, Object>> GEO_JSON = ImmutableList.of(
+    private static final List<Map<String, Object>> GEO_JSON = List.of(
         parse("{ \"type\": \"Point\", \"coordinates\": [100.0, 0.0] }"),
         parse("{ \"type\": \"LineString\",\n" +
               "    \"coordinates\": [ [100.0, 0.0], [101.0, 1.0] ]\n" +
@@ -165,7 +163,7 @@ public class GeoShapeTypeTest extends CrateUnitTest {
             startsWith("Cannot convert \""),
             endsWith("\" to geo_shape"))
         );
-        type.value(ImmutableMap.of(
+        type.value(Map.of(
             GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING,
             GeoJSONUtils.COORDINATES_FIELD, new double[][]{
                 new double[]{170.0d, 99.0d},

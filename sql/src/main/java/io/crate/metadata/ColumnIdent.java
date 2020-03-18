@@ -127,7 +127,7 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
         if (path == null) {
             return null;
         }
-        List<String> parts = StringUtils.PATH_SPLITTER.splitToList(path);
+        List<String> parts = StringUtils.splitToList('.', path);
         if (parts.size() > 1) {
             return new ColumnIdent(parts.get(0), parts.subList(1, parts.size()));
         } else {

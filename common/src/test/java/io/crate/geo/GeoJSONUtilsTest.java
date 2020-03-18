@@ -22,8 +22,19 @@
 
 package io.crate.geo;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.core.Is.is;
+
+import java.util.List;
+import java.util.Map;
+
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -41,18 +52,6 @@ import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
-import java.util.List;
-import java.util.Map;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.core.Is.is;
-
 public class GeoJSONUtilsTest {
 
     @Rule
@@ -64,7 +63,7 @@ public class GeoJSONUtilsTest {
 
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(CoordinateArraySequenceFactory.instance());
 
-    public final static List<Shape> SHAPES = ImmutableList.<Shape>of(
+    public final static List<Shape> SHAPES = List.<Shape>of(
         new JtsGeometry(new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
             new Coordinate(0.0, 1.0),
             new Coordinate(100.0, 0.1),
@@ -157,7 +156,7 @@ public class GeoJSONUtilsTest {
 
     @Test
     public void testMap2Shape() throws Exception {
-        Shape shape = GeoJSONUtils.map2Shape(ImmutableMap.<String, Object>of(
+        Shape shape = GeoJSONUtils.map2Shape(Map.<String, Object>of(
             GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING,
             GeoJSONUtils.COORDINATES_FIELD, new Double[][]{{0.0, 0.1}, {1.0, 1.1}}
         ));
@@ -170,35 +169,35 @@ public class GeoJSONUtilsTest {
     public void testInvalidMap() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot convert Map \"{}\" to shape");
-        GeoJSONUtils.map2Shape(ImmutableMap.<String, Object>of());
+        GeoJSONUtils.map2Shape(Map.<String, Object>of());
     }
 
     @Test
     public void testValidateMissingType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: type field missing");
-        GeoJSONUtils.validateGeoJson(ImmutableMap.of());
+        GeoJSONUtils.validateGeoJson(Map.of());
     }
 
     @Test
     public void testValidateWrongType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: invalid type");
-        GeoJSONUtils.validateGeoJson(ImmutableMap.of(GeoJSONUtils.TYPE_FIELD, "Foo"));
+        GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, "Foo"));
     }
 
     @Test
     public void testValidateMissingCoordinates() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: coordinates field missing");
-        GeoJSONUtils.validateGeoJson(ImmutableMap.of(GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING));
+        GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING));
     }
 
     @Test
     public void testValidateGeometriesMissing() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: geometries field missing");
-        GeoJSONUtils.validateGeoJson(ImmutableMap.of(GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION));
+        GeoJSONUtils.validateGeoJson(Map.of(GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION));
     }
 
     @Test
@@ -206,9 +205,9 @@ public class GeoJSONUtilsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: invalid GeometryCollection");
         GeoJSONUtils.validateGeoJson(
-            ImmutableMap.of(
+            Map.of(
                 GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION,
-                GeoJSONUtils.GEOMETRIES_FIELD, ImmutableList.<Object>of("ABC")
+                GeoJSONUtils.GEOMETRIES_FIELD, List.<Object>of("ABC")
             )
         );
     }
@@ -218,7 +217,7 @@ public class GeoJSONUtilsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
         GeoJSONUtils.validateGeoJson(
-            ImmutableMap.of(
+            Map.of(
                 GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
                 GeoJSONUtils.COORDINATES_FIELD, "ABC"
             )
@@ -230,7 +229,7 @@ public class GeoJSONUtilsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
         GeoJSONUtils.validateGeoJson(
-            ImmutableMap.of(
+            Map.of(
                 GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
                 GeoJSONUtils.COORDINATES_FIELD, new double[][]{
                     {0.0, 1.0},
@@ -245,7 +244,7 @@ public class GeoJSONUtilsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
         GeoJSONUtils.validateGeoJson(
-            ImmutableMap.of(
+            Map.of(
                 GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POLYGON,
                 GeoJSONUtils.COORDINATES_FIELD, new double[][]{
                     {0.0, 1.0},

@@ -21,7 +21,6 @@
 
 package io.crate.types;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,13 +37,12 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     private BooleanType() {
     }
 
-    private static final Map<String, Boolean> BOOLEAN_MAP = ImmutableMap.<String, Boolean>builder()
-        .put("f", false)
-        .put("false", false)
-        .put("t", true)
-        .put("true", true)
-        .build();
-
+    private static final Map<String, Boolean> BOOLEAN_MAP = Map.<String, Boolean>ofEntries(
+        Map.entry("f", false),
+        Map.entry("false", false),
+        Map.entry("t", true),
+        Map.entry("true", true)
+    );
 
     @Override
     public int id() {

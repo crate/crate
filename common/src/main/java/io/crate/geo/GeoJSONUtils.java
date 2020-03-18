@@ -22,8 +22,6 @@
 
 package io.crate.geo;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import io.crate.common.collections.ForEach;
 import io.crate.types.GeoPointType;
 import org.elasticsearch.common.Strings;
@@ -51,6 +49,8 @@ import org.locationtech.spatial4j.shape.ShapeCollection;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -71,22 +71,22 @@ public class GeoJSONUtils {
     public static final String POLYGON = "Polygon";
     private static final String MULTI_POLYGON = "MultiPolygon";
 
-    private static final ImmutableMap<String, String> GEOJSON_TYPES = ImmutableMap.<String, String>builder()
-        .put(GEOMETRY_COLLECTION, GEOMETRY_COLLECTION)
-        .put(GEOMETRY_COLLECTION.toLowerCase(Locale.ENGLISH), GEOMETRY_COLLECTION)
-        .put(POINT, POINT)
-        .put(POINT.toLowerCase(Locale.ENGLISH), POINT)
-        .put(MULTI_POINT, MULTI_POINT)
-        .put(MULTI_POINT.toLowerCase(Locale.ENGLISH), MULTI_POINT)
-        .put(LINE_STRING, LINE_STRING)
-        .put(LINE_STRING.toLowerCase(Locale.ENGLISH), LINE_STRING)
-        .put(MULTI_LINE_STRING, MULTI_LINE_STRING)
-        .put(MULTI_LINE_STRING.toLowerCase(Locale.ENGLISH), MULTI_LINE_STRING)
-        .put(POLYGON, POLYGON)
-        .put(POLYGON.toLowerCase(Locale.ENGLISH), POLYGON)
-        .put(MULTI_POLYGON, MULTI_POLYGON)
-        .put(MULTI_POLYGON.toLowerCase(Locale.ENGLISH), MULTI_POLYGON)
-        .build();
+    private static final Map<String, String> GEOJSON_TYPES = Map.<String, String>ofEntries(
+        Map.entry(GEOMETRY_COLLECTION, GEOMETRY_COLLECTION),
+        Map.entry(GEOMETRY_COLLECTION.toLowerCase(Locale.ENGLISH), GEOMETRY_COLLECTION),
+        Map.entry(POINT, POINT),
+        Map.entry(POINT.toLowerCase(Locale.ENGLISH), POINT),
+        Map.entry(MULTI_POINT, MULTI_POINT),
+        Map.entry(MULTI_POINT.toLowerCase(Locale.ENGLISH), MULTI_POINT),
+        Map.entry(LINE_STRING, LINE_STRING),
+        Map.entry(LINE_STRING.toLowerCase(Locale.ENGLISH), LINE_STRING),
+        Map.entry(MULTI_LINE_STRING, MULTI_LINE_STRING),
+        Map.entry(MULTI_LINE_STRING.toLowerCase(Locale.ENGLISH), MULTI_LINE_STRING),
+        Map.entry(POLYGON, POLYGON),
+        Map.entry(POLYGON.toLowerCase(Locale.ENGLISH), POLYGON),
+        Map.entry(MULTI_POLYGON, MULTI_POLYGON),
+        Map.entry(MULTI_POLYGON.toLowerCase(Locale.ENGLISH), MULTI_POLYGON)
+    );
 
     private static final GeoJSONMapConverter GEOJSON_CONVERTER = new GeoJSONMapConverter();
 
@@ -97,7 +97,7 @@ public class GeoJSONUtils {
             for (Shape collShape : shapeCollection) {
                 geometries.add(shape2Map(collShape));
             }
-            return ImmutableMap.of(
+            return Map.of(
                 TYPE_FIELD, GEOMETRY_COLLECTION,
                 GEOMETRIES_FIELD, geometries
             );
@@ -218,13 +218,12 @@ public class GeoJSONUtils {
             double x;
             double y;
             if (coordinate.getClass().isArray()) {
-                Preconditions.checkArgument(Array.getLength(coordinate) == 2, invalidGeoJSON("invalid coordinate"));
+                assert Array.getLength(coordinate) == 2 : invalidGeoJSON("invalid coordinate");
                 x = ((Number) Array.get(coordinate, 0)).doubleValue();
                 y = ((Number) Array.get(coordinate, 1)).doubleValue();
             } else if (coordinate instanceof Collection) {
-                Preconditions.checkArgument(
-                    ((Collection) coordinate).size() == 2, invalidGeoJSON("invalid coordinate"));
-                Iterator iter = ((Collection) coordinate).iterator();
+                assert ((Collection<?>) coordinate).size() == 2 : invalidGeoJSON("invalid coordinate");
+                Iterator<?> iter = ((Collection<?>) coordinate).iterator();
                 x = ((Number) iter.next()).doubleValue();
                 y = ((Number) iter.next()).doubleValue();
             } else {
@@ -247,26 +246,26 @@ public class GeoJSONUtils {
     private static class GeoJSONMapConverter {
 
         public Map<String, Object> convert(Geometry geometry) {
-            ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+            HashMap<String, Object> builder = new HashMap<>();
 
             if (geometry instanceof Point) {
-                builder.put(TYPE_FIELD, POINT)
-                    .put(COORDINATES_FIELD, extract((Point) geometry));
+                builder.put(TYPE_FIELD, POINT);
+                builder.put(COORDINATES_FIELD, extract((Point) geometry));
             } else if (geometry instanceof MultiPoint) {
-                builder.put(TYPE_FIELD, MULTI_POINT)
-                    .put(COORDINATES_FIELD, extract((MultiPoint) geometry));
+                builder.put(TYPE_FIELD, MULTI_POINT);
+                builder.put(COORDINATES_FIELD, extract((MultiPoint) geometry));
             } else if (geometry instanceof LineString) {
-                builder.put(TYPE_FIELD, LINE_STRING)
-                    .put(COORDINATES_FIELD, extract((LineString) geometry));
+                builder.put(TYPE_FIELD, LINE_STRING);
+                builder.put(COORDINATES_FIELD, extract((LineString) geometry));
             } else if (geometry instanceof MultiLineString) {
-                builder.put(TYPE_FIELD, MULTI_LINE_STRING)
-                    .put(COORDINATES_FIELD, extract((MultiLineString) geometry));
+                builder.put(TYPE_FIELD, MULTI_LINE_STRING);
+                builder.put(COORDINATES_FIELD, extract((MultiLineString) geometry));
             } else if (geometry instanceof Polygon) {
-                builder.put(TYPE_FIELD, POLYGON)
-                    .put(COORDINATES_FIELD, extract((Polygon) geometry));
+                builder.put(TYPE_FIELD, POLYGON);
+                builder.put(COORDINATES_FIELD, extract((Polygon) geometry));
             } else if (geometry instanceof MultiPolygon) {
-                builder.put(TYPE_FIELD, MULTI_POLYGON)
-                    .put(COORDINATES_FIELD, extract((MultiPolygon) geometry));
+                builder.put(TYPE_FIELD, MULTI_POLYGON);
+                builder.put(COORDINATES_FIELD, extract((MultiPolygon) geometry));
             } else if (geometry instanceof GeometryCollection) {
                 GeometryCollection geometryCollection = (GeometryCollection) geometry;
                 int size = geometryCollection.getNumGeometries();
@@ -274,13 +273,13 @@ public class GeoJSONUtils {
                 for (int i = 0; i < size; i++) {
                     geometries.add(convert(geometryCollection.getGeometryN(i)));
                 }
-                builder.put(TYPE_FIELD, GEOMETRY_COLLECTION)
-                    .put(GEOMETRIES_FIELD, geometries);
+                builder.put(TYPE_FIELD, GEOMETRY_COLLECTION);
+                builder.put(GEOMETRIES_FIELD, geometries);
             } else {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Cannot extract coordinates from geometry %s", geometry.getGeometryType()));
             }
-            return builder.build();
+            return Collections.unmodifiableMap(builder);
         }
 
         private double[] extract(Point point) {

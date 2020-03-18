@@ -22,23 +22,22 @@
 
 package io.crate.types;
 
-import com.google.common.collect.Lists;
-import io.crate.test.integration.CrateUnitTest;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import io.crate.test.integration.CrateUnitTest;
 
 public class ObjectTypeTest extends CrateUnitTest {
 
@@ -149,9 +148,10 @@ public class ObjectTypeTest extends CrateUnitTest {
         ObjectType type = ObjectType.untyped();
         BytesStreamOutput out = new BytesStreamOutput();
 
-        ArrayList innerArray = Lists.newArrayList(MapBuilder.newMapBuilder()
+        List<Map<String, Object>> innerArray = List.of(MapBuilder.<String, Object>newMapBuilder()
             .put("i", 1)
-            .map());
+            .map()
+        );
         HashMap<String, Object> map = new HashMap<>();
         map.put("s", "foo");
         map.put("obj_array", innerArray);

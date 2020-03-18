@@ -21,9 +21,7 @@
 
 package io.crate.types;
 
-import io.crate.common.collections.Lists2;
-import io.crate.test.integration.CrateUnitTest;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -31,7 +29,10 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.LongAdder;
 
-import static org.hamcrest.core.Is.is;
+import org.junit.Test;
+
+import io.crate.common.collections.Lists2;
+import io.crate.test.integration.CrateUnitTest;
 
 public class TypeConversionTest extends CrateUnitTest {
 
@@ -206,16 +207,17 @@ public class TypeConversionTest extends CrateUnitTest {
 
     @Test
     public void testNotSupportedConversion() throws Exception {
-        for (DataType type : com.google.common.collect.Iterables.concat(
+        for (DataType<?> type : Lists2.concat(
             DataTypes.PRIMITIVE_TYPES,
             Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, ObjectType.untyped()))) {
+
             assertFalse(DataTypes.NOT_SUPPORTED.isConvertableTo(type));
         }
     }
 
     @Test
     public void testToNullConversions() throws Exception {
-        for (DataType type : com.google.common.collect.Iterables.concat(
+        for (DataType<?> type : Lists2.concat(
             DataTypes.PRIMITIVE_TYPES,
             Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, ObjectType.untyped()))) {
             assertThat(type.isConvertableTo(DataTypes.UNDEFINED), is(false));

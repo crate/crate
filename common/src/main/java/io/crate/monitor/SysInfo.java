@@ -22,10 +22,6 @@
 
 package io.crate.monitor;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
 import org.apache.logging.log4j.LogManager;
@@ -34,6 +30,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -134,55 +131,55 @@ public class SysInfo {
          * MacOS releases:
          * https://en.wikipedia.org/wiki/MacOS#Release_history
          */
-        private static final Map<Integer, String> MACOS_VERSIONS = ImmutableMap.<Integer, String>builder()
-            .put(0, "Cheetah") // 10.0
-            .put(1, "Puma")
-            .put(2, "Jaguar")
-            .put(3, "Panther")
-            .put(4, "Tiger")
-            .put(5, "Leopard")
-            .put(6, "Snow Leopard")
-            .put(7, "Lion")
-            .put(8, "Mountain Lion")
-            .put(9, "Mavericks")
-            .put(10, "Yosemite")
-            .put(11, "El Capitan")
-            .put(12, "Sierra")
-            .put(13, "High Sierra") // 10.13
-            .build();
+        private static final Map<Integer, String> MACOS_VERSIONS = Map.ofEntries(
+            Map.entry(0, "Cheetah"), // 10.0
+            Map.entry(1, "Puma"),
+            Map.entry(2, "Jaguar"),
+            Map.entry(3, "Panther"),
+            Map.entry(4, "Tiger"),
+            Map.entry(5, "Leopard"),
+            Map.entry(6, "Snow Leopard"),
+            Map.entry(7, "Lion"),
+            Map.entry(8, "Mountain Lion"),
+            Map.entry(9, "Mavericks"),
+            Map.entry(10, "Yosemite"),
+            Map.entry(11, "El Capitan"),
+            Map.entry(12, "Sierra"),
+            Map.entry(13, "High Sierra") // 10.13
+        );
 
-        private static final Map<Integer, String> DARWIN_VERSIONS = ImmutableMap.<Integer, String>builder()
-            .put(5, "Puma") // 10.0
-            .put(6, "Jaguar")
-            .put(7, "Panther")
-            .put(8, "Tiger")
-            .put(9, "Leopard")
-            .put(10, "Snow Leopard")
-            .put(11, "Lion")
-            .put(12, "Mountain Lion")
-            .put(13, "Mavericks")
-            .put(14, "Yosemite")
-            .put(15, "El Capitan")
-            .put(16, "Sierra")
-            .put(17, "High Sierra") // 10.13
-            .build();
+        private static final Map<Integer, String> DARWIN_VERSIONS = Map.ofEntries(
+            Map.entry(5, "Puma"), // 10.0
+            Map.entry(6, "Jaguar"),
+            Map.entry(7, "Panther"),
+            Map.entry(8, "Tiger"),
+            Map.entry(9, "Leopard"),
+            Map.entry(10, "Snow Leopard"),
+            Map.entry(11, "Lion"),
+            Map.entry(12, "Mountain Lion"),
+            Map.entry(13, "Mavericks"),
+            Map.entry(14, "Yosemite"),
+            Map.entry(15, "El Capitan"),
+            Map.entry(16, "Sierra"),
+            Map.entry(17, "High Sierra") // 10.13
+        );
 
         /**
          * Taken from
          * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2733
          */
-        private final List<LinuxVendorInfo> LINUX_VENDORS = ImmutableList.<LinuxVendorInfo>builder()
-            .add(new LinuxVendorInfo("Fedora", "/etc/fedora-release", this::parseGenericVendorFile))
-            .add(new LinuxVendorInfo("SuSE", "/etc/SuSE-release", this::parseGenericVendorFile))
-            .add(new LinuxVendorInfo("Gentoo", "/etc/gentoo-release", this::parseGenericVendorFile))
-            .add(new LinuxVendorInfo("Slackware", "/etc/slackware-release", this::parseGenericVendorFile))
-            .add(new LinuxVendorInfo("Mandrake", "/etc/mandrake-release", this::parseGenericVendorFile))
-            .add(new LinuxVendorInfo("VMware", "/proc/vmware/version", this::parseGenericVendorFile))
-            .add(new LinuxVendorInfo("XenSource", "/etc/xensource-inventory", this::parseXenVendorFile))
-            .add(new LinuxVendorInfo("Red Hat", "/etc/redhat-release", this::parseRedHatVendorFile))
-            .add(new LinuxVendorInfo("lsb", "/etc/lsb-release", this::parseLsbVendorFile))
-            .add(new LinuxVendorInfo("Debian", "/etc/debian_version", this::parseGenericVendorFile))
-            .build();
+        private final List<LinuxVendorInfo> LINUX_VENDORS = List.<LinuxVendorInfo>of(
+            new LinuxVendorInfo("Fedora", "/etc/fedora-release", this::parseGenericVendorFile),
+            new LinuxVendorInfo("SuSE", "/etc/SuSE-release", this::parseGenericVendorFile),
+            new LinuxVendorInfo("Gentoo", "/etc/gentoo-release", this::parseGenericVendorFile),
+            new LinuxVendorInfo("Slackware", "/etc/slackware-release", this::parseGenericVendorFile),
+            new LinuxVendorInfo("Mandrake", "/etc/mandrake-release", this::parseGenericVendorFile),
+            new LinuxVendorInfo("VMware", "/proc/vmware/version", this::parseGenericVendorFile),
+            new LinuxVendorInfo("XenSource", "/etc/xensource-inventory", this::parseXenVendorFile),
+            new LinuxVendorInfo("Red Hat", "/etc/redhat-release", this::parseRedHatVendorFile),
+            new LinuxVendorInfo("lsb", "/etc/lsb-release", this::parseLsbVendorFile),
+            new LinuxVendorInfo("Debian", "/etc/debian_version", this::parseGenericVendorFile)
+        );
 
         private class LinuxVendorInfo {
             final String name;
@@ -303,7 +300,6 @@ public class SysInfo {
             consumeFileGracefully(releaseFile, line -> parseGenericVendorLine(sysinfo, line));
         }
 
-        @VisibleForTesting
         void parseGenericVendorLine(SysInfo sysinfo, String line) {
             if (line.isEmpty()) {
                 return;
@@ -369,7 +365,6 @@ public class SysInfo {
             consumeFileGracefully(releaseFile, line -> parseRedHatVendorLine(sysinfo, line));
         }
 
-        @VisibleForTesting
         void parseRedHatVendorLine(SysInfo sysinfo, String line) {
             if (line.isEmpty()) {
                 return;
@@ -423,7 +418,6 @@ public class SysInfo {
             }
         }
 
-        @VisibleForTesting
         static String[] parseKeyValuePair(String line) {
             String[] kv = line.split("=");
             if (kv.length == 2) {
@@ -471,19 +465,18 @@ public class SysInfo {
         return INSTANCE;
     }
 
-    @VisibleForTesting
     static List<String> sysCall(String[] cmd, String defaultValue) {
         ProcessBuilder pb = new ProcessBuilder(cmd);
         try {
             Process p = pb.start();
-            try (InputStreamReader in = new InputStreamReader(p.getInputStream(), Charsets.UTF_8)) {
+            try (InputStreamReader in = new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8)) {
                 try (BufferedReader reader = new BufferedReader(in)) {
                     return reader.lines().collect(Collectors.toList());
                 }
             }
         } catch (IOException e) {
             LOGGER.debug("Failed to execute process: {}", e.getMessage());
-            return ImmutableList.of(defaultValue);
+            return List.of(defaultValue);
         }
     }
 

@@ -7,7 +7,7 @@ dependencies {
     compile project(':shared')
     implementation project(':pgwire')
     implementation project(':es:es-server')
-    implementation "com.google.guava:guava:${versions.guava}"
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     testImplementation project(':integration-testing')
 }
 

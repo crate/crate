@@ -21,12 +21,12 @@
 
 package io.crate.common.collections;
 
-import com.google.common.base.Preconditions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
 
 public class MapComparator implements Comparator<Map> {
 
@@ -40,12 +40,12 @@ public class MapComparator implements Comparator<Map> {
     }
 
     public static <K, V> int compareMaps(Map<K, V> m1, Map<K, V> m2) {
-        Preconditions.checkNotNull(m1, "map is null");
-        Preconditions.checkNotNull(m2, "map is null");
+        Objects.requireNonNull(m1, "map is null");
+        Objects.requireNonNull(m2, "map is null");
         int sizeCompare = Integer.compare(m1.size(), m2.size());
-        if (sizeCompare != 0)
+        if (sizeCompare != 0) {
             return sizeCompare;
-
+        }
         for (Map.Entry<K, V> entry : m1.entrySet()) {
             V thisValue = entry.getValue();
             V otherValue = m2.get(entry.getKey());

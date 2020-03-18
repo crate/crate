@@ -21,7 +21,6 @@
 
 package io.crate.types;
 
-import com.google.common.base.Preconditions;
 import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -84,7 +83,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
             return pointFromString((String) value);
         }
         if (value instanceof List) {
-            List values = (List) value;
+            List<?> values = (List<?>) value;
             checkLengthIs2(values.size());
             PointImpl point = new PointImpl(
                 ((Number) values.get(0)).doubleValue(),
@@ -116,8 +115,10 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     }
 
     private static void checkLengthIs2(int actualLength) {
-        Preconditions.checkArgument(actualLength == 2,
-            "The value of a GeoPoint must be a double array with 2 items, not %s", actualLength);
+        if (actualLength != 2) {
+            throw new IllegalArgumentException(
+                "The value of a GeoPoint must be a double array with 2 items, not " + actualLength);
+        }
     }
 
     private static Point pointFromString(String value) {

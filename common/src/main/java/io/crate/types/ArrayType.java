@@ -21,7 +21,6 @@
 
 package io.crate.types;
 
-import com.google.common.base.Preconditions;
 import io.crate.Streamer;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -32,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A type which contains a collection of elements of another type.
@@ -49,8 +49,7 @@ public class ArrayType<T> extends DataType<List<T>> {
      * @param innerType The type of the elements inside the collection
      */
     public ArrayType(DataType<T> innerType) {
-        this.innerType = Preconditions.checkNotNull(innerType,
-            "Inner type must not be null.");
+        this.innerType = Objects.requireNonNull(innerType, "Inner type must not be null.");
     }
 
     public static DataType<?> makeArray(DataType<?> valueType, int numArrayDimensions) {

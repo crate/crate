@@ -22,7 +22,7 @@
 
 package io.crate.settings;
 
-import com.google.common.base.Splitter;
+import io.crate.common.StringUtils;
 import io.crate.types.DataType;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -31,29 +31,27 @@ import java.util.List;
 
 public class CrateSetting<T> {
 
-    public static <T> CrateSetting<T> of(Setting<T> setting, DataType dataType) {
+    public static <T> CrateSetting<T> of(Setting<T> setting, DataType<?> dataType) {
         return new CrateSetting<>(setting, dataType);
     }
 
-    private static final Splitter DOT_SPLITTER = Splitter.on(".");
-
     private final Setting<T> setting;
-    private final DataType dataType;
+    private final DataType<?> dataType;
     private final List<String> path;
     private final Boolean isGroupSetting;
 
-    private CrateSetting(Setting<T> setting, DataType dataType) {
+    private CrateSetting(Setting<T> setting, DataType<?> dataType) {
         this.setting = setting;
         this.dataType = dataType;
         this.isGroupSetting = setting.getKey().endsWith(".");
-        path = DOT_SPLITTER.splitToList(setting.getKey());
+        path = StringUtils.splitToList('.', setting.getKey());
     }
 
     public Setting<T> setting() {
         return setting;
     }
 
-    public DataType dataType() {
+    public DataType<?> dataType() {
         return dataType;
     }
 
