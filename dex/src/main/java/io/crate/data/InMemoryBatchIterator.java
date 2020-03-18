@@ -22,8 +22,6 @@
 
 package io.crate.data;
 
-import com.google.common.annotations.VisibleForTesting;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -59,7 +57,6 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
         return new CloseAssertingBatchIterator<>(new InMemoryBatchIterator<>(items, sentinel, hasLazyResultSet));
     }
 
-    @VisibleForTesting
     public InMemoryBatchIterator(Iterable<? extends T> items, T sentinel, boolean hasLazyResultSet) {
         this.items = items;
         this.it = items.iterator();

@@ -24,8 +24,8 @@ package io.crate.data;
 
 import javax.annotation.Nullable;
 import java.lang.management.ManagementFactory;
+import java.util.Objects;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class Paging {
 
@@ -39,7 +39,7 @@ public class Paging {
     }
 
     private static int getWeightedPageSize(@Nullable Integer limit, double weight, double overheadFactor) {
-        Integer limitOrPageSize = firstNonNull(limit, PAGE_SIZE);
+        Integer limitOrPageSize = Objects.requireNonNullElse(limit, PAGE_SIZE);
         if (1.0 / weight > limitOrPageSize) {
             return limitOrPageSize;
         }

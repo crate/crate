@@ -9,7 +9,6 @@ configurations {
 
 dependencies {
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
-    implementation "com.google.guava:guava:${versions.guava}"
     implementation project(':shared')
 
     testImplementation "junit:junit:${versions.junit}"
