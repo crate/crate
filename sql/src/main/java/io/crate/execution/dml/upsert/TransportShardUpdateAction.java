@@ -64,13 +64,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
 
-/**
- * Realizes Upserts of tables which either results in an Insert or an Update.
- */
 @Singleton
 public class TransportShardUpdateAction extends TransportShardAction<ShardUpdateRequest, ShardUpdateRequest.Item> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/data/write";
+    private static final String ACTION_NAME = "internal:crate:sql/data/update";
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
 
     private final Schemas schemas;

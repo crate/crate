@@ -333,7 +333,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
                        DuplicateKeyAction duplicateKeyAction,
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
-                       @Nullable Reference[] missingAssignmentsColumns,
                        @Nullable Symbol[] returnValue,
                        UUID jobId,
                        boolean validateGeneratedColumns) {

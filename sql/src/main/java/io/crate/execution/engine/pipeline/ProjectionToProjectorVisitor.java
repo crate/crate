@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Iterables;
 
+import io.crate.execution.dml.upsert.ShardUpdateRequest;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -523,13 +524,12 @@ public class ProjectionToProjectorVisitor
         Context context, UpdateProjection projection,
         Collector<ShardResponse, A, Iterable<Row>> collector) {
 
-        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
+        ShardUpdateRequest.Builder builder = new ShardUpdateRequest.Builder(
             context.txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
+            ShardUpdateRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             projection.assignmentsColumns(),
-            null,
             projection.returnValues(),
             context.jobId,
             true
@@ -543,14 +543,13 @@ public class ProjectionToProjectorVisitor
             clusterService,
             nodeJobsCounter,
             () -> builder.newRequest(shardId),
-            id -> new ShardUpsertRequest.Item(id,
+            id -> new ShardUpdateRequest.Item(id,
                                               projection.assignments(),
-                                              null,
                                               projection.requiredVersion(),
                                               null,
                                               null,
                                               projection.returnValues()),
-            transportActionProvider.transportShardUpsertAction()::execute,
+            transportActionProvider.transportShardUpdateAction()::execute,
             collector);
     }
 
