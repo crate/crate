@@ -41,7 +41,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUpdateRequest.Item> {
+public class
+ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUpdateRequest.Item> {
 
     public enum DuplicateKeyAction {
         UPDATE_OR_FAIL,
@@ -136,7 +137,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         validateConstraints = in.readBoolean();
 
         sessionSettings = new SessionSettings(in);
-
         int numItems = in.readVInt();
         readItems(in, numItems);
         int returnValuesSize = in.readVInt();
@@ -151,7 +151,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        // Stream References
         if (updateColumns != null) {
             out.writeVInt(updateColumns.length);
             for (String column : updateColumns) {
@@ -160,12 +159,17 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         } else {
             out.writeVInt(0);
         }
+
         out.writeBoolean(continueOnError);
         out.writeVInt(duplicateKeyAction.ordinal());
         out.writeBoolean(validateConstraints);
 
         sessionSettings.writeTo(out);
 
+        out.writeVInt(items.size());
+        for (ShardUpdateRequest.Item item : items) {
+            item.writeTo(out);
+        }
         if (returnValues != null) {
             out.writeVInt(returnValues.length);
             for (Symbol returnValue : returnValues) {
