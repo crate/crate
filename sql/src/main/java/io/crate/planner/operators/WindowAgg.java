@@ -108,21 +108,19 @@ public class WindowAgg extends ForwardingLogicalPlan {
     @Override
     public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         HashSet<Symbol> toKeep = new HashSet<>();
-        ArrayList<Symbol> newStandalone = new ArrayList<>();
         ArrayList<WindowFunction> newWindowFunctions = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, windowFunctions, newWindowFunctions::add);
-            SymbolVisitors.intersection(outputToKeep, standalone, newStandalone::add);
+            SymbolVisitors.intersection(outputToKeep, standalone, toKeep::add);
         }
         for (WindowFunction newWindowFunction : newWindowFunctions) {
             SymbolVisitors.intersection(newWindowFunction, source.outputs(), toKeep::add);
         }
-        toKeep.addAll(newStandalone);
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {
             return this;
         }
-        return new WindowAgg(newSource, windowDefinition, List.copyOf(newWindowFunctions), List.copyOf(newStandalone));
+        return new WindowAgg(newSource, windowDefinition, List.copyOf(newWindowFunctions), newSource.outputs());
     }
 
     List<WindowFunction> windowFunctions() {
