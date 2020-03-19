@@ -4,7 +4,7 @@
  * information regarding copyright ownership.  Crate licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.  You may
- * obtain a copy of the License at
+ * obtain a copy of the License at˜
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -27,7 +27,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;
-import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.dml.upsert.ShardUpdateRequest;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
@@ -87,7 +87,7 @@ public final class UpdateById implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        ShardRequestExecutor<ShardUpsertRequest> executor = createExecutor(dependencies, plannerContext);
+        ShardRequestExecutor<ShardUpdateRequest> executor = createExecutor(dependencies, plannerContext);
 
         if (returnValues == null) {
             executor.execute(consumer, params, subQueryResults);
@@ -105,17 +105,16 @@ public final class UpdateById implements Plan {
             .executeBulk(bulkParams, subQueryResults);
     }
 
-    private ShardRequestExecutor<ShardUpsertRequest> createExecutor(DependencyCarrier dependencies,
+    private ShardRequestExecutor<ShardUpdateRequest> createExecutor(DependencyCarrier dependencies,
                                                                     PlannerContext plannerContext) {
         ClusterService clusterService = dependencies.clusterService();
         CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
-        ShardUpsertRequest.Builder requestBuilder = new ShardUpsertRequest.Builder(
+        ShardUpdateRequest.Builder requestBuilder = new ShardUpdateRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(clusterService.state().metaData().settings()),
-            ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
+            ShardUpdateRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             assignments.targetNames(),
-            null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
             returnValues,
             plannerContext.jobId(),
             false
@@ -127,27 +126,27 @@ public final class UpdateById implements Plan {
             dependencies.functions(),
             table,
             updateRequests,
-            dependencies.transportActionProvider().transportShardUpsertAction()::execute,
+            dependencies.transportActionProvider().transportShardUpdateAction()::execute,
             docKeys
         );
     }
 
-    private static class UpdateRequests implements ShardRequestExecutor.RequestGrouper<ShardUpsertRequest> {
+    private static class UpdateRequests implements ShardRequestExecutor.RequestGrouper<ShardUpdateRequest> {
 
-        private final ShardUpsertRequest.Builder requestBuilder;
+        private final ShardUpdateRequest.Builder requestBuilder;
         private final DocTableInfo table;
         private final Assignments assignments;
 
         private Symbol[] assignmentSources;
 
-        UpdateRequests(ShardUpsertRequest.Builder requestBuilder, DocTableInfo table, Assignments assignments) {
+        UpdateRequests(ShardUpdateRequest.Builder requestBuilder, DocTableInfo table, Assignments assignments) {
             this.requestBuilder = requestBuilder;
             this.table = table;
             this.assignments = assignments;
         }
 
         @Override
-        public ShardUpsertRequest newRequest(ShardId shardId) {
+        public ShardUpdateRequest newRequest(ShardId shardId) {
             return requestBuilder.newRequest(shardId);
         }
 
@@ -157,15 +156,14 @@ public final class UpdateById implements Plan {
         }
 
         @Override
-        public void addItem(ShardUpsertRequest request,
+        public void addItem(ShardUpdateRequest request,
                             int location,
                             String id,
                             Long version,
                             Long seqNo,
                             Long primaryTerm) {
-            ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(id,
+            ShardUpdateRequest.Item item = new ShardUpdateRequest.Item(id,
                                                                        assignmentSources,
-                                                                       null,
                                                                        version,
                                                                        seqNo,
                                                                        primaryTerm,
