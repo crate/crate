@@ -41,8 +41,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class
-ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUpdateRequest.Item> {
+public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUpdateRequest.Item> {
 
     public enum DuplicateKeyAction {
         UPDATE_OR_FAIL,

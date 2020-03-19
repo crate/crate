@@ -64,7 +64,6 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.SysUpdateProjector;
 import io.crate.execution.dml.SysUpdateResultSetProjector;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
-import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.DeleteProjection;
