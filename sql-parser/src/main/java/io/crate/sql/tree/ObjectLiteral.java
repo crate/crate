@@ -21,27 +21,17 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
-
-import javax.annotation.Nullable;
+import java.util.Map;
 
 public class ObjectLiteral extends Literal {
 
-    private final Multimap<String, Expression> values;
+    private final Map<String, Expression> values;
 
-    public ObjectLiteral(@Nullable Multimap<String, Expression> values) {
-        if (values == null) {
-            this.values = ImmutableMultimap.of();
-        } else {
-            this.values = values;
-            if (values.size() != values.keySet().size()) {
-                throw new IllegalArgumentException("object contains duplicate keys: " + values);
-            }
-        }
+    public ObjectLiteral(Map<String, Expression> values) {
+        this.values = values;
     }
 
-    public Multimap<String, Expression> values() {
+    public Map<String, Expression> values() {
         return values;
     }
 

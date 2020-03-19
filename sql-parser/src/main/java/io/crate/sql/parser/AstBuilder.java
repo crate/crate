@@ -22,9 +22,6 @@
 
 package io.crate.sql.parser;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Multimap;
 import io.crate.common.collections.Lists2;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
@@ -189,6 +186,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -639,7 +637,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     private Assignment<?> prepareSetAssignment(SqlBaseParser.SetContext context) {
         Expression settingName = new QualifiedNameReference(getQualifiedName(context.qname()));
         if (context.DEFAULT() != null) {
-            return new Assignment<>(settingName, ImmutableList.of());
+            return new Assignment<>(settingName, List.of());
         }
         return new Assignment<>(settingName, visitCollection(context.setExpr(), Expression.class));
     }
@@ -1366,7 +1364,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         List<MatchPredicateColumnIdent> idents;
 
         if (predicateIdents.matchPred != null) {
-            idents = ImmutableList.of((MatchPredicateColumnIdent) visit(predicateIdents.matchPred));
+            idents = List.of((MatchPredicateColumnIdent) visit(predicateIdents.matchPred));
         } else {
             idents = visitCollection(predicateIdents.matchPredicateIdent(), MatchPredicateColumnIdent.class);
         }
@@ -1409,7 +1407,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitConcatenation(SqlBaseParser.ConcatenationContext context) {
         return new FunctionCall(
-            QualifiedName.of("concat"), ImmutableList.of(
+            QualifiedName.of("concat"), List.of(
             (Expression) visit(context.left),
             (Expression) visit(context.right)));
     }
@@ -1540,17 +1538,17 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitCurrentSchema(SqlBaseParser.CurrentSchemaContext context) {
-        return new FunctionCall(QualifiedName.of("current_schema"), ImmutableList.of());
+        return new FunctionCall(QualifiedName.of("current_schema"), List.of());
     }
 
     @Override
     public Node visitCurrentUser(SqlBaseParser.CurrentUserContext ctx) {
-        return new FunctionCall(QualifiedName.of("current_user"), ImmutableList.of());
+        return new FunctionCall(QualifiedName.of("current_user"), List.of());
     }
 
     @Override
     public Node visitSessionUser(SqlBaseParser.SessionUserContext ctx) {
-        return new FunctionCall(QualifiedName.of("session_user"), ImmutableList.of());
+        return new FunctionCall(QualifiedName.of("session_user"), List.of());
     }
 
     @Override
@@ -1689,11 +1687,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitObjectLiteral(SqlBaseParser.ObjectLiteralContext context) {
-        Multimap<String, Expression> objAttributes = LinkedListMultimap.create();
-        context.objectKeyValue().forEach(attr ->
-            objAttributes.put(getIdentText(attr.key), (Expression) visit(attr.value))
-        );
-        return new ObjectLiteral(objAttributes);
+        LinkedHashMap<String, Expression> expressions = new LinkedHashMap<>();
+        context.objectKeyValue().forEach(attr -> {
+            var key = getIdentText(attr.key);
+            var prevEntry = expressions.put(key, (Expression) visit(attr.value));
+            if (prevEntry != null) {
+                throw new IllegalArgumentException("Object literal cannot contain duplicate keys (`" + key + "`)");
+            }
+        });
+        return new ObjectLiteral(expressions);
     }
 
     @Override
@@ -1840,7 +1842,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private List<String> getColumnAliases(SqlBaseParser.AliasedColumnsContext columnAliasesContext) {
         if (columnAliasesContext == null) {
-            return ImmutableList.of();
+            return List.of();
         }
         return identsToStrings(columnAliasesContext.ident());
     }

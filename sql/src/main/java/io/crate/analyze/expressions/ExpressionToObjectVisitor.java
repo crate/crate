@@ -22,6 +22,10 @@
 package io.crate.analyze.expressions;
 
 
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
 import io.crate.data.Row;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.AstVisitor;
@@ -37,10 +41,6 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubscriptExpression;
-
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
 
 public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
 
@@ -107,7 +107,7 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
     @Override
     public Map<String, Object> visitObjectLiteral(ObjectLiteral node, Row context) {
         Map<String, Object> object = new HashMap<>();
-        for (Map.Entry<String, Expression> entry : node.values().entries()) {
+        for (Map.Entry<String, Expression> entry : node.values().entrySet()) {
             if (object.put(entry.getKey(), entry.getValue().accept(this, context)) != null) {
                 throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH,

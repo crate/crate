@@ -70,6 +70,8 @@ import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Window;
+
+import org.hamcrest.CoreMatchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -1356,17 +1358,17 @@ public class TestStatementBuilder {
 
         ObjectLiteral objectLiteral = (ObjectLiteral) SqlParser.createExpression("{a=1, aa=-1, b='str', c=[], d={}}");
         assertThat(objectLiteral.values().size(), is(5));
-        assertThat(objectLiteral.values().get("a").iterator().next(), instanceOf(LongLiteral.class));
-        assertThat(objectLiteral.values().get("aa").iterator().next(), instanceOf(NegativeExpression.class));
-        assertThat(objectLiteral.values().get("b").iterator().next(), instanceOf(StringLiteral.class));
-        assertThat(objectLiteral.values().get("c").iterator().next(), instanceOf(ArrayLiteral.class));
-        assertThat(objectLiteral.values().get("d").iterator().next(), instanceOf(ObjectLiteral.class));
+        assertThat(objectLiteral.values().get("a"), instanceOf(LongLiteral.class));
+        assertThat(objectLiteral.values().get("aa"), instanceOf(NegativeExpression.class));
+        assertThat(objectLiteral.values().get("b"), instanceOf(StringLiteral.class));
+        assertThat(objectLiteral.values().get("c"), instanceOf(ArrayLiteral.class));
+        assertThat(objectLiteral.values().get("d"), instanceOf(ObjectLiteral.class));
 
         ObjectLiteral quotedObjectLiteral = (ObjectLiteral) SqlParser.createExpression("{\"AbC\"=123}");
         assertThat(quotedObjectLiteral.values().size(), is(1));
-        assertThat(quotedObjectLiteral.values().get("AbC").iterator().next(), instanceOf(LongLiteral.class));
-        assertThat(quotedObjectLiteral.values().get("abc").isEmpty(), is(true));
-        assertThat(quotedObjectLiteral.values().get("ABC").isEmpty(), is(true));
+        assertThat(quotedObjectLiteral.values().get("AbC"), instanceOf(LongLiteral.class));
+        assertThat(quotedObjectLiteral.values().get("abc"), CoreMatchers.nullValue());
+        assertThat(quotedObjectLiteral.values().get("ABC"), CoreMatchers.nullValue());
 
         SqlParser.createExpression("{a=func('abc')}");
         SqlParser.createExpression("{b=identifier}");
