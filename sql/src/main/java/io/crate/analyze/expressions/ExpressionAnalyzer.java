@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
 import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.FrameBoundDefinition;
@@ -909,12 +908,12 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitObjectLiteral(ObjectLiteral node, ExpressionAnalysisContext context) {
-            Multimap<String, Expression> values = node.values();
+            Map<String, Expression> values = node.values();
             if (values.isEmpty()) {
                 return Literal.EMPTY_OBJECT;
             }
             List<Symbol> arguments = new ArrayList<>(values.size() * 2);
-            for (Map.Entry<String, Expression> entry : values.entries()) {
+            for (Map.Entry<String, Expression> entry : values.entrySet()) {
                 arguments.add(Literal.of(entry.getKey()));
                 arguments.add(entry.getValue().accept(this, context));
             }

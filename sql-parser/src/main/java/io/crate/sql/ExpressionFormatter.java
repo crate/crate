@@ -21,10 +21,22 @@
 
 package io.crate.sql;
 
+import static io.crate.sql.SqlFormatter.formatSql;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Ordering;
-import com.google.common.collect.TreeMultimap;
+
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparisonExpression;
@@ -77,16 +89,6 @@ import io.crate.sql.tree.TryCast;
 import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-
-import static io.crate.sql.SqlFormatter.formatSql;
 
 public final class ExpressionFormatter {
 
@@ -276,12 +278,9 @@ public final class ExpressionFormatter {
         public String visitObjectLiteral(ObjectLiteral node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder("{");
             boolean first = true;
-            TreeMultimap<String, Expression> sorted = TreeMultimap.create(
-                Ordering.natural().nullsLast(),
-                Ordering.usingToString().nullsLast()
-            );
+            TreeMap<String, Expression> sorted = new TreeMap<>(Comparator.<String>nullsLast(Comparator.naturalOrder()));
             sorted.putAll(node.values());
-            for (Map.Entry<String, Expression> entry : sorted.entries()) {
+            for (Map.Entry<String, Expression> entry : sorted.entrySet()) {
                 if (!first) {
                     builder.append(", ");
                 } else {

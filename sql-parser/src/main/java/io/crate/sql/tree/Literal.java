@@ -21,10 +21,8 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,7 +53,7 @@ public abstract class Literal
             }
             literal = new ArrayLiteral(expressions);
         } else if (value instanceof Map) {
-            Multimap<String, Expression> map = HashMultimap.create();
+            HashMap<String, Expression> map = new HashMap<>();
             @SuppressWarnings("unchecked") Map<String, Object> valueMap = (Map<String, Object>) value;
             for (Map.Entry<String, Object> entry : valueMap.entrySet()) {
                 map.put(entry.getKey(), fromObject(entry.getValue()));

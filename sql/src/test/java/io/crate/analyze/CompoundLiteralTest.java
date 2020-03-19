@@ -107,7 +107,7 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testObjectConstructionFailsOnDuplicateKeys() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("object contains duplicate keys");
+        expectedException.expectMessage("Object literal cannot contain duplicate keys (`a`)");
         analyzeExpression("{a=1, a=2}");
     }
 
