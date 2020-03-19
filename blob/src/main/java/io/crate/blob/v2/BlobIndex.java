@@ -21,7 +21,6 @@
 
 package io.crate.blob.v2;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import javax.annotation.Nullable;
@@ -110,7 +109,6 @@ public class BlobIndex {
      * Traverse the path down until the shard index was found
      * and return the root path of the blob directory.
      */
-    @VisibleForTesting
     static Path retrieveBlobRootDir(Path blobDir, String indexName, Logger logger) {
         do {
             if (blobDir.endsWith(indexName)) {

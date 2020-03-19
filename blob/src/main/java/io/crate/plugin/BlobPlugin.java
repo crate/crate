@@ -21,7 +21,6 @@
 
 package io.crate.plugin;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.blob.BlobModule;
 import io.crate.blob.BlobService;
 import io.crate.blob.DeleteBlobAction;
@@ -86,7 +85,7 @@ public class BlobPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        return ImmutableList.of(BlobService.class);
+        return List.of(BlobService.class);
     }
 
     @Override

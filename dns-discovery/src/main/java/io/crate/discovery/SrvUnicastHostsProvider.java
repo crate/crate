@@ -22,7 +22,6 @@
 
 package io.crate.discovery;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -85,12 +84,10 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
         resolver = buildResolver(settings);
     }
 
-    @VisibleForTesting
     EventLoopGroup eventLoopGroup() {
         return eventLoopGroup;
     }
 
-    @VisibleForTesting
     InetSocketAddress parseResolverAddress(Settings settings) {
         String hostname;
         int port = 53;
@@ -159,7 +156,6 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
             .get(resolveTimeout.getMillis(), TimeUnit.MILLISECONDS);
     }
 
-    @VisibleForTesting
     List<TransportAddress> parseRecords(List<DnsRecord> records) {
         List<TransportAddress> addresses = new ArrayList<>(records.size());
         for (DnsRecord record : records) {

@@ -21,7 +21,6 @@
 
 package io.crate.blob.v2;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.plugin.IndexEventListenerProxy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -69,7 +68,6 @@ public class BlobIndicesService implements IndexEventListener {
 
     private final ClusterService clusterService;
 
-    @VisibleForTesting
     final Map<String, BlobIndex> indices = new ConcurrentHashMap<>();
 
     @Nullable

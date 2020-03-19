@@ -13,8 +13,5 @@ dependencies {
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     implementation "commons-logging:commons-logging:${versions.commonslogging}"
     implementation "commons-codec:commons-codec:${versions.commonscodec}"
-
-    // crate extra dependencies
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
-    implementation "com.google.guava:guava:${versions.guava}"
 }
