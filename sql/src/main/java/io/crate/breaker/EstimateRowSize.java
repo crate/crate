@@ -22,12 +22,13 @@
 
 package io.crate.breaker;
 
-import io.crate.data.Row;
-import io.crate.types.DataType;
-
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.function.ToLongFunction;
+
+import io.crate.data.Row;
+import io.crate.types.DataType;
 
 public final class EstimateRowSize implements ToLongFunction<Row> {
 
@@ -35,14 +36,15 @@ public final class EstimateRowSize implements ToLongFunction<Row> {
 
     public EstimateRowSize(Collection<? extends DataType> columnTypes) {
         this.estimators = new ArrayList<>(columnTypes.size());
-        for (DataType columnType : columnTypes) {
+        for (DataType<?> columnType : columnTypes) {
             estimators.add(SizeEstimatorFactory.create(columnType));
         }
     }
 
     @Override
     public long applyAsLong(Row row) {
-        assert row.numColumns() == estimators.size() : "Size of row must match the number of estimators";
+        assert row.numColumns() == estimators.size()
+            : String.format(Locale.ENGLISH, "row.numColumns=%d estimators.size=%d - the number must match. ", row.numColumns(), estimators.size());
         long size = 0;
         for (int i = 0; i < row.numColumns(); i++) {
             size += estimators.get(i).estimateSize(row.get(i));
