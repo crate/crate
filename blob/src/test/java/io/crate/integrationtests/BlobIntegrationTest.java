@@ -28,7 +28,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.base.Strings.repeat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -40,14 +39,14 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     private String uploadSmallBlob() throws IOException {
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
-        CloseableHttpResponse response = put(blobUri(digest), repeat("a", 1500));
+        CloseableHttpResponse response = put(blobUri(digest), "a".repeat(1500));
         assertThat(response.getStatusLine().getStatusCode(), is(201));
         return digest;
     }
 
     private String uploadBigBlob() throws IOException {
         String digest = "37ca53ed215ea5e0e7fb67e5e12b4ff41dd5eeb0";
-        put(blobUri(digest), repeat("abcdefghijklmnopqrstuvwxyz", 1024 * 600));
+        put(blobUri(digest), "abcdefghijklmnopqrstuvwxyz".repeat(1024 * 600));
         return digest;
     }
 
@@ -91,7 +90,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     @Test
     public void testUploadValidFile() throws IOException {
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
-        CloseableHttpResponse response = put(blobUri(digest), repeat("a", 1500));
+        CloseableHttpResponse response = put(blobUri(digest), "a".repeat(1500));
         assertThat(response.getStatusLine().getStatusCode(), is(201));
         /* Note that the content length is specified in the response in order to
         let keep alive clients know that they don't have to wait for data
@@ -102,15 +101,14 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     @Test
     public void testUploadChunkedWithConflict() throws IOException {
         String digest = uploadBigBlob();
-        CloseableHttpResponse conflictRes = put(blobUri(digest), repeat("abcdefghijklmnopqrstuvwxyz",
-            1024 * 600));
+        CloseableHttpResponse conflictRes = put(blobUri(digest), "abcdefghijklmnopqrstuvwxyz".repeat(1024 * 600));
         assertThat(conflictRes.getStatusLine().getStatusCode(), is(409));
     }
 
     @Test
     public void testUploadToUnknownBlobTable() throws IOException {
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
-        CloseableHttpResponse response = put(blobUri("test_no_blobs", digest), repeat("a", 1500));
+        CloseableHttpResponse response = put(blobUri("test_no_blobs", digest), "a".repeat(1500));
         assertThat(response.getStatusLine().getStatusCode(), is(404));
     }
 
@@ -197,7 +195,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     @Test
     public void testParallelAccess() throws Throwable {
         String digest = uploadBigBlob();
-        String expectedContent = repeat("abcdefghijklmnopqrstuvwxyz", 1024 * 600);
+        String expectedContent = "abcdefghijklmnopqrstuvwxyz".repeat(1024 * 600);
         Header[][] headers = new Header[40][];
         String[] uris = new String[40];
         String[] expected = new String[40];
@@ -212,7 +210,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     @Test
     public void testParallelAccessWithRange() throws Throwable {
         String digest = uploadBigBlob();
-        String expectedContent = repeat("abcdefghijklmnopqrstuvwxyz", 1024 * 600);
+        String expectedContent = "abcdefghijklmnopqrstuvwxyz".repeat(1024 * 600);
         Header[][] headers = new Header[][]{
             {new BasicHeader("Range", "bytes=0-")},
             {new BasicHeader("Range", "bytes=10-100")},

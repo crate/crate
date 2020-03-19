@@ -21,7 +21,6 @@
 
 package io.crate.blob;
 
-import com.google.common.io.ByteStreams;
 import io.crate.blob.exceptions.BlobAlreadyExistsException;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.common.Hex;
@@ -149,7 +148,7 @@ public class DigestBlob implements Closeable {
     private void calculateDigest() {
         assert headSize.get() == headLength : "Head hasn't catched up, can't calculate digest";
         try (FileInputStream stream = new FileInputStream(file)) {
-            ByteStreams.skipFully(stream, headLength);
+            stream.skipNBytes(headLength);
             byte[] buffer = new byte[4096];
             int bytesRead;
             while ((bytesRead = stream.read(buffer, 0, 4096)) > 0) {

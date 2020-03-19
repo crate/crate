@@ -7,8 +7,8 @@ dependencies {
     api project(':es:es-testing')
     api "org.codehaus.jackson:jackson-mapper-asl:${versions.jacksonasl}"
 
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     implementation project(':es:es-server')
-    implementation "com.google.guava:guava:${versions.guava}"
 }
 
 test {

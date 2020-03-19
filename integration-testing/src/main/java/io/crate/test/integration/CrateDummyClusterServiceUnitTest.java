@@ -22,7 +22,6 @@
 
 package io.crate.test.integration;
 
-import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -59,7 +58,7 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
     public static final String NODE_ID = "n1";
     public static final String NODE_NAME = "node-name";
 
-    private static final Set<Setting<?>> EMPTY_CLUSTER_SETTINGS = ImmutableSet.of();
+    private static final Set<Setting<?>> EMPTY_CLUSTER_SETTINGS = Set.of();
 
     protected static ThreadPool THREAD_POOL;
     protected ClusterService clusterService;
