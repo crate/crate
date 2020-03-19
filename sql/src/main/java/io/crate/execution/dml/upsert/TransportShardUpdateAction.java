@@ -279,6 +279,10 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         long version = Versions.MATCH_ANY;
 
         Engine.IndexResult indexResult = index(item.id(), item.source(), indexShard, isRetry, seqNo, primaryTerm, version);
+
+        item.seqNo(indexResult.getSeqNo());
+        item.version(indexResult.getVersion());
+
         Object[] returnvalues = null;
         if (returnGen != null) {
             returnvalues = returnGen.generateReturnValues(
