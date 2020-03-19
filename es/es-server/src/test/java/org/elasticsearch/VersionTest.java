@@ -30,13 +30,13 @@ import static org.junit.Assert.assertThat;
 public class VersionTest {
 
     @Test
-    public void test_compatible_current_version_is_compatible_to_4_0_0() {
-        assertThat(Version.CURRENT.isCompatible(Version.V_4_0_0), is(true));
+    public void test_compatible_current_version_is_compatible_to_4_1_0() {
+        assertThat(Version.CURRENT.isCompatible(Version.V_4_1_0), is(true));
     }
 
     @Test
-    public void test_min_version_is_4_0_0() {
-        assertThat(Version.CURRENT.minimumCompatibilityVersion(), is(Version.V_4_0_0));
+    public void test_min_version_is_4_1_0() {
+        assertThat(Version.CURRENT.minimumCompatibilityVersion(), is(Version.V_4_1_0));
     }
 
     @Test
