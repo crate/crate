@@ -37,6 +37,7 @@ public class Jdk implements Buildable, Iterable<File> {
 
     private static final List<String> ALLOWED_VENDORS = List.of("adoptopenjdk");
     private static final List<String> ALLOWED_PLATFORMS = List.of("linux", "windows", "mac");
+    private static final List<String> ALLOWED_ARCH = List.of("x64", "aarch64");
     private static final Pattern VERSION_PATTERN = Pattern.compile(
         "(\\d+)(\\.\\d+\\.\\d+)?\\+(\\d+(?:\\.\\d+)?)(@([a-f0-9]{32}))?");
 
@@ -45,6 +46,7 @@ public class Jdk implements Buildable, Iterable<File> {
 
     private final Property<String> vendor;
     private final Property<String> version;
+    private final Property<String> arch;
     private final Property<String> platform;
     private String baseVersion;
     private String major;
@@ -56,6 +58,7 @@ public class Jdk implements Buildable, Iterable<File> {
         this.configuration = configuration;
         this.vendor = objectFactory.property(String.class);
         this.version = objectFactory.property(String.class);
+        this.arch = objectFactory.property(String.class);
         this.platform = objectFactory.property(String.class);
     }
 
@@ -90,6 +93,20 @@ public class Jdk implements Buildable, Iterable<File> {
         build = versionMatcher.group(3);
         hash = versionMatcher.group(5);
         this.version.set(version);
+    }
+
+    public String arch() {
+        return arch.get();
+    }
+
+    public void setArch(String arch) {
+        if (!ALLOWED_ARCH.contains(arch)) {
+            throw new IllegalArgumentException(
+                "unknown architecture [" + arch + "] for jdk [" + name + "], " +
+                "must be one of " + ALLOWED_ARCH
+            );
+        }
+        this.arch.set(arch);
     }
 
     public String platform() {
@@ -160,6 +177,9 @@ public class Jdk implements Buildable, Iterable<File> {
         }
         if (!platform.isPresent()) {
             throw new IllegalArgumentException("platform not specified for jdk [" + name + "]");
+        }
+        if (!arch.isPresent()) {
+            throw new IllegalArgumentException("architecture not specified for jdk [" + name + "]");
         }
         if (!vendor.isPresent()) {
             throw new IllegalArgumentException("vendor not specified for jdk [" + name + "]");
