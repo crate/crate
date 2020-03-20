@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 public class Jdk implements Buildable, Iterable<File> {
 
     private static final List<String> ALLOWED_VENDORS = List.of("adoptopenjdk");
-    private static final List<String> ALLOWED_PLATFORMS = List.of("linux", "windows", "mac");
+    private static final List<String> ALLOWED_OS = List.of("linux", "windows", "mac");
     private static final List<String> ALLOWED_ARCH = List.of("x64", "aarch64");
     private static final Pattern VERSION_PATTERN = Pattern.compile(
         "(\\d+)(\\.\\d+\\.\\d+)?\\+(\\d+(?:\\.\\d+)?)(@([a-f0-9]{32}))?");
@@ -47,7 +47,7 @@ public class Jdk implements Buildable, Iterable<File> {
     private final Property<String> vendor;
     private final Property<String> version;
     private final Property<String> arch;
-    private final Property<String> platform;
+    private final Property<String> os;
     private String baseVersion;
     private String major;
     private String build;
@@ -59,7 +59,7 @@ public class Jdk implements Buildable, Iterable<File> {
         this.vendor = objectFactory.property(String.class);
         this.version = objectFactory.property(String.class);
         this.arch = objectFactory.property(String.class);
-        this.platform = objectFactory.property(String.class);
+        this.os = objectFactory.property(String.class);
     }
 
     public String name() {
@@ -95,6 +95,10 @@ public class Jdk implements Buildable, Iterable<File> {
         this.version.set(version);
     }
 
+    public String platform() {
+        return arch() + "_" + os();
+    }
+
     public String arch() {
         return arch.get();
     }
@@ -109,18 +113,18 @@ public class Jdk implements Buildable, Iterable<File> {
         this.arch.set(arch);
     }
 
-    public String platform() {
-        return platform.get();
+    public String os() {
+        return os.get();
     }
 
-    public void setPlatform(String platform) {
-        if (!ALLOWED_PLATFORMS.contains(platform)) {
+    public void setOs(String os) {
+        if (!ALLOWED_OS.contains(os)) {
             throw new IllegalArgumentException(
-                "unknown platform [" + platform + "] for jdk [" + name + "], " +
-                "must be one of " + ALLOWED_PLATFORMS
+                "unknown OS [" + os + "] for jdk [" + name + "], " +
+                "must be one of " + ALLOWED_OS
             );
         }
-        this.platform.set(platform);
+        this.os.set(os);
     }
 
     public String baseVersion() {
@@ -167,25 +171,26 @@ public class Jdk implements Buildable, Iterable<File> {
     }
 
     public File getJavaHome() {
-        return new File(path() + ("mac".equals(platform()) ? "/Contents/Home" : ""));
+        return new File(path() + ("mac".equals(os()) ? "/Contents/Home" : ""));
     }
 
     @SuppressWarnings("UnstableApiUsage")
     void finalizeValues() {
         if (!version.isPresent()) {
-            throw new IllegalArgumentException("version not specified for jdk [" + name + "]");
+            throw new IllegalArgumentException("version is not specified for jdk [" + name + "]");
         }
-        if (!platform.isPresent()) {
-            throw new IllegalArgumentException("platform not specified for jdk [" + name + "]");
+        if (!os.isPresent()) {
+            throw new IllegalArgumentException("OS is not specified for jdk [" + name + "]");
         }
         if (!arch.isPresent()) {
-            throw new IllegalArgumentException("architecture not specified for jdk [" + name + "]");
+            throw new IllegalArgumentException("architecture is not specified for jdk [" + name + "]");
         }
         if (!vendor.isPresent()) {
-            throw new IllegalArgumentException("vendor not specified for jdk [" + name + "]");
+            throw new IllegalArgumentException("vendor is not specified for jdk [" + name + "]");
         }
         version.finalizeValue();
-        platform.finalizeValue();
+        os.finalizeValue();
+        arch.finalizeValue();
         vendor.finalizeValue();
     }
 
