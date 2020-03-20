@@ -6,27 +6,43 @@ def fakeJdkVendor = rootProject.ext.fakeJdkVendor
 def fakeJdkVersion = rootProject.ext.fakeJdkVersion
 
 jdks {
-    linux {
+    aarch64_linux {
         vendor = fakeJdkVendor
         version = fakeJdkVersion
         platform = "linux"
+        arch = "aarch64"
+    }
+    x64_linux {
+        vendor = fakeJdkVendor
+        version = fakeJdkVersion
+        platform = "linux"
+        arch = "x64"
     }
     mac {
         vendor = fakeJdkVendor
         version = fakeJdkVersion
         platform = "mac"
+        arch = "x64"
     }
     windows {
         vendor = fakeJdkVendor
         version = fakeJdkVersion
         platform = "windows"
+        arch = "x64"
     }
 }
 
-task getLinuxJdk {
-    dependsOn jdks.linux
+task getAarch64LinuxJdk {
+    dependsOn jdks.aarch64_linux
     doLast {
-        println "JDK HOME: " + jdks.linux
+        println "JDK HOME: " + jdks.aarch64_linux
+    }
+}
+
+task getX64LinuxJdk {
+    dependsOn jdks.x64_linux
+    doLast {
+        println "JDK HOME: " + jdks.x64_linux
     }
 }
 

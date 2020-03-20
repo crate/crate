@@ -57,14 +57,16 @@ import java.util.stream.StreamSupport;
  * jdks {
  * ...
  *  linux {
- *      platform="linux"
  *      vendor="adoptopenjdk"
  *      version="13.0.2+8"
+ *      platform="linux"
+ *      arch="aarch64"
  *  }
  *  mac {
- *      platform="linux"
  *      vendor="adoptopenjdk"
  *      version="13.0.2+8"
+ *      platform="linux"
+ *      arch="x64"
  *  }
  *  ...
  * }
@@ -122,6 +124,7 @@ public class JdkDownloadPlugin implements Plugin<Project> {
                         "extract",
                         jdk.vendor(),
                         jdk.version(),
+                        jdk.arch(),
                         jdk.platform()));
                 dependencies.add(
                     jdk.configuration().getName(),
@@ -134,7 +137,7 @@ public class JdkDownloadPlugin implements Plugin<Project> {
 
     private static void setupRootJdkDownload(Project rootProject, Jdk jdk) {
         var extractTaskName =
-            "extract_" + jdk.platform().toLowerCase() + "_jdk_" + jdk.vendor() + "_" + jdk.version();
+            "extract_" + jdk.arch() + "_" + jdk.platform().toLowerCase() + "_jdk_" + jdk.vendor() + "_" + jdk.version();
 
         // Skip setup if we've already configured a JDK for
         // this platform, vendor and version
@@ -142,7 +145,7 @@ public class JdkDownloadPlugin implements Plugin<Project> {
             var downloadConfiguration = maybeCreateRepositoryAndDownloadConfiguration(rootProject, jdk);
             var extractPathProvider = rootProject.getLayout()
                 .getBuildDirectory()
-                .dir("jdks/" + jdk.vendor() + "-" + jdk.baseVersion() + "_" + jdk.platform());
+                .dir("jdks/" + jdk.vendor() + "-" + jdk.baseVersion() + "_" + jdk.arch() + "_" + jdk.platform());
             TaskProvider<?> extractTask = createExtractTask(
                 extractTaskName,
                 rootProject,
@@ -152,7 +155,8 @@ public class JdkDownloadPlugin implements Plugin<Project> {
             );
 
             // Declare a configuration for the extracted JDK archive
-            String artifactConfigName = configName("extract", jdk.vendor(), jdk.version(), jdk.platform());
+            String artifactConfigName = configName(
+                "extract", jdk.vendor(), jdk.version(), jdk.arch(), jdk.platform());
             rootProject.getConfigurations().maybeCreate(artifactConfigName);
             rootProject.getArtifacts().add(
                 artifactConfigName,
@@ -169,7 +173,7 @@ public class JdkDownloadPlugin implements Plugin<Project> {
             repoUrl = "https://cdn.crate.io/downloads/openjdk/";
             artifactPattern = String.format(
                 Locale.ENGLISH,
-                "OpenJDK%sU-jdk_x64_[module]_hotspot_[revision]_%s.[ext]",
+                "OpenJDK%sU-jdk_[module]_hotspot_[revision]_%s.[ext]",
                 jdk.major(),
                 jdk.build()
             );
@@ -190,7 +194,7 @@ public class JdkDownloadPlugin implements Plugin<Project> {
         }
 
         // Declare a configuration and dependency from which to download the remote JDK
-        var downloadConfigName = configName(jdk.vendor(), jdk.version(), jdk.platform());
+        var downloadConfigName = configName(jdk.vendor(), jdk.version(), jdk.arch(), jdk.platform());
         var downloadConfiguration = rootProject.getConfigurations().maybeCreate(downloadConfigName);
         rootProject.getDependencies().add(downloadConfigName, dependencyNotation(jdk));
         return downloadConfiguration;
@@ -272,12 +276,14 @@ public class JdkDownloadPlugin implements Plugin<Project> {
     }
 
     private static String dependencyNotation(Jdk jdk) {
-        String platformDep = jdk.platform().equals("darwin") || jdk.platform().equals("osx")
+        var platform = jdk.platform().equals("darwin") || jdk.platform().equals("osx")
             ? (jdk.vendor().equals("adoptopenjdk") ? "mac" : "osx")
             : jdk.platform();
-        String extension = jdk.platform().equals("windows") ? "zip" : "tar.gz";
-
-        return jdk.vendor() + ":" + platformDep + ":" + jdk.baseVersion() + "@" + extension;
+        var extension = jdk.platform().equals("windows") ? "zip" : "tar.gz";
+        return jdk.vendor() +
+               ":" + jdk.arch() + "_" + platform +
+               ":" + jdk.baseVersion() +
+               "@" + extension;
     }
 }
 

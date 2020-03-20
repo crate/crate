@@ -42,6 +42,34 @@ public class JdkTest {
     }
 
     @Test
+    public void testMissingArch() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+            "architecture not specified for jdk [testjdk]");
+        createJdk(createProject(),
+            "testjdk",
+            null,
+            "11.0.2+33",
+            "linux",
+            null
+        );
+    }
+
+    @Test
+    public void testUnknownArch() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+            "unknown architecture [x86] for jdk [testjdk], must be one of [x64, aarch64]");
+        createJdk(createProject(),
+            "testjdk",
+            "adoptopenjdk",
+            "11.0.2+33",
+            "windows",
+            "x86"
+        );
+    }
+
+    @Test
     public void testMissingVendor() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
@@ -50,7 +78,8 @@ public class JdkTest {
             "testjdk",
             null,
             "11.0.2+33",
-            "linux"
+            "linux",
+            "x64"
         );
     }
 
@@ -63,7 +92,8 @@ public class JdkTest {
             "testjdk",
             "unknown",
             "11.0.2+33",
-            "linux"
+            "linux",
+            "x64"
         );
     }
 
@@ -75,7 +105,8 @@ public class JdkTest {
             "testjdk",
             "adoptopenjdk",
             null,
-            "linux"
+            "linux",
+            "x64"
         );
     }
 
@@ -87,7 +118,8 @@ public class JdkTest {
             "testjdk",
             "adoptopenjdk",
             "badversion",
-            "linux"
+            "linux",
+            "x64"
         );
     }
 
@@ -99,7 +131,8 @@ public class JdkTest {
             "testjdk",
             "adoptopenjdk",
             "11.0.2+33",
-            null
+            null,
+            "x64"
         );
     }
 
@@ -113,11 +146,17 @@ public class JdkTest {
             "testjdk",
             "adoptopenjdk",
             "11.0.2+33",
-            "unknown"
+            "unknown",
+            "x64"
         );
     }
 
-    private void createJdk(Project project, String name, String vendor, String version, String platform) {
+    private void createJdk(Project project,
+                           String name,
+                           String vendor,
+                           String version,
+                           String platform,
+                           String arch) {
         //noinspection unchecked
         var jdks = (NamedDomainObjectContainer<Jdk>) project.getExtensions().getByName("jdks");
         jdks.create(name, jdk -> {
@@ -129,6 +168,9 @@ public class JdkTest {
             }
             if (platform != null) {
                 jdk.setPlatform(platform);
+            }
+            if (arch != null) {
+                jdk.setArch(arch);
             }
         }).finalizeValues();
     }
