@@ -57,14 +57,16 @@ import java.util.stream.StreamSupport;
  * jdks {
  * ...
  *  linux {
- *      platform="linux"
  *      vendor="adoptopenjdk"
  *      version="13.0.2+8"
+ *      os="linux"
+ *      arch="aarch64"
  *  }
  *  mac {
- *      platform="linux"
  *      vendor="adoptopenjdk"
  *      version="13.0.2+8"
+ *      os="linux"
+ *      arch="x64"
  *  }
  *  ...
  * }
@@ -146,13 +148,14 @@ public class JdkDownloadPlugin implements Plugin<Project> {
             TaskProvider<?> extractTask = createExtractTask(
                 extractTaskName,
                 rootProject,
-                jdk.platform(),
+                jdk.os().equals("windows"),
                 extractPathProvider,
                 downloadConfiguration::getSingleFile
             );
 
             // Declare a configuration for the extracted JDK archive
-            String artifactConfigName = configName("extract", jdk.vendor(), jdk.version(), jdk.platform());
+            String artifactConfigName = configName(
+                "extract", jdk.vendor(), jdk.version(), jdk.platform());
             rootProject.getConfigurations().maybeCreate(artifactConfigName);
             rootProject.getArtifacts().add(
                 artifactConfigName,
@@ -169,7 +172,7 @@ public class JdkDownloadPlugin implements Plugin<Project> {
             repoUrl = "https://cdn.crate.io/downloads/openjdk/";
             artifactPattern = String.format(
                 Locale.ENGLISH,
-                "OpenJDK%sU-jdk_x64_[module]_hotspot_[revision]_%s.[ext]",
+                "OpenJDK%sU-jdk_[module]_hotspot_[revision]_%s.[ext]",
                 jdk.major(),
                 jdk.build()
             );
@@ -199,10 +202,10 @@ public class JdkDownloadPlugin implements Plugin<Project> {
     private static TaskProvider<?> createExtractTask(
         String taskName,
         Project rootProject,
-        String platform,
+        boolean isWindows,
         Provider<Directory> extractPath,
         Supplier<File> jdkBundle) {
-        if (platform.equals("windows")) {
+        if (isWindows) {
             Action<CopySpec> removeRootDir = copy -> {
                 // remove extra unnecessary directory levels
                 copy.eachFile(details -> {
@@ -272,12 +275,11 @@ public class JdkDownloadPlugin implements Plugin<Project> {
     }
 
     private static String dependencyNotation(Jdk jdk) {
-        String platformDep = jdk.platform().equals("darwin") || jdk.platform().equals("osx")
-            ? (jdk.vendor().equals("adoptopenjdk") ? "mac" : "osx")
-            : jdk.platform();
-        String extension = jdk.platform().equals("windows") ? "zip" : "tar.gz";
-
-        return jdk.vendor() + ":" + platformDep + ":" + jdk.baseVersion() + "@" + extension;
+        var extension = jdk.os().equals("windows") ? "zip" : "tar.gz";
+        return jdk.vendor() +
+               ":" + jdk.platform() +
+               ":" + jdk.baseVersion() +
+               "@" + extension;
     }
 }
 

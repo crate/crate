@@ -42,15 +42,44 @@ public class JdkTest {
     }
 
     @Test
-    public void testMissingVendor() {
+    public void testMissingArch() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "vendor not specified for jdk [testjdk]");
+            "architecture is not specified for jdk [testjdk]");
         createJdk(createProject(),
             "testjdk",
             null,
             "11.0.2+33",
-            "linux"
+            "linux",
+            null
+        );
+    }
+
+    @Test
+    public void testUnknownArch() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+            "unknown architecture [x86] for jdk [testjdk], must be one of [x64, aarch64]");
+        createJdk(createProject(),
+            "testjdk",
+            "adoptopenjdk",
+            "11.0.2+33",
+            "windows",
+            "x86"
+        );
+    }
+
+    @Test
+    public void testMissingVendor() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+            "vendor is not specified for jdk [testjdk]");
+        createJdk(createProject(),
+            "testjdk",
+            null,
+            "11.0.2+33",
+            "linux",
+            "x64"
         );
     }
 
@@ -63,19 +92,21 @@ public class JdkTest {
             "testjdk",
             "unknown",
             "11.0.2+33",
-            "linux"
+            "linux",
+            "x64"
         );
     }
 
     @Test
     public void testMissingVersion() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("version not specified for jdk [testjdk]");
+        expectedException.expectMessage("version is not specified for jdk [testjdk]");
         createJdk(createProject(),
             "testjdk",
             "adoptopenjdk",
             null,
-            "linux"
+            "linux",
+            "x64"
         );
     }
 
@@ -87,37 +118,45 @@ public class JdkTest {
             "testjdk",
             "adoptopenjdk",
             "badversion",
-            "linux"
+            "linux",
+            "x64"
         );
     }
 
     @Test
-    public void testMissingPlatform() {
+    public void testMissingOS() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("platform not specified for jdk [testjdk]");
+        expectedException.expectMessage("OS is not specified for jdk [testjdk]");
         createJdk(createProject(),
             "testjdk",
             "adoptopenjdk",
             "11.0.2+33",
-            null
+            null,
+            "x64"
         );
     }
 
     @Test
-    public void testUnknownPlatform() {
+    public void testUnknownOS() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "unknown platform [unknown] for jdk [testjdk], " +
+            "unknown OS [unknown] for jdk [testjdk], " +
             "must be one of [linux, windows, mac]");
         createJdk(createProject(),
             "testjdk",
             "adoptopenjdk",
             "11.0.2+33",
-            "unknown"
+            "unknown",
+            "x64"
         );
     }
 
-    private void createJdk(Project project, String name, String vendor, String version, String platform) {
+    private void createJdk(Project project,
+                           String name,
+                           String vendor,
+                           String version,
+                           String os,
+                           String arch) {
         //noinspection unchecked
         var jdks = (NamedDomainObjectContainer<Jdk>) project.getExtensions().getByName("jdks");
         jdks.create(name, jdk -> {
@@ -127,8 +166,11 @@ public class JdkTest {
             if (version != null) {
                 jdk.setVersion(version);
             }
-            if (platform != null) {
-                jdk.setPlatform(platform);
+            if (os != null) {
+                jdk.setOs(os);
+            }
+            if (arch != null) {
+                jdk.setArch(arch);
             }
         }).finalizeValues();
     }

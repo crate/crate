@@ -1,0 +1,41 @@
+.. _version_4.1.4:
+
+=============
+Version 4.1.4
+=============
+
+Released on 2020-03-20.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.1.4.
+
+    We recommend that you upgrade to the latest 4.0 release before moving to
+    4.1.4.
+
+    A rolling upgrade to 4.1.4 from 4.0.2+ is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.1.0` release notes for a full list of changes in the
+4.1 series.
+
+
+Fixes
+=====
+
+- Improved the resiliency of ``INSERT INTO ..`` queries that have a table
+  function like ``generate_series`` as a source.
+
+- Fixed a regression introduced in 4.1 that led to a ``ClassCastException``
+  running queries with ``GROUP BY``, no aggregations and a ``LIMIT`` clause.

@@ -74,6 +74,28 @@ To get a full list of all available tasks, run::
 
     $ ./gradlew tasks
 
+Such as CrateDB uses the pre-configured bundled version of OpenJDK_, it is
+possible to run, compile, and test CrateDB by configuring the target JDK.
+For instance::
+
+    $ ./gradlew distTar -Dbundled_jdk_os=linux \
+                        -Dbundled_jdk_arch=aarch64 \
+                        -Dbundled_jdk_vendor=adoptopenjdk \
+                        -Dbundled_jdk_version=13.0.2+8
+
+Currently, we support the following ``JDK`` operation systems and
+architectures:
+
+    +---------+---------+---------+-----+
+    |         |  linux  | windows | mac |
+    +---------+---------+---------+-----+
+    |   x64   |    x    |    x    |  x  |
+    +---------+---------+---------+-----+
+    | aarch64 |    x    |         |     |
+    +---------+---------+---------+-----+
+
+The only supported ``JDK`` vendor is ``AdoptOpenJDK``. To check the available
+``JDK`` versions, please see `hosted OpenJDK archives on Crate.io CDN`_.
 
 Running Tests
 =============
@@ -157,3 +179,4 @@ build like so::
 .. _IntelliJ IDEA: https://www.jetbrains.com/idea/
 .. _jacoco: http://www.eclemma.org/jacoco/
 .. _Forbidden APIs: https://github.com/policeman-tools/forbidden-apis
+.. _hosted OpenJDK archives on Crate.io CDN: https://cdn.crate.io/downloads/openjdk/

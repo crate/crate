@@ -32,14 +32,26 @@ apply from: 'gradle/dependencies.gradle'
 apply plugin: 'base'
 apply plugin: 'jdk-download'
 
+def getJdkBundleOSFromPropertiesOrDefault = {
+    System.getProperty(
+        "bundled_jdk_os",
+        versions['bundled_jdk_os'] != null
+            ? "${versions['bundled_jdk_os']}"
+            : OS.current().name().toLowerCase())
+}
+
+def getJdkBundleArchFromPropertiesOrDefault = {
+    System.getProperty(
+        "bundled_jdk_arch",
+        versions['bundled_jdk_arch'] != null ? "${versions['bundled_jdk_arch']}" : "x64")
+}
+
 jdks {
     runtime {
         vendor = "${System.getProperty("bundled_jdk_vendor", versions['bundled_jdk_vendor'])}"
         version = "${System.getProperty("bundled_jdk_version", versions['bundled_jdk_version'])}"
-        platform = System.getProperty("platform",
-                versions['platform'] != null
-                        ? "${versions['platform']}"
-                        : OS.current().name().toLowerCase())
+        os = getJdkBundleOSFromPropertiesOrDefault()
+        arch = getJdkBundleArchFromPropertiesOrDefault()
     }
 }
 

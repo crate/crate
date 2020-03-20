@@ -52,17 +52,22 @@ public class JdkDownloadPluginFunctionalTest {
     public static final String VERSION = "13.0.2+8";
 
     @Test
-    public void testLinuxExtraction() {
-        assertExtraction("getLinuxJdk", "bin/java", VENDOR, VERSION);
+    public void testAarch64LinuxJDKExtraction() {
+        assertExtraction("getAarch64LinuxJdk", "bin/java", VENDOR, VERSION);
     }
 
     @Test
-    public void testMacExtraction() {
+    public void testX64LinuxJDKExtraction() {
+        assertExtraction("getX64LinuxJdk", "bin/java", VENDOR, VERSION);
+    }
+
+    @Test
+    public void testMacJDKExtraction() {
         assertExtraction("getMacJdk", "Contents/Home/bin/java", VENDOR, VERSION);
     }
 
     @Test
-    public void testWindowsExtraction() {
+    public void testWindowsJDKExtraction() {
         assertExtraction("getWindowsJdk", "bin/java", VENDOR, VERSION);
     }
 
