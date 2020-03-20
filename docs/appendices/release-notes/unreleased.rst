@@ -157,8 +157,4 @@ Changes
 Fixes
 =====
 
-- Improved the resiliency of ``INSERT INTO ..`` queries that have a table
-  function like ``generate_series`` as a source.
-
-- Fixed a regression introduced in 4.1 that led to a ``ClassCastException``
-  running queries with ``GROUP BY``, no aggregations and a ``LIMIT`` clause.
+None
