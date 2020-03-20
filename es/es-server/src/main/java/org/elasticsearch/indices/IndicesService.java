@@ -22,7 +22,6 @@ package org.elasticsearch.indices;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -569,7 +568,7 @@ public class IndicesService extends AbstractLifecycleComponent
                 nodeEnv.deleteIndexDirectorySafe(index, 0, indexSettings);
             }
             success = true;
-        } catch (LockObtainFailedException ex) {
+        } catch (ShardLockObtainFailedException ex) {
             logger.debug(() -> new ParameterizedMessage("{} failed to delete index store - at least one shards is still locked", index), ex);
         } catch (Exception ex) {
             logger.warn(() -> new ParameterizedMessage("{} failed to delete index", index), ex);
