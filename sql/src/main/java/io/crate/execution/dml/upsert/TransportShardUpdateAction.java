@@ -100,6 +100,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         tasksService.addListener(this);
     }
 
+    // can be generic
     @Override
     protected WritePrimaryResult<ShardUpdateRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpdateRequest request,
@@ -107,18 +108,10 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         ShardResponse shardResponse = new ShardResponse(request.getReturnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
-        GeneratedColumns.Validation valueValidation = request.validateConstraints()
-            ? GeneratedColumns.Validation.VALUE_MATCH
-            : GeneratedColumns.Validation.NONE;
-
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
 
-        UpdateSourceGen updateSourceGen = request.updateColumns() == null
-            ? null
-            : new UpdateSourceGen(functions,
-                                  txnCtx,
-                                  tableInfo,
-                                  request.updateColumns());
+        // this can be pushed down
+        UpdateSourceGen updateSourceGen = new UpdateSourceGen(functions, txnCtx, tableInfo, request.updateColumns());
 
         ReturnValueGen returnValueGen = request.getReturnValues() == null
             ? null
@@ -180,6 +173,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
     }
 
+    // can be generic
     @Override
     protected WriteReplicaResult<ShardUpdateRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpdateRequest request) throws IOException {
         Translog.Location location = null;
@@ -279,7 +273,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         long version = Versions.MATCH_ANY;
 
         Engine.IndexResult indexResult = index(item.id(), item.source(), indexShard, isRetry, seqNo, primaryTerm, version);
-
+        // update the seqNo and version on request for the replicas
         item.seqNo(indexResult.getSeqNo());
         item.version(indexResult.getVersion());
 
@@ -300,7 +294,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         }
         return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues);
     }
-
+    // can be generic
     private Engine.IndexResult index(String id,
                                      BytesReference source,
                                      IndexShard indexShard,
@@ -356,7 +350,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
                 throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
         }
     }
-
+    // can be generic
     private static Doc getDocument(IndexShard indexShard, String id, long version, long seqNo, long primaryTerm) {
         // when sequence versioning is used, this lookup will throw VersionConflictEngineException
         Doc doc = PKLookupOperation.lookupDoc(indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm);

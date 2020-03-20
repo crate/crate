@@ -116,8 +116,7 @@ public final class UpdateById implements Plan {
             true,
             assignments.targetNames(),
             returnValues,
-            plannerContext.jobId(),
-            false
+            plannerContext.jobId()
         );
         UpdateRequests updateRequests = new UpdateRequests(requestBuilder, table, assignments);
         return new ShardRequestExecutor<>(

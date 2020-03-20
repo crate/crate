@@ -530,8 +530,7 @@ public class ProjectionToProjectorVisitor
             false,
             projection.assignmentsColumns(),
             projection.returnValues(),
-            context.jobId,
-            true
+            context.jobId
         );
 
         return new ShardDMLExecutor<>(

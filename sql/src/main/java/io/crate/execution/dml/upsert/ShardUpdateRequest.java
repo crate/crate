@@ -51,7 +51,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
 
     private DuplicateKeyAction duplicateKeyAction;
     private boolean continueOnError;
-    private boolean validateConstraints = true;
     private SessionSettings sessionSettings;
 
     /**
@@ -113,15 +112,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         return this;
     }
 
-    boolean validateConstraints() {
-        return validateConstraints;
-    }
-
-    ShardUpdateRequest validateConstraints(boolean validateConstraints) {
-        this.validateConstraints = validateConstraints;
-        return this;
-    }
-
     public ShardUpdateRequest(StreamInput in) throws IOException {
         super(in);
         int assignmentsColumnsSize = in.readVInt();
@@ -133,7 +123,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         }
         continueOnError = in.readBoolean();
         duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
-        validateConstraints = in.readBoolean();
 
         sessionSettings = new SessionSettings(in);
         int numItems = in.readVInt();
@@ -161,7 +150,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
 
         out.writeBoolean(continueOnError);
         out.writeVInt(duplicateKeyAction.ordinal());
-        out.writeBoolean(validateConstraints);
 
         sessionSettings.writeTo(out);
 
@@ -192,14 +180,13 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         ShardUpdateRequest items = (ShardUpdateRequest) o;
         return continueOnError == items.continueOnError &&
                duplicateKeyAction == items.duplicateKeyAction &&
-               validateConstraints == items.validateConstraints &&
                Arrays.equals(updateColumns, items.updateColumns) &&
                Arrays.equals(returnValues, items.returnValues);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), continueOnError, duplicateKeyAction, validateConstraints, updateColumns, returnValues);
+        return Objects.hashCode(super.hashCode(), continueOnError, duplicateKeyAction, updateColumns, returnValues);
     }
 
     /**
@@ -326,10 +313,8 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         @Nullable
         private final String[] assignmentsColumns;
         private final UUID jobId;
-        private boolean validateGeneratedColumns;
         @Nullable
         private final Symbol[] returnValues;
-
 
         public Builder(SessionSettings sessionSettings,
                        TimeValue timeout,
@@ -337,15 +322,13 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
                        @Nullable Symbol[] returnValue,
-                       UUID jobId,
-                       boolean validateGeneratedColumns) {
+                       UUID jobId) {
             this.sessionSettings = sessionSettings;
             this.timeout = timeout;
             this.duplicateKeyAction = duplicateKeyAction;
             this.continueOnError = continueOnError;
             this.assignmentsColumns = assignmentsColumns;
             this.jobId = jobId;
-            this.validateGeneratedColumns = validateGeneratedColumns;
             this.returnValues = returnValue;
         }
 
@@ -358,8 +341,7 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
                 jobId)
                 .timeout(timeout)
                 .continueOnError(continueOnError)
-                .duplicateKeyAction(duplicateKeyAction)
-                .validateConstraints(validateGeneratedColumns);
+                .duplicateKeyAction(duplicateKeyAction);
         }
     }
 }
