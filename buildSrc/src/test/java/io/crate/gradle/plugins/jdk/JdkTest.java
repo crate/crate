@@ -45,7 +45,7 @@ public class JdkTest {
     public void testMissingArch() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "architecture not specified for jdk [testjdk]");
+            "architecture is not specified for jdk [testjdk]");
         createJdk(createProject(),
             "testjdk",
             null,
@@ -73,7 +73,7 @@ public class JdkTest {
     public void testMissingVendor() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "vendor not specified for jdk [testjdk]");
+            "vendor is not specified for jdk [testjdk]");
         createJdk(createProject(),
             "testjdk",
             null,
@@ -100,7 +100,7 @@ public class JdkTest {
     @Test
     public void testMissingVersion() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("version not specified for jdk [testjdk]");
+        expectedException.expectMessage("version is not specified for jdk [testjdk]");
         createJdk(createProject(),
             "testjdk",
             "adoptopenjdk",
@@ -124,9 +124,9 @@ public class JdkTest {
     }
 
     @Test
-    public void testMissingPlatform() {
+    public void testMissingOS() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("platform not specified for jdk [testjdk]");
+        expectedException.expectMessage("OS is not specified for jdk [testjdk]");
         createJdk(createProject(),
             "testjdk",
             "adoptopenjdk",
@@ -137,10 +137,10 @@ public class JdkTest {
     }
 
     @Test
-    public void testUnknownPlatform() {
+    public void testUnknownOS() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "unknown platform [unknown] for jdk [testjdk], " +
+            "unknown OS [unknown] for jdk [testjdk], " +
             "must be one of [linux, windows, mac]");
         createJdk(createProject(),
             "testjdk",
@@ -155,7 +155,7 @@ public class JdkTest {
                            String name,
                            String vendor,
                            String version,
-                           String platform,
+                           String os,
                            String arch) {
         //noinspection unchecked
         var jdks = (NamedDomainObjectContainer<Jdk>) project.getExtensions().getByName("jdks");
@@ -166,8 +166,8 @@ public class JdkTest {
             if (version != null) {
                 jdk.setVersion(version);
             }
-            if (platform != null) {
-                jdk.setPlatform(platform);
+            if (os != null) {
+                jdk.setOs(os);
             }
             if (arch != null) {
                 jdk.setArch(arch);

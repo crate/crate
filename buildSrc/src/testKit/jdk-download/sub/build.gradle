@@ -9,25 +9,25 @@ jdks {
     aarch64_linux {
         vendor = fakeJdkVendor
         version = fakeJdkVersion
-        platform = "linux"
+        os = "linux"
         arch = "aarch64"
     }
     x64_linux {
         vendor = fakeJdkVendor
         version = fakeJdkVersion
-        platform = "linux"
+        os = "linux"
         arch = "x64"
     }
     mac {
         vendor = fakeJdkVendor
         version = fakeJdkVersion
-        platform = "mac"
+        os = "mac"
         arch = "x64"
     }
     windows {
         vendor = fakeJdkVendor
         version = fakeJdkVersion
-        platform = "windows"
+        os = "windows"
         arch = "x64"
     }
 }
