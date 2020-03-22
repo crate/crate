@@ -16,4 +16,4 @@ extraction:
       version: 3
   java:
     index:
-      java_version: 11
+      java_version: 14

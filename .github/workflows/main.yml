@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        bundled-jdk: [13.0.2+8]
+        bundled-jdk: [14.0.0+36]
     steps:
       - uses: actions/checkout@v2
       - name: Setup Gradle Java
