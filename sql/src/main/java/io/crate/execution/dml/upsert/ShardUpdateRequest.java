@@ -41,7 +41,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUpdateRequest.Item> {
+public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUpdateRequest.Item> implements TransportShardUpdateAction.HasReturnValues {
 
     public enum DuplicateKeyAction {
         UPDATE_OR_FAIL,
@@ -86,7 +86,7 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
     }
 
     @Nullable
-    public Symbol[] getReturnValues() {
+    public Symbol[] returnValues() {
         return returnValues;
     }
 
@@ -103,7 +103,7 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         return this;
     }
 
-    boolean continueOnError() {
+    public boolean continueOnError() {
         return continueOnError;
     }
 
@@ -192,7 +192,7 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
     /**
      * A single update item.
      */
-    public static class Item extends ShardRequest.Item {
+    public static class Item extends ShardRequest.Item implements TransportShardUpdateAction.HasSource {
 
         @Nullable
         private BytesReference source;

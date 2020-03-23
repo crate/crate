@@ -75,7 +75,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final Function<String, TItem> itemFactory;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> operation;
     private final String localNodeId;
-    private final Collector<ShardResponse, TAcc, TResult>   collector;
+    private final Collector<ShardResponse, TAcc, TResult> collector;
     private int numItems = -1;
 
     public ShardDMLExecutor(int bulkSize,

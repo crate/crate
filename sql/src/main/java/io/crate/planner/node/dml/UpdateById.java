@@ -166,7 +166,7 @@ public final class UpdateById implements Plan {
                                                                        version,
                                                                        seqNo,
                                                                        primaryTerm,
-                                                                       request.getReturnValues());
+                                                                       request.returnValues());
             request.add(location, item);
         }
     }
