@@ -13,20 +13,12 @@ subprojects {
     }
 
     compileJava {
-        dependsOn rootProject.jdks.runtime
-        doFirst {
-            options.fork = true
-            options.forkOptions.javaHome = rootProject.jdks.runtime.getJavaHome()
-            options.forkOptions.executable = rootProject.jdks.runtime.getBinJavaPath()
-        }
         options.warnings = false
         options.deprecation = false
         options.compilerArgs << '-XDignore.symbol.file'
     }
 
     test {
-        dependsOn rootProject.jdks.runtime
-        executable = rootProject.jdks.runtime.getBinJavaPath()
         jacoco {
             enabled = false
         }
