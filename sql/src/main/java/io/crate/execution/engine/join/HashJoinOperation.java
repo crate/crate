@@ -77,7 +77,12 @@ public class HashJoinOperation implements CompletionListenable {
                             getHashBuilderFromSymbols(txnCtx, inputFactory, joinLeftInputs),
                             getHashBuilderFromSymbols(txnCtx, inputFactory, joinRightInputs),
                             rowAccounting,
-                            new RamBlockSizeCalculator(Paging.PAGE_SIZE, circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)
+                            new RamBlockSizeCalculator(
+                                Paging.PAGE_SIZE,
+                                circuitBreaker,
+                                estimatedRowSizeForLeft,
+                                numberOfRowsForLeft
+                            )
                         );
                         nlResultConsumer.accept(joinIterator, null);
                     } catch (Exception e) {
