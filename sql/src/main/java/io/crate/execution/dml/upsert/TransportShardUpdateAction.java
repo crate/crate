@@ -24,11 +24,13 @@ package io.crate.execution.dml.upsert;
 
 import io.crate.Constants;
 import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -42,6 +44,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -61,17 +64,32 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 
 import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
 
 @Singleton
-public class TransportShardUpdateAction extends TransportShardAction<ShardUpdateRequest, ShardUpdateRequest.Item> {
+public class TransportShardUpdateAction<Request extends ShardRequest<Request, Item> & TransportShardUpdateAction.HasReturnValues,
+    Item extends ShardRequest.Item & TransportShardUpdateAction.HasSource, Context>
+    extends TransportShardAction<Request, Item> {
 
     private static final String ACTION_NAME = "internal:crate:sql/data/update";
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
 
     private final Schemas schemas;
     private final Functions functions;
+
+    interface HasReturnValues {
+
+        Symbol[] getReturnValues();
+        boolean continueOnError();
+
+    }
+
+    interface HasSource {
+        void source(BytesReference source);
+        BytesReference getSource();
+    }
 
     static class UpdateContext {
 
@@ -117,7 +135,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         );
     }
 
-    protected IndexItemResponse update(ShardUpdateRequest.Item item, UpdateContext context) throws Exception {
+    static IndexItemResponse update(ShardUpdateRequest.Item item, UpdateContext context) throws Exception {
         Doc fetchedDoc = getDocument(context.indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
         Map<String, Object> source = context.updateSourceGen.generateSource(
             fetchedDoc,
@@ -153,7 +171,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues);
     }
 
-    
+
     @Inject
     public TransportShardUpdateAction(ThreadPool threadPool,
                                       ClusterService clusterService,
@@ -164,6 +182,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
                                       ShardStateAction shardStateAction,
                                       Functions functions,
                                       Schemas schemas,
+                                      Writeable.Reader<Request> reader,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
         super(
             ACTION_NAME,
@@ -173,7 +192,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
             indicesService,
             threadPool,
             shardStateAction,
-            ShardUpdateRequest::new,
+            reader,
             schemaUpdateClient
         );
         this.schemas = schemas;
@@ -183,14 +202,14 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
 
     // can be generic
     @Override
-    protected WritePrimaryResult<ShardUpdateRequest, ShardResponse> processRequestItems(IndexShard indexShard,
-                                                                                        ShardUpdateRequest request,
+    protected WritePrimaryResult<Request, ShardResponse> processRequestItems(IndexShard indexShard,
+                                                                                        Request request,
                                                                                         AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse(request.getReturnValues());
         UpdateContext updateContext = generateContext(indexShard, request);
 
         Translog.Location translogLocation = null;
-        for (ShardUpdateRequest.Item item : request.items()) {
+        for (Item item : request.items()) {
             int location = item.location();
             if (killed.get()) {
                 // set failure on response and skip all next items.
@@ -244,10 +263,10 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
 
     // can be generic
     @Override
-    protected WriteReplicaResult<ShardUpdateRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpdateRequest request) throws IOException {
+    protected WriteReplicaResult<Request> processRequestItemsOnReplica(IndexShard indexShard, Request request) throws IOException {
         Translog.Location location = null;
-        for (ShardUpdateRequest.Item item : request.items()) {
-            if (item.source() == null) {
+        for (Item item : request.items()) {
+            if (item.getSource() == null) {
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{} (R)] Document with id {}, has no source, primary operation must have failed",
                                  indexShard.shardId(), item.id());
@@ -286,7 +305,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
     }
 
     @Nullable
-    private IndexItemResponse indexItem(ShardUpdateRequest.Item item, UpdateContext context) throws Exception {
+    private IndexItemResponse indexItem(Item item, UpdateContext context) throws Exception {
         VersionConflictEngineException lastException = null;
         boolean isRetry;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
@@ -319,8 +338,6 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         }
     }
 
-
-    // can be generic
     private Engine.IndexResult index(String id,
                                      BytesReference source,
                                      IndexShard indexShard,
@@ -377,7 +394,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         }
     }
 
-    Doc getDocument(IndexShard indexShard, String id, long version, long seqNo, long primaryTerm) {
+    static Doc getDocument(IndexShard indexShard, String id, long version, long seqNo, long primaryTerm) {
         // when sequence versioning is used, this lookup will throw VersionConflictEngineException
         Doc doc = PKLookupOperation.lookupDoc(indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm);
         if (doc == null) {
