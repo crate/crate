@@ -96,6 +96,12 @@ task release(dependsOn: 'distTar') {
     }
 }
 
+task releaseZip(dependsOn: 'distZip') {
+    doLast {
+        logger.info("released version: " + project(':es:es-server').getVersion.version)
+    }
+}
+
 task nightly(dependsOn: 'distTar') {
     doLast {
         logger.info("nightly version: " + project(':es:es-server').getVersion.version)
