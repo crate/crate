@@ -977,7 +977,12 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
             tableStats.updateTableStats(newStats);
         }
 
-        RamBlockSizeCalculator ramBlockSizeCalculator = new RamBlockSizeCalculator(500_000, circuitBreaker, rowSizeBytes, rowsCount);
+        RamBlockSizeCalculator ramBlockSizeCalculator = new RamBlockSizeCalculator(
+            500_000,
+            circuitBreaker,
+            rowSizeBytes,
+            rowsCount
+        );
         logger.info("\n\tThe block size for relation {}, total size {} bytes, with row count {} and row size {} bytes, " +
                     "if it would be used in a block join algorithm, would be {}",
             relationName, tableSizeInBytes, rowsCount, rowSizeBytes, ramBlockSizeCalculator.getAsInt());

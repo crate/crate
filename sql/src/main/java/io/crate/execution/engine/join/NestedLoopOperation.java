@@ -158,7 +158,11 @@ public class NestedLoopOperation implements CompletionListenable {
                                                                   boolean blockNestedLoop) {
         if (blockNestedLoop) {
             IntSupplier blockSizeCalculator = new RamBlockSizeCalculator(
-                Paging.PAGE_SIZE, circuitBreaker, estimatedRowsSizeLeft, estimatedNumberOfRowsLeft);
+                Paging.PAGE_SIZE,
+                circuitBreaker,
+                estimatedRowsSizeLeft,
+                estimatedNumberOfRowsLeft
+            );
             RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(leftSideColumnTypes, ramAccounting);
             return JoinBatchIterators.crossJoinBlockNL(left, right, combiner, blockSizeCalculator, rowAccounting);
         } else {
