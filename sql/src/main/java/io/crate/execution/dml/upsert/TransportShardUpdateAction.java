@@ -73,6 +73,87 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
     private final Schemas schemas;
     private final Functions functions;
 
+    static class UpdateContext {
+
+        final IndexShard indexShard;
+
+        @Nullable
+        final UpdateSourceGen updateSourceGen;
+        @Nullable
+        final ReturnValueGen returnValueGen;
+
+        final ShardUpdateRequest request;
+
+        boolean isRetry;
+
+        public UpdateContext(IndexShard indexShard,
+                             UpdateSourceGen updateSourceGen,
+                             ReturnValueGen returnValueGen,
+                             ShardUpdateRequest request,
+                             boolean isRetry) {
+            this.indexShard = indexShard;
+            this.updateSourceGen = updateSourceGen;
+            this.returnValueGen = returnValueGen;
+            this.request = request;
+            this.isRetry = isRetry;
+        }
+    }
+
+    UpdateContext generateContext(IndexShard indexShard, ShardUpdateRequest request) {
+        String indexName = request.index();
+        DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
+        TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
+        UpdateSourceGen updateSourceGen = new UpdateSourceGen(functions, txnCtx, tableInfo, request.updateColumns());
+        ReturnValueGen returnValueGen = request.getReturnValues() == null
+            ? null
+            : new ReturnValueGen(functions, txnCtx, tableInfo, request.getReturnValues());
+
+        return new UpdateContext(
+            indexShard,
+            updateSourceGen,
+            returnValueGen,
+            request,
+            false
+        );
+    }
+
+    protected IndexItemResponse update(ShardUpdateRequest.Item item, UpdateContext context) throws Exception {
+        Doc fetchedDoc = getDocument(context.indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
+        Map<String, Object> source = context.updateSourceGen.generateSource(
+            fetchedDoc,
+            item.updateAssignments(),
+            new Object[0]
+        );
+        BytesReference rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
+        item.source(rawSource);
+        long seqNo = item.seqNo();
+        long primaryTerm = item.primaryTerm();
+        long version = Versions.MATCH_ANY;
+
+        Engine.IndexResult indexResult = index(item.id(), item.source(), context.indexShard, context.isRetry, seqNo, primaryTerm, version);
+        // update the seqNo and version on request for the replicas
+        item.seqNo(indexResult.getSeqNo());
+        item.version(indexResult.getVersion());
+
+        Object[] returnvalues = null;
+        if (context.returnValueGen != null) {
+            returnvalues = context.returnValueGen.generateReturnValues(
+                new Doc(
+                    fetchedDoc.docId(),
+                    fetchedDoc.getIndex(),
+                    fetchedDoc.getId(),
+                    indexResult.getVersion(),
+                    indexResult.getSeqNo(),
+                    indexResult.getTerm(),
+                    source,
+                    rawSource::utf8ToString
+                )
+            );
+        }
+        return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues);
+    }
+
+    
     @Inject
     public TransportShardUpdateAction(ThreadPool threadPool,
                                       ClusterService clusterService,
@@ -106,16 +187,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
                                                                                         ShardUpdateRequest request,
                                                                                         AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse(request.getReturnValues());
-        String indexName = request.index();
-        DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
-        TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
-
-        // this can be pushed down
-        UpdateSourceGen updateSourceGen = new UpdateSourceGen(functions, txnCtx, tableInfo, request.updateColumns());
-
-        ReturnValueGen returnValueGen = request.getReturnValues() == null
-            ? null
-            : new ReturnValueGen(functions, txnCtx, tableInfo, request.getReturnValues());
+        UpdateContext updateContext = generateContext(indexShard, request);
 
         Translog.Location translogLocation = null;
         for (ShardUpdateRequest.Item item : request.items()) {
@@ -129,11 +201,8 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
             }
             try {
                 IndexItemResponse indexItemResponse = indexItem(
-                    request,
                     item,
-                    indexShard,
-                    updateSourceGen,
-                    returnValueGen
+                    updateContext
                 );
                 if (indexItemResponse != null) {
                     if (indexItemResponse.translog != null) {
@@ -217,20 +286,16 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
     }
 
     @Nullable
-    private IndexItemResponse indexItem(ShardUpdateRequest request,
-                                        ShardUpdateRequest.Item item,
-                                        IndexShard indexShard,
-                                        UpdateSourceGen updateSourceGen,
-                                        @Nullable ReturnValueGen returnValueGen) throws Exception {
+    private IndexItemResponse indexItem(ShardUpdateRequest.Item item, UpdateContext context) throws Exception {
         VersionConflictEngineException lastException = null;
         boolean isRetry;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
-                isRetry = retryCount > 0;
-                return update(item, indexShard, isRetry, returnValueGen, updateSourceGen);
+                context.isRetry = retryCount > 0;
+                return update(item, context);
             } catch (VersionConflictEngineException e) {
                 lastException = e;
-                if (request.duplicateKeyAction() == ShardUpdateRequest.DuplicateKeyAction.IGNORE) {
+                if (context.request.duplicateKeyAction() == ShardUpdateRequest.DuplicateKeyAction.IGNORE) {
                     // on conflict do nothing
                     item.source(null);
                     return null;
@@ -238,7 +303,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
             }
         }
         logger.warn("[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying",
-                    indexShard.shardId(), item.id(), item.version(), MAX_RETRY_LIMIT);
+                    context.indexShard.shardId(), item.id(), item.version(), MAX_RETRY_LIMIT);
         throw lastException;
     }
 
@@ -254,46 +319,7 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
         }
     }
 
-    protected IndexItemResponse update(ShardUpdateRequest.Item item,
-                                       IndexShard indexShard,
-                                       boolean isRetry,
-                                       @Nullable ReturnValueGen returnGen,
-                                       UpdateSourceGen updateSourceGen) throws Exception {
-        assert updateSourceGen != null : "UpdateSourceGen must not be null";
-        Doc fetchedDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
-        Map<String, Object> source = updateSourceGen.generateSource(
-            fetchedDoc,
-            item.updateAssignments(),
-            new Object[0]
-        );
-        BytesReference rawSource = BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
-        item.source(rawSource);
-        long seqNo = item.seqNo();
-        long primaryTerm = item.primaryTerm();
-        long version = Versions.MATCH_ANY;
 
-        Engine.IndexResult indexResult = index(item.id(), item.source(), indexShard, isRetry, seqNo, primaryTerm, version);
-        // update the seqNo and version on request for the replicas
-        item.seqNo(indexResult.getSeqNo());
-        item.version(indexResult.getVersion());
-
-        Object[] returnvalues = null;
-        if (returnGen != null) {
-            returnvalues = returnGen.generateReturnValues(
-                new Doc(
-                    fetchedDoc.docId(),
-                    fetchedDoc.getIndex(),
-                    fetchedDoc.getId(),
-                    indexResult.getVersion(),
-                    indexResult.getSeqNo(),
-                    indexResult.getTerm(),
-                    source,
-                    rawSource::utf8ToString
-                )
-            );
-        }
-        return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues);
-    }
     // can be generic
     private Engine.IndexResult index(String id,
                                      BytesReference source,
@@ -350,8 +376,8 @@ public class TransportShardUpdateAction extends TransportShardAction<ShardUpdate
                 throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
         }
     }
-    // can be generic
-    private static Doc getDocument(IndexShard indexShard, String id, long version, long seqNo, long primaryTerm) {
+
+    Doc getDocument(IndexShard indexShard, String id, long version, long seqNo, long primaryTerm) {
         // when sequence versioning is used, this lookup will throw VersionConflictEngineException
         Doc doc = PKLookupOperation.lookupDoc(indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm);
         if (doc == null) {
