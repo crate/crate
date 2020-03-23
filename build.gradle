@@ -1,5 +1,4 @@
 import org.gradle.api.JavaVersion
-import io.crate.gradle.OS
 import io.crate.gradle.TestLogger;
 
 buildscript {
@@ -29,31 +28,8 @@ def download(File downloadDir, String url, String name) {
 }
 
 apply from: 'gradle/dependencies.gradle'
+apply from: 'gradle/jdkRuntime.gradle'
 apply plugin: 'base'
-apply plugin: 'jdk-download'
-
-def getJdkBundleOSFromPropertiesOrDefault = {
-    System.getProperty(
-        "bundled_jdk_os",
-        versions['bundled_jdk_os'] != null
-            ? "${versions['bundled_jdk_os']}"
-            : OS.current().name().toLowerCase())
-}
-
-def getJdkBundleArchFromPropertiesOrDefault = {
-    System.getProperty(
-        "bundled_jdk_arch",
-        versions['bundled_jdk_arch'] != null ? "${versions['bundled_jdk_arch']}" : "x64")
-}
-
-jdks {
-    runtime {
-        vendor = "${System.getProperty("bundled_jdk_vendor", versions['bundled_jdk_vendor'])}"
-        version = "${System.getProperty("bundled_jdk_version", versions['bundled_jdk_version'])}"
-        os = getJdkBundleOSFromPropertiesOrDefault()
-        arch = getJdkBundleArchFromPropertiesOrDefault()
-    }
-}
 
 repositories {
     mavenCentral()
@@ -67,24 +43,9 @@ if (runSlowTests) {
 allprojects {
     apply plugin: 'jacoco'
 
-    tasks.withType(JavaCompile) {
-        dependsOn rootProject.jdks.runtime
-        doFirst {
-            options.fork = true
-            options.forkOptions.javaHome = rootProject.jdks.runtime.getJavaHome()
-            options.forkOptions.executable = rootProject.jdks.runtime.getBinJavaPath()
-        }
-        sourceCompatibility = rootProject.jdks.runtime.major()
-        targetCompatibility = rootProject.jdks.runtime.major()
-        options.encoding = 'UTF-8'
-    }
-
     tasks.withType(Test) {
         // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
         outputs.upToDateWhen { false }
-
-        dependsOn rootProject.jdks.runtime
-        executable = rootProject.jdks.runtime.getBinJavaPath()
 
         minHeapSize = "1024m"
         maxHeapSize = "1024m"

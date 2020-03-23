@@ -50,7 +50,9 @@ task getVersion(dependsOn: 'classes') {
     doLast {
         def stdout = new ByteArrayOutputStream()
         javaexec {
-            executable = rootProject.jdks.runtime.getBinJavaPath()
+            if (System.getProperty('useSystemJdk') == null) {
+                executable = rootProject.jdks.runtime.getBinJavaPath()
+            }
             classpath = sourceSets.main.runtimeClasspath
             main = 'org.elasticsearch.Version'
             standardOutput = stdout
