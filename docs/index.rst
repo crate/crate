@@ -9,16 +9,12 @@ massive amounts of machine data in real-time.
 
 .. NOTE::
 
-   This is a low-level reference manual.
-
-   Check out `Getting Started With CrateDB`_ for beginner documentation.
-
-   Check out the `CrateDB Guide`_ for high-level documentation, including
-   overviews, best practices, and tutorials.
+    This resource assumes you know the basics. If not, check out the
+    `Tutorials`_ section for beginner material.
 
 .. SEEALSO::
 
-   CrateDB is an open source project and is `hosted on GitHub`_.
+    CrateDB is an open source project and is `hosted on GitHub`_.
 
 .. rubric:: Table of contents
 
@@ -34,6 +30,6 @@ massive amounts of machine data in real-time.
    editions
    appendices/index
 
-.. _CrateDB Guide: https://crate.io/docs/crate/guide/en/latest/
-.. _Getting Started With CrateDB: https://crate.io/docs/crate/getting-started/en/latest/
+
+.. _Tutorials: https://crate.io/docs/crate/tutorials/en/latest/
 .. _hosted on GitHub: https://github.com/crate/crate
