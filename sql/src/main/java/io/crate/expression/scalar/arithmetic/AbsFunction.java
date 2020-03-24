@@ -23,40 +23,30 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.expression.symbol.FuncArg;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-import java.util.List;
+import static io.crate.metadata.functions.Signature.scalar;
 
 public final class AbsFunction {
 
     public static final String NAME = "abs";
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
-    }
-
-    private static class Resolver implements FunctionResolver {
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> argTypes) throws IllegalArgumentException {
-            DataType argType = argTypes.get(0);
-            return new UnaryScalar<>(
-                NAME,
-                argType,
-                argType,
-                x -> argType.value(Math.abs(((Number) x).doubleValue()))
+        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            var typeSignature = type.getTypeSignature();
+            module.register(
+                scalar(NAME, typeSignature, typeSignature),
+                args -> {
+                    DataType<?> argType = args.get(0);
+                    return new UnaryScalar<>(
+                        NAME,
+                        argType,
+                        argType,
+                        x -> argType.value(Math.abs(((Number) x).doubleValue()))
+                    );
+                }
             );
-        }
-
-        @Nullable
-        @Override
-        public List<DataType> getSignature(List<? extends FuncArg> symbols) {
-            return FuncParams.SINGLE_NUMERIC.match(symbols);
         }
     }
 }
