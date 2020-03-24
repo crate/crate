@@ -115,7 +115,7 @@ public final class TableFunction implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation> baseTables() {
+    public List<AbstractTableRelation<?>> baseTables() {
         return List.of();
     }
 

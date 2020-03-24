@@ -109,7 +109,7 @@ public interface LogicalPlan extends Plan {
         return false;
     }
 
-    List<AbstractTableRelation> baseTables();
+    List<AbstractTableRelation<?>> baseTables();
 
     List<LogicalPlan> sources();
 

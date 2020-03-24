@@ -99,7 +99,7 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation> baseTables() {
+    public List<AbstractTableRelation<?>> baseTables() {
         return Collections.emptyList();
     }
 
