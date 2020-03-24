@@ -61,7 +61,7 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation> baseTables() {
+    public List<AbstractTableRelation<?>> baseTables() {
         return source.baseTables();
     }
 

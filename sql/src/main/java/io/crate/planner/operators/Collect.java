@@ -78,7 +78,7 @@ public class Collect implements LogicalPlan {
     final AbstractTableRelation<?> relation;
     private final boolean preferSourceLookup;
     private final List<Symbol> outputs;
-    private final List<AbstractTableRelation> baseTables;
+    private final List<AbstractTableRelation<?>> baseTables;
     final TableInfo tableInfo;
     private final long numExpectedRows;
     private final long estimatedRowSize;
@@ -266,7 +266,7 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation> baseTables() {
+    public List<AbstractTableRelation<?>> baseTables() {
         return baseTables;
     }
 

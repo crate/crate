@@ -70,7 +70,7 @@ public class NestedLoopJoin implements LogicalPlan {
     final LogicalPlan lhs;
     final LogicalPlan rhs;
     private final List<Symbol> outputs;
-    private final List<AbstractTableRelation> baseTables;
+    private final List<AbstractTableRelation<?>> baseTables;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
     private boolean orderByWasPushedDown = false;
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
@@ -232,7 +232,7 @@ public class NestedLoopJoin implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation> baseTables() {
+    public List<AbstractTableRelation<?>> baseTables() {
         return baseTables;
     }
 
