@@ -24,12 +24,18 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.execution.dsl.projection.TopNDistinctProjection;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
+import io.crate.statistics.ColumnStats;
+import io.crate.statistics.MostCommonValues;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -37,6 +43,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -62,6 +70,22 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private LogicalPlan plan(String statement) {
         return plan(statement, sqlExecutor, clusterService, tableStats);
+    }
+
+    @Test
+    public void test_collect_derives_estimated_size_per_row_from_stats_and_types() {
+        // no stats -> size derived from fixed with type
+        LogicalPlan plan = plan("select x from t1");
+        assertThat(plan.estimatedRowSize(), is((long) DataTypes.INTEGER.fixedSize()));
+
+        TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
+        ColumnStats<Integer> columnStats = new ColumnStats<>(
+            0.0, 50L, 2, DataTypes.INTEGER, MostCommonValues.EMPTY, List.of());
+        tableStats.updateTableStats(Map.of(t1.ident(), new Stats(2L, 100L, Map.of(new ColumnIdent("x"), columnStats))));
+
+        // stats present -> size derived from them (although bogus fake stats in this case)
+        plan = plan("select x from t1");
+        assertThat(plan.estimatedRowSize(), is(50L));
     }
 
     @Test

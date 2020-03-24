@@ -23,13 +23,19 @@
 package io.crate.statistics;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.expression.symbol.ScopedSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.types.FixedWidthType;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @VisibleForTesting
@@ -97,5 +103,28 @@ public class Stats implements Writeable {
 
     public Map<ColumnIdent, ColumnStats> statsByColumn() {
         return statsByColumn;
+    }
+
+    public long estimateSizeForColumns(List<Symbol> toCollect) {
+        long sum = 0L;
+        for (int i = 0; i < toCollect.size(); i++) {
+            Symbol symbol = toCollect.get(i);
+            ColumnStats<?> columnStats = null;
+            if (symbol instanceof Reference) {
+                columnStats = statsByColumn.get(((Reference) symbol).column());
+            } else if (symbol instanceof ScopedSymbol) {
+                columnStats = statsByColumn.get(((ScopedSymbol) symbol).column());
+            }
+            if (columnStats == null) {
+                if (symbol.valueType() instanceof FixedWidthType) {
+                    sum += ((FixedWidthType) symbol.valueType()).fixedSize();
+                } else {
+                    sum += RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
+                }
+            } else {
+                sum += columnStats.averageSizeInBytes();
+            }
+        }
+        return sum;
     }
 }

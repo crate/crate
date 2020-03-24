@@ -98,7 +98,7 @@ public class Collect implements LogicalPlan {
             toCollect,
             where,
             SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
-            stats.averageSizePerRowInBytes()
+            stats.estimateSizeForColumns(toCollect)
         );
     }
 
