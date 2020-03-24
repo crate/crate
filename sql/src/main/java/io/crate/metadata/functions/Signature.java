@@ -27,10 +27,38 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.types.TypeSignature;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public final class Signature {
+
+    /**
+     * See {@link #scalar(FunctionName, TypeSignature...)}
+     */
+    public static Signature scalar(String name, TypeSignature... types) {
+        return scalar(new FunctionName(null, name), types);
+    }
+
+    /**
+     * Shortcut for creating a signature of type {@link FunctionInfo.Type#SCALAR}.
+     * The last element of the given types is handled as the return type.
+     *
+     * @param name      The fqn function name.
+     * @param types     The argument and return (last element) types
+     * @return          The created signature
+     */
+    public static Signature scalar(FunctionName name, TypeSignature... types) {
+        assert types.length > 0 : "Types must contain at least the return type (last element), 0 types given";
+        Builder builder = Signature.builder()
+            .name(name)
+            .kind(FunctionInfo.Type.SCALAR)
+            .returnType(types[types.length - 1]);
+        if (types.length > 1) {
+            builder.argumentTypes(Arrays.copyOf(types, types.length - 1));
+        }
+        return builder.build();
+    }
 
     public static Builder builder() {
         return new Builder();

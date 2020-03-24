@@ -225,13 +225,39 @@ public class Functions {
             }
         }
         if (candidates != null) {
-            for (FuncResolver candidate : candidates) {
-                Signature boundSignature = new SignatureBinder(candidate.getSignature(), true)
-                    .bind(arguments);
-                if (boundSignature != null) {
-                    // TODO: check for more specific function
-                    return candidate.apply(Lists2.map(boundSignature.getArgumentTypes(), TypeSignature::createType));
-                }
+            // First lets try exact candidates, no generic type variables, no coercion allowed.
+            List<FuncResolver> exactCandidates = candidates.stream()
+                .filter(function -> function.getSignature().getTypeVariableConstraints().isEmpty())
+                .collect(Collectors.toList());
+            var match = matchFunctionCandidates(exactCandidates, arguments, false);
+            if (match != null) {
+                return match;
+            }
+
+            // Second, try candidates with generic type variables, still no coercion allowed.
+            List<FuncResolver> genericCandidates = candidates.stream()
+                .filter(function -> !function.getSignature().getTypeVariableConstraints().isEmpty())
+                .collect(Collectors.toList());
+            match = matchFunctionCandidates(genericCandidates, arguments, false);
+            if (match != null) {
+                return match;
+            }
+
+            // Last, try all candidates with coercion allowed.
+            return matchFunctionCandidates(candidates, arguments, true);
+        }
+        return null;
+    }
+
+    @Nullable
+    private static FunctionImplementation matchFunctionCandidates(List<FuncResolver> candidates,
+                                                                  List<DataType> argumentTypes,
+                                                                  boolean allowCoercion) {
+        for (FuncResolver candidate : candidates) {
+            Signature boundSignature = new SignatureBinder(candidate.getSignature(), allowCoercion)
+                .bind(argumentTypes);
+            if (boundSignature != null) {
+                return candidate.apply(Lists2.map(boundSignature.getArgumentTypes(), TypeSignature::createType));
             }
         }
         return null;

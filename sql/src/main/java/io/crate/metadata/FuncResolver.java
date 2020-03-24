@@ -47,4 +47,9 @@ public class FuncResolver implements Function<List<DataType>, FunctionImplementa
     public FunctionImplementation apply(List<DataType> dataTypes) {
         return factory.apply(dataTypes);
     }
+
+    @Override
+    public String toString() {
+        return "FuncResolver{" + "signature=" + signature + '}';
+    }
 }
