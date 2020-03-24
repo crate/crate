@@ -24,36 +24,30 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.expression.symbol.FuncArg;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-import java.util.List;
+import static io.crate.metadata.functions.Signature.scalar;
 
 public class ExpFunction {
 
     public static final String NAME = "exp";
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new FunctionResolver() {
-            @Nullable
-            @Override
-            public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
-                return FuncParams.SINGLE_NUMERIC.match(funcArgs);
-            }
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-                DataType argType = types.get(0);
-                return new UnaryScalar<>(
-                    NAME,
-                    argType,
-                    argType,
-                    x -> argType.value(Math.exp(((Number) x).doubleValue())));
-            }
-        });
+        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            var typeSignature = type.getTypeSignature();
+            module.register(
+                scalar(NAME, typeSignature, typeSignature),
+                argumentTypes -> {
+                    DataType<?> argType = argumentTypes.get(0);
+                    return new UnaryScalar<>(
+                        NAME,
+                        argType,
+                        argType,
+                        x -> argType.value(Math.exp(((Number) x).doubleValue()))
+                    );
+                }
+            );
+        }
     }
 }

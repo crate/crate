@@ -24,44 +24,44 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class ArrayFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_array";
     private final FunctionInfo info;
 
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.builder()
+                .name(NAME)
+                .kind(FunctionInfo.Type.SCALAR)
+                .typeVariableConstraints(typeVariable("E"))
+                .argumentTypes(parseTypeSignature("E"))
+                .returnType(parseTypeSignature("array(E)"))
+                .setVariableArity(true)
+                .build(),
+            args -> new ArrayFunction(createInfo(args))
+        );
+
+    }
+
     public static FunctionInfo createInfo(List<DataType> argumentTypes) {
         DataType<?> innerType = argumentTypes.get(0);
         return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), new ArrayType<>(innerType));
     }
-
-    private static final FunctionResolver RESOLVER = new FunctionResolver() {
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new ArrayFunction(createInfo(dataTypes));
-        }
-
-        @Nullable
-        @Override
-        public List<DataType> getSignature(List<? extends FuncArg> symbols) {
-            return FuncParams.ANY_VAR_ARGS_SAME_TYPE.match(symbols);
-        }
-    };
 
     private ArrayFunction(FunctionInfo info) {
         this.info = info;
@@ -80,9 +80,5 @@ public class ArrayFunction extends Scalar<Object, Object> {
             values.add(arg.value());
         }
         return values;
-    }
-
-    public static void register(ScalarFunctionModule scalarFunctionModule) {
-        scalarFunctionModule.register(NAME, RESOLVER);
     }
 }

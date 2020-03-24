@@ -24,14 +24,10 @@ package io.crate.expression.scalar.arithmetic;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -40,55 +36,70 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.function.Function;
 
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 
 public final class TruncFunction {
 
     public static final String NAME = "trunc";
-    private static final FuncParams SIGNATURE = FuncParams
-        .builder(Param.NUMERIC)
-        .withVarArgs(Param.INTEGER)
-        .limitVarArgOccurrences(1)
-        .build();
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new BaseFunctionResolver(SIGNATURE) {
+        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            DataType<?> returnType = DataTypes.getIntegralReturnType(type);
+            assert returnType != null : "Could not get integral type of " + type;
 
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-                DataType argType = types.get(0);
-                DataType returnType = DataTypes.getIntegralReturnType(argType);
-                if (1 == types.size()) {
-                    return new UnaryScalar<Number, Number>(NAME, argType, returnType, n -> {
+            // trunc(number)
+            module.register(
+                scalar(
+                    NAME,
+                    type.getTypeSignature(),
+                    returnType.getTypeSignature()
+                ),
+                argumentTypes ->
+                    new UnaryScalar<Number, Number>(NAME, type, returnType, n -> {
                         double val = n.doubleValue();
                         Function<Double, Double> f = val >= 0 ? Math::floor : Math::ceil;
                         return (Number) returnType.value(f.apply(val));
-                    });
-                } else {
-                    return new Scalar<Number, Number>() {
+                    })
+            );
 
-                        FunctionInfo info = new FunctionInfo(new FunctionIdent(
-                            NAME, types), DataTypes.DOUBLE);
+            // trunc(number, mode)
+            module.register(
+                scalar(
+                    NAME,
+                    type.getTypeSignature(),
+                    parseTypeSignature("integer"),
+                    returnType.getTypeSignature()
+                ),
+                TruncFunction::createTruncWithMode
+            );
+        }
+    }
 
-                        @Override
-                        public FunctionInfo info() {
-                            return info;
-                        }
+    private static Scalar<Number, Number> createTruncWithMode(List<DataType> argumentTypes) {
+        return new Scalar<>() {
 
-                        @Override
-                        public Number evaluate(TransactionContext txnCtx, Input<Number>... args) {
-                            Number n = args[0].value();
-                            Number nd = args[1].value();
-                            if (null == n || null == nd) {
-                                return null;
-                            }
-                            double val = n.doubleValue();
-                            int numDecimals = nd.intValue();
-                            RoundingMode mode = val >= 0 ? RoundingMode.FLOOR : RoundingMode.CEILING;
-                            return BigDecimal.valueOf(val).setScale(numDecimals, mode).doubleValue();
-                        }
-                    };
-                }
+            FunctionInfo info = new FunctionInfo(new FunctionIdent(
+                NAME, argumentTypes), DataTypes.DOUBLE);
+
+            @Override
+            public FunctionInfo info() {
+                return info;
             }
-        });
+
+            @Override
+            public Number evaluate(TransactionContext txnCtx, Input<Number>... args) {
+                Number n = args[0].value();
+                Number nd = args[1].value();
+                if (null == n || null == nd) {
+                    return null;
+                }
+                double val = n.doubleValue();
+                int numDecimals = nd.intValue();
+                RoundingMode mode = val >= 0 ? RoundingMode.FLOOR : RoundingMode.CEILING;
+                return BigDecimal.valueOf(val).setScale(numDecimals, mode).doubleValue();
+            }
+        };
     }
 }

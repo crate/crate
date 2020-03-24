@@ -226,7 +226,7 @@ public class Functions {
         }
         if (candidates != null) {
             // First lets try exact candidates, no generic type variables, no coercion allowed.
-            List<FuncResolver> exactCandidates = candidates.stream()
+            var exactCandidates = candidates.stream()
                 .filter(function -> function.getSignature().getTypeVariableConstraints().isEmpty())
                 .collect(Collectors.toList());
             var match = matchFunctionCandidates(exactCandidates, arguments, false);
@@ -235,7 +235,7 @@ public class Functions {
             }
 
             // Second, try candidates with generic type variables, still no coercion allowed.
-            List<FuncResolver> genericCandidates = candidates.stream()
+            var genericCandidates = candidates.stream()
                 .filter(function -> !function.getSignature().getTypeVariableConstraints().isEmpty())
                 .collect(Collectors.toList());
             match = matchFunctionCandidates(genericCandidates, arguments, false);
@@ -243,8 +243,11 @@ public class Functions {
                 return match;
             }
 
-            // Last, try all candidates with coercion allowed.
-            return matchFunctionCandidates(candidates, arguments, true);
+            // Last, try all candidates which allow coercion.
+            var candidatesAllowingCoercion = candidates.stream()
+                .filter(function -> function.getSignature().isCoercionAllowed())
+                .collect(Collectors.toList());
+            return matchFunctionCandidates(candidatesAllowingCoercion, arguments, true);
         }
         return null;
     }
