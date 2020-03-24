@@ -23,11 +23,8 @@
 package io.crate.metadata.settings.session;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.expressions.ExpressionToObjectVisitor;
-import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.sql.tree.Expression;
 
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -67,17 +64,6 @@ public class SessionSetting<T> {
         for (int i = 0; i < symbols.size(); i++) {
             Symbol symbol = symbols.get(i);
             values[i] = eval.apply(symbol);
-        }
-        validator.accept(values);
-        T converted = converter.apply(values);
-        setter.accept(sessionContext, converted);
-    }
-
-    public void apply(Row parameters, List<Expression> expressions, SessionContext sessionContext) {
-        Object[] values = new Object[expressions.size()];
-        for (int i = 0; i < expressions.size(); i++) {
-            Expression expression = expressions.get(i);
-            values[i] = ExpressionToObjectVisitor.convert(expression, parameters);
         }
         validator.accept(values);
         T converted = converter.apply(values);
