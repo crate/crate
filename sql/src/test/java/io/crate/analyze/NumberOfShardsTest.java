@@ -21,9 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.data.Row;
 import io.crate.sql.tree.ClusteredBy;
-import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.test.integration.CrateUnitTest;
@@ -85,16 +83,15 @@ public class NumberOfShardsTest extends CrateUnitTest {
 
     @Test
     public void testGetNumberOfShards() {
-        ClusteredBy clusteredBy = new ClusteredBy(Optional.of(QNAME_REF), Optional.of(LongLiteral.fromObject(7)));
-        assertThat(numberOfShards.fromClusteredByClause(clusteredBy, Row.EMPTY), is(7));
+        ClusteredBy<Object> clusteredBy = new ClusteredBy<>(Optional.of(QNAME_REF), Optional.of(7L));
+        assertThat(numberOfShards.fromClusteredByClause(clusteredBy), is(7));
     }
 
     @Test
     public void testGetNumberOfShardsLessThanOne() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("num_shards in CLUSTERED clause must be greater than 0");
-        numberOfShards.fromClusteredByClause(
-            new ClusteredBy(Optional.of(QNAME_REF), Optional.of(LongLiteral.fromObject(0))), Row.EMPTY);
+        numberOfShards.fromClusteredByClause(new ClusteredBy<>(Optional.of(QNAME_REF), Optional.of(0L)));
     }
 
 }

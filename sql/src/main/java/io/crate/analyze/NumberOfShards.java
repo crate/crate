@@ -21,10 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.expressions.ExpressionToNumberVisitor;
-import io.crate.data.Row;
 import io.crate.sql.tree.ClusteredBy;
-import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -43,18 +40,6 @@ public class NumberOfShards {
     @Inject
     public NumberOfShards(ClusterService clusterService) {
         this.clusterService = clusterService;
-    }
-
-    int fromClusteredByClause(ClusteredBy<Expression> clusteredBy, Row parameters) {
-        Optional<Expression> numberOfShards = clusteredBy.numberOfShards();
-        if (numberOfShards.isPresent()) {
-            int numShards = ExpressionToNumberVisitor.convert(numberOfShards.get(), parameters).intValue();
-            if (numShards < 1) {
-                throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
-            }
-            return numShards;
-        }
-        return defaultNumberOfShards();
     }
 
     public int fromClusteredByClause(ClusteredBy<Object> clusteredBy) {
