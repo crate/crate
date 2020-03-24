@@ -19,7 +19,6 @@
 package org.elasticsearch.common.geo;
 
 import org.apache.lucene.geo.Rectangle;
-import org.apache.lucene.spatial.util.MortonEncoder;
 import org.apache.lucene.util.BitUtil;
 
 import java.util.Collection;
@@ -71,7 +70,7 @@ public class GeoHashUtils {
         long b;
         long l = 0L;
         for(char c : hash.toCharArray()) {
-            b = (long)(BASE_32_STRING.indexOf(c));
+            b = BASE_32_STRING.indexOf(c);
             l |= (b<<(level--*5));
             if (level < 0) {
                 // We cannot handle more than 12 levels
