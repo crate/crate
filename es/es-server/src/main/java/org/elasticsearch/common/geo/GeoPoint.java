@@ -125,10 +125,6 @@ public final class GeoPoint implements ToXContentFragment {
         return stringEncode(lon, lat);
     }
 
-    public String getGeohash() {
-        return stringEncode(lon, lat);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
