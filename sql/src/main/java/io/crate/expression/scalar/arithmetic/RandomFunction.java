@@ -28,12 +28,15 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;
 import java.util.Random;
+
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class RandomFunction extends Scalar<Double, Void> {
 
@@ -46,7 +49,10 @@ public class RandomFunction extends Scalar<Double, Void> {
     private final Random random = new Random();
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new RandomFunction());
+        module.register(
+            scalar(NAME, parseTypeSignature("double precision")),
+            args -> new RandomFunction()
+        );
     }
 
     @Override

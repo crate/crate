@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -66,10 +65,5 @@ public final class NegateLiterals extends SymbolVisitor<Void, Symbol> {
                 throw new UnsupportedOperationException(Symbols.format(
                     "Cannot negate %s. You may need to add explicit type casts", symbol));
         }
-    }
-
-    @Override
-    protected Symbol visitSymbol(Symbol symbol, Void context) {
-        return NegateFunctions.createFunction(symbol);
     }
 }

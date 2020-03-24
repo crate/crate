@@ -23,41 +23,32 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.expression.symbol.FuncArg;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-import java.util.List;
+import static io.crate.metadata.functions.Signature.scalar;
 
 public final class FloorFunction {
 
     public static final String NAME = "floor";
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new FunctionResolver() {
-            @Nullable
-            @Override
-            public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
-                return FuncParams.SINGLE_NUMERIC.match(funcArgs);
-            }
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-                if (types.size() != 1) {
-                    throw FunctionResolver.noSignatureMatch(NAME, types);
+        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            var typeSignature = type.getTypeSignature();
+            module.register(
+                scalar(NAME, typeSignature, typeSignature),
+                argumentTypes -> {
+                    DataType<?> argType = argumentTypes.get(0);
+                    DataType<?> returnType = DataTypes.getIntegralReturnType(argType);
+                    assert returnType != null : "Could not get integral type of " + argType;
+                    return new UnaryScalar<>(
+                        NAME,
+                        argType,
+                        returnType,
+                        x -> returnType.value(Math.floor(((Number) x).doubleValue()))
+                    );
                 }
-                DataType argType = types.get(0);
-                DataType returnType = DataTypes.getIntegralReturnType(argType);
-                if (returnType == null) {
-                    throw FunctionResolver.noSignatureMatch(NAME, types);
-                }
-                return new UnaryScalar<>(
-                    NAME, argType, returnType, x -> returnType.value(Math.floor(((Number) x).doubleValue())));
-            }
-        });
+            );
+        }
     }
 }

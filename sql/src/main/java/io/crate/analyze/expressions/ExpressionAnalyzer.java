@@ -58,6 +58,7 @@ import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.scalar.arithmetic.MapFunction;
+import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
@@ -786,7 +787,12 @@ public class ExpressionAnalyzer {
         protected Symbol visitNegativeExpression(NegativeExpression node, ExpressionAnalysisContext context) {
             // `-1` in the AST is represented as NegativeExpression(LiteralInteger)
             // -> negate the inner value
-            return NegateLiterals.negate(node.getValue().accept(this, context));
+            Symbol value = node.getValue().accept(this, context);
+            var returnSymbol = NegateLiterals.negate(value);
+            if (returnSymbol != null) {
+                return returnSymbol;
+            }
+            return allocateFunction(NegateFunctions.NAME, List.of(value), context);
         }
 
         @Override

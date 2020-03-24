@@ -27,6 +27,7 @@ import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
+import static org.hamcrest.Matchers.nullValue;
 
 
 public class NegateFunctionsTest extends AbstractScalarFunctionsTest {
@@ -38,9 +39,9 @@ public class NegateFunctionsTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNegateOnStringResultsInError() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot negate values of type text");
-        assertEvaluate("- name", null);
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: _negate(text)");
+        assertEvaluate("- name", nullValue(), Literal.of("foo"));
     }
 
     @Test
