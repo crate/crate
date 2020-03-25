@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -36,12 +35,10 @@ import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 
 public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
-    private TableStats tableStats;
     private SQLExecutor sqlExecutor;
 
     @Before
     public void setup() throws IOException {
-        tableStats = new TableStats();
         sqlExecutor = SQLExecutor.builder(clusterService)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
@@ -53,7 +50,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private LogicalPlan plan(String stmt) {
-        return LogicalPlannerTest.plan(stmt, sqlExecutor, clusterService, tableStats);
+        return sqlExecutor.logicalPlan(stmt);
     }
 
     @Test
@@ -187,10 +184,9 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testOrderByWithHashJoinNotPushedDown() {
         sqlExecutor.getSessionContext().setHashJoinEnabled(true);
-        LogicalPlan plan = LogicalPlannerTest.plan("select t1.a, t2.b " +
+        LogicalPlan plan = sqlExecutor.logicalPlan("select t1.a, t2.b " +
                                                    "from t1 inner join t2 on t1.a = t2.b " +
-                                                   "order by t1.a",
-            sqlExecutor, clusterService, tableStats);
+                                                   "order by t1.a");
         sqlExecutor.getSessionContext().setHashJoinEnabled(false);
         assertThat(plan, isPlan(
             "OrderBy[a ASC]\n" +

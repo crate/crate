@@ -51,9 +51,8 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private LogicalPlan plan(String statement) {
-        return LogicalPlannerTest.plan(statement, e, clusterService, new TableStats());
+        return e.logicalPlan(statement);
     }
-
 
     @Test
     public void testTwoWindowFunctionsWithDifferentWindowDefinitionResultsInTwoOperators() {

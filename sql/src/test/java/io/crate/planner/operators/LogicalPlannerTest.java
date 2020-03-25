@@ -22,13 +22,10 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.execution.dsl.projection.TopNDistinctProjection;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.SubqueryPlanner;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
@@ -36,7 +33,7 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.junit.Before;
@@ -45,9 +42,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -60,16 +56,17 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
+        tableStats = new TableStats();
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
+            .setTableStats(tableStats)
             .addView(new RelationName("doc", "v2"), "select a, x from doc.t1")
             .addView(new RelationName("doc", "v3"), "select a, x from doc.t1")
             .build();
-        tableStats = new TableStats();
     }
 
     private LogicalPlan plan(String statement) {
-        return plan(statement, sqlExecutor, clusterService, tableStats);
+        return assertMaxBytesAllocated(ByteSizeUnit.MB.toBytes(8), () -> sqlExecutor.logicalPlan(statement));
     }
 
     @Test
@@ -368,22 +365,6 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 instanceOf(TopNDistinctProjection.class)
             )
         );
-    }
-
-    public static LogicalPlan plan(String statement,
-                                   SQLExecutor sqlExecutor,
-                                   ClusterService clusterService,
-                                   TableStats tableStats) {
-        PlannerContext context = sqlExecutor.getPlannerContext(clusterService.state());
-        AnalyzedRelation relation = sqlExecutor.analyze(statement);
-        LogicalPlanner logicalPlanner = new LogicalPlanner(
-            getFunctions(),
-            tableStats,
-            () -> clusterService.state().nodes().getMinNodeVersion()
-        );
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-
-        return logicalPlanner.normalizeAndPlan(relation, context, subqueryPlanner, Set.of());
     }
 
     public static Matcher<LogicalPlan> isPlan(String expectedPlan) {
