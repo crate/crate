@@ -58,29 +58,28 @@ import java.util.Map;
 
 
 
-public class TransportShardInsertAction extends TransportShardIndexAction<ShardInsertRequest, ShardInsertRequest.Item, TransportShardInsertAction.InsertContext> {
+public class TransportShardInsertAction extends TransportShardIndexAction<ShardInsertRequest, ShardInsertRequest.Item, TransportShardInsertAction.Context> {
 
     private static final String ACTION_NAME = "internal:crate:sql/data/insert";
 
     private final Schemas schemas;
     private final Functions functions;
 
-    static class InsertContext {
+    static class Context {
 
         final InsertSourceGen insertSourceGen;
 
         @Nullable
         final ReturnValueGen returnValueGen;
 
-        final ShardInsertRequest request;
+        final ShardInsertRequest.DuplicateKeyAction duplicateKeyAction;
 
 
-        public InsertContext(InsertSourceGen insertSourceGen, ReturnValueGen returnValueGen, ShardInsertRequest request) {
+        public Context(InsertSourceGen insertSourceGen, ReturnValueGen returnValueGen, ShardInsertRequest.DuplicateKeyAction duplicateKeyAction) {
             this.insertSourceGen = insertSourceGen;
             this.returnValueGen = returnValueGen;
-            this.request = request;
+            this.duplicateKeyAction = duplicateKeyAction;
         }
-
     }
 
     @Inject
@@ -111,7 +110,7 @@ public class TransportShardInsertAction extends TransportShardIndexAction<ShardI
         tasksService.addListener(this);
     }
 
-    public InsertContext generateContext(ShardInsertRequest request) {
+    public Context buildContext(ShardInsertRequest request) {
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
         Reference[] insertColumns = request.insertColumns();
@@ -128,12 +127,12 @@ public class TransportShardInsertAction extends TransportShardIndexAction<ShardI
             ? null
             : new ReturnValueGen(functions, txnCtx, tableInfo, request.returnValues());
 
-        return new InsertContext(insertSourceGen, returnValueGen, request);
+        return new Context(insertSourceGen, returnValueGen, request.duplicateKeyAction());
     }
 
 
     @Override
-    IndexItemResponse processItem(ShardInsertRequest.Item item, InsertContext context, IndexShard indexShard) throws Exception {
+    IndexItemResponse processItem(ShardInsertRequest.Item item, Context context, IndexShard indexShard) throws Exception {
         VersionConflictEngineException lastException = null;
         boolean isRetry;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
@@ -154,8 +153,7 @@ public class TransportShardInsertAction extends TransportShardIndexAction<ShardI
             }
             item.source(rawSource);
 
-            long version = context.request.duplicateKeyAction() ==
-                           ShardInsertRequest.DuplicateKeyAction.OVERWRITE ? Versions.MATCH_ANY : Versions.MATCH_DELETED;
+            long version = context.duplicateKeyAction == ShardInsertRequest.DuplicateKeyAction.OVERWRITE ? Versions.MATCH_ANY : Versions.MATCH_DELETED;
             long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
             long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
 

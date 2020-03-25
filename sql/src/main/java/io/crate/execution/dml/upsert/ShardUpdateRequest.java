@@ -41,7 +41,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUpdateRequest.Item> implements TransportShardUpdateAction.HasReturnValues {
+public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUpdateRequest.Item> {
 
     private boolean continueOnError;
     private SessionSettings sessionSettings;
@@ -173,10 +173,7 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
     /**
      * A single update item.
      */
-    public static class Item extends ShardRequest.Item implements TransportShardUpdateAction.HasSource {
-
-        @Nullable
-        private BytesReference source;
+    public static class Item extends ShardRequest.Item {
 
         /**
          * List of symbols used on update if document exist
@@ -209,15 +206,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
                 this.primaryTerm = primaryTerm;
             }
             this.returnValues = returnValues;
-        }
-
-        @Nullable
-        public BytesReference source() {
-            return source;
-        }
-
-        public void source(BytesReference source) {
-            this.source = source;
         }
 
         boolean retryOnConflict() {

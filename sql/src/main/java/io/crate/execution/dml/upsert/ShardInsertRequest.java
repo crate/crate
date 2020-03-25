@@ -66,7 +66,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
 
-public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardInsertRequest.Item> implements TransportShardUpdateAction.HasReturnValues {
+public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardInsertRequest.Item> {
 
     public enum DuplicateKeyAction {
         UPDATE_OR_FAIL,
@@ -254,11 +254,7 @@ public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardIn
     /**
      * A single update item.
      */
-    public static class Item extends ShardRequest.Item implements TransportShardIndexAction.HasSource {
-
-        @Nullable
-        private BytesReference source;
-
+    public static class Item extends ShardRequest.Item {
 
         /**
          * List of objects used on insert
@@ -293,19 +289,9 @@ public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardIn
             this.returnValues = returnValues;
         }
 
-        @Nullable
-        public BytesReference source() {
-            return source;
-        }
-
-        public void source(BytesReference source) {
-            this.source = source;
-        }
-
         boolean retryOnConflict() {
             return seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && version == Versions.MATCH_ANY;
         }
-
 
         @Nullable
         public Object[] insertValues() {

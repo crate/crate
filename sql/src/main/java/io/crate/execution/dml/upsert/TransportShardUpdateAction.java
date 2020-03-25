@@ -49,24 +49,21 @@ import javax.annotation.Nullable;
 import java.util.Map;
 
 
-public class TransportShardUpdateAction extends TransportShardIndexAction<ShardUpdateRequest, ShardUpdateRequest.Item, TransportShardUpdateAction.UpdateContext> {
+public class TransportShardUpdateAction extends TransportShardIndexAction<ShardUpdateRequest, ShardUpdateRequest.Item, TransportShardUpdateAction.Context> {
 
     private static final String ACTION_NAME = "internal:crate:sql/data/update";
 
     private final Schemas schemas;
     private final Functions functions;
 
-    class UpdateContext {
+    class Context {
 
         final UpdateSourceGen updateSourceGen;
 
         @Nullable
         final ReturnValueGen returnValueGen;
 
-        public UpdateContext(
-                             UpdateSourceGen updateSourceGen,
-                             ReturnValueGen returnValueGen,
-                             ShardUpdateRequest request) {
+        public Context(UpdateSourceGen updateSourceGen, ReturnValueGen returnValueGen) {
             this.updateSourceGen = updateSourceGen;
             this.returnValueGen = returnValueGen;
         }
@@ -100,7 +97,7 @@ public class TransportShardUpdateAction extends TransportShardIndexAction<ShardU
         tasksService.addListener(this);
     }
 
-    public UpdateContext generateContext(ShardUpdateRequest request) {
+    public Context buildContext(ShardUpdateRequest request) {
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
@@ -109,11 +106,11 @@ public class TransportShardUpdateAction extends TransportShardIndexAction<ShardU
             ? null
             : new ReturnValueGen(functions, txnCtx, tableInfo, request.returnValues());
 
-        return new UpdateContext(updateSourceGen, returnValueGen, request);
+        return new Context(updateSourceGen, returnValueGen);
     }
 
     @Override
-    IndexItemResponse processItem(ShardUpdateRequest.Item item, UpdateContext context, IndexShard indexShard) throws Exception {
+    IndexItemResponse processItem(ShardUpdateRequest.Item item, Context context, IndexShard indexShard) throws Exception {
         VersionConflictEngineException lastException = null;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             Doc fetchedDoc = getDocument(indexShard,
@@ -157,8 +154,7 @@ public class TransportShardUpdateAction extends TransportShardIndexAction<ShardU
                 lastException = e;
             }
         }
-        logger.warn("[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying",
-                    indexShard.shardId(), item.id(), item.version(), MAX_RETRY_LIMIT);
+        logger.warn("[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying", indexShard.shardId(), item.id(), item.version(), MAX_RETRY_LIMIT);
         throw lastException;
     }
 }

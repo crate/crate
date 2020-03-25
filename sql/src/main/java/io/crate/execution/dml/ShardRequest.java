@@ -24,7 +24,10 @@ package io.crate.execution.dml;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -32,6 +35,7 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -43,6 +47,11 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
     private UUID jobId;
     protected List<I> items;
+
+    @Nullable
+    protected Symbol[] returnValues;
+
+    protected boolean continueOnError;
 
     public ShardRequest() {
     }
@@ -62,6 +71,16 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     public List<I> items() {
         return items;
     }
+
+    public Symbol[] returnValues() {
+        return returnValues;
+    }
+
+    public boolean continueOnError() {
+        return continueOnError;
+    }
+
+
 
     @Override
     public Iterator<I> iterator() {
@@ -124,10 +143,15 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
         protected final String id;
         protected long version = Versions.MATCH_ANY;
+        @Nullable
+        protected BytesReference source;
 
         private int location = -1;
         protected long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         protected long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
+
+        @Nullable
+        protected Symbol[] returnValues;
 
         public Item(String id) {
             this.id = id;
@@ -139,6 +163,14 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             location = in.readInt();
             seqNo = in.readLong();
             primaryTerm = in.readLong();
+            source = in.readBytesReference();
+            int returnValueSize = in.readVInt();
+            if (returnValueSize > 0) {
+                returnValues = new Symbol[returnValueSize];
+                for (int i = 0; i < returnValueSize; i++) {
+                    returnValues[i] = Symbols.fromStream(in);
+                }
+            }
         }
 
         public String id() {
@@ -177,12 +209,34 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             this.primaryTerm = primaryTerm;
         }
 
+        public void source(BytesReference source) {
+            this.source = source;
+        }
+
+        public BytesReference source() {
+            return source;
+        }
+
+        @Nullable
+        public Symbol[] returnValues() {
+            return returnValues;
+        }
+
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
             out.writeLong(version);
             out.writeInt(location);
             out.writeLong(seqNo);
             out.writeLong(primaryTerm);
+            out.writeBytesReference(source);
+            if (returnValues != null) {
+                out.writeVInt(returnValues.length);
+                for (Symbol returnValue : returnValues) {
+                    Symbols.toStream(returnValue, out);
+                }
+            } else {
+                out.writeVInt(0);
+            }
         }
 
         @Override
@@ -194,12 +248,14 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
                    location == item.location &&
                    seqNo == item.seqNo &&
                    primaryTerm == item.primaryTerm &&
-                   java.util.Objects.equals(id, item.id);
+                   java.util.Objects.equals(id, item.id) &&
+                   java.util.Objects.equals(returnValues, item.returnValues) &&
+                   java.util.Objects.equals(source, item.source);
         }
 
         @Override
         public int hashCode() {
-            return java.util.Objects.hash(id, version, location, seqNo, primaryTerm);
+            return java.util.Objects.hash(id, version, location, seqNo, primaryTerm, returnValues, source);
         }
 
         @Override

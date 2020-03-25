@@ -108,12 +108,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         return sessionSettings;
     }
 
-
-    @Nullable
-    public Symbol[] getReturnValues() {
-        return returnValues;
-    }
-
     String[] updateColumns() {
         return updateColumns;
     }
@@ -130,10 +124,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     private ShardUpsertRequest duplicateKeyAction(DuplicateKeyAction duplicateKeyAction) {
         this.duplicateKeyAction = duplicateKeyAction;
         return this;
-    }
-
-    boolean continueOnError() {
-        return continueOnError;
     }
 
     private ShardUpsertRequest continueOnError(boolean continueOnError) {
@@ -416,9 +406,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         private final Reference[] missingAssignmentsColumns;
         private final UUID jobId;
         private boolean validateGeneratedColumns;
-        @Nullable
         private final Symbol[] returnValues;
-
 
         public Builder(SessionSettings sessionSettings,
                        TimeValue timeout,

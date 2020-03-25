@@ -30,7 +30,6 @@ import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
-import io.crate.expression.symbol.Symbol;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -60,28 +59,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
 
 @Singleton
-public abstract class TransportShardIndexAction<Request extends ShardRequest<Request, Item> & TransportShardIndexAction.HasReturnValues,
-    Item extends ShardRequest.Item & TransportShardIndexAction.HasSource, Context>
-    extends TransportShardAction<Request, Item> {
+public abstract class TransportShardIndexAction<
+    Request extends ShardRequest<Request, Item>,
+    Item extends ShardRequest.Item, Context
+    > extends TransportShardAction<Request, Item> {
 
     static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
 
-    interface HasReturnValues {
+    public abstract Context buildContext(Request request);
 
-        Symbol[] returnValues();
-
-        boolean continueOnError();
-
-    }
-
-    interface HasSource {
-
-        void source(BytesReference source);
-
-        BytesReference source();
-    }
-
-    public abstract Context generateContext(Request request);
+    abstract IndexItemResponse processItem(Item item, Context context, IndexShard indexShard) throws Exception;
 
     @Inject
     public TransportShardIndexAction(
@@ -109,13 +96,12 @@ public abstract class TransportShardIndexAction<Request extends ShardRequest<Req
         tasksService.addListener(this);
     }
 
-    // can be generic
     @Override
     protected WritePrimaryResult<Request, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         Request request,
                                                                                         AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
-        Context updateContext = generateContext(request);
+        Context updateContext = buildContext(request);
 
         Translog.Location translogLocation = null;
         for (Item item : request.items()) {
@@ -207,8 +193,6 @@ public abstract class TransportShardIndexAction<Request extends ShardRequest<Req
         }
         return new WriteReplicaResult<>(request, location, null, indexShard, logger);
     }
-
-    abstract IndexItemResponse processItem(Item item, Context context, IndexShard indexShard) throws Exception;
 
     static class IndexItemResponse {
         @Nullable
