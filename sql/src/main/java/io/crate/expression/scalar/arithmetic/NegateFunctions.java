@@ -24,9 +24,9 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
-import static io.crate.metadata.functions.Signature.scalarWithForbiddenCoercion;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class NegateFunctions {
@@ -35,55 +35,60 @@ public final class NegateFunctions {
 
     public static void register(ScalarFunctionModule module) {
         module.register(
-            scalarWithForbiddenCoercion(
+            Signature.scalar(
                 NAME,
                 parseTypeSignature("double precision"),
                 parseTypeSignature("double precision")
-            ),
+            )
+                .withForbiddenCoercion(),
             argumentTypes -> {
                 DataType<?> dataType = argumentTypes.get(0);
                 return new UnaryScalar<Double, Double>(NAME, dataType, dataType, x -> x * -1);
             }
         );
         module.register(
-            scalarWithForbiddenCoercion(
+            Signature.scalar(
                 NAME,
                 parseTypeSignature("float"),
                 parseTypeSignature("float")
-            ),
+            )
+                .withForbiddenCoercion(),
             argumentTypes -> {
                 DataType<?> dataType = argumentTypes.get(0);
                 return new UnaryScalar<Float, Float>(NAME, dataType, dataType, x -> x * -1);
             }
         );
         module.register(
-            scalarWithForbiddenCoercion(
+            Signature.scalar(
                 NAME,
                 parseTypeSignature("integer"),
                 parseTypeSignature("integer")
-            ),
+            )
+                .withForbiddenCoercion(),
             argumentTypes -> {
                 DataType<?> dataType = argumentTypes.get(0);
                 return new UnaryScalar<Integer, Integer>(NAME, dataType, dataType, x -> x * -1);
             }
         );
         module.register(
-            scalarWithForbiddenCoercion(
+            Signature.scalar(
                 NAME,
                 parseTypeSignature("bigint"),
                 parseTypeSignature("bigint")
-            ),
+            )
+                .withForbiddenCoercion(),
             argumentTypes -> {
                 DataType<?> dataType = argumentTypes.get(0);
                 return new UnaryScalar<Long, Long>(NAME, dataType, dataType, x -> x * -1);
             }
         );
         module.register(
-            scalarWithForbiddenCoercion(
+            Signature.scalar(
                 NAME,
                 parseTypeSignature("smallint"),
                 parseTypeSignature("smallint")
-            ),
+            )
+                .withForbiddenCoercion(),
             argumentTypes -> {
                 DataType<?> dataType = argumentTypes.get(0);
                 return new UnaryScalar<Short, Short>(NAME, dataType, dataType, x -> (short) (x * -1));
