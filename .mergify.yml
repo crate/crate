@@ -12,11 +12,6 @@ pull_request_rules:
       - status-success~=^Test CrateDB SQL on ubuntu
       - status-success~=^Test CrateDB SQL on windows
     name: default
-  - name: Delete branch after merge
-    actions:
-      delete_head_branch: {}
-    conditions:
-      - merged
   - actions:
       backport:
         branches:
