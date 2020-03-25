@@ -216,7 +216,7 @@ public class ScalarFunctionModule extends AbstractModule {
         PgBackendPidFunction.register(this);
         PgGetUserByIdFunction.register(this);
         PgTypeofFunction.register(this);
-        register(new CurrentDatabaseFunction());
+        CurrentDatabaseFunction.register(this);
         VersionFunction.register(this);
         ObjDescriptionFunction.register(this);
 

@@ -29,6 +29,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Build;
@@ -44,11 +45,18 @@ public class VersionFunction extends Scalar<String, Void> {
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
     protected static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(FQN, Collections.emptyList()), DataTypes.DOUBLE,
+        new FunctionIdent(FQN, Collections.emptyList()), DataTypes.STRING,
         FunctionInfo.Type.SCALAR, FunctionInfo.NO_FEATURES);
 
-    public static void register(ScalarFunctionModule scalarFunctionModule) {
-        scalarFunctionModule.register(new VersionFunction());
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.scalar(
+                FQN,
+                DataTypes.STRING.getTypeSignature()
+            ),
+            args -> new VersionFunction()
+        );
+
     }
 
     private static String formatVersion() {

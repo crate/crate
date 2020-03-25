@@ -24,34 +24,37 @@ package io.crate.expression.scalar.systeminformation;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import java.util.List;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class PgTypeofFunction extends Scalar<String, Object> {
 
     private static final FunctionName FQNAME = new FunctionName(PgCatalogSchemaInfo.NAME, "pg_typeof");
-    private static final FuncParams FUNCTION_PARAMS = FuncParams.builder(Param.ANY).build();
 
     public static void register(ScalarFunctionModule module) {
-        module.register(FQNAME, new BaseFunctionResolver(FUNCTION_PARAMS) {
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> signatureTypes) throws IllegalArgumentException {
-                return new PgTypeofFunction(new FunctionInfo(new FunctionIdent(FQNAME, signatureTypes),
-                                                             DataTypes.STRING));
-            }
-        });
+        module.register(
+            Signature.scalar(
+                FQNAME,
+                parseTypeSignature("E"),
+                DataTypes.STRING.getTypeSignature()
+            )
+                .withTypeVariableConstraints(typeVariable("E")),
+            argumentTypes ->
+                new PgTypeofFunction(
+                    new FunctionInfo(new FunctionIdent(FQNAME, argumentTypes),
+                                     DataTypes.STRING)
+                )
+        );
+
     }
 
     private final FunctionInfo info;

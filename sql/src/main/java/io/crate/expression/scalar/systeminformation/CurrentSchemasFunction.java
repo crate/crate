@@ -30,6 +30,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
@@ -49,7 +50,14 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
         Collections.emptySet());
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new CurrentSchemasFunction());
+        module.register(
+            Signature.scalar(
+                FQN,
+                DataTypes.BOOLEAN.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ),
+            args -> new CurrentSchemasFunction()
+        );
     }
 
     @Override

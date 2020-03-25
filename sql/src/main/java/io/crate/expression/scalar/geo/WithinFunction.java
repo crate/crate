@@ -31,6 +31,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -43,7 +44,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.metadata.functions.Signature.scalarWithForbiddenCoercion;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class WithinFunction extends Scalar<Boolean, Object> {
@@ -69,12 +69,13 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         for (DataType<?> left : LEFT_TYPES) {
             for (DataType<?> right : RIGHT_TYPES) {
                 module.register(
-                    scalarWithForbiddenCoercion(
+                    Signature.scalar(
                         NAME,
                         left.getTypeSignature(),
                         right.getTypeSignature(),
                         parseTypeSignature("boolean")
-                    ),
+                    )
+                        .withForbiddenCoercion(),
                     args -> new WithinFunction(info(left, right))
                 );
             }

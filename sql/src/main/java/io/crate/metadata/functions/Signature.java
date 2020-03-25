@@ -52,16 +52,6 @@ public final class Signature {
         return scalarBuilder(name, types).build();
     }
 
-    /**
-     * Same as {@link #scalar(String, TypeSignature...)}, but don't allow coercion.
-     * This prevents e.g. matching a numeric_only function with convertible argument (text).
-     */
-    public static Signature scalarWithForbiddenCoercion(String name, TypeSignature... types) {
-        return scalarBuilder(new FunctionName(null, name), types)
-            .forbidCoercion()
-            .build();
-    }
-
     private static Signature.Builder scalarBuilder(FunctionName name, TypeSignature... types) {
         assert types.length > 0 : "Types must contain at least the return type (last element), 0 types given";
         Builder builder = Signature.builder()
@@ -78,6 +68,10 @@ public final class Signature {
         return new Builder();
     }
 
+    public static Builder builder(Signature signature) {
+        return new Builder(signature);
+    }
+
     public static class Builder {
         private FunctionName name;
         private FunctionInfo.Type kind;
@@ -87,6 +81,20 @@ public final class Signature {
         private List<TypeSignature> variableArityGroup = Collections.emptyList();
         private boolean variableArity = false;
         private boolean allowCoercion = true;
+
+        public Builder() {
+        }
+
+        public Builder(Signature signature) {
+            name = signature.getName();
+            kind = signature.getKind();
+            argumentTypes = signature.getArgumentTypes();
+            returnType = signature.getReturnType();
+            typeVariableConstraints = signature.getTypeVariableConstraints();
+            variableArityGroup = signature.getVariableArityGroup();
+            variableArity = signature.isVariableArity();
+            allowCoercion = signature.isCoercionAllowed();
+        }
 
         public Builder name(String name) {
             return name(new FunctionName(null, name));
@@ -183,6 +191,22 @@ public final class Signature {
         this.variableArityGroup = variableArityGroup;
         this.variableArity = variableArity;
         this.allowCoercion = allowCoercion;
+    }
+
+    public Signature withTypeVariableConstraints(TypeVariableConstraint... typeVariableConstraints) {
+        return Signature.builder(this)
+            .typeVariableConstraints(typeVariableConstraints)
+            .build();
+    }
+
+    /*
+     * Forbid coercion of argument types.
+     * This prevents e.g. matching a numeric_only function with convertible argument (text).
+     */
+    public Signature withForbiddenCoercion() {
+        return Signature.builder(this)
+            .forbidCoercion()
+            .build();
     }
 
     public FunctionName getName() {
