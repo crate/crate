@@ -56,9 +56,10 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     public ShardRequest() {
     }
 
-    public ShardRequest(ShardId shardId, UUID jobId) {
+    public ShardRequest(ShardId shardId, UUID jobId, boolean continueOnError) {
         setShardId(shardId);
         this.jobId = jobId;
+        this.continueOnError = continueOnError;
         this.index = shardId.getIndexName();
         items = new ArrayList<>();
     }
@@ -80,8 +81,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return continueOnError;
     }
 
-
-
     @Override
     public Iterator<I> iterator() {
         return Iterators.unmodifiableIterator(items.iterator());
@@ -94,6 +93,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     public ShardRequest(StreamInput in) throws IOException {
         super(in);
         jobId = new UUID(in.readLong(), in.readLong());
+        continueOnError = in.readBoolean();
     }
 
     protected void readItems(StreamInput in, int size) throws IOException {
@@ -108,6 +108,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         super.writeTo(out);
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
+        out.writeBoolean(continueOnError);
     }
 
     @Override

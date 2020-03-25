@@ -66,8 +66,9 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
                                ShardId shardId,
                                @Nullable String[] updateColumns,
                                @Nullable Symbol[] returnValues,
-                               UUID jobId) {
-        super(shardId, jobId);
+                               UUID jobId,
+                               boolean continueOnError) {
+        super(shardId, jobId, continueOnError);
         assert updateColumns != null : "Missing updateColumns, whether for update nor for insert";
         this.sessionSettings = sessionSettings;
         this.updateColumns = updateColumns;
@@ -304,9 +305,9 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
                 shardId,
                 assignmentsColumns,
                 returnValues,
-                jobId)
-                .timeout(timeout)
-                .continueOnError(continueOnError);
+                jobId,
+                continueOnError)
+                .timeout(timeout);
         }
     }
 }

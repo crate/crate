@@ -57,7 +57,6 @@ import java.util.Arrays;
 import java.util.Map;
 
 
-
 public class TransportShardInsertAction extends TransportShardIndexAction<ShardInsertRequest, ShardInsertRequest.Item, TransportShardInsertAction.Context> {
 
     private static final String ACTION_NAME = "internal:crate:sql/data/insert";
@@ -73,7 +72,6 @@ public class TransportShardInsertAction extends TransportShardIndexAction<ShardI
         final ReturnValueGen returnValueGen;
 
         final ShardInsertRequest.DuplicateKeyAction duplicateKeyAction;
-
 
         public Context(InsertSourceGen insertSourceGen, ReturnValueGen returnValueGen, ShardInsertRequest.DuplicateKeyAction duplicateKeyAction) {
             this.insertSourceGen = insertSourceGen;

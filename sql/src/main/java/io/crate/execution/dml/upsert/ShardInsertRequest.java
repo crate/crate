@@ -53,7 +53,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.settings.SessionSettings;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -75,7 +74,6 @@ public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardIn
     }
 
     private DuplicateKeyAction duplicateKeyAction;
-    private boolean continueOnError;
     private boolean validateConstraints = true;
     private SessionSettings sessionSettings;
 
@@ -105,8 +103,9 @@ public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardIn
                                @Nullable Reference[] insertColumns,
                                @Nullable Symbol[] returnValues,
                                DuplicateKeyAction duplicateKeyAction,
-                               UUID jobId) {
-        super(shardId, jobId);
+                               UUID jobId,
+                               boolean continueOnError) {
+        super(shardId, jobId, continueOnError);
         assert insertColumns != null : "Missing updateAssignments, whether for update nor for insert";
         this.sessionSettings = sessionSettings;
         this.insertColumns = insertColumns;
@@ -145,11 +144,6 @@ public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardIn
 
     public boolean continueOnError() {
         return continueOnError;
-    }
-
-    private ShardInsertRequest continueOnError(boolean continueOnError) {
-        this.continueOnError = continueOnError;
-        return this;
     }
 
     boolean validateConstraints() {
@@ -396,9 +390,9 @@ public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardIn
                 missingAssignmentsColumns,
                 returnValues,
                 duplicateKeyAction,
-                jobId)
+                jobId,
+                continueOnError)
                 .timeout(timeout)
-                .continueOnError(continueOnError)
                 .validateConstraints(validateGeneratedColumns);
         }
     }

@@ -115,17 +115,13 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 tasksService, indicesService, shardStateAction, functions, schemas, indexNameExpressionResolver);
         }
 
+        @Nullable
         @Override
-        protected IndexItemResponse insert(ShardUpsertRequest request,
-                                           ShardUpsertRequest.Item item,
-                                           IndexShard indexShard,
-                                           boolean isRetry,
-                                           @Nullable ReturnValueGen returnGen,
-                                           @Nullable InsertSourceGen insertSourceGen) throws Exception {
+        TransportShardIndexAction.IndexItemResponse processItem(ShardUpsertRequest.Item item, Context context, IndexShard indexShard) throws Exception {
             throw new VersionConflictEngineException(
                 indexShard.shardId(),
                 item.id(),
-                "document with id: " + item.id() + " already exists in '" + request.shardId().getIndexName() + '\'');
+                "document with id: " + item.id() + " already exists");
         }
     }
 
@@ -213,7 +209,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardResponse response = result.finalResponseIfSuccessful;
         assertThat(response.failures().size(), is(1));
         assertThat(response.failures().get(0).message(),
-            is("[1]: version conflict, document with id: 1 already exists in 'characters'"));
+            is("[1]: version conflict, document with id: 1 already exists"));
     }
 
     @Test

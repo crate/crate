@@ -35,7 +35,7 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
     private int skipFromLocation = -1;
 
     public ShardDeleteRequest(ShardId shardId, UUID jobId) {
-        super(shardId, jobId);
+        super(shardId, jobId, false);
     }
 
     void skipFromLocation(int location) {
