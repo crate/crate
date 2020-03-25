@@ -25,7 +25,7 @@ package io.crate.expression.scalar.string;
 import io.crate.common.Hex;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.hash.MessageDigests;
 
@@ -35,9 +35,26 @@ import java.security.MessageDigest;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public final class HashFunctions {
 
-    private static final DataType SUPPORTED_INPUT_TYPE = DataTypes.STRING;
+    public static void register(ScalarFunctionModule module) {
+        register(module, "md5", HashMethod.MD5::digest);
+        register(module, "sha1", HashMethod.SHA1::digest);
+    }
+
+    private static void register(ScalarFunctionModule module, String name, Function<String, String> func) {
+        module.register(
+            Signature.scalar(
+                name,
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new UnaryScalar<>(name, DataTypes.STRING, DataTypes.STRING, func)
+        );
+    }
 
     private enum HashMethod {
         MD5(MessageDigests::md5),
@@ -68,12 +85,4 @@ public final class HashFunctions {
     }
 
 
-    private static void register(ScalarFunctionModule module, String name, Function<String, String> func) {
-        module.register(new UnaryScalar<>(name, SUPPORTED_INPUT_TYPE, DataTypes.STRING, func));
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        register(module, "md5", HashMethod.MD5::digest);
-        register(module, "sha1", HashMethod.SHA1::digest);
-    }
 }
