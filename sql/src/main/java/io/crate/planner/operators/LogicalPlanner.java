@@ -486,8 +486,27 @@ public class LogicalPlanner {
                                                          PlannerContext plannerContext,
                                                          Row params,
                                                          SubQueryResults subQueryResults) {
-        ExecutionPlan executionPlan = logicalPlan.build(
-            plannerContext, executor.projectionBuilder(), -1, 0, null, null, params, subQueryResults);
+        ExecutionPlan executionPlan;
+        try {
+            executionPlan = logicalPlan.build(
+                plannerContext, executor.projectionBuilder(), -1, 0, null, null, params, subQueryResults);
+        } catch (Exception e) {
+            // This should really only happen if there are planner bugs,
+            // so the additional costs of creating a more informative exception shouldn't matter.
+            PrintContext printContext = new PrintContext();
+            logicalPlan.print(printContext);
+            IllegalArgumentException illegalArgumentException = new IllegalArgumentException(
+                String.format(
+                    Locale.ENGLISH,
+                    "Couldn't create execution plan from logical plan because of: %s:%n%s",
+                    e.getMessage(),
+                    printContext.toString()
+                ),
+                e
+            );
+            illegalArgumentException.setStackTrace(e.getStackTrace());
+            throw illegalArgumentException;
+        }
         return NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
     }
 

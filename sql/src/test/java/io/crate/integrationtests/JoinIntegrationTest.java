@@ -155,7 +155,6 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     public void testCrossJoinJoinUnordered() throws Exception {
         execute("create table employees (size float, name string) clustered by (size) into 1 shards");
         execute("create table offices (height float, name string) clustered by (height) into 1 shards");
-        ensureYellow();
         execute("insert into employees (size, name) values (1.5, 'Trillian')");
         execute("insert into offices (height, name) values (1.5, 'Hobbit House')");
         execute("refresh table employees, offices");

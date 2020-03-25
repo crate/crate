@@ -71,7 +71,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
         List<Reference> fetchRefs = fetchRewrite.extractFetchRefs();
         Map<RelationName, FetchSource> fetchSourceByRelation = fetchRewrite.createFetchSources();
         return new Fetch(
-            limit.outputs(),
+            fetchRewrite.replacedOutputs(),
             fetchRefs,
             fetchSourceByRelation,
             limit.replaceSources(List.of(fetchRewrite.newPlan()))
