@@ -30,12 +30,15 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;
+
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class PgBackendPidFunction extends Scalar<Integer, Void> {
 
@@ -50,7 +53,10 @@ public class PgBackendPidFunction extends Scalar<Integer, Void> {
         FunctionInfo.NO_FEATURES);
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new PgBackendPidFunction());
+        module.register(
+            scalar(FQN, parseTypeSignature("integer")),
+            args -> new PgBackendPidFunction()
+        );
     }
 
     @Override
