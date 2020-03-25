@@ -254,7 +254,8 @@ public class JobSetup {
         try {
             return innerPreparer.process(phase, context);
         } catch (Throwable t) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+            IllegalArgumentException e = new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
                 "Couldn't create executionContexts from%n" +
                 "NodeOperations: %s%n" +
                 "Leafs: %s%n" +
@@ -265,6 +266,8 @@ public class JobSetup {
                 context.opCtx.targetToSourceMap,
                 t.getClass().getSimpleName() + ": " + t.getMessage()),
                 t);
+            e.setStackTrace(t.getStackTrace());
+            throw e;
         }
     }
 

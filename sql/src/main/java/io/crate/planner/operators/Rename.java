@@ -27,6 +27,7 @@ import io.crate.analyze.relations.FieldResolver;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -38,8 +39,12 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * https://en.wikipedia.org/wiki/Relational_algebra#Rename_(%CF%81)
@@ -117,6 +122,52 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
             fieldResolver,
             newSource
         );
+    }
+
+    @Nullable
+    @Override
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        IdentityHashMap<Symbol, Symbol> parentToChildMap = new IdentityHashMap<>(outputs.size());
+        IdentityHashMap<Symbol, Symbol> childToParentMap = new IdentityHashMap<>(outputs.size());
+        for (int i = 0; i < outputs.size(); i++) {
+            parentToChildMap.put(outputs.get(i), source.outputs().get(i));
+            childToParentMap.put(source.outputs().get(i), outputs.get(i));
+        }
+        ArrayList<Symbol> mappedUsedColumns = new ArrayList<>();
+        for (Symbol usedColumn : usedColumns) {
+            SymbolVisitors.intersection(usedColumn, outputs, s -> {
+                Symbol childSymbol = parentToChildMap.get(s);
+                assert childSymbol != null : "There must be a mapping available for symbol " + s;
+                mappedUsedColumns.add(childSymbol);
+            });
+        }
+        FetchRewrite fetchRewrite = source.rewriteToFetch(mappedUsedColumns);
+        if (fetchRewrite == null) {
+            return null;
+        }
+        LogicalPlan newSource = fetchRewrite.newPlan();
+        ArrayList<Symbol> newOutputs = new ArrayList<>();
+        for (Symbol output : newSource.outputs()) {
+            if (output instanceof FetchMarker) {
+                FetchMarker marker = (FetchMarker) output;
+                FetchMarker newMarker = new FetchMarker(name, marker.fetchRefs(), marker.fetchId());
+                newOutputs.add(newMarker);
+                childToParentMap.put(marker, newMarker);
+            } else {
+                Symbol mappedOutput = requireNonNull(childToParentMap.get(output), "Mapping must exist for output from source");
+                newOutputs.add(mappedOutput);
+            }
+        }
+        LinkedHashMap<Symbol, Symbol> replacedOutputs = new LinkedHashMap<>();
+        Function<Symbol, Symbol> convertChildrenToScopedSymbols = s -> MapBackedSymbolReplacer.convert(s, childToParentMap);
+        for (var entry : fetchRewrite.replacedOutputs().entrySet()) {
+            Symbol key = entry.getKey();
+            Symbol value = entry.getValue();
+            Symbol parentSymbolForKey = requireNonNull(childToParentMap.get(key), "Mapping must exist for output from source");
+            replacedOutputs.put(parentSymbolForKey, convertChildrenToScopedSymbols.apply(value));
+        }
+        Rename newRename = new Rename(newOutputs, name, fieldResolver, newSource);
+        return new FetchRewrite(replacedOutputs, newRename);
     }
 
     @Override

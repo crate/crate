@@ -35,6 +35,7 @@ import org.elasticsearch.transport.TransportResponse;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Objects;
 
 public class NodeFetchResponse extends TransportResponse {
 
@@ -58,7 +59,7 @@ public class NodeFetchResponse extends TransportResponse {
             fetched = new IntObjectHashMap<>(numReaders);
             for (int i = 0; i < numReaders; i++) {
                 int readerId = in.readVInt();
-                StreamBucket bucket = new StreamBucket(in, streamers.get(readerId));
+                StreamBucket bucket = new StreamBucket(in, Objects.requireNonNull(streamers.get(readerId), "streamers must exist for readerId=" + readerId));
                 fetched.put(readerId, bucket);
             }
         } else {
