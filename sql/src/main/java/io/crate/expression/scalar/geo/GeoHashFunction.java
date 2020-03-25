@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar.geo;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.types.DataType;
@@ -32,13 +31,25 @@ import org.locationtech.spatial4j.shape.Point;
 
 import java.util.List;
 
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public final class GeoHashFunction {
 
-    private static final List<DataType> SUPPORTED_INPUT_TYPES = ImmutableList.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY);
+    private static final List<DataType<?>> SUPPORTED_INPUT_TYPES =
+        List.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY);
 
     public static void register(ScalarFunctionModule module) {
-        for (DataType inputType : SUPPORTED_INPUT_TYPES) {
-            module.register(new UnaryScalar<>("geohash", inputType, DataTypes.STRING, GeoHashFunction::getGeoHash));
+        for (DataType<?> inputType : SUPPORTED_INPUT_TYPES) {
+            module.register(
+                scalar(
+                    "geohash",
+                    inputType.getTypeSignature(),
+                    parseTypeSignature("text")
+                ),
+                args ->
+                    new UnaryScalar<>("geohash", inputType, DataTypes.STRING, GeoHashFunction::getGeoHash)
+            );
         }
     }
 
