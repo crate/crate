@@ -36,8 +36,9 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.FetchMarker;
+import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -62,6 +63,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -313,25 +315,34 @@ public class Collect implements LogicalPlan {
             return null;
         }
         ArrayList<Symbol> newOutputs = new ArrayList<>();
+        LinkedHashMap<Symbol, Symbol> replacedOutputs = new LinkedHashMap<>();
         ArrayList<Reference> refsToFetch = new ArrayList<>();
+        FetchMarker fetchMarker = new FetchMarker(relation.relationName(), refsToFetch);
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
             if (Symbols.containsColumn(output, DocSysColumns.SCORE)) {
                 newOutputs.add(output);
+                replacedOutputs.put(output, output);
             } else if (!SymbolVisitors.any(Symbols.IS_COLUMN, output)) {
                 newOutputs.add(output);
+                replacedOutputs.put(output, output);
             } else if (SymbolVisitors.any(usedColumns::contains, output)) {
                 newOutputs.add(output);
+                replacedOutputs.put(output, output);
             } else {
-                RefVisitor.visitRefs(output, refsToFetch::add);
+                Symbol outputWithFetchStub = RefReplacer.replaceRefs(output, ref -> {
+                    refsToFetch.add(ref);
+                    return new FetchStub(fetchMarker, ref);
+                });
+                replacedOutputs.put(output, outputWithFetchStub);
             }
         }
         if (newOutputs.size() == outputs.size()) {
             return null;
         }
-        FetchMarker fetchMarker = new FetchMarker(relation.relationName(), refsToFetch);
         newOutputs.add(0, fetchMarker);
         return new FetchRewrite(
+            replacedOutputs,
             new Collect(
                 preferSourceLookup,
                 relation,

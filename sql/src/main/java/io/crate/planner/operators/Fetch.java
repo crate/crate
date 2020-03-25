@@ -27,10 +27,8 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.dsl.projection.FetchProjection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.FetchReference;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -40,7 +38,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.ReaderAllocations;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.fetch.FetchSource;
-import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -82,13 +79,15 @@ public final class Fetch extends ForwardingLogicalPlan {
     private final List<Symbol> outputs;
     private final List<Reference> fetchRefs;
     private final Map<RelationName, FetchSource> fetchSourceByRelation;
+    private final Map<Symbol, Symbol> replacedOutputs;
 
-    public Fetch(List<Symbol> outputs,
+    public Fetch(Map<Symbol, Symbol> replacedOutputs,
                  List<Reference> fetchRefs,
                  Map<RelationName, FetchSource> fetchSourceByRelation,
                  LogicalPlan source) {
         super(source);
-        this.outputs = outputs;
+        this.outputs = List.copyOf(replacedOutputs.keySet());
+        this.replacedOutputs = replacedOutputs;
         this.fetchRefs = fetchRefs;
         this.fetchSourceByRelation = fetchSourceByRelation;
     }
@@ -125,18 +124,7 @@ public final class Fetch extends ForwardingLogicalPlan {
             ),
             plannerContext
         );
-        Function<Symbol, Symbol> paramBinder = new SubQueryAndParamBinder(params, subQueryResults)
-            .andThen(s -> {
-                int idx = source.outputs().indexOf(s);
-                if (idx >= 0) {
-                    return new InputColumn(idx, source.outputs().get(idx).valueType());
-                }
-                return RefReplacer.replaceRefs(
-                    s,
-                    ref -> new FetchReference(new InputColumn(0, DataTypes.LONG), ref)
-                );
-            });
-        List<Symbol> boundOutputs = Lists2.map(outputs, paramBinder);
+        Function<Symbol, Symbol> paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
         FetchPhase fetchPhase = new FetchPhase(
             plannerContext.nextExecutionPhaseId(),
@@ -145,11 +133,13 @@ public final class Fetch extends ForwardingLogicalPlan {
             readerAllocations.tableIndices(),
             fetchRefs
         );
+        List<Symbol> boundOutputs = Lists2.map(replacedOutputs.values(), paramBinder);
+        List<Symbol> fetchOutputs = InputColumns.create(boundOutputs, new InputColumns.SourceSymbols(source.outputs()));
         FetchProjection fetchProjection = new FetchProjection(
             fetchPhase.phaseId(),
             plannerContext.fetchSize(),
             fetchSourceByRelation,
-            boundOutputs,
+            fetchOutputs,
             readerAllocations.nodeReaders(),
             readerAllocations.indices(),
             readerAllocations.indicesToIdents()
@@ -160,7 +150,7 @@ public final class Fetch extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Fetch(outputs, fetchRefs, fetchSourceByRelation, Lists2.getOnlyElement(sources));
+        return new Fetch(replacedOutputs, fetchRefs, fetchSourceByRelation, Lists2.getOnlyElement(sources));
     }
 
     @Override

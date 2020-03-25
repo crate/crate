@@ -24,64 +24,59 @@ package io.crate.expression.symbol;
 
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.List;
+import java.io.UnsupportedEncodingException;
 
 /**
- * A FetchMarker wraps a `_fetchid` and behaves mostly transparent (as if it were the _fetchId),
- * but it carries all the `fetchRefs` that can and will be fetched via the _fetchId.
+ * A placeholder for a reference that the {@link io.crate.planner.operators.Fetch} operator can fetch.
  */
-public final class FetchMarker extends Symbol {
+public final class FetchStub extends Symbol {
 
-    private final RelationName relationName;
-    private final List<Reference> fetchRefs;
-    private final Reference fetchId;
+    private final FetchMarker fetchMarker;
+    private final Reference ref;
 
-    public FetchMarker(RelationName relationName, List<Reference> fetchRefs) {
-        this.relationName = relationName;
-        this.fetchRefs = fetchRefs;
-        this.fetchId = DocSysColumns.forTable(relationName, DocSysColumns.FETCHID);
+    /**
+     * @param fetchMarker the _fetchId marker that must be used to fetch the value for the reference
+     */
+    public FetchStub(FetchMarker fetchMarker, Reference ref) {
+        this.fetchMarker = fetchMarker;
+        this.ref = ref;
     }
 
-    public List<Reference> fetchRefs() {
-        return fetchRefs;
+    public FetchMarker fetchMarker() {
+        return fetchMarker;
     }
 
-    public RelationName relationName() {
-        return relationName;
-    }
-
-    public Reference fetchId() {
-        return fetchId;
+    public Reference ref() {
+        return ref;
     }
 
     @Override
     public SymbolType symbolType() {
-        return SymbolType.REFERENCE;
+        return SymbolType.FETCH_STUB;
     }
 
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
-        return visitor.visitFetchMarker(this, context);
+        return visitor.visitFetchStub(this, context);
     }
 
     @Override
     public DataType<?> valueType() {
-        return fetchId.valueType();
+        return ref.valueType();
     }
 
     @Override
     public String toString(Style style) {
-        return fetchId.toString(style);
+        return ref.toString(style);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        fetchId.writeTo(out);
+        throw new UnsupportedEncodingException(
+            "Cannot stream FetchStub. This is a planning symbol and not suitable for the execution layer");
     }
 }

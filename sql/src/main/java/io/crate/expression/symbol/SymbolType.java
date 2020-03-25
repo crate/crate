@@ -30,6 +30,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 public enum SymbolType {
@@ -54,7 +55,10 @@ public enum SymbolType {
         throw new UnsupportedOperationException("SelectSymbol is not streamable");
     }),
     // Added in 4.2
-    ALIAS(AliasSymbol::new);
+    ALIAS(AliasSymbol::new),
+    FETCH_STUB(in -> {
+        throw new UnsupportedEncodingException("FetchStub is not streamable");
+    });
 
     public static final List<SymbolType> VALUES = ImmutableList.copyOf(values());
 

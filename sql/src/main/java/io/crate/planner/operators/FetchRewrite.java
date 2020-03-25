@@ -36,9 +36,14 @@ import java.util.Map;
 
 public final class FetchRewrite {
 
+    private final Map<Symbol, Symbol> replacedOutputs;
     private final LogicalPlan plan;
 
-    public FetchRewrite(LogicalPlan plan) {
+    /**
+     * @param replacedOutputs See {@link #replacedOutputs()}
+     */
+    public FetchRewrite(Map<Symbol, Symbol> replacedOutputs, LogicalPlan plan) {
+        this.replacedOutputs = replacedOutputs;
         this.plan = plan;
     }
 
@@ -72,5 +77,27 @@ public final class FetchRewrite {
             }
         }
         return fetchSources;
+    }
+
+    /**
+     * This contains a map from "previous" output, to "new" output.
+     * For example:
+     * <pre>
+     *     Limit [5]
+     *      └ Eval [x + x]
+     *        └ Collect [x]
+     *
+     *  Could be rewritten to:
+     *
+     *      Fetch [x + x]
+     *       └ Limit [5]
+     *         └ Eval [_fetchId]  with replacedOutputs `x + x` → `FetchStub(_fetchId, x) + FetchStub(_fetchId, x)`
+     *           └ Collect [_fetchId]  with replacedOutputs `x` → `FetchStub(_fetchId, x)`
+     * </pre>
+     *
+     * This Map must contain 1 entry for each symbol an operator previously contained in its outputs.
+     */
+    public Map<Symbol, Symbol> replacedOutputs() {
+        return replacedOutputs;
     }
 }
