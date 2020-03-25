@@ -235,7 +235,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCollectAndMergePlan() throws Exception {
-        Merge merge = e.plan("select name from users where name = 'x' order by id limit 10");
+        QueryThenFetch qtf = e.plan("select name from users where name = 'x' order by id limit 10");
+        Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertThat(collectPhase.where().toString(), is("(name = 'x')"));
 
@@ -298,7 +299,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCollectAndMergePlanPartitioned() throws Exception {
-        Merge merge = e.plan("select id, name, date from parted_pks where date > 0 and name = 'x' order by id limit 10");
+        QueryThenFetch qtf = e.plan("select id, name, date from parted_pks where date > 0 and name = 'x' order by id limit 10");
+        Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
         Set<String> indices = new HashSet<>();
@@ -318,7 +320,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCollectAndMergePlanFunction() throws Exception {
-        Merge merge = e.plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
+        QueryThenFetch qtf = e.plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
+        Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
         assertThat(collectPhase.where().toString(), is("(name = 'x')"));
@@ -481,7 +484,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testQTFPagingIsEnabledOnHighLimit() throws Exception {
-        Merge merge = e.plan("select name, date from users order by name limit 1000000");
+        QueryThenFetch qtf = e.plan("select name, date from users order by name limit 1000000");
+        Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertThat(merge.mergePhase().nodeIds().size(), is(1)); // mergePhase with executionNode = paging enabled
         assertThat(collectPhase.nodePageSizeHint(), is(750000));

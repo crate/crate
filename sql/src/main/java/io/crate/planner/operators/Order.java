@@ -40,6 +40,7 @@ import io.crate.planner.PositionalOrderBy;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.function.Consumer;
@@ -81,6 +82,18 @@ public class Order extends ForwardingLogicalPlan {
             return this;
         }
         return replaceSources(List.of(newSource));
+    }
+
+    @Nullable
+    @Override
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        HashSet<Symbol> allUsedColumns = new HashSet<>(usedColumns);
+        allUsedColumns.addAll(orderBy.orderBySymbols());
+        FetchRewrite fetchRewrite = source.rewriteToFetch(allUsedColumns);
+        if (fetchRewrite == null) {
+            return null;
+        }
+        return new FetchRewrite(replaceSources(List.of(fetchRewrite.newPlan())));
     }
 
     @Override

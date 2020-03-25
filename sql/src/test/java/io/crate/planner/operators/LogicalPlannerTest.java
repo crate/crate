@@ -147,9 +147,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Limit[1;0]\n" +
             "  └ Rename[a, x] AS tt\n" +
             "    └ OrderBy[x DESC]\n" +
-            "      └ Limit[3;0]\n" +
-            "        └ OrderBy[a ASC]\n" +
-            "          └ Collect[doc.t1 | [a, x] | true]"));
+            "      └ Fetch[a, x]\n" +
+            "        └ Limit[3;0]\n" +
+            "          └ OrderBy[a ASC]\n" +
+            "            └ Collect[doc.t1 | [_fetchid, a] | true]"));
     }
 
     @Test
@@ -312,12 +313,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "  └ HashJoin[(i = i)]\n" +
             "    ├ Rename[a, i] AS t1\n" +
             "    │  └ Filter[(a > '50')]\n" +
-            "    │    └ Limit[5;0]\n" +
-            "    │      └ OrderBy[a ASC]\n" +
-            "    │        └ Collect[doc.t1 | [a, i] | true]\n" +
+            "    │    └ Fetch[a, i]\n" +
+            "    │      └ Limit[5;0]\n" +
+            "    │        └ OrderBy[a ASC]\n" +
+            "    │          └ Collect[doc.t1 | [_fetchid, a] | true]\n" +
             "    └ Rename[b, i] AS t2\n" +
-            "      └ Collect[doc.t2 | [b, i] | ((b > '100') AND (b > '10'))]"
-        ));
+            "      └ Collect[doc.t2 | [b, i] | ((b > '100') AND (b > '10'))]"));
     }
 
     @Test

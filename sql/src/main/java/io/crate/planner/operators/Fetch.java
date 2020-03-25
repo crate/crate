@@ -48,6 +48,35 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * <p>
+ *   The fetch operator represents a 2 phase execution that is used to reduce value look-ups.
+ * </p>
+ *
+ * For example:
+ *
+ * <pre>
+ *     Limit[10]
+ *      └ OrderBy [a]
+ *        └ Collect [a, b, c]
+ * </pre>
+ *
+ * Would fetch the values for all columns ([a, b, c]) {@code 10 * num_nodes} times.
+ * With the fetch operator:
+ *
+ * <pre>
+ *     Fetch [a, b, c]
+ *      └ Limit [10]
+ *        └ OrderBy [a]
+ *          └ Collect [_fetchid, a]
+ * </pre>
+ *
+ * In a first phase we can fetch the values for [_fetchid, a],
+ * then do a sorted merge to apply the limit of 10, and afterwards fetch the values [b, c] for the remaining 10 _fetchids.
+ *
+ * Note: Fetch always requires a merge to the coordinator node.
+ * That's why it is best used after a `Limit`, because a `Limit` requires a merge as well.
+ */
 public final class Fetch extends ForwardingLogicalPlan {
 
     private final List<Symbol> outputs;
