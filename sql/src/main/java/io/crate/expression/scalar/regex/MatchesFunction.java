@@ -27,42 +27,50 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.List;
 
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public class MatchesFunction extends Scalar<List<String>, Object> {
 
     public static final String NAME = "regexp_matches";
-    private static final ArrayType<String> ARRAY_STRING_TYPE = new ArrayType<>(DataTypes.STRING);
 
     private FunctionInfo info;
     private RegexMatcher regexMatcher;
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME,
-            new BaseFunctionResolver(
-                FuncParams.builder(Param.STRING, Param.STRING)
-                    .withVarArgs(Param.STRING).limitVarArgOccurrences(1)
-                    .build()) {
-
-                @Override
-                public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                    DataType<?> innerType = dataTypes.get(0);
-                    return new MatchesFunction(
-                        new FunctionInfo(new FunctionIdent(NAME, dataTypes), new ArrayType<>(innerType)));
-                }
-            });
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("array(text)")
+            ),
+            args ->
+                new MatchesFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING_ARRAY)
+                )
+        );
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("array(text)")
+            ),
+            args ->
+                new MatchesFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING_ARRAY)
+                )
+        );
     }
 
     private MatchesFunction(FunctionInfo info) {
@@ -102,7 +110,7 @@ public class MatchesFunction extends Scalar<List<String>, Object> {
         if (size == 3) {
             args[2] = (Input) symbol.arguments().get(2);
         }
-        return Literal.of(evaluate(txnCtx, args), ARRAY_STRING_TYPE);
+        return Literal.of(evaluate(txnCtx, args), DataTypes.STRING_ARRAY);
     }
 
     @Override
