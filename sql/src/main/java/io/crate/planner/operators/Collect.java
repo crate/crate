@@ -35,14 +35,18 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.ExecutionPlan;
@@ -299,6 +303,43 @@ public class Collect implements LogicalPlan {
             where,
             numExpectedRows,
             estimatedRowSize
+        );
+    }
+
+    @Nullable
+    @Override
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        if (!(tableInfo instanceof DocTableInfo)) {
+            return null;
+        }
+        ArrayList<Symbol> newOutputs = new ArrayList<>();
+        ArrayList<Reference> refsToFetch = new ArrayList<>();
+        for (int i = 0; i < outputs.size(); i++) {
+            Symbol output = outputs.get(i);
+            if (Symbols.containsColumn(output, DocSysColumns.SCORE)) {
+                newOutputs.add(output);
+            } else if (!SymbolVisitors.any(Symbols.IS_COLUMN, output)) {
+                newOutputs.add(output);
+            } else if (SymbolVisitors.any(usedColumns::contains, output)) {
+                newOutputs.add(output);
+            } else {
+                RefVisitor.visitRefs(output, refsToFetch::add);
+            }
+        }
+        if (newOutputs.size() == outputs.size()) {
+            return null;
+        }
+        FetchMarker fetchMarker = new FetchMarker(relation.relationName(), refsToFetch);
+        newOutputs.add(0, fetchMarker);
+        return new FetchRewrite(
+            new Collect(
+                preferSourceLookup,
+                relation,
+                newOutputs,
+                where,
+                numExpectedRows,
+                estimatedRowSize
+            )
         );
     }
 
