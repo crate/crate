@@ -20,8 +20,12 @@ dependencies {
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compile "com.google.guava:guava:${versions.guava}"
 
-    testCompile "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testCompile "junit:junit:${versions.junit}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation "junit:junit:${versions.junit}"
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }
 
 task antlrOutputDir {

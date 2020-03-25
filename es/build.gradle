@@ -27,8 +27,4 @@ subprojects {
             setFailOnNoMatchingTests(false)
         }
     }
-
-    tasks.withType(Pmd) {
-        enabled = false
-    }
 }

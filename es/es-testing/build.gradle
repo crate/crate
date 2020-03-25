@@ -14,4 +14,9 @@ dependencies {
     implementation "commons-logging:commons-logging:${versions.commonslogging}"
     implementation "commons-codec:commons-codec:${versions.commonscodec}"
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+
+    implementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    runtimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }
