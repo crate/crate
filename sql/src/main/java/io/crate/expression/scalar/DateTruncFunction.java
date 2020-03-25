@@ -21,15 +21,15 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimestampType;
@@ -38,10 +38,11 @@ import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.Rounding;
 import org.joda.time.DateTimeZone;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class DateTruncFunction extends Scalar<Long, Object> {
 
@@ -61,18 +62,38 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         .immutableMap();
 
     public static void register(ScalarFunctionModule module) {
-        List<DataType<?>> supportedTimestampTypes = ImmutableList.of(
+        List<DataType<?>> supportedTimestampTypes = List.of(
             DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ, DataTypes.LONG, DataTypes.STRING);
         for (DataType<?> dataType : supportedTimestampTypes) {
-            module.register(new DateTruncFunction(info(DataTypes.STRING, dataType)));
+            module.register(
+                Signature.scalar(
+                    NAME,
+                    parseTypeSignature("text"),
+                    dataType.getTypeSignature(),
+                    parseTypeSignature("text")
+                ),
+                argumentTypes ->
+                    new DateTruncFunction(info(argumentTypes))
+            );
+
             // time zone aware variant
-            module.register(new DateTruncFunction(info(DataTypes.STRING, DataTypes.STRING, dataType)));
+            module.register(
+                Signature.scalar(
+                    NAME,
+                    parseTypeSignature("text"),
+                    parseTypeSignature("text"),
+                    dataType.getTypeSignature(),
+                    parseTypeSignature("text")
+                ),
+                argumentTypes ->
+                    new DateTruncFunction(info(argumentTypes))
+            );
         }
     }
 
-    private static FunctionInfo info(DataType... types) {
+    private static FunctionInfo info(List<DataType> types) {
         return new FunctionInfo(
-            new FunctionIdent(NAME, Arrays.asList(types)),
+            new FunctionIdent(NAME, types),
             DataTypes.TIMESTAMPZ, FunctionInfo.Type.SCALAR, FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
     }
 
@@ -124,16 +145,16 @@ public class DateTruncFunction extends Scalar<Long, Object> {
             return symbol;
         }
 
-        Literal interval = (Literal) symbol.arguments().get(0);
-        Literal tsSymbol;
-        Literal timezone;
+        Literal<?> interval = (Literal<?>) symbol.arguments().get(0);
+        Literal<?> tsSymbol;
+        Literal<?> timezone;
 
         if (symbol.arguments().size() == 2) {
             timezone = TimeZoneParser.DEFAULT_TZ_LITERAL;
-            tsSymbol = (Literal) symbol.arguments().get(1);
+            tsSymbol = (Literal<?>) symbol.arguments().get(1);
         } else {
-            timezone = (Literal) symbol.arguments().get(1);
-            tsSymbol = (Literal) symbol.arguments().get(2);
+            timezone = (Literal<?>) symbol.arguments().get(1);
+            tsSymbol = (Literal<?>) symbol.arguments().get(2);
         }
 
         return Literal.of(
