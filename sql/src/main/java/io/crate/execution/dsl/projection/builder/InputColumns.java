@@ -26,7 +26,9 @@ import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.FetchReference;
+import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
@@ -255,6 +257,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         return inputColumn;
     }
 
+
     @Override
     public Symbol visitField(ScopedSymbol field, SourceSymbols sourceSymbols) {
         InputColumn inputColumn = sourceSymbols.inputs.get(field);
@@ -267,6 +270,25 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
             }
         }
         return inputColumn;
+    }
+
+    @Override
+    public Symbol visitFetchMarker(FetchMarker fetchMarker, SourceSymbols sourceSymbols) {
+        InputColumn inputColumn = sourceSymbols.inputs.get(fetchMarker);
+        if (inputColumn == null) {
+            return fetchMarker.fetchId().accept(this, sourceSymbols);
+        }
+        return inputColumn;
+    }
+
+    @Override
+    public Symbol visitFetchStub(FetchStub fetchStub, SourceSymbols sourceSymbols) {
+        FetchMarker fetchMarker = fetchStub.fetchMarker();
+        InputColumn fetchId = sourceSymbols.inputs.get(fetchMarker);
+        if (fetchId == null) {
+            throw new IllegalArgumentException("Could not find fetchMarker " + fetchMarker + " in sources: " + sourceSymbols);
+        }
+        return new FetchReference(fetchId, fetchStub.ref());
     }
 
     @Nullable

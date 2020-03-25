@@ -32,7 +32,7 @@ import java.util.List;
 
 public final class MostCommonValues {
 
-    static final MostCommonValues EMPTY = new MostCommonValues(new Object[0], new double[0]);
+    public static final MostCommonValues EMPTY = new MostCommonValues(new Object[0], new double[0]);
     static final int MCV_TARGET = 100;
 
     private final Object[] values;

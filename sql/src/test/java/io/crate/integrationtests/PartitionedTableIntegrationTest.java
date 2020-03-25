@@ -68,6 +68,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -724,7 +725,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertEquals(2L, response.rowCount());
 
         execute("delete from quotes");
-        assertEquals(-1, response.rowCount());
+        assertThat(response.rowCount(), anyOf(is(0L), is(-1L)));
         refresh();
 
         execute("select id, quote from quotes");
@@ -1497,10 +1498,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     public void testRefreshPartitionedTableAllPartitions() {
         execute("create table parted (id integer, name string, date timestamp with time zone) " +
             "partitioned by (date) with (refresh_interval=0)");
-        ensureYellow();
 
         execute("refresh table parted");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), anyOf(is(0L), is(-1L)));
 
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01'), " +

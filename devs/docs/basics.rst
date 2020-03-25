@@ -6,9 +6,9 @@ Prerequisites
 =============
 
 CrateDB is written in Java_ and includes pre-configured bundled version of
-OpenJDK_ in its build. Nevertheless, to develop CrateDB you'd still have to
-install Java_ to run Gradle_ build tool. Some of the tools that are used for
-documentation building, tests, etc. require Python_. To set up you minimal
+OpenJDK_ in its build. Nevertheless, to develop CrateDB, you'd still have to
+install Java_ to run the Gradle_ build tool. Some of the tools that are used
+for documentation building, tests, etc. require Python_. To set up you minimal
 development environment, you'll need:
 
  - Java_ (>= 11)
@@ -27,7 +27,7 @@ Manual Build
 
 This project uses Gradle_ as build tool.
 
-The most convenient way to  build and run CrateDB while you are working on the
+The most convenient way to build and run CrateDB while you are working on the
 code is to do so directly from within your IDE. See the section on IDE
 integration later in this document. However, if you want to, you can work with
 Gradle directly.
@@ -74,14 +74,37 @@ To get a full list of all available tasks, run::
 
     $ ./gradlew tasks
 
-Such as CrateDB uses the pre-configured bundled version of OpenJDK_, it is
-possible to run, compile, and test CrateDB by configuring the target JDK.
-For instance::
+By default, CrateDB uses the pre-configured bundled version of OpenJDK_. It
+is also possible to run, compile, and test CrateDB by configuring the target
+JDK. For instance::
 
     $ ./gradlew distTar -Dbundled_jdk_os=linux \
                         -Dbundled_jdk_arch=aarch64 \
                         -Dbundled_jdk_vendor=adoptopenjdk \
                         -Dbundled_jdk_version=13.0.2+8
+
+It is possible to compile the code base and run tests with the host system JDK.
+To achieve that, pass the ``-DuseSystemJdk`` system parameter along with a
+Gradle task. For example, to run unit tests with the host system JDK, execute
+the following command::
+
+    $ ./gradlew test -DuseSystemJdk
+
+All the tasks related to packaging and releasing (``distTar``, ``release``) or
+tasks that depend on them (``itest``) will ignore the ``-DuseSystemJdk``
+parameter. This means that the compilation and test execution can be
+done with the system JDK, but releasing and packaging will still use the
+bundled JDK. The ``-DuseSystemJdk`` is useful for doing releases and
+cross-platform builds. For instance, you can build a CrateDB package for
+Windows with the corresponding to the platform bundled JDK on a Linux
+machine::
+
+    $ ./gradlew distZip \
+                -Dbundled_jdk_os=windows \
+                -Dbundled_jdk_arch=x64 \
+                -Dbundled_jdk_vendor=adoptopenjdk \
+                -Dbundled_jdk_version=13.0.2+8 \
+                -DuseSystemJdk
 
 Currently, we support the following ``JDK`` operation systems and
 architectures:

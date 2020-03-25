@@ -19,7 +19,6 @@
 package io.crate.auth;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -30,6 +29,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.junit.After;
 import org.junit.Test;
+import org.postgresql.util.PSQLException;
 
 import java.net.InetSocketAddress;
 import java.sql.Connection;

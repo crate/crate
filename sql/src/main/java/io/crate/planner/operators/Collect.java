@@ -35,14 +35,19 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.FetchMarker;
+import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.ExecutionPlan;
@@ -58,6 +63,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,7 +84,7 @@ public class Collect implements LogicalPlan {
     final AbstractTableRelation<?> relation;
     private final boolean preferSourceLookup;
     private final List<Symbol> outputs;
-    private final List<AbstractTableRelation> baseTables;
+    private final List<AbstractTableRelation<?>> baseTables;
     final TableInfo tableInfo;
     private final long numExpectedRows;
     private final long estimatedRowSize;
@@ -98,7 +104,7 @@ public class Collect implements LogicalPlan {
             toCollect,
             where,
             SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
-            stats.averageSizePerRowInBytes()
+            stats.estimateSizeForColumns(toCollect)
         );
     }
 
@@ -266,7 +272,7 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation> baseTables() {
+    public List<AbstractTableRelation<?>> baseTables() {
         return baseTables;
     }
 
@@ -299,6 +305,52 @@ public class Collect implements LogicalPlan {
             where,
             numExpectedRows,
             estimatedRowSize
+        );
+    }
+
+    @Nullable
+    @Override
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        if (!(tableInfo instanceof DocTableInfo)) {
+            return null;
+        }
+        ArrayList<Symbol> newOutputs = new ArrayList<>();
+        LinkedHashMap<Symbol, Symbol> replacedOutputs = new LinkedHashMap<>();
+        ArrayList<Reference> refsToFetch = new ArrayList<>();
+        FetchMarker fetchMarker = new FetchMarker(relation.relationName(), refsToFetch);
+        for (int i = 0; i < outputs.size(); i++) {
+            Symbol output = outputs.get(i);
+            if (Symbols.containsColumn(output, DocSysColumns.SCORE)) {
+                newOutputs.add(output);
+                replacedOutputs.put(output, output);
+            } else if (!SymbolVisitors.any(Symbols.IS_COLUMN, output)) {
+                newOutputs.add(output);
+                replacedOutputs.put(output, output);
+            } else if (SymbolVisitors.any(usedColumns::contains, output)) {
+                newOutputs.add(output);
+                replacedOutputs.put(output, output);
+            } else {
+                Symbol outputWithFetchStub = RefReplacer.replaceRefs(output, ref -> {
+                    refsToFetch.add(ref);
+                    return new FetchStub(fetchMarker, ref);
+                });
+                replacedOutputs.put(output, outputWithFetchStub);
+            }
+        }
+        if (newOutputs.size() == outputs.size()) {
+            return null;
+        }
+        newOutputs.add(0, fetchMarker);
+        return new FetchRewrite(
+            replacedOutputs,
+            new Collect(
+                preferSourceLookup,
+                relation,
+                newOutputs,
+                where,
+                numExpectedRows,
+                estimatedRowSize
+            )
         );
     }
 

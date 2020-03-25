@@ -109,7 +109,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public static final Version V_4_1_3 = new Version(ES_V_7_1_3_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
     public static final Version V_4_1_4 = new Version(ES_V_7_1_4_ID, false, org.apache.lucene.util.Version.LUCENE_8_4_0);
 
-    public static final Version V_4_2_0 = new Version(ES_V_7_2_0_ID, true, org.apache.lucene.util.Version.LUCENE_8_4_0);
+    public static final Version V_4_2_0 = new Version(ES_V_7_2_0_ID, true, org.apache.lucene.util.Version.LUCENE_8_5_0);
 
     public static final Version CURRENT = V_4_2_0;
 
@@ -336,21 +336,14 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     }
 
     /**
-     * The minimum version other nodes need to have to communicate with this node.
-     *
-     * We support rolling upgrades between successive versions.
-     * So:
-     *
-     * <pre>
-     *  current | min support
-     *      4.1 |         4.0
-     *      4.2 |         4.1
-     *      ...
-     *      5.0 |         4.x where x is the last within 4.
-     * </pre>
+     * Returns the minimum compatible version based on the current
+     * version. Ie a node needs to have at least the return version in order
+     * to communicate with a node running the current version. The returned version
+     * is in most of the cases the smallest major version release unless the current version
+     * is a beta or RC release then the version itself is returned.
      */
     public Version minimumCompatibilityVersion() {
-        return V_4_1_0;
+        return V_4_0_0;
     }
 
     /**

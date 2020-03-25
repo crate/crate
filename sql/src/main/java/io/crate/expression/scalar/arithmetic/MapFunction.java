@@ -24,21 +24,21 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 /**
  * _map(k, v, [...]) -> object
@@ -52,18 +52,6 @@ import java.util.Map;
 public class MapFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_map";
-
-    private static final Param KEY = Param.STRING;
-    private static final Param VALUE = Param.ANY;
-    private static final FuncParams PARAMS = FuncParams.builder().withIndependentVarArgs(KEY, VALUE).build();
-
-    private static final FunctionResolver RESOLVER = new BaseFunctionResolver(PARAMS) {
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new MapFunction(createInfo(dataTypes));
-        }
-    };
 
     private final FunctionInfo info;
 
@@ -90,7 +78,20 @@ public class MapFunction extends Scalar<Object, Object> {
         return m;
     }
 
-    public static void register(ScalarFunctionModule scalarFunctionModule) {
-        scalarFunctionModule.register(NAME, RESOLVER);
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.builder()
+                .name(new FunctionName(null, NAME))
+                .kind(FunctionInfo.Type.SCALAR)
+                .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
+                .argumentTypes(parseTypeSignature("text"), parseTypeSignature("V"))
+                // This is not 100% correct because each variadic `V` is type independent, resulting in a return type
+                // of e.g. `object(text, int, text, geo_point, ...)`.
+                // This is *ok* as the returnType is currently not used directly, only for function description.
+                .returnType(parseTypeSignature("object(text, V)"))
+                .variableArityGroup(List.of(parseTypeSignature("text"), parseTypeSignature("V")))
+                .build(),
+            args -> new MapFunction(createInfo(args))
+        );
     }
 }

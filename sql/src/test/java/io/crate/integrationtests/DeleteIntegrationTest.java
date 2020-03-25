@@ -23,6 +23,8 @@
 package io.crate.integrationtests;
 
 import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
+import io.crate.testing.UseJdbc;
+
 import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
 
@@ -251,6 +253,7 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(0) // Row-count of delete is 0 instead of -1
     public void testDeleteWithSubQueryOnPartition() throws Exception {
         execute("create table t (p string, x int) partitioned by (p)");
         execute("insert into t (p, x) values ('a', 1)");

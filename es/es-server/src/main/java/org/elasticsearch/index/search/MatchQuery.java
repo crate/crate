@@ -306,16 +306,6 @@ public class MatchQuery {
         }
 
         @Override
-        protected Query newTermQuery(Term term) {
-            return blendTermQuery(term, mapper);
-        }
-
-        @Override
-        protected Query newSynonymQuery(Term[] terms) {
-            return blendTermsQuery(terms, mapper);
-        }
-
-        @Override
         protected Query analyzePhrase(String field, TokenStream stream, int slop) throws IOException {
             try {
                 checkForPositions(field);

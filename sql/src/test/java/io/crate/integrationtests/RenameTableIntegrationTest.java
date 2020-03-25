@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 
 public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
@@ -36,7 +37,7 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("alter table t1 rename to t2");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), anyOf(is(-1L), is(0L)));
 
         execute("select * from t2 order by id");
         assertThat(TestingHelpers.printedTable(response.rows()), is("1\n" +
@@ -72,7 +73,7 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table t1 close");
 
         execute("alter table t1 rename to t2");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), anyOf(is(0L), is(-1L)));
 
         execute("select closed from information_schema.tables where table_name = 't2'");
         assertThat(response.rows()[0][0], is(true));
@@ -85,7 +86,7 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("alter table tp1 rename to tp2");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), anyOf(is(-1L), is(0L)));
 
         execute("select id from tp2 order by id2");
         assertThat(TestingHelpers.printedTable(response.rows()), is("1\n" +
@@ -104,7 +105,7 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("alter table tp1 rename to tp2");
-        assertThat(response.rowCount(), is(-1L));
+        assertThat(response.rowCount(), anyOf(is(0L), is(-1L)));
 
         execute("select * from tp2");
         assertThat(response.rowCount(), is(0L));

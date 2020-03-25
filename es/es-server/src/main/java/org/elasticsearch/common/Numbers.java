@@ -101,7 +101,7 @@ public final class Numbers {
         } catch (ArithmeticException e) {
             throw new IllegalArgumentException("Value [" + stringValue + "] has a decimal part");
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("For input string: \"" + stringValue + "\"");
+            throw new IllegalArgumentException("Cannot convert input string \"" + stringValue + "\" to biginteger");
         }
 
         if (bigIntegerValue.compareTo(MAX_LONG_VALUE) > 0 || bigIntegerValue.compareTo(MIN_LONG_VALUE) < 0) {

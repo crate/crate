@@ -32,19 +32,19 @@ import java.util.Map;
 public class MapFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testMapWithWrongNumOfArguments() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The number of arguments is incorrect");
+    public void testMapWithWrongNumOfArguments() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: _map(text, bigint, text)");
         assertEvaluate("_map('foo', 1, 'bar')", null);
     }
 
     @Test
-    public void testKeyNotOfTypeString() throws Exception {
+    public void testKeyNotOfTypeString() {
         assertEvaluate("_map(10, 2)", Collections.singletonMap("10", 2L));
     }
 
     @Test
-    public void testEvaluation() throws Exception {
+    public void testEvaluation() {
         Map<String, Object> m = new HashMap<>();
         m.put("foo", 10L);
         // minimum args

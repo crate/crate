@@ -109,7 +109,7 @@ public interface LogicalPlan extends Plan {
         return false;
     }
 
-    List<AbstractTableRelation> baseTables();
+    List<AbstractTableRelation<?>> baseTables();
 
     List<LogicalPlan> sources();
 
@@ -148,6 +148,45 @@ public interface LogicalPlan extends Plan {
      * </p>
      */
     LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep);
+
+    /**
+     * Rewrite an operator and its children to utilize a "query-then-fetch" approach.
+     * See {@link Fetch} for an explanation of query-then-fetch.
+     * <pre>
+     * This must propagate if possible. Example:
+     *
+     *     Limit[10]            // calls source.rewriteToFetch
+     *      └ Order [a ASC]     // should call source.rewriteToFetch
+     *        └ Collect [x, a, b]
+     *
+     * This results in:
+     *
+     *      Fetch[x, a, b]
+     *       └ Limit[10]
+     *         └ Order [a ASC]
+     *           └ Collect [_fetchid, a]
+     *
+     * Note that propagation only needs to happen if all operators can forward the `_fetchid`. Consider the following:
+     *
+     *      Limit[10]
+     *        └ HashAggregate[min(x), min(y)]
+     *          └ Limit[5]
+     *            └ Collect [x, y]
+     *
+     * In this case a call on `HashAggregate.rewriteToFetch` can return `null` to indicate that there is nothing to fetch,
+     * because `HashAggregate` needs all columns to produce its result.
+     * It is *NOT* responsible to insert a `Fetch` below itself.
+     * </pre>
+     *
+     * @param usedColumns The columns that the ancestor operators use intermediately to produce their result.
+     *                    For example, a `Filter (x > 10)` uses `x > 10`, a `Order [a ASC]` uses `a`.
+     *                    An operator that uses *all* of its sources outputs to produce a result should return `null`
+     *                    to indicate that there is no reason to use query-then-fetch.
+     */
+    @Nullable
+    default FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        return null;
+    }
 
     /**
      * SubQueries that this plan depends on to be able to execute it.

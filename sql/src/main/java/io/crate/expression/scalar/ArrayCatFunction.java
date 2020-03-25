@@ -23,14 +23,11 @@ package io.crate.expression.scalar;
 
 import com.google.common.base.Preconditions;
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -39,12 +36,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_cat";
     private final FunctionInfo functionInfo;
 
     public static FunctionInfo createInfo(List<DataType> types) {
+        validateInnerTypes(types);
         ArrayType arrayType = (ArrayType) types.get(0);
         if (arrayType.innerType().equals(DataTypes.UNDEFINED)) {
             arrayType = (ArrayType) types.get(1);
@@ -53,7 +54,17 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
+        module.register(
+            Signature.builder()
+                .name(NAME)
+                .kind(FunctionInfo.Type.SCALAR)
+                .typeVariableConstraints(typeVariable("E"))
+                .argumentTypes(parseTypeSignature("array(E)"), parseTypeSignature("array(E)"))
+                .returnType(parseTypeSignature("array(E)"))
+                .setVariableArity(false)
+                .build(),
+            args -> new ArrayCatFunction(ArrayCatFunction.createInfo(args))
+        );
     }
 
     ArrayCatFunction(FunctionInfo functionInfo) {
@@ -82,35 +93,19 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
         return resultList;
     }
 
+    static void validateInnerTypes(List<DataType> dataTypes) {
+        DataType innerType0 = ((ArrayType) dataTypes.get(0)).innerType();
+        DataType innerType1 = ((ArrayType) dataTypes.get(1)).innerType();
 
-    private static class Resolver extends BaseFunctionResolver {
+        Preconditions.checkArgument(
+            !innerType0.equals(DataTypes.UNDEFINED) || !innerType1.equals(DataTypes.UNDEFINED),
+            "When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
 
-        protected Resolver() {
-            super(FuncParams.builder(Param.ANY_ARRAY, Param.ANY_ARRAY).build());
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            for (int i = 0; i < dataTypes.size(); i++) {
-                Preconditions.checkArgument(dataTypes.get(i) instanceof ArrayType, String.format(Locale.ENGLISH,
-                    "Argument %d of the array_cat function cannot be converted to array", i + 1));
-            }
-
-            DataType innerType0 = ((ArrayType) dataTypes.get(0)).innerType();
-            DataType innerType1 = ((ArrayType) dataTypes.get(1)).innerType();
-
-            Preconditions.checkArgument(
-                !innerType0.equals(DataTypes.UNDEFINED) || !innerType1.equals(DataTypes.UNDEFINED),
-                "One of the arguments of the array_cat function can be of undefined inner type, but not both");
-
-            if (!innerType0.equals(DataTypes.UNDEFINED)) {
-                Preconditions.checkArgument(innerType1.isConvertableTo(innerType0),
-                    String.format(Locale.ENGLISH,
-                        "Second argument's inner type (%s) of the array_cat function cannot be converted to the first argument's inner type (%s)",
-                        innerType1, innerType0));
-            }
-
-            return new ArrayCatFunction(createInfo(dataTypes));
+        if (!innerType0.equals(DataTypes.UNDEFINED)) {
+            Preconditions.checkArgument(innerType1.isConvertableTo(innerType0),
+                                        String.format(Locale.ENGLISH,
+                                                      "Second argument's inner type (%s) of the array_cat function cannot be converted to the first argument's inner type (%s)",
+                                                      innerType1, innerType0));
         }
     }
 }

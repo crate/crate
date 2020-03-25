@@ -31,15 +31,17 @@ import java.util.function.IntSupplier;
  */
 public class RamBlockSizeCalculator implements IntSupplier {
 
+    public static final int FALLBACK_SIZE = 500;
+
     private final int defaultBlockSize;
     private final CircuitBreaker circuitBreaker;
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
 
     public RamBlockSizeCalculator(int defaultBlockSize,
-                           CircuitBreaker circuitBreaker,
-                           long estimatedRowSizeForLeft,
-                           long numberOfRowsForLeft) {
+                                  CircuitBreaker circuitBreaker,
+                                  long estimatedRowSizeForLeft,
+                                  long numberOfRowsForLeft) {
         this.defaultBlockSize = defaultBlockSize;
         this.circuitBreaker = circuitBreaker;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
@@ -49,7 +51,7 @@ public class RamBlockSizeCalculator implements IntSupplier {
     @Override
     public int getAsInt() {
         if (statisticsUnavailable(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)) {
-            return defaultBlockSize;
+            return FALLBACK_SIZE;
         }
         long availableMemory = circuitBreaker.getLimit() - circuitBreaker.getUsed();
         long numRowsFittingIntoAvailableMemory = availableMemory / estimatedRowSizeForLeft;

@@ -39,10 +39,6 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.shade.org.postgresql.geometric.PGpoint;
-import io.crate.shade.org.postgresql.util.PGobject;
-import io.crate.shade.org.postgresql.util.PSQLException;
-import io.crate.shade.org.postgresql.util.ServerErrorMessage;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -68,6 +64,10 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.hamcrest.Matchers;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -270,7 +270,7 @@ public class SQLTransportExecutor {
             } else {
                 for (int i = 0; i < bulkArgs.length; i++) {
                     session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
-                    ResultReceiver resultReceiver = new BulkRowCountReceiver(rowCounts, i);
+                    ResultReceiver<?> resultReceiver = new BulkRowCountReceiver(rowCounts, i);
                     session.execute(UNNAMED, 0, resultReceiver);
                 }
             }
@@ -318,7 +318,7 @@ public class SQLTransportExecutor {
                 }
             }
         } catch (PSQLException e) {
-            LOGGER.error("Error executing stmt={} args={}", stmt, Arrays.toString(args));
+            LOGGER.error("Error executing stmt={} args={} error={}", stmt, Arrays.toString(args), e);
             ServerErrorMessage serverErrorMessage = e.getServerErrorMessage();
             final StackTraceElement[] stacktrace;
             //noinspection ThrowableNotThrown add the test-call-chain to the stack to be able
@@ -346,19 +346,22 @@ public class SQLTransportExecutor {
     }
 
     private static Object toJdbcCompatObject(Connection connection, Object arg) {
-        if (arg == null || arg instanceof Map) {
+        if (arg == null) {
             return arg;
+        }
+        if (arg instanceof Map) {
+            return DataTypes.STRING.value(arg);
         }
         if (arg.getClass().isArray()) {
             arg = Arrays.asList((Object[]) arg);
         }
         if (arg instanceof Collection) {
-            Collection values = (Collection) arg;
+            Collection<?> values = (Collection<?>) arg;
             if (values.isEmpty()) {
-                return null; // TODO: can't insert empty list without knowing the type
+                return null; // Can't insert empty list without knowing the type
             }
             List<Object> convertedValues = new ArrayList<>(values.size());
-            PGType pgType = null;
+            PGType<?> pgType = null;
             for (Object value : values) {
                 convertedValues.add(toJdbcCompatObject(connection, value));
                 if (pgType == null && value != null) {
@@ -428,21 +431,35 @@ public class SQLTransportExecutor {
      */
     private static Object getObject(ResultSet resultSet, int i, String typeName) throws SQLException {
         Object value;
+        int columnIndex = i + 1;
         switch (typeName) {
             // need to use explicit `get<Type>` for some because getObject would return a wrong type.
             // E.g. int2 would return Integer instead of short.
             case "int2":
-                Integer intValue = (Integer) resultSet.getObject(i + 1);
+                Integer intValue = (Integer) resultSet.getObject(columnIndex);
                 if (intValue == null) {
                     return null;
                 }
                 value = intValue.shortValue();
                 break;
+            case "_char": {
+                Array array = resultSet.getArray(columnIndex);
+                if (array == null) {
+                    return null;
+                }
+                ArrayList<Byte> elements = new ArrayList<>();
+                for (Object o : ((Object[]) array.getArray())) {
+                    elements.add(Byte.parseByte((String) o));
+                }
+                return elements;
+            }
+            case "char":
+                return Byte.valueOf(resultSet.getString(columnIndex));
             case "byte":
-                value = resultSet.getByte(i + 1);
+                value = resultSet.getByte(columnIndex);
                 break;
-            case "_json":
-                Array array = resultSet.getArray(i + 1);
+            case "_json": {
+                Array array = resultSet.getArray(columnIndex);
                 if (array == null) {
                     return null;
                 }
@@ -452,19 +469,20 @@ public class SQLTransportExecutor {
                 }
                 value = jsonObjects;
                 break;
+            }
             case "json":
-                String json = resultSet.getString(i + 1);
+                String json = resultSet.getString(columnIndex);
                 value = jsonToObject(json);
                 break;
             case "point":
-                PGpoint pGpoint = resultSet.getObject(i + 1, PGpoint.class);
+                PGpoint pGpoint = resultSet.getObject(columnIndex, PGpoint.class);
                 value = new PointImpl(pGpoint.x, pGpoint.y, JtsSpatialContext.GEO);
                 break;
             case "record":
-                value = resultSet.getObject(i + 1, PGobject.class).getValue();
+                value = resultSet.getObject(columnIndex, PGobject.class).getValue();
                 break;
             default:
-                value = resultSet.getObject(i + 1);
+                value = resultSet.getObject(columnIndex);
                 break;
         }
         if (value instanceof Timestamp) {

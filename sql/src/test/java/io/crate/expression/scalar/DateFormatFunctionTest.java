@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataTypes;

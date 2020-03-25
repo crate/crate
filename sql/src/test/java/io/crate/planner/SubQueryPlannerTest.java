@@ -26,12 +26,14 @@ import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -65,10 +67,12 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedSimpleSelectContainsFilterProjectionForWhereClause() throws Exception {
-        Collect collect = e.plan("select x, i from " +
-                                 "   (select x, i from t1 order by x asc limit 10) ti " +
-                                 "where ti.x = 10 " +
-                                 "order by x desc limit 3");
+        QueryThenFetch qtf = e.plan(
+            "select x, i from " +
+            "   (select x, i from t1 order by x asc limit 10) ti " +
+            "where ti.x = 10 " +
+            "order by x desc limit 3");
+        Collect collect = (Collect) qtf.subPlan();
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections, Matchers.hasItem(instanceOf(FilterProjection.class)));
     }
@@ -128,23 +132,26 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(join.joinPhase().projections().size(), is(1));
         assertThat(join.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
 
-        Collect left = (Collect) join.left();
+        QueryThenFetch leftQtf = (QueryThenFetch) join.left();
+        Collect left = (Collect) leftQtf.subPlan();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
         assertThat(left.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[false]}"));
         assertThat(left.collectPhase().projections(), contains(
-            isTopN(10, 2)
+            isTopN(10, 2),
+            instanceOf(FetchProjection.class)
         ));
-        Collect right = (Collect) join.right();
+        QueryThenFetch rightQtf = (QueryThenFetch) join.right();
+        Collect right = (Collect) rightQtf.subPlan();
         assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.b"));
         assertThat(right.collectPhase().projections(), contains(
             isTopN(5, 5),
+            instanceOf(FetchProjection.class),
             instanceOf(EvalProjection.class) // strips `b` used in order by from the outputs
         ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testJoinWithAggregationOnSubSelectsWithLimitAndOffset() throws Exception {
         Join join = e.plan("select t1.a, count(*) from " +
                          " (select i, a from t1 order by a limit 10 offset 2) t1 " +
@@ -153,13 +160,15 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                          "on t1.i = t2.i " +
                          "group by t1.a");
 
-        Collect left = (Collect) join.left();
+        QueryThenFetch qtf = (QueryThenFetch) join.left();
+        Collect left = (Collect) qtf.subPlan();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
         assertThat(left.collectPhase().projections(), contains(
-            isTopN(10, 2)
+            isTopN(10, 2),
+            instanceOf(FetchProjection.class)
         ));
-        assertThat(left.collectPhase().toCollect(), isSQL("doc.t1.i, doc.t1.a"));
+        assertThat(left.collectPhase().toCollect(), isSQL("doc.t1._fetchid, doc.t1.a"));
 
 
         Collect right = (Collect) join.right();
@@ -178,7 +187,6 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testJoinWithGlobalAggregationOnSubSelectsWithLimitAndOffset() throws Exception {
         Join join = e.plan("select count(*) from " +
                          " (select i, a from t1 order by a limit 10 offset 2) t1 " +
@@ -186,12 +194,14 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                          " (select i from t2 order by i desc limit 5 offset 5) t2 " +
                          "on t1.i = t2.i");
 
-        Collect left = (Collect) join.left();
+        QueryThenFetch leftQtf = (QueryThenFetch) join.left();
+        Collect left = (Collect) leftQtf.subPlan();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
-        assertThat(left.collectPhase().toCollect(), isSQL("doc.t1.i, doc.t1.a"));
+        assertThat(left.collectPhase().toCollect(), isSQL("doc.t1._fetchid, doc.t1.a"));
         assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
         assertThat(left.collectPhase().projections(), contains(
-            isTopN(10, 2)
+            isTopN(10, 2),
+            instanceOf(FetchProjection.class)
         ));
 
         Collect right = (Collect) join.right();

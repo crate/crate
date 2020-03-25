@@ -81,5 +81,13 @@ public class SymbolVisitor<C, R> {
     public R visitAlias(AliasSymbol aliasSymbol, C context) {
         return visitSymbol(aliasSymbol, context);
     }
+
+    public R visitFetchMarker(FetchMarker fetchMarker, C context) {
+        return fetchMarker.fetchId().accept(this, context);
+    }
+
+    public R visitFetchStub(FetchStub fetchStub, C context) {
+        return visitSymbol(fetchStub, context);
+    }
 }
 

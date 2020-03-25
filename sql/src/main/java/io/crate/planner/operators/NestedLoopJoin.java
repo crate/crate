@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -70,7 +71,7 @@ public class NestedLoopJoin implements LogicalPlan {
     final LogicalPlan lhs;
     final LogicalPlan rhs;
     private final List<Symbol> outputs;
-    private final List<AbstractTableRelation> baseTables;
+    private final List<AbstractTableRelation<?>> baseTables;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
     private boolean orderByWasPushedDown = false;
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
@@ -232,7 +233,7 @@ public class NestedLoopJoin implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation> baseTables() {
+    public List<AbstractTableRelation<?>> baseTables() {
         return baseTables;
     }
 
@@ -281,6 +282,44 @@ public class NestedLoopJoin implements LogicalPlan {
             topMostLeftRelation,
             orderByWasPushedDown,
             rewriteFilterOnOuterJoinToInnerJoinDone
+        );
+    }
+
+    @Nullable
+    @Override
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        ArrayList<Symbol> usedFromLeft = new ArrayList<>();
+        ArrayList<Symbol> usedFromRight = new ArrayList<>();
+        for (Symbol usedColumn : usedColumns) {
+            SymbolVisitors.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
+            SymbolVisitors.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
+        }
+        if (joinCondition != null) {
+            SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
+            SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
+        }
+        FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(usedFromLeft);
+        if (lhsFetchRewrite == null) {
+            return null;
+        }
+        FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(usedFromRight);
+        if (rhsFetchRewrite == null) {
+            return null;
+        }
+        LinkedHashMap<Symbol, Symbol> allReplacedOutputs = new LinkedHashMap<>(lhsFetchRewrite.replacedOutputs());
+        allReplacedOutputs.putAll(rhsFetchRewrite.replacedOutputs());
+        return new FetchRewrite(
+            allReplacedOutputs,
+            new NestedLoopJoin(
+                lhsFetchRewrite.newPlan(),
+                rhsFetchRewrite.newPlan(),
+                joinType,
+                joinCondition,
+                isFiltered,
+                topMostLeftRelation,
+                orderByWasPushedDown,
+                rewriteFilterOnOuterJoinToInnerJoinDone
+            )
         );
     }
 

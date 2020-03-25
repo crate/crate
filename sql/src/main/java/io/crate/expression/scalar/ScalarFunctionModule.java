@@ -73,15 +73,22 @@ import io.crate.expression.scalar.systeminformation.VersionFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.scalar.timestamp.TimezoneFunction;
+import io.crate.metadata.FuncResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class ScalarFunctionModule extends AbstractModule {
 
@@ -90,17 +97,40 @@ public class ScalarFunctionModule extends AbstractModule {
     private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
     private MapBinder<FunctionName, FunctionResolver> resolverBinder;
 
+    private HashMap<FunctionName, List<FuncResolver>> functionImplementations = new HashMap<>();
+    private MapBinder<FunctionName, List<FuncResolver>> implementationsBinder;
+
+    /**
+     * @deprecated Use {@link #register(Signature, Function)} instead.
+     */
+    @Deprecated()
     public void register(FunctionImplementation impl) {
         functions.put(impl.info().ident(), impl);
     }
 
+    /**
+     * @deprecated Use {@link #register(Signature, Function)} instead.
+     */
+    @Deprecated()
     public void register(String name, FunctionResolver functionResolver) {
         register(new FunctionName(name), functionResolver);
     }
 
+    /**
+     * @deprecated Use {@link #register(Signature, Function)} instead.
+     */
+    @Deprecated()
     public void register(FunctionName qualifiedName, FunctionResolver functionResolver) {
         resolver.put(qualifiedName, functionResolver);
     }
+
+    public void register(Signature signature, Function<List<DataType>, FunctionImplementation> factory) {
+        List<FuncResolver> functions = functionImplementations.computeIfAbsent(
+            signature.getName(),
+            k -> new ArrayList<>());
+        functions.add(new FuncResolver(signature, factory));
+    }
+
 
     @Override
     protected void configure() {
@@ -197,7 +227,6 @@ public class ScalarFunctionModule extends AbstractModule {
         resolverBinder = MapBinder.newMapBinder(binder(), FunctionName.class, FunctionResolver.class);
         for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functions.entrySet()) {
             functionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
-
         }
         for (Map.Entry<FunctionName, FunctionResolver> entry : resolver.entrySet()) {
             resolverBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
@@ -206,6 +235,18 @@ public class ScalarFunctionModule extends AbstractModule {
         // clear registration maps
         functions = null;
         resolver = null;
+
+        // New signature registry
+        implementationsBinder = MapBinder.newMapBinder(
+            binder(),
+            new TypeLiteral<FunctionName>() {},
+            new TypeLiteral<List<FuncResolver>>() {});
+        for (Map.Entry<FunctionName, List<FuncResolver>> entry : functionImplementations.entrySet()) {
+            implementationsBinder.addBinding(entry.getKey()).toProvider(entry::getValue);
+        }
+
+        // clear registration maps
+        functionImplementations = null;
     }
 
 }

@@ -29,6 +29,8 @@ import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -40,8 +42,11 @@ import io.crate.planner.PositionalOrderBy;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class Order extends ForwardingLogicalPlan {
@@ -81,6 +86,50 @@ public class Order extends ForwardingLogicalPlan {
             return this;
         }
         return replaceSources(List.of(newSource));
+    }
+
+    @Nullable
+    @Override
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        HashSet<Symbol> allUsedColumns = new HashSet<>(usedColumns);
+        allUsedColumns.addAll(orderBy.orderBySymbols());
+        FetchRewrite fetchRewrite = source.rewriteToFetch(allUsedColumns);
+        if (fetchRewrite == null) {
+            return null;
+        }
+        LogicalPlan newSource = fetchRewrite.newPlan();
+        Order newOrderBy = new Order(newSource, orderBy);
+        Map<Symbol, Symbol> replacedOutputs = fetchRewrite.replacedOutputs();
+        if (newOrderBy.outputs.size() > newSource.outputs().size()) {
+            // This is the case if the `orderBy` contains computations on top of the source outputs.
+            // e.g. OrderBy [x + y] where the source provides [x, y]
+            // We need to extend replacedOutputs in this case because it must always contain entries for all outputs
+            LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>(replacedOutputs);
+            FunctionCopyVisitor<Void> mapToFetchStubs = new FunctionCopyVisitor<>() {
+
+                @Override
+                protected Symbol visitSymbol(Symbol symbol, Void context) {
+                    return replacedOutputs.getOrDefault(symbol, symbol);
+                }
+
+                @Override
+                public Symbol visitFunction(Function func, Void context) {
+                    Symbol mappedFunc = replacedOutputs.get(func);
+                    if (mappedFunc == null) {
+                        return processAndMaybeCopy(func, context);
+                    } else {
+                        return mappedFunc;
+                    }
+                }
+            };
+            for (int i = newSource.outputs().size(); i < newOrderBy.outputs.size(); i++) {
+                Symbol extraOutput = newOrderBy.outputs.get(i);
+                newReplacedOutputs.put(extraOutput, extraOutput.accept(mapToFetchStubs, null));
+            }
+            return new FetchRewrite(newReplacedOutputs, newOrderBy);
+        } else {
+            return new FetchRewrite(replacedOutputs, newOrderBy);
+        }
     }
 
     @Override

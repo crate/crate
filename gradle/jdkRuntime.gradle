@@ -1,0 +1,50 @@
+import io.crate.gradle.OS
+
+apply plugin: 'jdk-download'
+
+def getJdkBundleOSFromPropertiesOrDefault = {
+    System.getProperty(
+        "bundled_jdk_os",
+        versions['bundled_jdk_os'] != null
+            ? "${versions['bundled_jdk_os']}"
+            : OS.current().name().toLowerCase())
+}
+
+def getJdkBundleArchFromPropertiesOrDefault = {
+    System.getProperty(
+        "bundled_jdk_arch",
+        versions['bundled_jdk_arch'] != null ? "${versions['bundled_jdk_arch']}" : "x64")
+}
+
+jdks {
+    runtime {
+        vendor = "${System.getProperty("bundled_jdk_vendor", versions['bundled_jdk_vendor'])}"
+        version = "${System.getProperty("bundled_jdk_version", versions['bundled_jdk_version'])}"
+        os = getJdkBundleOSFromPropertiesOrDefault()
+        arch = getJdkBundleArchFromPropertiesOrDefault()
+    }
+}
+
+allprojects {
+    tasks.withType(JavaCompile) {
+        dependsOn rootProject.jdks.runtime
+        doFirst {
+            if (System.getProperty('useSystemJdk') == null) {
+                options.fork = true
+                options.forkOptions.javaHome = rootProject.jdks.runtime.getJavaHome()
+                options.forkOptions.executable = rootProject.jdks.runtime.getBinJavaPath()
+            }
+        }
+        sourceCompatibility = rootProject.jdks.runtime.major()
+        targetCompatibility = rootProject.jdks.runtime.major()
+        options.encoding = 'UTF-8'
+    }
+
+    tasks.withType(Test) {
+        dependsOn rootProject.jdks.runtime
+        if (System.getProperty('useSystemJdk') == null) {
+            test.dependsOn rootProject.jdks.runtime
+            test.executable = rootProject.jdks.runtime.getBinJavaPath()
+        }
+    }
+}

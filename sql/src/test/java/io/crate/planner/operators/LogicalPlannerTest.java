@@ -22,24 +22,28 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.execution.dsl.projection.TopNDistinctProjection;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.SubqueryPlanner;
+import io.crate.metadata.table.TableInfo;
+import io.crate.statistics.ColumnStats;
+import io.crate.statistics.MostCommonValues;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.types.DataTypes;
+import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -52,16 +56,33 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
+        tableStats = new TableStats();
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
+            .setTableStats(tableStats)
             .addView(new RelationName("doc", "v2"), "select a, x from doc.t1")
             .addView(new RelationName("doc", "v3"), "select a, x from doc.t1")
             .build();
-        tableStats = new TableStats();
     }
 
     private LogicalPlan plan(String statement) {
-        return plan(statement, sqlExecutor, clusterService, tableStats);
+        return assertMaxBytesAllocated(ByteSizeUnit.MB.toBytes(8), () -> sqlExecutor.logicalPlan(statement));
+    }
+
+    @Test
+    public void test_collect_derives_estimated_size_per_row_from_stats_and_types() {
+        // no stats -> size derived from fixed with type
+        LogicalPlan plan = plan("select x from t1");
+        assertThat(plan.estimatedRowSize(), is((long) DataTypes.INTEGER.fixedSize()));
+
+        TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
+        ColumnStats<Integer> columnStats = new ColumnStats<>(
+            0.0, 50L, 2, DataTypes.INTEGER, MostCommonValues.EMPTY, List.of());
+        tableStats.updateTableStats(Map.of(t1.ident(), new Stats(2L, 100L, Map.of(new ColumnIdent("x"), columnStats))));
+
+        // stats present -> size derived from them (although bogus fake stats in this case)
+        plan = plan("select x from t1");
+        assertThat(plan.estimatedRowSize(), is(50L));
     }
 
     @Test
@@ -126,9 +147,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Limit[1;0]\n" +
             "  └ Rename[a, x] AS tt\n" +
             "    └ OrderBy[x DESC]\n" +
-            "      └ Limit[3;0]\n" +
-            "        └ OrderBy[a ASC]\n" +
-            "          └ Collect[doc.t1 | [a, x] | true]"));
+            "      └ Fetch[a, x]\n" +
+            "        └ Limit[3;0]\n" +
+            "          └ OrderBy[a ASC]\n" +
+            "            └ Collect[doc.t1 | [_fetchid, a] | true]"));
     }
 
     @Test
@@ -291,12 +313,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "  └ HashJoin[(i = i)]\n" +
             "    ├ Rename[a, i] AS t1\n" +
             "    │  └ Filter[(a > '50')]\n" +
-            "    │    └ Limit[5;0]\n" +
-            "    │      └ OrderBy[a ASC]\n" +
-            "    │        └ Collect[doc.t1 | [a, i] | true]\n" +
+            "    │    └ Fetch[a, i]\n" +
+            "    │      └ Limit[5;0]\n" +
+            "    │        └ OrderBy[a ASC]\n" +
+            "    │          └ Collect[doc.t1 | [_fetchid, a] | true]\n" +
             "    └ Rename[b, i] AS t2\n" +
-            "      └ Collect[doc.t2 | [b, i] | ((b > '100') AND (b > '10'))]"
-        ));
+            "      └ Collect[doc.t2 | [b, i] | ((b > '100') AND (b > '10'))]"));
     }
 
     @Test
@@ -346,20 +368,19 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
-    public static LogicalPlan plan(String statement,
-                                   SQLExecutor sqlExecutor,
-                                   ClusterService clusterService,
-                                   TableStats tableStats) {
-        PlannerContext context = sqlExecutor.getPlannerContext(clusterService.state());
-        AnalyzedRelation relation = sqlExecutor.analyze(statement);
-        LogicalPlanner logicalPlanner = new LogicalPlanner(
-            getFunctions(),
-            tableStats,
-            () -> clusterService.state().nodes().getMinNodeVersion()
+    @Test
+    public void test_limit_on_join_is_rewritten_to_query_then_fetch() {
+        LogicalPlan plan = plan("select * from t1, t2 limit 3");
+        assertThat(
+            plan,
+            isPlan(
+                "Fetch[a, x, i, b, y, i]\n" +
+                "  └ Limit[3;0]\n" +
+                "    └ NestedLoopJoin[CROSS]\n" +
+                "      ├ Collect[doc.t1 | [_fetchid] | true]\n" +
+                "      └ Collect[doc.t2 | [_fetchid] | true]"
+            )
         );
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-
-        return logicalPlanner.normalizeAndPlan(relation, context, subqueryPlanner, Set.of());
     }
 
     public static Matcher<LogicalPlan> isPlan(String expectedPlan) {

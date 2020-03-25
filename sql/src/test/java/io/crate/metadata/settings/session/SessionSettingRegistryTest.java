@@ -23,17 +23,21 @@
 package io.crate.metadata.settings.session;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.data.Row;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.StringLiteral;
+import io.crate.analyze.SymbolEvaluator;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
@@ -45,12 +49,19 @@ public class SessionSettingRegistryTest {
 
     private SessionContext sessionContext = SessionContext.systemSessionContext();
 
+    private Functions functions = getFunctions();
+    private Function<Symbol, Object> eval = s -> SymbolEvaluator.evaluateWithoutParams(
+        CoordinatorTxnCtx.systemTransactionContext(),
+        functions,
+        s
+    );
+
     @Test
     public void testMaxIndexKeysSessionSettingCannotBeChanged() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("\"max_index_keys\" cannot be changed.");
         SessionSetting<?> setting = SessionSettingRegistry.SETTINGS.get(SessionSettingRegistry.MAX_INDEX_KEYS);
-        setting.apply(Row.EMPTY, generateInput("32"), sessionContext);
+        setting.apply(sessionContext, generateInput("32"), eval);
     }
 
     @Test
@@ -63,31 +74,31 @@ public class SessionSettingRegistryTest {
                                               SessionSetting<?> sessionSetting,
                                               boolean defaultValue) {
         assertThat(contextBooleanSupplier.get(), is(defaultValue));
-        sessionSetting.apply(Row.EMPTY, generateInput("true"), sessionContext);
+        sessionSetting.apply(sessionContext, generateInput("true"), eval);
         assertThat(contextBooleanSupplier.get(), is(true));
-        sessionSetting.apply(Row.EMPTY, generateInput("false"), sessionContext);
+        sessionSetting.apply(sessionContext, generateInput("false"), eval);
         assertThat(contextBooleanSupplier.get(), is(false));
-        sessionSetting.apply(Row.EMPTY, generateInput("TrUe"), sessionContext);
+        sessionSetting.apply(sessionContext, generateInput("TrUe"), eval);
         assertThat(contextBooleanSupplier.get(), is(true));
         try {
-            sessionSetting.apply(Row.EMPTY, generateInput(""), sessionContext);
+            sessionSetting.apply(sessionContext, generateInput(""), eval);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
             assertThat(contextBooleanSupplier.get(), is(true));
         }
         try {
-            sessionSetting.apply(Row.EMPTY, generateInput("invalid", "input"), sessionContext);
+            sessionSetting.apply(sessionContext, generateInput("invalid", "input"), eval);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
             assertThat(contextBooleanSupplier.get(), is(true));
         }
     }
 
-    private static List<Expression> generateInput(String... inputs) {
-        ArrayList<Expression> expressions = new ArrayList<>(inputs.length);
+    private static List<Symbol> generateInput(String... inputs) {
+        ArrayList<Symbol> symbols = new ArrayList<>(inputs.length);
         for (String input : inputs) {
-            expressions.add(StringLiteral.fromObject(input));
+            symbols.add(Literal.of(input));
         }
-        return expressions;
+        return symbols;
     }
 }

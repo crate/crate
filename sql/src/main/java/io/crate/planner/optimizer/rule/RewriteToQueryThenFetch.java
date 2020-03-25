@@ -22,48 +22,33 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.RefVisitor;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.fetch.FetchSource;
-import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Fetch;
+import io.crate.planner.operators.FetchRewrite;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
-import io.crate.types.DataTypes;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 public final class RewriteToQueryThenFetch implements Rule<Limit> {
 
-    private final Capture<Collect> collectCapture;
     private final Pattern<Limit> pattern;
 
     public RewriteToQueryThenFetch() {
-        this.collectCapture = new Capture<>();
-        this.pattern = typeOf(Limit.class)
-            .with(
-                source(),
-                typeOf(Collect.class)
-                    .with(c -> c.relation() instanceof DocTableRelation)
-                    .capturedAs(collectCapture)
-            );
+        this.pattern = typeOf(Limit.class);
     }
 
     @Override
@@ -76,45 +61,20 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx) {
-        Collect collect = captures.get(collectCapture);
-        DocTableRelation relation = (DocTableRelation) collect.relation();
-        Reference fetchRef = DocSysColumns.forTable(relation.relationName(), DocSysColumns.FETCHID);
-        if (collect.outputs().contains(fetchRef)) {
+        if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }
-        ArrayList<Symbol> newOutputs = new ArrayList<>();
-        FetchSource fetchSource = new FetchSource();
-        ArrayList<Reference> allFetchRefs = new ArrayList<>();
-        for (Symbol output : collect.outputs()) {
-            if (Symbols.containsColumn(output, DocSysColumns.SCORE)) {
-                newOutputs.add(output);
-            } else if (!SymbolVisitors.any(Symbols.IS_COLUMN, output)) {
-                newOutputs.add(output);
-            } else {
-                RefVisitor.visitRefs(output, ref -> {
-                    fetchSource.addRefToFetch(ref);
-                    allFetchRefs.add(ref);
-                });
-            }
-        }
-        if (newOutputs.size() == collect.outputs().size()) {
+        FetchRewrite fetchRewrite = limit.source().rewriteToFetch(Set.of());
+        if (fetchRewrite == null) {
             return null;
         }
-        newOutputs.add(0, fetchRef);
-        fetchSource.addFetchIdColumn(new InputColumn(0, DataTypes.LONG));
-        Collect newCollect = new Collect(
-            collect.preferSourceLookup(),
-            relation,
-            newOutputs,
-            collect.where(),
-            collect.numExpectedRows(),
-            collect.estimatedRowSize()
-        );
+        List<Reference> fetchRefs = fetchRewrite.extractFetchRefs();
+        Map<RelationName, FetchSource> fetchSourceByRelation = fetchRewrite.createFetchSources();
         return new Fetch(
-            collect.outputs(),
-            allFetchRefs,
-            Map.of(relation.relationName(), fetchSource),
-            limit.replaceSources(List.of(newCollect))
+            fetchRewrite.replacedOutputs(),
+            fetchRefs,
+            fetchSourceByRelation,
+            limit.replaceSources(List.of(fetchRewrite.newPlan()))
         );
     }
 }

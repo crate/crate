@@ -13,7 +13,6 @@ dependencies {
     compile "org.apache.lucene:lucene-misc:${versions.lucene}"
     compile "org.apache.lucene:lucene-queries:${versions.lucene}"
     compile "org.apache.lucene:lucene-sandbox:${versions.lucene}"
-    compile "org.apache.lucene:lucene-spatial:${versions.lucene}"
     compile "org.apache.lucene:lucene-spatial-extras:${versions.lucene}"
     compile "org.apache.lucene:lucene-spatial3d:${versions.lucene}"
     compile "org.apache.lucene:lucene-suggest:${versions.lucene}"
@@ -50,7 +49,9 @@ task getVersion(dependsOn: 'classes') {
     doLast {
         def stdout = new ByteArrayOutputStream()
         javaexec {
-            executable = rootProject.jdks.runtime.getBinJavaPath()
+            if (System.getProperty('useSystemJdk') == null) {
+                executable = rootProject.jdks.runtime.getBinJavaPath()
+            }
             classpath = sourceSets.main.runtimeClasspath
             main = 'org.elasticsearch.Version'
             standardOutput = stdout
