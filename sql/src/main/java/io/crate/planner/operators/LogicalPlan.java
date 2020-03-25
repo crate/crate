@@ -149,6 +149,11 @@ public interface LogicalPlan extends Plan {
      */
     LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep);
 
+    @Nullable
+    default FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        return null;
+    }
+
     /**
      * SubQueries that this plan depends on to be able to execute it.
      *

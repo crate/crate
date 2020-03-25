@@ -21,22 +21,12 @@
 
 package io.crate.execution.dsl.projection;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.monitor.jvm.JvmInfo;
-
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Paging;
@@ -47,6 +37,14 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.fetch.FetchSource;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.monitor.jvm.JvmInfo;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class FetchProjection extends Projection {
 
@@ -126,14 +124,6 @@ public class FetchProjection extends Projection {
 
     public Map<String, IntSet> nodeReaders() {
         return nodeReaders;
-    }
-
-    public TreeMap<Integer, String> readerIndices() {
-        return readerIndices;
-    }
-
-    public Map<String, RelationName> indicesToIdents() {
-        return indicesToIdents;
     }
 
     @Override
