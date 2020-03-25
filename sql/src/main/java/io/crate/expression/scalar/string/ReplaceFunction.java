@@ -22,22 +22,38 @@
 
 package io.crate.expression.scalar.string;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.TripleScalar;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Strings;
+
+import java.util.List;
+
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 
 public final class ReplaceFunction {
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(new TripleScalar<>(functionInfo("replace"), Strings::replace));
-    }
+    private static final String NAME = "replace";
 
-    private static FunctionInfo functionInfo(String name) {
-        return new FunctionInfo(new FunctionIdent(name, ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING)), DataTypes.STRING);
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            args -> new TripleScalar<>(
+                new FunctionInfo(
+                    new FunctionIdent(NAME, List.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING)),
+                    DataTypes.STRING
+                ),
+                Strings::replace)
+        );
     }
 }

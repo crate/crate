@@ -24,18 +24,24 @@ package io.crate.expression.scalar.string;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.sql.Identifiers;
 import io.crate.types.DataTypes;
+
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 
 public final class QuoteIdentFunction {
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new UnaryScalar<>(
-            "quote_ident",
-            DataTypes.STRING,
-            DataTypes.STRING,
-            Identifiers::quoteIfNeeded)
+        module.register(
+            Signature.scalar(
+                "quote_ident",
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            args ->
+                new UnaryScalar<>("quote_ident", DataTypes.STRING, DataTypes.STRING, Identifiers::quoteIfNeeded)
         );
     }
 }

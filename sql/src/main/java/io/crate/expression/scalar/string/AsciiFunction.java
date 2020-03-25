@@ -22,34 +22,24 @@
 
 package io.crate.expression.scalar.string;
 
-import java.util.List;
-
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class AsciiFunction {
 
     public static void register(ScalarFunctionModule module) {
         module.register(
-            new FunctionName(null, "ascii"),
-            new BaseFunctionResolver(FuncParams.builder(List.of(DataTypes.STRING)).build()) {
-
-                @Override
-                public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-                    return new UnaryScalar<>(
-                        "ascii",
-                        types.get(0),
-                        DataTypes.INTEGER,
-                        AsciiFunction::ascii
-                    );
-                }
-            }
+            Signature.scalar(
+                "ascii",
+                parseTypeSignature("text"),
+                parseTypeSignature("integer")
+            ),
+            args ->
+                new UnaryScalar<>("ascii", args.get(0), DataTypes.INTEGER, AsciiFunction::ascii)
         );
     }
 
