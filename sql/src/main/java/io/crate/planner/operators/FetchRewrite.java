@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.expression.symbol.FetchMarker;
-import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
@@ -70,12 +69,16 @@ public final class FetchRewrite {
             Symbol output = outputs.get(i);
             if (output instanceof FetchMarker) {
                 FetchMarker fetchMarker = (FetchMarker) output;
-                FetchSource fetchSource = new FetchSource();
+                RelationName tableName = fetchMarker.fetchId().ident().tableIdent();
+                FetchSource fetchSource = fetchSources.get(tableName);
+                if (fetchSource == null) {
+                    fetchSource = new FetchSource();
+                    fetchSources.put(tableName, fetchSource);
+                }
                 fetchSource.addFetchIdColumn(new InputColumn(i, fetchMarker.valueType()));
                 for (Reference fetchRef : fetchMarker.fetchRefs()) {
                     fetchSource.addRefToFetch(fetchRef);
                 }
-                fetchSources.put(fetchMarker.relationName(), fetchSource);
             }
         }
         return fetchSources;
@@ -107,23 +110,6 @@ public final class FetchRewrite {
      * @return A function that converts any symbol within a symbol-tree that is present in `replacedOutputs` from the key to the value.
      */
     public Function<Symbol, Symbol> mapToFetchStubs() {
-        FunctionCopyVisitor<Void> mapToFetchStubs = new FunctionCopyVisitor<>() {
-
-            @Override
-            protected Symbol visitSymbol(Symbol symbol, Void context) {
-                return replacedOutputs.getOrDefault(symbol, symbol);
-            }
-
-            @Override
-            public Symbol visitFunction(io.crate.expression.symbol.Function func, Void context) {
-                Symbol mappedFunc = replacedOutputs.get(func);
-                if (mappedFunc == null) {
-                    return processAndMaybeCopy(func, context);
-                } else {
-                    return mappedFunc;
-                }
-            }
-        };
-        return s -> s.accept(mapToFetchStubs, null);
+        return s -> MapBackedSymbolReplacer.convert(s, replacedOutputs);
     }
 }

@@ -43,9 +43,13 @@ public final class FetchMarker extends Symbol {
     private final Reference fetchId;
 
     public FetchMarker(RelationName relationName, List<Reference> fetchRefs) {
+        this(relationName, fetchRefs, DocSysColumns.forTable(relationName, DocSysColumns.FETCHID));
+    }
+
+    public FetchMarker(RelationName relationName, List<Reference> fetchRefs, Reference fetchId) {
         this.relationName = relationName;
         this.fetchRefs = fetchRefs;
-        this.fetchId = DocSysColumns.forTable(relationName, DocSysColumns.FETCHID);
+        this.fetchId = fetchId;
     }
 
     public List<Reference> fetchRefs() {
@@ -77,6 +81,9 @@ public final class FetchMarker extends Symbol {
 
     @Override
     public String toString(Style style) {
+        if (relationName.schema() == null) {
+            return relationName + "." + fetchId.toString(style);
+        }
         return fetchId.toString(style);
     }
 

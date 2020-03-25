@@ -22,6 +22,8 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.metadata.Reference;
+
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,7 +40,7 @@ import static java.util.Objects.requireNonNull;
 public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
 
     /**
-     * Traverses the functions arguments using {@link #process(Symbol, Object)}.
+     * Traverses the functions arguments using {@link Symbol#accept(SymbolVisitor, Object)}
      * If any process call returns a different instance then a new Function instance is returned.
      */
     protected Function processAndMaybeCopy(Function func, C context) {
@@ -182,6 +184,31 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         } else {
             return new AliasSymbol(aliasSymbol.alias(), newSymbol);
         }
+    }
+
+    @Override
+    public Symbol visitFetchMarker(FetchMarker fetchMarker, C context) {
+        // By default fetchMarker calls visitReference on the inner _fetchId
+        // That behavior breaks generic `visitSymbol` replacements
+        return visitSymbol(fetchMarker, context);
+    }
+
+    @Override
+    public Symbol visitFetchStub(FetchStub fetchStub, C context) {
+        FetchMarker fetchMarker = fetchStub.fetchMarker();
+        Symbol newFetchMarker = fetchMarker.accept(this, context);
+
+        Reference ref = fetchStub.ref();
+        Symbol newRefSymbol = ref.accept(this, context);
+
+        if (newFetchMarker == fetchMarker && ref == newRefSymbol) {
+            return fetchStub;
+        }
+        // Some symbol replacements want to replace references (for example, the Rename operator needs to replace References with ScopedSymbols)
+        // The FetchStub `reference` part cannot and must not be turned into a ScopedSymbol, so a replacement is silently dropped here
+        Reference newRef = newRefSymbol instanceof Reference ? ((Reference) newRefSymbol) : ref;
+        FetchMarker newMarker = newFetchMarker instanceof FetchMarker ? ((FetchMarker) newFetchMarker) : fetchMarker;
+        return new FetchStub(newMarker, newRef);
     }
 
     @Override
