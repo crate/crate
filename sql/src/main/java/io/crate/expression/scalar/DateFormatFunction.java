@@ -25,7 +25,6 @@ import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -46,14 +45,13 @@ public class DateFormatFunction extends Scalar<String, Object> {
     public static final String DEFAULT_FORMAT = "%Y-%m-%dT%H:%i:%s.%fZ";
 
     public static void register(ScalarFunctionModule module) {
-        FunctionName name = new FunctionName(null, NAME);
         Function<List<DataType>, FunctionImplementation> functionFactory = args -> new DateFormatFunction(
             new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING)
         );
 
-        List<DataType> supportedTimestampTypes = List.of(
+        List<DataType<?>> supportedTimestampTypes = List.of(
             DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
-        for (DataType dataType : supportedTimestampTypes) {
+        for (DataType<?> dataType : supportedTimestampTypes) {
             // without format
             module.register(
                 Signature.builder()
