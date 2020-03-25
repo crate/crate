@@ -526,7 +526,6 @@ public class ProjectionToProjectorVisitor
         ShardUpdateRequest.Builder builder = new ShardUpdateRequest.Builder(
             context.txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            ShardUpdateRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             projection.assignmentsColumns(),
             projection.returnValues(),

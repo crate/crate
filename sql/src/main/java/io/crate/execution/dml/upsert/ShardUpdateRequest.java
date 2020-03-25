@@ -43,13 +43,6 @@ import java.util.UUID;
 
 public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUpdateRequest.Item> implements TransportShardUpdateAction.HasReturnValues {
 
-    public enum DuplicateKeyAction {
-        UPDATE_OR_FAIL,
-        OVERWRITE,
-        IGNORE
-    }
-
-    private DuplicateKeyAction duplicateKeyAction;
     private boolean continueOnError;
     private SessionSettings sessionSettings;
 
@@ -94,15 +87,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         return updateColumns;
     }
 
-    DuplicateKeyAction duplicateKeyAction() {
-        return duplicateKeyAction;
-    }
-
-    private ShardUpdateRequest duplicateKeyAction(DuplicateKeyAction duplicateKeyAction) {
-        this.duplicateKeyAction = duplicateKeyAction;
-        return this;
-    }
-
     public boolean continueOnError() {
         return continueOnError;
     }
@@ -122,7 +106,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
             }
         }
         continueOnError = in.readBoolean();
-        duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
 
         sessionSettings = new SessionSettings(in);
         int numItems = in.readVInt();
@@ -149,7 +132,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         }
 
         out.writeBoolean(continueOnError);
-        out.writeVInt(duplicateKeyAction.ordinal());
 
         sessionSettings.writeTo(out);
 
@@ -179,14 +161,13 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         if (getClass() != o.getClass()) return false;
         ShardUpdateRequest items = (ShardUpdateRequest) o;
         return continueOnError == items.continueOnError &&
-               duplicateKeyAction == items.duplicateKeyAction &&
                Arrays.equals(updateColumns, items.updateColumns) &&
                Arrays.equals(returnValues, items.returnValues);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), continueOnError, duplicateKeyAction, updateColumns, returnValues);
+        return Objects.hashCode(super.hashCode(), continueOnError, updateColumns, returnValues);
     }
 
     /**
@@ -308,7 +289,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
 
         private final SessionSettings sessionSettings;
         private final TimeValue timeout;
-        private final DuplicateKeyAction duplicateKeyAction;
         private final boolean continueOnError;
         @Nullable
         private final String[] assignmentsColumns;
@@ -318,14 +298,12 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
 
         public Builder(SessionSettings sessionSettings,
                        TimeValue timeout,
-                       DuplicateKeyAction duplicateKeyAction,
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
                        @Nullable Symbol[] returnValue,
                        UUID jobId) {
             this.sessionSettings = sessionSettings;
             this.timeout = timeout;
-            this.duplicateKeyAction = duplicateKeyAction;
             this.continueOnError = continueOnError;
             this.assignmentsColumns = assignmentsColumns;
             this.jobId = jobId;
@@ -340,8 +318,7 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
                 returnValues,
                 jobId)
                 .timeout(timeout)
-                .continueOnError(continueOnError)
-                .duplicateKeyAction(duplicateKeyAction);
+                .continueOnError(continueOnError);
         }
     }
 }

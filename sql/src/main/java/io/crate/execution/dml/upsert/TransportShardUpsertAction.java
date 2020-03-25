@@ -379,7 +379,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         long seqNo = item.seqNo();
         long primaryTerm = item.primaryTerm();
         long version = Versions.MATCH_ANY;
-
         Engine.IndexResult indexResult = index(item, indexShard, isRetry, seqNo, primaryTerm, version);
         Object[] returnvalues = null;
         if (returnGen != null) {

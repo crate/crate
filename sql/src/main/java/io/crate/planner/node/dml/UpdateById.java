@@ -112,7 +112,6 @@ public final class UpdateById implements Plan {
         ShardUpdateRequest.Builder requestBuilder = new ShardUpdateRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(clusterService.state().metaData().settings()),
-            ShardUpdateRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             assignments.targetNames(),
             returnValues,

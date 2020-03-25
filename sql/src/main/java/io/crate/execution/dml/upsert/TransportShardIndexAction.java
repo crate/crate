@@ -31,8 +31,6 @@ import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Schemas;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -63,14 +61,10 @@ import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnl
 
 @Singleton
 public abstract class TransportShardIndexAction<Request extends ShardRequest<Request, Item> & TransportShardIndexAction.HasReturnValues,
-    Item extends ShardRequest.Item & TransportShardIndexAction.HasSource, Context extends TransportShardIndexAction.ContextValues>
+    Item extends ShardRequest.Item & TransportShardIndexAction.HasSource, Context>
     extends TransportShardAction<Request, Item> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/data/update";
-    private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
-
-    private final Schemas schemas;
-    private final Functions functions;
+    static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
 
     interface HasReturnValues {
 
@@ -87,18 +81,7 @@ public abstract class TransportShardIndexAction<Request extends ShardRequest<Req
         BytesReference source();
     }
 
-    interface ContextValues {
-
-        IndexShard indexShard();
-
-        void retry(boolean retry);
-
-        boolean retry();
-    }
-
-    public abstract Context generateContext(IndexShard indexShard, Request request);
-
-    public abstract IndexItemResponse process(Item item, Context context) throws Exception;
+    public abstract Context generateContext(Request request);
 
     @Inject
     public TransportShardIndexAction(
@@ -110,8 +93,6 @@ public abstract class TransportShardIndexAction<Request extends ShardRequest<Req
         TasksService tasksService,
         IndicesService indicesService,
         ShardStateAction shardStateAction,
-        Functions functions,
-        Schemas schemas,
         Writeable.Reader<Request> reader,
         IndexNameExpressionResolver indexNameExpressionResolver) {
         super(
@@ -125,8 +106,6 @@ public abstract class TransportShardIndexAction<Request extends ShardRequest<Req
             reader,
             schemaUpdateClient
         );
-        this.schemas = schemas;
-        this.functions = functions;
         tasksService.addListener(this);
     }
 
@@ -136,7 +115,7 @@ public abstract class TransportShardIndexAction<Request extends ShardRequest<Req
                                                                                         Request request,
                                                                                         AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
-        Context updateContext = generateContext(indexShard, request);
+        Context updateContext = generateContext(request);
 
         Translog.Location translogLocation = null;
         for (Item item : request.items()) {
@@ -149,10 +128,7 @@ public abstract class TransportShardIndexAction<Request extends ShardRequest<Req
                 break;
             }
             try {
-                IndexItemResponse indexItemResponse = indexItem(
-                    item,
-                    updateContext
-                );
+                IndexItemResponse indexItemResponse = processItem(item, updateContext, indexShard);
                 if (indexItemResponse != null) {
                     if (indexItemResponse.translog != null) {
                         shardResponse.add(location);
@@ -181,11 +157,10 @@ public abstract class TransportShardIndexAction<Request extends ShardRequest<Req
                     shardResponse.failure(e);
                     break;
                 }
-                shardResponse.add(location,
-                                  new ShardResponse.Failure(
-                                      item.id(),
-                                      userFriendlyCrateExceptionTopOnly(e),
-                                      (e instanceof VersionConflictEngineException)));
+                shardResponse.add(
+                    location,
+                    new ShardResponse.Failure(item.id(), userFriendlyCrateExceptionTopOnly(e), (e instanceof VersionConflictEngineException))
+                );
             }
         }
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
@@ -226,37 +201,14 @@ public abstract class TransportShardIndexAction<Request extends ShardRequest<Req
                 // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
                 // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
                 // applied the new mapping, so there is no other option than to wait.
-                throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                                                                             "Mappings are not available on the replica yet, triggered update: " + indexResult.getRequiredMappingUpdate());
+                throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(), "Mappings are not available on the replica yet, triggered update: " + indexResult.getRequiredMappingUpdate());
             }
             location = indexResult.getTranslogLocation();
         }
         return new WriteReplicaResult<>(request, location, null, indexShard, logger);
     }
 
-    @Nullable
-    private IndexItemResponse indexItem(Item item, Context context) throws Exception {
-        VersionConflictEngineException lastException = null;
-        boolean isRetry;
-        for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
-            try {
-                context.retry(retryCount > 0);
-                return process(item, context);
-            } catch (VersionConflictEngineException e) {
-                lastException = e;
-                /*
-                if (context.request.duplicateKeyAction() == ShardUpdateRequest.DuplicateKeyAction.IGNORE) {
-                     on conflict do nothing
-                    item.source(null);
-                    return null;
-                }
-                */
-            }
-        }
-        logger.warn("[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying",
-                    context.indexShard().shardId(), item.id(), item.version(), MAX_RETRY_LIMIT);
-        throw lastException;
-    }
+    abstract IndexItemResponse processItem(Item item, Context context, IndexShard indexShard) throws Exception;
 
     static class IndexItemResponse {
         @Nullable
