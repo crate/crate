@@ -114,7 +114,7 @@ public class TransportShardUpsertAction extends TransportShardIndexAction<ShardU
             shardStateAction,
             ShardUpsertRequest::new,
             indexNameExpressionResolver
-            );
+        );
         this.schemas = schemas;
         this.functions = functions;
         tasksService.addListener(this);
@@ -149,7 +149,7 @@ public class TransportShardUpsertAction extends TransportShardIndexAction<ShardU
     }
 
     @Nullable
-    TransportShardIndexAction.IndexItemResponse processItem(ShardUpsertRequest.Item item, Context context, IndexShard indexShard) throws Exception {
+        TransportShardIndexAction.IndexItemResponse processItem(ShardUpsertRequest.Item item, Context context, IndexShard indexShard) throws Exception {
         VersionConflictEngineException lastException = null;
         boolean tryInsertFirst = item.insertValues() != null;
         boolean isRetry;

@@ -130,7 +130,13 @@ public class TransportShardUpdateAction extends TransportShardIndexAction<ShardU
             long version = Versions.MATCH_ANY;
 
             try {
-                Engine.IndexResult indexResult = index(item.id(), item.source(), indexShard, retryCount > 0, seqNo, primaryTerm, version);
+                Engine.IndexResult indexResult = index(item.id(),
+                                                       item.source(),
+                                                       indexShard,
+                                                       retryCount > 0,
+                                                       seqNo,
+                                                       primaryTerm,
+                                                       version);
                 // update the seqNo and version on request for the replicas
                 item.seqNo(indexResult.getSeqNo());
                 item.version(indexResult.getVersion());

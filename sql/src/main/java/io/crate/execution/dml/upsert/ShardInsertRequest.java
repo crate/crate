@@ -89,12 +89,6 @@ public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardIn
     @Nullable
     private Streamer[] insertValuesStreamer;
 
-    /**
-     * List of references or expressions to compute values for returning for update.
-     */
-    @Nullable
-    private Symbol[] returnValues;
-
     ShardInsertRequest() {
     }
 
@@ -116,6 +110,7 @@ public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardIn
             }
         }
         this.returnValues = returnValues;
+        this.duplicateKeyAction = duplicateKeyAction;
     }
 
     public SessionSettings sessionSettings() {
@@ -135,11 +130,6 @@ public class ShardInsertRequest extends ShardRequest<ShardInsertRequest, ShardIn
 
     DuplicateKeyAction duplicateKeyAction() {
         return duplicateKeyAction;
-    }
-
-    private ShardInsertRequest duplicateKeyAction(DuplicateKeyAction duplicateKeyAction) {
-        this.duplicateKeyAction = duplicateKeyAction;
-        return this;
     }
 
     public boolean continueOnError() {

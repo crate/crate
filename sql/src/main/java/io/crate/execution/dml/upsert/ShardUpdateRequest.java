@@ -28,7 +28,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.settings.SessionSettings;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -52,12 +51,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
     @Nullable
     private String[] updateColumns;
 
-
-    /**
-     * List of references or expressions to compute values for returning for update.
-     */
-    @Nullable
-    private Symbol[] returnValues;
 
     ShardUpdateRequest() {
     }
@@ -86,15 +79,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
 
     String[] updateColumns() {
         return updateColumns;
-    }
-
-    public boolean continueOnError() {
-        return continueOnError;
-    }
-
-    private ShardUpdateRequest continueOnError(boolean continueOnError) {
-        this.continueOnError = continueOnError;
-        return this;
     }
 
     public ShardUpdateRequest(StreamInput in) throws IOException {
@@ -162,13 +146,12 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
         if (getClass() != o.getClass()) return false;
         ShardUpdateRequest items = (ShardUpdateRequest) o;
         return continueOnError == items.continueOnError &&
-               Arrays.equals(updateColumns, items.updateColumns) &&
-               Arrays.equals(returnValues, items.returnValues);
+               Arrays.equals(updateColumns, items.updateColumns);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), continueOnError, updateColumns, returnValues);
+        return Objects.hashCode(super.hashCode(), continueOnError, updateColumns);
     }
 
     /**
@@ -181,12 +164,6 @@ public class ShardUpdateRequest extends ShardRequest<ShardUpdateRequest, ShardUp
          */
         @Nullable
         private Symbol[] updateAssignments;
-
-        /**
-         * List of references or expressions to compute values for returning for update.
-         */
-        @Nullable
-        private Symbol[] returnValues;
 
         public Item(String id,
                     @Nullable Symbol[] updateAssignments,

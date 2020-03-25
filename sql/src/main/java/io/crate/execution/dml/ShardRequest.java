@@ -22,7 +22,6 @@
 
 package io.crate.execution.dml;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -38,8 +37,10 @@ import org.elasticsearch.index.shard.ShardId;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item>
@@ -73,6 +74,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return items;
     }
 
+    @Nullable
     public Symbol[] returnValues() {
         return returnValues;
     }
@@ -113,16 +115,24 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ShardRequest<?, ?> that = (ShardRequest<?, ?>) o;
-        return Objects.equal(jobId, that.jobId) &&
-               Objects.equal(items, that.items);
+        return continueOnError == that.continueOnError &&
+               Objects.equals(jobId, that.jobId) &&
+               Objects.equals(items, that.items) &&
+               Arrays.equals(returnValues, that.returnValues);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(jobId, shardId(), items);
+        int result = Objects.hash(jobId, items, continueOnError);
+        result = 31 * result + Arrays.hashCode(returnValues);
+        return result;
     }
 
     /**
@@ -230,14 +240,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             out.writeLong(seqNo);
             out.writeLong(primaryTerm);
             out.writeBytesReference(source);
-            if (returnValues != null) {
-                out.writeVInt(returnValues.length);
-                for (Symbol returnValue : returnValues) {
-                    Symbols.toStream(returnValue, out);
-                }
-            } else {
-                out.writeVInt(0);
-            }
         }
 
         @Override

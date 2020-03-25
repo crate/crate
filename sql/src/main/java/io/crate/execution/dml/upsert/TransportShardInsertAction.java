@@ -163,7 +163,7 @@ public class TransportShardInsertAction extends TransportShardIndexAction<ShardI
                                                        seqNo,
                                                        primaryTerm,
                                                        version);
-
+                // update the seqNo and version on request for the replicas
                 item.seqNo(indexResult.getSeqNo());
                 item.version(indexResult.getVersion());
 

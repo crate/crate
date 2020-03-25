@@ -74,12 +74,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     @Nullable
     private Streamer[] insertValuesStreamer;
 
-    /**
-     * List of references or expressions to compute values for returning for update.
-     */
-    @Nullable
-    private Symbol[] returnValues;
-
     ShardUpsertRequest() {
     }
 
@@ -125,11 +119,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
     private ShardUpsertRequest duplicateKeyAction(DuplicateKeyAction duplicateKeyAction) {
         this.duplicateKeyAction = duplicateKeyAction;
-        return this;
-    }
-
-    private ShardUpsertRequest continueOnError(boolean continueOnError) {
-        this.continueOnError = continueOnError;
         return this;
     }
 
@@ -227,6 +216,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     protected Item readItem(StreamInput input) throws IOException {
         return new Item(input, insertValuesStreamer);
     }
+
+
 
     @Override
     public boolean equals(Object o) {
