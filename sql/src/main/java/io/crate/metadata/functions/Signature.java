@@ -199,6 +199,12 @@ public final class Signature {
             .build();
     }
 
+    public Signature withVariableArity() {
+        return Signature.builder(this)
+            .setVariableArity(true)
+            .build();
+    }
+
     /*
      * Forbid coercion of argument types.
      * This prevents e.g. matching a numeric_only function with convertible argument (text).
