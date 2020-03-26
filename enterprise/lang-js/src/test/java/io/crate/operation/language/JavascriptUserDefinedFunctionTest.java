@@ -23,8 +23,8 @@ import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FuncResolver;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Schemas;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -37,6 +37,7 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import javax.script.ScriptException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +56,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     private static final String JS = JavaScriptLanguage.NAME;
 
-    private HashMap<FunctionIdent, FunctionImplementation> functionImplementations = new HashMap<>();
+    private Map<FunctionName, List<FuncResolver>> functionImplementations = new HashMap<>();
     private UserDefinedFunctionService udfService;
 
     @Override
@@ -72,22 +73,23 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
                                              DataType returnType,
                                              List<DataType> types,
                                              String definition) throws ScriptException {
-        var udfMetaData = new UserDefinedFunctionMetaData(
+        UserDefinedFunctionMetaData udf = new UserDefinedFunctionMetaData(
             Schemas.DOC_SCHEMA_NAME,
             name,
             types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
             returnType,
             JS,
-            definition
-        );
+            definition);
 
-        String validation = udfService.getLanguage(JS).validate(udfMetaData);
+        String validation = udfService.getLanguage(JS).validate(udf);
         if (validation == null) {
-            functionImplementations.put(
-                new FunctionIdent(Schemas.DOC_SCHEMA_NAME, name, types),
-                udfService.getLanguage(JS).createFunctionImplementation(udfMetaData)
-            );
-            functions.registerUdfResolversForSchema(Schemas.DOC_SCHEMA_NAME, functionImplementations);
+            var functionName = new FunctionName(Schemas.DOC_SCHEMA_NAME, udf.name());
+            var resolvers = functionImplementations.computeIfAbsent(
+                functionName, k -> new ArrayList<>());
+            resolvers.add(udfService.buildFunctionResolver(udf));
+            functions.registerUdfFunctionImplementationsForSchema(
+                Schemas.DOC_SCHEMA_NAME,
+                functionImplementations);
         } else {
             throw new ScriptException(validation);
         }
