@@ -36,7 +36,9 @@ import io.crate.planner.PositionalOrderBy;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.function.Function;
 
 
 /**
@@ -96,6 +98,23 @@ public final class Eval extends ForwardingLogicalPlan {
             return this;
         }
         return new Eval(newSource, List.copyOf(outputsToKeep));
+    }
+
+    @Nullable
+    @Override
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        FetchRewrite fetchRewrite = source.rewriteToFetch(usedColumns);
+        if (fetchRewrite == null) {
+            return null;
+        }
+        Function<Symbol, Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
+        LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>();
+        for (Symbol output : outputs) {
+            newReplacedOutputs.put(output, mapToFetchStubs.apply(output));
+        }
+        // Skip the Eval operator,
+        // the evaluations that the `Eval` operator took care of are now part of the replacedOutputs.
+        return new FetchRewrite(newReplacedOutputs, fetchRewrite.newPlan());
     }
 
     private ExecutionPlan addEvalProjection(PlannerContext plannerContext,
