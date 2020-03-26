@@ -22,16 +22,12 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.base.Preconditions;
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -39,8 +35,12 @@ import io.crate.types.DataTypes;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
+
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureBothInnerTypesAreNotUndefined;
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureSingleArgumentArrayInnerTypeIsNotUndefined;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
 
@@ -48,16 +48,38 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
     private final FunctionInfo functionInfo;
     private final DataType<?> elementType;
 
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("array(E)"),
+                parseTypeSignature("array(E)")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            argumentTypes -> {
+                ensureSingleArgumentArrayInnerTypeIsNotUndefined(argumentTypes);
+                return new ArrayUniqueFunction(createInfo(argumentTypes));
+            }
+        );
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("array(E)"),
+                parseTypeSignature("array(E)"),
+                parseTypeSignature("array(E)")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            argumentTypes -> {
+                ensureBothInnerTypesAreNotUndefined(argumentTypes, NAME);
+                return new ArrayUniqueFunction(createInfo(argumentTypes));
+            }
+        );
+    }
+
     private static FunctionInfo createInfo(List<DataType> types) {
         ArrayType arrayType = (ArrayType) types.get(0);
         if (arrayType.innerType().equals(DataTypes.UNDEFINED) && types.size() == 2) {
             arrayType = (ArrayType) types.get(1);
         }
         return new FunctionInfo(new FunctionIdent(NAME, types), arrayType);
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
     }
 
     private ArrayUniqueFunction(FunctionInfo functionInfo) {
@@ -88,46 +110,5 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
             }
         }
         return uniqueItems;
-    }
-
-
-    private static class Resolver extends BaseFunctionResolver {
-
-        protected Resolver() {
-            super(FuncParams.builder(Param.ANY_ARRAY).withVarArgs(Param.ANY_ARRAY).build());
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(
-                dataTypes.size() >= 1 && dataTypes.size() <= 2,
-                "array_unique function requires one or two arguments");
-
-            for (int i = 0; i < dataTypes.size(); i++) {
-                Preconditions.checkArgument(dataTypes.get(i) instanceof ArrayType, String.format(Locale.ENGLISH,
-                    "Argument %d of the array_unique function cannot be converted to array", i + 1));
-            }
-
-            if (dataTypes.size() == 2) {
-                DataType innerType0 = ((ArrayType) dataTypes.get(0)).innerType();
-                DataType innerType1 = ((ArrayType) dataTypes.get(1)).innerType();
-
-                Preconditions.checkArgument(
-                    !innerType0.equals(DataTypes.UNDEFINED) || !innerType1.equals(DataTypes.UNDEFINED),
-                    "One of the arguments of the array_unique function can be of undefined inner type, but not both");
-
-                if (!innerType0.equals(DataTypes.UNDEFINED)) {
-                    Preconditions.checkArgument(innerType1.isConvertableTo(innerType0),
-                        String.format(Locale.ENGLISH,
-                            "Second argument's inner type (%s) of the array_unique function cannot be converted to the first argument's inner type (%s)",
-                            innerType1, innerType0));
-                }
-            } else if (dataTypes.size() == 1) {
-                DataType innerType = ((ArrayType) dataTypes.get(0)).innerType();
-                Preconditions.checkArgument(!innerType.equals(DataTypes.UNDEFINED),
-                    "When used with only one argument, the inner type of the array argument cannot be undefined");
-            }
-            return new ArrayUniqueFunction(createInfo(dataTypes));
-        }
     }
 }

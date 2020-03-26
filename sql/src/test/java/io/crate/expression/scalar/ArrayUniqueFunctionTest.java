@@ -99,7 +99,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testDifferentButConvertableInnerTypes() throws Exception {
-        assertEvaluate("array_unique([10, 20], [10.1, 20.0])", Arrays.asList(10L, 20L));
+        assertEvaluate("array_unique([10, 20], [10.1, 20.0])", Arrays.asList(10.0, 20.0, 10.1));
     }
 
     @Test
@@ -111,8 +111,8 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testDifferentUnconvertableInnerTypes() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `_array(geopoint)` of type `geo_point_array` to type `boolean_array`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: array_unique(geo_point_array, boolean_array)");
         assertEvaluate("array_unique([geopoint], [true])", null);
     }
 
@@ -129,7 +129,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEmptyArrays() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("One of the arguments of the array_unique function can " +
+        expectedException.expectMessage("One of the arguments of the `array_unique` function can " +
                                         "be of undefined inner type, but not both");
         assertEvaluate("array_unique([], [])", null);
     }

@@ -111,7 +111,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEmptyArrays() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
+        expectedException.expectMessage("One of the arguments of the `array_cat` function can be of undefined inner type, but not both");
         assertNormalize("array_cat([], [])", null);
     }
 }

@@ -22,15 +22,11 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nonnull;
@@ -56,23 +52,31 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
     }
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME,
-            new BaseFunctionResolver(
-                FuncParams
-                    .builder(Param.STRING, Param.STRING)
-                    .withVarArgs(Param.STRING).limitVarArgOccurrences(1)
-                    .build()) {
-
-                @Override
-                public FunctionImplementation getForTypes(List<DataType> dataTypes) {
-                    return new StringToArrayFunction(
-                        new FunctionInfo(
-                            new FunctionIdent(NAME, dataTypes),
-                            DataTypes.STRING_ARRAY
-                        )
-                    );
-                }
-            });
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING_ARRAY.getTypeSignature()
+            ),
+            argumentTypes ->
+                new StringToArrayFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING_ARRAY)
+                )
+        );
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING_ARRAY.getTypeSignature()
+            ),
+            argumentTypes ->
+                new StringToArrayFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING_ARRAY)
+                )
+        );
     }
 
     @Override

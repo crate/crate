@@ -22,52 +22,61 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import io.crate.data.Input;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import javax.annotation.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
+
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureBothInnerTypesAreNotUndefined;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_difference";
-    private final FunctionInfo functionInfo;
-    private final Optional<Set<Object>> optionalSubtractSet;
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("array(E)"),
+                parseTypeSignature("array(E)"),
+                parseTypeSignature("array(E)")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            argumentTypes ->
+                new ArrayDifferenceFunction(createInfo(argumentTypes), null)
+        );
+    }
 
     private static FunctionInfo createInfo(List<DataType> types) {
-        ArrayType arrayType = (ArrayType) types.get(0);
+        ensureBothInnerTypesAreNotUndefined(types, NAME);
+        ArrayType<?> arrayType = (ArrayType<?>) types.get(0);
         if (arrayType.innerType().equals(DataTypes.UNDEFINED)) {
-            arrayType = (ArrayType) types.get(1);
+            arrayType = (ArrayType<?>) types.get(1);
         }
         return new FunctionInfo(new FunctionIdent(NAME, types), arrayType);
     }
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
-    }
+    private final FunctionInfo functionInfo;
+    private final Optional<Set<Object>> optionalSubtractSet;
 
     private ArrayDifferenceFunction(FunctionInfo functionInfo, @Nullable Set<Object> subtractSet) {
         this.functionInfo = functionInfo;
-        optionalSubtractSet = Optional.fromNullable(subtractSet);
+        optionalSubtractSet = Optional.ofNullable(subtractSet);
     }
 
     @Override
@@ -84,10 +93,10 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
             return this;
         }
 
-        Input input = (Input) symbol;
+        Input<?> input = (Input<?>) symbol;
         Object inputValue = input.value();
 
-        DataType innerType = ((ArrayType) this.info().returnType()).innerType();
+        DataType<?> innerType = ((ArrayType<?>) this.info().returnType()).innerType();
         List<Object> values = (List<Object>) inputValue;
         Set<Object> subtractSet;
         if (values == null) {
@@ -108,9 +117,9 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
             return null;
         }
 
-        DataType<?> innerType = ((ArrayType) this.info().returnType()).innerType();
+        DataType<?> innerType = ((ArrayType<?>) this.info().returnType()).innerType();
         Set<Object> localSubtractSet;
-        if (!optionalSubtractSet.isPresent()) {
+        if (optionalSubtractSet.isEmpty()) {
             localSubtractSet = new HashSet<>();
             for (int i = 1; i < args.length; i++) {
                 Object argValue = args[i].value();
@@ -134,44 +143,5 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
             }
         }
         return resultList;
-    }
-
-
-    private static class Resolver implements FunctionResolver {
-
-        private final FuncParams FUNC_PARAMS = FuncParams.builder(
-            Param.ANY_ARRAY, Param.ANY_ARRAY)
-            .build();
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            for (int i = 0; i < dataTypes.size(); i++) {
-                Preconditions.checkArgument(dataTypes.get(i) instanceof ArrayType,
-                    String.format(Locale.ENGLISH,
-                    "Argument %d of the array_difference function is not an array type", i + 1));
-            }
-
-            DataType innerType0 = ((ArrayType) dataTypes.get(0)).innerType();
-            DataType innerType1 = ((ArrayType) dataTypes.get(1)).innerType();
-
-            Preconditions.checkArgument(
-                !innerType0.equals(DataTypes.UNDEFINED) || !innerType1.equals(DataTypes.UNDEFINED),
-                "One of the arguments of the array_difference function can be of undefined inner type, but not both");
-
-            if (!innerType0.equals(DataTypes.UNDEFINED)) {
-                Preconditions.checkArgument(innerType1.isConvertableTo(innerType0),
-                    String.format(Locale.ENGLISH,
-                        "Second argument's inner type (%s) of the array_difference function cannot be converted to the first argument's inner type (%s)",
-                        innerType1, innerType0));
-            }
-
-            return new ArrayDifferenceFunction(createInfo(dataTypes), null);
-        }
-
-        @Nullable
-        @Override
-        public List<DataType> getSignature(List<? extends FuncArg> dataTypes) {
-            return FUNC_PARAMS.match(dataTypes);
-        }
     }
 }

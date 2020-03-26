@@ -23,11 +23,18 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 import java.util.List;
+
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
@@ -36,8 +43,21 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
     private FunctionInfo functionInfo;
 
     public static void register(ScalarFunctionModule module) {
-        module.register(ARRAY_UPPER, new ArrayBoundFunctionResolver(ARRAY_UPPER, ArrayUpperFunction::new));
-        module.register(ARRAY_LENGTH, new ArrayBoundFunctionResolver(ARRAY_LENGTH, ArrayUpperFunction::new));
+        for (var name : List.of(ARRAY_UPPER, ARRAY_LENGTH)) {
+            module.register(
+                Signature.scalar(
+                    name,
+                    parseTypeSignature("array(E)"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E")),
+                argumentTypes -> {
+                    ensureInnerTypeIsNotUndefined(argumentTypes, name);
+                    return new ArrayUpperFunction(
+                        new FunctionInfo(new FunctionIdent(name, argumentTypes), DataTypes.INTEGER));
+                }
+            );
+        }
     }
 
     private ArrayUpperFunction(FunctionInfo functionInfo) {
