@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -253,6 +254,38 @@ public class HashJoin implements LogicalPlan {
             newRhs,
             joinCondition,
             concreteRelation
+        );
+    }
+
+    @Nullable
+    @Override
+    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        ArrayList<Symbol> usedFromLeft = new ArrayList<>();
+        ArrayList<Symbol> usedFromRight = new ArrayList<>();
+        for (Symbol usedColumn : usedColumns) {
+            SymbolVisitors.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
+            SymbolVisitors.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
+        }
+        SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
+        SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
+        FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(usedFromLeft);
+        if (lhsFetchRewrite == null) {
+            return null;
+        }
+        FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(usedFromRight);
+        if (rhsFetchRewrite == null) {
+            return null;
+        }
+        LinkedHashMap<Symbol, Symbol> allReplacedOutputs = new LinkedHashMap<>(lhsFetchRewrite.replacedOutputs());
+        allReplacedOutputs.putAll(rhsFetchRewrite.replacedOutputs());
+        return new FetchRewrite(
+            allReplacedOutputs,
+            new HashJoin(
+                lhsFetchRewrite.newPlan(),
+                rhsFetchRewrite.newPlan(),
+                joinCondition,
+                concreteRelation
+            )
         );
     }
 
