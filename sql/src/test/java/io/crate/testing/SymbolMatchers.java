@@ -26,6 +26,7 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchReference;
+import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
@@ -73,6 +74,13 @@ public class SymbolMatchers {
     public static Matcher<Symbol> isInputColumn(final Integer index) {
         return both(Matchers.<Symbol>instanceOf(InputColumn.class))
             .and(withFeature(s -> ((InputColumn) s).index(), "index", equalTo(index)));
+    }
+
+    public static Matcher<Symbol> isFetchStub(String columnName) {
+        return allOf(
+            instanceOf(FetchStub.class),
+            withFeature(x -> ((FetchStub) x).ref(), "", isReference(columnName))
+        );
     }
 
     public static Matcher<Symbol> isField(final String expectedName) {

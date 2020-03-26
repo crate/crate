@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.expression.symbol.FetchMarker;
+import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public final class FetchRewrite {
 
@@ -99,5 +101,29 @@ public final class FetchRewrite {
      */
     public Map<Symbol, Symbol> replacedOutputs() {
         return replacedOutputs;
+    }
+
+    /**
+     * @return A function that converts any symbol within a symbol-tree that is present in `replacedOutputs` from the key to the value.
+     */
+    public Function<Symbol, Symbol> mapToFetchStubs() {
+        FunctionCopyVisitor<Void> mapToFetchStubs = new FunctionCopyVisitor<>() {
+
+            @Override
+            protected Symbol visitSymbol(Symbol symbol, Void context) {
+                return replacedOutputs.getOrDefault(symbol, symbol);
+            }
+
+            @Override
+            public Symbol visitFunction(io.crate.expression.symbol.Function func, Void context) {
+                Symbol mappedFunc = replacedOutputs.get(func);
+                if (mappedFunc == null) {
+                    return processAndMaybeCopy(func, context);
+                } else {
+                    return mappedFunc;
+                }
+            }
+        };
+        return s -> s.accept(mapToFetchStubs, null);
     }
 }
