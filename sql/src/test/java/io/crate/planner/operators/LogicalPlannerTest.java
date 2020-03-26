@@ -383,6 +383,21 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
+    @Test
+    public void test_limit_on_hash_join_is_rewritten_to_query_then_fetch() {
+        LogicalPlan plan = plan("select * from t1 inner join t2 on t1.a = t2.b limit 3");
+        assertThat(
+            plan,
+            isPlan(
+                "Fetch[a, x, i, b, y, i]\n" +
+                "  └ Limit[3;0]\n" +
+                "    └ HashJoin[(a = b)]\n" +
+                "      ├ Collect[doc.t1 | [_fetchid, a] | true]\n" +
+                "      └ Collect[doc.t2 | [_fetchid, b] | true]"
+            )
+        );
+    }
+
     public static Matcher<LogicalPlan> isPlan(String expectedPlan) {
         return new FeatureMatcher<>(equalTo(expectedPlan), "same output", "output ") {
 
