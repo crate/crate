@@ -27,6 +27,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.List;
@@ -37,7 +38,13 @@ public final class PiFunction extends Scalar<Double, Object> {
     private final FunctionInfo info;
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new PiFunction());
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            args -> new PiFunction()
+        );
     }
 
     public PiFunction() {

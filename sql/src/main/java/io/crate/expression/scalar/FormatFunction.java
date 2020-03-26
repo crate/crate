@@ -21,23 +21,18 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.base.Preconditions;
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.types.DataType;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.util.List;
 import java.util.Locale;
 
-import static io.crate.metadata.functions.params.Param.ANY;
-import static io.crate.metadata.functions.params.Param.STRING;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class FormatFunction extends Scalar<String, Object> {
 
@@ -45,7 +40,21 @@ public class FormatFunction extends Scalar<String, Object> {
     private FunctionInfo info;
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.STRING.getTypeSignature(),
+                parseTypeSignature("E"),
+                DataTypes.STRING.getTypeSignature()
+            )
+                .withTypeVariableConstraints(typeVariableOfAnyType("E"))
+                .withVariableArity(),
+            argumentTypes ->
+                new FormatFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING)
+                )
+
+        );
     }
 
     private FormatFunction(FunctionInfo info) {
@@ -71,24 +80,5 @@ public class FormatFunction extends Scalar<String, Object> {
     @Override
     public FunctionInfo info() {
         return info;
-    }
-
-    private static class Resolver extends BaseFunctionResolver {
-
-        protected Resolver() {
-            super(FuncParams.builder(STRING)
-                .withIndependentVarArgs(ANY)
-                .build());
-        }
-
-        private static FunctionInfo createInfo(List<DataType> types) {
-            return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.get(0) == DataTypes.STRING);
-            return new FormatFunction(createInfo(dataTypes));
-        }
     }
 }
