@@ -1957,15 +1957,17 @@ Returns: ``array``
     +--------------+
     SELECT 1 row in set (... sec)
 
-If the arrays have different types all elements will be cast to the element
-type of the first array with a defined type::
+If the arrays have different types all elements will be cast to a common type
+based on the type precedence.
 
-    cr> select array_unique([10, 20], [10.2, 20.3]) AS arr;
-    +----------+
-    | arr      |
-    +----------+
-    | [10, 20] |
-    +----------+
+::
+
+    cr> select array_unique([10, 20], [10.0, 20.3]) AS arr;
+    +--------------------+
+    | arr                |
+    +--------------------+
+    | [10.0, 20.0, 20.3] |
+    +--------------------+
     SELECT 1 row in set (... sec)
 
 ``array_difference(first_array, second_array)``

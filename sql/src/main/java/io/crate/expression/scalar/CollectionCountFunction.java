@@ -22,29 +22,35 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CollectionCountFunction extends Scalar<Long, List<Object>> {
 
     public static final String NAME = "collection_count";
     private final FunctionInfo info;
 
-    private static final FunctionResolver COLLECTION_COUNT_RESOLVER = new CollectionCountResolver();
-
-    public static void register(ScalarFunctionModule mod) {
-        mod.register(NAME, COLLECTION_COUNT_RESOLVER);
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("array(E)"),
+                DataTypes.LONG.getTypeSignature()
+            ).withTypeVariableConstraints(typeVariable("E")),
+            argumentTypes ->
+                new CollectionCountFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.LONG)
+                )
+        );
     }
 
     private CollectionCountFunction(FunctionInfo info) {
@@ -63,20 +69,5 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
     @Override
     public FunctionInfo info() {
         return info;
-    }
-
-    static class CollectionCountResolver extends BaseFunctionResolver {
-
-        CollectionCountResolver() {
-            super(FuncParams.builder(Param.ANY_ARRAY).build());
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new CollectionCountFunction(new FunctionInfo(
-                new FunctionIdent(NAME, dataTypes),
-                DataTypes.LONG
-            ));
-        }
     }
 }

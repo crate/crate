@@ -60,4 +60,40 @@ public class ArrayUpperFunctionTest extends AbstractScalarFunctionsTest {
     public void testEmptyArray() {
         assertEvaluate("array_upper(cast([] as array(integer)), 1)", null);
     }
+
+    @Test
+    public void testZeroArguments() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: array_upper()");
+        assertEvaluate("array_upper()", null);
+    }
+
+    @Test
+    public void testOneArgument() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: array_upper(bigint_array)");
+        assertEvaluate("array_upper([1])", null);
+    }
+
+    @Test
+    public void testThreeArguments() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: array_upper(bigint_array, bigint, bigint_array)");
+        assertEvaluate("array_upper([1], 2, [3])", null);
+    }
+
+    @Test
+    public void testSecondArgumentNotANumber() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: array_upper(bigint_array, bigint_array)");
+        assertEvaluate("array_upper([1], [2])", null);
+    }
+
+    @Test
+    public void testFirstArgumentIsNull() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+            "The inner type of the array argument `array_upper` function cannot be undefined");
+        assertEvaluate("array_upper(null, 1)", null);
+    }
 }
