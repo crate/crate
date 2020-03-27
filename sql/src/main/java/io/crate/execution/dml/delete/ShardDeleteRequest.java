@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.UUID;
 
 public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDeleteRequest.Item> {
@@ -64,15 +65,15 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
     public ShardDeleteRequest(StreamInput in) throws IOException {
         super(in);
         int numItems = in.readVInt();
-        readItems(in, numItems);
+        if (numItems > 0) {
+            items = new ArrayList<>(numItems);
+            for (int i = 0; i < numItems; i++) {
+                items.add(new ShardDeleteRequest.Item(in));
+            }
+        }
         if (in.readBoolean()) {
             skipFromLocation = in.readVInt();
         }
-    }
-
-    @Override
-    protected Item readItem(StreamInput input) throws IOException {
-        return new Item(input);
     }
 
     public static class Item extends ShardRequest.Item {

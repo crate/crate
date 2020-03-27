@@ -40,7 +40,9 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
@@ -69,12 +71,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     private Reference[] insertColumns;
 
     /**
-     * List of data type streamer resolved through insertColumns
-     */
-    @Nullable
-    private Streamer[] insertValuesStreamer;
-
-    /**
      * List of references or expressions to compute values for returning for update.
      */
     @Nullable
@@ -95,12 +91,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         this.sessionSettings = sessionSettings;
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
-        if (insertColumns != null) {
-            insertValuesStreamer = new Streamer[insertColumns.length];
-            for (int i = 0; i < insertColumns.length; i++) {
-                insertValuesStreamer[i] = insertColumns[i].valueType().streamer();
-            }
-        }
         this.returnValues = returnValues;
     }
 
@@ -160,22 +150,24 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
         }
         int missingAssignmentsColumnsSize = in.readVInt();
+        Streamer[] insertValuesStreamer = null;
         if (missingAssignmentsColumnsSize > 0) {
             insertColumns = new Reference[missingAssignmentsColumnsSize];
-            insertValuesStreamer = new Streamer[missingAssignmentsColumnsSize];
             for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
                 insertColumns[i] = Reference.fromStream(in);
-                insertValuesStreamer[i] = insertColumns[i].valueType().streamer();
             }
+            insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         }
         continueOnError = in.readBoolean();
         duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
         validateConstraints = in.readBoolean();
 
         sessionSettings = new SessionSettings(in);
-
         int numItems = in.readVInt();
-        readItems(in, numItems);
+        items = new ArrayList<>(numItems);
+        for (int i = 0; i < numItems; i++) {
+            items.add(new Item(in, insertValuesStreamer));
+        }
         if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             int returnValuesSize = in.readVInt();
             if (returnValuesSize > 0) {
@@ -199,11 +191,13 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         } else {
             out.writeVInt(0);
         }
+        Streamer[] insertValuesStreamer = null;
         if (insertColumns != null) {
             out.writeVInt(insertColumns.length);
             for (Reference reference : insertColumns) {
                 Reference.toStream(reference, out);
             }
+            insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         } else {
             out.writeVInt(0);
         }
@@ -232,11 +226,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     }
 
     @Override
-    protected Item readItem(StreamInput input) throws IOException {
-        return new Item(input, insertValuesStreamer);
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (!super.equals(o)) return false;
         if (this == o) return true;
@@ -247,13 +236,12 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                validateConstraints == items.validateConstraints &&
                Arrays.equals(updateColumns, items.updateColumns) &&
                Arrays.equals(insertColumns, items.insertColumns) &&
-               Arrays.equals(insertValuesStreamer, items.insertValuesStreamer) &&
                Arrays.equals(returnValues, items.returnValues);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), continueOnError, duplicateKeyAction, validateConstraints, updateColumns, insertColumns, insertValuesStreamer, returnValues);
+        return Objects.hashCode(super.hashCode(), continueOnError, duplicateKeyAction, validateConstraints, updateColumns, insertColumns, returnValues);
     }
 
     /**
