@@ -86,13 +86,11 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             new Object[]{99, "Marvin"},
             null,
             null,
-            null,
             null));
         request.add(42, new ShardUpsertRequest.Item(
             "99",
             new Symbol[0],
             new Object[]{99, "Marvin"},
-            null,
             null,
             null,
             null));
@@ -102,8 +100,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             null,
             2L,
             1L,
-            5L,
-            null));
+            5L));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
@@ -138,24 +135,21 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             new Object[]{99, "Marvin"},
             null,
             null,
-            null,
-            new Symbol[0]));
+            null));
         request.add(42, new ShardUpsertRequest.Item(
             "99",
             new Symbol[0],
             new Object[]{99, "Marvin"},
             null,
             null,
-            null,
-            new Symbol[0]));
+            null));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
             new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
             null,
             2L,
             1L,
-            5L,
-            new Symbol[0]));
+            5L));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);

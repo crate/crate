@@ -248,19 +248,12 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         @Nullable
         private Object[] insertValues;
 
-        /**
-         * List of references or expressions to compute values for returning for update.
-         */
-        @Nullable
-        private Symbol[] returnValues;
-
         public Item(String id,
                     @Nullable Symbol[] updateAssignments,
                     @Nullable Object[] insertValues,
                     @Nullable Long version,
                     @Nullable Long seqNo,
-                    @Nullable Long primaryTerm,
-                    @Nullable Symbol[] returnValues
+                    @Nullable Long primaryTerm
                     ) {
             super(id);
             this.updateAssignments = updateAssignments;
@@ -274,7 +267,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 this.primaryTerm = primaryTerm;
             }
             this.insertValues = insertValues;
-            this.returnValues = returnValues;
         }
 
         @Nullable
@@ -300,11 +292,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             return insertValues;
         }
 
-        @Nullable
-        public Symbol[] returnValues() {
-            return returnValues;
-        }
-
         public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super(in);
             if (in.readBoolean()) {
@@ -324,15 +311,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
             if (in.readBoolean()) {
                 source = in.readBytesReference();
-            }
-            if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-                int returnValueSize = in.readVInt();
-                if (returnValueSize > 0) {
-                    returnValues = new Symbol[returnValueSize];
-                    for (int i = 0; i < returnValueSize; i++) {
-                        returnValues[i] = Symbols.fromStream(in);
-                    }
-                }
             }
         }
 
@@ -362,16 +340,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             out.writeBoolean(sourceAvailable);
             if (sourceAvailable) {
                 out.writeBytesReference(source);
-            }
-            if (allOn4_2) {
-                if (returnValues != null) {
-                    out.writeVInt(returnValues.length);
-                    for (Symbol returnValue : returnValues) {
-                        Symbols.toStream(returnValue, out);
-                    }
-                } else {
-                    out.writeVInt(0);
-                }
             }
         }
     }

@@ -118,8 +118,8 @@ public class ColumnIndexWriterProjector implements Projector {
                                               insertValues.materialize(),
                                               null,
                                               null,
-                                              null,
-                                              returnValueOrNull);
+                                              null
+                                              );
 
         var upsertResultContext = returnValues.isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
 

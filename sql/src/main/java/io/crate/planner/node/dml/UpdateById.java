@@ -168,8 +168,8 @@ public final class UpdateById implements Plan {
                                                                        null,
                                                                        version,
                                                                        seqNo,
-                                                                       primaryTerm,
-                                                                       request.getReturnValues());
+                                                                       primaryTerm
+                                                                       );
             request.add(location, item);
         }
     }
