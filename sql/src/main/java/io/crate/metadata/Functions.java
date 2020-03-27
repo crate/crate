@@ -41,7 +41,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -105,7 +104,7 @@ public class Functions {
             .removeIf(
                 function ->
                     schema.equals(function.getKey().schema())
-                    && !Objects.equals(functions.get(function.getKey()), function.getValue()));
+                    && functions.get(function.getKey()) == null);
         udfFunctionImplementations.putAll(functions);
     }
 
