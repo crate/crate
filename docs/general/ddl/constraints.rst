@@ -2,7 +2,7 @@
 Constraints
 ===========
 
-Columns can be constrained in two ways:
+Columns can be constrained in three ways:
 
 .. contents::
    :local:
@@ -49,7 +49,7 @@ Or using a alternate syntax::
 
    Not all column types can be used as PRIMARY KEY.
 
-   See :ref:`primary_key_constraint`.
+   For further details see :ref:`primary_key_constraint`.
 
 Not null
 ========
@@ -65,9 +65,39 @@ Example::
     ... );
     CREATE OK, 1 row affected (... sec)
 
+.. NOTE::
+
+   For further details see :ref:`not_null_constraint`.
+
+Check
+=====
+
+A check constraint allows you to specify that the values in a  certain column
+must satisfy a boolean expression. This can be used to ensure data integrity.
+For example, if you have a table to store metrics from sensors and you want to
+ensure that negative values are rejected::
+
+Example::
+
+     cr> create table metrics (
+     ...   id TEXT PRIMARY KEY,
+     ...   weight double CHECK (weight >= 0)
+     ... );
+     CREATE OK, 1 row affected  (... sec)
+
+.. NOTE::
+
+   For further details see :ref:`check_constraint`.
+
 .. hide:
 
+    cr> drop table my_table1;
+    DROP OK, 1 row affected (... sec)
+    cr> drop table my_table1pk;
+    DROP OK, 1 row affected (... sec)
+    cr> drop table my_table1pk1;
+    DROP OK, 1 row affected (... sec)
     cr> drop table my_table2;
     DROP OK, 1 row affected (... sec)
-
-For further details see :ref:`not_null_constraint`.
+    cr> drop table metrics;
+    DROP OK, 1 row affected (... sec)
