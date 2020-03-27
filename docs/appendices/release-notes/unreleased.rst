@@ -65,12 +65,15 @@ None
 Changes
 =======
 
+- Add the CHECK constraint syntax, which specifies that the value/s of
+  certain column/s must satisfy a boolean expression on insert and update.
+
 - Include the bundled version of ``OpenJDK`` (13.0.2+8) into the ``CrateDB``
   built. It means that ``CrateDB`` doesn't rely the ``JAVA_HOME`` of the host
   system any longer.
 
-  - Removed a node check that checks the JVM version under which CrateDB is
-    running.
+- Removed a node check that checks the JVM version under which CrateDB is
+  running.
 
 - Added the `pg_catalog.pg_proc <postgres_pg_catalog>`_ table.
 

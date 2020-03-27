@@ -2,7 +2,7 @@
 Constraints
 ===========
 
-Columns can be constrained in two ways:
+Columns can be constrained in three ways:
 
 .. contents::
    :local:
@@ -49,7 +49,7 @@ Or using a alternate syntax::
 
    Not all column types can be used as PRIMARY KEY.
 
-   See :ref:`primary_key_constraint`.
+   For further details see :ref:`primary_key_constraint`.
 
 Not null
 ========
@@ -65,9 +65,40 @@ Example::
     ... );
     CREATE OK, 1 row affected (... sec)
 
+.. NOTE::
+
+   For further details see :ref:`not_null_constraint`.
+
+Check
+=====
+
+The check constraint can be used on any column, it prevents inserts and
+updates of values that do not pass the check test.
+
+Example::
+
+    cr> create table my_table3 (
+    ...   first_column integer primary key,
+    ...   second_column integer check(second_column >= 0),
+    ...   third_column string constraint not_you check(third_column <> 'me'),
+    ...   check(first_column >= 100),
+    ...   constraint is_even check(second_column % 2 = 0)
+    ... );
+    CREATE OK, 1 row affected  (... sec)
+
+.. NOTE::
+
+   For further details see :ref:`check_constraint`.
+
 .. hide:
 
+    cr> drop table my_table1;
+    DROP OK, 1 row affected (... sec)
+    cr> drop table my_table1pk;
+    DROP OK, 1 row affected (... sec)
+    cr> drop table my_table1pk1;
+    DROP OK, 1 row affected (... sec)
     cr> drop table my_table2;
     DROP OK, 1 row affected (... sec)
-
-For further details see :ref:`not_null_constraint`.
+    cr> drop table my_table3;
+    DROP OK, 1 row affected (... sec)
