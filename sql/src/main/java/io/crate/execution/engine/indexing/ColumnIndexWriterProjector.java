@@ -97,8 +97,6 @@ public class ColumnIndexWriterProjector implements Projector {
             assignments = convert.sources();
         }
 
-        Symbol[] returnValueOrNull = returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]);
-
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
@@ -106,7 +104,7 @@ public class ColumnIndexWriterProjector implements Projector {
             true, // continueOnErrors
             updateColumnNames,
             columnReferences.toArray(new Reference[columnReferences.size()]),
-            returnValueOrNull,
+            returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
             jobId,
             true);
 
@@ -117,8 +115,8 @@ public class ColumnIndexWriterProjector implements Projector {
                                               insertValues.materialize(),
                                               null,
                                               null,
-                                              null,
-                                              returnValueOrNull);
+                                              null
+                                              );
 
         var upsertResultContext = returnValues.isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
 

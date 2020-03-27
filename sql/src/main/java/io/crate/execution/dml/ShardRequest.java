@@ -77,13 +77,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         jobId = new UUID(in.readLong(), in.readLong());
     }
 
-    protected void readItems(StreamInput in, int size) throws IOException {
-        items = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            items.add(readItem(in));
-        }
-    }
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
@@ -117,8 +110,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
                ", timeout=" + timeout +
                '}';
     }
-
-    protected abstract I readItem(StreamInput input) throws IOException;
 
     public abstract static class Item implements Writeable {
 

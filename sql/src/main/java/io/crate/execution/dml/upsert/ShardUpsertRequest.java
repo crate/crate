@@ -22,7 +22,6 @@
 
 package io.crate.execution.dml.upsert;
 
-import com.google.common.base.Objects;
 import io.crate.Streamer;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
@@ -40,10 +39,13 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
-public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
+public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     public enum DuplicateKeyAction {
         UPDATE_OR_FAIL,
@@ -69,85 +71,30 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     private Reference[] insertColumns;
 
     /**
-     * List of data type streamer resolved through insertColumns
-     */
-    @Nullable
-    private Streamer[] insertValuesStreamer;
-
-    /**
      * List of references or expressions to compute values for returning for update.
      */
     @Nullable
     private Symbol[] returnValues;
 
-    ShardUpsertRequest() {
-    }
-
-    private ShardUpsertRequest(SessionSettings sessionSettings,
-                               ShardId shardId,
-                               @Nullable String[] updateColumns,
-                               @Nullable Reference[] insertColumns,
-                               @Nullable Symbol[] returnValues,
-                               UUID jobId) {
+    public ShardUpsertRequest(
+        ShardId shardId,
+        UUID jobId,
+        boolean continueOnError,
+        boolean validateConstraints,
+        DuplicateKeyAction duplicateKeyAction,
+        SessionSettings sessionSettings,
+        @Nullable String[] updateColumns,
+        @Nullable Reference[] insertColumns,
+        @Nullable Symbol[] returnValues) {
         super(shardId, jobId);
-        assert updateColumns != null || insertColumns != null
-            : "Missing updateAssignments, whether for update nor for insert";
+        assert updateColumns != null || insertColumns != null : "Missing updateAssignments, whether for update nor for insert";
+        this.continueOnError = continueOnError;
+        this.validateConstraints = validateConstraints;
+        this.duplicateKeyAction = duplicateKeyAction;
         this.sessionSettings = sessionSettings;
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
-        if (insertColumns != null) {
-            insertValuesStreamer = new Streamer[insertColumns.length];
-            for (int i = 0; i < insertColumns.length; i++) {
-                insertValuesStreamer[i] = insertColumns[i].valueType().streamer();
-            }
-        }
         this.returnValues = returnValues;
-    }
-
-    public SessionSettings sessionSettings() {
-        return sessionSettings;
-    }
-
-
-    @Nullable
-    public Symbol[] getReturnValues() {
-        return returnValues;
-    }
-
-    String[] updateColumns() {
-        return updateColumns;
-    }
-
-    @Nullable
-    Reference[] insertColumns() {
-        return insertColumns;
-    }
-
-    DuplicateKeyAction duplicateKeyAction() {
-        return duplicateKeyAction;
-    }
-
-    private ShardUpsertRequest duplicateKeyAction(DuplicateKeyAction duplicateKeyAction) {
-        this.duplicateKeyAction = duplicateKeyAction;
-        return this;
-    }
-
-    boolean continueOnError() {
-        return continueOnError;
-    }
-
-    private ShardUpsertRequest continueOnError(boolean continueOnError) {
-        this.continueOnError = continueOnError;
-        return this;
-    }
-
-    boolean validateConstraints() {
-        return validateConstraints;
-    }
-
-    ShardUpsertRequest validateConstraints(boolean validateConstraints) {
-        this.validateConstraints = validateConstraints;
-        return this;
     }
 
     public ShardUpsertRequest(StreamInput in) throws IOException {
@@ -160,22 +107,24 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
         }
         int missingAssignmentsColumnsSize = in.readVInt();
+        Streamer[] insertValuesStreamer = null;
         if (missingAssignmentsColumnsSize > 0) {
             insertColumns = new Reference[missingAssignmentsColumnsSize];
-            insertValuesStreamer = new Streamer[missingAssignmentsColumnsSize];
             for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
                 insertColumns[i] = Reference.fromStream(in);
-                insertValuesStreamer[i] = insertColumns[i].valueType().streamer();
             }
+            insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         }
         continueOnError = in.readBoolean();
         duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
         validateConstraints = in.readBoolean();
 
         sessionSettings = new SessionSettings(in);
-
         int numItems = in.readVInt();
-        readItems(in, numItems);
+        items = new ArrayList<>(numItems);
+        for (int i = 0; i < numItems; i++) {
+            items.add(new Item(in, insertValuesStreamer));
+        }
         if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             int returnValuesSize = in.readVInt();
             if (returnValuesSize > 0) {
@@ -199,27 +148,28 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         } else {
             out.writeVInt(0);
         }
+        Streamer[] insertValuesStreamer = null;
         if (insertColumns != null) {
             out.writeVInt(insertColumns.length);
             for (Reference reference : insertColumns) {
                 Reference.toStream(reference, out);
             }
+            insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         } else {
             out.writeVInt(0);
         }
+
         out.writeBoolean(continueOnError);
         out.writeVInt(duplicateKeyAction.ordinal());
         out.writeBoolean(validateConstraints);
 
         sessionSettings.writeTo(out);
 
-        boolean allOn4_2 = out.getVersion().onOrAfter(Version.V_4_2_0);
-
         out.writeVInt(items.size());
         for (Item item : items) {
-            item.writeTo(out, insertValuesStreamer, allOn4_2);
+            item.writeTo(out, insertValuesStreamer);
         }
-        if (allOn4_2) {
+        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
             if (returnValues != null) {
                 out.writeVInt(returnValues.length);
                 for (Symbol returnValue : returnValues) {
@@ -231,35 +181,76 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
     }
 
-    @Override
-    protected Item readItem(StreamInput input) throws IOException {
-        return new Item(input, insertValuesStreamer);
+    @Nullable
+    public SessionSettings sessionSettings() {
+        return sessionSettings;
+    }
+
+    @Nullable
+    public Symbol[] returnValues() {
+        return returnValues;
+    }
+
+    @Nullable
+    public String[] updateColumns() {
+        return updateColumns;
+    }
+
+    @Nullable
+    public Reference[] insertColumns() {
+        return insertColumns;
+    }
+
+    public boolean continueOnError() {
+        return continueOnError;
+    }
+
+    public boolean validateConstraints() {
+        return validateConstraints;
+    }
+
+    public DuplicateKeyAction duplicateKeyAction() {
+        return duplicateKeyAction;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (!super.equals(o)) return false;
-        if (this == o) return true;
-        if (getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         ShardUpsertRequest items = (ShardUpsertRequest) o;
         return continueOnError == items.continueOnError &&
-               duplicateKeyAction == items.duplicateKeyAction &&
                validateConstraints == items.validateConstraints &&
+               Objects.equals(sessionSettings, items.sessionSettings) &&
+               duplicateKeyAction == items.duplicateKeyAction &&
                Arrays.equals(updateColumns, items.updateColumns) &&
                Arrays.equals(insertColumns, items.insertColumns) &&
-               Arrays.equals(insertValuesStreamer, items.insertValuesStreamer) &&
                Arrays.equals(returnValues, items.returnValues);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), continueOnError, duplicateKeyAction, validateConstraints, updateColumns, insertColumns, insertValuesStreamer, returnValues);
+        int result = Objects.hash(super.hashCode(),
+                                  sessionSettings,
+                                  duplicateKeyAction,
+                                  continueOnError,
+                                  validateConstraints);
+        result = 31 * result + Arrays.hashCode(updateColumns);
+        result = 31 * result + Arrays.hashCode(insertColumns);
+        result = 31 * result + Arrays.hashCode(returnValues);
+        return result;
     }
 
     /**
      * A single update item.
      */
-    public static class Item extends ShardRequest.Item {
+    public static final class Item extends ShardRequest.Item {
 
         @Nullable
         private BytesReference source;
@@ -276,20 +267,13 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         @Nullable
         private Object[] insertValues;
 
-        /**
-         * List of references or expressions to compute values for returning for update.
-         */
-        @Nullable
-        private Symbol[] returnValues;
-
         public Item(String id,
                     @Nullable Symbol[] updateAssignments,
                     @Nullable Object[] insertValues,
                     @Nullable Long version,
                     @Nullable Long seqNo,
-                    @Nullable Long primaryTerm,
-                    @Nullable Symbol[] returnValues
-                    ) {
+                    @Nullable Long primaryTerm
+        ) {
             super(id);
             this.updateAssignments = updateAssignments;
             if (version != null) {
@@ -302,7 +286,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 this.primaryTerm = primaryTerm;
             }
             this.insertValues = insertValues;
-            this.returnValues = returnValues;
         }
 
         @Nullable
@@ -328,11 +311,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             return insertValues;
         }
 
-        @Nullable
-        public Symbol[] returnValues() {
-            return returnValues;
-        }
-
         public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super(in);
             if (in.readBoolean()) {
@@ -342,6 +320,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                     updateAssignments[i] = Symbols.fromStream(in);
                 }
             }
+
             int missingAssignmentsSize = in.readVInt();
             if (missingAssignmentsSize > 0) {
                 assert insertValueStreamers != null : "streamers are required if reading insert values";
@@ -353,18 +332,9 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             if (in.readBoolean()) {
                 source = in.readBytesReference();
             }
-            if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-                int returnValueSize = in.readVInt();
-                if (returnValueSize > 0) {
-                    returnValues = new Symbol[returnValueSize];
-                    for (int i = 0; i < returnValueSize; i++) {
-                        returnValues[i] = Symbols.fromStream(in);
-                    }
-                }
-            }
         }
 
-        public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers, boolean allOn4_2) throws IOException {
+        public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super.writeTo(out);
             if (updateAssignments != null) {
                 out.writeBoolean(true);
@@ -385,22 +355,36 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             } else {
                 out.writeVInt(0);
             }
-
             boolean sourceAvailable = source != null;
             out.writeBoolean(sourceAvailable);
             if (sourceAvailable) {
                 out.writeBytesReference(source);
             }
-            if (allOn4_2) {
-                if (returnValues != null) {
-                    out.writeVInt(returnValues.length);
-                    for (Symbol returnValue : returnValues) {
-                        Symbols.toStream(returnValue, out);
-                    }
-                } else {
-                    out.writeVInt(0);
-                }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
             }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if (!super.equals(o)) {
+                return false;
+            }
+            Item item = (Item) o;
+            return Objects.equals(source, item.source) &&
+                   Arrays.equals(updateAssignments, item.updateAssignments) &&
+                   Arrays.equals(insertValues, item.insertValues);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(super.hashCode(), source);
+            result = 31 * result + Arrays.hashCode(updateAssignments);
+            result = 31 * result + Arrays.hashCode(insertValues);
+            return result;
         }
     }
 
@@ -415,10 +399,9 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         @Nullable
         private final Reference[] missingAssignmentsColumns;
         private final UUID jobId;
-        private boolean validateGeneratedColumns;
+        private final boolean validateGeneratedColumns;
         @Nullable
         private final Symbol[] returnValues;
-
 
         public Builder(SessionSettings sessionSettings,
                        TimeValue timeout,
@@ -436,22 +419,22 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             this.assignmentsColumns = assignmentsColumns;
             this.missingAssignmentsColumns = missingAssignmentsColumns;
             this.jobId = jobId;
-            this.validateGeneratedColumns = validateGeneratedColumns;
             this.returnValues = returnValue;
+            this.validateGeneratedColumns = validateGeneratedColumns;
         }
 
         public ShardUpsertRequest newRequest(ShardId shardId) {
             return new ShardUpsertRequest(
-                sessionSettings,
                 shardId,
+                jobId,
+                continueOnError,
+                validateGeneratedColumns,
+                duplicateKeyAction,
+                sessionSettings,
                 assignmentsColumns,
                 missingAssignmentsColumns,
-                returnValues,
-                jobId)
-                .timeout(timeout)
-                .continueOnError(continueOnError)
-                .duplicateKeyAction(duplicateKeyAction)
-                .validateConstraints(validateGeneratedColumns);
+                returnValues
+            ).timeout(timeout);
         }
     }
 }
