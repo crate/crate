@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.TableReferenceResolver;
@@ -591,12 +592,17 @@ public class AnalyzedTableElements<T> {
         return sb.toString();
     }
 
-    public void addCheckConstraint(RelationName relationName, CheckConstraint check) {
+    public void addCheckConstraint(RelationName relationName, CheckConstraint<?> check) {
         addCheckConstraint(relationName.fqn(), check.columnName(), check.name(), check.expressionStr());
     }
 
-    public void addCheckColumnConstraint(RelationName relationName, CheckColumnConstraint check) {
+    public void addCheckColumnConstraint(RelationName relationName, CheckColumnConstraint<?> check) {
         addCheckConstraint(relationName.fqn(), check.columnName(), check.name(), check.expressionStr());
+    }
+
+    @VisibleForTesting
+    Map<String, String> getCheckConstraints() {
+        return Map.copyOf(checkConstraints);
     }
 
     public boolean hasGeneratedColumns() {
