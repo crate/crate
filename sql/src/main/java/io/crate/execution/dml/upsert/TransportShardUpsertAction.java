@@ -123,7 +123,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
-        ShardResponse shardResponse = new ShardResponse(request.getReturnValues());
+        ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
         Reference[] insertColumns = request.insertColumns();
@@ -143,9 +143,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                   tableInfo,
                                   request.updateColumns());
 
-        ReturnValueGen returnValueGen = request.getReturnValues() == null
+        ReturnValueGen returnValueGen = request.returnValues() == null
             ? null
-            : new ReturnValueGen(functions, txnCtx, tableInfo, request.getReturnValues());
+            : new ReturnValueGen(functions, txnCtx, tableInfo, request.returnValues());
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {

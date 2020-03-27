@@ -34,10 +34,6 @@ import static org.hamcrest.Matchers.is;
 public class BulkShardCreationLimiterTest extends CrateUnitTest {
 
     private static class DummyShardRequest extends ShardRequest<DummyShardRequest, DummyRequestItem> {
-        @Override
-        protected DummyRequestItem readItem(StreamInput input) throws IOException {
-            return null;
-        }
     }
 
     private static class DummyRequestItem extends ShardRequest.Item {
