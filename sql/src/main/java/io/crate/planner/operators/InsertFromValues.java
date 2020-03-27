@@ -231,15 +231,15 @@ public class InsertFromValues implements LogicalPlan {
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
             BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
-            writerProjection.isIgnoreDuplicateKeys()
-                ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
-                : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             rows.size() > 1, // continueOnErrors
             updateColumnNames,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
             plannerContext.jobId(),
-            false);
+            false,
+            writerProjection.isIgnoreDuplicateKeys()
+                ? ShardUpsertRequest.Properties.DUPLICATE_KEY_IGNORE
+                : ShardUpsertRequest.Properties.DUPLICATE_KEY_UPDATE_OR_FAIL);
 
         var shardedRequests = new ShardedRequests<>(builder::newRequest);
 
@@ -346,15 +346,16 @@ public class InsertFromValues implements LogicalPlan {
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
             BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
-            writerProjection.isIgnoreDuplicateKeys()
-                ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
-                : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
+
             true, // continueOnErrors
             updateColumnNames,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             null,
             plannerContext.jobId(),
-            true);
+            true,
+            writerProjection.isIgnoreDuplicateKeys()
+                ? ShardUpsertRequest.Properties.DUPLICATE_KEY_IGNORE
+                : ShardUpsertRequest.Properties.DUPLICATE_KEY_UPDATE_OR_FAIL);
         var shardedRequests = new ShardedRequests<>(builder::newRequest);
 
         HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();

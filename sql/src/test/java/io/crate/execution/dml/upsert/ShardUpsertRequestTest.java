@@ -22,7 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.Properties;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
@@ -71,15 +71,14 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
-            DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             assignmentColumns,
             missingAssignmentColumns,
             null,
             jobId,
-            false
-        ).newRequest(shardId);
-        request.validateConstraints(false);
+            false,
+            Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+            ).newRequest(shardId);
 
         request.add(123, new ShardUpsertRequest.Item(
             "99",
@@ -124,15 +123,14 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
-            DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             assignmentColumns,
             missingAssignmentColumns,
             null,
             jobId,
-            false
-        ).newRequest(shardId);
-        request.validateConstraints(false);
+            false,
+            Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+            ).newRequest(shardId);
 
         request.add(123, new ShardUpsertRequest.Item(
             "99",

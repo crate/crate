@@ -27,7 +27,7 @@ import io.crate.Constants;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
-import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.Properties;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
@@ -266,7 +266,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
             } catch (VersionConflictEngineException e) {
                 lastException = e;
-                if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
+                if (request.properties().contains(Properties.DUPLICATE_KEY_IGNORE)) {
                     // on conflict do nothing
                     item.source(null);
                     return null;
@@ -329,7 +329,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
         item.source(rawSource);
 
-        long version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE ? Versions.MATCH_ANY : Versions.MATCH_DELETED;
+        long version = request.properties().contains(Properties.DUPLICATE_KEY_OVERWRITE) ? Versions.MATCH_ANY : Versions.MATCH_DELETED;
         long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
 

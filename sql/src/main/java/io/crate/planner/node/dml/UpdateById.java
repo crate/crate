@@ -112,13 +112,13 @@ public final class UpdateById implements Plan {
         ShardUpsertRequest.Builder requestBuilder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(clusterService.state().metaData().settings()),
-            ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             assignments.targetNames(),
             null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
             returnValues,
             plannerContext.jobId(),
-            false
+            false,
+            ShardUpsertRequest.Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
         );
         UpdateRequests updateRequests = new UpdateRequests(requestBuilder, table, assignments);
         return new ShardRequestExecutor<>(

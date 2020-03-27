@@ -526,14 +526,14 @@ public class ProjectionToProjectorVisitor
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             context.txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             projection.assignmentsColumns(),
             null,
             projection.returnValues(),
             context.jobId,
-            true
-        );
+            true,
+            ShardUpsertRequest.Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+            );
 
         return new ShardDMLExecutor<>(
             ShardDMLExecutor.DEFAULT_BULK_SIZE,

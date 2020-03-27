@@ -24,6 +24,7 @@ package io.crate.execution.dml.upsert;
 
 import com.google.common.base.Objects;
 import io.crate.Streamer;
+import io.crate.common.collections.EnumSets;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -42,20 +43,21 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
-    public enum DuplicateKeyAction {
-        UPDATE_OR_FAIL,
-        OVERWRITE,
-        IGNORE
+    public enum Properties {
+        DUPLICATE_KEY_UPDATE_OR_FAIL,
+        DUPLICATE_KEY_OVERWRITE,
+        DUPLICATE_KEY_IGNORE,
+        CONTINUE_ON_ERROR,
+        VALIDATE_CONSTRAINTS
     }
 
-    private DuplicateKeyAction duplicateKeyAction;
-    private boolean continueOnError;
-    private boolean validateConstraints = true;
     private SessionSettings sessionSettings;
 
     /**
@@ -76,6 +78,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     @Nullable
     private Symbol[] returnValues;
 
+    private EnumSet<Properties> properties;
+
     ShardUpsertRequest() {
     }
 
@@ -84,7 +88,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                                @Nullable String[] updateColumns,
                                @Nullable Reference[] insertColumns,
                                @Nullable Symbol[] returnValues,
-                               UUID jobId) {
+                               UUID jobId,
+                               EnumSet<Properties> properties) {
         super(shardId, jobId);
         assert updateColumns != null || insertColumns != null
             : "Missing updateAssignments, whether for update nor for insert";
@@ -92,6 +97,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.returnValues = returnValues;
+        this.properties = properties;
     }
 
     public SessionSettings sessionSettings() {
@@ -113,31 +119,16 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         return insertColumns;
     }
 
-    DuplicateKeyAction duplicateKeyAction() {
-        return duplicateKeyAction;
-    }
-
-    private ShardUpsertRequest duplicateKeyAction(DuplicateKeyAction duplicateKeyAction) {
-        this.duplicateKeyAction = duplicateKeyAction;
-        return this;
+    Set<Properties> properties() {
+        return properties;
     }
 
     boolean continueOnError() {
-        return continueOnError;
-    }
-
-    private ShardUpsertRequest continueOnError(boolean continueOnError) {
-        this.continueOnError = continueOnError;
-        return this;
+        return properties.contains(Properties.CONTINUE_ON_ERROR);
     }
 
     boolean validateConstraints() {
-        return validateConstraints;
-    }
-
-    ShardUpsertRequest validateConstraints(boolean validateConstraints) {
-        this.validateConstraints = validateConstraints;
-        return this;
+        return properties.contains(Properties.VALIDATE_CONSTRAINTS);
     }
 
     public ShardUpsertRequest(StreamInput in) throws IOException {
@@ -158,9 +149,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
             insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         }
-        continueOnError = in.readBoolean();
-        duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
-        validateConstraints = in.readBoolean();
 
         sessionSettings = new SessionSettings(in);
         int numItems = in.readVInt();
@@ -177,6 +165,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 }
             }
         }
+        this.properties = EnumSets.unpackFromInt(in.readVInt(), Properties.class);
     }
 
     @Override
@@ -201,10 +190,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         } else {
             out.writeVInt(0);
         }
-        out.writeBoolean(continueOnError);
-        out.writeVInt(duplicateKeyAction.ordinal());
-        out.writeBoolean(validateConstraints);
-
         sessionSettings.writeTo(out);
 
         boolean allOn4_2 = out.getVersion().onOrAfter(Version.V_4_2_0);
@@ -223,6 +208,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 out.writeVInt(0);
             }
         }
+        out.writeVInt(EnumSets.packToInt(properties));
     }
 
     @Override
@@ -231,9 +217,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         if (this == o) return true;
         if (getClass() != o.getClass()) return false;
         ShardUpsertRequest items = (ShardUpsertRequest) o;
-        return continueOnError == items.continueOnError &&
-               duplicateKeyAction == items.duplicateKeyAction &&
-               validateConstraints == items.validateConstraints &&
+        return Objects.equal(properties, items.properties()) &&
                Arrays.equals(updateColumns, items.updateColumns) &&
                Arrays.equals(insertColumns, items.insertColumns) &&
                Arrays.equals(returnValues, items.returnValues);
@@ -241,7 +225,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), continueOnError, duplicateKeyAction, validateConstraints, updateColumns, insertColumns, returnValues);
+        return Objects.hashCode(super.hashCode(), properties, updateColumns, insertColumns, returnValues);
     }
 
     /**
@@ -396,36 +380,38 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
         private final SessionSettings sessionSettings;
         private final TimeValue timeout;
-        private final DuplicateKeyAction duplicateKeyAction;
-        private final boolean continueOnError;
         @Nullable
         private final String[] assignmentsColumns;
         @Nullable
         private final Reference[] missingAssignmentsColumns;
         private final UUID jobId;
-        private boolean validateGeneratedColumns;
         @Nullable
         private final Symbol[] returnValues;
+        private final EnumSet<Properties> properties;
 
 
         public Builder(SessionSettings sessionSettings,
                        TimeValue timeout,
-                       DuplicateKeyAction duplicateKeyAction,
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
                        @Nullable Reference[] missingAssignmentsColumns,
                        @Nullable Symbol[] returnValue,
                        UUID jobId,
-                       boolean validateGeneratedColumns) {
+                       boolean validateGeneratedColumns,
+                       Properties... properties) {
             this.sessionSettings = sessionSettings;
             this.timeout = timeout;
-            this.duplicateKeyAction = duplicateKeyAction;
-            this.continueOnError = continueOnError;
             this.assignmentsColumns = assignmentsColumns;
             this.missingAssignmentsColumns = missingAssignmentsColumns;
             this.jobId = jobId;
-            this.validateGeneratedColumns = validateGeneratedColumns;
             this.returnValues = returnValue;
+            this.properties = EnumSet.copyOf(List.of(properties));
+            if (validateGeneratedColumns) {
+                this.properties.add(Properties.VALIDATE_CONSTRAINTS);
+            }
+            if (continueOnError) {
+                this.properties.add(Properties.CONTINUE_ON_ERROR);
+            }
         }
 
         public ShardUpsertRequest newRequest(ShardId shardId) {
@@ -435,11 +421,9 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 assignmentsColumns,
                 missingAssignmentsColumns,
                 returnValues,
-                jobId)
-                .timeout(timeout)
-                .continueOnError(continueOnError)
-                .duplicateKeyAction(duplicateKeyAction)
-                .validateConstraints(validateGeneratedColumns);
+                jobId,
+                properties)
+                .timeout(timeout);
         }
     }
 }

@@ -29,7 +29,7 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.Properties;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeJobsCounter;
@@ -102,13 +102,14 @@ public class ColumnIndexWriterProjector implements Projector {
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            ignoreDuplicateKeys ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors
             updateColumnNames,
             columnReferences.toArray(new Reference[columnReferences.size()]),
             returnValueOrNull,
             jobId,
-            true);
+            true,
+            ignoreDuplicateKeys ? Properties.DUPLICATE_KEY_IGNORE : Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+            );
 
         InputRow insertValues = new InputRow(insertInputs);
         Function<String, ShardUpsertRequest.Item> itemFactory =
