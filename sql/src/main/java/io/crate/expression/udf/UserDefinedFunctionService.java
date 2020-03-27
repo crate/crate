@@ -22,12 +22,15 @@
 package io.crate.expression.udf;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FuncResolver;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,12 +40,13 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.unit.TimeValue;
 
+import javax.annotation.Nullable;
 import javax.script.ScriptException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -195,22 +199,44 @@ public class UserDefinedFunctionService {
         }
     }
 
+
     public void updateImplementations(String schema, Stream<UserDefinedFunctionMetaData> userDefinedFunctions) {
-        functions.registerUdfResolversForSchema(schema, constructScalarInstances(userDefinedFunctions));
+        final Map<FunctionName, List<FuncResolver>> implementations = new HashMap<>();
+        Iterator<UserDefinedFunctionMetaData> it = userDefinedFunctions.iterator();
+        while (it.hasNext()) {
+            UserDefinedFunctionMetaData udf = it.next();
+            FuncResolver resolver = buildFunctionResolver(udf);
+            if (resolver == null) {
+                continue;
+            }
+            var functionName = new FunctionName(udf.schema(), udf.name());
+            var resolvers = implementations.computeIfAbsent(
+                functionName, k -> new ArrayList<>());
+            resolvers.add(resolver);
+        }
+        functions.registerUdfFunctionImplementationsForSchema(schema, implementations);
     }
 
-    private Map<FunctionIdent, FunctionImplementation> constructScalarInstances(Stream<UserDefinedFunctionMetaData> functions) {
-        Iterator<UserDefinedFunctionMetaData> it = functions.iterator();
-        Map<FunctionIdent, FunctionImplementation> implementationsByIdent = new HashMap<>();
-        while (it.hasNext()) {
-            UserDefinedFunctionMetaData udfMetaData = it.next();
-            try {
-                Scalar scalar = getLanguage(udfMetaData.language()).createFunctionImplementation(udfMetaData);
-                implementationsByIdent.put(scalar.info().ident(), scalar);
-            } catch (ScriptException | IllegalArgumentException e) {
-                LOGGER.warn("Can't create user defined function: " + udfMetaData.specificName(), e);
-            }
+    @Nullable
+    public FuncResolver buildFunctionResolver(UserDefinedFunctionMetaData udf) {
+        final Scalar<?, ?> scalar;
+        try {
+            scalar = getLanguage(udf.language()).createFunctionImplementation(udf);
+        } catch (ScriptException | IllegalArgumentException e) {
+            LOGGER.warn("Can't create user defined function: " + udf.specificName(), e);
+            return null;
         }
-        return implementationsByIdent;
+
+        var functionName = new FunctionName(udf.schema(), udf.name());
+        var signature = Signature.builder()
+            .name(functionName)
+            .kind(FunctionInfo.Type.SCALAR)
+            .argumentTypes(
+                Lists2.map(
+                    udf.argumentTypes(),
+                    DataType::getTypeSignature))
+            .returnType(udf.returnType().getTypeSignature())
+            .build();
+        return new FuncResolver(signature, args -> scalar);
     }
 }

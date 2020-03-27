@@ -132,7 +132,9 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 @Listeners({SystemPropsTestLoggingListener.class})
@@ -610,7 +612,14 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
                 FunctionImplementation func = function.getQualified(new FunctionIdent(schema, name, argTypes));
-                assertThat(func, Matchers.nullValue());
+                if (func != null) {
+                    // if no exact function match is found for given arguments,
+                    // the function with arguments that can be casted to provided
+                    // arguments will be returned. Therefore, we have to assert that
+                    // the provided arguments do not match the arguments of the resolved
+                    // function if the function was deleted.
+                    assertThat(func.info().ident().argumentTypes(), not(contains(argTypes)));
+                }
             }
         }, 20L, TimeUnit.SECONDS);
     }
