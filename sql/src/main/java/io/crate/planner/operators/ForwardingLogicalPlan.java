@@ -26,6 +26,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.TableStats;
 
 import java.util.Collection;
 import java.util.List;
@@ -47,8 +48,8 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        LogicalPlan newSource = source.pruneOutputsExcept(outputsToKeep);
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, outputsToKeep);
         if (newSource == source) {
             return this;
         }

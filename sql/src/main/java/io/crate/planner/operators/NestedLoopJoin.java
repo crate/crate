@@ -47,6 +47,7 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
+import io.crate.statistics.TableStats;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
@@ -257,7 +258,7 @@ public class NestedLoopJoin implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         ArrayList<Symbol> lhsToKeep = new ArrayList<>();
         ArrayList<Symbol> rhsToKeep = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
@@ -268,8 +269,8 @@ public class NestedLoopJoin implements LogicalPlan {
             SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
             SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
         }
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
+        LogicalPlan newLhs = lhs.pruneOutputsExcept(tableStats, lhsToKeep);
+        LogicalPlan newRhs = rhs.pruneOutputsExcept(tableStats, rhsToKeep);
         if (newLhs == lhs && newRhs == rhs) {
             return this;
         }
@@ -287,7 +288,7 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Nullable
     @Override
-    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
         ArrayList<Symbol> usedFromLeft = new ArrayList<>();
         ArrayList<Symbol> usedFromRight = new ArrayList<>();
         for (Symbol usedColumn : usedColumns) {
@@ -298,11 +299,11 @@ public class NestedLoopJoin implements LogicalPlan {
             SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
             SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
         }
-        FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(usedFromLeft);
+        FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(tableStats, usedFromLeft);
         if (lhsFetchRewrite == null) {
             return null;
         }
-        FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(usedFromRight);
+        FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(tableStats, usedFromRight);
         if (rhsFetchRewrite == null) {
             return null;
         }

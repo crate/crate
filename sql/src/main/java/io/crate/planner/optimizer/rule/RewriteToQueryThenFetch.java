@@ -64,7 +64,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }
-        FetchRewrite fetchRewrite = limit.source().rewriteToFetch(Set.of());
+        FetchRewrite fetchRewrite = limit.source().rewriteToFetch(tableStats, Set.of());
         if (fetchRewrite == null) {
             return null;
         }

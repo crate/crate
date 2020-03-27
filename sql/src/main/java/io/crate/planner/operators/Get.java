@@ -40,6 +40,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
+import io.crate.statistics.TableStats;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -167,7 +168,7 @@ public class Get implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         boolean excludedAny = false;
         for (Symbol output : outputs) {
