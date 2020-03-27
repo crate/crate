@@ -393,6 +393,23 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat(nameGeneratedColumn.formattedGeneratedExpression(), is("concat(name, 'foo')"));
     }
 
+    @Test
+    public void testAddColumnWithCheckConstraint() throws Exception {
+        BoundAddColumn analysis = analyze(
+            "alter table users add column bazinga int constraint bazinga_check check(bazinga > 0)");
+        assertThat(analysis.analyzedTableElements().getCheckConstraints(), is(Map.of("bazinga_check", "\"bazinga\" > 0")));
+        Map<String, Object> mapping = analysis.mapping();
+        assertThat(mapToSortedString(mapping),
+                   is("_meta={check_constraints={bazinga_check=\"bazinga\" > 0}, primary_keys=[id]}, " +
+                      "properties={bazinga={position=18, type=integer}, id={type=long}}"));
+    }
+
+    @Test
+    public void testAddColumnWithCheckConstraintFailsBecauseItRefersToAnotherColumn() throws Exception {
+        expectedException.expectMessage("CHECK expressions defined in this context cannot refer to other columns: id");
+        BoundAddColumn analysis = analyze(
+            "alter table users add column bazinga int constraint bazinga_check check(id > 0)");
+    }
 
     @Test
     public void testAddColumnWithColumnStoreDisabled() throws Exception {

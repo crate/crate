@@ -357,6 +357,16 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void test_alter_table_add_column_succedds_because_check_constaint_refers_to_self_columns() {
+        execute("create table t (id integer primary key, qty integer constraint check_1 check (qty > 0))");
+        execute("alter table t add column bazinga integer constraint bazinga_check check(bazinga <> 42)");
+        execute("insert into t(id, qty, bazinga) values(0, 1, 100)");
+        expectedException.expectMessage(containsString(
+            "SQLParseException: Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {qty=1, id=0, bazinga=42}"));
+        execute("insert into t(id, qty, bazinga) values(0, 1, 42)");
+    }
+
+    @Test
     public void testAlterTable() throws Exception {
         execute("create table test (col1 int) with (number_of_replicas='0-all')");
         ensureYellow();

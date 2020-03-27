@@ -99,7 +99,7 @@ public final class CreateTableStatementAnalyzer {
             .collect(Collectors.toList());
         tableElementsWithExpressions.addAll(analyzedCheckConstraints);
         analyzedCreateTable.tableElements().addAll(analyzedCheckConstraints);
-        analyzedCheckConstraints.forEach(c -> analyzedTableElements.addCheckConstraint(relationName, (CheckConstraint) c));
+        analyzedCheckConstraints.forEach(c -> analyzedTableElements.addCheckConstraint(relationName, (CheckConstraint<Symbol>) c));
         AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
             tableElementsWithExpressions, relationName, null, false);
         return new AnalyzedCreateTable(

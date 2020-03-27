@@ -26,15 +26,28 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionToColumnIdentVisitor;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.QualifiedName;
+
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 
@@ -72,7 +85,19 @@ class AlterTableAddColumnAnalyzer {
         // convert and validate the column name
         ExpressionToColumnIdentVisitor.convert(tableElement.name());
 
-        AddColumnDefinition<Symbol> addColumnDefinition = tableElement.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
+        // 1st phase, exclude check constraints (their expressions contain column references) and generated expressions
+        AddColumnDefinition<Symbol> addColumnDefinition = new AddColumnDefinition<>(
+            exprAnalyzerWithFieldsAsString.convert(tableElement.name(), exprCtx),
+            null,   // expression must be mapped later on using mapExpressions()
+            tableElement.type() == null ? null : tableElement.type().map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx)),
+            tableElement.constraints()
+                .stream()
+                .filter(c -> false == c instanceof CheckColumnConstraint)
+                .map(x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx)))
+                .collect(Collectors.toList()),
+            false,
+            tableElement.generatedExpression() != null
+        );
         AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
             singletonList(addColumnDefinition), tableInfo.ident(), tableInfo);
 
@@ -82,8 +107,66 @@ class AlterTableAddColumnAnalyzer {
             x -> exprAnalyzerWithReferenceResolver.convert(x, exprCtx));
         AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
             singletonList(addColumnDefinitionWithExpression), tableInfo.ident(), tableInfo);
-
-
+        // now analyze possible check expressions
+        var checkColumnConstraintsAnalyzer = new ExpressionAnalyzer(
+            functions,
+            txnCtx,
+            paramTypeHints,
+            new SelfReferenceFieldProvider(
+                tableInfo.ident(), referenceResolver, analyzedTableElements.columns()),
+            null);
+        tableElement.constraints()
+            .stream()
+            .filter(CheckColumnConstraint.class::isInstance)
+            .map(x -> x.map(y -> checkColumnConstraintsAnalyzer.convert(y, exprCtx)))
+            .forEach(c -> {
+                CheckColumnConstraint<Symbol> check = (CheckColumnConstraint<Symbol>) c;
+                analyzedTableElements.addCheckColumnConstraint(tableInfo.ident(), check);
+                analyzedTableElementsWithExpressions.addCheckColumnConstraint(tableInfo.ident(), check);
+            });
         return new AnalyzedAlterTableAddColumn(tableInfo, analyzedTableElements, analyzedTableElementsWithExpressions);
+    }
+
+    private static class SelfReferenceFieldProvider implements FieldProvider<Reference> {
+
+        private final RelationName relationName;
+        private final TableReferenceResolver referenceResolver;
+        private final List<AnalyzedColumnDefinition<Symbol>> columnDefinitions;
+
+        SelfReferenceFieldProvider(RelationName relationName,
+                                   TableReferenceResolver referenceResolver,
+                                   List<AnalyzedColumnDefinition<Symbol>> columnDefinitions) {
+            this.relationName = relationName;
+            this.referenceResolver = referenceResolver;
+            this.columnDefinitions = columnDefinitions;
+        }
+
+        @Override
+        public Reference resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
+            try {
+                // SQL Semantics: CHECK expressions cannot refer to other
+                // columns to not invalidate existing data inadvertently.
+                Reference ref = referenceResolver.resolveField(qualifiedName, path, operation);
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "CHECK expressions defined in this context cannot refer to other columns: %s",
+                    ref));
+            } catch (ColumnUnknownException cue) {
+                ColumnIdent colIdent = TableReferenceResolver.columnIdent(qualifiedName, path);
+                for (int i = 0; i < columnDefinitions.size(); i++) {
+                    AnalyzedColumnDefinition<Symbol> def = columnDefinitions.get(i);
+                    if (def.ident().equals(colIdent)) {
+                        return new Reference(
+                            new ReferenceIdent(relationName, colIdent),
+                            RowGranularity.DOC,
+                            def.dataType(),
+                            def.position,
+                            def.defaultExpression()
+                        );
+                    }
+                }
+                throw new ColumnUnknownException(colIdent.sqlFqn(), relationName);
+            }
+        }
     }
 }
