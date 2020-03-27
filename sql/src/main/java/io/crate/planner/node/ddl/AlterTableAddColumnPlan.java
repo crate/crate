@@ -45,6 +45,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.CheckConstraint;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
@@ -112,6 +113,7 @@ public class AlterTableAddColumnPlan implements Plan {
         }
         addExistingPrimaryKeys(tableInfo, tableElementsBound);
         ensureNoIndexDefinitions(tableElementsBound.columns());
+        addExistingCheckConstraints(tableInfo, tableElementsBound);
         // validate table elements
         AnalyzedTableElements<Symbol> tableElementsUnboundWithExpressions = alterTable.analyzedTableElementsWithExpressions();
         Map<String, Object> mapping = AnalyzedTableElements.finalizeAndValidate(
@@ -202,6 +204,13 @@ public class AlterTableAddColumnPlan implements Plan {
                     "Adding an index using ALTER TABLE ADD COLUMN is not supported");
             }
             ensureNoIndexDefinitions(column.children());
+        }
+    }
+
+    private static void addExistingCheckConstraints(DocTableInfo tableInfo, AnalyzedTableElements<Object> tableElements) {
+        List<CheckConstraint<Symbol>> checkConstraints = tableInfo.checkConstraints();
+        for (int i = 0; i < checkConstraints.size(); i++) {
+            tableElements.addCheckConstraint(tableInfo.ident(), checkConstraints.get(i));
         }
     }
 }
