@@ -36,6 +36,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -114,8 +115,8 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        LogicalPlan newSource = source.pruneOutputsExcept(source.outputs());
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, source.outputs());
         if (newSource == source) {
             return this;
         }

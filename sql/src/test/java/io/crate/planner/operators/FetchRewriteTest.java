@@ -25,7 +25,6 @@ package io.crate.planner.operators;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -33,6 +32,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -64,7 +64,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         var collect = new Collect(false, relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         var eval = new Eval(collect, List.of(Function.of("add", List.of(x, x), DataTypes.INTEGER)));
 
-        FetchRewrite fetchRewrite = eval.rewriteToFetch(List.of());
+        FetchRewrite fetchRewrite = eval.rewriteToFetch(new TableStats(), List.of());
         assertThat(fetchRewrite, Matchers.notNullValue());
         assertThat(fetchRewrite.newPlan(), isPlan("Collect[doc.tbl | [_fetchid] | true]"));
         assertThat(
@@ -91,7 +91,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         assertThat(t1X, Matchers.notNullValue());
         var rename = new Rename(List.of(t1X), alias.relationName(), alias, collect);
 
-        FetchRewrite fetchRewrite = rename.rewriteToFetch(List.of());
+        FetchRewrite fetchRewrite = rename.rewriteToFetch(new TableStats(), List.of());
         assertThat(fetchRewrite, Matchers.notNullValue());
         LogicalPlan newRename = fetchRewrite.newPlan();
         assertThat(newRename, isPlan(

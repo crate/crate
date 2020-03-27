@@ -36,6 +36,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -147,7 +148,7 @@ public interface LogicalPlan extends Plan {
      *  That allows implementations to do a cheap identity check to avoid LogicalPlan re-creations themselves.
      * </p>
      */
-    LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep);
+    LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep);
 
     /**
      * Rewrite an operator and its children to utilize a "query-then-fetch" approach.
@@ -181,10 +182,9 @@ public interface LogicalPlan extends Plan {
      * @param usedColumns The columns that the ancestor operators use intermediately to produce their result.
      *                    For example, a `Filter (x > 10)` uses `x > 10`, a `Order [a ASC]` uses `a`.
      *                    An operator that uses *all* of its sources outputs to produce a result should return `null`
-     *                    to indicate that there is no reason to use query-then-fetch.
      */
     @Nullable
-    default FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+    default FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
         return null;
     }
 

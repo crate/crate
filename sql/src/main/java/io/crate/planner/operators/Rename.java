@@ -34,6 +34,7 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -90,7 +91,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         /* In `SELECT * FROM (SELECT t1.*, t2.* FROM tbl AS t1, tbl AS t2) AS tjoin`
          * The `ScopedSymbol`s are ambiguous; To map them correctly this uses a IdentityHashMap
          */
@@ -108,7 +109,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
                 mappedToKeep.add(childSymbol);
             });
         }
-        LogicalPlan newSource = source.pruneOutputsExcept(mappedToKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, mappedToKeep);
         if (newSource == source) {
             return this;
         }
@@ -126,7 +127,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
 
     @Nullable
     @Override
-    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
         IdentityHashMap<Symbol, Symbol> parentToChildMap = new IdentityHashMap<>(outputs.size());
         IdentityHashMap<Symbol, Symbol> childToParentMap = new IdentityHashMap<>(outputs.size());
         for (int i = 0; i < outputs.size(); i++) {
@@ -141,7 +142,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
                 mappedUsedColumns.add(childSymbol);
             });
         }
-        FetchRewrite fetchRewrite = source.rewriteToFetch(mappedUsedColumns);
+        FetchRewrite fetchRewrite = source.rewriteToFetch(tableStats, mappedUsedColumns);
         if (fetchRewrite == null) {
             return null;
         }

@@ -40,6 +40,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -131,7 +132,7 @@ public final class TableFunction implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         if (outputsToKeep.containsAll(toCollect)) {
             return this;
         }

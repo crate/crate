@@ -37,6 +37,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -72,7 +73,7 @@ public class Order extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, source.outputs(), toKeep::add);
@@ -80,7 +81,7 @@ public class Order extends ForwardingLogicalPlan {
         for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
             SymbolVisitors.intersection(orderBySymbol, source.outputs(), toKeep::add);
         }
-        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
         if (newSource == source) {
             return this;
         }
@@ -89,10 +90,10 @@ public class Order extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
         HashSet<Symbol> allUsedColumns = new HashSet<>(usedColumns);
         allUsedColumns.addAll(orderBy.orderBySymbols());
-        FetchRewrite fetchRewrite = source.rewriteToFetch(allUsedColumns);
+        FetchRewrite fetchRewrite = source.rewriteToFetch(tableStats, allUsedColumns);
         if (fetchRewrite == null) {
             return null;
         }
