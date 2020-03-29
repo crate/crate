@@ -43,7 +43,7 @@ public class LineParser {
     public void readFirstLine(URI currentUri, FileUriCollectPhase.InputFormat inputFormat, BufferedReader currentReader) throws IOException {
         if (isInputCsv(inputFormat, currentUri)) {
             csvLineParser = new CSVLineParser();
-            csvLineParser.parseHeader(currentReader);
+            csvLineParser.parseHeader(currentReader.readLine());
             inputType = InputType.CSV;
         } else {
             inputType = InputType.JSON;
