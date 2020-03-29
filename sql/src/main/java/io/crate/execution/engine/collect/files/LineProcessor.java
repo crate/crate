@@ -28,10 +28,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 
-public class LineProcessor {
+public final class LineProcessor {
 
-    private LineContext lineContext = new LineContext();
-    private LineParser lineParser = new LineParser();
+    private final LineContext lineContext = new LineContext();
+    private final LineParser lineParser = new LineParser();
 
     public void startCollect(Iterable<LineCollectorExpression<?>> collectorExpressions) {
         for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
