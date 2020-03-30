@@ -162,36 +162,20 @@ public class XContentHelper {
         }
     }
 
-    @Deprecated
-    public static String convertToJson(BytesReference bytes, boolean reformatJson) throws IOException {
-        return convertToJson(bytes, reformatJson, false);
-    }
 
-    @Deprecated
-    public static String convertToJson(BytesReference bytes, boolean reformatJson, boolean prettyPrint) throws IOException {
-        return convertToJson(bytes, reformatJson, prettyPrint, XContentFactory.xContentType(bytes.toBytesRef().bytes));
-    }
-
-    public static String convertToJson(BytesReference bytes, boolean reformatJson, XContentType xContentType) throws IOException {
-        return convertToJson(bytes, reformatJson, false, xContentType);
-    }
-
-    public static String convertToJson(BytesReference bytes, boolean reformatJson, boolean prettyPrint, XContentType xContentType)
-        throws IOException {
+    public static String convertToJson(BytesReference bytes, XContentType xContentType) throws IOException {
         Objects.requireNonNull(xContentType);
-        if (xContentType == XContentType.JSON && !reformatJson) {
+        if (xContentType == XContentType.JSON) {
             return bytes.utf8ToString();
         }
-
         // It is safe to use EMPTY here because this never uses namedObject
         try (InputStream stream = bytes.streamInput();
-             XContentParser parser = XContentFactory.xContent(xContentType).createParser(NamedXContentRegistry.EMPTY,
-                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION, stream)) {
+             XContentParser parser = XContentFactory.xContent(xContentType).createParser(
+                 NamedXContentRegistry.EMPTY,
+                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                 stream)) {
             parser.nextToken();
             XContentBuilder builder = XContentFactory.jsonBuilder();
-            if (prettyPrint) {
-                builder.prettyPrint();
-            }
             builder.copyCurrentStructure(parser);
             return Strings.toString(builder);
         }

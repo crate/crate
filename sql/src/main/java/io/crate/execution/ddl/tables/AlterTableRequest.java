@@ -105,7 +105,7 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         }
         XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
         builder.map(mapping);
-        return XContentHelper.convertToJson(BytesReference.bytes(builder), false, false, XContentType.JSON);
+        return XContentHelper.convertToJson(BytesReference.bytes(builder), XContentType.JSON);
     }
 
     @Nullable

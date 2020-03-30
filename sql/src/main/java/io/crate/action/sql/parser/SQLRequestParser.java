@@ -80,7 +80,7 @@ public final class SQLRequestParser {
         } catch (Exception e) {
             String sSource = "_na_";
             try {
-                sSource = XContentHelper.convertToJson(source, false, XContentType.JSON);
+                sSource = XContentHelper.convertToJson(source, XContentType.JSON);
             } catch (Throwable e1) {
                 // ignore
             }
