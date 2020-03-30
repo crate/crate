@@ -210,7 +210,7 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         }
         Objects.requireNonNull(xContentType);
         try {
-            mappings.put(type, XContentHelper.convertToJson(source, false, false, xContentType));
+            mappings.put(type, XContentHelper.convertToJson(source, xContentType));
             return this;
         } catch (IOException e) {
             throw new UncheckedIOException("failed to convert to json", e);

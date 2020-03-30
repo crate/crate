@@ -260,7 +260,7 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
     public PutMappingRequest source(BytesReference mappingSource, XContentType xContentType) {
         Objects.requireNonNull(xContentType);
         try {
-            this.source = XContentHelper.convertToJson(mappingSource, false, false, xContentType);
+            this.source = XContentHelper.convertToJson(mappingSource, xContentType);
             return this;
         } catch (IOException e) {
             throw new UncheckedIOException("failed to convert source to json", e);
