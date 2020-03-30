@@ -854,15 +854,15 @@ public class JobSetup {
                 breaker.getLimit(),
                 1
             );
-            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
+            var concurrentRamAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
             var ramAccountingOfOperation = new BlockBasedRamAccounting(
-                ramAccounting::addBytes,
+                concurrentRamAccounting::addBytes,
                 ramAccountingBlockSizeInBytes);
             RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingOfOperation);
-            var memoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
+            var memoryManager = memoryManagerFactory.getMemoryManager(concurrentRamAccounting);
             lastConsumer.completionFuture().whenComplete((result, error) -> {
                 memoryManager.close();
-                ramAccounting.close();
+                concurrentRamAccounting.close();
             });
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
@@ -870,7 +870,7 @@ public class JobSetup {
                 phase.projections(),
                 phase.jobId(),
                 context.txnCtx(),
-                ramAccounting,          // some projectors may account ram concurrently, e.g. fetch
+                concurrentRamAccounting,          // some projectors may account ram concurrently, e.g. fetch
                 memoryManager,
                 projectorFactory
             );
@@ -883,7 +883,7 @@ public class JobSetup {
                 joinCondition,
                 phase.joinType(),
                 breaker(),
-                phase.blockNestedLoop ? ramAccounting : ramAccountingOfOperation,
+                ramAccountingOfOperation,
                 phase.leftSideColumnTypes,
                 phase.estimatedRowsSizeLeft,
                 phase.estimatedNumberOfRowsLeft,
@@ -895,7 +895,7 @@ public class JobSetup {
                 (byte) 0,
                 phase.leftMergePhase(),
                 joinOperation.leftConsumer(),
-                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes),
+                new BlockBasedRamAccounting(concurrentRamAccounting::addBytes, ramAccountingBlockSizeInBytes),
                 memoryManager
             );
 
@@ -909,7 +909,7 @@ public class JobSetup {
                 (byte) 1,
                 phase.rightMergePhase(),
                 joinOperation.rightConsumer(),
-                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes),
+                new BlockBasedRamAccounting(concurrentRamAccounting::addBytes, ramAccountingBlockSizeInBytes),
                 memoryManager
             );
             if (right != null) {
