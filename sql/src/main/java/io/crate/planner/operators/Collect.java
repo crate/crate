@@ -332,8 +332,9 @@ public class Collect implements LogicalPlan {
                 replacedOutputs.put(output, output);
             } else {
                 Symbol outputWithFetchStub = RefReplacer.replaceRefs(output, ref -> {
-                    refsToFetch.add(ref);
-                    return new FetchStub(fetchMarker, ref);
+                    Reference sourceLookup = DocReferences.toSourceLookup(ref);
+                    refsToFetch.add(sourceLookup);
+                    return new FetchStub(fetchMarker, sourceLookup);
                 });
                 replacedOutputs.put(output, outputWithFetchStub);
             }
