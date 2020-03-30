@@ -71,7 +71,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
             fetchRewrite.replacedOutputs(),
             Matchers.hasEntry(
                 isFunction("add", isReference("x"), isReference("x")),
-                isFunction("add", isFetchStub("x"), isFetchStub("x"))
+                isFunction("add", isFetchStub("_doc['x']"), isFetchStub("_doc['x']"))
             )
         );
         assertThat(List.copyOf(fetchRewrite.replacedOutputs().keySet()), is(eval.outputs()));
@@ -104,10 +104,10 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(
             fetchRewrite.replacedOutputs(),
-            Matchers.hasEntry(isField("x", alias.relationName()), isFetchStub("x"))
+            Matchers.hasEntry(isField("x", alias.relationName()), isFetchStub("_doc['x']"))
         );
         assertThat(newRename.outputs(), contains(
-            isFetchMarker(alias.relationName(), contains(isReference("x"))))
+            isFetchMarker(alias.relationName(), contains(isReference("_doc['x']"))))
         );
 
         FetchStub fetchStub = (FetchStub) fetchRewrite.replacedOutputs().entrySet().iterator().next().getValue();
