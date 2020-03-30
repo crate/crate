@@ -43,6 +43,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -106,7 +107,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         HashSet<Symbol> toKeep = new HashSet<>();
         ArrayList<WindowFunction> newWindowFunctions = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
@@ -116,7 +117,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
         for (WindowFunction newWindowFunction : newWindowFunctions) {
             SymbolVisitors.intersection(newWindowFunction, source.outputs(), toKeep::add);
         }
-        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
         if (newSource == source) {
             return this;
         }

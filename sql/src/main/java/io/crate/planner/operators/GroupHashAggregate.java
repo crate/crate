@@ -229,7 +229,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         HashSet<Symbol> toKeep = new HashSet<>();
         // We cannot prune groupKeys, even if they are not used in the outputs, because it would change the result semantically
         for (Symbol groupKey : groupKeys) {
@@ -242,7 +242,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         for (Function newAggregate : newAggregates) {
             SymbolVisitors.intersection(newAggregate, source.outputs(), toKeep::add);
         }
-        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
         if (newSource == source && aggregates.size() == newAggregates.size()) {
             return this;
         }
