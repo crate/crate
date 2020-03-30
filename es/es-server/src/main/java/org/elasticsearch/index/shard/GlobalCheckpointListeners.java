@@ -194,7 +194,10 @@ public class GlobalCheckpointListeners implements Closeable {
     private void notifyListeners(final long globalCheckpoint, final IndexShardClosedException e) {
         assert Thread.holdsLock(this) : Thread.currentThread();
         assertNotification(globalCheckpoint, e);
-
+        // early return if there are no listeners
+        if (listeners.isEmpty()) {
+            return;
+        }
         final Map<GlobalCheckpointListener, Tuple<Long, ScheduledFuture<?>>> listenersToNotify;
         if (globalCheckpoint != UNASSIGNED_SEQ_NO) {
             listenersToNotify =
