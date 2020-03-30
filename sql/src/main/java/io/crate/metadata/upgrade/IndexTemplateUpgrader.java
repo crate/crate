@@ -92,12 +92,11 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
                 .settings(settings);
             try {
                 for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.getMappings()) {
-                    var mappingSource = XContentHelper.convertToMap(
-                        cursor.value.compressedReference(), false, XContentType.JSON).v2();
+                    var mappingSource = XContentHelper.toMap(cursor.value.compressedReference(), XContentType.JSON);
 
                     Object defaultMapping = mappingSource.get("default");
-                    if (defaultMapping instanceof Map && ((Map) defaultMapping).containsKey("_all")) {
-                        Map mapping = (Map) defaultMapping;
+                    if (defaultMapping instanceof Map && ((Map<?, ?>) defaultMapping).containsKey("_all")) {
+                        Map<?, ?> mapping = (Map<?, ?>) defaultMapping;
 
                         // Support for `_all` was removed (in favour of `copy_to`.
                         // We never utilized this but always set `_all: {enabled: false}` if you created a table using SQL in earlier version, so we can safely drop it.
