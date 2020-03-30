@@ -186,8 +186,7 @@ public class JobSetup {
             inputFactory,
             normalizer,
             systemCollectSource::getRowUpdater,
-            systemCollectSource::tableDefinition,
-            bigArrays
+            systemCollectSource::tableDefinition
         );
     }
 

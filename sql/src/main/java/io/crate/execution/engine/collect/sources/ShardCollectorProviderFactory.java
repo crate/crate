@@ -87,8 +87,8 @@ public class ShardCollectorProviderFactory {
                 functions,
                 threadPool,
                 settings,
-                transportActionProvider,
-                bigArrays);
+                transportActionProvider
+            );
         } else {
             return new LuceneShardCollectorProvider(
                 schemas,

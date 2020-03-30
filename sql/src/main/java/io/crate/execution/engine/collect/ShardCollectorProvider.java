@@ -45,7 +45,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -65,8 +64,7 @@ public abstract class ShardCollectorProvider {
                            Settings settings,
                            TransportActionProvider transportActionProvider,
                            IndexShard indexShard,
-                           ShardRowContext shardRowContext,
-                           BigArrays bigArrays) {
+                           ShardRowContext shardRowContext) {
         this.shardRowContext = shardRowContext;
         shardNormalizer = new EvaluatingNormalizer(
             functions,
@@ -86,7 +84,6 @@ public abstract class ShardCollectorProvider {
             t -> null,
             t -> null,
             indexShard.indexSettings().getIndexVersionCreated(),
-            bigArrays,
             indexShard.shardId()
         );
     }

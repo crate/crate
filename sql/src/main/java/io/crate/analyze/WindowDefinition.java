@@ -125,23 +125,4 @@ public class WindowDefinition implements Writeable {
                ", windowFrame=" + windowFrameDefinition +
                '}';
     }
-
-    public String representation() {
-        StringBuilder sb = new StringBuilder("Window{");
-        if (partitions.size() > 0) {
-            sb.append("PARTITION BY ");
-            for (Symbol symbol : partitions) {
-                sb.append(symbol.toString());
-            }
-        }
-        if (orderBy != null) {
-            sb.append(" ");
-            sb.append(orderBy.toString());
-        }
-        sb.append(" ");
-        sb.append(windowFrameDefinition.toString());
-        sb.append("}");
-        return sb.toString();
-    }
-
 }

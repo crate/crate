@@ -40,7 +40,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,7 +80,6 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
             t -> null,
             t -> null,
             Version.CURRENT,
-            BigArrays.NON_RECYCLING_INSTANCE,
             new ShardId("dummy", UUID.randomUUID().toString(), 0)
         );
     }

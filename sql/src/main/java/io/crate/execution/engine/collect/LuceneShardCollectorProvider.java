@@ -46,7 +46,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -97,8 +96,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             settings,
             transportActionProvider,
             indexShard,
-            new ShardRowContext(indexShard, clusterService),
-            bigArrays
+            new ShardRowContext(indexShard, clusterService)
         );
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.functions = functions;
