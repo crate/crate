@@ -27,15 +27,10 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.geo.GeoUtils;
@@ -44,22 +39,30 @@ import org.locationtech.spatial4j.shape.Point;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public class DistanceFunction extends Scalar<Double, Point> {
 
     public static final String NAME = "distance";
-    private static final Param ALLOWED_PARAM = Param.of(
-        DataTypes.STRING, DataTypes.GEO_POINT, new ArrayType(DataTypes.DOUBLE));
+    private static final List<DataType<?>> SUPPORTED_TYPES = List.of(
+        DataTypes.STRING, DataTypes.GEO_POINT, DataTypes.DOUBLE_ARRAY);
 
     private final FunctionInfo info;
     private static final FunctionInfo GEO_POINT_INFO = genInfo(Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT));
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new BaseFunctionResolver(FuncParams.builder(ALLOWED_PARAM, ALLOWED_PARAM).build()) {
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new DistanceFunction(genInfo(dataTypes));
-            }
-        });
+        for (var inputType : SUPPORTED_TYPES) {
+            module.register(
+                scalar(
+                    NAME,
+                    inputType.getTypeSignature(),
+                    inputType.getTypeSignature(),
+                    parseTypeSignature("double precision")
+                ),
+                argumentTypes -> new DistanceFunction(genInfo(argumentTypes))
+            );
+        }
     }
 
     private static FunctionInfo genInfo(List<DataType> argumentTypes) {
