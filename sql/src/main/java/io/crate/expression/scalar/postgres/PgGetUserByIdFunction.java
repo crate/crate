@@ -29,16 +29,18 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-import java.util.List;
-
 import static io.crate.auth.user.User.CRATE_USER;
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class PgGetUserByIdFunction {
 
     public static void register(ScalarFunctionModule module) {
-        FunctionIdent ident = new FunctionIdent(
-            new FunctionName(PgCatalogSchemaInfo.NAME, "pg_get_userbyid"),
-            List.of(DataTypes.INTEGER));
-        module.register(new UnaryScalar<>(ident, DataTypes.STRING, id -> CRATE_USER.name()));
+        var name = new FunctionName(PgCatalogSchemaInfo.NAME, "pg_get_userbyid");
+        module.register(
+            scalar(name, parseTypeSignature("integer"), parseTypeSignature("text")),
+            args ->
+                new UnaryScalar<>(new FunctionIdent(name, args), DataTypes.STRING, id -> CRATE_USER.name())
+        );
     }
 }
