@@ -22,7 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.execution.dml.upsert.ShardUpsertRequest.Properties;
+import io.crate.execution.dml.upsert.AbstractShardWriteRequest.Mode;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
@@ -69,21 +69,22 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
-            TimeValue.timeValueSeconds(30),
-            false,
-            assignmentColumns,
-            missingAssignmentColumns,
-            null,
-            jobId,
-            false,
-            Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+                new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
+                TimeValue.timeValueSeconds(30),
+                false,
+                assignmentColumns,
+                missingAssignmentColumns,
+                null,
+                jobId,
+                false,
+                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             ).newRequest(shardId);
 
         request.add(123, new ShardUpsertRequest.Item(
             "99",
             null,
             new Object[]{99, "Marvin"},
+            null,
             null,
             null,
             null));
@@ -93,6 +94,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             new Object[]{99, "Marvin"},
             null,
             null,
+            null,
             null));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
@@ -100,7 +102,8 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             null,
             2L,
             1L,
-            5L));
+            5L,
+            null));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
@@ -118,15 +121,15 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
-            TimeValue.timeValueSeconds(30),
-            false,
-            assignmentColumns,
-            missingAssignmentColumns,
-            null,
-            jobId,
-            false,
-            Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+                new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
+                TimeValue.timeValueSeconds(30),
+                false,
+                assignmentColumns,
+                missingAssignmentColumns,
+                null,
+                jobId,
+                false,
+                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             ).newRequest(shardId);
 
         request.add(123, new ShardUpsertRequest.Item(
@@ -135,21 +138,24 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             new Object[]{99, "Marvin"},
             null,
             null,
-            null));
+            null,
+            new Symbol[0]));
         request.add(42, new ShardUpsertRequest.Item(
             "99",
             new Symbol[0],
             new Object[]{99, "Marvin"},
             null,
             null,
-            null));
+            null,
+            new Symbol[0]));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
             new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
             null,
             2L,
             1L,
-            5L));
+            5L,
+            new Symbol[0]));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);

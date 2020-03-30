@@ -25,7 +25,7 @@ package io.crate.execution.dml.upsert;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.upsert.ShardUpsertRequest.Properties;
+import io.crate.execution.dml.upsert.AbstractShardWriteRequest.Mode;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -110,7 +110,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  ShardStateAction shardStateAction,
                                                  Functions functions,
                                                  Schemas schemas,
-                                                 IndexNameExpressionResolver indexNameExpressionResolver) {
+                                                 IndexNameExpressionResolver indexNameExpressionResolver
+        ) {
             super(threadPool, clusterService, transportService, schemaUpdateClient,
                 tasksService, indicesService, shardStateAction, functions, schemas, indexNameExpressionResolver);
         }
@@ -173,17 +174,17 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            DUMMY_SESSION_INFO,
-            TimeValue.timeValueSeconds(30),
-            false,
-            null,
-            new Reference[]{ID_REF},
-            null,
-            UUID.randomUUID(),
-            false,
-            Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+                DUMMY_SESSION_INFO,
+                TimeValue.timeValueSeconds(30),
+                false,
+                null,
+                new Reference[]{ID_REF},
+                null,
+                UUID.randomUUID(),
+                false,
+                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -195,17 +196,17 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            DUMMY_SESSION_INFO,
-            TimeValue.timeValueSeconds(30),
-            true,
-            null,
-            new Reference[]{ID_REF},
-            null,
-            UUID.randomUUID(),
-            false,
-            Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+                DUMMY_SESSION_INFO,
+                TimeValue.timeValueSeconds(30),
+                true,
+                null,
+                new Reference[]{ID_REF},
+                null,
+                UUID.randomUUID(),
+                false,
+                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -237,17 +238,17 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            DUMMY_SESSION_INFO,
-            TimeValue.timeValueSeconds(30),
-            false,
-            null,
-            new Reference[]{ID_REF},
-            null,
-            UUID.randomUUID(),
-            false,
-            Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+                DUMMY_SESSION_INFO,
+                TimeValue.timeValueSeconds(30),
+                false,
+                null,
+                new Reference[]{ID_REF},
+                null,
+                UUID.randomUUID(),
+                false,
+                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -259,17 +260,17 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            DUMMY_SESSION_INFO,
-            TimeValue.timeValueSeconds(30),
-            false,
-            null,
-            new Reference[]{ID_REF},
-            null,
-            UUID.randomUUID(),
-            false,
-            Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+                DUMMY_SESSION_INFO,
+                TimeValue.timeValueSeconds(30),
+                false,
+                null,
+                new Reference[]{ID_REF},
+                null,
+                UUID.randomUUID(),
+                false,
+                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
 
         reset(indexShard);
 

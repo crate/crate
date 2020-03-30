@@ -238,8 +238,8 @@ public class InsertFromValues implements LogicalPlan {
             plannerContext.jobId(),
             false,
             writerProjection.isIgnoreDuplicateKeys()
-                ? ShardUpsertRequest.Properties.DUPLICATE_KEY_IGNORE
-                : ShardUpsertRequest.Properties.DUPLICATE_KEY_UPDATE_OR_FAIL);
+                ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
+                : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL);
 
         var shardedRequests = new ShardedRequests<>(builder::newRequest);
 
@@ -354,8 +354,8 @@ public class InsertFromValues implements LogicalPlan {
             plannerContext.jobId(),
             true,
             writerProjection.isIgnoreDuplicateKeys()
-                ? ShardUpsertRequest.Properties.DUPLICATE_KEY_IGNORE
-                : ShardUpsertRequest.Properties.DUPLICATE_KEY_UPDATE_OR_FAIL);
+                ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
+                : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL);
         var shardedRequests = new ShardedRequests<>(builder::newRequest);
 
         HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
@@ -454,7 +454,7 @@ public class InsertFromValues implements LogicalPlan {
                 id,
                 assignmentSources,
                 insertValues.materialize(),
-                null, null, null);
+                null, null, null, this.writerProjection.returnValues().toArray(new Symbol[0]));
 
         var rowShardResolver = new RowShardResolver(
             plannerContext.transactionContext(),

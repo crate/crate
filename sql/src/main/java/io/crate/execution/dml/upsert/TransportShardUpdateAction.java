@@ -30,16 +30,19 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportShardUpsertAction extends AbstractTransportShardWriteAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
+@Singleton
+public final class TransportShardUpdateAction extends
+    AbstractTransportShardWriteAction<ShardUpdateRequest, ShardUpdateRequest.Item> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/data/write";
+    private static final String ACTION_NAME = "internal:crate:sql/data/update";
 
     @Inject
-    public TransportShardUpsertAction(ThreadPool threadPool,
+    public TransportShardUpdateAction(ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
                                       SchemaUpdateClient schemaUpdateClient,
@@ -61,7 +64,7 @@ public class TransportShardUpsertAction extends AbstractTransportShardWriteActio
             functions,
             schemas,
             indexNameExpressionResolver,
-            ShardUpsertRequest::new
+            ShardUpdateRequest::new
         );
     }
 }

@@ -29,7 +29,7 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.execution.dml.upsert.ShardUpsertRequest.Properties;
+import io.crate.execution.dml.upsert.AbstractShardWriteRequest.Mode;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeJobsCounter;
@@ -108,7 +108,7 @@ public class ColumnIndexWriterProjector implements Projector {
             returnValueOrNull,
             jobId,
             true,
-            ignoreDuplicateKeys ? Properties.DUPLICATE_KEY_IGNORE : Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+            ignoreDuplicateKeys ? Mode.DUPLICATE_KEY_IGNORE : Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             );
 
         InputRow insertValues = new InputRow(insertInputs);
@@ -118,8 +118,8 @@ public class ColumnIndexWriterProjector implements Projector {
                                               insertValues.materialize(),
                                               null,
                                               null,
-                                              null
-                                              );
+                                              null,
+                                              returnValueOrNull);
 
         var upsertResultContext = returnValues.isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
 

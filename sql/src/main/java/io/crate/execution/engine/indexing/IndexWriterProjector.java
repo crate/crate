@@ -27,8 +27,8 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.execution.dml.upsert.AbstractShardWriteRequest.Mode;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.execution.dml.upsert.ShardUpsertRequest.Properties;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeJobsCounter;
@@ -109,11 +109,11 @@ public class IndexWriterProjector implements Projector {
             null,
             jobId,
             false,
-            overwriteDuplicates ? Properties.DUPLICATE_KEY_OVERWRITE : Properties.DUPLICATE_KEY_UPDATE_OR_FAIL
+            overwriteDuplicates ? Mode.DUPLICATE_KEY_OVERWRITE : Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             );
 
         Function<String, ShardUpsertRequest.Item> itemFactory =
-            id -> new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null);
+            id -> new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null, null);
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,

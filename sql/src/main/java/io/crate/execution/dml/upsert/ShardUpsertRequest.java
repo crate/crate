@@ -22,10 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import com.google.common.base.Objects;
 import io.crate.Streamer;
-import io.crate.common.collections.EnumSets;
-import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
@@ -42,21 +39,11 @@ import org.elasticsearch.index.shard.ShardId;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
-public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
-
-    public enum Properties {
-        DUPLICATE_KEY_UPDATE_OR_FAIL,
-        DUPLICATE_KEY_OVERWRITE,
-        DUPLICATE_KEY_IGNORE,
-        CONTINUE_ON_ERROR,
-        VALIDATE_CONSTRAINTS
-    }
+public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     private SessionSettings sessionSettings;
 
@@ -78,57 +65,20 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     @Nullable
     private Symbol[] returnValues;
 
-    private EnumSet<Properties> properties;
 
-    ShardUpsertRequest() {
-    }
-
-    private ShardUpsertRequest(SessionSettings sessionSettings,
-                               ShardId shardId,
-                               @Nullable String[] updateColumns,
-                               @Nullable Reference[] insertColumns,
-                               @Nullable Symbol[] returnValues,
-                               UUID jobId,
-                               EnumSet<Properties> properties) {
-        super(shardId, jobId);
-        assert updateColumns != null || insertColumns != null
-            : "Missing updateAssignments, whether for update nor for insert";
+    public ShardUpsertRequest(ShardId shardId,
+                              UUID jobId,
+                              EnumSet<Mode> modes,
+                              SessionSettings sessionSettings,
+                              @Nullable String[] updateColumns,
+                              @Nullable Reference[] insertColumns,
+                              @Nullable Symbol[] returnValues) {
+        super(shardId, jobId, modes);
+        assert updateColumns != null || insertColumns != null : "Missing updateAssignments, whether for update nor for insert";
         this.sessionSettings = sessionSettings;
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.returnValues = returnValues;
-        this.properties = properties;
-    }
-
-    public SessionSettings sessionSettings() {
-        return sessionSettings;
-    }
-
-
-    @Nullable
-    public Symbol[] getReturnValues() {
-        return returnValues;
-    }
-
-    String[] updateColumns() {
-        return updateColumns;
-    }
-
-    @Nullable
-    Reference[] insertColumns() {
-        return insertColumns;
-    }
-
-    Set<Properties> properties() {
-        return properties;
-    }
-
-    boolean continueOnError() {
-        return properties.contains(Properties.CONTINUE_ON_ERROR);
-    }
-
-    boolean validateConstraints() {
-        return properties.contains(Properties.VALIDATE_CONSTRAINTS);
     }
 
     public ShardUpsertRequest(StreamInput in) throws IOException {
@@ -165,7 +115,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 }
             }
         }
-        this.properties = EnumSets.unpackFromInt(in.readVInt(), Properties.class);
     }
 
     @Override
@@ -208,30 +157,37 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 out.writeVInt(0);
             }
         }
-        out.writeVInt(EnumSets.packToInt(properties));
     }
 
+
+    @Nullable
     @Override
-    public boolean equals(Object o) {
-        if (!super.equals(o)) return false;
-        if (this == o) return true;
-        if (getClass() != o.getClass()) return false;
-        ShardUpsertRequest items = (ShardUpsertRequest) o;
-        return Objects.equal(properties, items.properties()) &&
-               Arrays.equals(updateColumns, items.updateColumns) &&
-               Arrays.equals(insertColumns, items.insertColumns) &&
-               Arrays.equals(returnValues, items.returnValues);
+    public SessionSettings sessionSettings() {
+        return sessionSettings;
     }
 
+    @Nullable
     @Override
-    public int hashCode() {
-        return Objects.hashCode(super.hashCode(), properties, updateColumns, insertColumns, returnValues);
+    public Symbol[] returnValues() {
+        return returnValues;
+    }
+
+    @Nullable
+    @Override
+    public String[] updateColumns() {
+        return updateColumns;
+    }
+
+    @Nullable
+    @Override
+    public Reference[] insertColumns() {
+        return insertColumns;
     }
 
     /**
      * A single update item.
      */
-    public static class Item extends ShardRequest.Item {
+    public static class Item extends AbstractShardWriteRequest.Item {
 
         @Nullable
         private BytesReference source;
@@ -248,14 +204,21 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         @Nullable
         private Object[] insertValues;
 
+        /**
+         * List of references or expressions to compute values for returning for update.
+         */
+        @Nullable
+        private Symbol[] returnValues;
+
         public Item(String id,
                     @Nullable Symbol[] updateAssignments,
                     @Nullable Object[] insertValues,
                     @Nullable Long version,
                     @Nullable Long seqNo,
-                    @Nullable Long primaryTerm
-                    ) {
-            super(id);
+                    @Nullable Long primaryTerm,
+                    @Nullable Symbol[] returnValues
+        ) {
+            super(id, version, seqNo, primaryTerm);
             this.updateAssignments = updateAssignments;
             if (version != null) {
                 this.version = version;
@@ -267,6 +230,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 this.primaryTerm = primaryTerm;
             }
             this.insertValues = insertValues;
+            this.returnValues = returnValues;
         }
 
         @Nullable
@@ -292,6 +256,11 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             return insertValues;
         }
 
+        @Nullable
+        public Symbol[] returnValues() {
+            return returnValues;
+        }
+
         public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super(in);
             if (in.readBoolean()) {
@@ -311,6 +280,15 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
             if (in.readBoolean()) {
                 source = in.readBytesReference();
+            }
+            if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
+                int returnValueSize = in.readVInt();
+                if (returnValueSize > 0) {
+                    returnValues = new Symbol[returnValueSize];
+                    for (int i = 0; i < returnValueSize; i++) {
+                        returnValues[i] = Symbols.fromStream(in);
+                    }
+                }
             }
         }
 
@@ -341,8 +319,19 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             if (sourceAvailable) {
                 out.writeBytesReference(source);
             }
+            if (allOn4_2) {
+                if (returnValues != null) {
+                    out.writeVInt(returnValues.length);
+                    for (Symbol returnValue : returnValues) {
+                        Symbols.toStream(returnValue, out);
+                    }
+                } else {
+                    out.writeVInt(0);
+                }
+            }
         }
     }
+
 
     public static class Builder {
 
@@ -355,8 +344,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         private final UUID jobId;
         @Nullable
         private final Symbol[] returnValues;
-        private final EnumSet<Properties> properties;
-
+        private final EnumSet<Mode> modes;
 
         public Builder(SessionSettings sessionSettings,
                        TimeValue timeout,
@@ -366,32 +354,32 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                        @Nullable Symbol[] returnValue,
                        UUID jobId,
                        boolean validateGeneratedColumns,
-                       Properties... properties) {
+                       Mode... modes) {
             this.sessionSettings = sessionSettings;
             this.timeout = timeout;
             this.assignmentsColumns = assignmentsColumns;
             this.missingAssignmentsColumns = missingAssignmentsColumns;
             this.jobId = jobId;
             this.returnValues = returnValue;
-            this.properties = EnumSet.copyOf(List.of(properties));
+            this.modes = EnumSet.copyOf(List.of(modes));
             if (validateGeneratedColumns) {
-                this.properties.add(Properties.VALIDATE_CONSTRAINTS);
+                this.modes.add(Mode.VALIDATE_CONSTRAINTS);
             }
             if (continueOnError) {
-                this.properties.add(Properties.CONTINUE_ON_ERROR);
+                this.modes.add(Mode.CONTINUE_ON_ERROR);
             }
         }
 
         public ShardUpsertRequest newRequest(ShardId shardId) {
             return new ShardUpsertRequest(
-                sessionSettings,
                 shardId,
+                jobId,
+                modes,
+                sessionSettings,
                 assignmentsColumns,
                 missingAssignmentsColumns,
-                returnValues,
-                jobId,
-                properties)
-                .timeout(timeout);
+                returnValues
+            ).timeout(timeout);
         }
     }
 }
