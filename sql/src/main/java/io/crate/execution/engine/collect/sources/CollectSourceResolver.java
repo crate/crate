@@ -53,7 +53,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.HashMap;
@@ -85,8 +84,7 @@ public class CollectSourceResolver {
                                  FileCollectSource fileCollectSource,
                                  TableFunctionCollectSource tableFunctionCollectSource,
                                  SystemCollectSource systemCollectSource,
-                                 NodeStatsCollectSource nodeStatsCollectSource,
-                                 BigArrays bigArrays) {
+                                 NodeStatsCollectSource nodeStatsCollectSource) {
         this.clusterService = clusterService;
 
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
@@ -100,8 +98,7 @@ public class CollectSourceResolver {
             new InputFactory(functions),
             normalizer,
             systemCollectSource::getRowUpdater,
-            systemCollectSource::tableDefinition,
-            bigArrays
+            systemCollectSource::tableDefinition
         );
         this.shardCollectSource = shardCollectSource;
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);

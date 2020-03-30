@@ -52,7 +52,6 @@ import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
@@ -99,7 +98,6 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
             t -> null,
             t -> null,
             Version.CURRENT,
-            BigArrays.NON_RECYCLING_INSTANCE,
             new ShardId("dummy", UUID.randomUUID().toString(), 0)
         );
     }

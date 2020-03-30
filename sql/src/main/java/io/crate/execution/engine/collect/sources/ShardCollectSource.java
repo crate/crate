@@ -76,7 +76,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -94,6 +93,7 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -210,8 +210,7 @@ public class ShardCollectSource implements CollectSource {
             inputFactory,
             nodeNormalizer,
             systemCollectSource::getRowUpdater,
-            systemCollectSource::tableDefinition,
-            bigArrays
+            systemCollectSource::tableDefinition
         );
 
         indexEventListenerProxy.addLast(new LifecycleListener());

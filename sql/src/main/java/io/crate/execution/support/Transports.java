@@ -25,7 +25,6 @@ package io.crate.execution.support;
 import io.crate.action.FutureActionListener;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -52,10 +51,6 @@ public class Transports {
     public Transports(ClusterService clusterService, TransportService transportService) {
         this.clusterService = clusterService;
         this.transportService = transportService;
-    }
-
-    public static Function<? super AcknowledgedResponse, Long> rowCountFromAcknowledgedResp() {
-        return r -> r.isAcknowledged() ? 1L : -1L;
     }
 
     /**

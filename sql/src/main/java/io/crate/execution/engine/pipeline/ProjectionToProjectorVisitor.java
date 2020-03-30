@@ -22,33 +22,7 @@
 
 package io.crate.execution.engine.pipeline;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
-
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Iterables;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.threadpool.ThreadPool;
-
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RamAccounting;
@@ -126,6 +100,28 @@ import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 
 public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
@@ -154,7 +150,6 @@ public class ProjectionToProjectorVisitor
     private final Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter;
     private final Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter;
     private final Version indexVersionCreated;
-    private final BigArrays bigArrays;
     @Nullable
     private final ShardId shardId;
     private final int numProcessors;
@@ -170,7 +165,6 @@ public class ProjectionToProjectorVisitor
                                         Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
                                         Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter,
                                         Version indexVersionCreated,
-                                        BigArrays bigArrays,
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
         this.nodeJobsCounter = nodeJobsCounter;
@@ -183,7 +177,6 @@ public class ProjectionToProjectorVisitor
         this.sysUpdaterGetter = sysUpdaterGetter;
         this.staticTableDefinitionGetter = staticTableDefinitionGetter;
         this.indexVersionCreated = indexVersionCreated;
-        this.bigArrays = bigArrays;
         this.shardId = shardId;
         this.numProcessors = EsExecutors.numberOfProcessors(settings);
     }
@@ -197,8 +190,7 @@ public class ProjectionToProjectorVisitor
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
                                         Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
-                                        Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter,
-                                        BigArrays bigArrays) {
+                                        Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter) {
         this(clusterService,
             nodeJobsCounter,
             functions,
@@ -210,7 +202,6 @@ public class ProjectionToProjectorVisitor
             sysUpdaterGetter,
             staticTableDefinitionGetter,
             Version.CURRENT,
-            bigArrays,
             null
         );
     }
