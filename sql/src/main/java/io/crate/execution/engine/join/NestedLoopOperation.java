@@ -116,15 +116,31 @@ public class NestedLoopOperation implements CompletionListenable {
         final CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         switch (joinType) {
             case CROSS:
-                return buildCrossJoinBatchIterator(left, right, combiner,
-                    circuitBreaker, ramAccounting, leftSideColumnTypes,
-                    estimatedRowsSizeLeft, estimatedNumberOfRowsLeft, blockNestedLoop);
+                return buildCrossJoinBatchIterator(
+                    left,
+                    right,
+                    combiner,
+                    circuitBreaker,
+                    ramAccounting,
+                    leftSideColumnTypes,
+                    estimatedRowsSizeLeft,
+                    estimatedNumberOfRowsLeft,
+                    blockNestedLoop
+                );
 
             case INNER:
                 return new FilteringBatchIterator<>(
-                    buildCrossJoinBatchIterator(left, right, combiner,
-                        circuitBreaker, ramAccounting, leftSideColumnTypes,
-                        estimatedRowsSizeLeft, estimatedNumberOfRowsLeft, blockNestedLoop),
+                    buildCrossJoinBatchIterator(
+                        left,
+                        right,
+                        combiner,
+                        circuitBreaker,
+                        ramAccounting,
+                        leftSideColumnTypes,
+                        estimatedRowsSizeLeft,
+                        estimatedNumberOfRowsLeft,
+                        blockNestedLoop
+                    ),
                     joinCondition);
 
             case LEFT:
