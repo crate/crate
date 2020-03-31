@@ -49,6 +49,7 @@ import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -62,7 +63,7 @@ import java.util.function.Supplier;
 
 public class IndexWriterProjector implements Projector {
 
-    private final ShardingUpsertExecutor shardingUpsertExecutor;
+    private final ShardingUpsertExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardingUpsertExecutor;
 
     public IndexWriterProjector(ClusterService clusterService,
                                 NodeJobsCounter nodeJobsCounter,
@@ -74,7 +75,7 @@ public class IndexWriterProjector implements Projector {
                                 int targetTableNumShards,
                                 int targetTableNumReplicas,
                                 TransportCreatePartitionsAction transportCreatePartitionsAction,
-                                BulkRequestExecutor<ShardUpsertRequest> shardUpsertAction,
+                                BulkRequestExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardUpsertAction,
                                 Supplier<String> indexNameResolver,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
@@ -100,7 +101,7 @@ public class IndexWriterProjector implements Projector {
         }
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
-        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
+        Function<ShardId, ShardUpsertRequest> requestBuilder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             true,
@@ -110,12 +111,12 @@ public class IndexWriterProjector implements Projector {
             jobId,
             false,
             overwriteDuplicates ? Mode.DUPLICATE_KEY_OVERWRITE : Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
-            );
+            )::newRequest;
 
         Function<String, ShardUpsertRequest.Item> itemFactory =
-            id -> new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null, null);
+            id -> new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null);
 
-        shardingUpsertExecutor = new ShardingUpsertExecutor(
+        shardingUpsertExecutor = new ShardingUpsertExecutor<>(
             clusterService,
             nodeJobsCounter,
             scheduler,
@@ -124,7 +125,7 @@ public class IndexWriterProjector implements Projector {
             jobId,
             rowShardResolver,
             itemFactory,
-            builder::newRequest,
+            requestBuilder,
             collectExpressions,
             indexNameResolver,
             autoCreateIndices,

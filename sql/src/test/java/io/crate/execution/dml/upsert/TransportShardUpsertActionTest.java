@@ -184,7 +184,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 false,
                 Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -206,7 +206,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 false,
                 Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -248,7 +248,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 false,
                 Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -270,7 +270,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 false,
                 Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
         reset(indexShard);
 

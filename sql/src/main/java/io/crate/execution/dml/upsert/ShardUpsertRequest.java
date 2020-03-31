@@ -200,19 +200,12 @@ public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertReq
         @Nullable
         private Object[] insertValues;
 
-        /**
-         * List of references or expressions to compute values for returning for update.
-         */
-        @Nullable
-        private Symbol[] returnValues;
-
         public Item(String id,
                     @Nullable Symbol[] updateAssignments,
                     @Nullable Object[] insertValues,
                     @Nullable Long version,
                     @Nullable Long seqNo,
-                    @Nullable Long primaryTerm,
-                    @Nullable Symbol[] returnValues
+                    @Nullable Long primaryTerm
         ) {
             super(id, version, seqNo, primaryTerm);
             this.updateAssignments = updateAssignments;
@@ -226,7 +219,6 @@ public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertReq
                 this.primaryTerm = primaryTerm;
             }
             this.insertValues = insertValues;
-            this.returnValues = returnValues;
         }
 
         boolean retryOnConflict() {
@@ -241,11 +233,6 @@ public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertReq
         @Nullable
         public Object[] insertValues() {
             return insertValues;
-        }
-
-        @Nullable
-        public Symbol[] returnValues() {
-            return returnValues;
         }
 
         public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
@@ -263,15 +250,6 @@ public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertReq
                 this.insertValues = new Object[missingAssignmentsSize];
                 for (int i = 0; i < missingAssignmentsSize; i++) {
                     insertValues[i] = insertValueStreamers[i].readValueFrom(in);
-                }
-            }
-            if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-                int returnValueSize = in.readVInt();
-                if (returnValueSize > 0) {
-                    returnValues = new Symbol[returnValueSize];
-                    for (int i = 0; i < returnValueSize; i++) {
-                        returnValues[i] = Symbols.fromStream(in);
-                    }
                 }
             }
         }
@@ -296,16 +274,6 @@ public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertReq
                 }
             } else {
                 out.writeVInt(0);
-            }
-            if (allOn4_2) {
-                if (returnValues != null) {
-                    out.writeVInt(returnValues.length);
-                    for (Symbol returnValue : returnValues) {
-                        Symbols.toStream(returnValue, out);
-                    }
-                } else {
-                    out.writeVInt(0);
-                }
             }
         }
     }

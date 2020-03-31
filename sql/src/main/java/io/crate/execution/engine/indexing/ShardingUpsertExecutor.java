@@ -28,8 +28,8 @@ import io.crate.breaker.TypeGuessEstimateRowSize;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
+import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeJobsCounter;
@@ -67,7 +67,7 @@ import java.util.function.ToLongFunction;
 
 import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
-public class ShardingUpsertExecutor
+public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
 
     public static final CrateSetting<TimeValue> BULK_REQUEST_TIMEOUT_SETTING = CrateSetting.of(Setting.positiveTimeSetting(
@@ -77,14 +77,14 @@ public class ShardingUpsertExecutor
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     private static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
 
-    private final GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper;
+    private final GroupRowsByShard<TReq, TItem> grouper;
     private final NodeJobsCounter nodeJobsCounter;
     private final ScheduledExecutorService scheduler;
     private final Executor executor;
     private final int bulkSize;
     private final UUID jobId;
-    private final Function<ShardId, ShardUpsertRequest> requestFactory;
-    private final BulkRequestExecutor<ShardUpsertRequest> requestExecutor;
+    private final Function<ShardId, TReq> requestFactory;
+    private final BulkRequestExecutor<TReq, TItem> requestExecutor;
     private final TransportCreatePartitionsAction createPartitionsAction;
     private final BulkShardCreationLimiter bulkShardCreationLimiter;
     private final IsUsedBytesOverThreshold isUsedBytesOverThreshold;
@@ -99,12 +99,12 @@ public class ShardingUpsertExecutor
                            int bulkSize,
                            UUID jobId,
                            RowShardResolver rowShardResolver,
-                           Function<String, ShardUpsertRequest.Item> itemFactory,
-                           Function<ShardId, ShardUpsertRequest> requestFactory,
+                           Function<String, TItem> itemFactory,
+                           Function<ShardId, TReq> requestFactory,
                            List<? extends CollectExpression<Row, ?>> expressions,
                            Supplier<String> indexNameResolver,
                            boolean autoCreateIndices,
-                           BulkRequestExecutor<ShardUpsertRequest> requestExecutor,
+                           BulkRequestExecutor<TReq, TItem> requestExecutor,
                            TransportCreatePartitionsAction createPartitionsAction,
                            int targetTableNumShards,
                            int targetTableNumReplicas,
@@ -136,7 +136,7 @@ public class ShardingUpsertExecutor
         isDebugEnabled = LOGGER.isDebugEnabled();
     }
 
-    public CompletableFuture<UpsertResults> execute(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests) {
+    public CompletableFuture<UpsertResults> execute(ShardedRequests<TReq, TItem> requests) {
         final UpsertResults upsertResults = resultCollector.supplier().get();
         collectFailingSourceUris(requests, upsertResults);
         collectFailingItems(requests, upsertResults);
@@ -153,14 +153,14 @@ public class ShardingUpsertExecutor
             });
     }
 
-    private static void collectFailingSourceUris(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests,
+    private void collectFailingSourceUris(ShardedRequests<TReq, TItem> requests,
                                                  final UpsertResults upsertResults) {
         for (Map.Entry<String, String> entry : requests.sourceUrisWithFailure.entrySet()) {
             upsertResults.addUriFailure(entry.getKey(), entry.getValue());
         }
     }
 
-    private static void collectFailingItems(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests,
+    private void collectFailingItems(ShardedRequests<TReq, TItem> requests,
                                             final UpsertResults upsertResults) {
         for (Map.Entry<String, List<ShardedRequests.ReadFailureAndLineNumber>> entry : requests.itemsWithFailureBySourceUri.entrySet()) {
             String sourceUri = entry.getKey();
@@ -170,7 +170,7 @@ public class ShardingUpsertExecutor
         }
     }
 
-    private CompletableFuture<UpsertResults> execRequests(Map<ShardLocation, ShardUpsertRequest> itemsByShard,
+    private CompletableFuture<UpsertResults> execRequests(Map<ShardLocation, TReq> itemsByShard,
                                                           List<RowSourceInfo> rowSourceInfos,
                                                           final UpsertResults upsertResults) {
         if (itemsByShard.isEmpty()) {
@@ -180,10 +180,10 @@ public class ShardingUpsertExecutor
         final AtomicInteger numRequests = new AtomicInteger(itemsByShard.size());
         final AtomicReference<Exception> interrupt = new AtomicReference<>(null);
         final CompletableFuture<UpsertResults> resultFuture = new CompletableFuture<>();
-        Iterator<Map.Entry<ShardLocation, ShardUpsertRequest>> it = itemsByShard.entrySet().iterator();
+        Iterator<Map.Entry<ShardLocation, TReq>> it = itemsByShard.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<ShardLocation, ShardUpsertRequest> entry = it.next();
-            ShardUpsertRequest request = entry.getValue();
+            Map.Entry<ShardLocation, TReq> entry = it.next();
+            TReq request = entry.getValue();
             it.remove();
 
             String nodeId = entry.getKey().nodeId;
@@ -216,14 +216,14 @@ public class ShardingUpsertExecutor
 
 
     private CompletableFuture<AcknowledgedResponse> createPartitions(
-        Map<String, List<ShardedRequests.ItemAndRoutingAndSourceInfo<ShardUpsertRequest.Item>>> itemsByMissingIndex) {
+        Map<String, List<ShardedRequests.ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingIndex) {
         FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> listener = FutureActionListener.newInstance();
         createPartitionsAction.execute(
             new CreatePartitionsRequest(itemsByMissingIndex.keySet(), jobId), listener);
         return listener;
     }
 
-    private boolean shouldPauseOnTargetNodeJobsCounter(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests) {
+    private boolean shouldPauseOnTargetNodeJobsCounter(ShardedRequests<TReq, TItem> requests) {
         for (ShardLocation shardLocation : requests.itemsByShard.keySet()) {
             String requestNodeId = shardLocation.nodeId;
             if (nodeJobsCounter.getInProgressJobsForNode(requestNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS) {
@@ -237,7 +237,7 @@ public class ShardingUpsertExecutor
     }
 
     /** @noinspection unused*/
-    private boolean shouldPauseOnPartitionCreation(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> ignore) {
+    private boolean shouldPauseOnPartitionCreation(ShardedRequests<TReq, TItem> ignore) {
         if (createPartitionsRequestOngoing) {
             if (isDebugEnabled) {
                 LOGGER.debug("partition creation in progress, will pause");
@@ -260,13 +260,13 @@ public class ShardingUpsertExecutor
         // If IO is involved the source iterator should pause when the target node reaches a concurrent job counter limit.
         // Without IO, we assume that the source iterates over in-memory structures which should be processed as
         // fast as possible to free resources.
-        Predicate<ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item>> shouldPause =
+        Predicate<ShardedRequests<TReq, TItem>> shouldPause =
             this::shouldPauseOnPartitionCreation;
         if (batchIterator.hasLazyResultSet()) {
             shouldPause = shouldPause.or(this::shouldPauseOnTargetNodeJobsCounter);
         }
 
-        BatchIteratorBackpressureExecutor<ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item>, UpsertResults> executor =
+        BatchIteratorBackpressureExecutor<ShardedRequests<TReq, TItem>, UpsertResults> executor =
             new BatchIteratorBackpressureExecutor<>(
                 scheduler,
                 this.executor,

@@ -141,12 +141,10 @@ public class ShardInsertRequest extends AbstractShardWriteRequest<ShardInsertReq
         private Object[] insertValues;
 
         public Item(String id,
-                    @Nullable Symbol[] updateAssignments,
                     @Nullable Object[] insertValues,
                     @Nullable Long version,
                     @Nullable Long seqNo,
-                    @Nullable Long primaryTerm,
-                    @Nullable Symbol[] returnValues
+                    @Nullable Long primaryTerm
         ) {
             super(id, version, seqNo, primaryTerm);
             if (version != null) {

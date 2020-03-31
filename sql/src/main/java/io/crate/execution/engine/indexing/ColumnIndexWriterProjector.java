@@ -28,6 +28,8 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
+import io.crate.execution.dml.ShardRequest;
+import io.crate.execution.dml.upsert.ShardInsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.AbstractShardWriteRequest.Mode;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -42,6 +44,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -54,7 +57,7 @@ import java.util.function.Supplier;
 
 public class ColumnIndexWriterProjector implements Projector {
 
-    private final ShardingUpsertExecutor shardingUpsertExecutor;
+    private final ShardingUpsertExecutor<? extends ShardRequest<?, ?>, ? extends ShardRequest.Item> shardingUpsertExecutor;
 
     public ColumnIndexWriterProjector(ClusterService clusterService,
                                       NodeJobsCounter nodeJobsCounter,
@@ -98,50 +101,88 @@ public class ColumnIndexWriterProjector implements Projector {
         }
 
         Symbol[] returnValueOrNull = returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]);
+        // Optimization for the plain insert usecase, no return values no update-on-conflict
+        if (returnValueOrNull == null && updateAssignments == null) {
+            Function<ShardId, ShardInsertRequest> requestFactory = new ShardInsertRequest.Builder(
+                txnCtx.sessionSettings(),
+                ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+                true, // continueOnErrors
+                columnReferences.toArray(new Reference[columnReferences.size()]),
+                jobId,
+                true,
+                ignoreDuplicateKeys ? Mode.DUPLICATE_KEY_IGNORE : Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+            )::newRequest;
 
-        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            txnCtx.sessionSettings(),
-            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            true, // continueOnErrors
-            updateColumnNames,
-            columnReferences.toArray(new Reference[columnReferences.size()]),
-            returnValueOrNull,
-            jobId,
-            true,
-            ignoreDuplicateKeys ? Mode.DUPLICATE_KEY_IGNORE : Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+            InputRow insertValues = new InputRow(insertInputs);
+            Function<String, ShardInsertRequest.Item> itemFactory = id -> new ShardInsertRequest.Item(id,
+                                                                                                      insertValues.materialize(),
+                                                                                                      null,
+                                                                                                      null,
+                                                                                                      null);
+
+            shardingUpsertExecutor = new ShardingUpsertExecutor<>(
+                clusterService,
+                nodeJobsCounter,
+                scheduler,
+                executor,
+                bulkActions,
+                jobId,
+                rowShardResolver,
+                itemFactory,
+                requestFactory,
+                collectExpressions,
+                indexNameResolver,
+                autoCreateIndices,
+                transportActionProvider.transportShardInsertAction()::execute,
+                transportActionProvider.transportBulkCreateIndicesAction(),
+                targetTableNumShards,
+                targetTableNumReplicas,
+                UpsertResultContext.forRowCount());
+
+        } else {
+            Function<ShardId, ShardUpsertRequest> requestFactory = new ShardUpsertRequest.Builder(
+                txnCtx.sessionSettings(),
+                ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+                true, // continueOnErrors
+                updateColumnNames,
+                columnReferences.toArray(new Reference[columnReferences.size()]),
+                returnValueOrNull,
+                jobId,
+                true,
+                ignoreDuplicateKeys ? Mode.DUPLICATE_KEY_IGNORE : Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+            )::newRequest;
+
+            InputRow insertValues = new InputRow(insertInputs);
+            Function<String, ShardUpsertRequest.Item> itemFactory = id -> new ShardUpsertRequest.Item(id,
+                                                                                                      assignments,
+                                                                                                      insertValues.materialize(),
+                                                                                                      null,
+                                                                                                      null,
+                                                                                                      null);
+            var upsertResultContext = returnValues.isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
+
+            shardingUpsertExecutor = new ShardingUpsertExecutor<>(
+                clusterService,
+                nodeJobsCounter,
+                scheduler,
+                executor,
+                bulkActions,
+                jobId,
+                rowShardResolver,
+                itemFactory,
+                requestFactory,
+                collectExpressions,
+                indexNameResolver,
+                autoCreateIndices,
+                transportActionProvider.transportShardUpsertAction()::execute,
+                transportActionProvider.transportBulkCreateIndicesAction(),
+                targetTableNumShards,
+                targetTableNumReplicas,
+                upsertResultContext
             );
+        }
 
-        InputRow insertValues = new InputRow(insertInputs);
-        Function<String, ShardUpsertRequest.Item> itemFactory =
-            id -> new ShardUpsertRequest.Item(id,
-                                              assignments,
-                                              insertValues.materialize(),
-                                              null,
-                                              null,
-                                              null,
-                                              returnValueOrNull);
 
-        var upsertResultContext = returnValues.isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
-
-        shardingUpsertExecutor = new ShardingUpsertExecutor(
-            clusterService,
-            nodeJobsCounter,
-            scheduler,
-            executor,
-            bulkActions,
-            jobId,
-            rowShardResolver,
-            itemFactory,
-            builder::newRequest,
-            collectExpressions,
-            indexNameResolver,
-            autoCreateIndices,
-            transportActionProvider.transportShardUpsertAction()::execute,
-            transportActionProvider.transportBulkCreateIndicesAction(),
-            targetTableNumShards,
-            targetTableNumReplicas,
-            upsertResultContext
-        );
     }
 
     @Override

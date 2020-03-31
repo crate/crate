@@ -454,7 +454,7 @@ public class InsertFromValues implements LogicalPlan {
                 id,
                 assignmentSources,
                 insertValues.materialize(),
-                null, null, null, this.writerProjection.returnValues().toArray(new Symbol[0]));
+                null, null, null);
 
         var rowShardResolver = new RowShardResolver(
             plannerContext.transactionContext(),
