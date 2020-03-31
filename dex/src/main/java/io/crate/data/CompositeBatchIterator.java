@@ -46,13 +46,19 @@ public final class CompositeBatchIterator {
      */
     @SafeVarargs
     public static <T> BatchIterator<T> seqComposite(BatchIterator<T> ... iterators) {
-        if (iterators.length == 1) {
-            return iterators[0];
+        switch (iterators.length) {
+            case 0:
+                return InMemoryBatchIterator.empty(null);
+
+            case 1:
+                return iterators[0];
+
+            default:
+                // prefer loaded iterators over unloaded to improve performance in case only a subset of data is consumed
+                Comparator<BatchIterator<T>> comparing = Comparator.comparing(BatchIterator::allLoaded);
+                Arrays.sort(iterators, comparing.reversed());
+                return new SeqCompositeBI<>(iterators);
         }
-        // prefer loaded iterators over unloaded to improve performance in case only a subset of data is consumed
-        Comparator<BatchIterator<T>> comparing = Comparator.comparing(BatchIterator::allLoaded);
-        Arrays.sort(iterators, comparing.reversed());
-        return new SeqCompositeBI<>(iterators);
     }
 
     /**

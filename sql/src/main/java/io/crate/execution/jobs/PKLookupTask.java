@@ -25,7 +25,6 @@ package io.crate.execution.jobs;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.Projection;
@@ -104,22 +103,18 @@ public final class PKLookupTask extends AbstractTask {
 
     @Override
     protected void innerStart() {
-        if (shardProjections.isEmpty()) {
-            BatchIterator<Doc> batchIterator = pkLookupOperation.lookup(ignoreMissing, idsByShard, consumer.requiresScroll());
-            consumer.accept(BatchIterators.map(batchIterator, this::resultToRow), null);
-        } else {
-            pkLookupOperation.runWithShardProjections(
-                jobId,
-                txnCtx,
-                this::getRamAccounting,
-                this::getMemoryManager,
-                ignoreMissing,
-                idsByShard,
-                shardProjections,
-                consumer,
-                this::resultToRow
-            );
-        }
+        BatchIterator<Row> rowBatchIterator = pkLookupOperation.lookup(
+            jobId,
+            txnCtx,
+            this::getRamAccounting,
+            this::getMemoryManager,
+            ignoreMissing,
+            idsByShard,
+            shardProjections,
+            consumer.requiresScroll(),
+            this::resultToRow
+        );
+        consumer.accept(rowBatchIterator, null);
         close();
     }
 
