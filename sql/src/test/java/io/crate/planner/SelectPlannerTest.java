@@ -912,6 +912,23 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "    └ Filter[(catcode = 'R')]\n" +
             "      └ TableFunction[pg_get_keywords | [word, catcode] | true]";
         assertThat(plan, isPlan(expectedPlan));
+    }
 
+    @Test
+    public void test_group_by_on_pk_lookup_uses_shard_projections() {
+        String stmt = "SELECT name, count(*) FROM users WHERE id in (1, 2, 3, 4, 5) GROUP BY name";
+        LogicalPlan logicalPlan = e.logicalPlan(stmt);
+        String expectedPlan =
+            "GroupHashAggregate[name | count(*)]\n" +
+            "  └ Get[doc.users | name | DocKeys{1; 2; 3; 4; 5}]";
+        assertThat(logicalPlan, isPlan(expectedPlan));
+        Merge coordinatorMerge = e.plan(stmt);
+        Merge distributedMerge = (Merge) coordinatorMerge.subPlan();
+        Collect collect = (Collect) distributedMerge.subPlan();
+        assertThat(
+            collect.collectPhase().projections(),
+            contains(instanceOf(GroupProjection.class))
+        );
+        assertThat(collect.collectPhase().projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
     }
 }
