@@ -58,6 +58,9 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.Match;
+import io.crate.planner.optimizer.rule.RewriteCollectToGet;
 import io.crate.sql.tree.Assignment;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
@@ -155,17 +158,24 @@ public final class CopyToPlan implements Plan {
             tableStats,
             context.params()
         );
-
-        ExecutionPlan executionPlan = collect.build(
-            context,
-            projectionBuilder,
-            0, 0, null, null, params, SubQueryResults.EMPTY);
+        LogicalPlan source = optimizeCollect(context, tableStats, collect);
+        ExecutionPlan executionPlan = source.build(context, projectionBuilder, 0, 0, null, null, params, SubQueryResults.EMPTY);
         executionPlan.addProjection(projection);
 
         return Merge.ensureOnHandler(
             executionPlan,
             context,
             List.of(MergeCountProjection.INSTANCE));
+    }
+
+    private static LogicalPlan optimizeCollect(PlannerContext context, TableStats tableStats, LogicalPlan collect) {
+        RewriteCollectToGet rewriteCollectToGet = new RewriteCollectToGet(context.functions());
+        Match<Collect> match = rewriteCollectToGet.pattern().accept(collect, Captures.empty());
+        if (match.isPresent()) {
+            LogicalPlan plan = rewriteCollectToGet.apply(match.value(), match.captures(), tableStats, context.transactionContext());
+            return plan == null ? collect : plan;
+        }
+        return collect;
     }
 
     @VisibleForTesting
