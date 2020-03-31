@@ -65,7 +65,6 @@ import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -110,8 +109,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
             new InputFactory(functions),
             EvaluatingNormalizer.functionOnlyNormalizer(functions),
             t -> null,
-            t -> null,
-            BigArrays.NON_RECYCLING_INSTANCE
+            t -> null
         );
         memoryManager = new OnHeapMemoryManager(usedBytes -> {});
 

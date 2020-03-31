@@ -21,29 +21,26 @@
  */
 package io.crate.execution.engine.fetch;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static org.hamcrest.Matchers.is;
-
-import java.util.List;
-import java.util.Map;
-
 import com.carrotsearch.hppc.IntObjectHashMap;
-
-import org.junit.Test;
-
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.RowN;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import org.junit.Test;
+
+import java.util.List;
+import java.util.Map;
+
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static org.hamcrest.Matchers.is;
 
 public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -73,7 +70,7 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
             CoordinatorTxnCtx.systemTransactionContext(),
             e.functions(),
             fetchSources,
-            List.<Symbol>of(
+            List.of(
                 new FetchReference(new InputColumn(0, DataTypes.LONG), x),
                 new FetchReference(new InputColumn(1, DataTypes.LONG), y),
                 new InputColumn(2, DataTypes.INTEGER)

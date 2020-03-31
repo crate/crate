@@ -33,6 +33,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -104,7 +105,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         HashSet<Symbol> toKeep = new HashSet<>();
         LinkedHashSet<Symbol> newStandalone = new LinkedHashSet<>();
         LinkedHashSet<Function> newTableFunctions = new LinkedHashSet<>();
@@ -116,7 +117,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
             SymbolVisitors.intersection(newTableFunction, source.outputs(), toKeep::add);
         }
         toKeep.addAll(newStandalone);
-        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
         if (newSource == source) {
             return this;
         }

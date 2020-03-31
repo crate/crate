@@ -31,12 +31,11 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 
 import java.util.List;
 import java.util.Locale;
@@ -93,6 +92,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
 
     @Override
     protected Input<?> visitSymbol(Symbol symbol, C context) {
-        throw new UnsupportedOperationException(Symbols.format("Can't handle Symbol %s", symbol));
+        throw new UnsupportedOperationException(
+            String.format(Locale.ENGLISH, "Can't handle Symbol [%s: %s]", symbol.getClass().getSimpleName(), symbol));
     }
 }

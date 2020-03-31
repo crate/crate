@@ -28,7 +28,6 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.join.JoinType;
 
 import javax.annotation.Nullable;
-import java.util.function.Function;
 
 public class JoinPair {
 
@@ -88,12 +87,5 @@ public class JoinPair {
     @Override
     public int hashCode() {
         return Objects.hashCode(left, right, joinType, condition);
-    }
-
-    public JoinPair mapCondition(Function<? super Symbol,? extends Symbol> updateField) {
-        if (condition == null) {
-            return this;
-        }
-        return new JoinPair(left, right, joinType, updateField.apply(condition));
     }
 }

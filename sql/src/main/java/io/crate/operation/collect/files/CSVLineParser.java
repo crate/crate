@@ -22,32 +22,31 @@
 package io.crate.operation.collect.files;
 
 import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvObjectReader;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
-import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class CSVLineParser {
 
-    private List<Object> keyList;
-    private ObjectMapper objectMapper = new ObjectMapper();
-    private CsvObjectReader csvReader = new CsvMapper().enable(CsvParser.Feature.TRIM_SPACES)
+    private final ArrayList<String> keyList = new ArrayList<>();
+    private final CsvObjectReader csvReader = new CsvMapper()
+        .enable(CsvParser.Feature.TRIM_SPACES)
         .readerWithTypedSchemaFor(String.class);
+    private final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-    public void parseHeader(BufferedReader currentReader) throws IOException {
-        String header = currentReader.readLine();
-        keyList = csvReader.readValues(header.getBytes(StandardCharsets.UTF_8)).readAll();
-        Set<Object> keySet = new HashSet<>(keyList);
+    public void parseHeader(String header) throws IOException {
+        MappingIterator<String> iterator = csvReader.readValues(header.getBytes(StandardCharsets.UTF_8));
+        iterator.readAll(keyList);
+        HashSet<String> keySet = new HashSet<>(keyList);
         keySet.remove("");
-
         if (keySet.size() != keyList.size() || keySet.size() == 0) {
             throw new IllegalArgumentException("Invalid header: duplicate entries or no entries present");
         }
@@ -55,17 +54,18 @@ public class CSVLineParser {
 
     public byte[] parse(String row) throws IOException {
         MappingIterator<Object> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
-        HashMap<Object, Object> csvAsMap = new HashMap<>();
+        out.reset();
+        XContentBuilder jsonBuilder = new XContentBuilder(JsonXContent.jsonXContent, out).startObject();
         int i = 0;
         while (iterator.hasNext()) {
-            if (iterator.hasNext() && i >= keyList.size()) {
+            if (i >= keyList.size()) {
                 throw new IllegalArgumentException("Number of values exceeds number of keys");
             }
-
-            csvAsMap.put(keyList.get(i), iterator.next());
+            jsonBuilder.field(keyList.get(i), iterator.next());
             i++;
         }
-        return objectMapper.writeValueAsBytes(csvAsMap);
+        jsonBuilder.endObject().close();
+        return out.toByteArray();
     }
 
 }

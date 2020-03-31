@@ -323,7 +323,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testPrintFetchRefs() throws Exception {
         Symbol field = sqlExpressions.asSymbol("bar");
         assertThat(field, isReference("bar"));
-        FetchReference fetchRef = new FetchReference(new InputColumn(0, field.valueType()), ((Reference) field));
+        Reference ref = (Reference) field;
+        FetchReference fetchRef = new FetchReference(new InputColumn(0, field.valueType()), ref);
         assertPrint(fetchRef, "FETCH(INPUT(0), doc.formatter.bar)");
     }
 

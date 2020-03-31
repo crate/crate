@@ -28,12 +28,15 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CurrentTimestampFunction extends Scalar<Long, Integer> {
 
@@ -46,8 +49,15 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
         FunctionInfo.Type.SCALAR,
         Collections.emptySet());
 
-    public static void register(ScalarFunctionModule function) {
-        function.register(new CurrentTimestampFunction());
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("integer"),
+                parseTypeSignature("timestamp with time zone")
+            ),
+            args -> new CurrentTimestampFunction()
+        );
     }
 
 

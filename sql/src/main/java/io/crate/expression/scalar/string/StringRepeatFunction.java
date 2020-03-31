@@ -28,9 +28,12 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class StringRepeatFunction extends Scalar<String, Object> {
 
@@ -43,7 +46,15 @@ public final class StringRepeatFunction extends Scalar<String, Object> {
     );
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new StringRepeatFunction());
+        module.register(
+            Signature.scalar(
+                "repeat",
+                parseTypeSignature("text"),
+                parseTypeSignature("integer"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes -> new StringRepeatFunction()
+        );
     }
 
     @Override

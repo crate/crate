@@ -24,12 +24,19 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.types.DoubleType;
+
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class RadiansDegreesFunctions {
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new UnaryScalar<>("radians", DoubleType.INSTANCE, DoubleType.INSTANCE, Math::toRadians));
-        module.register(new UnaryScalar<>("degrees", DoubleType.INSTANCE, DoubleType.INSTANCE, Math::toDegrees));
+        module.register(
+            scalar("radians", parseTypeSignature("double precision"), parseTypeSignature("double precision")),
+            args -> new UnaryScalar<>("radians", args.get(0), args.get(0), Math::toRadians));
+
+        module.register(
+            scalar("degrees", parseTypeSignature("double precision"), parseTypeSignature("double precision")),
+            args -> new UnaryScalar<>("degrees", args.get(0), args.get(0), Math::toDegrees));
     }
 }

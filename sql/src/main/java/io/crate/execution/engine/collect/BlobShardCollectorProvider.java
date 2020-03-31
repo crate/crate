@@ -37,12 +37,11 @@ import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.blob.BlobReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -60,8 +59,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       Functions functions,
                                       ThreadPool threadPool,
                                       Settings settings,
-                                      TransportActionProvider transportActionProvider,
-                                      BigArrays bigArrays) {
+                                      TransportActionProvider transportActionProvider) {
         super(
             clusterService,
             schemas,
@@ -71,8 +69,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
             settings,
             transportActionProvider,
             blobShard.indexShard(),
-            new ShardRowContext(blobShard, clusterService),
-            bigArrays
+            new ShardRowContext(blobShard, clusterService)
         );
         inputFactory = new InputFactory(functions);
         this.blobShard = blobShard;

@@ -382,7 +382,6 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelfJoinWithOrder() throws Exception {
         execute("create table t (x int)");
-        ensureYellow();
         execute("insert into t (x) values (1), (2)");
         execute("refresh table t");
         execute("select * from t as t1, t as t2 order by t1.x, t2.x");
@@ -390,6 +389,30 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                                                      "1| 2\n" +
                                                      "2| 1\n" +
                                                      "2| 2\n"));
+    }
+
+    @Test
+    public void test_self_join_with_order_and_limit_is_executed_with_qtf() throws Exception {
+        execute("create table doc.t (x int, y int)");
+        execute("insert into doc.t (x, y) values (1, 10), (2, 20)");
+        execute("refresh table doc.t");
+        execute("explain select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
+        assertThat(printedTable(response.rows()), is(
+            "Fetch[x, y, x, y]\n" +
+            "  └ Limit[3;0]\n" +
+            "    └ OrderBy[x ASC x ASC]\n" +
+            "      └ NestedLoopJoin[CROSS]\n" +
+            "        ├ Rename[t1._fetchid, x] AS t1\n" +
+            "        │  └ Collect[doc.t | [_fetchid, x] | true]\n" +
+            "        └ Rename[t2._fetchid, x] AS t2\n" +
+            "          └ Collect[doc.t | [_fetchid, x] | true]\n"
+        ));
+        execute("select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
+        assertThat(printedTable(response.rows()), is(
+            "1| 10| 1| 10\n" +
+            "1| 10| 2| 20\n" +
+            "2| 20| 1| 10\n"
+        ));
     }
 
     @Test

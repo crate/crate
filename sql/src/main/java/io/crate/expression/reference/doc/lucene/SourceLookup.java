@@ -73,14 +73,10 @@ public final class SourceLookup {
         return fieldsVisitor.source();
     }
 
-    private Map<String, Object> loadSource() {
-        ensureDocVisited();
-        return XContentHelper.convertToMap(fieldsVisitor.source(), false, XContentType.JSON).v2();
-    }
-
     private void ensureSourceParsed() {
         if (source == null) {
-            source = loadSource();
+            ensureDocVisited();
+            source = XContentHelper.toMap(fieldsVisitor.source(), XContentType.JSON);
         }
     }
 

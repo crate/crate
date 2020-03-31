@@ -23,46 +23,53 @@ package io.crate.expression.scalar.regex;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.DataType;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class RegexpReplaceFunction extends Scalar<String, Object> implements FunctionResolver {
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+public class RegexpReplaceFunction extends Scalar<String, Object> {
 
     public static final String NAME = "regexp_replace";
 
-    private final FuncParams funcParams = FuncParams.builder(
-        Param.STRING, Param.STRING, Param.STRING)
-        .withVarArgs(Param.STRING).limitVarArgOccurrences(1)
-        .build();
-
-    private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
-    }
-
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new RegexpReplaceFunction());
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            args ->
+                new RegexpReplaceFunction(new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING))
+        );
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            args ->
+                new RegexpReplaceFunction(new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING))
+        );
     }
 
     private FunctionInfo info;
     private RegexMatcher regexMatcher;
-
-    private RegexpReplaceFunction() {
-    }
 
     private RegexpReplaceFunction(FunctionInfo info) {
         this.info = info;
@@ -141,17 +148,6 @@ public class RegexpReplaceFunction extends Scalar<String, Object> implements Fun
             matcher = regexMatcher;
         }
         return matcher.replace(val, replacement);
-    }
-
-    @Override
-    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        return new RegexpReplaceFunction(createInfo(dataTypes));
-    }
-
-    @Nullable
-    @Override
-    public List<DataType> getSignature(List<? extends FuncArg> dataTypes) {
-        return funcParams.match(dataTypes);
     }
 
     private static String eval(String value, String pattern, String replacement, @Nullable String flags) {

@@ -23,15 +23,12 @@ package io.crate.expression.scalar.arithmetic;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.expression.symbol.FuncArg;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.List;
+
+import static io.crate.metadata.functions.Signature.scalar;
 
 public final class CeilFunction {
 
@@ -39,36 +36,24 @@ public final class CeilFunction {
     public static final String CEILING = "ceiling";
 
     public static void register(ScalarFunctionModule module) {
-        module.register(CEIL, new CeilFunctionResolver(CEIL));
-        module.register(CEILING, new CeilFunctionResolver(CEILING));
-    }
-
-    private static class CeilFunctionResolver implements FunctionResolver {
-
-        private final String name;
-
-        public CeilFunctionResolver(String name) {
-            this.name = name;
-        }
-
-        @Nullable
-        @Override
-        public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
-            return FuncParams.SINGLE_NUMERIC.match(funcArgs);
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-            if (types.size() != 1) {
-                throw FunctionResolver.noSignatureMatch(name, types);
+        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            var typeSignature = type.getTypeSignature();
+            for (var name : List.of(CEIL, CEILING)) {
+                module.register(
+                    scalar(name, typeSignature, typeSignature),
+                    argumentTypes -> {
+                        DataType<?> argType = argumentTypes.get(0);
+                        DataType<?> returnType = DataTypes.getIntegralReturnType(argType);
+                        assert returnType != null : "Could not get integral type of " + argType;
+                        return new UnaryScalar<>(
+                            name,
+                            argType,
+                            returnType,
+                            x -> returnType.value(Math.ceil(((Number) x).doubleValue()))
+                        );
+                    }
+                );
             }
-            DataType<?> argType = types.get(0);
-            DataType<?> returnType = DataTypes.getIntegralReturnType(argType);
-            if (returnType == null) {
-                throw FunctionResolver.noSignatureMatch(name, types);
-            }
-            return new UnaryScalar<>(
-                name, argType, returnType, x -> returnType.value(Math.ceil(((Number) x).doubleValue())));
         }
     }
 }

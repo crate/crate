@@ -56,7 +56,7 @@ public class LineContext {
         if (parsedSource == null) {
             if (rawSource != null) {
                 try {
-                    parsedSource = XContentHelper.convertToMap(new BytesArray(rawSource), false, XContentType.JSON).v2();
+                    parsedSource = XContentHelper.toMap(new BytesArray(rawSource), XContentType.JSON);
                 } catch (ElasticsearchParseException | NotXContentException e) {
                     throw new RuntimeException("JSON parser error: " + e.getMessage(), e);
                 }

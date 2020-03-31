@@ -24,14 +24,44 @@ package io.crate.expression.scalar.string;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.Locale;
 
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public final class StringCaseFunction {
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new UnaryScalar<>("upper", DataTypes.STRING, DataTypes.STRING, (String val) -> val.toUpperCase(Locale.ENGLISH)));
-        module.register(new UnaryScalar<>("lower", DataTypes.STRING, DataTypes.STRING, (String val) -> val.toLowerCase(Locale.ENGLISH)));
+        module.register(
+            Signature.scalar(
+                "upper",
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            args ->
+                new UnaryScalar<String, String>(
+                    "upper",
+                    DataTypes.STRING,
+                    DataTypes.STRING,
+                    val -> val.toUpperCase(Locale.ENGLISH)
+                )
+        );
+        module.register(
+            Signature.scalar(
+                "lower",
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            args ->
+                new UnaryScalar<String, String>(
+                    "lower",
+                    DataTypes.STRING,
+                    DataTypes.STRING,
+                    val -> val.toLowerCase(Locale.ENGLISH)
+                )
+        );
+
     }
 }

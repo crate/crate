@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class WhereClause {
@@ -92,12 +91,6 @@ public class WhereClause {
 
     public Symbol queryOrFallback() {
         return query == null ? Literal.BOOLEAN_TRUE : query;
-    }
-
-    public void accept(Consumer<? super Symbol> consumer) {
-        if (query != null) {
-            consumer.accept(query);
-        }
     }
 
     private void validateVersioningColumnsUsage() {

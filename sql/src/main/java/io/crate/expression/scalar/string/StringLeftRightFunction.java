@@ -28,17 +28,38 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BiFunction;
 
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public class StringLeftRightFunction extends Scalar<String, Object> {
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new StringLeftRightFunction("left", StringLeftRightFunction::left));
-        module.register(new StringLeftRightFunction("right", StringLeftRightFunction::right));
+        module.register(
+            Signature.scalar(
+                "left",
+                parseTypeSignature("text"),
+                parseTypeSignature("integer"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new StringLeftRightFunction("left", StringLeftRightFunction::left)
+        );
+        module.register(
+            Signature.scalar(
+                "right",
+                parseTypeSignature("text"),
+                parseTypeSignature("integer"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new StringLeftRightFunction("right", StringLeftRightFunction::right)
+        );
     }
 
     private final FunctionInfo info;

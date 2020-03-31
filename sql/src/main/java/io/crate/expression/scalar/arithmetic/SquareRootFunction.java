@@ -24,40 +24,27 @@ package io.crate.expression.scalar.arithmetic;
 import com.google.common.base.Preconditions;
 import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.FuncArg;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-import java.util.List;
+import static io.crate.metadata.functions.Signature.scalar;
 
 public final class SquareRootFunction {
 
     public static final String NAME = "sqrt";
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
+        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            var typeSignature = type.getTypeSignature();
+            module.register(
+                scalar(NAME, typeSignature, typeSignature),
+                argumentTypes ->
+                    new DoubleScalar(NAME, argumentTypes.get(0), SquareRootFunction::sqrt)
+            );
+        }
     }
 
     private static double sqrt(double value) {
         Preconditions.checkArgument(value >= 0, "cannot take square root of a negative number");
         return Math.sqrt(value);
-    }
-
-    private static class Resolver implements FunctionResolver {
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            DataType argType = dataTypes.get(0);
-            return new DoubleScalar(NAME, argType, SquareRootFunction::sqrt);
-        }
-
-        @Nullable
-        @Override
-        public List<DataType> getSignature(List<? extends FuncArg> symbols) {
-            return FuncParams.SINGLE_NUMERIC.match(symbols);
-        }
     }
 }

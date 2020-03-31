@@ -25,7 +25,9 @@ package io.crate.testing;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.FetchReference;
+import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
@@ -75,6 +77,13 @@ public class SymbolMatchers {
             .and(withFeature(s -> ((InputColumn) s).index(), "index", equalTo(index)));
     }
 
+    public static Matcher<Symbol> isFetchStub(String columnName) {
+        return allOf(
+            instanceOf(FetchStub.class),
+            withFeature(x -> ((FetchStub) x).ref(), "", isReference(columnName))
+        );
+    }
+
     public static Matcher<Symbol> isField(final String expectedName) {
         return isField(expectedName, (DataType<?>) null);
     }
@@ -84,6 +93,14 @@ public class SymbolMatchers {
             instanceOf(ScopedSymbol.class),
             withFeature(x -> ((ScopedSymbol) x).column().sqlFqn(), "", equalTo(expectedName)),
             withFeature(x -> ((ScopedSymbol) x).relation(), "", equalTo(relation))
+        );
+    }
+
+    public static Matcher<Symbol> isFetchMarker(RelationName relation, Matcher<Iterable<? extends Symbol>> refsMatcher) {
+        return allOf(
+            instanceOf(FetchMarker.class),
+            withFeature(x -> ((FetchMarker) x).relationName(), "", equalTo(relation)),
+            withFeature(x -> ((FetchMarker) x).fetchRefs(), "", refsMatcher)
         );
     }
 

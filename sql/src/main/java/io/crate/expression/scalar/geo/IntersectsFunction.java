@@ -22,8 +22,6 @@
 
 package io.crate.expression.scalar.geo;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
@@ -40,31 +38,42 @@ import io.crate.types.ObjectType;
 import org.locationtech.spatial4j.shape.Shape;
 
 import java.util.Arrays;
-import java.util.Set;
+import java.util.List;
+
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class IntersectsFunction extends Scalar<Boolean, Object> {
 
     public static final String NAME = "intersects";
 
-    private static FunctionInfo info(DataType type1, DataType type2) {
+    private static FunctionInfo info(DataType<?> type1, DataType<?> type2) {
         return new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.of(type1, type2)),
+            new FunctionIdent(NAME, List.of(type1, type2)),
             DataTypes.BOOLEAN
         );
     }
 
     private static final FunctionInfo SHAPE_INFO = info(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE);
 
-    private static final Set<DataType> SUPPORTED_TYPES = ImmutableSet.of(
+    private static final List<DataType<?>> SUPPORTED_TYPES = List.of(
         DataTypes.STRING,
         ObjectType.untyped(),
         DataTypes.GEO_SHAPE
     );
 
     public static void register(ScalarFunctionModule module) {
-        for (DataType type1 : SUPPORTED_TYPES) {
-            for (DataType type2 : SUPPORTED_TYPES) {
-                module.register(new IntersectsFunction(info(type1, type2)));
+        for (DataType<?> type1 : SUPPORTED_TYPES) {
+            for (DataType<?> type2 : SUPPORTED_TYPES) {
+                module.register(
+                    scalar(
+                        NAME,
+                        type1.getTypeSignature(),
+                        type2.getTypeSignature(),
+                        parseTypeSignature("boolean")
+                        ),
+                    args -> new IntersectsFunction(info(type1, type2))
+                );
             }
         }
     }

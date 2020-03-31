@@ -222,7 +222,7 @@ public class LogicalPlanner {
             plannerContext.params());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
         return fetchOptimizer.optimize(
-            optimizedPlan.pruneOutputsExcept(relation.outputs()),
+            optimizedPlan.pruneOutputsExcept(tableStats, relation.outputs()),
             tableStats,
             coordinatorTxnCtx
         );

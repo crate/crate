@@ -49,6 +49,20 @@ public final class Signature {
      * @return          The created signature
      */
     public static Signature scalar(FunctionName name, TypeSignature... types) {
+        return scalarBuilder(name, types).build();
+    }
+
+    /**
+     * Same as {@link #scalar(String, TypeSignature...)}, but don't allow coercion.
+     * This prevents e.g. matching a numeric_only function with convertible argument (text).
+     */
+    public static Signature scalarWithForbiddenCoercion(String name, TypeSignature... types) {
+        return scalarBuilder(new FunctionName(null, name), types)
+            .forbidCoercion()
+            .build();
+    }
+
+    private static Signature.Builder scalarBuilder(FunctionName name, TypeSignature... types) {
         assert types.length > 0 : "Types must contain at least the return type (last element), 0 types given";
         Builder builder = Signature.builder()
             .name(name)
@@ -57,7 +71,7 @@ public final class Signature {
         if (types.length > 1) {
             builder.argumentTypes(Arrays.copyOf(types, types.length - 1));
         }
-        return builder.build();
+        return builder;
     }
 
     public static Builder builder() {
@@ -72,6 +86,7 @@ public final class Signature {
         private List<TypeVariableConstraint> typeVariableConstraints = Collections.emptyList();
         private List<TypeSignature> variableArityGroup = Collections.emptyList();
         private boolean variableArity = false;
+        private boolean allowCoercion = true;
 
         public Builder name(String name) {
             return name(new FunctionName(null, name));
@@ -121,6 +136,11 @@ public final class Signature {
             return this;
         }
 
+        public Builder forbidCoercion() {
+            allowCoercion = false;
+            return this;
+        }
+
         public Signature build() {
             assert name != null : "Signature requires the 'name' to be set";
             assert kind != null : "Signature requires the 'kind' to be set";
@@ -132,7 +152,8 @@ public final class Signature {
                 argumentTypes,
                 returnType,
                 variableArityGroup,
-                variableArity);
+                variableArity,
+                allowCoercion);
         }
     }
 
@@ -144,6 +165,7 @@ public final class Signature {
     private final List<TypeVariableConstraint> typeVariableConstraints;
     private final List<TypeSignature> variableArityGroup;
     private final boolean variableArity;
+    private final boolean allowCoercion;
 
     private Signature(FunctionName name,
                       FunctionInfo.Type kind,
@@ -151,7 +173,8 @@ public final class Signature {
                       List<TypeSignature> argumentTypes,
                       TypeSignature returnType,
                       List<TypeSignature> variableArityGroup,
-                      boolean variableArity) {
+                      boolean variableArity,
+                      boolean allowCoercion) {
         this.name = name;
         this.kind = kind;
         this.argumentTypes = argumentTypes;
@@ -159,6 +182,7 @@ public final class Signature {
         this.returnType = returnType;
         this.variableArityGroup = variableArityGroup;
         this.variableArity = variableArity;
+        this.allowCoercion = allowCoercion;
     }
 
     public FunctionName getName() {
@@ -187,6 +211,10 @@ public final class Signature {
 
     public boolean isVariableArity() {
         return variableArity;
+    }
+
+    public boolean isCoercionAllowed() {
+        return allowCoercion;
     }
 
     @Override

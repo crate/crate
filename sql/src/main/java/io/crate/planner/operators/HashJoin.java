@@ -47,6 +47,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
+import io.crate.statistics.TableStats;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
@@ -54,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -234,7 +236,7 @@ public class HashJoin implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         ArrayList<Symbol> lhsToKeep = new ArrayList<>();
         ArrayList<Symbol> rhsToKeep = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
@@ -243,8 +245,8 @@ public class HashJoin implements LogicalPlan {
         }
         SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
         SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
+        LogicalPlan newLhs = lhs.pruneOutputsExcept(tableStats, lhsToKeep);
+        LogicalPlan newRhs = rhs.pruneOutputsExcept(tableStats, rhsToKeep);
         if (newLhs == lhs && newRhs == rhs) {
             return this;
         }
@@ -253,6 +255,38 @@ public class HashJoin implements LogicalPlan {
             newRhs,
             joinCondition,
             concreteRelation
+        );
+    }
+
+    @Nullable
+    @Override
+    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
+        ArrayList<Symbol> usedFromLeft = new ArrayList<>();
+        ArrayList<Symbol> usedFromRight = new ArrayList<>();
+        for (Symbol usedColumn : usedColumns) {
+            SymbolVisitors.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
+            SymbolVisitors.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
+        }
+        SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
+        SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
+        FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(tableStats, usedFromLeft);
+        if (lhsFetchRewrite == null) {
+            return null;
+        }
+        FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(tableStats, usedFromRight);
+        if (rhsFetchRewrite == null) {
+            return null;
+        }
+        LinkedHashMap<Symbol, Symbol> allReplacedOutputs = new LinkedHashMap<>(lhsFetchRewrite.replacedOutputs());
+        allReplacedOutputs.putAll(rhsFetchRewrite.replacedOutputs());
+        return new FetchRewrite(
+            allReplacedOutputs,
+            new HashJoin(
+                lhsFetchRewrite.newPlan(),
+                rhsFetchRewrite.newPlan(),
+                joinCondition,
+                concreteRelation
+            )
         );
     }
 

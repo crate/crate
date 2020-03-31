@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public final class FetchRewrite {
 
@@ -68,12 +69,16 @@ public final class FetchRewrite {
             Symbol output = outputs.get(i);
             if (output instanceof FetchMarker) {
                 FetchMarker fetchMarker = (FetchMarker) output;
-                FetchSource fetchSource = new FetchSource();
+                RelationName tableName = fetchMarker.fetchId().ident().tableIdent();
+                FetchSource fetchSource = fetchSources.get(tableName);
+                if (fetchSource == null) {
+                    fetchSource = new FetchSource();
+                    fetchSources.put(tableName, fetchSource);
+                }
                 fetchSource.addFetchIdColumn(new InputColumn(i, fetchMarker.valueType()));
                 for (Reference fetchRef : fetchMarker.fetchRefs()) {
                     fetchSource.addRefToFetch(fetchRef);
                 }
-                fetchSources.put(fetchMarker.relationName(), fetchSource);
             }
         }
         return fetchSources;
@@ -99,5 +104,12 @@ public final class FetchRewrite {
      */
     public Map<Symbol, Symbol> replacedOutputs() {
         return replacedOutputs;
+    }
+
+    /**
+     * @return A function that converts any symbol within a symbol-tree that is present in `replacedOutputs` from the key to the value.
+     */
+    public Function<Symbol, Symbol> mapToFetchStubs() {
+        return s -> MapBackedSymbolReplacer.convert(s, replacedOutputs);
     }
 }

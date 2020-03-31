@@ -24,22 +24,15 @@ package io.crate.expression.scalar.string;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.function.Function;
 
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public final class LengthFunction {
-
-    private static final List<DataType<?>> SUPPORTED_TYPES = List.of(DataTypes.STRING, DataTypes.UNDEFINED);
-
-    private static void register(ScalarFunctionModule module, String name, Function<String, Integer> func) {
-        for (DataType<?> inputType : SUPPORTED_TYPES) {
-            module.register(new UnaryScalar<>(name, inputType, DataTypes.INTEGER, func));
-        }
-    }
 
     public static void register(ScalarFunctionModule module) {
         register(module, "octet_length", x -> x.getBytes(StandardCharsets.UTF_8).length);
@@ -47,4 +40,16 @@ public final class LengthFunction {
         register(module, "char_length", String::length);
         register(module, "length", String::length);
     }
+
+    private static void register(ScalarFunctionModule module, String name, Function<String, Integer> func) {
+        module.register(
+            Signature.scalar(
+                name,
+                parseTypeSignature("text"),
+                parseTypeSignature("integer")
+            ),
+            args -> new UnaryScalar<>(name, DataTypes.STRING, DataTypes.INTEGER, func)
+        );
+    }
+
 }

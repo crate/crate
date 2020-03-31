@@ -186,8 +186,7 @@ public class JobSetup {
             inputFactory,
             normalizer,
             systemCollectSource::getRowUpdater,
-            systemCollectSource::tableDefinition,
-            bigArrays
+            systemCollectSource::tableDefinition
         );
     }
 
@@ -254,7 +253,8 @@ public class JobSetup {
         try {
             return innerPreparer.process(phase, context);
         } catch (Throwable t) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+            IllegalArgumentException e = new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
                 "Couldn't create executionContexts from%n" +
                 "NodeOperations: %s%n" +
                 "Leafs: %s%n" +
@@ -265,6 +265,8 @@ public class JobSetup {
                 context.opCtx.targetToSourceMap,
                 t.getClass().getSimpleName() + ": " + t.getMessage()),
                 t);
+            e.setStackTrace(t.getStackTrace());
+            throw e;
         }
     }
 
@@ -852,15 +854,15 @@ public class JobSetup {
                 breaker.getLimit(),
                 1
             );
-            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
+            var concurrentRamAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
             var ramAccountingOfOperation = new BlockBasedRamAccounting(
-                ramAccounting::addBytes,
+                concurrentRamAccounting::addBytes,
                 ramAccountingBlockSizeInBytes);
             RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE, ramAccountingOfOperation);
-            var memoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
+            var memoryManager = memoryManagerFactory.getMemoryManager(concurrentRamAccounting);
             lastConsumer.completionFuture().whenComplete((result, error) -> {
                 memoryManager.close();
-                ramAccounting.close();
+                concurrentRamAccounting.close();
             });
 
             RowConsumer firstConsumer = ProjectingRowConsumer.create(
@@ -868,7 +870,7 @@ public class JobSetup {
                 phase.projections(),
                 phase.jobId(),
                 context.txnCtx(),
-                ramAccounting,          // some projectors may account ram concurrently, e.g. fetch
+                concurrentRamAccounting,          // some projectors may account ram concurrently, e.g. fetch
                 memoryManager,
                 projectorFactory
             );
@@ -881,7 +883,7 @@ public class JobSetup {
                 joinCondition,
                 phase.joinType(),
                 breaker(),
-                phase.blockNestedLoop ? ramAccounting : ramAccountingOfOperation,
+                ramAccountingOfOperation,
                 phase.leftSideColumnTypes,
                 phase.estimatedRowsSizeLeft,
                 phase.estimatedNumberOfRowsLeft,
@@ -893,7 +895,7 @@ public class JobSetup {
                 (byte) 0,
                 phase.leftMergePhase(),
                 joinOperation.leftConsumer(),
-                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes),
+                new BlockBasedRamAccounting(concurrentRamAccounting::addBytes, ramAccountingBlockSizeInBytes),
                 memoryManager
             );
 
@@ -907,7 +909,7 @@ public class JobSetup {
                 (byte) 1,
                 phase.rightMergePhase(),
                 joinOperation.rightConsumer(),
-                new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes),
+                new BlockBasedRamAccounting(concurrentRamAccounting::addBytes, ramAccountingBlockSizeInBytes),
                 memoryManager
             );
             if (right != null) {
@@ -962,7 +964,7 @@ public class JobSetup {
                 //    96 bytes for each ArrayList +
                 //    7 bytes per key for the IntHashObjectHashMap  (should be 4 but the map pre-allocates more)
                 //    7 bytes perv value (pointer from the map to the list) (should be 4 but the map pre-allocates more)
-                new RowAccountingWithEstimators(phase.leftOutputTypes(), ramAccounting, 110),
+                new RowAccountingWithEstimators(phase.leftOutputTypes(), ramAccountingOfOperation, 110),
                 context.transactionContext,
                 inputFactory,
                 breaker(),

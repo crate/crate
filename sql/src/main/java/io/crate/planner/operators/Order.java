@@ -29,8 +29,6 @@ import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -39,6 +37,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -48,6 +47,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class Order extends ForwardingLogicalPlan {
 
@@ -73,7 +73,7 @@ public class Order extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
             SymbolVisitors.intersection(outputToKeep, source.outputs(), toKeep::add);
@@ -81,7 +81,7 @@ public class Order extends ForwardingLogicalPlan {
         for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
             SymbolVisitors.intersection(orderBySymbol, source.outputs(), toKeep::add);
         }
-        LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
+        LogicalPlan newSource = source.pruneOutputsExcept(tableStats, toKeep);
         if (newSource == source) {
             return this;
         }
@@ -90,10 +90,10 @@ public class Order extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
         HashSet<Symbol> allUsedColumns = new HashSet<>(usedColumns);
         allUsedColumns.addAll(orderBy.orderBySymbols());
-        FetchRewrite fetchRewrite = source.rewriteToFetch(allUsedColumns);
+        FetchRewrite fetchRewrite = source.rewriteToFetch(tableStats, allUsedColumns);
         if (fetchRewrite == null) {
             return null;
         }
@@ -105,26 +105,10 @@ public class Order extends ForwardingLogicalPlan {
             // e.g. OrderBy [x + y] where the source provides [x, y]
             // We need to extend replacedOutputs in this case because it must always contain entries for all outputs
             LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>(replacedOutputs);
-            FunctionCopyVisitor<Void> mapToFetchStubs = new FunctionCopyVisitor<>() {
-
-                @Override
-                protected Symbol visitSymbol(Symbol symbol, Void context) {
-                    return replacedOutputs.getOrDefault(symbol, symbol);
-                }
-
-                @Override
-                public Symbol visitFunction(Function func, Void context) {
-                    Symbol mappedFunc = replacedOutputs.get(func);
-                    if (mappedFunc == null) {
-                        return processAndMaybeCopy(func, context);
-                    } else {
-                        return mappedFunc;
-                    }
-                }
-            };
+            Function<Symbol, Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
             for (int i = newSource.outputs().size(); i < newOrderBy.outputs.size(); i++) {
                 Symbol extraOutput = newOrderBy.outputs.get(i);
-                newReplacedOutputs.put(extraOutput, extraOutput.accept(mapToFetchStubs, null));
+                newReplacedOutputs.put(extraOutput, mapToFetchStubs.apply(extraOutput));
             }
             return new FetchRewrite(newReplacedOutputs, newOrderBy);
         } else {

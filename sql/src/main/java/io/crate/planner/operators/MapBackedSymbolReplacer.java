@@ -20,17 +20,37 @@
  * agreement.
  */
 
-package io.crate.expression.reference.sys.node;
+package io.crate.planner.operators;
 
-import io.crate.expression.reference.ObjectCollectExpression;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.FunctionCopyVisitor;
+import io.crate.expression.symbol.Symbol;
 
-public abstract class NestedNodeStatsExpression extends ObjectCollectExpression<NodeStatsContext> {
+import java.util.Map;
+
+public final class MapBackedSymbolReplacer extends FunctionCopyVisitor<Map<Symbol, Symbol>> {
+
+    private static final MapBackedSymbolReplacer INSTANCE = new MapBackedSymbolReplacer();
+
+    private MapBackedSymbolReplacer() {
+    }
+
+    public static Symbol convert(Symbol symbol, Map<Symbol, Symbol> replacements) {
+        return symbol.accept(INSTANCE, replacements);
+    }
 
     @Override
-    public void setNextRow(NodeStatsContext nodeStatsContext) {
-        value = null;
-        if (nodeStatsContext.isComplete()) {
-            super.setNextRow(nodeStatsContext);
+    protected Symbol visitSymbol(Symbol symbol, Map<Symbol, Symbol> map) {
+        return map.getOrDefault(symbol, symbol);
+    }
+
+    @Override
+    public Symbol visitFunction(Function func, Map<Symbol, Symbol> map) {
+        Symbol mappedFunc = map.get(func);
+        if (mappedFunc == null) {
+            return processAndMaybeCopy(func, map);
+        } else {
+            return mappedFunc;
         }
     }
 }

@@ -91,12 +91,12 @@ public class Collect implements LogicalPlan {
 
     WhereClause where;
 
-    public static LogicalPlan create(AbstractTableRelation<?> relation,
-                                     List<Symbol> toCollect,
-                                     WhereClause where,
-                                     Set<PlanHint> hints,
-                                     TableStats tableStats,
-                                     Row params) {
+    public static Collect create(AbstractTableRelation<?> relation,
+                                 List<Symbol> toCollect,
+                                 WhereClause where,
+                                 Set<PlanHint> hints,
+                                 TableStats tableStats,
+                                 Row params) {
         Stats stats = tableStats.getStats(relation.tableInfo().ident());
         return new Collect(
             hints.contains(PlanHint.PREFER_SOURCE_LOOKUP),
@@ -288,7 +288,7 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         for (Symbol output : outputs) {
             if (outputsToKeep.contains(output)) {
@@ -298,19 +298,20 @@ public class Collect implements LogicalPlan {
         if (newOutputs.equals(outputs)) {
             return this;
         }
+        Stats stats = tableStats.getStats(relation.relationName());
         return new Collect(
             preferSourceLookup,
             relation,
             newOutputs,
             where,
             numExpectedRows,
-            estimatedRowSize
+            stats.estimateSizeForColumns(newOutputs)
         );
     }
 
     @Nullable
     @Override
-    public FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+    public FetchRewrite rewriteToFetch(TableStats tableStats, Collection<Symbol> usedColumns) {
         if (!(tableInfo instanceof DocTableInfo)) {
             return null;
         }
@@ -331,8 +332,9 @@ public class Collect implements LogicalPlan {
                 replacedOutputs.put(output, output);
             } else {
                 Symbol outputWithFetchStub = RefReplacer.replaceRefs(output, ref -> {
-                    refsToFetch.add(ref);
-                    return new FetchStub(fetchMarker, ref);
+                    Reference sourceLookup = DocReferences.toSourceLookup(ref);
+                    refsToFetch.add(sourceLookup);
+                    return new FetchStub(fetchMarker, sourceLookup);
                 });
                 replacedOutputs.put(output, outputWithFetchStub);
             }
@@ -341,6 +343,7 @@ public class Collect implements LogicalPlan {
             return null;
         }
         newOutputs.add(0, fetchMarker);
+        Stats stats = tableStats.getStats(relation.relationName());
         return new FetchRewrite(
             replacedOutputs,
             new Collect(
@@ -349,7 +352,7 @@ public class Collect implements LogicalPlan {
                 newOutputs,
                 where,
                 numExpectedRows,
-                estimatedRowSize
+                stats.estimateSizeForColumns(newOutputs)
             )
         );
     }

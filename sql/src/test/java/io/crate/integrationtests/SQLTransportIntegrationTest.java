@@ -132,8 +132,11 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 @Listeners({SystemPropsTestLoggingListener.class})
 @UseJdbc
@@ -325,7 +328,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             for (IndicesService indicesService : indexServices) {
                 for (IndexService indexService : indicesService) {
                     for (IndexShard indexShard : indexService) {
-                        assertThat(indexShard.getActiveOperationsCount(), Matchers.equalTo(0));
+                        assertThat(indexShard.getActiveOperationsCount(), equalTo(0));
                     }
                 }
             }
@@ -593,14 +596,18 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         }, 20L, TimeUnit.SECONDS);
     }
 
-    public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType> argTypes) throws Exception {
+    public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType<?>> argTypes) throws Exception {
         SearchPath searchPath = SearchPath.pathWithPGCatalogAndDoc();
         assertBusy(() -> {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
-                FunctionImplementation userDefined = function.get(
-                    schema, name, Lists2.map(argTypes, t -> Literal.of(t, null)), searchPath);
-                assertThat(userDefined, is(notNullValue()));
+                FunctionImplementation func = function.get(
+                    schema,
+                    name,
+                    Lists2.map(argTypes, t -> Literal.of(t, null)),
+                    searchPath);
+                assertThat(func, is(not(nullValue())));
+                assertThat(func.info().ident().argumentTypes(), is(equalTo(argTypes)));
             }
         }, 20L, TimeUnit.SECONDS);
     }
@@ -610,7 +617,14 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
                 FunctionImplementation func = function.getQualified(new FunctionIdent(schema, name, argTypes));
-                assertThat(func, Matchers.nullValue());
+                if (func != null) {
+                    // if no exact function match is found for given arguments,
+                    // the function with arguments that can be casted to provided
+                    // arguments will be returned. Therefore, we have to assert that
+                    // the provided arguments do not match the arguments of the resolved
+                    // function if the function was deleted.
+                    assertThat(func.info().ident().argumentTypes(), not(equalTo(argTypes)));
+                }
             }
         }, 20L, TimeUnit.SECONDS);
     }

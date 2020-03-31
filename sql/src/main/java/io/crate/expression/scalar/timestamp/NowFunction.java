@@ -28,9 +28,12 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class NowFunction extends Scalar<Long, Object> {
 
@@ -42,7 +45,13 @@ public final class NowFunction extends Scalar<Long, Object> {
     );
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new NowFunction());
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("timestamp with time zone")
+            ),
+            args -> new NowFunction()
+        );
     }
 
     @Override
