@@ -52,9 +52,13 @@ public final class BlockBasedRamAccounting implements RamAccounting {
      * Scale the block size that is eagerly allocated depending on the circuit breakers current limit and the shards
      * on the node.
      */
-    public static int calculateBlockSizeInBytes(long breakerLimit, int shardsUsedOnNode) {
+    public static int blockSizeInBytesPerShard(long breakerLimit, int shardsUsedOnNode) {
         int blockSize = Math.min((int) (breakerLimit * BREAKER_LIMIT_PERCENTAGE), MAX_BLOCK_SIZE_IN_BYTES);
         return blockSize / Math.max(shardsUsedOnNode, 1);
+    }
+
+    public static int blockSizeInBytes(long breakerLimit) {
+        return Math.min((int) (breakerLimit * BREAKER_LIMIT_PERCENTAGE), MAX_BLOCK_SIZE_IN_BYTES);
     }
 
     public BlockBasedRamAccounting(LongConsumer reserveMemory, int blockSizeInBytes) {
