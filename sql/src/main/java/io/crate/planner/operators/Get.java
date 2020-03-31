@@ -70,6 +70,11 @@ public class Get implements LogicalPlan {
     }
 
     @Override
+    public boolean preferShardProjections() {
+        return true;
+    }
+
+    @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
                                int limitHint,
