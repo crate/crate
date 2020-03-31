@@ -24,6 +24,7 @@ package io.crate.execution;
 
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
+import io.crate.execution.dml.upsert.TransportShardInsertAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.execution.dml.upsert.TransportShardUpdateAction;
 import io.crate.execution.engine.fetch.TransportFetchNodeAction;
@@ -56,6 +57,7 @@ public class TransportActionProvider {
 
     private final Provider<TransportShardUpsertAction> transportShardUpsertActionProvider;
     private final Provider<TransportShardUpdateAction> transportShardUpdateActionProvider;
+    private final Provider<TransportShardInsertAction> transportShardInsertActionProvider;
     private final Provider<TransportCreatePartitionsAction> transportBulkCreateIndicesActionProvider;
 
     private final Provider<TransportJobAction> transportJobInitActionProvider;
@@ -81,6 +83,7 @@ public class TransportActionProvider {
                                    Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider,
                                    Provider<TransportShardDeleteAction> transportShardDeleteActionProvider,
                                    Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
+                                   Provider<TransportShardInsertAction> transportShardInsertActionProvider,
                                    Provider<TransportShardUpdateAction> transportShardUpdateActionProvider,
                                    Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider,
                                    Provider<TransportJobAction> transportJobInitActionProvider,
@@ -100,6 +103,7 @@ public class TransportActionProvider {
         this.transportShardDeleteActionProvider = transportShardDeleteActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
         this.transportShardUpdateActionProvider = transportShardUpdateActionProvider;
+        this.transportShardInsertActionProvider = transportShardInsertActionProvider;
         this.transportKillAllNodeActionProvider = transportKillAllNodeActionProvider;
         this.transportFetchNodeActionProvider = transportFetchNodeActionProvider;
         this.transportCollectProfileNodeActionProvider = transportCollectProfileNodeActionProvider;
@@ -135,6 +139,10 @@ public class TransportActionProvider {
 
     public TransportShardUpdateAction transportShardUpdateAction() {
         return transportShardUpdateActionProvider.get();
+    }
+
+    public TransportShardInsertAction transportShardInsertAction() {
+        return transportShardInsertActionProvider.get();
     }
 
     public TransportShardDeleteAction transportShardDeleteAction() {
