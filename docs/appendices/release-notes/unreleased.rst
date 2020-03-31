@@ -57,4 +57,5 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue that caused a ``NullPointerException`` if using ``COPY TO``
+  with a ``WHERE`` clause with filters on primary key columns.

@@ -490,8 +490,11 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("refresh table t1");
 
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
-        SQLResponse response = execute("copy t1 where id = 1 to DIRECTORY ?", new Object[]{uriTemplate});
-        assertThat(response.rowCount(), is(1L));
+        SQLResponse respNoMatch = execute("copy t1 where id = 2 to DIRECTORY ?", new Object[]{uriTemplate});
+        assertThat(respNoMatch.rowCount(), is(0L));
+
+        SQLResponse respMatch = execute("copy t1 where id = 1 to DIRECTORY ?", new Object[]{uriTemplate});
+        assertThat(respMatch.rowCount(), is(1L));
     }
 
     @Test
