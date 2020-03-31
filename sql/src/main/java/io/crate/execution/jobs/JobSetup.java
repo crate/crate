@@ -640,12 +640,16 @@ public class JobSetup {
                 ramAccounting::addBytes,
                 ramAccountingBlockSizeInBytes);
 
-            RowConsumer consumer = context.getRowConsumer(phase, pageSize, ramAccountingForMerge);
+            RowConsumer finalRowConsumer = context.getRowConsumer(phase, pageSize, ramAccountingForMerge);
             MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
+            finalRowConsumer.completionFuture().whenComplete((result, error) -> {
+                memoryManager.close();
+                ramAccounting.close();
+            });
 
             if (upstreamOnSameNode && phase.numInputs() == 1) {
-                consumer = ProjectingRowConsumer.create(
-                    consumer,
+                RowConsumer projectingRowConsumer = ProjectingRowConsumer.create(
+                    finalRowConsumer,
                     phase.projections(),
                     phase.jobId(),
                     context.txnCtx(),
@@ -653,11 +657,7 @@ public class JobSetup {
                     memoryManager,
                     projectorFactory
                 );
-                consumer.completionFuture().whenComplete((result, error) -> {
-                    memoryManager.close();
-                    ramAccounting.close();
-                });
-                context.registerBatchConsumer(phase.phaseId(), consumer);
+                context.registerBatchConsumer(phase.phaseId(), projectingRowConsumer);
                 return true;
             }
 
@@ -665,10 +665,8 @@ public class JobSetup {
             List<Projection> projections = phase.projections();
             if (projections.size() > 0) {
                 Projection firstProjection = projections.get(0);
-
                 if (firstProjection instanceof GroupProjection) {
                     GroupProjection groupProjection = (GroupProjection) firstProjection;
-
                     GroupingProjector groupingProjector = (GroupingProjector) projectorFactory.create(
                         groupProjection,
                         context.txnCtx(),
@@ -680,7 +678,6 @@ public class JobSetup {
                     projections = projections.subList(1, projections.size());
                 } else if (firstProjection instanceof AggregationProjection) {
                     AggregationProjection aggregationProjection = (AggregationProjection) firstProjection;
-
                     AggregationPipe aggregationPipe = (AggregationPipe) projectorFactory.create(
                         aggregationProjection,
                         context.txnCtx(),
@@ -693,8 +690,8 @@ public class JobSetup {
                 }
             }
 
-            consumer = ProjectingRowConsumer.create(
-                consumer,
+            RowConsumer projectingRowConsumer = ProjectingRowConsumer.create(
+                finalRowConsumer,
                 projections,
                 phase.jobId(),
                 context.txnCtx(),
@@ -702,11 +699,6 @@ public class JobSetup {
                 memoryManager,
                 projectorFactory
             );
-            consumer.completionFuture().whenComplete((result, error) -> {
-                memoryManager.close();
-                ramAccounting.close();
-            });
-
             PageBucketReceiver pageBucketReceiver;
             if (collector == null) {
                 pageBucketReceiver = new CumulativePageBucketReceiver(
@@ -714,7 +706,7 @@ public class JobSetup {
                     phase.phaseId(),
                     searchTp,
                     DataTypes.getStreamers(phase.inputTypes()),
-                    consumer,
+                    projectingRowConsumer,
                     PagingIterator.create(
                         phase.numUpstreams(),
                         false,
@@ -726,12 +718,11 @@ public class JobSetup {
             } else {
                 pageBucketReceiver = new IncrementalPageBucketReceiver<>(
                     collector,
-                    consumer,
+                    projectingRowConsumer,
                     searchTp,
                     DataTypes.getStreamers(phase.inputTypes()),
                     phase.numUpstreams());
             }
-
             context.registerSubContext(new DistResultRXTask(
                 phase.phaseId(),
                 phase.name(),
