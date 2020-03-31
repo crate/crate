@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar.geo;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.types.DataType;
@@ -31,13 +30,20 @@ import io.crate.types.GeoPointType;
 import java.util.List;
 import java.util.function.Function;
 
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public final class CoordinateFunction {
 
-    private static final List<DataType> SUPPORTED_INPUT_TYPES = ImmutableList.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY, DataTypes.UNDEFINED);
+    private static final List<DataType<?>> SUPPORTED_INPUT_TYPES =
+        List.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY, DataTypes.UNDEFINED);
 
     private static void register(ScalarFunctionModule module, String name, Function<Object, Double> func) {
-        for (DataType inputType : SUPPORTED_INPUT_TYPES) {
-            module.register(new UnaryScalar<>(name, inputType, DataTypes.DOUBLE, func));
+        for (DataType<?> inputType : SUPPORTED_INPUT_TYPES) {
+            module.register(
+                scalar(name, inputType.getTypeSignature(), parseTypeSignature("double precision")),
+                args -> new UnaryScalar<>(name, inputType, DataTypes.DOUBLE, func)
+            );
         }
     }
 

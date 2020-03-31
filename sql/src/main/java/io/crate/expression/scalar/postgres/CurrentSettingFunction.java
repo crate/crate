@@ -24,42 +24,48 @@ package io.crate.expression.scalar.postgres;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.types.DataType;
 
-import java.util.List;
+import static io.crate.metadata.functions.Signature.scalar;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CurrentSettingFunction extends Scalar<String, Object> {
 
     private static final String NAME = "current_setting";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static void register(ScalarFunctionModule scalarFunctionModule) {
-        scalarFunctionModule.register(FQN,
-                                      new BaseFunctionResolver(
-                                          FuncParams
-                                              .builder(Param.STRING)
-                                              .withVarArgs(Param.BOOLEAN)
-                                              .limitVarArgOccurrences(1)
-                                              .build()) {
-                @Override
-                public FunctionImplementation getForTypes(List<DataType> datatypes) {
-                    return new CurrentSettingFunction(
-                        new FunctionInfo(new FunctionIdent(FQN, datatypes), datatypes.get(0))
-                    );
-                }
-            });
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            scalar(
+                FQN,
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new CurrentSettingFunction(
+                    new FunctionInfo(new FunctionIdent(FQN, argumentTypes), argumentTypes.get(0))
+                )
+        );
+
+        module.register(
+            scalar(
+                FQN,
+                parseTypeSignature("text"),
+                parseTypeSignature("boolean"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new CurrentSettingFunction(
+                    new FunctionInfo(new FunctionIdent(FQN, argumentTypes), argumentTypes.get(0))
+                )
+        );
     }
 
     private final FunctionInfo info;

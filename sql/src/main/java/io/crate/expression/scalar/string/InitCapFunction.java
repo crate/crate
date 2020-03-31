@@ -24,12 +24,23 @@ package io.crate.expression.scalar.string;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class InitCapFunction {
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new UnaryScalar<>("initcap", DataTypes.STRING, DataTypes.STRING, InitCapFunction::toCapital));
+        module.register(
+            Signature.scalar(
+                "initcap",
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            args ->
+                new UnaryScalar<>("initcap", DataTypes.STRING, DataTypes.STRING, InitCapFunction::toCapital)
+        );
     }
 
     private static String toCapital(String val) {

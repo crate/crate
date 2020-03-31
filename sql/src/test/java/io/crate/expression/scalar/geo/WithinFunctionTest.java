@@ -122,13 +122,15 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testFirstArgumentWithInvalidType() throws Exception {
-        expectedException.expect(ConversionException.class);
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: within(bigint, geo_point)");
         getFunction(FNAME, DataTypes.LONG, DataTypes.GEO_POINT);
     }
 
     @Test
     public void testSecondArgumentWithInvalidType() throws Exception {
-        expectedException.expect(ConversionException.class);
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: within(geo_point, bigint)");
         getFunction(FNAME, DataTypes.GEO_POINT, DataTypes.LONG);
     }
 

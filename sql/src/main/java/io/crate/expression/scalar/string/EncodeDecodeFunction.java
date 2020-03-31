@@ -27,6 +27,7 @@ import io.crate.common.Octal;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.arithmetic.BinaryScalar;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.nio.charset.StandardCharsets;
@@ -35,11 +36,31 @@ import java.util.Locale;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public class EncodeDecodeFunction {
 
     public static void register(ScalarFunctionModule module) {
-        module.register(new BinaryScalar<>(new Encode(), "encode", DataTypes.STRING, FunctionInfo.DETERMINISTIC_ONLY));
-        module.register(new BinaryScalar<>(new Decode(), "decode", DataTypes.STRING, FunctionInfo.DETERMINISTIC_ONLY));
+        module.register(
+            Signature.scalar(
+                "encode",
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            args ->
+                new BinaryScalar<>(new Encode(), "encode", DataTypes.STRING, FunctionInfo.DETERMINISTIC_ONLY)
+        );
+        module.register(
+            Signature.scalar(
+                "decode",
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            args ->
+                new BinaryScalar<>(new Decode(), "decode", DataTypes.STRING, FunctionInfo.DETERMINISTIC_ONLY)
+        );
     }
 
     /**

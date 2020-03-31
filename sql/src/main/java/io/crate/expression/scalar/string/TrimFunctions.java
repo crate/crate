@@ -22,27 +22,24 @@
 
 package io.crate.expression.scalar.string;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Chars;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.TrimMode;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.BiFunction;
+
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 
 public final class TrimFunctions {
@@ -52,29 +49,95 @@ public final class TrimFunctions {
     private static final String RTRIM_NAME = "rtrim";
 
     public static void register(ScalarFunctionModule module) {
-        module.register(TRIM_NAME, new BaseFunctionResolver(FuncParams
-            .builder(Param.STRING)
-            .withVarArgs(Param.STRING).limitVarArgOccurrences(2)
-            .build()) {
+        // trim(text)
+        module.register(
+            Signature.scalar(
+                TRIM_NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new OneCharTrimFunction(
+                    new FunctionInfo(
+                        new FunctionIdent(TRIM_NAME, argumentTypes),
+                        DataTypes.STRING
+                    ),
+                    ' '
+                )
+        );
+        // trim(MODE trimmingText from text)
+        module.register(
+            Signature.scalar(
+                TRIM_NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new TrimFunction(
+                    new FunctionInfo(
+                        new FunctionIdent(TRIM_NAME, argumentTypes),
+                        DataTypes.STRING
+                    )
+                )
+        );
 
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> datatypes) {
-                if (datatypes.size() == 1) {
-                    return new OneCharTrimFunction(
-                        new FunctionInfo(
-                            new FunctionIdent(TRIM_NAME, ImmutableList.of(datatypes.get(0))),
-                            datatypes.get(0)),
-                        ' ');
-                } else {
-                    return new TrimFunction(
-                        new FunctionInfo(new FunctionIdent(TRIM_NAME, datatypes), datatypes.get(0))
-                    );
-                }
-            }
-        });
+        // ltrim(text)
+        module.register(
+            Signature.scalar(
+                LTRIM_NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new SingleSideTrimFunction(
+                    new FunctionInfo(new FunctionIdent(LTRIM_NAME, argumentTypes), DataTypes.STRING),
+                    (i, c) -> trimChars(i, c, TrimMode.LEADING)
+                )
+        );
+        // ltrim(text, trimmingText)
+        module.register(
+            Signature.scalar(
+                LTRIM_NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new SingleSideTrimFunction(
+                    new FunctionInfo(new FunctionIdent(LTRIM_NAME, argumentTypes), DataTypes.STRING),
+                    (i, c) -> trimChars(i, c, TrimMode.LEADING)
+                )
+        );
 
-        module.register(LTRIM_NAME, new SingleSideTrimFunctionResolver(LTRIM_NAME, (i, c) -> trimChars(i, c, TrimMode.LEADING)));
-        module.register(RTRIM_NAME, new SingleSideTrimFunctionResolver(RTRIM_NAME, (i, c) -> trimChars(i, c, TrimMode.TRAILING)));
+        // rtrim(text)
+        module.register(
+            Signature.scalar(
+                RTRIM_NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new SingleSideTrimFunction(
+                    new FunctionInfo(new FunctionIdent(RTRIM_NAME, argumentTypes), DataTypes.STRING),
+                    (i, c) -> trimChars(i, c, TrimMode.TRAILING)
+                )
+        );
+        // rtrim(text, trimmingText)
+        module.register(
+            Signature.scalar(
+                RTRIM_NAME,
+                parseTypeSignature("text"),
+                parseTypeSignature("text"),
+                parseTypeSignature("text")
+            ),
+            argumentTypes ->
+                new SingleSideTrimFunction(
+                    new FunctionInfo(new FunctionIdent(RTRIM_NAME, argumentTypes), DataTypes.STRING),
+                    (i, c) -> trimChars(i, c, TrimMode.TRAILING)
+                )
+        );
     }
 
     private static class TrimFunction extends Scalar<String, String> {
@@ -203,32 +266,6 @@ public final class TrimFunctions {
             }
 
             return trimFunction.apply(target, " ");
-        }
-    }
-
-    private static class SingleSideTrimFunctionResolver extends BaseFunctionResolver {
-
-        private final String functionName;
-        private final BiFunction<String, String, String> trimFunction;
-
-        SingleSideTrimFunctionResolver(String functionName, BiFunction<String, String, String> trimFunction) {
-            super(
-                FuncParams
-                    .builder(Param.STRING)
-                    .withVarArgs(Param.STRING)
-                    .limitVarArgOccurrences(1)
-                    .build()
-            );
-            this.functionName = functionName;
-            this.trimFunction = trimFunction;
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new SingleSideTrimFunction(
-                new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.STRING),
-                trimFunction
-            );
         }
     }
 

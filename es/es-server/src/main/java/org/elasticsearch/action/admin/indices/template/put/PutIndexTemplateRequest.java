@@ -229,7 +229,7 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
     public PutIndexTemplateRequest mapping(String type, BytesReference source, XContentType xContentType) {
         Objects.requireNonNull(xContentType);
         try {
-            mappings.put(type, XContentHelper.convertToJson(source, false, false, xContentType));
+            mappings.put(type, XContentHelper.convertToJson(source, xContentType));
             return this;
         } catch (IOException e) {
             throw new UncheckedIOException("failed to convert source to json", e);

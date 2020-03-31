@@ -30,13 +30,14 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.nullValue;
 
 public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testResolveWithTooManyArguments() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The number of arguments is incorrect");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: distance(text, text, text)");
         assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", null);
     }
 
@@ -66,10 +67,10 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNormalizeWithInvalidReferences() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `name` of type `text` to type `double precision_array`");
-        assertNormalize("distance(name, [10.04, 28.02])", null);
+    public void testWithInvalidReferences() {
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast value `foo` to type `geo_point`");
+        assertEvaluate("distance(name, [10.04, 28.02])", nullValue(), Literal.of("foo"));
     }
 
     @Test
