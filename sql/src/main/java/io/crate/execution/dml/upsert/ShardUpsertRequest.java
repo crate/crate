@@ -28,7 +28,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.settings.SessionSettings;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -189,9 +188,6 @@ public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertReq
      */
     public static class Item extends AbstractShardWriteRequest.Item {
 
-        @Nullable
-        private BytesReference source;
-
         /**
          * List of symbols used on update if document exist
          */
@@ -233,15 +229,6 @@ public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertReq
             this.returnValues = returnValues;
         }
 
-        @Nullable
-        public BytesReference source() {
-            return source;
-        }
-
-        public void source(BytesReference source) {
-            this.source = source;
-        }
-
         boolean retryOnConflict() {
             return seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && version == Versions.MATCH_ANY;
         }
@@ -278,9 +265,6 @@ public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertReq
                     insertValues[i] = insertValueStreamers[i].readValueFrom(in);
                 }
             }
-            if (in.readBoolean()) {
-                source = in.readBytesReference();
-            }
             if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
                 int returnValueSize = in.readVInt();
                 if (returnValueSize > 0) {
@@ -312,12 +296,6 @@ public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertReq
                 }
             } else {
                 out.writeVInt(0);
-            }
-
-            boolean sourceAvailable = source != null;
-            out.writeBoolean(sourceAvailable);
-            if (sourceAvailable) {
-                out.writeBytesReference(source);
             }
             if (allOn4_2) {
                 if (returnValues != null) {
