@@ -27,7 +27,6 @@ import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.projection.Projection;
@@ -55,6 +54,7 @@ import org.elasticsearch.indices.IndicesService;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -76,48 +76,6 @@ public final class PKLookupOperation {
         this.shardCollectSource = shardCollectSource;
     }
 
-    public BatchIterator<Doc> lookup(boolean ignoreMissing,
-                                     Map<ShardId, List<PKAndVersion>> idsByShard,
-                                     boolean consumerRequiresRepeat) {
-        Stream<Doc> getResultStream = idsByShard.entrySet().stream()
-            .flatMap(entry -> {
-                ShardId shardId = entry.getKey();
-                IndexService indexService = indicesService.indexService(shardId.getIndex());
-                if (indexService == null) {
-                    if (ignoreMissing) {
-                        return Stream.empty();
-                    }
-                    throw new IndexNotFoundException(shardId.getIndex());
-                }
-                IndexShard shard = indexService.getShardOrNull(shardId.id());
-                if (shard == null) {
-                    if (ignoreMissing) {
-                        return Stream.empty();
-                    }
-                    throw new ShardNotFoundException(shardId);
-                }
-                return entry.getValue().stream()
-                    .map(pkAndVersion -> lookupDoc(shard,
-                                                   pkAndVersion.id(),
-                                                   pkAndVersion.version(),
-                                                   pkAndVersion.seqNo(),
-                                                   pkAndVersion.primaryTerm()))
-                    .filter(Objects::nonNull);
-            });
-        final Iterable<Doc> getResultIterable;
-        if (consumerRequiresRepeat) {
-            getResultIterable = getResultStream.collect(Collectors.toList());
-        } else {
-            getResultIterable = getResultStream::iterator;
-        }
-        return InMemoryBatchIterator.of(getResultIterable, null, true);
-    }
-
-    @Nullable
-    public static Doc lookupDoc(IndexShard shard, String id, long version, long seqNo, long primaryTerm) {
-        return lookupDoc(shard, id, version, VersionType.EXTERNAL, seqNo, primaryTerm);
-    }
-
     @Nullable
     public static Doc lookupDoc(IndexShard shard, String id, long version, VersionType versionType, long seqNo, long primaryTerm) {
         Term uidTerm = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
@@ -136,7 +94,7 @@ public final class PKLookupOperation {
             try {
                 docIdAndVersion.reader.document(docIdAndVersion.docId, visitor);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             return new Doc(
                 docIdAndVersion.docId,
@@ -151,16 +109,16 @@ public final class PKLookupOperation {
         }
     }
 
-    public void runWithShardProjections(UUID jobId,
-                                        TransactionContext txnCtx,
-                                        Supplier<RamAccounting> ramAccountingSupplier,
-                                        Supplier<MemoryManager> memoryManagerSupplier,
-                                        boolean ignoreMissing,
-                                        Map<ShardId, List<PKAndVersion>> idsByShard,
-                                        Collection<? extends Projection> projections,
-                                        RowConsumer nodeConsumer,
-                                        Function<Doc, Row> resultToRow) {
-        ArrayList<ShardAndIds> shardAndIdsList = new ArrayList<>(idsByShard.size());
+    public BatchIterator<Row> lookup(UUID jobId,
+                                     TransactionContext txnCtx,
+                                     Supplier<RamAccounting> ramAccountingSupplier,
+                                     Supplier<MemoryManager> memoryManagerSupplier,
+                                     boolean ignoreMissing,
+                                     Map<ShardId, List<PKAndVersion>> idsByShard,
+                                     Collection<? extends Projection> projections,
+                                     boolean requiresScroll,
+                                     Function<Doc, Row> resultToRow) {
+        ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(idsByShard.size());
         for (Map.Entry<ShardId, List<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
             ShardId shardId = idsByShardEntry.getKey();
             IndexService indexService = indicesService.indexService(shardId.getIndex());
@@ -177,60 +135,46 @@ public final class PKLookupOperation {
                 }
                 throw new ShardNotFoundException(shardId);
             }
-            try {
-                shardAndIdsList.add(
-                    new ShardAndIds(
-                        shard,
-                        shardCollectSource.getProjectorFactory(shardId),
-                        idsByShardEntry.getValue()
-                    ));
-            } catch (ShardNotFoundException e) {
-                if (ignoreMissing) {
-                    continue;
-                }
-                throw e;
-            }
-        }
-        ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(shardAndIdsList.size());
-        for (ShardAndIds shardAndIds : shardAndIdsList) {
-            Stream<Row> rowStream = shardAndIds.value.stream()
-                .map(pkAndVersion -> lookupDoc(shardAndIds.shard,
-                                               pkAndVersion.id(),
-                                               pkAndVersion.version(),
-                                               pkAndVersion.seqNo(),
-                                               pkAndVersion.primaryTerm()))
+            Stream<Row> rowStream = idsByShardEntry.getValue().stream()
+                .map(pkAndVersion -> lookupDoc(
+                    shard,
+                    pkAndVersion.id(),
+                    pkAndVersion.version(),
+                    VersionType.EXTERNAL,
+                    pkAndVersion.seqNo(),
+                    pkAndVersion.primaryTerm()))
+                .filter(Objects::nonNull)
                 .map(resultToRow);
 
-            Projectors projectors = new Projectors(
-                projections,
-                jobId,
-                txnCtx,
-                ramAccountingSupplier.get(),
-                memoryManagerSupplier.get(),
-                shardAndIds.projectorFactory);
-            final Iterable<Row> rowIterable;
-            if (nodeConsumer.requiresScroll() && !projectors.providesIndependentScroll()) {
-                rowIterable = rowStream.map(row -> new RowN(row.materialize())).collect(Collectors.toList());
+            if (projections.isEmpty()) {
+                final Iterable<Row> rowIterable = requiresScroll
+                    ? rowStream.map(row -> new RowN(row.materialize())).collect(Collectors.toList())
+                    : rowStream::iterator;
+                iterators.add(InMemoryBatchIterator.of(rowIterable, SentinelRow.SENTINEL, true));
             } else {
-                rowIterable = rowStream::iterator;
+                ProjectorFactory projectorFactory;
+                try {
+                    projectorFactory = shardCollectSource.getProjectorFactory(shardId);
+                } catch (ShardNotFoundException e) {
+                    if (ignoreMissing) {
+                        continue;
+                    }
+                    throw e;
+                }
+                Projectors projectors = new Projectors(
+                    projections,
+                    jobId,
+                    txnCtx,
+                    ramAccountingSupplier.get(),
+                    memoryManagerSupplier.get(),
+                    projectorFactory);
+                final Iterable<Row> rowIterable = requiresScroll && !projectors.providesIndependentScroll()
+                    ? rowStream.map(row -> new RowN(row.materialize())).collect(Collectors.toList())
+                    : rowStream::iterator;
+                iterators.add(projectors.wrap(InMemoryBatchIterator.of(rowIterable, SentinelRow.SENTINEL, true)));
             }
-            iterators.add(projectors.wrap(InMemoryBatchIterator.of(rowIterable, SentinelRow.SENTINEL, true)));
         }
-        @SuppressWarnings("unchecked")
-        BatchIterator<Row> batchIterator = CompositeBatchIterator.seqComposite(iterators.toArray(new BatchIterator[0]));
-        nodeConsumer.accept(batchIterator, null);
-    }
-
-    private static class ShardAndIds {
-
-        final IndexShard shard;
-        final ProjectorFactory projectorFactory;
-        final List<PKAndVersion> value;
-
-        ShardAndIds(IndexShard shard, ProjectorFactory projectorFactory, List<PKAndVersion> value) {
-            this.shard = shard;
-            this.projectorFactory = projectorFactory;
-            this.value = value;
-        }
+        //noinspection unchecked
+        return CompositeBatchIterator.seqComposite(iterators.toArray(new BatchIterator[0]));
     }
 }
