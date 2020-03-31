@@ -84,6 +84,15 @@ public class TransportFetchOperation implements FetchOperation {
             return RamAccounting.NO_ACCOUNTING;
         }
         // Each response may run in a different thread and thus should use its own ram accounting instance
-        return new BlockBasedRamAccounting(ramAccounting::addBytes, MAX_BLOCK_SIZE_IN_BYTES);
+        return new BlockBasedRamAccounting(
+            usedBytes -> {
+                // Projectors usually operate single-threaded and can receive a RamAccounting instance that is not thread-safe
+                // So we must ensure thread-safety here.
+                synchronized (ramAccounting) {
+                    ramAccounting.addBytes(usedBytes);
+                }
+            },
+            MAX_BLOCK_SIZE_IN_BYTES
+        );
     }
 }

@@ -698,7 +698,7 @@ public class JobSetup {
                 projections,
                 phase.jobId(),
                 context.txnCtx(),
-                ramAccounting,          // some projectors may account ram concurrently, e.g. fetch
+                ramAccountingForMerge,
                 memoryManager,
                 projectorFactory
             );
@@ -846,7 +846,7 @@ public class JobSetup {
                 phase.projections(),
                 phase.jobId(),
                 context.txnCtx(),
-                concurrentRamAccounting,          // some projectors may account ram concurrently, e.g. fetch
+                ramAccountingOfOperation,
                 memoryManager,
                 projectorFactory
             );
@@ -920,7 +920,7 @@ public class JobSetup {
                 phase.projections(),
                 phase.jobId(),
                 context.txnCtx(),
-                ramAccounting,          // some projectors may account ram concurrently, e.g. fetch
+                ramAccountingOfOperation,
                 memoryManager,
                 projectorFactory
             );
