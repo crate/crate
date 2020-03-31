@@ -199,6 +199,7 @@ public final class PKLookupOperation {
                                                pkAndVersion.version(),
                                                pkAndVersion.seqNo(),
                                                pkAndVersion.primaryTerm()))
+                .filter(Objects::nonNull)
                 .map(resultToRow);
 
             Projectors projectors = new Projectors(
