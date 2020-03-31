@@ -77,7 +77,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .returnType(parseTypeSignature("array(E)"))
                 .setVariableArity(false)
                 .build(),
-            args -> new ArrayCatFunction(ArrayCatFunction.createInfo(args))
+            args -> new ArrayCatFunction(ArrayCatFunction.createInfo(args, NAME))
         );
     }
 

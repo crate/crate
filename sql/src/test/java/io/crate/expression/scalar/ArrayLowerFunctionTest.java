@@ -55,4 +55,40 @@ public class ArrayLowerFunctionTest extends AbstractScalarFunctionsTest {
     public void testEmptyArray() {
         assertEvaluate("array_lower(cast([] as array(integer)), 1)", null);
     }
+
+    @Test
+    public void testZeroArguments() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: array_lower()");
+        assertEvaluate("array_lower()", null);
+    }
+
+    @Test
+    public void testOneArgument() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: array_lower(bigint_array)");
+        assertEvaluate("array_lower([1])", null);
+    }
+
+    @Test
+    public void testThreeArguments() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: array_lower(bigint_array, bigint, bigint_array)");
+        assertEvaluate("array_lower([1], 2, [3])", null);
+    }
+
+    @Test
+    public void testSecondArgumentNotANumber() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: array_lower(bigint_array, bigint_array)");
+        assertEvaluate("array_lower([1], [2])", null);
+    }
+
+    @Test
+    public void testFirstArgumentIsNull() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+            "The inner type of the array argument `array_lower` function cannot be undefined");
+        assertEvaluate("array_lower(null, 1)", null);
+    }
 }

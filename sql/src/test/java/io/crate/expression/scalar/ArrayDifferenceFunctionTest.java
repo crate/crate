@@ -117,7 +117,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEmptyArrays() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("One of the arguments of the array_difference function can be of undefined inner type, but not both");
+        expectedException.expectMessage("One of the arguments of the `array_difference` function can be of undefined inner type, but not both");
         assertNormalize("array_difference([], [])", null);
     }
 }

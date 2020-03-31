@@ -22,44 +22,35 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
 
     public static final String NAME = "collection_avg";
     private final FunctionInfo info;
 
-    private static final FunctionResolver COLLECTION_AVG_RESOLVER = new CollectionAvgResolver();
-
-    public static void register(ScalarFunctionModule mod) {
-        mod.register(NAME, COLLECTION_AVG_RESOLVER);
-    }
-
-    static class CollectionAvgResolver extends BaseFunctionResolver {
-
-        CollectionAvgResolver() {
-            super(FuncParams.builder(Param.ANY_ARRAY).build());
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new CollectionAverageFunction(new FunctionInfo(
-                new FunctionIdent(NAME, dataTypes),
-                DataTypes.DOUBLE
-            ));
-        }
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("array(E)"),
+                DataTypes.DOUBLE.getTypeSignature()
+            ).withTypeVariableConstraints(typeVariable("E")),
+            argumentTypes ->
+                new CollectionAverageFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.DOUBLE)
+                )
+        );
     }
 
     private CollectionAverageFunction(FunctionInfo info) {

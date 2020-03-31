@@ -42,6 +42,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- The ``array_unique`` scalar function use a common element type based on the
+  type precedence if given arrays have different element types instead of always
+  casting to the element type of the first array argument.
+
 - Remap CrateDB :ref:`object_data_type` array data type from the PostgreSQL
   JSON to JSON array type. That might effect some drivers that use the
   PostgreSQL wire protocol to insert data into tables with object array typed

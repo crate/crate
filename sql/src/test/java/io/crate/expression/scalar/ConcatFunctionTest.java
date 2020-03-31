@@ -93,7 +93,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     public void testTwoArraysOfUndefinedTypes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
+            "One of the arguments of the `concat` function can be of undefined inner type, but not both");
         assertNormalize("concat([], [])", null);
     }
 
