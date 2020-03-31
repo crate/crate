@@ -22,8 +22,12 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -31,13 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import io.crate.test.integration.CrateUnitTest;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class ObjectTypeTest extends CrateUnitTest {
 
@@ -177,5 +176,13 @@ public class ObjectTypeTest extends CrateUnitTest {
             .build();
 
         assertThat(type.resolveInnerType(List.of("s", "inner", "i")), is(DataTypes.INTEGER));
+    }
+
+    @Test
+    public void test_object_type_to_signature_to_object_type_round_trip() {
+        var objectType = ObjectType.builder()
+            .setInnerType("inner", DataTypes.STRING)
+            .build();
+        assertThat(objectType.getTypeSignature().createType(), is(objectType));
     }
 }
