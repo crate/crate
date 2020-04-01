@@ -24,11 +24,13 @@ package io.crate.expression.reference.doc.lucene;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.exceptions.ValidationException;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsFieldData, String> {
 
@@ -51,7 +53,8 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
         super.setNextDocId(docId);
         if (values.advanceExact(docId)) {
             if (values.docValueCount() == 1) {
-                value = values.nextValue().utf8ToString();
+                BytesRef bytesRef = values.nextValue();
+                value = new String(bytesRef.bytes, bytesRef.offset, bytesRef.length, StandardCharsets.UTF_8);
             } else {
                 throw new GroupByOnArrayUnsupportedException(columnName);
             }
