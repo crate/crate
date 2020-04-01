@@ -25,7 +25,6 @@ package io.crate.execution.dml;
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
-import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import org.elasticsearch.Version;
@@ -294,8 +293,8 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             return successfulWrites.cardinality();
         }
 
-        public void markAsFailed(List<ShardUpsertRequest.Item> items) {
-            for (ShardUpsertRequest.Item item : items) {
+        public void markAsFailed(List<? extends ShardRequest.Item> items) {
+            for (ShardRequest.Item item : items) {
                 failureLocations.set(item.location());
             }
         }

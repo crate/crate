@@ -22,7 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.execution.dml.upsert.AbstractShardWriteRequest.Mode;
+import io.crate.execution.dml.upsert.ShardWriteRequest.Mode;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;

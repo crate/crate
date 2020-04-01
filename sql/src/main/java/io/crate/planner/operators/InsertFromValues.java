@@ -44,8 +44,10 @@ import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.GeneratedColumns;
 import io.crate.execution.dml.upsert.InsertSourceFromCells;
+import io.crate.execution.dml.upsert.ShardInsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.execution.dml.upsert.TransportShardUpsertAction;
+import io.crate.execution.dml.upsert.ShardWriteRequest;
+import io.crate.execution.dml.upsert.TransportShardWriteAction;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -81,6 +83,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -207,14 +210,8 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.partitionIdent(),
             partitionedByInputs);
 
-        GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper =
-            createRowsByShardGrouper(
-                assignmentSources,
-                insertInputs,
-                indexNameResolver,
-                context,
-                plannerContext,
-                dependencies.clusterService());
+        final GroupRowsByShard<? extends ShardRequest<?, ?>, ? extends ShardRequest.Item> grouper;
+
 
         List<Row> rows = Lists.newArrayList(
             evaluateValueTableFunction(
@@ -228,20 +225,55 @@ public class InsertFromValues implements LogicalPlan {
 
         List<Symbol> returnValues = this.writerProjection.returnValues();
 
-        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            plannerContext.transactionContext().sessionSettings(),
-            BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
-            rows.size() > 1, // continueOnErrors
-            updateColumnNames,
-            writerProjection.allTargetColumns().toArray(new Reference[0]),
-            returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
-            plannerContext.jobId(),
-            false,
-            writerProjection.isIgnoreDuplicateKeys()
-                ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
-                : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL);
+        final ShardedRequests shardedRequests;
+        final TransportShardWriteAction transportShardWriteAction;
 
-        var shardedRequests = new ShardedRequests<>(builder::newRequest);
+        if (returnValues.isEmpty() && updateColumnNames.length == 0) {
+            Function<ShardId, ? extends ShardRequest<?, ?>> builder = new ShardInsertRequest.Builder(
+                plannerContext.transactionContext().sessionSettings(),
+                BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
+                rows.size() > 1, // continueOnErrors
+                writerProjection.allTargetColumns().toArray(new Reference[0]),
+                plannerContext.jobId(),
+                false,
+                writerProjection.isIgnoreDuplicateKeys()
+                    ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
+                    : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
+
+            grouper = createRowsByShardGrouperForInsert(
+                insertInputs,
+                indexNameResolver,
+                context,
+                plannerContext,
+                dependencies.clusterService());
+
+            shardedRequests = new ShardedRequests(builder);
+            transportShardWriteAction = dependencies.transportActionProvider().transportShardInsertAction();
+        } else {
+            Function<ShardId, ? extends ShardRequest<?, ?>> builder = new ShardUpsertRequest.Builder(
+                plannerContext.transactionContext().sessionSettings(),
+                BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
+                rows.size() > 1, // continueOnErrors
+                updateColumnNames,
+                writerProjection.allTargetColumns().toArray(new Reference[0]),
+                returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
+                plannerContext.jobId(),
+                false,
+                writerProjection.isIgnoreDuplicateKeys()
+                    ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
+                    : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
+
+            grouper = createRowsByShardGrouper(
+                assignmentSources,
+                insertInputs,
+                indexNameResolver,
+                context,
+                plannerContext,
+                dependencies.clusterService());
+
+            shardedRequests = new ShardedRequests(builder);
+            transportShardWriteAction = dependencies.transportActionProvider().transportShardUpsertAction();
+        }
 
         HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
         for (Row row : rows) {
@@ -274,18 +306,21 @@ public class InsertFromValues implements LogicalPlan {
                 dependencies.clusterService()).values();
             return execute(
                 shardUpsertRequests,
-                actionProvider.transportShardUpsertAction(),
+                transportShardWriteAction,
                 dependencies.scheduler());
         }).whenComplete((response, t) -> {
             if (t == null) {
                 if (returnValues.isEmpty()) {
-                    consumer.accept(InMemoryBatchIterator.of(new Row1((long) response.numSuccessfulWrites()), SENTINEL),
+                    consumer.accept(InMemoryBatchIterator.of(new Row1((long) ((ShardResponse.CompressedResult) response).numSuccessfulWrites()),
+                                                             SENTINEL),
                                     null);
                 } else {
-                    consumer.accept(InMemoryBatchIterator.of(new CollectionBucket(response.resultRows()), SENTINEL, false), null);
+                    consumer.accept(InMemoryBatchIterator.of(new CollectionBucket(((ShardResponse.CompressedResult) response).resultRows()),
+                                                             SENTINEL,
+                                                             false), null);
                 }
             } else {
-                consumer.accept(null, t);
+                consumer.accept(null, (Throwable) t);
             }
         });
     }
@@ -343,105 +378,210 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.partitionIdent(),
             partitionedByInputs);
 
-        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            plannerContext.transactionContext().sessionSettings(),
-            BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
+        if (updateColumnNames == null && updateColumnNames.length == 0) {
 
-            true, // continueOnErrors
-            updateColumnNames,
-            writerProjection.allTargetColumns().toArray(new Reference[0]),
-            null,
-            plannerContext.jobId(),
-            true,
-            writerProjection.isIgnoreDuplicateKeys()
-                ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
-                : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL);
-        var shardedRequests = new ShardedRequests<>(builder::newRequest);
+            Function<ShardId, ? extends ShardRequest<?, ?>> builder = new ShardInsertRequest.Builder(
+                plannerContext.transactionContext().sessionSettings(),
+                BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
 
-        HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
-        IntArrayList bulkIndices = new IntArrayList();
-        List<CompletableFuture<Long>> results = createUnsetFutures(bulkParams.size());
-        for (int bulkIdx = 0; bulkIdx < bulkParams.size(); bulkIdx++) {
-            Row param = bulkParams.get(bulkIdx);
+                true, // continueOnErrors
+                writerProjection.allTargetColumns().toArray(new Reference[0]),
+                plannerContext.jobId(),
+                true,
+                writerProjection.isIgnoreDuplicateKeys()
+                    ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
+                    : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
 
-            final Symbol[] assignmentSources;
-            if (assignments != null) {
-                assignmentSources = assignments.bindSources(tableInfo, param, subQueryResults);
-            } else {
-                assignmentSources = null;
-            }
+            var shardedRequests = new ShardedRequests(builder);
 
-            GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper =
-                createRowsByShardGrouper(
-                    assignmentSources,
-                    insertInputs,
-                    indexNameResolver,
-                    context,
-                    plannerContext,
-                    dependencies.clusterService());
+            HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
+            IntArrayList bulkIndices = new IntArrayList();
+            List<CompletableFuture<Long>> results = createUnsetFutures(bulkParams.size());
+            for (int bulkIdx = 0; bulkIdx < bulkParams.size(); bulkIdx++) {
+                Row param = bulkParams.get(bulkIdx);
 
-            try {
-                Iterator<Row> rows = evaluateValueTableFunction(
-                    tableFunctionRelation.functionImplementation(),
-                    tableFunctionRelation.function().arguments(),
-                    writerProjection.allTargetColumns(),
-                    tableInfo,
-                    param,
-                    plannerContext,
-                    subQueryResults);
+                final Symbol[] assignmentSources;
+                if (assignments != null) {
+                    assignmentSources = assignments.bindSources(tableInfo, param, subQueryResults);
+                } else {
+                    assignmentSources = null;
+                }
 
-                while (rows.hasNext()) {
-                    Row row = rows.next();
-                    grouper.accept(shardedRequests, row);
-
-                    checkPrimaryKeyValuesNotNull(primaryKeyInputs);
-                    checkClusterByValueNotNull(clusterByInput);
-                    checkConstraintsOnGeneratedSource(
-                        row.materialize(),
-                        indexNameResolver.get(),
-                        tableInfo,
+                var grouper =
+                    createRowsByShardGrouperForInsert(
+                        insertInputs,
+                        indexNameResolver,
+                        context,
                         plannerContext,
-                        validatorsCache);
-                    bulkIndices.add(bulkIdx);
-                }
-            } catch (Throwable t) {
-                for (CompletableFuture<Long> result : results) {
-                    result.completeExceptionally(t);
-                }
-                return results;
-            }
-        }
-        validatorsCache.clear();
+                        dependencies.clusterService());
 
-        var actionProvider = dependencies.transportActionProvider();
-        createIndices(
-            actionProvider.transportBulkCreateIndicesAction(),
-            shardedRequests.itemsByMissingIndex().keySet(),
-            dependencies.clusterService(), plannerContext.jobId()
-        ).thenCompose(acknowledgedResponse -> {
-            var shardUpsertRequests = resolveAndGroupShardRequests(
-                shardedRequests,
-                dependencies.clusterService()).values();
-            return execute(
-                shardUpsertRequests,
-                actionProvider.transportShardUpsertAction(),
-                dependencies.scheduler());
-        }).whenComplete((response, t) -> {
-            if (t == null) {
-                long[] resultRowCount = createBulkResponse(response, bulkParams.size(), bulkIndices);
-                for (int i = 0; i < bulkParams.size(); i++) {
-                    results.get(i).complete(resultRowCount[i]);
-                }
-            } else {
-                for (CompletableFuture<Long> result : results) {
-                    result.completeExceptionally(t);
+                try {
+                    Iterator<Row> rows = evaluateValueTableFunction(
+                        tableFunctionRelation.functionImplementation(),
+                        tableFunctionRelation.function().arguments(),
+                        writerProjection.allTargetColumns(),
+                        tableInfo,
+                        param,
+                        plannerContext,
+                        subQueryResults);
+
+                    while (rows.hasNext()) {
+                        Row row = rows.next();
+                        grouper.accept(shardedRequests, row);
+
+                        checkPrimaryKeyValuesNotNull(primaryKeyInputs);
+                        checkClusterByValueNotNull(clusterByInput);
+                        checkConstraintsOnGeneratedSource(
+                            row.materialize(),
+                            indexNameResolver.get(),
+                            tableInfo,
+                            plannerContext,
+                            validatorsCache);
+                        bulkIndices.add(bulkIdx);
+                    }
+                } catch (Throwable t) {
+                    for (CompletableFuture<Long> result : results) {
+                        result.completeExceptionally(t);
+                    }
+                    return results;
                 }
             }
-        });
-        return results;
+            validatorsCache.clear();
+
+            var actionProvider = dependencies.transportActionProvider();
+            createIndices(
+                actionProvider.transportBulkCreateIndicesAction(),
+                shardedRequests.itemsByMissingIndex().keySet(),
+                dependencies.clusterService(), plannerContext.jobId()
+            ).thenCompose(acknowledgedResponse -> {
+                var shardUpsertRequests = resolveAndGroupShardRequests(
+                    shardedRequests,
+                    dependencies.clusterService()).values();
+                return execute(
+                    shardUpsertRequests,
+                    actionProvider.transportShardInsertAction(),
+                    dependencies.scheduler());
+            }).whenComplete((response, t) -> {
+                if (t == null) {
+                    long[] resultRowCount = createBulkResponse((ShardResponse.CompressedResult) response,
+                                                               bulkParams.size(),
+                                                               bulkIndices);
+                    for (int i = 0; i < bulkParams.size(); i++) {
+                        results.get(i).complete(resultRowCount[i]);
+                    }
+                } else {
+                    for (CompletableFuture<Long> result : results) {
+                        result.completeExceptionally((Throwable) t);
+                    }
+                }
+            });
+            return results;
+        } else {
+
+            Function<ShardId, ? extends ShardRequest<?, ?>> builder = new ShardUpsertRequest.Builder(
+                plannerContext.transactionContext().sessionSettings(),
+                BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
+
+                true, // continueOnErrors
+                updateColumnNames,
+                writerProjection.allTargetColumns().toArray(new Reference[0]),
+                null,
+                plannerContext.jobId(),
+                true,
+                writerProjection.isIgnoreDuplicateKeys()
+                    ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
+                    : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
+
+            var shardedRequests = new ShardedRequests(builder);
+
+            HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
+            IntArrayList bulkIndices = new IntArrayList();
+            List<CompletableFuture<Long>> results = createUnsetFutures(bulkParams.size());
+            for (int bulkIdx = 0; bulkIdx < bulkParams.size(); bulkIdx++) {
+                Row param = bulkParams.get(bulkIdx);
+
+                final Symbol[] assignmentSources;
+                if (assignments != null) {
+                    assignmentSources = assignments.bindSources(tableInfo, param, subQueryResults);
+                } else {
+                    assignmentSources = null;
+                }
+
+                var grouper =
+                    createRowsByShardGrouper(
+                        assignmentSources,
+                        insertInputs,
+                        indexNameResolver,
+                        context,
+                        plannerContext,
+                        dependencies.clusterService());
+
+                try {
+                    Iterator<Row> rows = evaluateValueTableFunction(
+                        tableFunctionRelation.functionImplementation(),
+                        tableFunctionRelation.function().arguments(),
+                        writerProjection.allTargetColumns(),
+                        tableInfo,
+                        param,
+                        plannerContext,
+                        subQueryResults);
+
+                    while (rows.hasNext()) {
+                        Row row = rows.next();
+                        grouper.accept(shardedRequests, row);
+
+                        checkPrimaryKeyValuesNotNull(primaryKeyInputs);
+                        checkClusterByValueNotNull(clusterByInput);
+                        checkConstraintsOnGeneratedSource(
+                            row.materialize(),
+                            indexNameResolver.get(),
+                            tableInfo,
+                            plannerContext,
+                            validatorsCache);
+                        bulkIndices.add(bulkIdx);
+                    }
+                } catch (Throwable t) {
+                    for (CompletableFuture<Long> result : results) {
+                        result.completeExceptionally(t);
+                    }
+                    return results;
+                }
+            }
+            validatorsCache.clear();
+
+            var actionProvider = dependencies.transportActionProvider();
+            createIndices(
+                actionProvider.transportBulkCreateIndicesAction(),
+                shardedRequests.itemsByMissingIndex().keySet(),
+                dependencies.clusterService(), plannerContext.jobId()
+            ).thenCompose(acknowledgedResponse -> {
+                var shardUpsertRequests = resolveAndGroupShardRequests(
+                    shardedRequests,
+                    dependencies.clusterService()).values();
+                return execute(
+                    shardUpsertRequests,
+                    actionProvider.transportShardUpsertAction(),
+                    dependencies.scheduler());
+            }).whenComplete((response, t) -> {
+                if (t == null) {
+                    long[] resultRowCount = createBulkResponse((ShardResponse.CompressedResult) response,
+                                                               bulkParams.size(),
+                                                               bulkIndices);
+                    for (int i = 0; i < bulkParams.size(); i++) {
+                        results.get(i).complete(resultRowCount[i]);
+                    }
+                } else {
+                    for (CompletableFuture<Long> result : results) {
+                        result.completeExceptionally((Throwable) t);
+                    }
+                }
+            });
+            return results;
+
+        }
     }
 
-    private GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item>
+    private GroupRowsByShard<? extends ShardRequest<?, ?>, ? extends ShardRequest.Item>
         createRowsByShardGrouper(Symbol[] assignmentSources,
                                  ArrayList<Input<?>> insertInputs,
                                  Supplier<String> indexNameResolver,
@@ -453,6 +593,37 @@ public class InsertFromValues implements LogicalPlan {
             new ShardUpsertRequest.Item(
                 id,
                 assignmentSources,
+                insertValues.materialize(),
+                null, null, null);
+
+        var rowShardResolver = new RowShardResolver(
+            plannerContext.transactionContext(),
+            plannerContext.functions(),
+            writerProjection.primaryKeys(),
+            writerProjection.ids(),
+            writerProjection.clusteredByIdent(),
+            writerProjection.clusteredBy());
+
+        return new GroupRowsByShard<>(
+            clusterService,
+            rowShardResolver,
+            new TypeGuessEstimateRowSize(),
+            indexNameResolver,
+            collectContext.expressions(),
+            itemFactory,
+            true);
+    }
+
+    private GroupRowsByShard<? extends ShardRequest<?, ?>, ? extends ShardRequest.Item> createRowsByShardGrouperForInsert(
+        ArrayList<Input<?>> insertInputs,
+        Supplier<String> indexNameResolver,
+        InputFactory.Context<CollectExpression<Row, ?>> collectContext,
+        PlannerContext plannerContext,
+        ClusterService clusterService) {
+        InputRow insertValues = new InputRow(insertInputs);
+        Function<String, ShardInsertRequest.Item> itemFactory = id ->
+            new ShardInsertRequest.Item(
+                id,
                 insertValues.materialize(),
                 null, null, null);
 
@@ -613,8 +784,8 @@ public class InsertFromValues implements LogicalPlan {
         return shardedRequests.itemsByShard();
     }
 
-    private CompletableFuture<ShardResponse.CompressedResult> execute(Collection<ShardUpsertRequest> shardUpsertRequests,
-                                                                      TransportShardUpsertAction shardUpsertAction,
+    private CompletableFuture<ShardResponse.CompressedResult> execute(Collection<? extends ShardWriteRequest<?, ?>> shardUpsertRequests,
+                                                                      TransportShardWriteAction shardUpsertAction,
                                                                       ScheduledExecutorService scheduler) {
         ShardResponse.CompressedResult compressedResult = new ShardResponse.CompressedResult();
         if (shardUpsertRequests.isEmpty()) {
@@ -625,7 +796,7 @@ public class InsertFromValues implements LogicalPlan {
         AtomicInteger numRequests = new AtomicInteger(shardUpsertRequests.size());
         AtomicReference<Throwable> lastFailure = new AtomicReference<>(null);
 
-        for (ShardUpsertRequest request : shardUpsertRequests) {
+        for (var request : shardUpsertRequests) {
 
             ActionListener<ShardResponse> listener = new ActionListener<>() {
                 @Override

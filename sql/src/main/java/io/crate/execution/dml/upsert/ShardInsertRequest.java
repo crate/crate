@@ -42,7 +42,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
-public class ShardInsertRequest extends AbstractShardWriteRequest<ShardInsertRequest, ShardInsertRequest.Item> {
+public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, ShardInsertRequest.Item> {
 
     private SessionSettings sessionSettings;
 
@@ -100,7 +100,7 @@ public class ShardInsertRequest extends AbstractShardWriteRequest<ShardInsertReq
 
         out.writeVInt(items.size());
         for (ShardInsertRequest.Item item : items) {
-            item.writeTo(out, insertValuesStreamer, allOn4_2);
+            item.writeTo(out, insertValuesStreamer);
         }
     }
 
@@ -132,7 +132,7 @@ public class ShardInsertRequest extends AbstractShardWriteRequest<ShardInsertReq
     /**
      * A single insert item.
      */
-    public static class Item extends AbstractShardWriteRequest.Item {
+    public static class Item extends ShardWriteRequest.Item {
 
         /**
          * List of objects used on insert
@@ -141,7 +141,7 @@ public class ShardInsertRequest extends AbstractShardWriteRequest<ShardInsertReq
         private Object[] insertValues;
 
         public Item(String id,
-                    @Nullable Object[] insertValues,
+                    Object[] insertValues,
                     @Nullable Long version,
                     @Nullable Long seqNo,
                     @Nullable Long primaryTerm
@@ -190,7 +190,7 @@ public class ShardInsertRequest extends AbstractShardWriteRequest<ShardInsertReq
             }
         }
 
-        public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers, boolean allOn4_2) throws IOException {
+        public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super.writeTo(out);
             if (insertValues != null) {
                 assert insertValueStreamers != null : "streamers are required to stream insert values";

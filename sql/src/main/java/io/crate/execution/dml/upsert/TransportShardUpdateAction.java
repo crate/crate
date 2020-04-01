@@ -37,7 +37,7 @@ import org.elasticsearch.transport.TransportService;
 
 @Singleton
 public final class TransportShardUpdateAction extends
-    AbstractTransportShardWriteAction<ShardUpdateRequest, ShardUpdateRequest.Item> {
+        TransportShardWriteAction<ShardUpdateRequest, ShardUpdateRequest.Item> {
 
     private static final String ACTION_NAME = "internal:crate:sql/data/update";
 

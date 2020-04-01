@@ -34,7 +34,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportShardUpsertAction extends AbstractTransportShardWriteAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
+public class TransportShardUpsertAction extends TransportShardWriteAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     private static final String ACTION_NAME = "internal:crate:sql/data/write";
 

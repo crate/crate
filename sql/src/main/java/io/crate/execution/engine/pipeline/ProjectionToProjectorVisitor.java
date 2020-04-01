@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Iterables;
 
-import io.crate.execution.dml.upsert.AbstractShardWriteRequest;
+import io.crate.execution.dml.upsert.ShardWriteRequest;
 import io.crate.execution.dml.upsert.ShardUpdateRequest;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -525,14 +525,14 @@ public class ProjectionToProjectorVisitor
         Collector<ShardResponse, A, Iterable<Row>> collector) {
 
         ShardUpdateRequest.Builder builder = new ShardUpdateRequest.Builder(
-            context.txnCtx.sessionSettings(),
-            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            false,
-            projection.assignmentsColumns(),
-            projection.returnValues(),
-            context.jobId,
-            true,
-            AbstractShardWriteRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                context.txnCtx.sessionSettings(),
+                ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+                false,
+                projection.assignmentsColumns(),
+                projection.returnValues(),
+                context.jobId,
+                true,
+                ShardWriteRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             );
 
         return new ShardDMLExecutor<>(

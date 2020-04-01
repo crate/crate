@@ -27,7 +27,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;
-import io.crate.execution.dml.upsert.AbstractShardWriteRequest;
+import io.crate.execution.dml.upsert.ShardWriteRequest;
 import io.crate.execution.dml.upsert.ShardUpdateRequest;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.symbol.Assignments;
@@ -111,14 +111,14 @@ public final class UpdateById implements Plan {
         ClusterService clusterService = dependencies.clusterService();
         CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
         ShardUpdateRequest.Builder requestBuilder = new ShardUpdateRequest.Builder(
-            txnCtx.sessionSettings(),
-            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(clusterService.state().metaData().settings()),
-            true,
-            assignments.targetNames(),
-            returnValues,
-            plannerContext.jobId(),
-            false,
-            AbstractShardWriteRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                txnCtx.sessionSettings(),
+                ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(clusterService.state().metaData().settings()),
+                true,
+                assignments.targetNames(),
+                returnValues,
+                plannerContext.jobId(),
+                false,
+                ShardWriteRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
             );
 
         UpdateRequests updateRequests = new UpdateRequests(requestBuilder, table, assignments);

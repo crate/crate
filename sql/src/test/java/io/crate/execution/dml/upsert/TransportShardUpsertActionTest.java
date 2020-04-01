@@ -25,7 +25,7 @@ package io.crate.execution.dml.upsert;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.upsert.AbstractShardWriteRequest.Mode;
+import io.crate.execution.dml.upsert.ShardWriteRequest.Mode;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;

@@ -42,7 +42,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
-public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
+public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     private SessionSettings sessionSettings;
 
@@ -186,7 +186,7 @@ public class ShardUpsertRequest extends AbstractShardWriteRequest<ShardUpsertReq
     /**
      * A single update item.
      */
-    public static class Item extends AbstractShardWriteRequest.Item {
+    public static class Item extends ShardWriteRequest.Item {
 
         /**
          * List of symbols used on update if document exist

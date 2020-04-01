@@ -27,7 +27,7 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.execution.dml.upsert.AbstractShardWriteRequest.Mode;
+import io.crate.execution.dml.upsert.ShardWriteRequest.Mode;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;

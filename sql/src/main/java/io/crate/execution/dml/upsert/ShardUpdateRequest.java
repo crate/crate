@@ -38,7 +38,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
-public final class ShardUpdateRequest extends AbstractShardWriteRequest<ShardUpdateRequest, ShardUpdateRequest.Item> {
+public final class ShardUpdateRequest extends ShardWriteRequest<ShardUpdateRequest, ShardUpdateRequest.Item> {
 
     /**
      * List of column names used on update
@@ -140,7 +140,7 @@ public final class ShardUpdateRequest extends AbstractShardWriteRequest<ShardUpd
         return null;
     }
 
-    public static class Item extends AbstractShardWriteRequest.Item {
+    public static class Item extends ShardWriteRequest.Item {
 
         /**
          * List of symbols used on update if document exist

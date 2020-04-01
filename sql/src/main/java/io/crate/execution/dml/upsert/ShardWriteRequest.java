@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 
 
-public abstract class AbstractShardWriteRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item> extends ShardRequest<T, I> {
+public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item> extends ShardRequest<T, I> {
 
     public enum Mode {
         DUPLICATE_KEY_UPDATE_OR_FAIL,
@@ -54,12 +54,12 @@ public abstract class AbstractShardWriteRequest<T extends ShardRequest<T, I>, I 
     protected Set<Mode> modes;
 
 
-    protected AbstractShardWriteRequest(StreamInput in) throws IOException {
+    protected ShardWriteRequest(StreamInput in) throws IOException {
         super(in);
         this.modes = EnumSets.unpackFromInt(in.readVInt(), Mode.class);
     }
 
-    protected AbstractShardWriteRequest(ShardId shardId, UUID jobId, EnumSet<Mode> modes) {
+    protected ShardWriteRequest(ShardId shardId, UUID jobId, EnumSet<Mode> modes) {
         super(shardId, jobId);
         this.modes = modes;
 

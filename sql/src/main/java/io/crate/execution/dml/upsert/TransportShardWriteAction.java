@@ -81,8 +81,8 @@ import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnl
 /**
  * Realizes Upserts of tables which either results in an Insert or an Update.
  */
-public abstract class AbstractTransportShardWriteAction
-    <Request extends AbstractShardWriteRequest<Request, Item>, Item extends AbstractShardWriteRequest.Item>
+public abstract class TransportShardWriteAction
+    <Request extends ShardWriteRequest<Request, Item>, Item extends ShardWriteRequest.Item>
     extends TransportShardAction<Request, Item> {
 
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
@@ -90,18 +90,18 @@ public abstract class AbstractTransportShardWriteAction
     private final Schemas schemas;
     private final Functions functions;
 
-    public AbstractTransportShardWriteAction(String actionName,
-                                             ThreadPool threadPool,
-                                             ClusterService clusterService,
-                                             TransportService transportService,
-                                             SchemaUpdateClient schemaUpdateClient,
-                                             TasksService tasksService,
-                                             IndicesService indicesService,
-                                             ShardStateAction shardStateAction,
-                                             Functions functions,
-                                             Schemas schemas,
-                                             IndexNameExpressionResolver indexNameExpressionResolver,
-                                             Writeable.Reader<Request> reader
+    public TransportShardWriteAction(String actionName,
+                                     ThreadPool threadPool,
+                                     ClusterService clusterService,
+                                     TransportService transportService,
+                                     SchemaUpdateClient schemaUpdateClient,
+                                     TasksService tasksService,
+                                     IndicesService indicesService,
+                                     ShardStateAction shardStateAction,
+                                     Functions functions,
+                                     Schemas schemas,
+                                     IndexNameExpressionResolver indexNameExpressionResolver,
+                                     Writeable.Reader<Request> reader
 
     ) {
         super(
@@ -268,7 +268,7 @@ public abstract class AbstractTransportShardWriteAction
                 }
             } catch (VersionConflictEngineException e) {
                 lastException = e;
-                if (request.modes().contains(AbstractShardWriteRequest.Mode.DUPLICATE_KEY_IGNORE)) {
+                if (request.modes().contains(ShardWriteRequest.Mode.DUPLICATE_KEY_IGNORE)) {
                     // on conflict do nothing
                     item.source(null);
                     return null;
@@ -331,7 +331,7 @@ public abstract class AbstractTransportShardWriteAction
         }
         item.source(rawSource);
 
-        long version = request.modes().contains(AbstractShardWriteRequest.Mode.DUPLICATE_KEY_OVERWRITE) ? Versions.MATCH_ANY : Versions.MATCH_DELETED;
+        long version = request.modes().contains(ShardWriteRequest.Mode.DUPLICATE_KEY_OVERWRITE) ? Versions.MATCH_ANY : Versions.MATCH_DELETED;
         long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
 
