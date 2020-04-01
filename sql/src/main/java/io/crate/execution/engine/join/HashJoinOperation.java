@@ -132,8 +132,9 @@ public class HashJoinOperation implements CompletionListenable {
                                                              RamBlockSizeCalculator blockSizeCalculator) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         return new HashInnerJoinBatchIterator(
-            new RamAccountingBatchIterator<>(left, rowAccounting),
+            left,
             right,
+            rowAccounting,
             combiner,
             joinCondition,
             hashBuilderForLeft,

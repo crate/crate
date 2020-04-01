@@ -31,14 +31,15 @@ import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class HashInnerJoinBatchIteratorMemoryTest {
@@ -59,17 +60,22 @@ public class HashInnerJoinBatchIteratorMemoryTest {
 
     @Test
     public void testReleaseAccountingRows() throws Exception {
-        TestRamAccountingBatchIterator leftIterator = new TestRamAccountingBatchIterator(
-            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 12), 3, 3, null),
-            mock(RowAccounting.class));
+        BatchSimulatingIterator<Row> leftIterator = new BatchSimulatingIterator<>(
+            TestingBatchIterators.range(0, 12),
+            3,
+            3,
+            null
+        );
         BatchIterator<Row> rightIterator = new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 2, 4, null);
 
         when(circuitBreaker.getLimit()).thenReturn(110L);
         when(circuitBreaker.getUsed()).thenReturn(10L);
 
+        RowAccounting<Row> rowAccounting = mock(RowAccounting.class);
         BatchIterator<Row> it = new HashInnerJoinBatchIterator(
             leftIterator,
             rightIterator,
+            rowAccounting,
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
@@ -79,21 +85,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(it, null);
         consumer.getResult();
-        assertThat(leftIterator.countCallsForReleaseMem, is(7));
-    }
-
-    private class TestRamAccountingBatchIterator extends RamAccountingBatchIterator<Row> {
-
-        private int countCallsForReleaseMem = 0;
-
-        private TestRamAccountingBatchIterator(BatchIterator<Row> delegatePagingIterator, RowAccounting rowAccounting) {
-            super(delegatePagingIterator, rowAccounting);
-        }
-
-        @Override
-        public void releaseAccountedRows() {
-            countCallsForReleaseMem++;
-            super.releaseAccountedRows();
-        }
+        verify(rowAccounting, times(8)).release();
+        verify(rowAccounting, times(12)).accountForAndMaybeBreak(Mockito.any(Row.class));
     }
 }

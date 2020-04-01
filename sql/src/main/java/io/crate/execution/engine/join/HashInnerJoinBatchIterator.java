@@ -23,6 +23,7 @@
 package io.crate.execution.engine.join;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
+import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -78,6 +79,7 @@ import java.util.function.ToIntFunction;
  */
 public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
+    private final RowAccounting<Row> leftRowAccounting;
     private final Predicate<Row> joinCondition;
 
     /**
@@ -96,21 +98,23 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     private int numberOfLeftBatchesLoadedForBlock;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
-    public HashInnerJoinBatchIterator(RamAccountingBatchIterator<Row> left,
+    public HashInnerJoinBatchIterator(BatchIterator<Row> left,
                                       BatchIterator<Row> right,
+                                      RowAccounting<Row> leftRowAccounting,
                                       CombinedRow combiner,
                                       Predicate<Row> joinCondition,
                                       ToIntFunction<Row> hashBuilderForLeft,
                                       ToIntFunction<Row> hashBuilderForRight,
                                       IntSupplier calculateBlockSize) {
         super(left, right, combiner);
+        this.leftRowAccounting = leftRowAccounting;
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
         this.calculateBlockSize = calculateBlockSize;
         // resized upon block size calculation
-        this.buffer = new IntObjectHashMap<>(0);
-        recreateBuffer();
+        this.buffer = new IntObjectHashMap<>();
+        resetBuffer();
         // initially 1 page/batch is loaded
         numberOfLeftBatchesLoadedForBlock = 1;
         this.activeIt = left;
@@ -126,8 +130,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         left.moveToStart();
         right.moveToStart();
         activeIt = left;
-        recreateBuffer();
-        ((RamAccountingBatchIterator) left).releaseAccountedRows();
+        resetBuffer();
         leftMatchingRowsIterator = null;
     }
 
@@ -151,8 +154,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
             } else if (right.allLoaded()) {
                 right.moveToStart();
                 activeIt = left;
-                recreateBuffer();
-                ((RamAccountingBatchIterator) left).releaseAccountedRows();
+                resetBuffer();
             } else {
                 return false;
             }
@@ -162,11 +164,12 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         return true;
     }
 
-    private void recreateBuffer() {
+    private void resetBuffer() {
         blockSize = calculateBlockSize.getAsInt();
         buffer.release();
         buffer.ensureCapacity(blockSize);
         numberOfRowsInBuffer = 0;
+        leftRowAccounting.release();
 
         // A batch is not guaranteed to deliver PAGE_SIZE number of rows. It could be more or less.
         // So we cannot rely on that to decide if processing 1 block is done, we must also know and track how much
@@ -178,9 +181,10 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     private boolean buildBufferAndMatchRight() {
         if (activeIt == left) {
             while (leftBatchHasItems = left.moveNext()) {
-                Object[] currentRow = left.currentElement().materialize();
-                int hash = hashBuilderForLeft.applyAsInt(left.currentElement());
-                addToBuffer(currentRow, hash);
+                Row leftRow = left.currentElement();
+                leftRowAccounting.accountForAndMaybeBreak(leftRow);
+                int hash = hashBuilderForLeft.applyAsInt(leftRow);
+                addToBuffer(leftRow.materialize(), hash);
                 if (numberOfRowsInBuffer == blockSize) {
                     break;
                 }
