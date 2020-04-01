@@ -29,7 +29,6 @@ import io.crate.data.RowN;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,13 +104,13 @@ class UpsertResults {
 
     Iterable<Row> rowsIterable() {
         Stream<Row> s = resultsByUri.entrySet().stream()
-            .sorted(Comparator.comparing(Map.Entry::getKey))
+            .sorted(Map.Entry.comparingByKey())
             .map(e -> {
                 Result r = e.getValue();
                 if (r.sourceUriFailure) {
-                    return new RowN(new Object[]{nodeInfo, e.getKey(), null, null, r.errors});
+                    return new RowN(nodeInfo, e.getKey(), null, null, r.errors);
                 } else {
-                    return new RowN(new Object[]{nodeInfo, e.getKey(), r.successRowCount, r.errorRowCount, r.errors});
+                    return new RowN(nodeInfo, e.getKey(), r.successRowCount, r.errorRowCount, r.errors);
                 }
             });
         return s::iterator;
