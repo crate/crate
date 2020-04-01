@@ -36,7 +36,6 @@ import io.crate.data.RowN;
 import io.crate.data.SkippingBatchIterator;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
-import io.crate.execution.engine.join.RamAccountingBatchIterator;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowFunctionBatchIterator;
 import io.crate.metadata.FunctionIdent;
@@ -162,8 +161,9 @@ public class RowsBatchIteratorBenchmark {
     @Benchmark
     public void measureConsumeHashInnerJoin(Blackhole blackhole) {
         BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator(
-            new RamAccountingBatchIterator<>(InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true), rowAccounting),
+            InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
+            rowAccounting,
             new CombinedRow(1, 1),
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> Objects.hash(row.get(0)),
@@ -178,8 +178,9 @@ public class RowsBatchIteratorBenchmark {
     @Benchmark
     public void measureConsumeHashInnerJoinWithHashCollisions(Blackhole blackhole) {
         BatchIterator<Row> leftJoin = new HashInnerJoinBatchIterator(
-            new RamAccountingBatchIterator<>(InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true), rowAccounting),
+            InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
+            rowAccounting,
             new CombinedRow(1, 1),
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> {

@@ -59,17 +59,15 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
 
     @Test
     public void testDistributed_SwitchToRightEvenIfLeftBatchDoesNotDeliverAllRowsExpectedByOneBatch() throws Exception {
-        BatchSimulatingIterator<Row> leftSimulatingIterator = new BatchSimulatingIterator<>(
+        BatchSimulatingIterator<Row> leftIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(1, 2, 4)), 1, 2, null);
-        RamAccountingBatchIterator<Row> leftIterator = new RamAccountingBatchIterator<>(
-            leftSimulatingIterator,
-            mock(RowAccounting.class));
         BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 
         BatchIterator<Row> batchIterator = new HashInnerJoinBatchIterator(
                 leftIterator,
                 rightIterator,
+                mock(RowAccounting.class),
                 new CombinedRow(1, 1),
                 row -> Objects.equals(row.get(0), row.get(1)),
                 row -> Objects.hash(row.get(0)),
@@ -91,17 +89,15 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
 
     @Test
     public void test_SwitchToRightWhenLeftExhausted() throws Exception {
-        BatchSimulatingIterator<Row> leftSimulatingIterator = new BatchSimulatingIterator<>(
+        BatchSimulatingIterator<Row> leftIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(1, 2, 3, 4)), 2, 1, null);
-        RamAccountingBatchIterator<Row> leftIterator = new RamAccountingBatchIterator<>(
-            leftSimulatingIterator,
-            mock(RowAccounting.class));
         BatchSimulatingIterator<Row> rightIterator = new BatchSimulatingIterator<>(
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 
         BatchIterator<Row> batchIterator = new HashInnerJoinBatchIterator(
             leftIterator,
             rightIterator,
+            mock(RowAccounting.class),
             new CombinedRow(1, 1),
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> Objects.hash(row.get(0)),
