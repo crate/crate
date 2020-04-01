@@ -1463,6 +1463,17 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testAlterTableAddColumnWithCheckConstraint() {
+        printStatement("alter table t add column a int check(a >= 0)");
+        printStatement("alter table t add column a int constraint over_zero check(a >= 0)");
+    }
+
+    @Test
+    public void testAlterTableDropCheckConstraint() {
+        printStatement("alter table t drop constraint check");
+    }
+
+    @Test
     public void testAddGeneratedColumn() {
         printStatement("alter table t add col2 AS date_trunc('day', col1)");
         printStatement("alter table t add col2 AS date_trunc('day', col1) INDEX USING PLAIN");

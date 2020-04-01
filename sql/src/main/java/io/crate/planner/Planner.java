@@ -26,6 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
+import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
@@ -86,6 +87,7 @@ import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.AlterBlobTablePlan;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
+import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
 import io.crate.planner.node.ddl.AlterTableOpenClosePlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.AlterTableRenameTablePlan;
@@ -407,6 +409,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitAlterTableAddColumn(AnalyzedAlterTableAddColumn alterTableAddColumn,
                                          PlannerContext context) {
         return new AlterTableAddColumnPlan(alterTableAddColumn);
+    }
+
+    @Override
+    public Plan visitAlterTableDropCheckConstraint(AnalyzedAlterTableDropCheckConstraint dropCheckConstraint,
+                                                   PlannerContext context) {
+        return new AlterTableDropCheckConstraintPlan(dropCheckConstraint);
     }
 
     @Override

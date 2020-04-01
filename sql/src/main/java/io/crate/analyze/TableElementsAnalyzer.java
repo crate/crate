@@ -36,6 +36,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
@@ -253,6 +254,11 @@ public class TableElementsAnalyzer {
         @Override
         public Void visitCheckColumnConstraint(CheckColumnConstraint<?> node, ColumnDefinitionContext<T> context) {
             context.analyzedTableElements.addCheckColumnConstraint(context.relationName, node);
+            return null;
+        }
+
+        @Override
+        public Void visitDropCheckConstraint(DropCheckConstraint<?> node, ColumnDefinitionContext<T> context) {
             return null;
         }
 

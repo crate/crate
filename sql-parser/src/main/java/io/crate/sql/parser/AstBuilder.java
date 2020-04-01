@@ -76,6 +76,7 @@ import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.DropAnalyzer;
@@ -804,6 +805,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         String expressionStr = ExpressionFormatter.formatStandaloneExpression(expression);
         // column name is obtained during analysis
         return new CheckColumnConstraint<>(name, null, expression, expressionStr);
+    }
+
+    @Override
+    public Node visitDropCheckConstraint(SqlBaseParser.DropCheckConstraintContext context) {
+        Table<?> table = (Table<?>) visit(context.alterTableDefinition());
+        return new DropCheckConstraint<>(table, getIdentText(context.ident()));
     }
 
     @Override

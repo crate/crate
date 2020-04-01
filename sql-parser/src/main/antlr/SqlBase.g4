@@ -50,6 +50,7 @@ statement
         (LIKE pattern=stringLiteral | where)?                                        #showColumns
     | SHOW (qname | ALL)                                                             #showSessionParameter
     | ALTER TABLE alterTableDefinition ADD COLUMN? addColumnDefinition               #addColumn
+    | ALTER TABLE alterTableDefinition DROP CONSTRAINT ident                         #dropCheckConstraint
     | ALTER TABLE alterTableDefinition
         (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterTableProperties
     | ALTER BLOB TABLE alterTableDefinition
