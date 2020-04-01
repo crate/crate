@@ -155,7 +155,7 @@ public class AlterTableAddColumnPlan implements Plan {
         }
     }
 
-    private static void addExistingPrimaryKeys(DocTableInfo tableInfo, AnalyzedTableElements<Object> tableElements) {
+    static void addExistingPrimaryKeys(DocTableInfo tableInfo, AnalyzedTableElements<Object> tableElements) {
         LinkedHashSet<ColumnIdent> pkIncludingAncestors = new LinkedHashSet<>();
         for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
             if (pkIdent.name().equals(DocSysColumns.Names.ID)) {

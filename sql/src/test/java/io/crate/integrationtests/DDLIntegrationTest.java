@@ -367,6 +367,34 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void test_alter_table_drop_constraint_removes_the_constraint_and_leaves_other_constraints_in_place() {
+        execute("create table t (" +
+                      "    id int primary key, " +
+                      "    qty int constraint check_qty_gt_zero check(qty > 0), " +
+                      "    constraint check_id_ge_zero check (id >= 0)" +
+                      ")");
+        String selectCheckConstraintsStmt =
+            "select table_schema, table_name, constraint_type, constraint_name " +
+            "from information_schema.table_constraints " +
+            "where table_name='t'" +
+            "order by constraint_name";
+        execute(selectCheckConstraintsStmt);
+        assertEquals("doc| t| CHECK| check_id_ge_zero\n" +
+                     "doc| t| CHECK| check_qty_gt_zero\n" +
+                     "doc| t| PRIMARY KEY| t_pk\n",
+                     printedTable(response.rows()));
+        execute("alter table t drop constraint check_id_ge_zero");
+        execute(selectCheckConstraintsStmt);
+        assertEquals("doc| t| CHECK| check_qty_gt_zero\n" +
+                     "doc| t| PRIMARY KEY| t_pk\n",
+                     printedTable(response.rows()));
+        execute("insert into t(id, qty) values(-42, 100)");
+        expectedException.expectMessage(containsString(
+            "SQLParseException: Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"));
+        execute("insert into t(id, qty) values(0, 0)");
+    }
+
+    @Test
     public void testAlterTable() throws Exception {
         execute("create table test (col1 int) with (number_of_replicas='0-all')");
         ensureYellow();

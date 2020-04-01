@@ -36,6 +36,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
+import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
@@ -134,7 +135,11 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 SubQueryResults.EMPTY,
                 null
             );
-        }  else {
+        } else if (analyzedStatement instanceof AnalyzedAlterTableDropCheckConstraint) {
+            return (S) AlterTableDropCheckConstraintPlan.bind(
+                (AnalyzedAlterTableDropCheckConstraint) analyzedStatement
+            );
+        } else {
             return (S) analyzedStatement;
         }
     }
@@ -1234,14 +1239,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testAlterTableAddColumnWithCheckConstraint() throws Exception {
-        SQLExecutor executor = SQLExecutor.builder(clusterService)
+        SQLExecutor.builder(clusterService)
             .addTable("create table t (" +
                       "    id int primary key, " +
                       "    qty int constraint check_qty_gt_zero check(qty > 0), " +
                       "    constraint check_id_ge_zero check (id >= 0)" +
                       ")")
             .build();
-        String alterStmt = "alter table t add column bazinga int constraint bazinga_check check(bazinga != 42);";
+        String alterStmt = "alter table t add column bazinga int constraint bazinga_check check(bazinga != 42)";
         BoundAddColumn analysis = analyze(alterStmt);
         Map<String, Object> mapping = analysis.mapping();
         Map<String, String> checkConstraints = analysis.analyzedTableElements().getCheckConstraints();

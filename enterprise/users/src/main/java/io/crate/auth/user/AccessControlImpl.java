@@ -22,6 +22,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
+import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedAlterTableOpenClose;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
@@ -438,6 +439,18 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.TABLE,
                 analysis.tableInfo().ident().toString(),
+                user,
+                defaultSchema);
+            return null;
+        }
+
+        @Override
+        public Void visitAlterTableDropCheckConstraint(AnalyzedAlterTableDropCheckConstraint dropCheckConstraint,
+                                                       User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.DDL,
+                Privilege.Clazz.TABLE,
+                dropCheckConstraint.tableInfo().ident().toString(),
                 user,
                 defaultSchema);
             return null;
