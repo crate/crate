@@ -22,13 +22,13 @@
 
 package io.crate.execution.engine.join;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.data.join.CombinedRow;
 import io.crate.data.join.JoinBatchIterator;
+import io.netty.util.collection.IntObjectHashMap;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -164,8 +164,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
 
     private void recreateBuffer() {
         blockSize = calculateBlockSize.getAsInt();
-        buffer.release();
-        buffer.ensureCapacity(blockSize);
+        buffer.clear();
         numberOfRowsInBuffer = 0;
 
         // A batch is not guaranteed to deliver PAGE_SIZE number of rows. It could be more or less.
@@ -227,7 +226,6 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
         numberOfRowsInBuffer++;
     }
 
-    @SuppressWarnings("unchecked")
     private boolean findMatchingRows() {
         while (leftMatchingRowsIterator.hasNext()) {
             leftRow.cells(leftMatchingRowsIterator.next());
