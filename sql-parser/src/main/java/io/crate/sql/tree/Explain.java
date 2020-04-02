@@ -21,18 +21,17 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
-public class Explain
-    extends Statement {
+public class Explain extends Statement {
+
     private final Statement statement;
     private final boolean analyze;
 
     public Explain(Statement statement, boolean analyze) {
-        this.statement = checkNotNull(statement, "statement is null");
+        this.statement = requireNonNull(statement, "statement is null");
         this.analyze = analyze;
     }
 
@@ -50,26 +49,28 @@ public class Explain
     }
 
     @Override
-    public int hashCode() {
-        return statement.hashCode();
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Explain explain = (Explain) o;
+        return analyze == explain.analyze &&
+               Objects.equals(statement, explain.statement);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        Explain o = (Explain) obj;
-        return Objects.equal(statement, o.statement);
+    public int hashCode() {
+        return Objects.hash(statement, analyze);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("statement", statement)
-            .toString();
+        return "Explain{" +
+               "statement=" + statement +
+               ", analyze=" + analyze +
+               '}';
     }
 }

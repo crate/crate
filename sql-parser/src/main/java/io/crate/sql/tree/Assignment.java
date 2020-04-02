@@ -21,14 +21,14 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
 import io.crate.common.collections.Lists2;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
+
+import static java.util.Objects.requireNonNull;
 
 public class Assignment<T> extends Node {
 
@@ -44,9 +44,7 @@ public class Assignment<T> extends Node {
      * VALUE, VALUE, ...   -> two or more items in expressions list
      */
     public Assignment(T columnName, List<T> expressions) {
-        Preconditions.checkNotNull(columnName, "columnname is null");
-        Preconditions.checkNotNull(expressions, "expression is null");
-        this.columnName = columnName;
+        this.columnName = requireNonNull(columnName, "columnName is null");
         this.expressions = expressions;
     }
 
@@ -55,10 +53,8 @@ public class Assignment<T> extends Node {
      * only single expression is allowed on right side of assignment
      */
     public Assignment(T columnName, T expression) {
-        Preconditions.checkNotNull(columnName, "columnname is null");
-        Preconditions.checkNotNull(expression, "expression is null");
-        this.columnName = columnName;
-        this.expressions = Collections.singletonList(expression);
+        this.columnName = requireNonNull(columnName, "columnName is null");
+        this.expressions = Collections.singletonList(requireNonNull(expression, "expression is null"));
     }
 
     public T columnName() {
@@ -78,30 +74,29 @@ public class Assignment<T> extends Node {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(columnName, expressions);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Assignment<?> that = (Assignment<?>) o;
+        return Objects.equals(columnName, that.columnName) &&
+               Objects.equals(expressions, that.expressions);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(columnName, expressions);
+    }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("column", columnName)
-            .add("expressions", expressions)
-            .toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Assignment that = (Assignment) o;
-
-        if (!columnName.equals(that.columnName)) return false;
-        if (!expressions.equals(that.expressions)) return false;
-
-        return true;
+        return "Assignment{" +
+               "column=" + columnName +
+               ", expressions=" + expressions +
+               '}';
     }
 
     @Override

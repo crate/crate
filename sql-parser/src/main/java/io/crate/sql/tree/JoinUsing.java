@@ -21,19 +21,12 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
-public class JoinUsing
-    extends JoinCriteria {
+public class JoinUsing extends JoinCriteria {
 
     private static QualifiedName extendQualifiedName(QualifiedName name, String ext) {
         List<String> parts = new ArrayList<>(name.getParts().size() + 1);
@@ -43,8 +36,9 @@ public class JoinUsing
     }
 
     public static Expression toExpression(QualifiedName left, QualifiedName right, List<String> columns) {
-        checkNotNull(columns, "columns is null");
-        checkArgument(false == columns.isEmpty(), "columns is empty");
+        if (columns.isEmpty()) {
+            throw new IllegalArgumentException("columns must not be empty");
+        }
         List<ComparisonExpression> comp = columns.stream()
             .map(col -> new ComparisonExpression(
                 ComparisonExpression.Type.EQUAL,
@@ -75,9 +69,10 @@ public class JoinUsing
     private final List<String> columns;
 
     public JoinUsing(List<String> columns) {
-        checkNotNull(columns, "columns is null");
-        checkArgument(!columns.isEmpty(), "columns is empty");
-        this.columns = ImmutableList.copyOf(columns);
+        if (columns.isEmpty()) {
+            throw new IllegalArgumentException("columns must not be empty");
+        }
+        this.columns = List.copyOf(columns);
     }
 
     public List<String> getColumns() {
@@ -85,26 +80,26 @@ public class JoinUsing
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if (obj == null || getClass() != obj.getClass()) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        JoinUsing o = (JoinUsing) obj;
-        return Objects.equal(columns, o.columns);
+        JoinUsing joinUsing = (JoinUsing) o;
+        return Objects.equals(columns, joinUsing.columns);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(columns);
+        return Objects.hash(columns);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .addValue(columns)
-            .toString();
+        return "JoinUsing{" +
+               "columns=" + columns +
+               '}';
     }
 }

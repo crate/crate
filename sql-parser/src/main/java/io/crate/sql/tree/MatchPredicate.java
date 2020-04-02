@@ -21,11 +21,11 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
-
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 public class MatchPredicate extends Expression {
 
@@ -38,10 +38,11 @@ public class MatchPredicate extends Expression {
                           Expression value,
                           @Nullable String matchType,
                           GenericProperties<Expression> properties) {
-        Preconditions.checkArgument(idents.size() > 0, "at least one ident must be given");
-        Preconditions.checkNotNull(value, "query_term is null");
+        if (idents.isEmpty()) {
+            throw new IllegalArgumentException("at least one ident must be given");
+        }
         this.idents = idents;
-        this.value = value;
+        this.value = requireNonNull(value, "query_term is null");
         this.matchType = matchType;
         this.properties = properties;
     }
@@ -64,11 +65,6 @@ public class MatchPredicate extends Expression {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(idents, value, matchType, properties);
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -76,21 +72,17 @@ public class MatchPredicate extends Expression {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         MatchPredicate that = (MatchPredicate) o;
-
-        if (!idents.equals(that.idents)) return false;
-        if (!value.equals(that.value)) return false;
-        if (matchType != null && that.matchType == null || matchType == null && that.matchType != null) {
-            return false;
-        } else if (matchType != null && !matchType.equals(that.matchType)) {
-            return false;
-        }
-        if (!properties.equals(that.properties)) return false;
-
-        return true;
+        return Objects.equals(idents, that.idents) &&
+               Objects.equals(value, that.value) &&
+               Objects.equals(properties, that.properties) &&
+               Objects.equals(matchType, that.matchType);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(idents, value, properties, matchType);
+    }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

@@ -21,13 +21,12 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-public class Select
-    extends Node {
+public class Select extends Node {
+
     private final boolean distinct;
     private final List<SelectItem> selectItems;
 
@@ -50,15 +49,6 @@ public class Select
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("distinct", distinct)
-            .add("selectItems", selectItems)
-            .omitNullValues()
-            .toString();
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -66,23 +56,21 @@ public class Select
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         Select select = (Select) o;
-
-        if (distinct != select.distinct) {
-            return false;
-        }
-        if (!selectItems.equals(select.selectItems)) {
-            return false;
-        }
-
-        return true;
+        return distinct == select.distinct &&
+               Objects.equals(selectItems, select.selectItems);
     }
 
     @Override
     public int hashCode() {
-        int result = (distinct ? 1 : 0);
-        result = 31 * result + selectItems.hashCode();
-        return result;
+        return Objects.hash(distinct, selectItems);
+    }
+
+    @Override
+    public String toString() {
+        return "Select{" +
+               "distinct=" + distinct +
+               ", selectItems=" + selectItems +
+               '}';
     }
 }

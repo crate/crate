@@ -21,13 +21,11 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class ShowColumns extends Statement {
 
@@ -42,7 +40,7 @@ public class ShowColumns extends Statement {
                        @Nullable QualifiedName schema,
                        Optional<Expression> where,
                        @Nullable String likePattern) {
-        this.table = checkNotNull(table, "table is null");
+        this.table = requireNonNull(table, "table is null");
         this.schema = schema;
         this.likePattern = likePattern;
         this.where = where;
@@ -72,32 +70,32 @@ public class ShowColumns extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(table, schema, likePattern);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ShowColumns that = (ShowColumns) o;
+        return Objects.equals(table, that.table) &&
+               Objects.equals(schema, that.schema) &&
+               Objects.equals(likePattern, that.likePattern) &&
+               Objects.equals(where, that.where);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        ShowColumns o = (ShowColumns) obj;
-        return Objects.equal(table, o.table) &&
-            Objects.equal(schema, o.schema) &&
-            Objects.equal(likePattern, o.likePattern) &&
-            Objects.equal(where, o.where);
+    public int hashCode() {
+        return Objects.hash(table, schema, likePattern, where);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("schema", schema)
-            .add("pattern", likePattern)
-            .add("where", where)
-            .toString();
+        return "ShowColumns{" +
+               "table=" + table +
+               ", schema=" + schema +
+               ", pattern='" + likePattern + '\'' +
+               ", where=" + where +
+               '}';
     }
 }

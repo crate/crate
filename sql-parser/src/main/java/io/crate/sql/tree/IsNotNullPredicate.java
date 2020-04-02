@@ -21,15 +21,16 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 public class IsNotNullPredicate
     extends Expression {
     private final Expression value;
 
     public IsNotNullPredicate(Expression value) {
-        Preconditions.checkNotNull(value, "value is null");
-        this.value = value;
+        this.value = requireNonNull(value, "value is null");
     }
 
     public Expression getValue() {
@@ -49,18 +50,12 @@ public class IsNotNullPredicate
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         IsNotNullPredicate that = (IsNotNullPredicate) o;
-
-        if (!value.equals(that.value)) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-        return value.hashCode();
+        return Objects.hash(value);
     }
 }

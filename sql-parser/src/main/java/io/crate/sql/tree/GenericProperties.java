@@ -21,12 +21,10 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMap;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -49,7 +47,7 @@ import java.util.function.Function;
  */
 public class GenericProperties<T> extends Node {
 
-    private static final GenericProperties<?> EMPTY = new GenericProperties<>(ImmutableMap.of());
+    private static final GenericProperties<?> EMPTY = new GenericProperties<>(Map.of());
 
     public static <T> GenericProperties<T> empty() {
         return (GenericProperties<T>) EMPTY;
@@ -100,20 +98,20 @@ public class GenericProperties<T> extends Node {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(properties);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        GenericProperties<?> that = (GenericProperties<?>) o;
+        return Objects.equals(properties, that.properties);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        GenericProperties that = (GenericProperties) o;
-
-        if (!properties.equals(that.properties)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(properties);
     }
 
     @Override

@@ -21,8 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 /**
  * A key-value entry mapping a string to a list of <code>Expression</code>s.
@@ -54,29 +53,29 @@ public class GenericProperty<T> extends AnalyzerElement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(key, value);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        GenericProperty<?> that = (GenericProperty<?>) o;
+        return Objects.equals(key, that.key) &&
+               Objects.equals(value, that.value);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        GenericProperty that = (GenericProperty) o;
-
-        if (!key.equals(that.key)) return false;
-        if (!value.equals(that.value)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(key, value);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("key", key)
-            .add("value", value)
-            .toString();
+        return "GenericProperty{" +
+               "key='" + key + '\'' +
+               ", value=" + value +
+               '}';
     }
 
     @Override

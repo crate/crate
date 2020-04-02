@@ -22,9 +22,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
+import java.util.Objects;
 import java.util.function.Function;
 
 public class AlterUser<T> extends Statement {
@@ -51,26 +49,28 @@ public class AlterUser<T> extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        AlterUser alterUser = (AlterUser) o;
-
-        if (!properties.equals(alterUser.properties)) return false;
-        return name.equals(alterUser.name);
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        AlterUser<?> alterUser = (AlterUser<?>) o;
+        return Objects.equals(properties, alterUser.properties) &&
+               Objects.equals(name, alterUser.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, properties);
+        return Objects.hash(properties, name);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("properties", properties)
-            .toString();
+        return "AlterUser{" +
+               "properties=" + properties +
+               ", name='" + name + '\'' +
+               '}';
     }
 
     @Override

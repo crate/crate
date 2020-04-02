@@ -22,7 +22,6 @@
 
 package io.crate.sql.parser;
 
-import com.google.common.io.Resources;
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.ArrayComparisonExpression;
@@ -80,7 +79,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.google.common.base.Strings.repeat;
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -1656,7 +1654,7 @@ public class TestStatementBuilder {
                 assertFormattedSql(statement);
         }
 
-        println(repeat("=", 60));
+        println("=".repeat(60));
         println("");
     }
 
@@ -1685,9 +1683,12 @@ public class TestStatementBuilder {
         printStatement(sql);
     }
 
-    private static String readResource(String name)
-        throws IOException {
-        return Resources.toString(Resources.getResource(name), StandardCharsets.UTF_8);
+    private static String readResource(String name) throws IOException {
+        var inputStream = TestStatementBuilder.class.getClassLoader().getResourceAsStream(name);
+        if (inputStream == null) {
+            throw new IOException("'" + name + "' resource is not found");
+        }
+        return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
     }
 
     private static String fixTpchQuery(String s) {

@@ -21,8 +21,6 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
 import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.Optional;
@@ -55,11 +53,15 @@ public class ShowSchemas extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ShowSchemas that = (ShowSchemas) o;
         return Objects.equals(likePattern, that.likePattern) &&
-            Objects.equals(whereExpression, that.whereExpression);
+               Objects.equals(whereExpression, that.whereExpression);
     }
 
     @Override
@@ -69,10 +71,9 @@ public class ShowSchemas extends Statement {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("likePattern", likePattern)
-            .add("whereExpression", whereExpression)
-            .toString();
+        return "ShowSchemas{" +
+               "likePattern='" + likePattern + '\'' +
+               ", whereExpression=" + whereExpression +
+               '}';
     }
-
 }

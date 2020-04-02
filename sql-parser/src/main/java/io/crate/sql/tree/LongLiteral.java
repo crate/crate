@@ -21,15 +21,14 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Preconditions;
+import static java.util.Objects.requireNonNull;
 
-public class LongLiteral
-    extends Literal {
+public class LongLiteral extends Literal {
+
     private final long value;
 
     public LongLiteral(String value) {
-        Preconditions.checkNotNull(value, "value is null");
-        this.value = Long.parseLong(value);
+        this.value = Long.parseLong(requireNonNull(value, "value is null"));
     }
 
     public long getValue() {
@@ -49,14 +48,8 @@ public class LongLiteral
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         LongLiteral that = (LongLiteral) o;
-
-        if (value != that.value) {
-            return false;
-        }
-
-        return true;
+        return value == that.value;
     }
 
     @Override

@@ -21,12 +21,11 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
-
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+
+import static java.util.Objects.requireNonNull;
 
 public class Update extends Statement {
 
@@ -39,9 +38,7 @@ public class Update extends Statement {
                   List<Assignment<Expression>> assignments,
                   Optional<Expression> where,
                   List<SelectItem> returning) {
-        Preconditions.checkNotNull(relation, "relation is null");
-        Preconditions.checkNotNull(assignments, "assignments are null");
-        this.relation = relation;
+        this.relation = requireNonNull(relation, "relation is null");
         this.assignments = assignments;
         this.where = where;
         this.returning = returning;
@@ -64,33 +61,33 @@ public class Update extends Statement {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Update update = (Update) o;
+        return Objects.equals(relation, update.relation) &&
+               Objects.equals(assignments, update.assignments) &&
+               Objects.equals(where, update.where) &&
+               Objects.equals(returning, update.returning);
+    }
+
+    @Override
     public int hashCode() {
-        return Objects.hashCode(relation, assignments, where, returning);
+        return Objects.hash(relation, assignments, where, returning);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("relation", relation)
-            .add("assignments", assignments)
-            .add("where", where)
-            .add("returning", returning)
-            .toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Update update = (Update) o;
-
-        if (!assignments.equals(update.assignments)) return false;
-        if (!relation.equals(update.relation)) return false;
-        if (!java.util.Objects.equals(where, update.where)) return false;
-        if (!java.util.Objects.equals(returning, update.returning)) return false;
-
-        return true;
+        return "Update{" +
+               "relation=" + relation +
+               ", assignments=" + assignments +
+               ", where=" + where +
+               ", returning=" + returning +
+               '}';
     }
 
     @Override

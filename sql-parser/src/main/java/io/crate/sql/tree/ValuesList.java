@@ -21,10 +21,8 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import java.util.List;
+import java.util.Objects;
 
 public class ValuesList extends Node {
 
@@ -39,28 +37,27 @@ public class ValuesList extends Node {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(values);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ValuesList that = (ValuesList) o;
+        return Objects.equals(values, that.values);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(values);
+    }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("values", values)
-            .toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ValuesList that = (ValuesList) o;
-
-        if (!values.equals(that.values)) return false;
-
-        return true;
+        return "ValuesList{" +
+               "values=" + values +
+               '}';
     }
 
     @Override

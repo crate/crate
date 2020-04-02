@@ -21,26 +21,27 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
+import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class Join extends Relation {
+
     public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
-        checkNotNull(left, "left is null");
-        checkNotNull(right, "right is null");
         if (type.equals(Type.CROSS)) {
-            checkArgument(!criteria.isPresent(), "Cross join cannot have join criteria");
+            if (criteria.isPresent()) {
+                throw new IllegalArgumentException("Cross join cannot have join criteria");
+            }
         } else {
-            checkArgument(criteria.isPresent(), "No join criteria specified");
+            if (criteria.isEmpty()) {
+                throw new IllegalArgumentException("No join criteria specified");
+            }
         }
 
         this.type = type;
-        this.left = left;
-        this.right = right;
+        this.left = requireNonNull(left, "left is null");
+        this.right = requireNonNull(right, "right is null");
         this.criteria = criteria;
     }
 
@@ -75,17 +76,6 @@ public class Join extends Relation {
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("type", type)
-            .add("left", left)
-            .add("right", right)
-            .add("criteria", criteria)
-            .omitNullValues()
-            .toString();
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -93,31 +83,25 @@ public class Join extends Relation {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         Join join = (Join) o;
-
-        if (criteria != null ? !criteria.equals(join.criteria) : join.criteria != null) {
-            return false;
-        }
-        if (!left.equals(join.left)) {
-            return false;
-        }
-        if (!right.equals(join.right)) {
-            return false;
-        }
-        if (type != join.type) {
-            return false;
-        }
-
-        return true;
+        return type == join.type &&
+               Objects.equals(left, join.left) &&
+               Objects.equals(right, join.right) &&
+               Objects.equals(criteria, join.criteria);
     }
 
     @Override
     public int hashCode() {
-        int result = type != null ? type.hashCode() : 0;
-        result = 31 * result + left.hashCode();
-        result = 31 * result + right.hashCode();
-        result = 31 * result + (criteria != null ? criteria.hashCode() : 0);
-        return result;
+        return Objects.hash(type, left, right, criteria);
+    }
+
+    @Override
+    public String toString() {
+        return "Join{" +
+               "type=" + type +
+               ", left=" + left +
+               ", right=" + right +
+               ", criteria=" + criteria +
+               '}';
     }
 }

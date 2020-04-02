@@ -21,8 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Preconditions;
-
+import java.util.Objects;
 import java.util.Optional;
 
 public class AllColumns extends SelectItem {
@@ -34,8 +33,7 @@ public class AllColumns extends SelectItem {
     }
 
     public AllColumns(QualifiedName prefix) {
-        Preconditions.checkNotNull(prefix, "prefix is null");
-        this.prefix = Optional.of(prefix);
+        this.prefix = Optional.ofNullable(prefix);
     }
 
     public Optional<QualifiedName> getPrefix() {
@@ -55,27 +53,17 @@ public class AllColumns extends SelectItem {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         AllColumns that = (AllColumns) o;
-
-        if (prefix != null ? !prefix.equals(that.prefix) : that.prefix != null) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(prefix, that.prefix);
     }
 
     @Override
     public int hashCode() {
-        return prefix != null ? prefix.hashCode() : 0;
+        return Objects.hash(prefix);
     }
 
     @Override
     public String toString() {
-        if (prefix.isPresent()) {
-            return prefix.get() + ".*";
-        }
-
-        return "*";
+        return prefix.map(qualifiedName -> qualifiedName + ".*").orElse("*");
     }
 }

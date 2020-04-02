@@ -21,10 +21,8 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
-
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class AlterTable<T> extends Statement {
@@ -36,7 +34,7 @@ public class AlterTable<T> extends Statement {
     public AlterTable(Table<T> table, GenericProperties<T> genericProperties) {
         this.table = table;
         this.genericProperties = genericProperties;
-        this.resetProperties = ImmutableList.of();
+        this.resetProperties = List.of();
     }
 
     public AlterTable(Table<T> table, List<String> resetProperties) {
@@ -77,29 +75,30 @@ public class AlterTable<T> extends Statement {
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("properties", genericProperties).toString();
-    }
-
-    @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        AlterTable that = (AlterTable) o;
-
-        if (!genericProperties.equals(that.genericProperties)) return false;
-        if (!table.equals(that.table)) return false;
-
-        return true;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        AlterTable<?> that = (AlterTable<?>) o;
+        return Objects.equals(table, that.table) &&
+               Objects.equals(genericProperties, that.genericProperties) &&
+               Objects.equals(resetProperties, that.resetProperties);
     }
 
     @Override
     public int hashCode() {
-        int result = table.hashCode();
-        result = 31 * result + genericProperties.hashCode();
-        return result;
+        return Objects.hash(table, genericProperties, resetProperties);
+    }
+
+    @Override
+    public String toString() {
+        return "AlterTable{" +
+               "table=" + table +
+               ", genericProperties=" + genericProperties +
+               ", resetProperties=" + resetProperties +
+               '}';
     }
 }

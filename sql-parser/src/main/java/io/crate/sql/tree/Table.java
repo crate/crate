@@ -21,11 +21,10 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
 import io.crate.common.collections.Lists2;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class Table<T> extends QueryBody {
@@ -41,7 +40,7 @@ public class Table<T> extends QueryBody {
     public Table(QualifiedName name, boolean excludePartitions) {
         this.name = name;
         this.excludePartitions = excludePartitions;
-        this.partitionProperties = ImmutableList.of();
+        this.partitionProperties = List.of();
     }
 
     public Table(QualifiedName name, List<Assignment<T>> partitionProperties) {
@@ -76,31 +75,29 @@ public class Table<T> extends QueryBody {
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("only", excludePartitions)
-            .addValue(name)
-            .add("partitionProperties", partitionProperties)
-            .toString();
-    }
-
-    @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Table)) return false;
-
-        Table that = (Table) o;
-
-        if (!name.equals(that.name)) return false;
-        if (!partitionProperties.equals(that.partitionProperties)) return false;
-
-        return true;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Table<?> table = (Table<?>) o;
+        return Objects.equals(name, table.name) &&
+               Objects.equals(partitionProperties, table.partitionProperties);
     }
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + partitionProperties.hashCode();
-        return result;
+        return Objects.hash(name, partitionProperties);
+    }
+
+    @Override
+    public String toString() {
+        return "Table{" +
+               "only=" + excludePartitions +
+               ", " + name +
+               ", partitionProperties=" + partitionProperties +
+               '}';
     }
 }

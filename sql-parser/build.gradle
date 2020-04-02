@@ -13,12 +13,11 @@ configurations {
 }
 
 dependencies {
-    implementation project(':shared')
     antlr4 "org.antlr:antlr4:${versions.antlr}"
-    compile "org.antlr:antlr4-runtime:${versions.antlr}"
+    implementation "org.antlr:antlr4-runtime:${versions.antlr}"
 
-    compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
-    compile "com.google.guava:guava:${versions.guava}"
+    implementation project(':shared')
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
 
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
     testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"

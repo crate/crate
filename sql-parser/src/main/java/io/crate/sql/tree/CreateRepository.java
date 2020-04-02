@@ -21,8 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 public class CreateRepository<T> extends Statement {
 
@@ -51,28 +50,31 @@ public class CreateRepository<T> extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(repository, type, properties);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CreateRepository<?> that = (CreateRepository<?>) o;
+        return Objects.equals(repository, that.repository) &&
+               Objects.equals(type, that.type) &&
+               Objects.equals(properties, that.properties);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        CreateRepository that = (CreateRepository) obj;
-        if (!repository.equals(that.repository)) return false;
-        if (!type.equals(that.type)) return false;
-        if (!properties.equals(that.properties)) return false;
-        return true;
+    public int hashCode() {
+        return Objects.hash(repository, type, properties);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("repository", repository)
-            .add("type", type)
-            .add("properties", properties).toString();
+        return "CreateRepository{" +
+               "repository=" + repository +
+               ", type=" + type +
+               ", properties=" + properties +
+               '}';
     }
 
     @Override

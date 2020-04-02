@@ -21,17 +21,16 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
-public class JoinOn
-    extends JoinCriteria {
+public class JoinOn extends JoinCriteria {
+
     private final Expression expression;
 
     public JoinOn(Expression expression) {
-        this.expression = checkNotNull(expression, "expression is null");
+        this.expression = requireNonNull(expression, "expression is null");
     }
 
     public Expression getExpression() {
@@ -39,26 +38,26 @@ public class JoinOn
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if ((obj == null) || (getClass() != obj.getClass())) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        JoinOn o = (JoinOn) obj;
-        return Objects.equal(expression, o.expression);
+        JoinOn joinOn = (JoinOn) o;
+        return Objects.equals(expression, joinOn.expression);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(expression);
+        return Objects.hash(expression);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .addValue(expression)
-            .toString();
+        return "JoinOn{" +
+               "expression=" + expression +
+               '}';
     }
 }

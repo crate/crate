@@ -21,10 +21,8 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
+public class NaturalJoin extends JoinCriteria {
 
-public class NaturalJoin
-    extends JoinCriteria {
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -40,6 +38,6 @@ public class NaturalJoin
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).toString();
+        return "NaturalJoin{}";
     }
 }

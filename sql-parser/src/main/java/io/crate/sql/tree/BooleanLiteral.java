@@ -21,9 +21,10 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 public class BooleanLiteral extends Literal {
+
     public static final BooleanLiteral TRUE_LITERAL = new BooleanLiteral(true);
     public static final BooleanLiteral FALSE_LITERAL = new BooleanLiteral(false);
 
@@ -43,19 +44,19 @@ public class BooleanLiteral extends Literal {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(value);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        BooleanLiteral that = (BooleanLiteral) o;
+        return value == that.value;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        final BooleanLiteral other = (BooleanLiteral) obj;
-        return Objects.equal(this.value, other.value);
+    public int hashCode() {
+        return Objects.hash(value);
     }
 }

@@ -22,7 +22,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
+import java.util.Objects;
 
 public class AlterTableRename<T> extends Statement {
 
@@ -35,7 +35,6 @@ public class AlterTableRename<T> extends Statement {
         this.blob = blob;
         this.newName = newName;
     }
-
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -55,32 +54,30 @@ public class AlterTableRename<T> extends Statement {
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("blob", blob)
-            .add("new name", newName).toString();
-    }
-
-    @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        AlterTableRename that = (AlterTableRename) o;
-
-        if (!blob == that.blob) return false;
-        if (!newName.equals(that.newName)) return false;
-        if (!table.equals(that.table)) return false;
-
-        return true;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        AlterTableRename<?> that = (AlterTableRename<?>) o;
+        return blob == that.blob &&
+               Objects.equals(table, that.table) &&
+               Objects.equals(newName, that.newName);
     }
 
     @Override
     public int hashCode() {
-        int result = table.hashCode();
-        result = 31 * result + (blob ? 1 : 0);
-        result = 31 * result + newName.hashCode();
-        return result;
+        return Objects.hash(table, blob, newName);
+    }
+
+    @Override
+    public String toString() {
+        return "AlterTableRename{" +
+               "table=" + table +
+               ", blob=" + blob +
+               ", new name=" + newName +
+               '}';
     }
 }

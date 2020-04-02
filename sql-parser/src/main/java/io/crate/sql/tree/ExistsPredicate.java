@@ -21,15 +21,16 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
 
-public class ExistsPredicate
-    extends Expression {
+import static java.util.Objects.requireNonNull;
+
+public class ExistsPredicate extends Expression {
+
     private final Query subquery;
 
     public ExistsPredicate(Query subquery) {
-        Preconditions.checkNotNull(subquery, "subquery is null");
-        this.subquery = subquery;
+        this.subquery = requireNonNull(subquery, "subquery is null");
     }
 
     public Query getSubquery() {
@@ -49,18 +50,12 @@ public class ExistsPredicate
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         ExistsPredicate that = (ExistsPredicate) o;
-
-        if (!subquery.equals(that.subquery)) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(subquery, that.subquery);
     }
 
     @Override
     public int hashCode() {
-        return subquery.hashCode();
+        return Objects.hash(subquery);
     }
 }

@@ -21,8 +21,8 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+
+import java.util.Objects;
 
 public class DropBlobTable<T> extends Statement {
 
@@ -39,21 +39,13 @@ public class DropBlobTable<T> extends Statement {
         return ignoreNonExistentTable;
     }
 
-    public Table table() {
+    public Table<T> table() {
         return table;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropBlobTable(this, context);
-    }
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("ignoreNonExistentTable", ignoreNonExistentTable)
-            .toString();
     }
 
     @Override
@@ -64,17 +56,21 @@ public class DropBlobTable<T> extends Statement {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
-        DropBlobTable that = (DropBlobTable) o;
-        if (this.ignoreNonExistentTable != that.ignoreNonExistentTable) {
-            return false;
-        }
-        return table.equals(that.table);
-
+        DropBlobTable<?> that = (DropBlobTable<?>) o;
+        return ignoreNonExistentTable == that.ignoreNonExistentTable &&
+               Objects.equals(table, that.table);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, ignoreNonExistentTable);
+        return Objects.hash(table, ignoreNonExistentTable);
+    }
+
+    @Override
+    public String toString() {
+        return "DropBlobTable{" +
+               "table=" + table +
+               ", ignoreNonExistentTable=" + ignoreNonExistentTable +
+               '}';
     }
 }

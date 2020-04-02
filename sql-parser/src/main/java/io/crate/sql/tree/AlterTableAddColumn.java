@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
+import java.util.Objects;
 
 public class AlterTableAddColumn<T> extends Statement {
 
@@ -43,29 +43,28 @@ public class AlterTableAddColumn<T> extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof AlterTableAddColumn)) return false;
-
-        AlterTableAddColumn that = (AlterTableAddColumn) o;
-
-        if (!table.equals(that.table)) return false;
-        if (!addColumnDefinition.equals(that.addColumnDefinition)) return false;
-
-        return true;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        AlterTableAddColumn<?> that = (AlterTableAddColumn<?>) o;
+        return Objects.equals(table, that.table) &&
+               Objects.equals(addColumnDefinition, that.addColumnDefinition);
     }
 
     @Override
     public int hashCode() {
-        int result = addColumnDefinition.hashCode();
-        result = 31 * result + table.hashCode();
-        return result;
+        return Objects.hash(table, addColumnDefinition);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("element", addColumnDefinition).toString();
+        return "AlterTableAddColumn{" +
+               "table=" + table +
+               ", addColumnDefinition=" + addColumnDefinition +
+               '}';
     }
 
     @Override

@@ -21,10 +21,10 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
+import java.util.Objects;
 
-public class SortItem
-    extends Node {
+public class SortItem extends Node {
+
     public enum Ordering {
         ASCENDING, DESCENDING
     }
@@ -61,15 +61,6 @@ public class SortItem
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("sortKey", sortKey)
-            .add("ordering", ordering)
-            .add("nullOrdering", nullOrdering)
-            .toString();
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -77,28 +68,23 @@ public class SortItem
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         SortItem sortItem = (SortItem) o;
-
-        if (nullOrdering != sortItem.nullOrdering) {
-            return false;
-        }
-        if (ordering != sortItem.ordering) {
-            return false;
-        }
-        if (!sortKey.equals(sortItem.sortKey)) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(sortKey, sortItem.sortKey) &&
+               ordering == sortItem.ordering &&
+               nullOrdering == sortItem.nullOrdering;
     }
 
     @Override
     public int hashCode() {
-        int result = sortKey.hashCode();
-        result = 31 * result + (ordering != null ? ordering.hashCode() : 0);
-        result = 31 * result + (nullOrdering != null ? nullOrdering.hashCode() : 0);
-        return result;
+        return Objects.hash(sortKey, ordering, nullOrdering);
     }
 
+    @Override
+    public String toString() {
+        return "SortItem{" +
+               "sortKey=" + sortKey +
+               ", ordering=" + ordering +
+               ", nullOrdering=" + nullOrdering +
+               '}';
+    }
 }

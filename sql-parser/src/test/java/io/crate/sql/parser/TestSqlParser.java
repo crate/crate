@@ -22,7 +22,7 @@
 
 package io.crate.sql.parser;
 
-import com.google.common.base.Joiner;
+import io.crate.common.collections.Lists2;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CreateTable;
@@ -410,14 +410,14 @@ public class TestSqlParser {
     public void testStackOverflowExpression() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:1: expression is too large (stack overflow while parsing)");
-        SqlParser.createExpression(Joiner.on(" OR ").join(nCopies(4000, "x = y")));
+        SqlParser.createExpression(Lists2.joinOn(" OR ", nCopies(4000, "x = y"), x -> x));
     }
 
     @Test
     public void testStackOverflowStatement() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:1: statement is too large (stack overflow while parsing)");
-        SqlParser.createStatement("SELECT " + Joiner.on(" OR ").join(nCopies(4000, "x = y")));
+        SqlParser.createStatement("SELECT " + Lists2.joinOn(" OR ", nCopies(4000, "x = y"), x -> x));
     }
 
     @Test

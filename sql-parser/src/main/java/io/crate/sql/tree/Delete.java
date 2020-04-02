@@ -21,11 +21,10 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
-
+import java.util.Objects;
 import java.util.Optional;
+
+import static java.util.Objects.requireNonNull;
 
 public class Delete extends Statement {
 
@@ -33,8 +32,7 @@ public class Delete extends Statement {
     private final Optional<Expression> where;
 
     public Delete(Relation relation, Optional<Expression> where) {
-        Preconditions.checkNotNull(relation, "relation is null");
-        this.relation = relation;
+        this.relation = requireNonNull(relation, "relation is null");
         this.where = where;
     }
 
@@ -51,31 +49,29 @@ public class Delete extends Statement {
         return visitor.visitDelete(this, context);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Delete delete = (Delete) o;
+        return Objects.equals(relation, delete.relation) &&
+               Objects.equals(where, delete.where);
+    }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(relation, where);
+        return Objects.hash(relation, where);
     }
-
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("relation", relation)
-            .add("where", where)
-            .toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Delete delete = (Delete) o;
-
-        if (relation != null ? !relation.equals(delete.relation) : delete.relation != null) return false;
-        if (where != null ? !where.equals(delete.where) : delete.where != null) return false;
-
-        return true;
+        return "Delete{" +
+               "relation=" + relation +
+               ", where=" + where +
+               '}';
     }
 }

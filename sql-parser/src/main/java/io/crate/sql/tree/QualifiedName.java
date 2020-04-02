@@ -21,41 +21,44 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import io.crate.common.collections.Lists2;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.StreamSupport;
+
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
 
 public class QualifiedName {
 
     private final List<String> parts;
 
     public static QualifiedName of(String first, String... rest) {
-        Preconditions.checkNotNull(first, "first is null");
-        return new QualifiedName(ImmutableList.copyOf(Lists.asList(first, rest)));
+        requireNonNull(first, "first is null");
+        ArrayList<String> parts = new ArrayList<>();
+        parts.add(first);
+        parts.addAll(Arrays.asList(rest));
+        return new QualifiedName(parts);
     }
 
     public static QualifiedName of(Iterable<String> parts) {
-        Preconditions.checkNotNull(parts, "parts is null");
-        Preconditions.checkArgument(!Iterables.isEmpty(parts), "parts is empty");
-
         return new QualifiedName(parts);
     }
 
     public QualifiedName(String name) {
-        this(ImmutableList.of(name));
+        this(List.of(name));
     }
 
     public QualifiedName(Iterable<String> parts) {
-        Preconditions.checkNotNull(parts, "parts");
-        Preconditions.checkArgument(!Iterables.isEmpty(parts), "parts is empty");
-
-        this.parts = ImmutableList.copyOf(parts);
+        var partsList = StreamSupport.stream(parts.spliterator(), false).collect(toList());
+        if (partsList.isEmpty()) {
+            throw new IllegalArgumentException("parts is empty");
+        }
+        this.parts = partsList;
     }
 
     public List<String> getParts() {
@@ -64,7 +67,7 @@ public class QualifiedName {
 
     @Override
     public String toString() {
-        return Joiner.on('.').join(parts);
+        return Lists2.joinOn(".", parts, x -> x);
     }
 
     /**
@@ -80,7 +83,7 @@ public class QualifiedName {
     }
 
     public String getSuffix() {
-        return Iterables.getLast(parts);
+        return parts.get(parts.size() - 1);
     }
 
     @Override
@@ -91,25 +94,12 @@ public class QualifiedName {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         QualifiedName that = (QualifiedName) o;
-
-        if (!parts.equals(that.parts)) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(parts, that.parts);
     }
 
     @Override
     public int hashCode() {
-        return parts.hashCode();
-    }
-
-    public QualifiedName withPrefix(String prefix) {
-        ArrayList<String> newParts = new ArrayList<>(parts.size() + 1);
-        newParts.add(prefix);
-        newParts.addAll(parts);
-        return new QualifiedName(newParts);
+        return Objects.hash(parts);
     }
 }

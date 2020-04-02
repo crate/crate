@@ -22,16 +22,13 @@
 
 package io.crate.sql.tree;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import java.util.Objects;
 
 public class TryCast extends Expression {
     private final Expression expression;
     private final ColumnType type;
 
     public TryCast(Expression expression, ColumnType type) {
-        checkNotNull(expression, "expression is null");
-        checkNotNull(type, "type is null");
-
         this.expression = expression;
         this.type = type;
     }
@@ -57,23 +54,13 @@ public class TryCast extends Expression {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
-        TryCast cast = (TryCast) o;
-
-        if (!expression.equals(cast.expression)) {
-            return false;
-        }
-        if (!type.equals(cast.type)) {
-            return false;
-        }
-
-        return true;
+        TryCast tryCast = (TryCast) o;
+        return Objects.equals(expression, tryCast.expression) &&
+               Objects.equals(type, tryCast.type);
     }
 
     @Override
     public int hashCode() {
-        int result = expression.hashCode();
-        result = 31 * result + type.hashCode();
-        return result;
+        return Objects.hash(expression, type);
     }
 }

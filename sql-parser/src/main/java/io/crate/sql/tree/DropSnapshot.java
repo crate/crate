@@ -21,8 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 public class DropSnapshot extends Statement {
 
@@ -37,22 +36,27 @@ public class DropSnapshot extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(name);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        DropSnapshot that = (DropSnapshot) o;
+        return Objects.equals(name, that.name);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        return name.equals(((DropSnapshot) obj).name);
+    public int hashCode() {
+        return Objects.hash(name);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .toString();
+        return "DropSnapshot{" +
+               "name=" + name +
+               '}';
     }
 
     @Override

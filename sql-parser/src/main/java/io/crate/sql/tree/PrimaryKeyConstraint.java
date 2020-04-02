@@ -21,11 +21,10 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import io.crate.common.collections.Lists2;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -42,25 +41,27 @@ public class PrimaryKeyConstraint<T> extends TableElement<T> {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(columns);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        PrimaryKeyConstraint<?> that = (PrimaryKeyConstraint<?>) o;
+        return Objects.equals(columns, that.columns);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        PrimaryKeyConstraint that = (PrimaryKeyConstraint) o;
-
-        if (!columns.equals(that.columns)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(columns);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("columns", columns).toString();
+        return "PrimaryKeyConstraint{" +
+               "columns=" + columns +
+               '}';
     }
 
     @Override

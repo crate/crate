@@ -21,11 +21,8 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
-
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class MatchPredicateColumnIdent extends Expression {
 
@@ -35,11 +32,13 @@ public class MatchPredicateColumnIdent extends Expression {
     public MatchPredicateColumnIdent(Expression ident, @Nullable Expression boost) {
         this.ident = ident;
         if (boost != null) {
-            Preconditions.checkArgument(
-                boost instanceof LongLiteral || boost instanceof DoubleLiteral || boost instanceof ParameterExpression,
-                "'boost' value must be a numeric literal or a parameter expression");
+            if (!(boost instanceof LongLiteral ||
+                  boost instanceof DoubleLiteral ||
+                  boost instanceof ParameterExpression)) {
+                throw new IllegalArgumentException("'boost' value must be a numeric literal or a parameter expression");
+            }
         }
-        this.boost = MoreObjects.firstNonNull(boost, NullLiteral.INSTANCE);
+        this.boost = boost == null ? NullLiteral.INSTANCE : boost;
     }
 
     public Expression columnIdent() {
@@ -51,11 +50,6 @@ public class MatchPredicateColumnIdent extends Expression {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(ident, boost);
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -63,17 +57,14 @@ public class MatchPredicateColumnIdent extends Expression {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         MatchPredicateColumnIdent that = (MatchPredicateColumnIdent) o;
+        return Objects.equals(ident, that.ident) &&
+               Objects.equals(boost, that.boost);
+    }
 
-        if (!ident.equals(that.ident)) {
-            return false;
-        }
-        if (!boost.equals(that.boost)) {
-            return false;
-        }
-
-        return true;
+    @Override
+    public int hashCode() {
+        return Objects.hash(ident, boost);
     }
 
     @Override

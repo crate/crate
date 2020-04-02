@@ -21,19 +21,16 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
-
 import javax.annotation.Nullable;
+import java.util.Objects;
 
-public class SingleColumn
-    extends SelectItem {
+public class SingleColumn extends SelectItem {
+
     @Nullable
-    private String alias;
-    private Expression expression;
+    private final String alias;
+    private final Expression expression;
 
     public SingleColumn(Expression expression, @Nullable String alias) {
-        Preconditions.checkNotNull(expression, "expression is null");
         this.expression = expression;
         this.alias = alias;
     }
@@ -52,20 +49,21 @@ public class SingleColumn
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if (obj == null || getClass() != obj.getClass()) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final SingleColumn other = (SingleColumn) obj;
-        return Objects.equal(this.alias, other.alias) && Objects.equal(this.expression, other.expression);
+        SingleColumn that = (SingleColumn) o;
+        return Objects.equals(alias, that.alias) &&
+               Objects.equals(expression, that.expression);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(alias, expression);
+        return Objects.hash(alias, expression);
     }
 
     public String toString() {

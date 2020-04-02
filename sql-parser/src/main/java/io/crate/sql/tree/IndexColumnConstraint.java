@@ -21,9 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -52,29 +50,29 @@ public class IndexColumnConstraint<T> extends ColumnConstraint<T> {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(indexMethod, properties);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        IndexColumnConstraint<?> that = (IndexColumnConstraint<?>) o;
+        return Objects.equals(indexMethod, that.indexMethod) &&
+               Objects.equals(properties, that.properties);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        IndexColumnConstraint that = (IndexColumnConstraint) o;
-
-        if (!indexMethod.equals(that.indexMethod)) return false;
-        if (!properties.equals(that.properties)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(indexMethod, properties);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("method", indexMethod)
-            .add("properties", properties)
-            .toString();
+        return "IndexColumnConstraint{" +
+               "method='" + indexMethod + '\'' +
+               ", properties=" + properties +
+               '}';
     }
 
     @Override

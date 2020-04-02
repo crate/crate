@@ -21,11 +21,10 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import io.crate.common.collections.Lists2;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class ResetStatement<T> extends Statement {
@@ -47,27 +46,27 @@ public class ResetStatement<T> extends Statement {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ResetStatement<?> that = (ResetStatement<?>) o;
+        return Objects.equals(columns, that.columns);
+    }
+
+    @Override
     public int hashCode() {
-        return Objects.hashCode(columns);
+        return Objects.hash(columns);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("columns", columns)
-            .toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ResetStatement update = (ResetStatement) o;
-
-        if (!columns.equals(update.columns)) return false;
-
-        return true;
+        return "ResetStatement{" +
+               "columns=" + columns +
+               '}';
     }
 
     @Override

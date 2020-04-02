@@ -21,8 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
+import java.util.Objects;
 import java.util.function.Function;
 
 public class ShowCreateTable<T> extends Statement {
@@ -40,25 +39,26 @@ public class ShowCreateTable<T> extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ShowCreateTable that = (ShowCreateTable) o;
-
-        return table.equals(that.table);
-
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ShowCreateTable<?> that = (ShowCreateTable<?>) o;
+        return Objects.equals(table, that.table);
     }
 
     @Override
     public int hashCode() {
-        return table.hashCode();
+        return Objects.hash(table);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .toString();
+        return "ShowCreateTable{" +
+               "table=" + table +
+               '}';
     }
 
     public Table<T> table() {
