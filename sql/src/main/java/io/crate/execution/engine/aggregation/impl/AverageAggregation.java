@@ -21,14 +21,15 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -51,19 +52,27 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         DataTypes.register(AverageStateType.ID, in -> AverageStateType.INSTANCE);
     }
 
+    private static final List<DataType> SUPPORTED_TYPES = Lists2.concat(
+        DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
+
     /**
      * register as "avg" and "mean"
      */
     public static void register(AggregationImplModule mod) {
-        for (String name : NAMES) {
-            for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-                mod.register(new AverageAggregation(new FunctionInfo(
-                    new FunctionIdent(name, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
-                    FunctionInfo.Type.AGGREGATE)));
+        for (var functionName : NAMES) {
+            for (var supportedType : SUPPORTED_TYPES) {
+                mod.register(
+                    Signature.aggregate(
+                        functionName,
+                        supportedType.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature()),
+                    args -> new AverageAggregation(
+                        new FunctionInfo(
+                            new FunctionIdent(functionName, args),
+                            DataTypes.DOUBLE,
+                            FunctionInfo.Type.AGGREGATE))
+                );
             }
-            mod.register(new AverageAggregation(new FunctionInfo(
-                new FunctionIdent(name, List.of(DataTypes.TIMESTAMPZ)), DataTypes.DOUBLE,
-                FunctionInfo.Type.AGGREGATE)));
         }
     }
 

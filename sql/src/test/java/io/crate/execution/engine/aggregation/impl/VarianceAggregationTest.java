@@ -35,7 +35,7 @@ import java.util.List;
 
 public class VarianceAggregationTest extends AggregationTest {
 
-    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType<?> dataType, Object[][] data) throws Exception {
         return executeAggregation("variance", dataType, data);
     }
 
@@ -102,6 +102,6 @@ public class VarianceAggregationTest extends AggregationTest {
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
+        executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
     }
 }
