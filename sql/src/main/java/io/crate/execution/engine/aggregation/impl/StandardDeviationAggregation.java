@@ -21,15 +21,16 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.statistics.StandardDeviation;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -50,15 +51,23 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         DataTypes.register(StdDevStateType.ID, in -> StdDevStateType.INSTANCE);
     }
 
+    private static final List<DataType> SUPPORTED_TYPES = Lists2.concat(
+        DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
+
     public static void register(AggregationImplModule mod) {
-        for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            mod.register(new StandardDeviationAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
-                FunctionInfo.Type.AGGREGATE)));
+        for (var supportedType : SUPPORTED_TYPES) {
+            mod.register(
+                Signature.aggregate(
+                    NAME,
+                    supportedType.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()),
+                args -> new StandardDeviationAggregation(
+                    new FunctionInfo(
+                        new FunctionIdent(NAME, args),
+                        DataTypes.DOUBLE,
+                        FunctionInfo.Type.AGGREGATE))
+            );
         }
-        mod.register(new StandardDeviationAggregation(new FunctionInfo(
-            new FunctionIdent(NAME, List.of(DataTypes.TIMESTAMPZ)), DataTypes.DOUBLE,
-            FunctionInfo.Type.AGGREGATE)));
     }
 
     public static class StdDevStateType extends DataType<StandardDeviation> implements Streamer<StandardDeviation>, FixedWidthType {
@@ -179,7 +188,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     @Override
-    public DataType partialType() {
+    public DataType<?> partialType() {
         return StdDevStateType.INSTANCE;
     }
 

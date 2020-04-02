@@ -35,7 +35,7 @@ import java.util.List;
 
 public class StdDevAggregationTest extends AggregationTest {
 
-    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType<?> dataType, Object[][] data) throws Exception {
         return executeAggregation("stddev", dataType, data);
     }
 
@@ -105,7 +105,6 @@ public class StdDevAggregationTest extends AggregationTest {
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
+        executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
     }
-
 }
