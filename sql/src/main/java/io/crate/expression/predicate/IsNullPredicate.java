@@ -74,7 +74,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         if (arg.equals(Literal.NULL)) {
             return Literal.of(true);
         } else if (arg.symbolType().isValueSymbol()) {
-            return Literal.of(((Input) arg).value() == null);
+            return Literal.of(((Input<?>) arg).value() == null);
         }
         return symbol;
     }

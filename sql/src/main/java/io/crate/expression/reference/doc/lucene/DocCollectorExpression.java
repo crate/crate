@@ -69,12 +69,12 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     static final class ChildDocCollectorExpression extends LuceneCollectorExpression<Object> {
 
-        private final DataType returnType;
+        private final DataType<?> returnType;
         private final List<String> path;
         private SourceLookup sourceLookup;
         private LeafReaderContext context;
 
-        ChildDocCollectorExpression(DataType returnType, List<String> path) {
+        ChildDocCollectorExpression(DataType<?> returnType, List<String> path) {
             this.returnType = returnType;
             this.path = path;
         }
