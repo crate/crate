@@ -54,7 +54,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
 
     @Override
     public Precedence precedence() {
-        return Precedence.StringType;
+        return Precedence.STRING;
     }
 
     @Override

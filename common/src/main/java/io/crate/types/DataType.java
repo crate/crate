@@ -46,26 +46,28 @@ public abstract class DataType<T> implements Comparable, Writeable {
      *
      */
     public enum Precedence {
-        NotSupportedType,
-        UndefinedType,
-        LiteralType,
-        StringType,
-        ByteType,
-        BooleanType,
-        ShortType,
-        IntegerType,
-        IntervalType,
-        LongType,
-        FloatType,
-        DoubleType,
-        ArrayType,
-        SetType,
-        TableType,
-        GeoPointType,
-        ObjectType,
-        UncheckedObjectType,
-        GeoShapeType,
-        Custom
+        NOT_SUPPORTED,
+        UNDEFINED,
+        LITERAL,
+        STRING,
+        BYTE,
+        BOOLEAN,
+        SHORT,
+        INTEGER,
+        INTERVAL,
+        TIMESTAMP_WITH_TIME_ZONE,
+        TIMESTAMP,
+        LONG,
+        FLOAT,
+        DOUBLE,
+        ARRAY,
+        SET,
+        TABLE,
+        GEO_POINT,
+        OBJECT,
+        UNCHECKED_OBJECT,
+        GEO_SHAPE,
+        CUSTOM
     }
 
     public abstract int id();

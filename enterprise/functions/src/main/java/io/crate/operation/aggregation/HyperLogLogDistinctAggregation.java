@@ -232,7 +232,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
         @Override
         public Precedence precedence() {
-            return Precedence.Custom;
+            return Precedence.CUSTOM;
         }
 
         @Override

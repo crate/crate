@@ -56,7 +56,7 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
 
     @Override
     public Precedence precedence() {
-        return Precedence.UncheckedObjectType;
+        return Precedence.UNCHECKED_OBJECT;
     }
 
     @Override

@@ -129,7 +129,7 @@ public final class RowType extends DataType<Row> implements Streamer<Row> {
 
     @Override
     public Precedence precedence() {
-        return Precedence.TableType;
+        return Precedence.TABLE;
     }
 
     @Override

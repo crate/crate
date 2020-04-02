@@ -105,7 +105,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
 
         @Override
         public Precedence precedence() {
-            return Precedence.Custom;
+            return Precedence.CUSTOM;
         }
 
         @Override

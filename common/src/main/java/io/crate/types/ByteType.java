@@ -42,7 +42,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
 
     @Override
     public Precedence precedence() {
-        return Precedence.ByteType;
+        return Precedence.BYTE;
     }
 
     @Override

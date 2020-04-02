@@ -44,7 +44,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
 
     @Override
     public Precedence precedence() {
-        return Precedence.FloatType;
+        return Precedence.FLOAT;
     }
 
     @Override

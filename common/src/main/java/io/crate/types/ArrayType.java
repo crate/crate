@@ -102,7 +102,7 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Override
     public Precedence precedence() {
-        return Precedence.ArrayType;
+        return Precedence.ARRAY;
     }
 
     public final DataType<T> innerType() {

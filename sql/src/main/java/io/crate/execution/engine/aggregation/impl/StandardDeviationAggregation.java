@@ -73,7 +73,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
         @Override
         public Precedence precedence() {
-            return Precedence.Custom;
+            return Precedence.CUSTOM;
         }
 
         @Override
