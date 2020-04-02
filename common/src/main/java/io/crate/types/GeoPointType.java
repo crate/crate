@@ -52,7 +52,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
 
     @Override
     public Precedence precedence() {
-        return Precedence.GeoPointType;
+        return Precedence.GEO_POINT;
     }
 
     @Override

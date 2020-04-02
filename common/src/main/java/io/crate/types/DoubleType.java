@@ -44,7 +44,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
 
     @Override
     public Precedence precedence() {
-        return Precedence.DoubleType;
+        return Precedence.DOUBLE;
     }
 
     @Override

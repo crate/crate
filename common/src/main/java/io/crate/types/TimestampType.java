@@ -50,21 +50,25 @@ public final class TimestampType extends DataType<Long>
     public static final TimestampType INSTANCE_WITH_TZ = new TimestampType(
         ID_WITH_TZ,
         "timestamp with time zone",
-        TimestampType::parseTimestamp);
+        TimestampType::parseTimestamp,
+        Precedence.TIMESTAMP_WITH_TIME_ZONE);
 
     public static final TimestampType INSTANCE_WITHOUT_TZ = new TimestampType(
         ID_WITHOUT_TZ,
         "timestamp without time zone",
-        TimestampType::parseTimestampIgnoreTimeZone);
+        TimestampType::parseTimestampIgnoreTimeZone,
+        Precedence.TIMESTAMP);
 
     private final int id;
     private final String name;
     private final Function<String, Long> parse;
+    private final Precedence precedence;
 
-    private TimestampType(int id, String name, Function<String, Long> parse) {
+    private TimestampType(int id, String name, Function<String, Long> parse, Precedence precedence) {
         this.id = id;
         this.name = name;
         this.parse = parse;
+        this.precedence = precedence;
     }
 
     @Override
@@ -79,7 +83,7 @@ public final class TimestampType extends DataType<Long>
 
     @Override
     public Precedence precedence() {
-        return Precedence.LongType;
+        return precedence;
     }
 
     @Override

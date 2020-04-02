@@ -71,7 +71,7 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
 
     @Override
     public Precedence precedence() {
-        return Precedence.IntervalType;
+        return Precedence.INTERVAL;
     }
 
     @Override

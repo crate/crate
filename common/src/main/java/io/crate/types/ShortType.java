@@ -44,7 +44,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
 
     @Override
     public Precedence precedence() {
-        return Precedence.ShortType;
+        return Precedence.SHORT;
     }
 
     @Override
