@@ -49,14 +49,23 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
     private HashMap<FunctionName, List<FuncResolver>> functionImplementations = new HashMap<>();
     private MapBinder<FunctionName, List<FuncResolver>> implementationsBinder;
 
+    /**
+     * @deprecated Use {@link #register(Signature, Function)} instead.
+     */
     public void register(T impl) {
         functions.put(impl.info().ident(), impl);
     }
 
+    /**
+     * @deprecated Use {@link #register(Signature, Function)} instead.
+     */
     public void register(String name, FunctionResolver functionResolver) {
         register(new FunctionName(name), functionResolver);
     }
 
+    /**
+     * @deprecated Use {@link #register(Signature, Function)} instead.
+     */
     public void register(FunctionName qualifiedName, FunctionResolver functionResolver) {
         resolver.put(qualifiedName, functionResolver);
     }

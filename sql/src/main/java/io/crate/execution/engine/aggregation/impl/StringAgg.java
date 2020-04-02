@@ -64,14 +64,11 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
 
     public static void register(AggregationImplModule mod) {
         mod.register(
-            Signature.builder()
-                .name(NAME)
-                .kind(FunctionInfo.Type.AGGREGATE)
-                .argumentTypes(
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature())
-                .returnType(DataTypes.STRING.getTypeSignature())
-                .build(),
+            Signature.aggregate(
+                NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()),
             args -> new StringAgg()
         );
     }
