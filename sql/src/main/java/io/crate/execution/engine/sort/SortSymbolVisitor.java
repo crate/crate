@@ -27,6 +27,7 @@ import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -37,19 +38,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.types.BooleanType;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.DoubleType;
-import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
-import io.crate.types.IntervalType;
-import io.crate.types.IpType;
-import io.crate.types.LongType;
-import io.crate.types.ShortType;
-import io.crate.types.StringType;
-import io.crate.types.TimestampType;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.SortField;
@@ -57,28 +46,12 @@ import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 
-import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 
 public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbolContext, SortField> {
 
     private static final SortField SORT_SCORE_REVERSE = new SortField(null, SortField.Type.SCORE, true);
     private static final SortField SORT_SCORE = new SortField(null, SortField.Type.SCORE);
-
-    public static final Map<DataType<?>, SortField.Type> LUCENE_TYPE_MAP = Map.ofEntries(
-        Map.entry(DataTypes.BOOLEAN, SortField.Type.LONG),
-        Map.entry(DataTypes.BYTE, SortField.Type.LONG),
-        Map.entry(DataTypes.SHORT, SortField.Type.LONG),
-        Map.entry(DataTypes.LONG, SortField.Type.LONG),
-        Map.entry(DataTypes.INTEGER, SortField.Type.LONG),
-        Map.entry(DataTypes.FLOAT, SortField.Type.FLOAT),
-        Map.entry(DataTypes.DOUBLE, SortField.Type.DOUBLE),
-        Map.entry(DataTypes.TIMESTAMPZ, SortField.Type.LONG),
-        Map.entry(DataTypes.TIMESTAMP, SortField.Type.LONG),
-        Map.entry(DataTypes.IP, SortField.Type.LONG),
-        Map.entry(DataTypes.STRING, SortField.Type.STRING)
-    );
 
     static class SortSymbolContext {
 
@@ -137,23 +110,22 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
             return !context.reverseFlag ? SORT_SCORE_REVERSE : SORT_SCORE;
         }
         if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.equals(columnIdent)) {
-            return customSortField(DocSysColumns.nameForLucene(columnIdent), symbol, context, false);
+            return customSortField(DocSysColumns.nameForLucene(columnIdent), symbol, context);
         }
         if (symbol.isColumnStoreDisabled()) {
-            SortField.Type type = LUCENE_TYPE_MAP.get(symbol.valueType());
-            return customSortField(symbol.toString(), symbol, context, type == null);
+            return customSortField(symbol.toString(), symbol, context);
         }
 
         MultiValueMode sortMode = context.reverseFlag ? MultiValueMode.MAX : MultiValueMode.MIN;
-
-        String indexName;
-        FieldComparatorSource fieldComparatorSource;
         MappedFieldType fieldType = fieldTypeLookup.get(columnIdent.fqn());
         if (fieldType == null) {
-            indexName = columnIdent.fqn();
-            fieldComparatorSource = new NullFieldComparatorSource(LUCENE_TYPE_MAP.get(symbol.valueType()), context.reverseFlag, context.nullFirst);
+            FieldComparatorSource fieldComparatorSource = new NullFieldComparatorSource(NullSentinelValues.nullSentinelForScoreDoc(
+                symbol.valueType(),
+                context.reverseFlag,
+                context.nullFirst
+            ));
             return new SortField(
-                indexName,
+                columnIdent.fqn(),
                 fieldComparatorSource,
                 context.reverseFlag);
         } else {
@@ -165,10 +137,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
     @Override
     public SortField visitFunction(final Function function, final SortSymbolContext context) {
-        // our boolean functions return booleans, no BytesRefs, handle them differently
-        // this is a hack, but that is how it worked before, so who cares :)
-        SortField.Type type = function.valueType().equals(DataTypes.BOOLEAN) ? null : LUCENE_TYPE_MAP.get(function.valueType());
-        return customSortField(function.toString(), function, context, type == null);
+        return customSortField(function.toString(), function, context);
     }
 
     @Override
@@ -184,8 +153,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
     private SortField customSortField(String name,
                                       final Symbol symbol,
-                                      final SortSymbolContext context,
-                                      final boolean missingNullValue) {
+                                      final SortSymbolContext context) {
         InputFactory.Context<? extends LuceneCollectorExpression<?>> inputContext = docInputFactory.getCtx(context.txnCtx);
         final Input<?> input = inputContext.add(symbol);
         final List<? extends LuceneCollectorExpression<?>> expressions = inputContext.expressions();
@@ -199,7 +167,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                     expressions.get(i).startCollect(collectorContext);
                 }
                 DataType<?> dataType = symbol.valueType();
-                Object missingValue = missingNullValue ? null : SortSymbolVisitor.missingObject(
+                Object nullSentinel = NullSentinelValues.nullSentinel(
                     dataType,
                     NullValueOrder.fromFlag(nullFirst),
                     reversed);
@@ -208,43 +176,10 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                     expressions,
                     input,
                     dataType,
-                    missingValue
+                    nullSentinel
                 );
             }
         }, context.reverseFlag);
     }
 
-    /**
-     * Return the missing object value according to the data type of the symbol and not the reducedType.
-     * The reducedType groups non-decimal numeric types to Long and uses Long's MIN_VALUE & MAX_VALUE
-     * to replace NULLs which can lead to ClassCastException when the original type was for example Integer.
-     */
-    @Nullable
-    static Object missingObject(DataType<?> dataType, NullValueOrder nullValueOrder, boolean reversed) {
-        boolean min = nullValueOrder == NullValueOrder.FIRST ^ reversed;
-        switch (dataType.id()) {
-            case ByteType.ID:
-                return min ? Byte.MIN_VALUE : Byte.MAX_VALUE;
-            case ShortType.ID:
-                return min ? Short.MIN_VALUE : Short.MAX_VALUE;
-            case IntegerType.ID:
-                return min ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-            case BooleanType.ID:
-            case LongType.ID:
-            case TimestampType.ID_WITH_TZ:
-            case TimestampType.ID_WITHOUT_TZ:
-                return min ? Long.MIN_VALUE : Long.MAX_VALUE;
-            case FloatType.ID:
-                return min ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
-            case DoubleType.ID:
-                return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
-            case StringType.ID:
-            case IpType.ID:
-                return null;
-            case IntervalType.ID:
-                return IntervalType.ID;
-            default:
-                throw new UnsupportedOperationException("Unsupported data type: " + dataType);
-        }
-    }
 }

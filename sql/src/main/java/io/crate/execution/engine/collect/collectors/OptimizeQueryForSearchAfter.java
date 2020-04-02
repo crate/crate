@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import io.crate.analyze.OrderBy;
-import io.crate.expression.reference.doc.lucene.LuceneMissingValue;
+import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
@@ -55,7 +55,7 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
         this.queryShardContext = queryShardContext;
         this.fieldTypeLookup = fieldTypeLookup;
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
-            missingValues[i] = LuceneMissingValue.missingValue(orderBy, i);
+            missingValues[i] = NullSentinelValues.nullSentinelForScoreDoc(orderBy, i);
         }
     }
 

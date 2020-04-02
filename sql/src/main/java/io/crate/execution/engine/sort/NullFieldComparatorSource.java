@@ -22,25 +22,23 @@
 
 package io.crate.execution.engine.sort;
 
-import io.crate.expression.reference.doc.lucene.LuceneMissingValue;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorable;
-import org.apache.lucene.search.SortField;
 
 import java.io.IOException;
 
 /**
  * ComparatorSource for fields that don't have a backing FieldMapper and FieldCache.
- * This always returns the appropriate <code>missingValue</code>.
+ * This always returns the appropriate <code>nullSentinel</code>.
  * <p>
  * Only used on shards with no values for the compared field.
  */
 class NullFieldComparatorSource extends FieldComparatorSource {
 
-    private final Object missingValue;
+    private final Object nullSentinel;
     private static final LeafFieldComparator LEAF_FIELD_COMPARATOR = new LeafFieldComparator() {
         @Override
         public void setBottom(int slot) {
@@ -65,13 +63,13 @@ class NullFieldComparatorSource extends FieldComparatorSource {
         }
     };
 
-    NullFieldComparatorSource(SortField.Type sortFieldType, boolean reversed, Boolean nullsFirst) {
-        missingValue = LuceneMissingValue.missingValue(reversed, nullsFirst, sortFieldType);
+    NullFieldComparatorSource(Object nullSentinel) {
+        this.nullSentinel = nullSentinel;
     }
 
     @Override
     public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) {
-        return new FieldComparator<Object>() {
+        return new FieldComparator<>() {
             @Override
             public LeafFieldComparator getLeafComparator(LeafReaderContext context) {
                 return LEAF_FIELD_COMPARATOR;
@@ -88,7 +86,7 @@ class NullFieldComparatorSource extends FieldComparatorSource {
 
             @Override
             public Object value(int slot) {
-                return missingValue;
+                return nullSentinel;
             }
         };
     }
