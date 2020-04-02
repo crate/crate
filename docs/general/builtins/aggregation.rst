@@ -305,7 +305,7 @@ exceeded an `ArithmeticException` will be raised.
 ::
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
-    SQLActionException[SQLParseException: Cannot cast `name` of type `text` to any of the types: [double precision, real, bigint, integer, smallint, char]]
+    SQLActionException[SQLParseException: Cannot cast value `North West Ripple` to type `char`]
 
 ``avg`` and ``mean``
 --------------------
