@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -30,6 +29,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -56,21 +56,27 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     private final SizeEstimator<Object> innerTypeEstimator;
 
     private final FunctionInfo info;
-    private final DataType partialReturnType;
+    private final DataType<?> partialReturnType;
 
     public static void register(AggregationImplModule mod) {
-        for (final DataType<?> dataType : DataTypes.PRIMITIVE_TYPES) {
-            mod.register(new CollectSetAggregation(
-                             new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(dataType)),
-                                              new ArrayType<>(dataType),
-                                              FunctionInfo.Type.AGGREGATE)
-                         )
+        for (DataType<?> supportedType : DataTypes.PRIMITIVE_TYPES) {
+            var returnType = new ArrayType<>(supportedType);
+            mod.register(
+                Signature.aggregate(
+                    NAME,
+                    supportedType.getTypeSignature(),
+                    returnType.getTypeSignature()),
+                args -> new CollectSetAggregation(
+                    new FunctionInfo(
+                        new FunctionIdent(NAME, args),
+                        returnType,
+                        FunctionInfo.Type.AGGREGATE))
             );
         }
     }
 
     private CollectSetAggregation(FunctionInfo info) {
-        this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType) info.returnType()).innerType());
+        this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType<?>) info.returnType()).innerType());
         this.info = info;
         this.partialReturnType = UncheckedObjectType.INSTANCE;
     }
@@ -114,7 +120,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     @Override
-    public DataType partialType() {
+    public DataType<?> partialType() {
         return partialReturnType;
     }
 
@@ -160,10 +166,10 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         private final SizeEstimator<Object> innerTypeEstimator;
 
         private final FunctionInfo info;
-        private final DataType partialType;
+        private final DataType<?> partialType;
 
         RemovableCumulativeCollectSet(FunctionInfo info) {
-            this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType) info.returnType()).innerType());
+            this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType<?>) info.returnType()).innerType());
             this.info = info;
             this.partialType = UncheckedObjectType.INSTANCE;
         }
@@ -261,7 +267,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         }
 
         @Override
-        public DataType partialType() {
+        public DataType<?> partialType() {
             return partialType;
         }
 
