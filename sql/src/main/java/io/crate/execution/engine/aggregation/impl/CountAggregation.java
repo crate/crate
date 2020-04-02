@@ -62,13 +62,11 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
 
     public static void register(AggregationImplModule mod) {
         mod.register(
-            Signature.builder()
-                .name(NAME)
-                .kind(FunctionInfo.Type.AGGREGATE)
-                .typeVariableConstraints(typeVariable("V"))
-                .argumentTypes(parseTypeSignature("V"))
-                .returnType(DataTypes.LONG.getTypeSignature())
-                .build(),
+            Signature.aggregate(
+                NAME,
+                parseTypeSignature("V"),
+                DataTypes.LONG.getTypeSignature()
+            ).withTypeVariableConstraints(typeVariable("V")),
             args -> new CountAggregation(
                 new FunctionInfo(
                     new FunctionIdent(NAME, args),
@@ -77,11 +75,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
                 true)
         );
         mod.register(
-            Signature.builder()
-                .name(NAME)
-                .kind(FunctionInfo.Type.AGGREGATE)
-                .returnType(DataTypes.LONG.getTypeSignature())
-                .build(),
+            Signature.aggregate(NAME, DataTypes.LONG.getTypeSignature()),
             args -> new CountAggregation(COUNT_STAR_FUNCTION, false)
         );
     }

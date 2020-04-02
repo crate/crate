@@ -49,13 +49,11 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
 
     public static void register(AggregationImplModule module) {
         module.register(
-            Signature.builder()
-                .name(NAME)
-                .kind(FunctionInfo.Type.AGGREGATE)
-                .argumentTypes(parseTypeSignature("E"))
-                .typeVariableConstraints(typeVariable("E"))
-                .returnType(parseTypeSignature("array(E)"))
-                .build(),
+            Signature.aggregate(
+                NAME,
+                parseTypeSignature("E"),
+                parseTypeSignature("array(E)")
+            ).withTypeVariableConstraints(typeVariable("E")),
             args -> new ArrayAgg(args.get(0))
         );
     }

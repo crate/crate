@@ -34,6 +34,25 @@ import java.util.List;
 public final class Signature {
 
     /**
+     * See {@link #aggregate(FunctionName, TypeSignature...)}
+     */
+    public static Signature aggregate(String name, TypeSignature... types) {
+        return scalar(new FunctionName(null, name), types);
+    }
+
+    /**
+     * Shortcut for creating a signature of type {@link FunctionInfo.Type#AGGREGATE}.
+     * The last element of the given types is handled as the return type.
+     *
+     * @param name      The fqn function name.
+     * @param types     The argument and return (last element) types
+     * @return          The created signature
+     */
+    public static Signature aggregate(FunctionName name, TypeSignature... types) {
+        return signatureBuilder(name, FunctionInfo.Type.AGGREGATE, types).build();
+    }
+
+    /**
      * See {@link #scalar(FunctionName, TypeSignature...)}
      */
     public static Signature scalar(String name, TypeSignature... types) {
@@ -49,14 +68,14 @@ public final class Signature {
      * @return          The created signature
      */
     public static Signature scalar(FunctionName name, TypeSignature... types) {
-        return scalarBuilder(name, types).build();
+        return signatureBuilder(name, FunctionInfo.Type.SCALAR, types).build();
     }
 
-    private static Signature.Builder scalarBuilder(FunctionName name, TypeSignature... types) {
+    private static Signature.Builder signatureBuilder(FunctionName name, FunctionInfo.Type type, TypeSignature... types) {
         assert types.length > 0 : "Types must contain at least the return type (last element), 0 types given";
         Builder builder = Signature.builder()
             .name(name)
-            .kind(FunctionInfo.Type.SCALAR)
+            .kind(type)
             .returnType(types[types.length - 1]);
         if (types.length > 1) {
             builder.argumentTypes(Arrays.copyOf(types, types.length - 1));
