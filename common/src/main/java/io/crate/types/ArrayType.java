@@ -138,9 +138,9 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public int compareTo(Object o) {
+    public int compareTo(DataType<?> o) {
         if (!(o instanceof ArrayType)) return -1;
-        return Integer.compare(innerType.id(), ((ArrayType) o).innerType().id());
+        return innerType.compareTo(((ArrayType<?>) o).innerType);
     }
 
     @Override
@@ -165,10 +165,10 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public boolean isConvertableTo(DataType other) {
+    public boolean isConvertableTo(DataType<?> other) {
         return other.id() == UndefinedType.ID || other.id() == GeoPointType.ID ||
                ((other instanceof ArrayType)
-                && this.innerType.isConvertableTo(((ArrayType) other).innerType()));
+                && this.innerType.isConvertableTo(((ArrayType<?>) other).innerType()));
     }
 
     @Override
