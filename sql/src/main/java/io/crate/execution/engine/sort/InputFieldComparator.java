@@ -29,26 +29,27 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorable;
-import javax.annotation.Nullable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Comparator for sorting on generic Inputs (Scalar Functions mostly)
  */
-class InputFieldComparator extends FieldComparator implements LeafFieldComparator {
+class InputFieldComparator extends FieldComparator<Object> implements LeafFieldComparator {
 
     private final Object[] values;
-    private final Input input;
-    private final Iterable<? extends LuceneCollectorExpression<?>> collectorExpressions;
+    private final Input<?> input;
+    private final List<? extends LuceneCollectorExpression<?>> collectorExpressions;
     private final @Nullable Object missingValue;
     private final DataType valueType;
     private Object bottom;
     private Object top;
 
     InputFieldComparator(int numHits,
-                         Iterable<? extends LuceneCollectorExpression<?>> collectorExpressions,
-                         Input input,
+                         List<? extends LuceneCollectorExpression<?>> collectorExpressions,
+                         Input<?> input,
                          DataType valueType,
                          @Nullable Object missingValue) {
         this.collectorExpressions = collectorExpressions;
@@ -60,8 +61,8 @@ class InputFieldComparator extends FieldComparator implements LeafFieldComparato
 
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
-        for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
-            collectorExpression.setNextReader(context);
+        for (int i = 0; i < collectorExpressions.size(); i++) {
+            collectorExpressions.get(i).setNextReader(context);
         }
         return this;
     }
@@ -85,8 +86,8 @@ class InputFieldComparator extends FieldComparator implements LeafFieldComparato
     @SuppressWarnings("unchecked")
     @Override
     public int compareBottom(int doc) throws IOException {
-        for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
-            collectorExpression.setNextDocId(doc);
+        for (int i = 0; i < collectorExpressions.size(); i++) {
+            collectorExpressions.get(i).setNextDocId(doc);
         }
         return valueType.compareValueTo(bottom, getFirstNonNullOrNull(input.value(), missingValue));
     }
@@ -103,16 +104,16 @@ class InputFieldComparator extends FieldComparator implements LeafFieldComparato
     @SuppressWarnings("unchecked")
     @Override
     public int compareTop(int doc) throws IOException {
-        for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
-            collectorExpression.setNextDocId(doc);
+        for (int i = 0; i < collectorExpressions.size(); i++) {
+            collectorExpressions.get(i).setNextDocId(doc);
         }
         return valueType.compareValueTo(top, getFirstNonNullOrNull(input.value(), missingValue));
     }
 
     @Override
     public void copy(int slot, int doc) throws IOException {
-        for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
-            collectorExpression.setNextDocId(doc);
+        for (int i = 0; i < collectorExpressions.size(); i++) {
+            collectorExpressions.get(i).setNextDocId(doc);
         }
         Object value = input.value();
         if (value == null) {
