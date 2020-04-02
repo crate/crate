@@ -21,9 +21,9 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
+import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 public class Union extends SetOperation {
 
@@ -32,8 +32,8 @@ public class Union extends SetOperation {
     private final boolean isDistinct;
 
     public Union(Relation left, Relation right, boolean isDistinct) {
-        this.left = Preconditions.checkNotNull(left, "relation must not be null");
-        this.right = Preconditions.checkNotNull(right, "relation must not be null");
+        this.left = requireNonNull(left, "relation must not be null");
+        this.right = requireNonNull(right, "relation must not be null");
         this.isDistinct = isDistinct;
     }
 
@@ -56,29 +56,29 @@ public class Union extends SetOperation {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("left", left)
-            .add("right", right)
-            .add("isDistinct", isDistinct)
-            .toString();
+        return "Union{" +
+               "left=" + left +
+               ", right=" + right +
+               ", isDistinct=" + isDistinct +
+               '}';
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if ((obj == null) || (getClass() != obj.getClass())) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Union o = (Union) obj;
-        return Objects.equal(left, o.left) &&
-               Objects.equal(right, o.right) &&
-               Objects.equal(isDistinct, o.isDistinct);
+        Union union = (Union) o;
+        return isDistinct == union.isDistinct &&
+               Objects.equals(left, union.left) &&
+               Objects.equals(right, union.right);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(left, right, isDistinct);
+        return Objects.hash(left, right, isDistinct);
     }
 }

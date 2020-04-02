@@ -21,20 +21,20 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-public class SimpleCaseExpression
-    extends Expression {
+import static java.util.Objects.requireNonNull;
+
+public class SimpleCaseExpression extends Expression {
+
     private final Expression operand;
     private final List<WhenClause> whenClauses;
     private final Expression defaultValue;
 
     public SimpleCaseExpression(Expression operand, List<WhenClause> whenClauses, Expression defaultValue) {
-        Preconditions.checkNotNull(operand, "operand is null");
-        this.operand = operand;
+        this.operand = requireNonNull(operand, "operand is null");
         this.whenClauses = Collections.unmodifiableList(whenClauses);
         this.defaultValue = defaultValue;
     }
@@ -64,27 +64,14 @@ public class SimpleCaseExpression
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         SimpleCaseExpression that = (SimpleCaseExpression) o;
-
-        if (defaultValue != null ? !defaultValue.equals(that.defaultValue) : that.defaultValue != null) {
-            return false;
-        }
-        if (!operand.equals(that.operand)) {
-            return false;
-        }
-        if (!whenClauses.equals(that.whenClauses)) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(operand, that.operand) &&
+               Objects.equals(whenClauses, that.whenClauses) &&
+               Objects.equals(defaultValue, that.defaultValue);
     }
 
     @Override
     public int hashCode() {
-        int result = operand.hashCode();
-        result = 31 * result + whenClauses.hashCode();
-        result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
-        return result;
+        return Objects.hash(operand, whenClauses, defaultValue);
     }
 }

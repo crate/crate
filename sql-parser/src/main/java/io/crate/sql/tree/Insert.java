@@ -21,11 +21,9 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public final class Insert<T> extends Statement {
 
@@ -47,7 +45,7 @@ public final class Insert<T> extends Statement {
         this.returning = returning;
     }
 
-    public Table table() {
+    public Table<T> table() {
         return table;
     }
 
@@ -68,11 +66,6 @@ public final class Insert<T> extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(table, columns, insertSource, returning);
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -81,20 +74,27 @@ public final class Insert<T> extends Statement {
             return false;
         }
         Insert<?> insert = (Insert<?>) o;
-        return table.equals(insert.table) &&
-               columns.equals(insert.columns) &&
-               insertSource.equals(insert.insertSource) &&
-               returning.equals(insert.returning);
+        return Objects.equals(table, insert.table) &&
+               Objects.equals(duplicateKeyContext, insert.duplicateKeyContext) &&
+               Objects.equals(columns, insert.columns) &&
+               Objects.equals(insertSource, insert.insertSource) &&
+               Objects.equals(returning, insert.returning);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(table, duplicateKeyContext, columns, insertSource, returning);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("columns", columns)
-            .add("insertSource", insertSource)
-            .add("returning", returning)
-            .toString();
+        return "Insert{" +
+               "table=" + table +
+               ", duplicateKeyContext=" + duplicateKeyContext +
+               ", columns=" + columns +
+               ", insertSource=" + insertSource +
+               ", returning=" + returning +
+               '}';
     }
 
     @Override
@@ -139,6 +139,34 @@ public final class Insert<T> extends Statement {
 
         public List<String> getConstraintColumns() {
             return constraintColumns;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            DuplicateKeyContext<?> that = (DuplicateKeyContext<?>) o;
+            return type == that.type &&
+                   Objects.equals(onDuplicateKeyAssignments, that.onDuplicateKeyAssignments) &&
+                   Objects.equals(constraintColumns, that.constraintColumns);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(type, onDuplicateKeyAssignments, constraintColumns);
+        }
+
+        @Override
+        public String toString() {
+            return "DuplicateKeyContext{" +
+                   "type=" + type +
+                   ", onDuplicateKeyAssignments=" + onDuplicateKeyAssignments +
+                   ", constraintColumns=" + constraintColumns +
+                   '}';
         }
     }
 }

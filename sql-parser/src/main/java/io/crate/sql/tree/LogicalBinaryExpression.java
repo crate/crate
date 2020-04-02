@@ -21,10 +21,12 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
 
-public class LogicalBinaryExpression
-    extends Expression {
+import static java.util.Objects.requireNonNull;
+
+public class LogicalBinaryExpression extends Expression {
+
     public enum Type {
         AND, OR
     }
@@ -34,13 +36,9 @@ public class LogicalBinaryExpression
     private final Expression right;
 
     public LogicalBinaryExpression(Type type, Expression left, Expression right) {
-        Preconditions.checkNotNull(type, "type is null");
-        Preconditions.checkNotNull(left, "left is null");
-        Preconditions.checkNotNull(right, "right is null");
-
         this.type = type;
-        this.left = left;
-        this.right = right;
+        this.left = requireNonNull(left, "left is null");
+        this.right = requireNonNull(right, "right is null");
     }
 
     public Type getType() {
@@ -68,27 +66,14 @@ public class LogicalBinaryExpression
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         LogicalBinaryExpression that = (LogicalBinaryExpression) o;
-
-        if (!left.equals(that.left)) {
-            return false;
-        }
-        if (!right.equals(that.right)) {
-            return false;
-        }
-        if (type != that.type) {
-            return false;
-        }
-
-        return true;
+        return type == that.type &&
+               Objects.equals(left, that.left) &&
+               Objects.equals(right, that.right);
     }
 
     @Override
     public int hashCode() {
-        int result = type.hashCode();
-        result = 31 * result + left.hashCode();
-        result = 31 * result + right.hashCode();
-        return result;
+        return Objects.hash(type, left, right);
     }
 }

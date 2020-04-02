@@ -21,15 +21,16 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
 
-public class StringLiteral
-    extends Literal {
+import static java.util.Objects.requireNonNull;
+
+public class StringLiteral extends Literal {
+
     private final String value;
 
     public StringLiteral(String value) {
-        Preconditions.checkNotNull(value, "value is null");
-        this.value = value;
+        this.value = requireNonNull(value, "value is null");
     }
 
     public String getValue() {
@@ -49,18 +50,12 @@ public class StringLiteral
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         StringLiteral that = (StringLiteral) o;
-
-        if (!value.equals(that.value)) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-        return value.hashCode();
+        return Objects.hash(value);
     }
 }

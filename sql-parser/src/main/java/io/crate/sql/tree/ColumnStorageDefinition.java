@@ -22,8 +22,6 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -57,9 +55,13 @@ public class ColumnStorageDefinition<T> extends ColumnConstraint<T> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ColumnStorageDefinition that = (ColumnStorageDefinition) o;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ColumnStorageDefinition<?> that = (ColumnStorageDefinition<?>) o;
         return Objects.equals(properties, that.properties);
     }
 
@@ -70,8 +72,8 @@ public class ColumnStorageDefinition<T> extends ColumnConstraint<T> {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("properties", properties)
-            .toString();
+        return "ColumnStorageDefinition{" +
+               "properties=" + properties +
+               '}';
     }
 }

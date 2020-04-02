@@ -21,12 +21,11 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import io.crate.common.collections.Lists2;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -113,37 +112,37 @@ public class ColumnDefinition<T> extends TableElement<T> {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(ident, defaultExpression, generatedExpression, type, constraints);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ColumnDefinition<?> that = (ColumnDefinition<?>) o;
+        return generated == that.generated &&
+               Objects.equals(ident, that.ident) &&
+               Objects.equals(defaultExpression, that.defaultExpression) &&
+               Objects.equals(generatedExpression, that.generatedExpression) &&
+               Objects.equals(type, that.type) &&
+               Objects.equals(constraints, that.constraints);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ColumnDefinition that = (ColumnDefinition) o;
-
-        if (!ident.equals(that.ident)) return false;
-        if (defaultExpression != null ? !defaultExpression.equals(that.defaultExpression) :
-            that.defaultExpression != null) return false;
-        if (generatedExpression != null ? !generatedExpression.equals(that.generatedExpression) :
-            that.generatedExpression != null) return false;
-        if (type != null ? !type.equals(that.type) : that.type != null) return false;
-        return constraints.equals(that.constraints);
-
+    public int hashCode() {
+        return Objects.hash(ident, defaultExpression, generatedExpression, generated, type, constraints);
     }
-
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("ident", ident)
-            .add("defaultExpression", defaultExpression)
-            .add("generatedExpression", generatedExpression)
-            .add("type", type)
-            .add("constraints", constraints)
-            .toString();
+        return "ColumnDefinition{" +
+               "ident='" + ident + '\'' +
+               ", defaultExpression=" + defaultExpression +
+               ", generatedExpression=" + generatedExpression +
+               ", generated=" + generated +
+               ", type=" + type +
+               ", constraints=" + constraints +
+               '}';
     }
 
     @Override

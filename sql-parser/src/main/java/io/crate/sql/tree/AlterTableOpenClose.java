@@ -22,7 +22,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
+import java.util.Objects;
 
 public class AlterTableOpenClose<T> extends Statement {
 
@@ -35,7 +35,6 @@ public class AlterTableOpenClose<T> extends Statement {
         this.blob = blob;
         this.openTable = openTable;
     }
-
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -55,32 +54,30 @@ public class AlterTableOpenClose<T> extends Statement {
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("blob", blob)
-            .add("open table", openTable).toString();
-    }
-
-    @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        AlterTableOpenClose that = (AlterTableOpenClose) o;
-
-        if (!blob == that.blob) return false;
-        if (!openTable == that.openTable) return false;
-        if (!table.equals(that.table)) return false;
-
-        return true;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        AlterTableOpenClose<?> that = (AlterTableOpenClose<?>) o;
+        return blob == that.blob &&
+               openTable == that.openTable &&
+               Objects.equals(table, that.table);
     }
 
     @Override
     public int hashCode() {
-        int result = table.hashCode();
-        result = 31 * result + (blob ? 1 : 0);
-        result = 31 * result + Boolean.hashCode(openTable);
-        return result;
+        return Objects.hash(table, blob, openTable);
+    }
+
+    @Override
+    public String toString() {
+        return "AlterTableOpenClose{" +
+               "table=" + table +
+               ", blob=" + blob +
+               ", open table=" + openTable +
+               '}';
     }
 }

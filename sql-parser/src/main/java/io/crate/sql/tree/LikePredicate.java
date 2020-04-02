@@ -21,21 +21,21 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
 
-public class LikePredicate
-    extends Expression {
+import static java.util.Objects.requireNonNull;
+
+public class LikePredicate extends Expression {
+
     private final Expression value;
     private final Expression pattern;
     private final Expression escape;
     private final boolean ignoreCase;
 
     public LikePredicate(Expression value, Expression pattern, Expression escape, boolean ignoreCase) {
-        Preconditions.checkNotNull(value, "value is null");
-        Preconditions.checkNotNull(pattern, "pattern is null");
 
-        this.value = value;
-        this.pattern = pattern;
+        this.value = requireNonNull(value, "value is null");
+        this.pattern = requireNonNull(pattern, "pattern is null");
         this.escape = escape;
         this.ignoreCase = ignoreCase;
     }
@@ -69,30 +69,15 @@ public class LikePredicate
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         LikePredicate that = (LikePredicate) o;
-
-        if (escape != null ? !escape.equals(that.escape) : that.escape != null) {
-            return false;
-        }
-        if (!pattern.equals(that.pattern)) {
-            return false;
-        }
-        if (!value.equals(that.value)) {
-            return false;
-        }
-        if (ignoreCase != that.ignoreCase) {
-            return false;
-        }
-        return true;
+        return ignoreCase == that.ignoreCase &&
+               Objects.equals(value, that.value) &&
+               Objects.equals(pattern, that.pattern) &&
+               Objects.equals(escape, that.escape);
     }
 
     @Override
     public int hashCode() {
-        int result = value.hashCode();
-        result = 31 * result + pattern.hashCode();
-        result = 31 * result + (escape != null ? escape.hashCode() : 0);
-        result = 31 * result + (ignoreCase ? 1 : 0);
-        return result;
+        return Objects.hash(value, pattern, escape, ignoreCase);
     }
 }

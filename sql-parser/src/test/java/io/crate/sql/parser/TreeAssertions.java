@@ -21,12 +21,12 @@
 
 package io.crate.sql.parser;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import io.crate.common.collections.Lists2;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Statement;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static io.crate.sql.SqlFormatter.formatSql;
@@ -64,22 +64,22 @@ final class TreeAssertions {
     }
 
     private static List<Node> linearizeTree(Node tree) {
-        final ImmutableList.Builder<Node> nodes = ImmutableList.builder();
+        ArrayList<Node> nodes = new ArrayList<>();
         new DefaultTraversalVisitor<Node, Void>() {
             void process(Node node) {
                 node.accept(this, null);
                 nodes.add(node);
             }
         }.process(tree);
-        return nodes.build();
+        return nodes;
     }
 
     private static <T> void assertListEquals(List<T> actual, List<T> expected) {
         if (actual.size() != expected.size()) {
-            Joiner joiner = Joiner.on("\n    ");
-            fail(format("Lists not equal%nActual [%s]:%n    %s%nExpected [%s]:%n    %s",
-                actual.size(), joiner.join(actual),
-                expected.size(), joiner.join(expected)));
+            fail(format(
+                "Lists not equal%nActual [%s]:%n    %s%nExpected [%s]:%n    %s",
+                actual.size(), Lists2.joinOn("\n    ", actual, Object::toString),
+                expected.size(), Lists2.joinOn("\n    ", expected, Object::toString)));
         }
         assertEquals(actual, expected);
     }

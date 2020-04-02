@@ -22,7 +22,7 @@
 
 package io.crate.sql;
 
-import com.google.common.collect.Iterables;
+import io.crate.common.collections.Lists2;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.Assignment;
@@ -375,7 +375,7 @@ public final class SqlFormatter {
                     }
                 } else {
                     builder.append(' ');
-                    Iterables.getOnlyElement(node.getFrom()).accept(this, indent);
+                    Lists2.getOnlyElement(node.getFrom()).accept(this, indent);
                 }
             }
 
@@ -478,7 +478,7 @@ public final class SqlFormatter {
                 }
             } else {
                 builder.append(' ');
-                Iterables.getOnlyElement(node.getSelectItems()).accept(this, indent);
+                Lists2.getOnlyElement(node.getSelectItems()).accept(this, indent);
             }
 
             builder.append('\n');

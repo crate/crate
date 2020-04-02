@@ -21,11 +21,10 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import io.crate.common.collections.Lists2;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -60,33 +59,33 @@ public class IndexDefinition<T> extends TableElement<T> {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(ident, method, columns, properties);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        IndexDefinition<?> that = (IndexDefinition<?>) o;
+        return Objects.equals(ident, that.ident) &&
+               Objects.equals(method, that.method) &&
+               Objects.equals(columns, that.columns) &&
+               Objects.equals(properties, that.properties);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        IndexDefinition that = (IndexDefinition) o;
-
-        if (!columns.equals(that.columns)) return false;
-        if (!ident.equals(that.ident)) return false;
-        if (!method.equals(that.method)) return false;
-        if (!properties.equals(that.properties)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(ident, method, columns, properties);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("ident", ident)
-            .add("method", method)
-            .add("columns", columns)
-            .add("properties", properties)
-            .toString();
+        return "IndexDefinition{" +
+               "ident='" + ident + '\'' +
+               ", method='" + method + '\'' +
+               ", columns=" + columns +
+               ", properties=" + properties +
+               '}';
     }
 
     @Override

@@ -21,10 +21,10 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
+import java.util.Objects;
 
-public class TableSubquery
-    extends QueryBody {
+public class TableSubquery extends QueryBody {
+
     private final Query query;
 
     public TableSubquery(Query query) {
@@ -41,13 +41,6 @@ public class TableSubquery
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .addValue(query)
-            .toString();
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -55,18 +48,19 @@ public class TableSubquery
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
-        TableSubquery tableSubquery = (TableSubquery) o;
-
-        if (!query.equals(tableSubquery.query)) {
-            return false;
-        }
-
-        return true;
+        TableSubquery that = (TableSubquery) o;
+        return Objects.equals(query, that.query);
     }
 
     @Override
     public int hashCode() {
-        return query.hashCode();
+        return Objects.hash(query);
+    }
+
+    @Override
+    public String toString() {
+        return "TableSubquery{" +
+               "query=" + query +
+               '}';
     }
 }

@@ -23,8 +23,9 @@ package io.crate.sql.tree;
 
 import javax.annotation.concurrent.Immutable;
 import java.util.Locale;
+import java.util.Objects;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 @Immutable
 public class Extract extends Expression {
@@ -53,9 +54,8 @@ public class Extract extends Expression {
     }
 
     public Extract(Expression expression, StringLiteral field) {
-        checkNotNull(expression, "expression is null");
         // field: ident is converted to StringLiteral in SqlBase.g
-        this.expression = expression;
+        this.expression = requireNonNull(expression, "expression is null");
         this.field = Field.valueOf(field.getValue().toUpperCase(Locale.ENGLISH));
     }
 
@@ -80,23 +80,13 @@ public class Extract extends Expression {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
-        Extract that = (Extract) o;
-
-        if (!expression.equals(that.expression)) {
-            return false;
-        }
-        if (!field.equals(that.field)) {
-            return false;
-        }
-
-        return true;
+        Extract extract = (Extract) o;
+        return Objects.equals(expression, extract.expression) &&
+               field == extract.field;
     }
 
     @Override
     public int hashCode() {
-        int result = expression.hashCode();
-        result = 31 * result + field.hashCode();
-        return result;
+        return Objects.hash(expression, field);
     }
 }

@@ -22,9 +22,8 @@
 package io.crate.sql.tree;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class CurrentTime extends Expression {
 
@@ -42,7 +41,6 @@ public class CurrentTime extends Expression {
     }
 
     public CurrentTime(Type type, @Nullable Integer precision) {
-        checkNotNull(type, "type is null");
         this.type = type;
         this.precision = Optional.ofNullable(precision);
     }
@@ -68,23 +66,13 @@ public class CurrentTime extends Expression {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         CurrentTime that = (CurrentTime) o;
-
-        if (!precision.equals(that.precision)) {
-            return false;
-        }
-        if (type != that.type) {
-            return false;
-        }
-
-        return true;
+        return type == that.type &&
+               Objects.equals(precision, that.precision);
     }
 
     @Override
     public int hashCode() {
-        int result = type.hashCode();
-        result = 31 * result + precision.hashCode();
-        return result;
+        return Objects.hash(type, precision);
     }
 }

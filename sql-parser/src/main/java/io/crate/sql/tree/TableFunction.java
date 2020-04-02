@@ -22,8 +22,6 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
 import java.util.Objects;
 
 public class TableFunction extends QueryBody {
@@ -44,8 +42,12 @@ public class TableFunction extends QueryBody {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         TableFunction that = (TableFunction) o;
         return Objects.equals(functionCall, that.functionCall);
     }
@@ -57,9 +59,9 @@ public class TableFunction extends QueryBody {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("functionCall", functionCall)
-            .toString();
+        return "TableFunction{" +
+               "functionCall=" + functionCall +
+               '}';
     }
 
     @Override

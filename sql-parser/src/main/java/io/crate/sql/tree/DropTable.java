@@ -21,8 +21,8 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+
+import java.util.Objects;
 
 public class DropTable<T> extends Statement {
 
@@ -48,31 +48,28 @@ public class DropTable<T> extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(table, dropIfExists);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if ((obj == null) || (getClass() != obj.getClass())) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        DropTable that = (DropTable) obj;
-        if (this.dropIfExists != that.dropIfExists) {
-            return false;
-        }
-        return table.equals(that.table);
-
+        DropTable<?> dropTable = (DropTable<?>) o;
+        return dropIfExists == dropTable.dropIfExists &&
+               Objects.equals(table, dropTable.table);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("dropIfExists", dropIfExists)
-            .toString();
+        return "DropTable{" +
+               "table=" + table +
+               ", dropIfExists=" + dropIfExists +
+               '}';
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(table, dropIfExists);
     }
 }

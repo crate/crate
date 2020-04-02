@@ -22,8 +22,6 @@
 
 package io.crate.sql;
 
-import com.google.common.annotations.VisibleForTesting;
-
 import java.util.function.Predicate;
 
 public class Literals {
@@ -40,7 +38,6 @@ public class Literals {
         return EPSILON + "'" + literal + "'";
     }
 
-    @VisibleForTesting
     static String escapeStringLiteral(String literal) {
         return literal.replace("'", "''");
     }

@@ -21,8 +21,6 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
 import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.Optional;
@@ -89,10 +87,11 @@ public class CreateBlobTable<T> extends Statement {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("clusteredBy", clusteredBy)
-            .add("properties", genericProperties).toString();
+        return "CreateBlobTable{" +
+               "name=" + name +
+               ", clusteredBy=" + clusteredBy +
+               ", properties=" + genericProperties +
+               '}';
     }
 
     @Override

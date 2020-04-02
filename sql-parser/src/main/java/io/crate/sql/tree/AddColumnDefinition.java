@@ -21,11 +21,11 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
 import io.crate.common.collections.Lists2;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -93,36 +93,34 @@ public class AddColumnDefinition<T> extends TableElement<T> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        AddColumnDefinition that = (AddColumnDefinition) o;
-
-        if (!name.equals(that.name)) return false;
-        if (generatedExpression != null ? !generatedExpression.equals(that.generatedExpression) :
-            that.generatedExpression != null) return false;
-        if (type != null ? !type.equals(that.type) : that.type != null) return false;
-        return constraints.equals(that.constraints);
-
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        AddColumnDefinition<?> that = (AddColumnDefinition<?>) o;
+        return generated == that.generated &&
+               Objects.equals(name, that.name) &&
+               Objects.equals(generatedExpression, that.generatedExpression) &&
+               Objects.equals(type, that.type) &&
+               Objects.equals(constraints, that.constraints);
     }
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + (generatedExpression != null ? generatedExpression.hashCode() : 0);
-        result = 31 * result + (type != null ? type.hashCode() : 0);
-        result = 31 * result + constraints.hashCode();
-        return result;
+        return Objects.hash(name, generatedExpression, generated, type, constraints);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("generatedExpression", generatedExpression)
-            .add("type", type)
-            .add("constraints", constraints)
-            .toString();
+        return "AddColumnDefinition{" +
+               "name=" + name +
+               ", generatedExpression=" + generatedExpression +
+               ", generated=" + generated +
+               ", type=" + type +
+               ", constraints=" + constraints +
+               '}';
     }
 
     @Override

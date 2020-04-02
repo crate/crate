@@ -22,10 +22,10 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
 import io.crate.common.collections.Lists2;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class OptimizeStatement<T> extends Statement {
@@ -47,35 +47,36 @@ public class OptimizeStatement<T> extends Statement {
     }
 
     public <U> OptimizeStatement<U> map(Function<? super T, ? extends U> mapper) {
-        return new OptimizeStatement(
+        return new OptimizeStatement<>(
             Lists2.map(tables, x -> x.map(mapper)),
             properties.map(mapper)
         );
     }
 
     @Override
-    public int hashCode() {
-        int result = tables.hashCode();
-        result = 31 * result + properties.hashCode();
-        return result;
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        OptimizeStatement<?> that = (OptimizeStatement<?>) o;
+        return Objects.equals(tables, that.tables) &&
+               Objects.equals(properties, that.properties);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        OptimizeStatement that = (OptimizeStatement) o;
-
-        return tables.equals(that.tables) && properties.equals(that.properties);
+    public int hashCode() {
+        return Objects.hash(tables, properties);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", tables)
-            .add("properties", properties)
-            .toString();
+        return "OptimizeStatement{" +
+               "tables=" + tables +
+               ", properties=" + properties +
+               '}';
     }
 
     @Override

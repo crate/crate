@@ -21,9 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -51,28 +49,29 @@ public final class ClusteredBy<T> extends Node {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(column, numberOfShards);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ClusteredBy<?> that = (ClusteredBy<?>) o;
+        return Objects.equals(column, that.column) &&
+               Objects.equals(numberOfShards, that.numberOfShards);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ClusteredBy that = (ClusteredBy) o;
-
-        if (!numberOfShards.equals(that.numberOfShards)) return false;
-        if (!column.equals(that.column)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(column, numberOfShards);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("column", column)
-            .add("number of shards", numberOfShards).toString();
+        return "ClusteredBy{" +
+               "column=" + column +
+               ", number of shards=" + numberOfShards +
+               '}';
     }
 
     @Override

@@ -26,9 +26,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class QuerySpecification extends QueryBody {
+
     private final Select select;
     private final List<Relation> from;
     private final Optional<Expression> where;
@@ -39,25 +40,16 @@ public class QuerySpecification extends QueryBody {
     private final Optional<Expression> offset;
     private final Map<String, Window> windows;
 
-    public QuerySpecification(
-        Select select,
-        List<Relation> from,
-        Optional<Expression> where,
-        List<Expression> groupBy,
-        Optional<Expression> having,
-        Map<String, Window> windows,
-        List<SortItem> orderBy,
-        Optional<Expression> limit,
-        Optional<Expression> offset) {
-        checkNotNull(select, "select is null");
-        checkNotNull(where, "where is null");
-        checkNotNull(groupBy, "groupBy is null");
-        checkNotNull(having, "having is null");
-        checkNotNull(orderBy, "orderBy is null");
-        checkNotNull(limit, "limit is null");
-        checkNotNull(offset, "offset is null");
-
-        this.select = select;
+    public QuerySpecification(Select select,
+                              List<Relation> from,
+                              Optional<Expression> where,
+                              List<Expression> groupBy,
+                              Optional<Expression> having,
+                              Map<String, Window> windows,
+                              List<SortItem> orderBy,
+                              Optional<Expression> limit,
+                              Optional<Expression> offset) {
+        this.select = requireNonNull(select, "select is null");
         this.from = from;
         this.where = where;
         this.groupBy = groupBy;
@@ -110,21 +102,6 @@ public class QuerySpecification extends QueryBody {
     }
 
     @Override
-    public String toString() {
-        return "QuerySpecification{" +
-               "select=" + select +
-               ", from=" + from +
-               ", where=" + where +
-               ", groupBy=" + groupBy +
-               ", having=" + having +
-               ", orderBy=" + orderBy +
-               ", limit=" + limit +
-               ", offset=" + offset +
-               ", windows=" + windows +
-               '}';
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -147,5 +124,20 @@ public class QuerySpecification extends QueryBody {
     @Override
     public int hashCode() {
         return Objects.hash(select, from, where, groupBy, having, orderBy, limit, offset, windows);
+    }
+
+    @Override
+    public String toString() {
+        return "QuerySpecification{" +
+               "select=" + select +
+               ", from=" + from +
+               ", where=" + where +
+               ", groupBy=" + groupBy +
+               ", having=" + having +
+               ", orderBy=" + orderBy +
+               ", limit=" + limit +
+               ", offset=" + offset +
+               ", windows=" + windows +
+               '}';
     }
 }

@@ -21,13 +21,11 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
 import io.crate.common.collections.Lists2;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class SetStatement<T> extends Statement {
@@ -49,14 +47,12 @@ public class SetStatement<T> extends Statement {
     }
 
     public SetStatement(Scope scope, SettingType settingType, List<Assignment<T>> assignments) {
-        Preconditions.checkNotNull(assignments, "assignments are null");
         this.scope = scope;
         this.settingType = settingType;
         this.assignments = assignments;
     }
 
     public SetStatement(Scope scope, Assignment<T> assignment) {
-        Preconditions.checkNotNull(assignment, "assignment is null");
         this.scope = scope;
         this.settingType = SettingType.TRANSIENT;
         this.assignments = Collections.singletonList(assignment);
@@ -75,11 +71,6 @@ public class SetStatement<T> extends Statement {
     }
 
 
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(scope, assignments, settingType);
-    }
-
     public <U> SetStatement<U> map(Function<? super T, ? extends U> mapper) {
         return new SetStatement<>(
             scope,
@@ -89,26 +80,31 @@ public class SetStatement<T> extends Statement {
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("scope", scope)
-            .add("assignments", assignments)
-            .add("settingType", settingType)
-            .toString();
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        SetStatement<?> that = (SetStatement<?>) o;
+        return scope == that.scope &&
+               settingType == that.settingType &&
+               Objects.equals(assignments, that.assignments);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public int hashCode() {
+        return Objects.hash(scope, settingType, assignments);
+    }
 
-        SetStatement update = (SetStatement) o;
-
-        if (!scope.equals(update.scope)) return false;
-        if (!assignments.equals(update.assignments)) return false;
-        if (!settingType.equals(update.settingType)) return false;
-
-        return true;
+    @Override
+    public String toString() {
+        return "SetStatement{" +
+               "scope=" + scope +
+               ", assignments=" + assignments +
+               ", settingType=" + settingType +
+               '}';
     }
 
     @Override

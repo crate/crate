@@ -21,15 +21,14 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Preconditions;
+import static java.util.Objects.requireNonNull;
 
-public class DoubleLiteral
-    extends Literal {
+public class DoubleLiteral extends Literal {
+
     private final double value;
 
     public DoubleLiteral(String value) {
-        Preconditions.checkNotNull(value, "value is null");
-        this.value = Double.parseDouble(value);
+        this.value = Double.parseDouble(requireNonNull(value, "value is null"));
     }
 
     public double getValue() {
@@ -49,14 +48,8 @@ public class DoubleLiteral
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         DoubleLiteral that = (DoubleLiteral) o;
-
-        if (Double.compare(that.value, value) != 0) {
-            return false;
-        }
-
-        return true;
+        return Double.compare(that.value, value) == 0;
     }
 
     @Override

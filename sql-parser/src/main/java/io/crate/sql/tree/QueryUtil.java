@@ -21,21 +21,20 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.collect.ImmutableList;
-
+import java.util.ArrayList;
 import java.util.List;
 
 public class QueryUtil {
 
     public static Select selectList(Expression... expressions) {
-        ImmutableList.Builder<SelectItem> items = ImmutableList.builder();
+        ArrayList<SelectItem> items = new ArrayList<>();
         for (Expression expression : expressions) {
             items.add(new SingleColumn(expression));
         }
-        return new Select(false, items.build());
+        return new Select(false, items);
     }
 
     public static List<Relation> table(QualifiedName name) {
-        return ImmutableList.<Relation>of(new Table(name));
+        return List.of(new Table<>(name));
     }
 }

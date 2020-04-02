@@ -22,7 +22,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
+import java.util.Objects;
 
 public class DropUser extends Statement {
 
@@ -43,27 +43,29 @@ public class DropUser extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return 31 * name.hashCode() + (ifExists ? 1 : 0);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        DropUser dropUser = (DropUser) o;
+        return ifExists == dropUser.ifExists &&
+               Objects.equals(name, dropUser.name);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        DropUser that = (DropUser)obj;
-        if (!name.equals(that.name)) return false;
-        if (ifExists != that.ifExists) return false;
-        return true;
+    public int hashCode() {
+        return Objects.hash(name, ifExists);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("ifExists", ifExists)
-            .toString();
+        return "DropUser{" +
+               "name='" + name + '\'' +
+               ", ifExists=" + ifExists +
+               '}';
     }
 
     @Override

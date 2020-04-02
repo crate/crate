@@ -21,31 +21,24 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class Query extends Statement {
+
     private final QueryBody queryBody;
     private final List<SortItem> orderBy;
     private final Optional<Expression> limit;
     private final Optional<Expression> offset;
 
-    public Query(
-        QueryBody queryBody,
-        List<SortItem> orderBy,
-        Optional<Expression> limit,
-        Optional<Expression> offset) {
-        checkNotNull(queryBody, "queryBody is null");
-        checkNotNull(orderBy, "orderBy is null");
-        checkNotNull(limit, "limit is null");
-        checkNotNull(offset, "offset is null");
-
-        this.queryBody = queryBody;
+    public Query(QueryBody queryBody,
+                 List<SortItem> orderBy,
+                 Optional<Expression> limit,
+                 Optional<Expression> offset) {
+        this.queryBody = requireNonNull(queryBody, "queryBody is null");
         this.orderBy = orderBy;
         this.limit = limit;
         this.offset = offset;
@@ -73,33 +66,32 @@ public class Query extends Statement {
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("queryBody", queryBody)
-            .add("orderBy", orderBy)
-            .add("limit", limit)
-            .add("offset", offset)
-            .omitNullValues()
-            .toString();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if ((obj == null) || (getClass() != obj.getClass())) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Query o = (Query) obj;
-        return Objects.equal(queryBody, o.queryBody) &&
-               Objects.equal(orderBy, o.orderBy) &&
-               Objects.equal(limit, o.limit) &&
-               Objects.equal(offset, o.offset);
+        Query query = (Query) o;
+        return Objects.equals(queryBody, query.queryBody) &&
+               Objects.equals(orderBy, query.orderBy) &&
+               Objects.equals(limit, query.limit) &&
+               Objects.equals(offset, query.offset);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(queryBody, orderBy, limit, offset);
+        return Objects.hash(queryBody, orderBy, limit, offset);
+    }
+
+    @Override
+    public String toString() {
+        return "Query{" +
+               "queryBody=" + queryBody +
+               ", orderBy=" + orderBy +
+               ", limit=" + limit +
+               ", offset=" + offset +
+               '}';
     }
 }

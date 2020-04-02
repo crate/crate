@@ -21,10 +21,8 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import java.util.List;
+import java.util.Objects;
 
 public class RefreshStatement<T> extends Statement {
 
@@ -39,27 +37,27 @@ public class RefreshStatement<T> extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(tables);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        RefreshStatement<?> that = (RefreshStatement<?>) o;
+        return Objects.equals(tables, that.tables);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        RefreshStatement that = (RefreshStatement) o;
-
-        if (!tables.equals(that.tables)) return false;
-
-        return true;
+    public int hashCode() {
+        return Objects.hash(tables);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", tables)
-            .toString();
+        return "RefreshStatement{" +
+               "tables=" + tables +
+               '}';
     }
 
     @Override

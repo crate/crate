@@ -22,8 +22,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 public class CreateUser<T> extends Statement {
 
@@ -43,28 +42,31 @@ public class CreateUser<T> extends Statement {
         return properties;
     }
 
+
     @Override
-    public int hashCode() {
-        return Objects.hashCode(name, properties);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CreateUser<?> that = (CreateUser<?>) o;
+        return Objects.equals(name, that.name) &&
+               Objects.equals(properties, that.properties);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        CreateUser that = (CreateUser)obj;
-        if (!name.equals(that.name)) return false;
-        if (!properties.equals(that.properties)) return false;
-        return true;
+    public int hashCode() {
+        return Objects.hash(name, properties);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("properties", properties)
-            .toString();
+        return "CreateUser{" +
+               "name='" + name + '\'' +
+               ", properties=" + properties +
+               '}';
     }
 
     @Override

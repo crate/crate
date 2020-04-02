@@ -21,10 +21,8 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.Optional;
 
 public class ShowTables extends Statement {
@@ -63,31 +61,31 @@ public class ShowTables extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(schema, whereExpression, likePattern);
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ShowTables that = (ShowTables) o;
+        return Objects.equals(schema, that.schema) &&
+               Objects.equals(likePattern, that.likePattern) &&
+               Objects.equals(whereExpression, that.whereExpression);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        ShowTables o = (ShowTables) obj;
-        return Objects.equal(schema, o.schema) &&
-            Objects.equal(likePattern, o.likePattern) &&
-            Objects.equal(whereExpression, o.whereExpression);
+    public int hashCode() {
+        return Objects.hash(schema, likePattern, whereExpression);
     }
+
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("schema", schema)
-            .add("likePattern", likePattern)
-            .add("whereExpression", whereExpression.toString())
-            .toString();
+        return "ShowTables{" +
+               "schema=" + schema +
+               ", likePattern='" + likePattern + '\'' +
+               ", whereExpression=" + whereExpression +
+               '}';
     }
-
 }

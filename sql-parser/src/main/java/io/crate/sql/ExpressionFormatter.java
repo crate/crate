@@ -21,22 +21,6 @@
 
 package io.crate.sql;
 
-import static io.crate.sql.SqlFormatter.formatSql;
-
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparisonExpression;
@@ -90,13 +74,26 @@ import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 
+import javax.annotation.Nullable;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.TreeMap;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import static io.crate.sql.SqlFormatter.formatSql;
+
 public final class ExpressionFormatter {
 
     private static final Formatter DEFAULT_FORMATTER = new Formatter();
 
     private static final Collector<CharSequence, ?, String> COMMA_JOINER = Collectors.joining(", ");
 
-    private static final Set<String> FUNCTION_CALLS_WITHOUT_PARENTHESIS = ImmutableSet.of(
+    private static final Set<String> FUNCTION_CALLS_WITHOUT_PARENTHESIS = Set.of(
         "current_catalog", "current_schema", "current_user", "session_user", "user");
 
     private ExpressionFormatter() {
@@ -278,7 +275,7 @@ public final class ExpressionFormatter {
         public String visitObjectLiteral(ObjectLiteral node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder("{");
             boolean first = true;
-            TreeMap<String, Expression> sorted = new TreeMap<>(Comparator.<String>nullsLast(Comparator.naturalOrder()));
+            TreeMap<String, Expression> sorted = new TreeMap<>(Comparator.nullsLast(Comparator.naturalOrder()));
             sorted.putAll(node.values());
             for (Map.Entry<String, Expression> entry : sorted.entrySet()) {
                 if (!first) {
@@ -586,35 +583,33 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitSearchedCaseExpression(SearchedCaseExpression node, @Nullable List<Expression> parameters) {
-            ImmutableList.Builder<String> parts = ImmutableList.builder();
+            var parts = new StringJoiner(" ", "(", ")");
             parts.add("CASE");
             for (WhenClause whenClause : node.getWhenClauses()) {
                 parts.add(whenClause.accept(this, parameters));
             }
             if (node.getDefaultValue() != null) {
-                parts.add("ELSE")
-                    .add(node.getDefaultValue().accept(this, parameters));
+                parts.add("ELSE");
+                parts.add(node.getDefaultValue().accept(this, parameters));
             }
             parts.add("END");
-
-            return "(" + String.join(" ", parts.build()) + ")";
+            return parts.toString();
         }
 
         @Override
         protected String visitSimpleCaseExpression(SimpleCaseExpression node, @Nullable List<Expression> parameters) {
-            ImmutableList.Builder<String> parts = ImmutableList.builder();
-            parts.add("CASE")
-                .add(node.getOperand().accept(this, parameters));
+            var parts = new StringJoiner(" ", "(", ")");
+            parts.add("CASE");
+            parts.add(node.getOperand().accept(this, parameters));
             for (WhenClause whenClause : node.getWhenClauses()) {
                 parts.add(whenClause.accept(this, parameters));
             }
             if (node.getDefaultValue() != null) {
-                parts.add("ELSE")
-                    .add(node.getDefaultValue().accept(this, parameters));
+                parts.add("ELSE");
+                parts.add(node.getDefaultValue().accept(this, parameters));
             }
             parts.add("END");
-
-            return "(" + String.join(" ", parts.build()) + ")";
+            return parts.toString();
         }
 
         @Override
