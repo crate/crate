@@ -36,7 +36,6 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.ExistsQueryBuilder;
 
 import java.util.Collections;
@@ -123,22 +122,28 @@ final class NotQuery implements FunctionToQuery {
 
         // handles not true / not false
         Symbol arg = input.arguments().get(0);
+
+        // Optimize `NOT (<ref> IS NULL)`
+        if (arg instanceof Function && ((Function) arg).info().ident().name().equals(IsNullPredicate.NAME)) {
+            Function innerFunction = (Function) arg;
+            if (innerFunction.arguments().size() == 1 && innerFunction.arguments().get(0) instanceof Reference) {
+                return ExistsQueryBuilder.newFilter(
+                    context.queryShardContext,
+                    ((Reference) innerFunction.arguments().get(0)).column().fqn()
+                );
+            }
+        }
+
         Query innerQuery = arg.accept(visitor, context);
         Query notX = Queries.not(innerQuery);
 
         // not x =  not x & x is not null
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         builder.add(notX, BooleanClause.Occur.MUST);
-
         SymbolToNotNullContext ctx = new SymbolToNotNullContext();
         arg.accept(INNER_VISITOR, ctx);
         for (Reference reference : ctx.references()) {
             String columnName = reference.column().fqn();
-            MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-            if (fieldType == null) {
-                // probably an object column, fallback to genericFunctionFilter
-                return null;
-            }
             if (reference.isNullable()) {
                 builder.add(ExistsQueryBuilder.newFilter(context.queryShardContext, columnName), BooleanClause.Occur.MUST);
             }
