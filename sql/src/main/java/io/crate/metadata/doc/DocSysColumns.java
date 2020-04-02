@@ -73,7 +73,7 @@ public class DocSysColumns {
     public static final ColumnIdent FETCHID = new ColumnIdent(Names.FETCHID);
     public static final ColumnIdent DOCID = new ColumnIdent(Names.DOCID);
 
-    public static final ImmutableMap<ColumnIdent, DataType> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType>builder()
+    public static final ImmutableMap<ColumnIdent, DataType<?>> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType<?>>builder()
         .put(DOC, ObjectType.untyped())
         .put(FETCHID, DataTypes.LONG)
         .put(ID, DataTypes.STRING)
@@ -91,7 +91,7 @@ public class DocSysColumns {
         .put(ID, UID.name())
         .build();
 
-    private static Reference newInfo(RelationName table, ColumnIdent column, DataType dataType) {
+    private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType) {
         return new Reference(new ReferenceIdent(table, column),
                              RowGranularity.DOC,
                              dataType,
@@ -107,7 +107,7 @@ public class DocSysColumns {
      * Calls {@code consumer} for each sys column with a reference containing {@code relationName}
      */
     public static void forTable(RelationName relationName, BiConsumer<ColumnIdent, Reference> consumer) {
-        for (Map.Entry<ColumnIdent, DataType> entry : COLUMN_IDENTS.entrySet()) {
+        for (Map.Entry<ColumnIdent, DataType<?>> entry : COLUMN_IDENTS.entrySet()) {
             ColumnIdent columnIdent = entry.getKey();
             consumer.accept(columnIdent, newInfo(relationName, columnIdent, entry.getValue()));
         }

@@ -22,8 +22,8 @@
 package io.crate.operation.collect.files;
 
 import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvObjectReader;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -37,7 +37,7 @@ import java.util.HashSet;
 public class CSVLineParser {
 
     private final ArrayList<String> keyList = new ArrayList<>();
-    private final CsvObjectReader csvReader = new CsvMapper()
+    private final ObjectReader csvReader = new CsvMapper()
         .enable(CsvParser.Feature.TRIM_SPACES)
         .readerWithTypedSchemaFor(String.class);
     private final ByteArrayOutputStream out = new ByteArrayOutputStream();
