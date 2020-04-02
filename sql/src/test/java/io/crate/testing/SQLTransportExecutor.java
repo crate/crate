@@ -454,7 +454,11 @@ public class SQLTransportExecutor {
                 return elements;
             }
             case "char":
-                return Byte.valueOf(resultSet.getString(columnIndex));
+                String strValue = resultSet.getString(columnIndex);
+                if (strValue == null) {
+                    return null;
+                }
+                return Byte.valueOf(strValue);
             case "byte":
                 value = resultSet.getByte(columnIndex);
                 break;
