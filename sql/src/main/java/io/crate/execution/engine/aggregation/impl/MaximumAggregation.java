@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -30,6 +29,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -45,15 +45,25 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
-        for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
-            FunctionInfo functionInfo = new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE);
-
-            if (dataType instanceof FixedWidthType) {
-                mod.register(new FixedMaximumAggregation(functionInfo));
-            } else {
-                mod.register(new VariableMaximumAggregation(functionInfo));
-            }
+        for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
+            var fixedWidthType = supportedType instanceof FixedWidthType;
+            mod.register(
+                Signature.aggregate(
+                    NAME,
+                    supportedType.getTypeSignature(),
+                    supportedType.getTypeSignature()),
+                args -> {
+                    var arg = args.get(0); // f(x) -> x
+                    var info = new FunctionInfo(
+                        new FunctionIdent(NAME, args),
+                        arg,
+                        FunctionInfo.Type.AGGREGATE
+                    );
+                    return fixedWidthType
+                        ? new FixedMaximumAggregation(info)
+                        : new VariableMaximumAggregation(info);
+                }
+            );
         }
     }
 
