@@ -1,0 +1,8 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+dependencies {
+    implementation project(':libs:sql-parser')
+    implementation "org.antlr:antlr4-runtime:${versions.antlr}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+}
