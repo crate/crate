@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.exceptions.CircuitBreakingException;
@@ -29,6 +28,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -47,13 +47,32 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     }
 
     public static void register(AggregationImplModule mod) {
-        for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            mod.register(new PercentileAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(t, DataTypes.DOUBLE)), DataTypes.DOUBLE,
-                FunctionInfo.Type.AGGREGATE)));
-            mod.register(new PercentileAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.of(t, DataTypes.DOUBLE_ARRAY)), DataTypes.DOUBLE_ARRAY,
-                FunctionInfo.Type.AGGREGATE)));
+        for (var supportedType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            mod.register(
+                Signature.aggregate(
+                    NAME,
+                    supportedType.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()),
+                args -> new PercentileAggregation(
+                    new FunctionInfo(
+                        new FunctionIdent(NAME, args),
+                        DataTypes.DOUBLE,
+                        FunctionInfo.Type.AGGREGATE))
+            );
+            mod.register(
+                Signature.aggregate(
+                    NAME,
+                    supportedType.getTypeSignature(),
+                    DataTypes.DOUBLE_ARRAY.getTypeSignature(),
+                    DataTypes.DOUBLE_ARRAY.getTypeSignature()
+                ),
+                args -> new PercentileAggregation(
+                    new FunctionInfo(
+                        new FunctionIdent(NAME, args),
+                        DataTypes.DOUBLE_ARRAY,
+                        FunctionInfo.Type.AGGREGATE))
+            );
         }
     }
 
@@ -155,7 +174,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     }
 
     @Override
-    public DataType partialType() {
+    public DataType<?> partialType() {
         return TDigestStateType.INSTANCE;
     }
 }

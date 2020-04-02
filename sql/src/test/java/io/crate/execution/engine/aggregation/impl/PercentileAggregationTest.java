@@ -21,13 +21,11 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -47,14 +45,14 @@ public class PercentileAggregationTest extends AggregationTest {
 
     private static final String NAME = "percentile";
 
-    private Object execSingleFractionPercentile(DataType valueType, Object[][] rows) throws Exception {
+    private Object execSingleFractionPercentile(DataType<?> valueType, Object[][] rows) throws Exception {
         String name = "percentile";
-        return executeAggregation(name, valueType, rows, ImmutableList.of(valueType, DataTypes.DOUBLE));
+        return executeAggregation(name, valueType, rows, List.of(valueType, DataTypes.DOUBLE));
     }
 
-    private Object execArrayFractionPercentile(DataType valueType, Object[][] rows) throws Exception {
+    private Object execArrayFractionPercentile(DataType<?> valueType, Object[][] rows) throws Exception {
         String name = "percentile";
-        return executeAggregation(name, valueType, rows, ImmutableList.of(valueType, new ArrayType<>(DataTypes.DOUBLE)));
+        return executeAggregation(name, valueType, rows, List.of(valueType, DataTypes.DOUBLE_ARRAY));
     }
 
     private PercentileAggregation singleArgPercentile;
@@ -65,13 +63,13 @@ public class PercentileAggregationTest extends AggregationTest {
         singleArgPercentile = (PercentileAggregation) functions.getQualified(
             new FunctionIdent(NAME, Arrays.asList(DataTypes.DOUBLE, DataTypes.DOUBLE)));
         arraysPercentile = (PercentileAggregation) functions.getQualified(
-            new FunctionIdent(NAME, Arrays.asList(DataTypes.DOUBLE, new ArrayType<>(DataTypes.DOUBLE))));
+            new FunctionIdent(NAME, Arrays.asList(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY)));
     }
 
     @Test
     public void testReturnTypes() throws Exception {
         assertEquals(DataTypes.DOUBLE, singleArgPercentile.info().returnType());
-        assertEquals(new ArrayType<>(DataTypes.DOUBLE), arraysPercentile.info().returnType());
+        assertEquals(DataTypes.DOUBLE_ARRAY, arraysPercentile.info().returnType());
     }
 
     @Test
@@ -139,10 +137,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        execSingleFractionPercentile(DataTypes.STRING, new Object[][]{
-            {"Akira", 0.5},
-            {"Tetsuo", 0.5}
-        });
+        execSingleFractionPercentile(DataTypes.GEO_POINT, new Object[][]{});
     }
 
     @Test
@@ -192,13 +187,12 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test
     public void testSingleItemFractionsArgumentResultsInArrayResult() {
-        ArrayType<Double> doubleArray = new ArrayType<>(DataTypes.DOUBLE);
         AggregationFunction impl = (AggregationFunction<?, ?>) functions.getQualified(
-            new FunctionIdent(NAME, Arrays.asList(DataTypes.LONG, doubleArray)));
+            new FunctionIdent(NAME, Arrays.asList(DataTypes.LONG, DataTypes.DOUBLE_ARRAY)));
 
         RamAccounting ramAccounting = RamAccounting.NO_ACCOUNTING;
         Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);
-        Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), doubleArray);
+        Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(10L), fractions);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(20L), fractions);
         Object result = impl.terminatePartial(ramAccounting, state);
