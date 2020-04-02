@@ -117,9 +117,8 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public int compareTo(Literal o) {
-        return type.compareValueTo(value, o.value);
+        return type.compare(value, o.value);
     }
 
     @Override
@@ -185,9 +184,8 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         if (obj == null || getClass() != obj.getClass()) return false;
         Literal literal = (Literal) obj;
         if (valueType().equals(literal.valueType())) {
-            if (valueType().compareValueTo(value, literal.value) == 0) {
-                return true;
-            }
+            DataType type = valueType();
+            return type.compare(value, literal.value) == 0;
         }
         return false;
     }

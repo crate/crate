@@ -30,7 +30,7 @@ import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 
-public abstract class DataType<T> implements Comparable, Writeable {
+public abstract class DataType<T> implements Comparable, Writeable, Comparator<T> {
 
     /**
      * Type precedence ids which help to decide when a type can be cast
@@ -80,8 +80,6 @@ public abstract class DataType<T> implements Comparable, Writeable {
     public abstract Streamer<T> streamer();
 
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
-
-    public abstract int compareValueTo(T val1, T val2);
 
     /**
      * Returns true if this DataType precedes the supplied DataType.

@@ -92,7 +92,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
-        public int compareValueTo(StandardDeviation val1, StandardDeviation val2) {
+        public int compare(StandardDeviation val1, StandardDeviation val2) {
             return val1.compareTo(val2);
         }
 
