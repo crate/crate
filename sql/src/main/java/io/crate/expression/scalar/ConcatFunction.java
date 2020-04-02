@@ -42,26 +42,24 @@ public abstract class ConcatFunction extends Scalar<String, String> {
 
     public static void register(ScalarFunctionModule module) {
         module.register(
-            Signature.builder()
-                .name(NAME)
-                .kind(FunctionInfo.Type.SCALAR)
-                .argumentTypes(parseTypeSignature("text"), parseTypeSignature("text"))
-                .returnType(parseTypeSignature("text"))
-                .setVariableArity(false)
-                .build(),
+            Signature.scalar(
+                NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ),
             args -> new StringConcatFunction(
                 new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING)
             )
         );
 
         module.register(
-            Signature.builder()
-                .name(NAME)
-                .kind(FunctionInfo.Type.SCALAR)
-                .argumentTypes(parseTypeSignature("text"))
-                .returnType(parseTypeSignature("text"))
-                .setVariableArity(true)
-                .build(),
+            Signature.scalar(
+                NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            )
+                .withVariableArity(),
             args -> new GenericConcatFunction(
                 new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING)
             )
@@ -69,14 +67,13 @@ public abstract class ConcatFunction extends Scalar<String, String> {
 
         // concat(array[], array[]) -> same as `array_cat(...)`
         module.register(
-            Signature.builder()
-                .name(NAME)
-                .kind(FunctionInfo.Type.SCALAR)
-                .typeVariableConstraints(typeVariable("E"))
-                .argumentTypes(parseTypeSignature("array(E)"), parseTypeSignature("array(E)"))
-                .returnType(parseTypeSignature("array(E)"))
-                .setVariableArity(false)
-                .build(),
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("array(E)"),
+                parseTypeSignature("array(E)"),
+                parseTypeSignature("array(E)")
+            )
+                .withTypeVariableConstraints(typeVariable("E")),
             args -> new ArrayCatFunction(ArrayCatFunction.createInfo(args, NAME))
         );
     }
@@ -103,7 +100,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         return Literal.ofUnchecked(functionInfo.returnType(), evaluate(txnCtx, inputs));
     }
 
-    private static class StringConcatFunction extends ConcatFunction {
+    static class StringConcatFunction extends ConcatFunction {
 
         StringConcatFunction(FunctionInfo functionInfo) {
             super(functionInfo);

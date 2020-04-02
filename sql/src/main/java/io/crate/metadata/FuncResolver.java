@@ -28,7 +28,7 @@ import io.crate.types.DataType;
 import java.util.List;
 import java.util.function.Function;
 
-public class FuncResolver implements Function<List<DataType>, FunctionImplementation> {
+public class FuncResolver {
 
     private final Signature signature;
     private final Function<List<DataType>, FunctionImplementation> factory;
@@ -43,9 +43,8 @@ public class FuncResolver implements Function<List<DataType>, FunctionImplementa
         return signature;
     }
 
-    @Override
-    public FunctionImplementation apply(List<DataType> dataTypes) {
-        return factory.apply(dataTypes);
+    public Function<List<DataType>, FunctionImplementation> getFactory() {
+        return factory;
     }
 
     @Override

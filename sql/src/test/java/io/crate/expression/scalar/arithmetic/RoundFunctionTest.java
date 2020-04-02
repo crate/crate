@@ -44,7 +44,7 @@ public class RoundFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `char`");
         assertEvaluate("round('foo')", null);
     }
 }

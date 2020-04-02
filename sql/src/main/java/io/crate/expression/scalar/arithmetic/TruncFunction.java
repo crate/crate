@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import static io.crate.metadata.functions.Signature.scalar;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 
 public final class TruncFunction {
@@ -64,17 +63,17 @@ public final class TruncFunction {
                     })
             );
 
-            // trunc(number, mode)
-            module.register(
-                scalar(
-                    NAME,
-                    type.getTypeSignature(),
-                    parseTypeSignature("integer"),
-                    returnType.getTypeSignature()
-                ),
-                TruncFunction::createTruncWithMode
-            );
         }
+        // trunc(number, mode)
+        module.register(
+            scalar(
+                NAME,
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            TruncFunction::createTruncWithMode
+        );
     }
 
     private static Scalar<Number, Number> createTruncWithMode(List<DataType> argumentTypes) {
