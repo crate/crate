@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.sort;
 
+import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -33,7 +34,7 @@ public class SortSymbolVisitorTest {
     @Test
     public void test_missing_object_is_implemented_for_all_primitives() {
         for (DataType<?> primitiveType : DataTypes.PRIMITIVE_TYPES) {
-            SortSymbolVisitor.missingObject(primitiveType, NullValueOrder.FIRST, false);
+            NullSentinelValues.nullSentinel(primitiveType, NullValueOrder.FIRST, false);
         }
     }
 }

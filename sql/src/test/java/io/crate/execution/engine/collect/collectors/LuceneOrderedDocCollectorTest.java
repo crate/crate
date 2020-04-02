@@ -31,7 +31,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.reference.doc.lucene.LuceneMissingValue;
+import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.expression.reference.doc.lucene.ScoreCollectorExpression;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -145,7 +145,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             new boolean[]{nullFirst});
 
         SortField sortField = new SortedNumericSortField("value", SortField.Type.LONG, reverseFlag);
-        Long missingValue = (Long) LuceneMissingValue.missingValue(orderBy, 0);
+        Long missingValue = (Long) NullSentinelValues.nullSentinelForScoreDoc(orderBy, 0);
         sortField.setMissingValue(missingValue);
         Sort sort = new Sort(sortField);
 
@@ -195,7 +195,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         // reverseOrdering = false, nulls First = false
         // 1  2  null null
         //       ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(false, null, SortField.Type.LONG)});
+        afterDoc = new FieldDoc(0, 0, new Object[]{NullSentinelValues.nullSentinelForScoreDoc(DataTypes.LONG, false, null)});
         result = nextPageQuery(reader, afterDoc, false, false);
         assertThat(result, is(new Long[]{null, null}));
 
@@ -209,7 +209,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         // reverseOrdering = true, nulls First = false
         // 2  1  null null
         //       ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(true, false, SortField.Type.LONG)});
+        afterDoc = new FieldDoc(0, 0, new Object[]{NullSentinelValues.nullSentinelForScoreDoc(DataTypes.LONG, true, false)});
         result = nextPageQuery(reader, afterDoc, true, false);
         assertThat(result, is(new Long[]{null, null}));
 
@@ -232,7 +232,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         // reverseOrdering = false, nulls First = true
         // null, null, 1, 2
         //       ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(false, true, SortField.Type.LONG)});
+        afterDoc = new FieldDoc(0, 0, new Object[]{NullSentinelValues.nullSentinelForScoreDoc(DataTypes.LONG, false, true)});
         result = nextPageQuery(reader, afterDoc, false, true);
         assertThat(result, is(new Long[]{null, null, 1L, 2L}));
 
@@ -246,7 +246,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         // reverseOrdering = true, nulls First = true
         // null, null, 2, 1
         //       ^
-        afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(true, true, SortField.Type.LONG)});
+        afterDoc = new FieldDoc(0, 0, new Object[]{NullSentinelValues.nullSentinelForScoreDoc(DataTypes.LONG, true, true)});
         result = nextPageQuery(reader, afterDoc, true, true);
         assertThat(result, is(new Long[]{null, null, 2L, 1L}));
 
