@@ -382,10 +382,10 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testIsNullOnObjectArray() throws Exception {
-        Query query = convert("o_array IS NULL");
-        assertThat(query.toString(), is("+*:* -ConstantScore(_field_names:o_array)"));
-        query = convert("o_array IS NOT NULL");
-        assertThat(query, instanceOf(GenericFunctionQuery.class));
+        Query isNull = convert("o_array IS NULL");
+        assertThat(isNull.toString(), is("+*:* -ConstantScore(_field_names:o_array)"));
+        Query isNotNull = convert("o_array IS NOT NULL");
+        assertThat(isNotNull.toString(), is("ConstantScore(DocValuesFieldExistsQuery [field=o_array.xs])"));
     }
 
     @Test

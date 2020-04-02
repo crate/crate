@@ -51,7 +51,6 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.scalar.ArrayUpperFunction;
 import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.scalar.SubscriptFunction;
-import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.scalar.geo.DistanceFunction;
 import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.symbol.Function;
@@ -63,7 +62,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -84,15 +82,12 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.query.ExistsQueryBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -256,119 +251,6 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class NotQuery implements FunctionToQuery {
-
-            private class SymbolToNotNullContext {
-                private final HashSet<Reference> references = new HashSet<>();
-                boolean hasStrictThreeValuedLogicFunction = false;
-
-                boolean add(Reference symbol) {
-                    return references.add(symbol);
-                }
-
-                Set<Reference> references() {
-                    return references;
-                }
-            }
-
-            private class SymbolToNotNullRangeQueryArgs extends SymbolVisitor<SymbolToNotNullContext, Void> {
-
-                /**
-                 * Three valued logic systems are defined in logic as systems in which there are 3 truth values: true,
-                 * false and an indeterminate third value (in our case null is the third value).
-                 * <p>
-                 * This is a set of functions for which inputs evaluating to null needs to be explicitly included or
-                 * excluded (in the case of 'not ...') in the boolean queries
-                 */
-                private final Set<String> STRICT_3VL_FUNCTIONS =
-                    ImmutableSet.of(
-                        AnyOperators.Names.EQ,
-                        AnyOperators.Names.NEQ,
-                        AnyOperators.Names.GTE,
-                        AnyOperators.Names.GT,
-                        AnyOperators.Names.LTE,
-                        AnyOperators.Names.LT,
-                        LikeOperators.ANY_LIKE,
-                        LikeOperators.ANY_NOT_LIKE,
-                        CoalesceFunction.NAME);
-
-                private boolean isStrictThreeValuedLogicFunction(Function symbol) {
-                    return STRICT_3VL_FUNCTIONS.contains(symbol.info().ident().name());
-                }
-
-                private boolean isIgnoreThreeValuedLogicFunction(Function symbol) {
-                    return Ignore3vlFunction.NAME.equals(symbol.info().ident().name());
-                }
-
-                @Override
-                public Void visitReference(Reference symbol, SymbolToNotNullContext context) {
-                    context.add(symbol);
-                    return null;
-                }
-
-                @Override
-                public Void visitFunction(Function symbol, SymbolToNotNullContext context) {
-                    if (isIgnoreThreeValuedLogicFunction(symbol)) {
-                        return null;
-                    }
-
-                    if (!isStrictThreeValuedLogicFunction(symbol)) {
-                        for (Symbol arg : symbol.arguments()) {
-                            arg.accept(this, context);
-                        }
-                    } else {
-                        context.hasStrictThreeValuedLogicFunction = true;
-                    }
-                    return null;
-                }
-            }
-
-            private final SymbolToNotNullRangeQueryArgs INNER_VISITOR = new SymbolToNotNullRangeQueryArgs();
-
-            @Override
-            public Query apply(Function input, Context context) {
-                assert input != null : "function must not be null";
-                assert input.arguments().size() == 1 : "function's number of arguments must be 1";
-                /**
-                 * not null -> null     -> no match
-                 * not true -> false    -> no match
-                 * not false -> true    -> match
-                 */
-
-                // handles not true / not false
-                Symbol arg = input.arguments().get(0);
-                Query innerQuery = arg.accept(Visitor.this, context);
-                Query notX = Queries.not(innerQuery);
-
-                // not x =  not x & x is not null
-                BooleanQuery.Builder builder = new BooleanQuery.Builder();
-                builder.add(notX, BooleanClause.Occur.MUST);
-
-                SymbolToNotNullContext ctx = new SymbolToNotNullContext();
-                arg.accept(INNER_VISITOR, ctx);
-                for (Reference reference : ctx.references()) {
-                    String columnName = reference.column().fqn();
-                    MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-                    if (fieldType == null) {
-                        // probably an object column, fallback to genericFunctionFilter
-                        return null;
-                    }
-                    if (reference.isNullable()) {
-                        builder.add(ExistsQueryBuilder.newFilter(context.queryShardContext, columnName), BooleanClause.Occur.MUST);
-                    }
-                }
-                if (ctx.hasStrictThreeValuedLogicFunction) {
-                    FunctionInfo isNullInfo = IsNullPredicate.generateInfo(Collections.singletonList(arg.valueType()));
-                    Function isNullFunction = new Function(isNullInfo, Collections.singletonList(arg));
-                    builder.add(
-                        Queries.not(genericFunctionFilter(isNullFunction, context)),
-                        BooleanClause.Occur.MUST
-                    );
-                }
-                return builder.build();
-            }
-        }
-
         class AndQuery implements FunctionToQuery {
             @Override
             public Query apply(Function input, Context context) {
@@ -415,7 +297,7 @@ public class LuceneQueryBuilder {
                 .put(CIDROperator.CONTAINED_WITHIN, LLT_QUERY)
                 .put(LikeOperators.OP_LIKE, new LikeQuery(false))
                 .put(LikeOperators.OP_ILIKE, new LikeQuery(true))
-                .put(NotPredicate.NAME, new NotQuery())
+                .put(NotPredicate.NAME, new NotQuery(this))
                 .put(Ignore3vlFunction.NAME, new Ignore3vlQuery())
                 .put(IsNullPredicate.NAME, new IsNullQuery())
                 .put(MatchPredicate.NAME, new ToMatchQuery())
@@ -588,10 +470,9 @@ public class LuceneQueryBuilder {
         final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx(context.txnCtx);
         @SuppressWarnings("unchecked")
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
-        @SuppressWarnings("unchecked")
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
         final CollectorContext collectorContext = new CollectorContext(context.queryShardContext::getForField);
-        for (LuceneCollectorExpression expression : expressions) {
+        for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }
         return new GenericFunctionQuery(function, expressions, condition);
@@ -601,4 +482,5 @@ public class LuceneQueryBuilder {
         throw new UnsupportedOperationException(
                 Symbols.format("Cannot convert function %s into a query", function));
     }
+
 }

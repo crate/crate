@@ -69,6 +69,8 @@ None
 Changes
 =======
 
+- Optimized `<column> IS NOT NULL` queries.
+
 - Include the bundled version of ``OpenJDK`` (13.0.2+8) into the ``CrateDB``
   built. It means that ``CrateDB`` doesn't rely the ``JAVA_HOME`` of the host
   system any longer.

@@ -25,7 +25,10 @@ package io.crate.types;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
+import java.util.List;
+
 import static io.crate.types.TypeSignature.parseTypeSignature;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 public class TypeSignatureTest extends CrateUnitTest {
@@ -45,17 +48,26 @@ public class TypeSignatureTest extends CrateUnitTest {
 
     @Test
     public void testParsingOfObject() {
-        ObjectType objectType = ObjectType.builder().setInnerType("V", IntegerType.INSTANCE).build();
-        assertThat(parseTypeSignature("object(text, integer)"), is(objectType.getTypeSignature()));
+        var signature = parseTypeSignature("object(text, integer)");
+        assertThat(signature.getBaseTypeName(), is(ObjectType.NAME));
+        assertThat(
+            signature.getParameters(),
+            contains(
+                new TypeSignature(DataTypes.STRING.getName()),
+                new TypeSignature(DataTypes.INTEGER.getName())));
     }
 
     @Test
     public void testParsingOfNestedArray() {
-        var type = new ArrayType<>(
-            ObjectType.builder()
-                .setInnerType("x", new ArrayType<>(IntegerType.INSTANCE))
-            .build()
-        );
-        assertThat(parseTypeSignature("array(object(text, array(integer)))"), is(type.getTypeSignature()));
+        var signature = parseTypeSignature("array(object(text, array(integer)))");
+        assertThat(signature.getBaseTypeName(), is(ArrayType.NAME));
+
+        var innerObjectTypeSignature = signature.getParameters().get(0);
+        assertThat(innerObjectTypeSignature.getBaseTypeName(), is(ObjectType.NAME));
+        assertThat(
+            innerObjectTypeSignature.getParameters(),
+            contains(
+                new TypeSignature(DataTypes.STRING.getName()),
+                new TypeSignature(ArrayType.NAME, List.of(new TypeSignature(DataTypes.INTEGER.getName())))));
     }
 }
