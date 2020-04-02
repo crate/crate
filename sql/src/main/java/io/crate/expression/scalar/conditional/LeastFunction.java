@@ -24,6 +24,7 @@ package io.crate.expression.scalar.conditional;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionInfo;
+import io.crate.types.DataType;
 
 public class LeastFunction extends ConditionalCompareFunction {
 
@@ -35,7 +36,8 @@ public class LeastFunction extends ConditionalCompareFunction {
 
     @Override
     public int compare(Object o1, Object o2) {
-        return info().returnType().compareValueTo(o1, o2);
+        DataType dataType = info().returnType();
+        return dataType.compare(o1, o2);
     }
 
     public static void register(ScalarFunctionModule module) {

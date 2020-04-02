@@ -115,7 +115,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         }
 
         @Override
-        public int compareValueTo(StringAggState val1, StringAggState val2) {
+        public int compare(StringAggState val1, StringAggState val2) {
             return 0;
         }
 

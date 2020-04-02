@@ -130,7 +130,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     }
 
     @Override
-    public int compareValueTo(Point val1, Point val2) {
+    public int compare(Point val1, Point val2) {
         if (val1 == null) {
             return -1;
         }

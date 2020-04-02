@@ -76,7 +76,7 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
     }
 
     @Override
-    public int compareValueTo(Map<Object, Object> val1, Map<Object, Object> val2) {
+    public int compare(Map<Object, Object> val1, Map<Object, Object> val2) {
         return MapComparator.compareMaps(val1, val2);
     }
 

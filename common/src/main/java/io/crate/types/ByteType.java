@@ -71,7 +71,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
-    public int compareValueTo(Byte val1, Byte val2) {
+    public int compare(Byte val1, Byte val2) {
         return nullSafeCompareValueTo(val1, val2, Byte::compare);
     }
 

@@ -139,9 +139,9 @@ public class GeoShapeTypeTest extends CrateUnitTest {
         Map<String, Object> val1 = type.value("POLYGON ( (0 0, 20 0, 20 20, 0 20, 0 0 ))");
         Map<String, Object> val2 = type.value("POINT (10 10)");
 
-        assertThat(type.compareValueTo(val1, val2), is(1));
-        assertThat(type.compareValueTo(val2, val1), is(-1));
-        assertThat(type.compareValueTo(val2, val2), is(0));
+        assertThat(type.compare(val1, val2), is(1));
+        assertThat(type.compare(val2, val1), is(-1));
+        assertThat(type.compare(val2, val2), is(0));
     }
 
     @Test

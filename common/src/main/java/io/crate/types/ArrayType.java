@@ -135,7 +135,7 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public int compareValueTo(List<T> val1, List<T> val2) {
+    public int compare(List<T> val1, List<T> val2) {
         if (val2 == null) {
             return 1;
         } else if (val1 == null) {
@@ -147,7 +147,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             return -1;
         }
         for (int i = 0; i < val1.size(); i++) {
-            int cmp = innerType.compareValueTo(val1.get(i), val2.get(i));
+            int cmp = innerType.compare(val1.get(i), val2.get(i));
             if (cmp != 0) {
                 return cmp;
             }

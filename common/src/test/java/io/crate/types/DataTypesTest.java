@@ -140,16 +140,16 @@ public class DataTypesTest extends CrateUnitTest {
         Map emptyMap = ImmutableMap.of();
         DataType objectType = ObjectType.untyped();
 
-        assertThat(objectType.compareValueTo(testMap, testMapCopy), is(0));
-        assertThat(objectType.compareValueTo(testMapCopy, testMap), is(0));
+        assertThat(objectType.compare(testMap, testMapCopy), is(0));
+        assertThat(objectType.compare(testMapCopy, testMap), is(0));
 
         // first number of argument is checked
-        assertThat(objectType.compareValueTo(testMap, emptyMap), is(1));
-        assertThat(objectType.compareValueTo(emptyMap, testMap), is(-1));
+        assertThat(objectType.compare(testMap, emptyMap), is(1));
+        assertThat(objectType.compare(emptyMap, testMap), is(-1));
 
         // then values
-        assertThat(objectType.compareValueTo(testMap, testCompareMap), is(1));
-        assertThat(objectType.compareValueTo(testCompareMap, testMap), is(1));
+        assertThat(objectType.compare(testMap, testCompareMap), is(1));
+        assertThat(objectType.compare(testCompareMap, testMap), is(1));
     }
 
     @Test
@@ -333,6 +333,6 @@ public class DataTypesTest extends CrateUnitTest {
     }
 
     private static void assertCompareValueTo(DataType dt, Object val1, Object val2, int expected) {
-        assertThat(dt.compareValueTo(dt.value(val1), dt.value(val2)), is(expected));
+        assertThat(dt.compare(dt.value(val1), dt.value(val2)), is(expected));
     }
 }

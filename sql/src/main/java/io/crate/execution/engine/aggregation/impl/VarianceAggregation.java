@@ -93,7 +93,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         }
 
         @Override
-        public int compareValueTo(Variance val1, Variance val2) {
+        public int compare(Variance val1, Variance val2) {
             return val1.compareTo(val2);
         }
 

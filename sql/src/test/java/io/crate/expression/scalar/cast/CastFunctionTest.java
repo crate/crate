@@ -180,7 +180,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         //noinspection unchecked
         var geoShapes = (List<Map<String, Object>>) ((Literal) funcSymbol).value();
         assertThat(
-            GEO_SHAPE.compareValueTo(
+            GEO_SHAPE.compare(
                 geoShapes.get(0),
                 Map.of(
                     GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,

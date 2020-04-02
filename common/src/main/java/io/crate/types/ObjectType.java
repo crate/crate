@@ -160,7 +160,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public int compareValueTo(Map<String, Object> val1, Map<String, Object> val2) {
+    public int compare(Map<String, Object> val1, Map<String, Object> val2) {
         return MapComparator.compareMaps(val1, val2);
     }
 

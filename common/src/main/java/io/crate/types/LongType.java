@@ -69,7 +69,7 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     }
 
     @Override
-    public int compareValueTo(Long val1, Long val2) {
+    public int compare(Long val1, Long val2) {
         return nullSafeCompareValueTo(val1, val2, Long::compare);
     }
 
