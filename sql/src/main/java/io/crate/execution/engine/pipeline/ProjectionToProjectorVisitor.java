@@ -38,8 +38,8 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Iterables;
 
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardWriteRequest;
-import io.crate.execution.dml.upsert.ShardUpdateRequest;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -524,11 +524,12 @@ public class ProjectionToProjectorVisitor
         Context context, UpdateProjection projection,
         Collector<ShardResponse, A, Iterable<Row>> collector) {
 
-        ShardUpdateRequest.Builder builder = new ShardUpdateRequest.Builder(
+        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
                 context.txnCtx.sessionSettings(),
                 ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
                 false,
                 projection.assignmentsColumns(),
+                null,
                 projection.returnValues(),
                 context.jobId,
                 true,
@@ -543,12 +544,13 @@ public class ProjectionToProjectorVisitor
             clusterService,
             nodeJobsCounter,
             () -> builder.newRequest(shardId),
-            id -> new ShardUpdateRequest.Item(id,
-                                              projection.assignments(),
-                                              projection.requiredVersion(),
-                                              null,
-                                              null),
-            transportActionProvider.transportShardUpdateAction()::execute,
+            id -> new ShardUpsertRequest.Item(id,
+                                                   projection.assignments(),
+                                                   null,
+                                                   projection.requiredVersion(),
+                                                   null,
+                                                   null),
+            transportActionProvider.transportShardUpsertAction()::execute,
             collector);
     }
 
