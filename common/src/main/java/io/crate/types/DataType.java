@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public abstract class DataType<T> implements Comparable, Writeable, Comparator<T> {
+public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable, Comparator<T> {
 
     /**
      * Type precedence ids which help to decide when a type can be cast
@@ -143,14 +143,13 @@ public abstract class DataType<T> implements Comparable, Writeable, Comparator<T
         if (this == o) return true;
         if (!(o instanceof DataType)) return false;
 
-        DataType that = (DataType) o;
+        DataType<?> that = (DataType<?>) o;
         return (id() == that.id());
     }
 
     @Override
-    public int compareTo(Object o) {
-        if (!(o instanceof DataType)) return -1;
-        return Integer.compare(id(), ((DataType) o).id());
+    public int compareTo(DataType<?> o) {
+        return Integer.compare(id(), o.id());
     }
 
     @Override

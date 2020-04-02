@@ -76,11 +76,6 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
-    public int compareTo(Object o) {
-        return 0;
-    }
-
-    @Override
     public Byte readValueFrom(StreamInput in) throws IOException {
         return in.readBoolean() ? null : in.readByte();
     }
