@@ -107,7 +107,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public int compareValueTo(String val1, String val2) {
+    public int compare(String val1, String val2) {
         return Comparator.<String>nullsFirst(Comparator.naturalOrder()).compare(val1, val2);
     }
 

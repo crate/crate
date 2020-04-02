@@ -101,7 +101,7 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Cannot convert %s to interval", value));
     }
 
-    public int compareValueTo(Period p1, Period p2) {
+    public int compare(Period p1, Period p2) {
         return nullSafeCompareValueTo(p1.toStandardDuration(), p2.toStandardDuration(), Comparator.naturalOrder());
 
     }

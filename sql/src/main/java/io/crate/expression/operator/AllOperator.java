@@ -83,7 +83,7 @@ public final class AllOperator extends Operator<Object> {
             if (rightValue == null) {
                 anyNulls = true;
                 matches++;
-            } else if (cmp.test(leftType.compareValueTo(leftValue, rightValue))) {
+            } else if (cmp.test(leftType.compare(leftValue, rightValue))) {
                 matches++;
             }
         }

@@ -149,12 +149,12 @@ public final class RowType extends DataType<Row> implements Streamer<Row> {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    public int compareValueTo(Row val1, Row val2) {
+    public int compare(Row val1, Row val2) {
         assert val1.numColumns() == val2.numColumns()
             : "Rows to compare must have the same number of columns and types. val1=" + val1 + ", val2=" + val2;
         for (int i = 0; i < fieldTypes.size(); i++) {
             DataType dataType = fieldTypes.get(i);
-            int cmp = dataType.compareValueTo(val1.get(i), val2.get(i));
+            int cmp = dataType.compare(val1.get(i), val2.get(i));
             if (cmp != 0) {
                 return cmp;
             }

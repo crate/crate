@@ -38,7 +38,7 @@ public class LeastFunction extends ConditionalCompareFunction {
     @Override
     public int compare(Object o1, Object o2) {
         DataType dataType = info().returnType();
-        return dataType.compareValueTo(o1, o2);
+        return dataType.compare(o1, o2);
     }
 
     public static void register(ScalarFunctionModule module) {

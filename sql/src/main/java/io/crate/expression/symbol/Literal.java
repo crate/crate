@@ -117,7 +117,7 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
 
     @Override
     public int compareTo(Literal<T> o) {
-        return type.compareValueTo(value, o.value);
+        return type.compare(value, o.value);
     }
 
     @Override
@@ -192,7 +192,7 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
         Literal<?> literal = (Literal<?>) obj;
         if (valueType().equals(literal.valueType())) {
             DataType type = valueType();
-            return type.compareValueTo(value, literal.value) == 0;
+            return type.compare(value, literal.value) == 0;
         }
         return false;
     }

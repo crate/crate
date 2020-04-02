@@ -70,7 +70,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     @Override
     @SuppressWarnings("unchecked")
     public int compare(int slot1, int slot2) {
-        return valueType.compareValueTo(values[slot1], values[slot2]);
+        return valueType.compare(values[slot1], values[slot2]);
     }
 
     @Override
@@ -89,7 +89,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
         for (int i = 0; i < collectorExpressions.size(); i++) {
             collectorExpressions.get(i).setNextDocId(doc);
         }
-        return valueType.compareValueTo(bottom, getFirstNonNullOrNull(input.value(), missingValue));
+        return valueType.compare(bottom, getFirstNonNullOrNull(input.value(), missingValue));
     }
 
     @Nullable
@@ -107,7 +107,7 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
         for (int i = 0; i < collectorExpressions.size(); i++) {
             collectorExpressions.get(i).setNextDocId(doc);
         }
-        return valueType.compareValueTo(top, getFirstNonNullOrNull(input.value(), missingValue));
+        return valueType.compare(top, getFirstNonNullOrNull(input.value(), missingValue));
     }
 
     @Override

@@ -72,7 +72,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     }
 
     @Override
-    public int compareValueTo(Double val1, Double val2) {
+    public int compare(Double val1, Double val2) {
         return nullSafeCompareValueTo(val1, val2, Double::compare);
     }
 
