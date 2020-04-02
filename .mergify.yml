@@ -14,6 +14,7 @@ pull_request_rules:
     name: default
   - actions:
       backport:
+        ignore_conflicts: true
         branches:
           - '4.1'
     conditions:
@@ -22,6 +23,7 @@ pull_request_rules:
     name: backport 4.1
   - actions:
       backport:
+        ignore_conflicts: true
         branches:
           - '4.0'
     conditions:
@@ -30,6 +32,7 @@ pull_request_rules:
     name: backport 4.0
   - actions:
       backport:
+        ignore_conflicts: true
         branches:
           - '3.3'
     conditions:
