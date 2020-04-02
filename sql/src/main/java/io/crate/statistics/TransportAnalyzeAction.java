@@ -192,7 +192,7 @@ public final class TransportAnalyzeAction {
             }
             @SuppressWarnings("unchecked")
             DataType<Object> dataType = (DataType<Object>) primitiveColumn.valueType();
-            columnValues.sort(dataType::compareValueTo);
+            columnValues.sort(dataType::compare);
             ColumnStats<?> columnStats = ColumnStats.fromSortedValues(
                 columnValues,
                 dataType,

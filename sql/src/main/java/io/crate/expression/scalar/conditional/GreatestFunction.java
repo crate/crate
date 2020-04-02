@@ -37,7 +37,7 @@ public class GreatestFunction extends ConditionalCompareFunction {
     @Override
     public int compare(Object o1, Object o2) {
         DataType dataType = info().returnType();
-        return dataType.compareValueTo(o2, o1);
+        return dataType.compare(o2, o1);
     }
 
     public static void register(ScalarFunctionModule module) {

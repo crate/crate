@@ -62,7 +62,7 @@ public class NotSupportedType extends DataType<Void> {
     }
 
     @Override
-    public int compareValueTo(Void val1, Void val2) {
+    public int compare(Void val1, Void val2) {
         return 0;
     }
 

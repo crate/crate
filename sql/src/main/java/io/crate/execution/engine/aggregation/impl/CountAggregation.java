@@ -216,7 +216,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         }
 
         @Override
-        public int compareValueTo(LongState val1, LongState val2) {
+        public int compare(LongState val1, LongState val2) {
             if (val1 == null) {
                 return -1;
             } else {

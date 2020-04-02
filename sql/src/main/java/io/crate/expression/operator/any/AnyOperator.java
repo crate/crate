@@ -71,7 +71,7 @@ public final class AnyOperator extends Operator<Object> {
                 anyNulls = true;
                 continue;
             }
-            if (cmpIsMatch.test(leftType.compareValueTo(left, rightValue))) {
+            if (cmpIsMatch.test(leftType.compare(left, rightValue))) {
                 return true;
             }
         }
