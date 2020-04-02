@@ -43,7 +43,7 @@ public class AbsFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testWrongType() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `char`");
         assertEvaluate("abs('foo')", null);
     }
 

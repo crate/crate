@@ -75,22 +75,18 @@ public abstract class LogFunction extends Scalar<Number, Number> {
 
         static void registerLogBaseFunctions(ScalarFunctionModule module) {
             // log(valueType, baseType) : double
-            for (DataType<?> baseType : ALLOWED_TYPES) {
-                for (DataType<?> valueType : ALLOWED_TYPES) {
-                    module.register(
-                        scalar(
-                            NAME,
-                            valueType.getTypeSignature(),
-                            baseType.getTypeSignature(),
-                            parseTypeSignature("double precision")),
-                        args -> new LogBaseFunction(
-                            new FunctionInfo(
-                                new FunctionIdent(NAME, List.of(valueType, baseType)), DataTypes.DOUBLE
-                            )
-                        )
-                    );
-                }
-            }
+            module.register(
+                scalar(
+                    NAME,
+                    DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature(),
+                    parseTypeSignature("double precision")),
+                args -> new LogBaseFunction(
+                    new FunctionInfo(
+                        new FunctionIdent(NAME, args), DataTypes.DOUBLE
+                    )
+                )
+            );
         }
 
         LogBaseFunction(FunctionInfo info) {
@@ -120,15 +116,17 @@ public abstract class LogFunction extends Scalar<Number, Number> {
     static class Log10Function extends LogFunction {
 
         static void registerLog10Functions(ScalarFunctionModule module) {
-            // log(dataType) : double
-            for (DataType<?> dt : ALLOWED_TYPES) {
-                module.register(
-                    scalar(NAME, dt.getTypeSignature(), parseTypeSignature("double precision")),
-                    args -> new Log10Function(
-                        new FunctionInfo(new FunctionIdent(NAME, List.of(dt)), DataTypes.DOUBLE)
-                    )
-                );
-            }
+            // log(double) : double
+            module.register(
+                scalar(
+                    NAME,
+                    DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                ),
+                args -> new Log10Function(
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.DOUBLE)
+                )
+            );
         }
 
         Log10Function(FunctionInfo info) {
@@ -154,15 +152,17 @@ public abstract class LogFunction extends Scalar<Number, Number> {
     public static class LnFunction extends Log10Function {
 
         static void registerLnFunctions(ScalarFunctionModule module) {
-            // ln(dataType) : double
-            for (DataType<?> dt : ALLOWED_TYPES) {
-                module.register(
-                    scalar(LnFunction.NAME, dt.getTypeSignature(), parseTypeSignature("double precision")),
-                    args -> new LnFunction(
-                        new FunctionInfo(new FunctionIdent(NAME, List.of(dt)), DataTypes.DOUBLE)
-                    )
-                );
-            }
+            // ln(double) : double
+            module.register(
+                scalar(
+                    LnFunction.NAME,
+                    DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                ),
+                args -> new LnFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.DOUBLE)
+                )
+            );
         }
 
         public static final String NAME = "ln";

@@ -58,20 +58,28 @@ public class SignatureBinder {
 
     private static final Logger LOGGER = Loggers.getLogger(SignatureBinder.class);
 
+    public static SignatureBinder withPrecedenceOnly(Signature declaredSignature) {
+        return new SignatureBinder(declaredSignature, CoercionType.PRECEDENCE_ONLY);
+    }
+
     private final Signature declaredSignature;
-    private final boolean allowCoercion;
+    private final CoercionType coercionType;
     private final Map<String, TypeVariableConstraint> typeVariableConstraints;
 
     public SignatureBinder(Signature declaredSignature, boolean allowCoercion) {
+        this(declaredSignature, allowCoercion ? CoercionType.FULL : CoercionType.NONE);
+    }
+
+    public SignatureBinder(Signature declaredSignature, CoercionType coercionType) {
         this.declaredSignature = declaredSignature;
-        this.allowCoercion = allowCoercion;
+        this.coercionType = coercionType;
         this.typeVariableConstraints = declaredSignature.getTypeVariableConstraints().stream()
             .collect(toMap(TypeVariableConstraint::getName, identity()));
     }
 
     @Nullable
-    public Signature bind(List<DataType> actualArgumentTypes) {
-        BoundVariables boundVariables = bindVariables(Lists2.map(actualArgumentTypes, DataType::getTypeSignature));
+    public Signature bind(List<TypeSignature> actualArgumentTypes) {
+        BoundVariables boundVariables = bindVariables(actualArgumentTypes);
         if (boundVariables == null) {
             return null;
         }
@@ -79,7 +87,7 @@ public class SignatureBinder {
     }
 
     @Nullable
-    BoundVariables bindVariables(List<TypeSignature> actualArgumentTypes) {
+    public BoundVariables bindVariables(List<TypeSignature> actualArgumentTypes) {
         ArrayList<TypeConstraintSolver> constraintSolvers = new ArrayList<>();
         if (!appendConstraintSolversForArguments(constraintSolvers, actualArgumentTypes)) {
             return null;
@@ -88,6 +96,7 @@ public class SignatureBinder {
         return iterativeSolve(Collections.unmodifiableList(constraintSolvers));
     }
 
+    @Nullable
     private static Signature applyBoundVariables(Signature signature,
                                                  BoundVariables boundVariables,
                                                  Map<String, TypeVariableConstraint> typeVariableConstraints,
@@ -100,12 +109,18 @@ public class SignatureBinder {
                 typeVariableConstraints,
                 arity);
             if (argumentSignatures == null) {
-                throw new IllegalArgumentException(
-                    "Size of argument types does not match a multiple of the defined variable arguments");
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                        "Size of argument types does not match a multiple of the defined variable arguments");
+                }
+                return null;
             }
         } else {
             if (signature.getArgumentTypes().size() != arity) {
-                throw new IllegalArgumentException("Size of argument types does not match given arity");
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Size of argument types does not match given arity");
+                }
+                return null;
             }
             argumentSignatures = signature.getArgumentTypes();
         }
@@ -185,16 +200,16 @@ public class SignatureBinder {
             appendTypeRelationshipConstraintSolver(resultBuilder,
                                                    formalTypeSignatures.get(i),
                                                    actualTypeSignatures.get(i),
-                                                   allowCoercion);
+                                                   coercionType);
         }
 
-        return appendConstraintSolvers(resultBuilder, formalTypeSignatures, actualTypeSignatures, allowCoercion);
+        return appendConstraintSolvers(resultBuilder, formalTypeSignatures, actualTypeSignatures, coercionType);
     }
 
     private boolean appendConstraintSolvers(List<TypeConstraintSolver> resultBuilder,
                                             List<? extends TypeSignature> formalTypeSignatures,
                                             List<TypeSignature> actualTypeSignatures,
-                                            boolean allowCoercion) {
+                                            CoercionType coercionType) {
         if (formalTypeSignatures.size() != actualTypeSignatures.size()) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Given signature size {} does not match formal signature size {}",
@@ -206,7 +221,7 @@ public class SignatureBinder {
             if (!appendConstraintSolvers(resultBuilder,
                                          formalTypeSignatures.get(i),
                                          actualTypeSignatures.get(i),
-                                         allowCoercion)) {
+                                         coercionType)) {
                 return false;
             }
         }
@@ -216,7 +231,7 @@ public class SignatureBinder {
     private boolean appendConstraintSolvers(List<TypeConstraintSolver> resultBuilder,
                                             TypeSignature formalTypeSignature,
                                             TypeSignature actualTypeSignature,
-                                            boolean allowCoercion) {
+                                            CoercionType coercionType) {
         if (formalTypeSignature.getParameters().isEmpty()) {
             TypeVariableConstraint typeVariableConstraint = typeVariableConstraints.get(formalTypeSignature.getBaseTypeName());
             if (typeVariableConstraint == null) {
@@ -228,12 +243,12 @@ public class SignatureBinder {
 
         DataType<?> actualType = actualTypeSignature.createType();
 
-        List<TypeSignature> actualTypeParametersTypeSignatureProvider;
+        List<TypeSignature> actualTypeParametersTypeSignature;
         if (UndefinedType.ID == actualType.id()) {
-            actualTypeParametersTypeSignatureProvider = Collections.nCopies(formalTypeSignature.getParameters().size(),
+            actualTypeParametersTypeSignature = Collections.nCopies(formalTypeSignature.getParameters().size(),
                                                                             UndefinedType.INSTANCE.getTypeSignature());
         } else {
-            actualTypeParametersTypeSignatureProvider = Lists2.map(
+            actualTypeParametersTypeSignature = Lists2.map(
                 actualType.getTypeParameters(),
                 DataType::getTypeSignature
             );
@@ -242,20 +257,20 @@ public class SignatureBinder {
         return appendConstraintSolvers(
             resultBuilder,
             Collections.unmodifiableList(formalTypeSignature.getParameters()),
-            actualTypeParametersTypeSignatureProvider,
-            allowCoercion);
+            actualTypeParametersTypeSignature,
+            coercionType);
     }
 
     private void appendTypeRelationshipConstraintSolver(List<TypeConstraintSolver> resultBuilder,
                                                         TypeSignature formalTypeSignature,
                                                         TypeSignature actualTypeSignature,
-                                                        boolean allowCoercion) {
+                                                        CoercionType coercionType) {
         Set<String> typeVariables = typeVariablesOf(formalTypeSignature);
         resultBuilder.add(new TypeRelationshipConstraintSolver(
             formalTypeSignature,
             typeVariables,
             actualTypeSignature.createType(),
-            allowCoercion));
+            coercionType));
     }
 
     private Set<String> typeVariablesOf(TypeSignature typeSignature) {
@@ -381,13 +396,18 @@ public class SignatureBinder {
 
     }
 
-    private static boolean satisfiesCoercion(boolean allowCoercion,
+    private static boolean satisfiesCoercion(CoercionType coercionType,
                                              DataType<?> fromType,
                                              TypeSignature toTypeSignature) {
-        if (allowCoercion) {
-            return fromType.isConvertableTo(toTypeSignature.createType());
-        } else {
-            return fromType.getTypeSignature().equals(toTypeSignature);
+        switch (coercionType) {
+            case FULL:
+                return fromType.isConvertableTo(toTypeSignature.createType());
+            case PRECEDENCE_ONLY:
+                var toType = toTypeSignature.createType();
+                return fromType.equals(toType) || toType.precedes(fromType);
+            case NONE:
+            default:
+                return fromType.getTypeSignature().equals(toTypeSignature);
         }
     }
 
@@ -478,16 +498,16 @@ public class SignatureBinder {
         private final TypeSignature superTypeSignature;
         private final Set<String> typeVariables;
         private final DataType<?> actualType;
-        private final boolean allowCoercion;
+        private final CoercionType coercionType;
 
         public TypeRelationshipConstraintSolver(TypeSignature superTypeSignature,
                                                 Set<String> typeVariables,
                                                 DataType<?> actualType,
-                                                boolean allowCoercion) {
+                                                CoercionType coercionType) {
             this.superTypeSignature = superTypeSignature;
             this.typeVariables = typeVariables;
             this.actualType = actualType;
-            this.allowCoercion = allowCoercion;
+            this.coercionType = coercionType;
         }
 
         @Override
@@ -499,7 +519,7 @@ public class SignatureBinder {
             }
 
             TypeSignature boundSignature = applyBoundVariables(superTypeSignature, bindings.build());
-            if (satisfiesCoercion(allowCoercion, actualType, boundSignature)) {
+            if (satisfiesCoercion(coercionType, actualType, boundSignature)) {
                 return SolverReturnStatus.UNCHANGED_SATISFIED;
             }
             return SolverReturnStatus.UNCHANGED_NOT_SATISFIED;
@@ -511,8 +531,14 @@ public class SignatureBinder {
                    "superTypeSignature=" + superTypeSignature +
                    ", typeVariables=" + typeVariables +
                    ", actualType=" + actualType +
-                   ", allowCoercion=" + allowCoercion +
+                   ", allowCoercion=" + coercionType +
                    '}';
         }
+    }
+
+    private enum CoercionType {
+        NONE,
+        PRECEDENCE_ONLY,
+        FULL
     }
 }

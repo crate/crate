@@ -37,8 +37,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Locale;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 public class TimezoneFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "timezone";
@@ -48,9 +46,9 @@ public class TimezoneFunction extends Scalar<Long, Object> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("timestamp with time zone"),
-                parseTypeSignature("timestamp without time zone")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.TIMESTAMPZ.getTypeSignature(),
+                DataTypes.TIMESTAMP.getTypeSignature()
             ),
             argumentTypes ->
                 new TimezoneFunction(new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMP))
@@ -58,9 +56,9 @@ public class TimezoneFunction extends Scalar<Long, Object> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("timestamp without time zone"),
-                parseTypeSignature("timestamp with time zone")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.TIMESTAMP.getTypeSignature(),
+                DataTypes.TIMESTAMPZ.getTypeSignature()
             ),
             argumentTypes ->
                 new TimezoneFunction(new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMPZ))
@@ -68,9 +66,9 @@ public class TimezoneFunction extends Scalar<Long, Object> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("bigint"),
-                parseTypeSignature("timestamp with time zone")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.LONG.getTypeSignature(),
+                DataTypes.TIMESTAMPZ.getTypeSignature()
             ),
             argumentTypes ->
                 new TimezoneFunction(new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMPZ))

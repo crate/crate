@@ -21,11 +21,13 @@
 
 package io.crate.expression.scalar;
 
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.instanceOf;
 
 public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
@@ -100,5 +102,11 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluate() throws Exception {
         assertEvaluate("concat([1], [2::integer, 3::integer])", List.of(1L, 2L, 3L));
+    }
+
+    @Test
+    public void test_two_string_arguments_result_in_special_scalar() {
+        var func = getFunction(ConcatFunction.NAME, List.of(DataTypes.STRING, DataTypes.STRING));
+        assertThat(func, instanceOf(ConcatFunction.StringConcatFunction.class));
     }
 }

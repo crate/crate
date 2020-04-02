@@ -304,9 +304,9 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testStyles() throws Exception {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
         assertThat(nestedFn.toString(Style.QUALIFIED),
-            is("abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
+            is("abs(sqrt(ln(cast((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1) + 1) + 1) + 1) + 1) + 1) AS double precision))))"));
         assertThat(nestedFn.toString(Style.UNQUALIFIED),
-            is("abs(sqrt(ln((((((((bar + cast(\"select\" AS bigint)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
+            is("abs(sqrt(ln(cast((((((((bar + cast(\"select\" AS bigint)) + 1) + 1) + 1) + 1) + 1) + 1) AS double precision))))"));
     }
 
     @Test
