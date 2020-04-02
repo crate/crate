@@ -28,12 +28,10 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionInfo.Type;
-import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
@@ -42,19 +40,24 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public final class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
 
     public static final String NAME = "array_agg";
 
     public static void register(AggregationImplModule module) {
-        module.register(NAME, new BaseFunctionResolver(FuncParams.SINGLE_ANY) {
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-                var type = types.get(0);
-                return new ArrayAgg(type);
-            }
-        });
+        module.register(
+            Signature.builder()
+                .name(NAME)
+                .kind(FunctionInfo.Type.AGGREGATE)
+                .argumentTypes(parseTypeSignature("E"))
+                .typeVariableConstraints(typeVariable("E"))
+                .returnType(parseTypeSignature("array(E)"))
+                .build(),
+            args -> new ArrayAgg(args.get(0))
+        );
     }
 
     private final FunctionInfo info;
