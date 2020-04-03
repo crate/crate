@@ -24,16 +24,16 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
-import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.List;
+
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 /**
  * The offset functions return the evaluated value at a row that
@@ -117,40 +117,90 @@ public class OffsetValueFunctions implements WindowFunction {
     }
 
     public static void register(EnterpriseFunctionsModule module) {
-        module.register(LEAD_NAME, new BaseFunctionResolver(
-            FuncParams.builder(Param.ANY)
-                .withVarArgs(Param.INTEGER)
-                .withVarArgs(Param.ANY)
-                .build()) {
+        module.register(
+            Signature.window(
+                LEAD_NAME,
+                parseTypeSignature("E"),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args -> new OffsetValueFunctions(
+                new FunctionInfo(
+                    new FunctionIdent(LEAD_NAME, args),
+                    args.get(0),
+                    FunctionInfo.Type.WINDOW),
+                OffsetDirection.FORWARD)
+        );
+        module.register(
+            Signature.window(
+                LEAD_NAME,
+                parseTypeSignature("E"),
+                DataTypes.INTEGER.getTypeSignature(),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args -> new OffsetValueFunctions(
+                new FunctionInfo(
+                    new FunctionIdent(LEAD_NAME, args),
+                    args.get(0),
+                    FunctionInfo.Type.WINDOW),
+                OffsetDirection.FORWARD)
+        );
+        module.register(
+            Signature.window(
+                LEAD_NAME,
+                parseTypeSignature("E"),
+                DataTypes.INTEGER.getTypeSignature(),
+                parseTypeSignature("E"),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args -> new OffsetValueFunctions(
+                new FunctionInfo(
+                    new FunctionIdent(LEAD_NAME, args),
+                    args.get(0),
+                    FunctionInfo.Type.WINDOW),
+                OffsetDirection.FORWARD)
+        );
 
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new OffsetValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(LEAD_NAME, dataTypes),
-                        dataTypes.get(0),
-                        FunctionInfo.Type.WINDOW),
-                    OffsetDirection.FORWARD
-                );
-            }
-        });
-
-        module.register(LAG_NAME, new BaseFunctionResolver(
-            FuncParams.builder(Param.ANY)
-                .withVarArgs(Param.INTEGER)
-                .withVarArgs(Param.ANY)
-                .build()) {
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new OffsetValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(LAG_NAME, dataTypes),
-                        dataTypes.get(0),
-                        FunctionInfo.Type.WINDOW),
-                    OffsetDirection.BACKWARD
-                );
-            }
-        });
+        module.register(
+            Signature.window(
+                LAG_NAME,
+                parseTypeSignature("E"),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args -> new OffsetValueFunctions(
+                new FunctionInfo(
+                    new FunctionIdent(LAG_NAME, args),
+                    args.get(0),
+                    FunctionInfo.Type.WINDOW),
+                OffsetDirection.BACKWARD)
+        );
+        module.register(
+            Signature.window(
+                LAG_NAME,
+                parseTypeSignature("E"),
+                DataTypes.INTEGER.getTypeSignature(),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args -> new OffsetValueFunctions(
+                new FunctionInfo(
+                    new FunctionIdent(LAG_NAME, args),
+                    args.get(0),
+                    FunctionInfo.Type.WINDOW),
+                OffsetDirection.BACKWARD)
+        );
+        module.register(
+            Signature.window(
+                LAG_NAME,
+                parseTypeSignature("E"),
+                DataTypes.INTEGER.getTypeSignature(),
+                parseTypeSignature("E"),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args -> new OffsetValueFunctions(
+                new FunctionInfo(
+                    new FunctionIdent(LAG_NAME, args),
+                    args.get(0),
+                    FunctionInfo.Type.WINDOW),
+                OffsetDirection.BACKWARD)
+        );
     }
 }
