@@ -28,14 +28,9 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
 import io.crate.lucene.FieldTypeLookup;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataType;
-import io.crate.types.IpType;
-import org.elasticsearch.index.mapper.MappedFieldType;
-
-import java.util.function.Function;
 
 /**
  * Specialized InputFactory for Lucene symbols/expressions.
@@ -65,7 +60,8 @@ public class DocInputFactory {
         } else {
             refResolver = ref -> {
                 if (orderBy.orderBySymbols().contains(ref)) {
-                    return getOrderByExpression(orderBy, ref);
+                    DataType<?> dataType = ref.valueType();
+                    return new OrderByCollectorExpression(ref, orderBy, dataType::value);
                 }
                 return referenceResolver.getImplementation(ref);
             };
@@ -73,26 +69,6 @@ public class DocInputFactory {
         InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = inputFactory.ctxForRefs(txnCtx, refResolver);
         ctx.add(phase.toCollect());
         return ctx;
-    }
-
-    private LuceneCollectorExpression<?> getOrderByExpression(OrderBy orderBy, Reference ref) {
-        DataType dataType = ref.valueType();
-        Function<Object, Object> valueConversion;
-        switch (dataType.id()) {
-            case IpType.ID:
-                MappedFieldType mappedFieldType = fieldTypeLookup.get(ref.column().fqn());
-                if (mappedFieldType == null) {
-                    valueConversion = dataType::value;
-                } else {
-                    // need to convert binary bytesRef to BytesRef string
-                    valueConversion = i -> dataType.value(mappedFieldType.valueForDisplay(i));
-                }
-                break;
-
-            default:
-                valueConversion = dataType::value;
-        }
-        return new OrderByCollectorExpression(ref, orderBy, valueConversion);
     }
 
     public InputFactory.Context<? extends LuceneCollectorExpression<?>> getCtx(TransactionContext txnCtx) {

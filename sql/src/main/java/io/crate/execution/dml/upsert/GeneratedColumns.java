@@ -34,6 +34,7 @@ import io.crate.types.DataType;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -114,7 +115,7 @@ public final class GeneratedColumns<T> {
 
             //noinspection unchecked
             DataType<Object> dataType = (DataType<Object>) ref.valueType();
-            if (dataType.compare(dataType.value(generatedValue), dataType.value(providedValue)) != 0) {
+            if (Comparator.nullsFirst(dataType).compare(dataType.value(generatedValue), dataType.value(providedValue)) != 0) {
                 throw new IllegalArgumentException(
                     "Given value " + providedValue +
                     " for generated column " + ref.column() +
