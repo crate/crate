@@ -80,7 +80,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         changed |= filter != newFilter;
 
         if (changed) {
-            return new Function(func.info(), newArgs, newFilter);
+            return new Function(func.info(), func.signature(), newArgs, newFilter);
         }
         return func;
     }
@@ -101,7 +101,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (arg1 == newArg1 && arg2 == newArg2 && filter == newFilter) {
             return func;
         }
-        return new Function(func.info(), List.of(newArg1, newArg2), newFilter);
+        return new Function(func.info(), func.signature(), List.of(newArg1, newArg2), newFilter);
     }
 
     private Function zeroArg(Function func, C context) {
@@ -116,7 +116,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (filter == newFilter) {
             return func;
         }
-        return new Function(func.info(), List.of(), newFilter);
+        return new Function(func.info(), func.signature(), List.of(), newFilter);
     }
 
     private Function oneArg(Function func, C context) {
@@ -130,7 +130,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (arg == newArg && filter == newFilter) {
             return func;
         }
-        return new Function(func.info(), List.of(newArg), newFilter);
+        return new Function(func.info(), func.signature(), List.of(newArg), newFilter);
     }
 
     @Nullable
@@ -151,6 +151,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         Function processedFunction = processAndMaybeCopy(windowFunction, context);
         return new WindowFunction(
             processedFunction.info(),
+            processedFunction.signature(),
             processedFunction.arguments(),
             processNullable(windowFunction.filter(), context),
             windowFunction.windowDefinition().map(s -> s.accept(this, context))

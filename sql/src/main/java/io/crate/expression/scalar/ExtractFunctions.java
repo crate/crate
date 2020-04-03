@@ -33,6 +33,7 @@ import org.elasticsearch.common.joda.Joda;
 import org.joda.time.DateTimeField;
 import org.joda.time.chrono.ISOChronology;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -81,8 +82,8 @@ public class ExtractFunctions {
                         argType.getTypeSignature(),
                         parseTypeSignature("integer")
                     ),
-                    argumentTypes ->
-                        new ExtractFunction(entry.getKey(), entry.getValue(), argType)
+                    (signature, argumentTypes) ->
+                        new ExtractFunction(entry.getKey(), entry.getValue(), argType, signature)
                 );
             }
             // extract(epoch from ...) is different as is returns a `double precision`
@@ -92,8 +93,8 @@ public class ExtractFunctions {
                     argType.getTypeSignature(),
                     parseTypeSignature("double precision")
                 ),
-                argumentTypes ->
-                    new ExtractFunction(EPOCH, argType, DataTypes.DOUBLE, v -> (double) v / 1000)
+                (signature, argumentTypes) ->
+                    new ExtractFunction(EPOCH, argType, DataTypes.DOUBLE, signature, v -> (double) v / 1000)
             );
         }
     }
@@ -130,25 +131,35 @@ public class ExtractFunctions {
     private static class ExtractFunction extends Scalar<Number, Long> {
 
         private final FunctionInfo info;
+        private final Signature signature;
         private final Function<Long, Number> evaluate;
 
         ExtractFunction(Extract.Field field,
                         DateTimeField dateTimeField,
-                        DataType<?> argumentType) {
-            this(field, argumentType, DataTypes.INTEGER, dateTimeField::get);
+                        DataType<?> argumentType,
+                        Signature signature) {
+            this(field, argumentType, DataTypes.INTEGER, signature, dateTimeField::get);
         }
 
         ExtractFunction(Extract.Field field,
                         DataType<?> argumentType,
                         DataType<?> returnType,
+                        Signature signature,
                         Function<Long, Number> evaluate) {
             info = FunctionInfo.of(functionNameFrom(field), List.of(argumentType), returnType);
+            this.signature = signature;
             this.evaluate = evaluate;
         }
 
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Nullable
+        @Override
+        public Signature signature() {
+            return signature;
         }
 
         public Number evaluate(long value) {

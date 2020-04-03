@@ -28,8 +28,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.Identifiers;
 import io.crate.types.DataTypes;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 
 public final class QuoteIdentFunction {
 
@@ -37,11 +35,17 @@ public final class QuoteIdentFunction {
         module.register(
             Signature.scalar(
                 "quote_ident",
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            args ->
-                new UnaryScalar<>("quote_ident", DataTypes.STRING, DataTypes.STRING, Identifiers::quoteIfNeeded)
+            (signature, args) ->
+                new UnaryScalar<>(
+                    "quote_ident",
+                    signature,
+                    DataTypes.STRING,
+                    DataTypes.STRING,
+                    Identifiers::quoteIfNeeded
+                )
         );
     }
 }

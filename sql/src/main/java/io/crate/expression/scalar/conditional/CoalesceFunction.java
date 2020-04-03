@@ -29,6 +29,8 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 
+import javax.annotation.Nullable;
+
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
@@ -43,20 +45,29 @@ public class CoalesceFunction extends Scalar<Object, Object> {
                     parseTypeSignature("E"))
                 .withVariableArity()
                 .withTypeVariableConstraints(typeVariable("E")),
-            args -> new CoalesceFunction(FunctionInfo.of(NAME, args, args.get(0)))
+            (signature, args) ->
+                new CoalesceFunction(FunctionInfo.of(NAME, args, args.get(0)), signature)
         );
     }
 
     public static final String NAME = "coalesce";
     private final FunctionInfo info;
+    private final Signature signature;
 
-    private CoalesceFunction(FunctionInfo info) {
+    private CoalesceFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

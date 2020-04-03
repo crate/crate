@@ -77,6 +77,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
@@ -1109,6 +1110,7 @@ public class ExpressionAnalyzer {
             coordinatorTxnCtx.sessionContext().searchPath());
 
         FunctionInfo functionInfo = funcImpl.info();
+        Signature signature = funcImpl.signature();
         List<Symbol> castArguments = cast(arguments, functionInfo.ident().argumentTypes());
         Function newFunction;
         if (windowDefinition == null) {
@@ -1118,7 +1120,7 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedOperationException(
                     "Only aggregate functions allow a FILTER clause");
             }
-            newFunction = new Function(functionInfo, castArguments, filter);
+            newFunction = new Function(functionInfo, signature, castArguments, filter);
         } else {
             if (functionInfo.type() != FunctionInfo.Type.WINDOW && functionInfo.type() != FunctionInfo.Type.AGGREGATE) {
                 throw new IllegalArgumentException(String.format(
@@ -1128,6 +1130,7 @@ public class ExpressionAnalyzer {
             }
             newFunction = new WindowFunction(
                 functionInfo,
+                signature,
                 castArguments,
                 filter,
                 windowDefinition);

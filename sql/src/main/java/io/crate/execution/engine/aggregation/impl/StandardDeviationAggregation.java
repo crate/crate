@@ -61,11 +61,15 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()),
-                args -> new StandardDeviationAggregation(
-                    new FunctionInfo(
-                        new FunctionIdent(NAME, args),
-                        DataTypes.DOUBLE,
-                        FunctionInfo.Type.AGGREGATE))
+                (signature, args) ->
+                    new StandardDeviationAggregation(
+                        new FunctionInfo(
+                            new FunctionIdent(NAME, args),
+                            DataTypes.DOUBLE,
+                            FunctionInfo.Type.AGGREGATE
+                        ),
+                        signature
+                    )
             );
         }
     }
@@ -122,9 +126,17 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
 
-    public StandardDeviationAggregation(FunctionInfo functionInfo) {
+    public StandardDeviationAggregation(FunctionInfo functionInfo, Signature signature) {
         this.info = functionInfo;
+        this.signature = signature;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Nullable

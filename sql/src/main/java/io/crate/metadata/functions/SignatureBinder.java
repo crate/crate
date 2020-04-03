@@ -73,7 +73,7 @@ public class SignatureBinder {
     public SignatureBinder(Signature declaredSignature, CoercionType coercionType) {
         this.declaredSignature = declaredSignature;
         this.coercionType = coercionType;
-        this.typeVariableConstraints = declaredSignature.getTypeVariableConstraints().stream()
+        this.typeVariableConstraints = declaredSignature.getBindingInfo().getTypeVariableConstraints().stream()
             .collect(toMap(TypeVariableConstraint::getName, identity()));
     }
 
@@ -102,10 +102,12 @@ public class SignatureBinder {
                                                  Map<String, TypeVariableConstraint> typeVariableConstraints,
                                                  int arity) {
         List<TypeSignature> argumentSignatures;
-        if (signature.isVariableArity()) {
+        var bindingInfo = signature.getBindingInfo();
+        assert bindingInfo != null : "Expecting the signature's binding info to be not null";
+        if (bindingInfo.isVariableArity()) {
             argumentSignatures = expandVarargFormalTypeSignature(
                 signature.getArgumentTypes(),
-                signature.getVariableArityGroup(),
+                bindingInfo.getVariableArityGroup(),
                 typeVariableConstraints,
                 arity);
             if (argumentSignatures == null) {
@@ -163,10 +165,12 @@ public class SignatureBinder {
 
     private boolean appendConstraintSolversForArguments(List<TypeConstraintSolver> resultBuilder,
                                                         List<TypeSignature> actualTypeSignatures) {
-        boolean variableArity = declaredSignature.isVariableArity();
+        var declaredBindingInfo = declaredSignature.getBindingInfo();
+        assert declaredBindingInfo != null : "Expecting the signature's binding info to be not null";
+        boolean variableArity = declaredBindingInfo.isVariableArity();
         List<TypeSignature> formalTypeSignatures = declaredSignature.getArgumentTypes();
         if (variableArity) {
-            int variableGroupCount = declaredSignature.getVariableArityGroup().size();
+            int variableGroupCount = declaredBindingInfo.getVariableArityGroup().size();
             int variableArgumentCount = variableGroupCount > 0 ? variableGroupCount : 1;
             if (actualTypeSignatures.size() < formalTypeSignatures.size() - variableArgumentCount) {
                 if (LOGGER.isTraceEnabled()) {
@@ -179,7 +183,7 @@ public class SignatureBinder {
             }
             formalTypeSignatures = expandVarargFormalTypeSignature(
                 formalTypeSignatures,
-                declaredSignature.getVariableArityGroup(),
+                declaredBindingInfo.getVariableArityGroup(),
                 typeVariableConstraints,
                 actualTypeSignatures.size());
             if (formalTypeSignatures == null) {

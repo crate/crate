@@ -121,7 +121,12 @@ public class EvaluatingNormalizer {
                 Function function = new Function(
                     io.crate.expression.predicate.MatchPredicate.INFO,
                     Arrays.asList(
-                        new Function(MapFunction.createInfo(Symbols.typeView(columnBoostMapArgs)), columnBoostMapArgs),
+                        new Function(
+                            MapFunction.createInfo(Symbols.typeView(columnBoostMapArgs)),
+                            MapFunction.SIGNATURE,
+                            columnBoostMapArgs,
+                            null
+                        ),
                         matchPredicate.queryTerm(),
                         Literal.of(matchPredicate.matchType()),
                         matchPredicate.options()
@@ -155,7 +160,15 @@ public class EvaluatingNormalizer {
 
         private Symbol normalizeFunction(Function function, TransactionContext context) {
             function = processAndMaybeCopy(function, context);
-            FunctionImplementation implementation = functions.getQualified(function.info().ident());
+            var ident = function.info().ident();
+            var signature = function.signature();
+            FunctionImplementation implementation;
+            if (signature == null) {
+                implementation = functions.getQualified(ident);
+            } else {
+                implementation = functions.getQualified(signature, ident.argumentTypes());
+            }
+            assert implementation != null : "Function implementation not found using full qualified lookup: " + function;
             return implementation.normalizeSymbol(function, context);
         }
 
@@ -164,6 +177,7 @@ public class EvaluatingNormalizer {
             Function normalizedFunction = (Function) normalizeFunction(function, context);
             return new WindowFunction(
                 normalizedFunction.info(),
+                normalizedFunction.signature(),
                 normalizedFunction.arguments(),
                 normalizedFunction.filter(),
                 function.windowDefinition().map(s -> s.accept(this, context))

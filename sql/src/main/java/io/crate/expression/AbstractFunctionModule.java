@@ -37,7 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public abstract class AbstractFunctionModule<T extends FunctionImplementation> extends AbstractModule {
 
@@ -50,27 +50,27 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
     private MapBinder<FunctionName, List<FuncResolver>> implementationsBinder;
 
     /**
-     * @deprecated Use {@link #register(Signature, Function)} instead.
+     * @deprecated Use {@link #register(Signature, BiFunction)} instead.
      */
     public void register(T impl) {
         functions.put(impl.info().ident(), impl);
     }
 
     /**
-     * @deprecated Use {@link #register(Signature, Function)} instead.
+     * @deprecated Use {@link #register(Signature, BiFunction)} instead.
      */
     public void register(String name, FunctionResolver functionResolver) {
         register(new FunctionName(name), functionResolver);
     }
 
     /**
-     * @deprecated Use {@link #register(Signature, Function)} instead.
+     * @deprecated Use {@link #register(Signature, BiFunction)} instead.
      */
     public void register(FunctionName qualifiedName, FunctionResolver functionResolver) {
         resolver.put(qualifiedName, functionResolver);
     }
 
-    public void register(Signature signature, Function<List<DataType>, FunctionImplementation> factory) {
+    public void register(Signature signature, BiFunction<Signature, List<DataType>, FunctionImplementation> factory) {
         List<FuncResolver> functions = functionImplementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());

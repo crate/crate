@@ -24,6 +24,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.graalvm.polyglot.Context;
@@ -56,12 +57,13 @@ public class JavaScriptLanguage implements UDFLanguage {
         udfService.registerLanguage(this);
     }
 
-    public Scalar createFunctionImplementation(UserDefinedFunctionMetaData meta) throws ScriptException {
+    public Scalar createFunctionImplementation(UserDefinedFunctionMetaData meta,
+                                               Signature signature) throws ScriptException {
         FunctionInfo info = new FunctionInfo(
             new FunctionIdent(meta.schema(), meta.name(), meta.argumentTypes()),
             meta.returnType()
         );
-        return new JavaScriptUserDefinedFunction(info, meta.definition());
+        return new JavaScriptUserDefinedFunction(info, signature, meta.definition());
     }
 
     @Nullable

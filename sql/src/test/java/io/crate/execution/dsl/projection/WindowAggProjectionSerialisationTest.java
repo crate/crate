@@ -30,9 +30,9 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.WindowFunctionContext;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -141,6 +141,11 @@ public class WindowAggProjectionSerialisationTest {
 
     private FunctionImplementation getSumFunction() {
         return functions.getQualified(
-            new FunctionIdent(SumAggregation.NAME, List.of(DataTypes.FLOAT)));
+            Signature.aggregate(
+                SumAggregation.NAME,
+                DataTypes.FLOAT.getTypeSignature(),
+                DataTypes.FLOAT.getTypeSignature()),
+            List.of(DataTypes.FLOAT)
+        );
     }
 }

@@ -30,13 +30,14 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Random;
 
 import static io.crate.metadata.functions.Signature.scalar;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class RandomFunction extends Scalar<Double, Void> {
 
@@ -46,13 +47,18 @@ public class RandomFunction extends Scalar<Double, Void> {
         new FunctionIdent(NAME, Collections.emptyList()), DataTypes.DOUBLE,
         FunctionInfo.Type.SCALAR, FunctionInfo.NO_FEATURES);
 
-    private final Random random = new Random();
-
     public static void register(ScalarFunctionModule module) {
         module.register(
-            scalar(NAME, parseTypeSignature("double precision")),
-            args -> new RandomFunction()
+            scalar(NAME, DataTypes.DOUBLE.getTypeSignature()),
+            (signature, args) -> new RandomFunction(signature)
         );
+    }
+
+    private final Signature signature;
+    private final Random random = new Random();
+
+    public RandomFunction(Signature signature) {
+        this.signature = signature;
     }
 
     @Override
@@ -67,6 +73,12 @@ public class RandomFunction extends Scalar<Double, Void> {
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

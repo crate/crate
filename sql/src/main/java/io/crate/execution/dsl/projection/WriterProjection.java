@@ -37,17 +37,15 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.StringType;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,11 +79,15 @@ public class WriterProjection extends Projection {
     );
 
 
-    public static final Symbol DIRECTORY_TO_FILENAME = new Function(new FunctionInfo(
-        new FunctionIdent(FormatFunction.NAME, Arrays.<DataType>asList(StringType.INSTANCE,
-            StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)),
-        StringType.INSTANCE),
-        Arrays.asList(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
+    public static final Symbol DIRECTORY_TO_FILENAME = new Function(
+        new FunctionInfo(
+            new FunctionIdent(
+                FormatFunction.NAME,
+                List.of(StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)
+            ),
+            StringType.INSTANCE),
+        FormatFunction.SIGNATURE,
+        List.of(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
     );
 
     private final Symbol uri;

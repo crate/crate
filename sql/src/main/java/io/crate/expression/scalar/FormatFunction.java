@@ -29,6 +29,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.Locale;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
@@ -37,28 +38,36 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 public class FormatFunction extends Scalar<String, Object> {
 
     public static final String NAME = "format";
-    private FunctionInfo info;
+
+    public static final Signature SIGNATURE =
+        Signature.scalar(
+            NAME,
+            DataTypes.STRING.getTypeSignature(),
+            parseTypeSignature("E"),
+            DataTypes.STRING.getTypeSignature()
+        )
+            .withTypeVariableConstraints(typeVariableOfAnyType("E"))
+            .withVariableArity();
+
 
     public static void register(ScalarFunctionModule module) {
         module.register(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                parseTypeSignature("E"),
-                DataTypes.STRING.getTypeSignature()
-            )
-                .withTypeVariableConstraints(typeVariableOfAnyType("E"))
-                .withVariableArity(),
-            argumentTypes ->
+            SIGNATURE,
+            (signature, argumentTypes) ->
                 new FormatFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING)
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING),
+                    signature
                 )
 
         );
     }
 
-    private FormatFunction(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    private FormatFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @SafeVarargs
@@ -80,5 +89,11 @@ public class FormatFunction extends Scalar<String, Object> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

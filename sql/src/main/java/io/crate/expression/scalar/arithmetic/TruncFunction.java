@@ -28,9 +28,11 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -55,12 +57,18 @@ public final class TruncFunction {
                     type.getTypeSignature(),
                     returnType.getTypeSignature()
                 ),
-                argumentTypes ->
-                    new UnaryScalar<Number, Number>(NAME, type, returnType, n -> {
-                        double val = n.doubleValue();
-                        Function<Double, Double> f = val >= 0 ? Math::floor : Math::ceil;
-                        return (Number) returnType.value(f.apply(val));
-                    })
+                (signature, argumentTypes) ->
+                    new UnaryScalar<Number, Number>(
+                        NAME,
+                        signature,
+                        type,
+                        returnType,
+                        n -> {
+                            double val = n.doubleValue();
+                            Function<Double, Double> f = val >= 0 ? Math::floor : Math::ceil;
+                            return (Number) returnType.value(f.apply(val));
+                        }
+                    )
             );
 
         }
@@ -76,7 +84,7 @@ public final class TruncFunction {
         );
     }
 
-    private static Scalar<Number, Number> createTruncWithMode(List<DataType> argumentTypes) {
+    private static Scalar<Number, Number> createTruncWithMode(Signature signature, List<DataType> argumentTypes) {
         return new Scalar<>() {
 
             FunctionInfo info = new FunctionInfo(new FunctionIdent(
@@ -85,6 +93,12 @@ public final class TruncFunction {
             @Override
             public FunctionInfo info() {
                 return info;
+            }
+
+            @Nullable
+            @Override
+            public Signature signature() {
+                return signature;
             }
 
             @Override

@@ -22,6 +22,11 @@
 
 package io.crate.types;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,7 +35,7 @@ import java.util.Objects;
 
 import static java.lang.String.format;
 
-public class TypeSignature {
+public class TypeSignature implements Writeable {
 
     /**
      * Creates a type signature out of the given signature string.
@@ -96,6 +101,16 @@ public class TypeSignature {
         return parseTypeSignature(parameterName);
     }
 
+    public static void toStream(TypeSignature typeSignature, StreamOutput out) throws IOException {
+        out.writeVInt(typeSignature.type().ordinal());
+        typeSignature.writeTo(out);
+    }
+
+    public static TypeSignature fromStream(StreamInput in) throws IOException {
+        return TypeSignatureType.VALUES.get(in.readVInt()).newInstance(in);
+    }
+
+
     private final String baseTypeName;
     private final List<TypeSignature> parameters;
 
@@ -106,6 +121,15 @@ public class TypeSignature {
     public TypeSignature(String baseTypeName, List<TypeSignature> parameters) {
         this.baseTypeName = baseTypeName;
         this.parameters = parameters;
+    }
+
+    public TypeSignature(StreamInput in) throws IOException {
+        baseTypeName = in.readString();
+        int numParams = in.readVInt();
+        parameters = new ArrayList<>(numParams);
+        for (int i = 0; i < numParams; i++) {
+            parameters.add(fromStream(in));
+        }
     }
 
     public String getBaseTypeName() {
@@ -144,6 +168,15 @@ public class TypeSignature {
     }
 
     @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(baseTypeName);
+        out.writeVInt(parameters.size());
+        for (TypeSignature parameter : parameters) {
+            toStream(parameter, out);
+        }
+    }
+
+    @Override
     public String toString() {
         if (parameters.isEmpty()) {
             return baseTypeName;
@@ -175,5 +208,9 @@ public class TypeSignature {
     @Override
     public int hashCode() {
         return Objects.hash(baseTypeName, parameters);
+    }
+
+    public TypeSignatureType type() {
+        return TypeSignatureType.TYPE_SIGNATURE;
     }
 }

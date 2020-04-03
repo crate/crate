@@ -29,6 +29,8 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 
+import javax.annotation.Nullable;
+
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.DataTypes.tryFindNotNullType;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -43,20 +45,29 @@ public class NullIfFunction extends Scalar<Object, Object> {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            args -> new NullIfFunction(FunctionInfo.of(NAME, args, tryFindNotNullType(args)))
+            (signature, args) ->
+                new NullIfFunction(FunctionInfo.of(NAME, args, tryFindNotNullType(args)), signature)
         );
     }
 
     public static final String NAME = "nullif";
-    private FunctionInfo info;
+    private final FunctionInfo info;
+    private final Signature signature;
 
-    private NullIfFunction(FunctionInfo info) {
+    private NullIfFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

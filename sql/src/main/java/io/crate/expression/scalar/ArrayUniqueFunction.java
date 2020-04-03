@@ -32,6 +32,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -45,8 +46,6 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_unique";
-    private final FunctionInfo functionInfo;
-    private final DataType<?> elementType;
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -55,9 +54,12 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
                 parseTypeSignature("array(E)"),
                 parseTypeSignature("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
-            argumentTypes -> {
+            (signature, argumentTypes) -> {
                 ensureSingleArgumentArrayInnerTypeIsNotUndefined(argumentTypes);
-                return new ArrayUniqueFunction(createInfo(argumentTypes));
+                return new ArrayUniqueFunction(
+                    createInfo(argumentTypes),
+                    signature
+                );
             }
         );
         module.register(
@@ -67,9 +69,12 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
                 parseTypeSignature("array(E)"),
                 parseTypeSignature("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
-            argumentTypes -> {
+            (signature, argumentTypes) -> {
                 ensureBothInnerTypesAreNotUndefined(argumentTypes, NAME);
-                return new ArrayUniqueFunction(createInfo(argumentTypes));
+                return new ArrayUniqueFunction(
+                    createInfo(argumentTypes),
+                    signature
+                );
             }
         );
     }
@@ -82,14 +87,25 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
         return new FunctionInfo(new FunctionIdent(NAME, types), arrayType);
     }
 
-    private ArrayUniqueFunction(FunctionInfo functionInfo) {
+    private final FunctionInfo functionInfo;
+    private final Signature signature;
+    private final DataType<?> elementType;
+
+    private ArrayUniqueFunction(FunctionInfo functionInfo, Signature signature) {
         this.functionInfo = functionInfo;
+        this.signature = signature;
         this.elementType = ((ArrayType) functionInfo.returnType()).innerType();
     }
 
     @Override
     public FunctionInfo info() {
         return functionInfo;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

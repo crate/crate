@@ -51,6 +51,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -173,22 +174,27 @@ public class Functions {
      */
     @Nullable
     private FunctionImplementation getBuiltin(FunctionName functionName, List<DataType> dataTypes) {
-        // Try new signature registry first
-        FunctionImplementation impl = resolveFunctionBySignature(
-            functionName,
-            dataTypes,
-            SearchPath.pathWithPGCatalogAndDoc(),
-            functionImplementations::get
-        );
-        if (impl != null) {
-            return impl;
-        }
-
         FunctionResolver resolver = functionResolvers.get(functionName);
         if (resolver == null) {
             return null;
         }
         return resolver.getForTypes(dataTypes);
+    }
+
+    @Nullable
+    private FunctionImplementation get(Signature signature,
+                                       List<DataType> actualArgumentTypes,
+                                       Function<FunctionName, List<FuncResolver>> lookupFunction) {
+        var candidates = lookupFunction.apply(signature.getName());
+        if (candidates == null) {
+            return null;
+        }
+        for (var candidate : candidates) {
+            if (candidate.getSignature().equals(signature)) {
+                return candidate.getFactory().apply(signature, actualArgumentTypes);
+            }
+        }
+        return null;
     }
 
     /**
@@ -204,11 +210,10 @@ public class Functions {
                                                     List<? extends FuncArg> argumentsTypes,
                                                     SearchPath searchPath) {
         // V2
-        FunctionImplementation impl = resolveFunctionBySignature(
+        FunctionImplementation impl = resolveBuiltInFunctionBySignature(
             functionName,
             Lists2.map(argumentsTypes, FuncArg::valueType),
-            searchPath,
-            functionImplementations::get
+            searchPath
         );
         if (impl != null) {
             return impl;
@@ -222,10 +227,18 @@ public class Functions {
     }
 
     @Nullable
-    private FunctionImplementation resolveFunctionBySignature(FunctionName name,
-                                                              List<DataType> arguments,
-                                                              SearchPath searchPath,
-                                                              Function<FunctionName, List<FuncResolver>> lookupFunction) {
+    public FunctionImplementation resolveBuiltInFunctionBySignature(FunctionName name,
+                                                                     List<DataType> arguments,
+                                                                     SearchPath searchPath) {
+        return resolveFunctionBySignature(name, arguments, searchPath, functionImplementations::get);
+    }
+
+
+    @Nullable
+    private static FunctionImplementation resolveFunctionBySignature(FunctionName name,
+                                                                     List<DataType> arguments,
+                                                                     SearchPath searchPath,
+                                                                     Function<FunctionName, List<FuncResolver>> lookupFunction) {
         var candidates = lookupFunction.apply(name);
         if (candidates == null && name.schema() == null) {
             for (String pathSchema : searchPath) {
@@ -237,27 +250,33 @@ public class Functions {
             }
         }
         if (candidates != null) {
+            assert candidates.stream().allMatch(f -> f.getSignature().getBindingInfo() != null) :
+                "Resolving/Matching of signatures can only be done with non-null signature's binding info";
+
+            @SuppressWarnings("ConstantConditions")
             // First lets try exact candidates, no generic type variables, no coercion allowed.
             var exactCandidates = candidates.stream()
-                .filter(function -> function.getSignature().getTypeVariableConstraints().isEmpty())
+                .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
                 .collect(Collectors.toList());
             var match = matchFunctionCandidates(exactCandidates, arguments, false);
             if (match != null) {
                 return match;
             }
 
+            @SuppressWarnings("ConstantConditions")
             // Second, try candidates with generic type variables, still no coercion allowed.
             var genericCandidates = candidates.stream()
-                .filter(function -> !function.getSignature().getTypeVariableConstraints().isEmpty())
+                .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
                 .collect(Collectors.toList());
             match = matchFunctionCandidates(genericCandidates, arguments, false);
             if (match != null) {
                 return match;
             }
 
+            @SuppressWarnings("ConstantConditions")
             // Last, try all candidates which allow coercion.
             var candidatesAllowingCoercion = candidates.stream()
-                .filter(function -> function.getSignature().isCoercionAllowed())
+                .filter(function -> function.getSignature().getBindingInfo().isCoercionAllowed())
                 .collect(Collectors.toList());
             return matchFunctionCandidates(candidatesAllowingCoercion, arguments, true);
         }
@@ -362,6 +381,9 @@ public class Functions {
     }
 
     /**
+     * @deprecated Superseded by {@link #getQualified(Signature, List)}.
+     *             This method gets removed once all functions use the signature based registry.
+     *
      * Returns the function implementation for the given function ident.
      * First look up function in built-ins then fallback to user-defined functions.
      *
@@ -373,6 +395,23 @@ public class Functions {
         FunctionImplementation impl = getBuiltin(ident.fqnName(), ident.argumentTypes());
         if (impl == null) {
             impl = getUserDefined(ident.fqnName(), ident.argumentTypes());
+        }
+        return impl;
+    }
+
+    /**
+     * Returns the function implementation for the given function signature.
+     * First look up function in built-ins then fallback to user-defined functions.
+     *
+     * @param signature The function signature.
+     * @return The function implementation.
+     * @throws UnsupportedOperationException if no implementation is found.
+     */
+    public FunctionImplementation getQualified(Signature signature,
+                                               List<DataType> actualArgumentTypes) throws UnsupportedOperationException {
+        FunctionImplementation impl = get(signature, actualArgumentTypes, functionImplementations::get);
+        if (impl == null) {
+            impl = get(signature, actualArgumentTypes, udfFunctionImplementations::get);
         }
         return impl;
     }
@@ -584,11 +623,11 @@ public class Functions {
 
         private final Signature declaredSignature;
         private final Signature boundSignature;
-        private final Function<List<DataType>, FunctionImplementation> factory;
+        private final BiFunction<Signature, List<DataType>, FunctionImplementation> factory;
 
         public ApplicableFunction(Signature declaredSignature,
                                   Signature boundSignature,
-                                  Function<List<DataType>, FunctionImplementation> factory) {
+                                  BiFunction<Signature, List<DataType>, FunctionImplementation> factory) {
             this.declaredSignature = declaredSignature;
             this.boundSignature = boundSignature;
             this.factory = factory;
@@ -604,7 +643,10 @@ public class Functions {
 
         @Override
         public FunctionImplementation get() {
-            return factory.apply(Lists2.map(boundSignature.getArgumentTypes(), TypeSignature::createType));
+            return factory.apply(
+                declaredSignature,
+                Lists2.map(boundSignature.getArgumentTypes(), TypeSignature::createType)
+            );
         }
 
         @Override

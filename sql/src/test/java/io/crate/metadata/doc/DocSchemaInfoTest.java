@@ -34,6 +34,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -60,7 +61,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         udfService = new UserDefinedFunctionService(clusterService, functions);
         udfService.registerLanguage(new UDFLanguage() {
             @Override
-            public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
+            public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData,
+                                                       Signature signature) throws ScriptException {
                 String error = validate(metaData);
                 if (error != null) {
                     throw new ScriptException("this is not Burlesque");
@@ -75,6 +77,12 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
                     @Override
                     public FunctionInfo info() {
                         return info;
+                    }
+
+                    @Nullable
+                    @Override
+                    public Signature signature() {
+                        return signature;
                     }
                 };
             }

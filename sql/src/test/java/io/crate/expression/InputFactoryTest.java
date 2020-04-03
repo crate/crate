@@ -78,8 +78,8 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         Function avgX = (Function) expressions.asSymbol("avg(x)");
 
         List<Symbol> aggregations = Arrays.asList(
-            new Aggregation(countX.info(), countX.info().returnType(), Arrays.asList(new InputColumn(0))),
-            new Aggregation(avgX.info(), countX.info().returnType(), Arrays.asList(new InputColumn(0)))
+            new Aggregation(countX.info(), countX.signature(), countX.info().returnType(), Arrays.asList(new InputColumn(0))),
+            new Aggregation(avgX.info(), avgX.signature(), countX.info().returnType(), Arrays.asList(new InputColumn(0)))
         );
 
         InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
@@ -142,10 +142,11 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         Function countX = (Function) expressions.asSymbol("count(x)");
 
         // values: [ count(in(0)) ]
-        List<Aggregation> values = Arrays.asList(new Aggregation(
+        List<Aggregation> values = List.of(new Aggregation(
             countX.info(),
+            countX.signature(),
             countX.valueType(),
-            Arrays.<Symbol>asList(new InputColumn(0))
+            List.of(new InputColumn(0))
         ));
 
         InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);

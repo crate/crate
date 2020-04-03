@@ -27,19 +27,23 @@ import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 public final class InitCapFunction {
 
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 "initcap",
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            args ->
-                new UnaryScalar<>("initcap", DataTypes.STRING, DataTypes.STRING, InitCapFunction::toCapital)
+            (signature, args) ->
+                new UnaryScalar<>(
+                    "initcap",
+                    signature,
+                    DataTypes.STRING,
+                    DataTypes.STRING,
+                    InitCapFunction::toCapital
+                )
         );
     }
 

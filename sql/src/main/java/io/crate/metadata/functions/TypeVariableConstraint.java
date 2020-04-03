@@ -22,9 +22,14 @@
 
 package io.crate.metadata.functions;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import java.io.IOException;
 import java.util.Objects;
 
-public class TypeVariableConstraint {
+public class TypeVariableConstraint implements Writeable {
 
     public static TypeVariableConstraint typeVariable(String name) {
         return new TypeVariableConstraint(name, false);
@@ -42,12 +47,23 @@ public class TypeVariableConstraint {
         this.anyAllowed = anyAllowed;
     }
 
+    public TypeVariableConstraint(StreamInput in) throws IOException {
+        name = in.readString();
+        anyAllowed = in.readBoolean();
+    }
+
     public String getName() {
         return name;
     }
 
     public boolean isAnyAllowed() {
         return anyAllowed;
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(name);
+        out.writeBoolean(anyAllowed);
     }
 
     @Override

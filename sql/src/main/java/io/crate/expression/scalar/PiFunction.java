@@ -30,12 +30,12 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public final class PiFunction extends Scalar<Double, Object> {
 
     private static final String NAME = "pi";
-    private final FunctionInfo info;
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -43,11 +43,15 @@ public final class PiFunction extends Scalar<Double, Object> {
                 NAME,
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            args -> new PiFunction()
+            (signature, args) -> new PiFunction(signature)
         );
     }
 
-    public PiFunction() {
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    public PiFunction(Signature signature) {
+        this.signature = signature;
         info = new FunctionInfo(new FunctionIdent(NAME, List.of()), DataTypes.DOUBLE);
     }
 
@@ -60,5 +64,11 @@ public final class PiFunction extends Scalar<Double, Object> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

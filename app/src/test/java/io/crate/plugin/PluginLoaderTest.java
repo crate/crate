@@ -25,6 +25,7 @@ package io.crate.plugin;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
+import io.crate.metadata.functions.Signature;
 import io.crate.test.CauseMatcher;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -98,9 +99,13 @@ public class PluginLoaderTest extends ESIntegTestCase {
                    is(new FunctionInfo( isEven, DataTypes.BOOLEAN)));
 
         // Also check that the built-in functions are not lost
-        FunctionIdent abs = new FunctionIdent("abs", Collections.singletonList(DataTypes.LONG));
-        assertThat(functions.getQualified(abs).info(),
-                   is(new FunctionInfo(abs, DataTypes.LONG)));
+        var abs = Signature.scalar(
+            "abs",
+            DataTypes.LONG.getTypeSignature(),
+            DataTypes.LONG.getTypeSignature()
+        );
+        assertThat(functions.getQualified(abs, List.of(DataTypes.LONG)).signature(),
+                   is(abs));
     }
 
     @Test

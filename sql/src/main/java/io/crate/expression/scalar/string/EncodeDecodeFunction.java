@@ -36,30 +36,40 @@ import java.util.Locale;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 public class EncodeDecodeFunction {
 
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 "encode",
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            args ->
-                new BinaryScalar<>(new Encode(), "encode", DataTypes.STRING, FunctionInfo.DETERMINISTIC_ONLY)
+            (signature, args) ->
+                new BinaryScalar<>(
+                    new Encode(),
+                    "encode",
+                    signature,
+                    DataTypes.STRING,
+                    FunctionInfo.DETERMINISTIC_ONLY
+                )
         );
         module.register(
             Signature.scalar(
                 "decode",
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            args ->
-                new BinaryScalar<>(new Decode(), "decode", DataTypes.STRING, FunctionInfo.DETERMINISTIC_ONLY)
+            (signature, args) ->
+                new BinaryScalar<>(
+                    new Decode(),
+                    "decode",
+                    signature,
+                    DataTypes.STRING,
+                    FunctionInfo.DETERMINISTIC_ONLY
+                )
         );
     }
 

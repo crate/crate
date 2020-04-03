@@ -36,8 +36,6 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.List;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 public class RegexpReplaceFunction extends Scalar<String, Object> {
 
     public static final String NAME = "regexp_replace";
@@ -46,38 +44,58 @@ public class RegexpReplaceFunction extends Scalar<String, Object> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            args ->
-                new RegexpReplaceFunction(new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING))
+            (signature, args) ->
+                new RegexpReplaceFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING),
+                    signature
+                )
         );
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            args ->
-                new RegexpReplaceFunction(new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING))
+            (signature, args) ->
+                new RegexpReplaceFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING),
+                    signature
+                )
         );
     }
 
-    private FunctionInfo info;
-    private RegexMatcher regexMatcher;
+    private final FunctionInfo info;
+    private final Signature signature;
+    @Nullable
+    private final RegexMatcher regexMatcher;
 
-    private RegexpReplaceFunction(FunctionInfo info) {
+    private RegexpReplaceFunction(FunctionInfo info, Signature signature) {
+        this(info, signature, null);
+    }
+
+    private RegexpReplaceFunction(FunctionInfo info, Signature signature, RegexMatcher regexMatcher) {
         this.info = info;
+        this.signature = signature;
+        this.regexMatcher = regexMatcher;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
@@ -121,7 +139,7 @@ public class RegexpReplaceFunction extends Scalar<String, Object> {
                 Symbol flagsSymbol = arguments.get(3);
                 if (flagsSymbol instanceof Input) {
                     String flags = (String) ((Input) flagsSymbol).value();
-                    regexMatcher = new RegexMatcher(pattern, flags);
+                    return new RegexpReplaceFunction(info, signature, new RegexMatcher(pattern, flags));
                 }
             }
         }

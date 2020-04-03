@@ -40,11 +40,10 @@ import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.SpatialRelation;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class WithinFunction extends Scalar<Boolean, Object> {
 
@@ -73,10 +72,10 @@ public class WithinFunction extends Scalar<Boolean, Object> {
                         NAME,
                         left.getTypeSignature(),
                         right.getTypeSignature(),
-                        parseTypeSignature("boolean")
+                        DataTypes.BOOLEAN.getTypeSignature()
                     )
                         .withForbiddenCoercion(),
-                    args -> new WithinFunction(info(left, right))
+                    (signature, args) -> new WithinFunction(info(left, right), signature)
                 );
             }
         }
@@ -92,9 +91,11 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     private static final FunctionInfo SHAPE_INFO = info(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE);
 
     private final FunctionInfo info;
+    private final Signature signature;
 
-    private WithinFunction(FunctionInfo info) {
+    private WithinFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
@@ -144,6 +145,12 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         return info;
     }
 
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
+    }
+
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         Symbol left = symbol.arguments().get(0);
@@ -171,7 +178,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         }
 
         if (literalConverted) {
-            return new Function(SHAPE_INFO, Arrays.asList(left, right));
+            return new Function(SHAPE_INFO, signature, Arrays.asList(left, right));
         }
 
         return symbol;

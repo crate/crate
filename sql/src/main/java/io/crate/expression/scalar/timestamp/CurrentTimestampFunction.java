@@ -31,12 +31,11 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CurrentTimestampFunction extends Scalar<Long, Integer> {
 
@@ -53,13 +52,18 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("integer"),
-                parseTypeSignature("timestamp with time zone")
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.TIMESTAMPZ.getTypeSignature()
             ),
-            args -> new CurrentTimestampFunction()
+            (signature, args) -> new CurrentTimestampFunction(signature)
         );
     }
 
+    private final Signature signature;
+
+    public CurrentTimestampFunction(Signature signature) {
+        this.signature = signature;
+    }
 
     @Override
     @SafeVarargs
@@ -99,5 +103,11 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

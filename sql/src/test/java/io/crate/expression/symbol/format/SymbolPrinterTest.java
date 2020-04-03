@@ -24,6 +24,7 @@ package io.crate.expression.symbol.format;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.expression.scalar.FormatFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;

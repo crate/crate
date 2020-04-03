@@ -40,9 +40,6 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     public static final String NAME = "arbitrary";
 
-    private final FunctionInfo info;
-    private final SizeEstimator<Object> partialEstimator;
-
     public static void register(AggregationImplModule mod) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             mod.register(
@@ -50,23 +47,38 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                     NAME,
                     supportedType.getTypeSignature(),
                     supportedType.getTypeSignature()),
-                args -> new ArbitraryAggregation(
-                    new FunctionInfo(
-                        new FunctionIdent(NAME, args),
-                        args.get(0),
-                        FunctionInfo.Type.AGGREGATE))
+                (signature, args) ->
+                    new ArbitraryAggregation(
+                        new FunctionInfo(
+                            new FunctionIdent(NAME, args),
+                            args.get(0),
+                            FunctionInfo.Type.AGGREGATE
+                        ),
+                        signature
+                    )
             );
         }
     }
 
-    ArbitraryAggregation(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final Signature signature;
+    private final SizeEstimator<Object> partialEstimator;
+
+    ArbitraryAggregation(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
         partialEstimator = SizeEstimatorFactory.create(partialType());
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

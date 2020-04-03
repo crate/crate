@@ -57,8 +57,12 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
                 parseTypeSignature("array(E)"),
                 parseTypeSignature("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
-            argumentTypes ->
-                new ArrayDifferenceFunction(createInfo(argumentTypes), null)
+            (signature, argumentTypes) ->
+                new ArrayDifferenceFunction(
+                    createInfo(argumentTypes),
+                    signature,
+                    null
+                )
         );
     }
 
@@ -72,16 +76,26 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     private final FunctionInfo functionInfo;
+    private final Signature signature;
     private final Optional<Set<Object>> optionalSubtractSet;
 
-    private ArrayDifferenceFunction(FunctionInfo functionInfo, @Nullable Set<Object> subtractSet) {
+    private ArrayDifferenceFunction(FunctionInfo functionInfo,
+                                    Signature signature,
+                                    @Nullable Set<Object> subtractSet) {
         this.functionInfo = functionInfo;
+        this.signature = signature;
         optionalSubtractSet = Optional.ofNullable(subtractSet);
     }
 
     @Override
     public FunctionInfo info() {
         return functionInfo;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
@@ -107,7 +121,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
                 subtractSet.add(innerType.value(element));
             }
         }
-        return new ArrayDifferenceFunction(this.functionInfo, subtractSet);
+        return new ArrayDifferenceFunction(this.functionInfo, signature, subtractSet);
     }
 
     @Override

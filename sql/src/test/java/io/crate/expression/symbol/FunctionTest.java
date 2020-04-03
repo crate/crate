@@ -78,6 +78,7 @@ public class FunctionTest extends CrateUnitTest {
                 FunctionInfo.Type.SCALAR,
                 randomFeatures()
             ),
+            null,
             List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN)),
             Literal.of(true)
         );

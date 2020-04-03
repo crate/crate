@@ -59,13 +59,25 @@ public class CurrentSchemaFunction extends Scalar<String, Object> {
                 FQN,
                 DataTypes.STRING.getTypeSignature()
             ),
-            args -> new CurrentSchemaFunction()
+            (signature, args) -> new CurrentSchemaFunction(signature)
         );
+    }
+
+    private final Signature signature;
+
+    public CurrentSchemaFunction(Signature signature) {
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

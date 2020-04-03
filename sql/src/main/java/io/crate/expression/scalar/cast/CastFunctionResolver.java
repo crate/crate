@@ -27,18 +27,22 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
+import io.crate.types.TypeSignature;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
 import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CastFunctionResolver {
 
@@ -73,16 +77,19 @@ public class CastFunctionResolver {
         // types have to be considered as well. Therefore, to bypass this
         // limitation we encode the return type info as the second function
         // argument.
+        var info = functionInfo(List.of(sourceType, targetType), targetType, tryCast);
         return new Function(
-            functionInfo(List.of(sourceType, targetType), targetType, tryCast),
+            info,
+            createSignature(info),
             // the null literal is passed as an argument to match the method signature
-            List.of(sourceSymbol, Literal.NULL));
+            List.of(sourceSymbol, Literal.NULL),
+            null);
     }
 
     /**
      * resolve the needed conversion function info based on the wanted return data type
      */
-    private static FunctionInfo functionInfo(List<DataType> dataTypes, DataType returnType, boolean tryCast) {
+    static FunctionInfo functionInfo(List<DataType> dataTypes, DataType returnType, boolean tryCast) {
         var castFunctionName = castFuncName(returnType);
         if (CAST_SIGNATURES.get(castFunctionName) == null) {
             throw new IllegalArgumentException(
@@ -91,6 +98,20 @@ public class CastFunctionResolver {
         }
         castFunctionName = tryCast ? TRY_CAST_PREFIX + castFunctionName : castFunctionName;
         return new FunctionInfo(new FunctionIdent(castFunctionName, dataTypes), returnType);
+    }
+
+    static Signature createSignature(FunctionInfo functionInfo) {
+        DataType<?> returnType = functionInfo.returnType();
+        TypeSignature returnTypeSignature = returnType.getTypeSignature();
+        if (returnType.id() == ObjectType.ID) {
+            returnTypeSignature = ObjectType.untyped().getTypeSignature();
+        }
+        return Signature.scalar(
+            functionInfo.ident().fqnName(),
+            parseTypeSignature("E"),
+            parseTypeSignature("V"),
+            returnTypeSignature
+        ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
     }
 
     public static boolean supportsExplicitConversion(DataType returnType) {

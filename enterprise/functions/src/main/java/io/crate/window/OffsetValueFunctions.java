@@ -30,6 +30,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
@@ -66,15 +67,23 @@ public class OffsetValueFunctions implements WindowFunction {
 
     private final OffsetDirection offsetDirection;
     private final FunctionInfo info;
+    private final Signature signature;
 
-    private OffsetValueFunctions(FunctionInfo info, OffsetDirection offsetDirection) {
+    private OffsetValueFunctions(FunctionInfo info, Signature signature, OffsetDirection offsetDirection) {
         this.info = info;
+        this.signature = signature;
         this.offsetDirection = offsetDirection;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
@@ -123,12 +132,15 @@ public class OffsetValueFunctions implements WindowFunction {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            args -> new OffsetValueFunctions(
-                new FunctionInfo(
-                    new FunctionIdent(LEAD_NAME, args),
-                    args.get(0),
-                    FunctionInfo.Type.WINDOW),
-                OffsetDirection.FORWARD)
+            (signature, args) ->
+                new OffsetValueFunctions(
+                    new FunctionInfo(
+                        new FunctionIdent(LEAD_NAME, args),
+                        args.get(0),
+                        FunctionInfo.Type.WINDOW),
+                    signature,
+                    OffsetDirection.FORWARD
+                )
         );
         module.register(
             Signature.window(
@@ -137,12 +149,15 @@ public class OffsetValueFunctions implements WindowFunction {
                 DataTypes.INTEGER.getTypeSignature(),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            args -> new OffsetValueFunctions(
-                new FunctionInfo(
-                    new FunctionIdent(LEAD_NAME, args),
-                    args.get(0),
-                    FunctionInfo.Type.WINDOW),
-                OffsetDirection.FORWARD)
+            (signature, args) ->
+                new OffsetValueFunctions(
+                    new FunctionInfo(
+                        new FunctionIdent(LEAD_NAME, args),
+                        args.get(0),
+                        FunctionInfo.Type.WINDOW),
+                    signature,
+                    OffsetDirection.FORWARD
+                )
         );
         module.register(
             Signature.window(
@@ -152,12 +167,15 @@ public class OffsetValueFunctions implements WindowFunction {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            args -> new OffsetValueFunctions(
-                new FunctionInfo(
-                    new FunctionIdent(LEAD_NAME, args),
-                    args.get(0),
-                    FunctionInfo.Type.WINDOW),
-                OffsetDirection.FORWARD)
+            (signature, args) ->
+                new OffsetValueFunctions(
+                    new FunctionInfo(
+                        new FunctionIdent(LEAD_NAME, args),
+                        args.get(0),
+                        FunctionInfo.Type.WINDOW),
+                    signature,
+                    OffsetDirection.FORWARD
+                )
         );
 
         module.register(
@@ -166,12 +184,15 @@ public class OffsetValueFunctions implements WindowFunction {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            args -> new OffsetValueFunctions(
-                new FunctionInfo(
-                    new FunctionIdent(LAG_NAME, args),
-                    args.get(0),
-                    FunctionInfo.Type.WINDOW),
-                OffsetDirection.BACKWARD)
+            (signature, args) ->
+                new OffsetValueFunctions(
+                    new FunctionInfo(
+                        new FunctionIdent(LAG_NAME, args),
+                        args.get(0),
+                        FunctionInfo.Type.WINDOW),
+                    signature,
+                    OffsetDirection.BACKWARD
+                )
         );
         module.register(
             Signature.window(
@@ -180,12 +201,15 @@ public class OffsetValueFunctions implements WindowFunction {
                 DataTypes.INTEGER.getTypeSignature(),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            args -> new OffsetValueFunctions(
-                new FunctionInfo(
-                    new FunctionIdent(LAG_NAME, args),
-                    args.get(0),
-                    FunctionInfo.Type.WINDOW),
-                OffsetDirection.BACKWARD)
+            (signature, args) ->
+                new OffsetValueFunctions(
+                    new FunctionInfo(
+                        new FunctionIdent(LAG_NAME, args),
+                        args.get(0),
+                        FunctionInfo.Type.WINDOW),
+                    signature,
+                    OffsetDirection.BACKWARD
+                )
         );
         module.register(
             Signature.window(
@@ -195,12 +219,15 @@ public class OffsetValueFunctions implements WindowFunction {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            args -> new OffsetValueFunctions(
-                new FunctionInfo(
-                    new FunctionIdent(LAG_NAME, args),
-                    args.get(0),
-                    FunctionInfo.Type.WINDOW),
-                OffsetDirection.BACKWARD)
+            (signature, args) ->
+                new OffsetValueFunctions(
+                    new FunctionInfo(
+                        new FunctionIdent(LAG_NAME, args),
+                        args.get(0),
+                        FunctionInfo.Type.WINDOW),
+                    signature,
+                    OffsetDirection.BACKWARD
+                )
         );
     }
 }

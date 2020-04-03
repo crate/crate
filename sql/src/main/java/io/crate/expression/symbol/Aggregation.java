@@ -25,17 +25,49 @@ import com.google.common.base.Preconditions;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
 public class Aggregation extends Symbol {
+
+    private final FunctionInfo functionInfo;
+    @Nullable
+    private final Signature signature;
+    private final List<Symbol> inputs;
+    private final DataType<?> valueType;
+    private final Symbol filter;
+
+    public Aggregation(FunctionInfo functionInfo, DataType<?> valueType, List<Symbol> inputs) {
+        this(functionInfo, null, valueType, inputs, Literal.BOOLEAN_TRUE);
+    }
+
+    public Aggregation(FunctionInfo functionInfo, Signature signature, DataType<?> valueType, List<Symbol> inputs) {
+        this(functionInfo, signature, valueType, inputs, Literal.BOOLEAN_TRUE);
+    }
+
+    public Aggregation(FunctionInfo functionInfo,
+                       @Nullable Signature signature,
+                       DataType<?> valueType,
+                       List<Symbol> inputs,
+                       Symbol filter) {
+        Preconditions.checkNotNull(inputs, "inputs must not be null");
+        Preconditions.checkNotNull(filter, "filter must not be null");
+
+        this.valueType = valueType;
+        this.functionInfo = functionInfo;
+        this.signature = signature;
+        this.inputs = inputs;
+        this.filter = filter;
+    }
 
     public Aggregation(StreamInput in) throws IOException {
         functionInfo = new FunctionInfo(in);
@@ -46,28 +78,11 @@ public class Aggregation extends Symbol {
             filter = Literal.BOOLEAN_TRUE;
         }
         inputs = Symbols.listFromStream(in);
-    }
-
-    private final FunctionInfo functionInfo;
-    private final List<Symbol> inputs;
-    private final DataType<?> valueType;
-    private final Symbol filter;
-
-    public Aggregation(FunctionInfo functionInfo, DataType<?> valueType, List<Symbol> inputs) {
-        this(functionInfo, valueType, inputs, Literal.BOOLEAN_TRUE);
-    }
-
-    public Aggregation(FunctionInfo functionInfo,
-                       DataType<?> valueType,
-                       List<Symbol> inputs,
-                       Symbol filter) {
-        Preconditions.checkNotNull(inputs, "inputs must not be null");
-        Preconditions.checkNotNull(filter, "filter must not be null");
-
-        this.valueType = valueType;
-        this.functionInfo = functionInfo;
-        this.inputs = inputs;
-        this.filter = filter;
+        if (in.getVersion().onOrAfter(Version.V_4_2_0) && in.readBoolean()) {
+            signature = new Signature(in);
+        } else {
+            signature = null;
+        }
     }
 
     @Override
@@ -89,6 +104,11 @@ public class Aggregation extends Symbol {
         return functionInfo.ident();
     }
 
+    @Nullable
+    public Signature signature() {
+        return signature;
+    }
+
     public List<Symbol> inputs() {
         return inputs;
     }
@@ -105,7 +125,12 @@ public class Aggregation extends Symbol {
             Symbols.toStream(filter, out);
         }
         Symbols.toStream(inputs, out);
-
+        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
+            out.writeBoolean(signature != null);
+            if (signature != null) {
+                signature.writeTo(out);
+            }
+        }
     }
 
     @Override

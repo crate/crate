@@ -46,7 +46,7 @@ public final class FunctionName implements Comparable<FunctionName>, Writeable {
         this(null, name);
     }
 
-    FunctionName(StreamInput in) throws IOException {
+    public FunctionName(StreamInput in) throws IOException {
         schema = in.readOptionalString();
         name = in.readString();
     }

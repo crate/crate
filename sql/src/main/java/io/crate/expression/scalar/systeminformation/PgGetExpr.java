@@ -33,6 +33,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 
 public class PgGetExpr extends Scalar<String, Object> {
@@ -48,8 +49,14 @@ public class PgGetExpr extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            args -> new PgGetExpr()
+            (signature, args) -> new PgGetExpr(signature)
         );
+    }
+
+    private final Signature signature;
+
+    public PgGetExpr(Signature signature) {
+        this.signature = signature;
     }
 
     @Override
@@ -62,5 +69,11 @@ public class PgGetExpr extends Scalar<String, Object> {
         return new FunctionInfo(
             new FunctionIdent(FQN, Arrays.asList(DataTypes.STRING, DataTypes.INTEGER)),
             DataTypes.STRING);
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }
