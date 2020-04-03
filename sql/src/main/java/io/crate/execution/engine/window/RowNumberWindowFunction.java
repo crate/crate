@@ -25,12 +25,9 @@ package io.crate.execution.engine.window;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.List;
@@ -59,13 +56,13 @@ public class RowNumberWindowFunction implements WindowFunction {
     }
 
     public static void register(WindowFunctionModule module) {
-        module.register(NAME, new BaseFunctionResolver(FuncParams.NONE) {
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new RowNumberWindowFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.INTEGER, FunctionInfo.Type.WINDOW));
-            }
-        });
+        module.register(
+            Signature.window(NAME, DataTypes.INTEGER.getTypeSignature()),
+            args -> new RowNumberWindowFunction(
+                new FunctionInfo(
+                    new FunctionIdent(NAME, args),
+                    DataTypes.INTEGER,
+                    FunctionInfo.Type.WINDOW))
+        );
     }
 }
