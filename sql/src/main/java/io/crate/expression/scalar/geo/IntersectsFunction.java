@@ -32,16 +32,17 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.locationtech.spatial4j.shape.Shape;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.metadata.functions.Signature.scalar;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class IntersectsFunction extends Scalar<Boolean, Object> {
 
@@ -70,18 +71,21 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
                         NAME,
                         type1.getTypeSignature(),
                         type2.getTypeSignature(),
-                        parseTypeSignature("boolean")
+                        DataTypes.BOOLEAN.getTypeSignature()
                         ),
-                    args -> new IntersectsFunction(info(type1, type2))
+                    (signature, args) ->
+                        new IntersectsFunction(info(type1, type2), signature)
                 );
             }
         }
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
 
-    public IntersectsFunction(FunctionInfo functionInfo) {
+    public IntersectsFunction(FunctionInfo functionInfo, Signature signature) {
         this.info = functionInfo;
+        this.signature = signature;
     }
 
     @Override
@@ -103,6 +107,12 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
@@ -131,7 +141,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         }
 
         if (literalConverted) {
-            return new Function(SHAPE_INFO, Arrays.asList(left, right));
+            return new Function(SHAPE_INFO, signature, Arrays.asList(left, right));
         }
 
         return symbol;

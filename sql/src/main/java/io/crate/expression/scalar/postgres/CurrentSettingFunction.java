@@ -29,12 +29,15 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.types.DataTypes;
+
+import javax.annotation.Nullable;
 
 import static io.crate.metadata.functions.Signature.scalar;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CurrentSettingFunction extends Scalar<String, Object> {
 
@@ -45,38 +48,48 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
         module.register(
             scalar(
                 FQN,
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new CurrentSettingFunction(
-                    new FunctionInfo(new FunctionIdent(FQN, argumentTypes), argumentTypes.get(0))
+                    new FunctionInfo(new FunctionIdent(FQN, argumentTypes), argumentTypes.get(0)),
+                    signature
                 )
         );
 
         module.register(
             scalar(
                 FQN,
-                parseTypeSignature("text"),
-                parseTypeSignature("boolean"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.BOOLEAN.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new CurrentSettingFunction(
-                    new FunctionInfo(new FunctionIdent(FQN, argumentTypes), argumentTypes.get(0))
+                    new FunctionInfo(new FunctionIdent(FQN, argumentTypes), argumentTypes.get(0)),
+                    signature
                 )
         );
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
 
-    CurrentSettingFunction(FunctionInfo info) {
+    CurrentSettingFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

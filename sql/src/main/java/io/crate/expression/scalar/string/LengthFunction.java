@@ -30,8 +30,6 @@ import io.crate.types.DataTypes;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 public final class LengthFunction {
 
     public static void register(ScalarFunctionModule module) {
@@ -45,10 +43,10 @@ public final class LengthFunction {
         module.register(
             Signature.scalar(
                 name,
-                parseTypeSignature("text"),
-                parseTypeSignature("integer")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature()
             ),
-            args -> new UnaryScalar<>(name, DataTypes.STRING, DataTypes.INTEGER, func)
+            (signature, args) -> new UnaryScalar<>(name, signature, DataTypes.STRING, DataTypes.INTEGER, func)
         );
     }
 

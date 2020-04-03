@@ -50,8 +50,17 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 public class CountAggregation extends AggregationFunction<CountAggregation.LongState, Long> {
 
     public static final String NAME = "count";
-    private final FunctionInfo info;
-    private final boolean hasArgs;
+    public static final Signature SIGNATURE =
+        Signature.aggregate(
+            NAME,
+            parseTypeSignature("V"),
+            DataTypes.LONG.getTypeSignature()
+        )
+            .withTypeVariableConstraints(typeVariable("V")
+        );
+
+    public static final Signature COUNT_STAR_SIGNATURE =
+        Signature.aggregate(NAME, DataTypes.LONG.getTypeSignature());
 
     static {
         DataTypes.register(CountAggregation.LongStateType.ID, in -> CountAggregation.LongStateType.INSTANCE);
@@ -62,26 +71,31 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
 
     public static void register(AggregationImplModule mod) {
         mod.register(
-            Signature.aggregate(
-                NAME,
-                parseTypeSignature("V"),
-                DataTypes.LONG.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("V")),
-            args -> new CountAggregation(
-                new FunctionInfo(
-                    new FunctionIdent(NAME, args),
-                    DataTypes.LONG,
-                    FunctionInfo.Type.AGGREGATE),
-                true)
+            SIGNATURE,
+            (signature, args) ->
+                new CountAggregation(
+                    new FunctionInfo(
+                        new FunctionIdent(NAME, args),
+                        DataTypes.LONG,
+                        FunctionInfo.Type.AGGREGATE),
+                    signature,
+                    true
+                )
         );
         mod.register(
-            Signature.aggregate(NAME, DataTypes.LONG.getTypeSignature()),
-            args -> new CountAggregation(COUNT_STAR_FUNCTION, false)
+            COUNT_STAR_SIGNATURE,
+            (signature, args) ->
+                new CountAggregation(COUNT_STAR_FUNCTION, signature, false)
         );
     }
 
-    private CountAggregation(FunctionInfo info, boolean hasArgs) {
+    private final FunctionInfo info;
+    private final Signature signature;
+    private final boolean hasArgs;
+
+    private CountAggregation(FunctionInfo info, Signature signature, boolean hasArgs) {
         this.info = info;
+        this.signature = signature;
         this.hasArgs = hasArgs;
     }
 
@@ -111,6 +125,12 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         return info;
     }
 
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
+    }
+
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
         assert function.arguments().size() <= 1 : "function's number of arguments must be 0 or 1";
@@ -121,7 +141,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
                 if (((Input) arg).value() == null) {
                     return Literal.of(0L);
                 } else {
-                    return new Function(COUNT_STAR_FUNCTION, List.of());
+                    return new Function(COUNT_STAR_FUNCTION, COUNT_STAR_SIGNATURE, List.of());
                 }
             }
         }

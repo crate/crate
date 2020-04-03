@@ -219,14 +219,6 @@ public class UserDefinedFunctionService {
 
     @Nullable
     public FuncResolver buildFunctionResolver(UserDefinedFunctionMetaData udf) {
-        final Scalar<?, ?> scalar;
-        try {
-            scalar = getLanguage(udf.language()).createFunctionImplementation(udf);
-        } catch (ScriptException | IllegalArgumentException e) {
-            LOGGER.warn("Can't create user defined function: " + udf.specificName(), e);
-            return null;
-        }
-
         var functionName = new FunctionName(udf.schema(), udf.name());
         var signature = Signature.builder()
             .name(functionName)
@@ -237,6 +229,15 @@ public class UserDefinedFunctionService {
                     DataType::getTypeSignature))
             .returnType(udf.returnType().getTypeSignature())
             .build();
-        return new FuncResolver(signature, args -> scalar);
+
+        final Scalar<?, ?> scalar;
+        try {
+            scalar = getLanguage(udf.language()).createFunctionImplementation(udf, signature);
+        } catch (ScriptException | IllegalArgumentException e) {
+            LOGGER.warn("Can't create user defined function: " + udf.specificName(), e);
+            return null;
+        }
+
+        return new FuncResolver(signature, (s, args) -> scalar);
     }
 }

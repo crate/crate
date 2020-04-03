@@ -26,20 +26,30 @@ import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 
+import javax.annotation.Nullable;
 import java.util.Comparator;
 
 abstract class ConditionalCompareFunction extends Scalar<Object, Object> implements Comparator<Object> {
 
     private final FunctionInfo info;
+    private final Signature signature;
 
-    ConditionalCompareFunction(FunctionInfo info) {
+    ConditionalCompareFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

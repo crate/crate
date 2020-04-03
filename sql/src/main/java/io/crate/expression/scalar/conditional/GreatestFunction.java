@@ -35,8 +35,8 @@ public class GreatestFunction extends ConditionalCompareFunction {
 
     private static final String NAME = "greatest";
 
-    private GreatestFunction(FunctionInfo info) {
-        super(info);
+    private GreatestFunction(FunctionInfo info, Signature signature) {
+        super(info, signature);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -55,7 +55,8 @@ public class GreatestFunction extends ConditionalCompareFunction {
                     parseTypeSignature("E"))
                 .withVariableArity()
                 .withTypeVariableConstraints(typeVariable("E")),
-            args -> new GreatestFunction(FunctionInfo.of(NAME, args, tryFindNotNullType(args)))
+            (signature, args) ->
+                new GreatestFunction(FunctionInfo.of(NAME, args, tryFindNotNullType(args)), signature)
         );
     }
 }

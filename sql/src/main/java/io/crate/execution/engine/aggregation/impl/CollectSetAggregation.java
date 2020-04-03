@@ -53,10 +53,6 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     private static final Object PRESENT = null;
 
     public static final String NAME = "collect_set";
-    private final SizeEstimator<Object> innerTypeEstimator;
-
-    private final FunctionInfo info;
-    private final DataType<?> partialReturnType;
 
     public static void register(AggregationImplModule mod) {
         for (DataType<?> supportedType : DataTypes.PRIMITIVE_TYPES) {
@@ -66,24 +62,40 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                     NAME,
                     supportedType.getTypeSignature(),
                     returnType.getTypeSignature()),
-                args -> new CollectSetAggregation(
-                    new FunctionInfo(
-                        new FunctionIdent(NAME, args),
-                        returnType,
-                        FunctionInfo.Type.AGGREGATE))
+                (signature, args) ->
+                    new CollectSetAggregation(
+                        new FunctionInfo(
+                            new FunctionIdent(NAME, args),
+                            returnType,
+                            FunctionInfo.Type.AGGREGATE
+                        ),
+                        signature
+                    )
             );
         }
     }
 
-    private CollectSetAggregation(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final Signature signature;
+    private final DataType<?> partialReturnType;
+    private final SizeEstimator<Object> innerTypeEstimator;
+
+    private CollectSetAggregation(FunctionInfo info, Signature signature) {
         this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType<?>) info.returnType()).innerType());
         this.info = info;
+        this.signature = signature;
         this.partialReturnType = UncheckedObjectType.INSTANCE;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

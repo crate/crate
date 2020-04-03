@@ -31,6 +31,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,7 +42,6 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_cat";
-    private final FunctionInfo functionInfo;
 
     public static FunctionInfo createInfo(List<DataType> types, String name) {
         ensureBothInnerTypesAreNotUndefined(types, name);
@@ -59,19 +59,33 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
                 parseTypeSignature("array(E)"),
                 parseTypeSignature("array(E)"),
                 parseTypeSignature("array(E)")
-            ).withTypeVariableConstraints(typeVariable("E")),
-            args ->
-                new ArrayCatFunction(ArrayCatFunction.createInfo(args, NAME))
+            )
+                .withTypeVariableConstraints(typeVariable("E")),
+            (signature, args) ->
+                new ArrayCatFunction(
+                    ArrayCatFunction.createInfo(args, NAME),
+                    signature
+                )
         );
     }
 
-    ArrayCatFunction(FunctionInfo functionInfo) {
+    private final FunctionInfo functionInfo;
+    private final Signature signature;
+
+    ArrayCatFunction(FunctionInfo functionInfo, Signature signature) {
         this.functionInfo = functionInfo;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return functionInfo;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @SafeVarargs

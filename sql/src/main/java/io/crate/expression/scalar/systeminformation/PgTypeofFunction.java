@@ -33,6 +33,8 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
+
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
@@ -48,26 +50,35 @@ public final class PgTypeofFunction extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature()
             )
                 .withTypeVariableConstraints(typeVariable("E")),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new PgTypeofFunction(
                     new FunctionInfo(new FunctionIdent(FQNAME, argumentTypes),
-                                     DataTypes.STRING)
+                                     DataTypes.STRING),
+                    signature
                 )
         );
 
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
     private final String type;
 
-    private PgTypeofFunction(FunctionInfo info) {
+    private PgTypeofFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
         type = this.info.ident().argumentTypes().get(0).getName();
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @SafeVarargs

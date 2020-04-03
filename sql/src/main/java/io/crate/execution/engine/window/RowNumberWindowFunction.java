@@ -30,16 +30,32 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class RowNumberWindowFunction implements WindowFunction {
 
     private static final String NAME = "row_number";
 
-    private final FunctionInfo info;
+    public static void register(WindowFunctionModule module) {
+        module.register(
+            Signature.window(NAME, DataTypes.INTEGER.getTypeSignature()),
+            (signature, args) -> new RowNumberWindowFunction(
+                new FunctionInfo(
+                    new FunctionIdent(NAME, args),
+                    DataTypes.INTEGER,
+                    FunctionInfo.Type.WINDOW),
+                signature
+            )
+        );
+    }
 
-    private RowNumberWindowFunction(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    private RowNumberWindowFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
@@ -55,14 +71,9 @@ public class RowNumberWindowFunction implements WindowFunction {
         return info;
     }
 
-    public static void register(WindowFunctionModule module) {
-        module.register(
-            Signature.window(NAME, DataTypes.INTEGER.getTypeSignature()),
-            args -> new RowNumberWindowFunction(
-                new FunctionInfo(
-                    new FunctionIdent(NAME, args),
-                    DataTypes.INTEGER,
-                    FunctionInfo.Type.WINDOW))
-        );
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

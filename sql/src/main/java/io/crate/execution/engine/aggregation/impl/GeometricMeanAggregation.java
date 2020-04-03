@@ -63,11 +63,15 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()),
-                args -> new GeometricMeanAggregation(
-                    new FunctionInfo(
-                        new FunctionIdent(NAME, args),
-                        DataTypes.DOUBLE,
-                        FunctionInfo.Type.AGGREGATE))
+                (signature, args) ->
+                    new GeometricMeanAggregation(
+                        new FunctionInfo(
+                            new FunctionIdent(NAME, args),
+                            DataTypes.DOUBLE,
+                            FunctionInfo.Type.AGGREGATE
+                        ),
+                        signature
+                    )
             );
         }
     }
@@ -184,9 +188,11 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
 
-    public GeometricMeanAggregation(FunctionInfo info) {
+    public GeometricMeanAggregation(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Nullable
@@ -256,5 +262,11 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

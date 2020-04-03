@@ -27,19 +27,17 @@ import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 public final class AsciiFunction {
 
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 "ascii",
-                parseTypeSignature("text"),
-                parseTypeSignature("integer")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature()
             ),
-            args ->
-                new UnaryScalar<>("ascii", args.get(0), DataTypes.INTEGER, AsciiFunction::ascii)
+            (signature, args) ->
+                new UnaryScalar<>("ascii", signature, args.get(0), DataTypes.INTEGER, AsciiFunction::ascii)
         );
     }
 

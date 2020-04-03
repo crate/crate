@@ -31,6 +31,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -50,8 +51,11 @@ public class TimezoneFunction extends Scalar<Long, Object> {
                 DataTypes.TIMESTAMPZ.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature()
             ),
-            argumentTypes ->
-                new TimezoneFunction(new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMP))
+            (signature, argumentTypes) ->
+                new TimezoneFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMP),
+                    signature
+                )
         );
         module.register(
             Signature.scalar(
@@ -60,8 +64,11 @@ public class TimezoneFunction extends Scalar<Long, Object> {
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
             ),
-            argumentTypes ->
-                new TimezoneFunction(new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMPZ))
+            (signature, argumentTypes) ->
+                new TimezoneFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMPZ),
+                    signature
+                )
         );
         module.register(
             Signature.scalar(
@@ -70,20 +77,31 @@ public class TimezoneFunction extends Scalar<Long, Object> {
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
             ),
-            argumentTypes ->
-                new TimezoneFunction(new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMPZ))
+            (signature, argumentTypes) ->
+                new TimezoneFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.TIMESTAMPZ),
+                    signature
+                )
         );
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
 
-    private TimezoneFunction(FunctionInfo info) {
+    private TimezoneFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

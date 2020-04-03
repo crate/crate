@@ -31,9 +31,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
-
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class StringRepeatFunction extends Scalar<String, Object> {
 
@@ -49,12 +48,18 @@ public final class StringRepeatFunction extends Scalar<String, Object> {
         module.register(
             Signature.scalar(
                 "repeat",
-                parseTypeSignature("text"),
-                parseTypeSignature("integer"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes -> new StringRepeatFunction()
+            (signature, argumentTypes) -> new StringRepeatFunction(signature)
         );
+    }
+
+    private final Signature signature;
+
+    public StringRepeatFunction(Signature signature) {
+        this.signature = signature;
     }
 
     @Override
@@ -76,5 +81,11 @@ public final class StringRepeatFunction extends Scalar<String, Object> {
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

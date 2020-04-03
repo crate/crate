@@ -29,6 +29,7 @@ import io.crate.analyze.WindowFrameDefinition;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -53,7 +54,15 @@ public class WindowFunction extends Function {
                           List<Symbol> arguments,
                           @Nullable Symbol filter,
                           WindowDefinition windowDefinition) {
-        super(info, arguments, filter);
+        this(info, null, arguments, filter, windowDefinition);
+    }
+
+    public WindowFunction(FunctionInfo info,
+                          Signature signature,
+                          List<Symbol> arguments,
+                          @Nullable Symbol filter,
+                          WindowDefinition windowDefinition) {
+        super(info, signature, arguments, filter);
         assert info.type() == WINDOW || info.type() == AGGREGATE :
             "only window and aggregate functions are allowed to be modelled over a window";
         this.windowDefinition = windowDefinition;

@@ -34,6 +34,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -56,13 +57,25 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
                 DataTypes.BOOLEAN.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            args -> new CurrentSchemasFunction()
+            (signature, args) -> new CurrentSchemasFunction(signature)
         );
+    }
+
+    private final Signature signature;
+
+    public CurrentSchemasFunction(Signature signature) {
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @SafeVarargs

@@ -52,14 +52,16 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                 NAME,
                 DataTypes.FLOAT.getTypeSignature(),
                 DataTypes.FLOAT.getTypeSignature()),
-            args -> new SumAggregation<>(DataTypes.FLOAT, Float::sum, (n1, n2) -> n1 - n2)
+            (signature, args) ->
+                new SumAggregation<>(DataTypes.FLOAT, Float::sum, (n1, n2) -> n1 - n2, signature)
         );
         mod.register(
             Signature.aggregate(
                 NAME,
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()),
-            args -> new SumAggregation<>(DataTypes.DOUBLE, Double::sum, (n1, n2) -> n1 - n2)
+            (signature, args) ->
+                new SumAggregation<>(DataTypes.DOUBLE, Double::sum, (n1, n2) -> n1 - n2, signature)
         );
 
         for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
@@ -68,12 +70,14 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature()),
-                args -> new SumAggregation<>(supportedType, DataTypes.LONG, add, sub)
+                (signature, args) ->
+                    new SumAggregation<>(supportedType, DataTypes.LONG, add, sub, signature)
             );
         }
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
     private final BinaryOperator<T> addition;
     private final BinaryOperator<T> subtraction;
     private final DataType<T> returnType;
@@ -82,14 +86,16 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     @VisibleForTesting
     private SumAggregation(final DataType<T> returnType,
                            final BinaryOperator<T> addition,
-                           final BinaryOperator<T> subtraction) {
-        this(returnType, returnType, addition, subtraction);
+                           final BinaryOperator<T> subtraction,
+                           Signature signature) {
+        this(returnType, returnType, addition, subtraction, signature);
     }
 
     private SumAggregation(final DataType<?> inputType,
                            final DataType<T> returnType,
                            final BinaryOperator<T> addition,
-                           final BinaryOperator<T> subtraction) {
+                           final BinaryOperator<T> subtraction,
+                           Signature signature) {
         this.addition = addition;
         this.subtraction = subtraction;
         this.returnType = returnType;
@@ -107,6 +113,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
             returnType,
             FunctionInfo.Type.AGGREGATE
         );
+        this.signature = signature;
     }
 
     @Nullable
@@ -148,6 +155,12 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

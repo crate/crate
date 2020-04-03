@@ -162,6 +162,7 @@ public class UpdateSettingsPlanTest extends CrateUnitTest {
     public void test_array_is_implicitly_converted_to_comma_separated_string() {
         var idsArray = new io.crate.expression.symbol.Function(
             ArrayFunction.createInfo(List.of(DataTypes.STRING, DataTypes.STRING)),
+            ArrayFunction.SIGNATURE,
             List.of(Literal.of("id1"), Literal.of("id2"))
         );
         Assignment<Symbol> assignment = new Assignment<>(Literal.of("cluster.routing.allocation.exclude._id"), idsArray);

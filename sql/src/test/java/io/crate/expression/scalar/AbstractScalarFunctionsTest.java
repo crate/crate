@@ -140,8 +140,15 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             return;
         }
         Function function = (Function) functionSymbol;
-        FunctionImplementation impl = functions.getQualified(function.info().ident());
-        assertThat(impl, Matchers.notNullValue());
+        var ident = function.info().ident();
+        var signature = function.signature();
+        FunctionImplementation impl;
+        if (signature == null) {
+            impl = functions.getQualified(ident);
+        } else {
+            impl = functions.getQualified(signature, ident.argumentTypes());
+        }
+        assertThat("Function implementation not found using full qualified lookup", impl, Matchers.notNullValue());
 
         Symbol normalized = sqlExpressions.normalize(function);
         assertThat(
@@ -190,7 +197,16 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             }
             return literal;
         });
-        Scalar scalar = (Scalar) functions.getQualified(function.info().ident());
+        var ident = function.info().ident();
+        var signature = function.signature();
+        Scalar scalar;
+        if (signature == null) {
+            scalar = (Scalar) functions.getQualified(ident);
+        } else {
+            scalar = (Scalar) functions.getQualified(signature, ident.argumentTypes());
+        }
+        assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
+
         AssertMax1ValueCallInput[] arguments = new AssertMax1ValueCallInput[function.arguments().size()];
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         for (int i = 0; i < function.arguments().size(); i++) {
@@ -236,7 +252,15 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
         Function function = (Function) functionSymbol;
-        Scalar scalar = (Scalar) functions.getQualified(function.info().ident());
+        var ident = function.info().ident();
+        var signature = function.signature();
+        Scalar scalar;
+        if (signature == null) {
+            scalar = (Scalar) functions.getQualified(ident);
+        } else {
+            scalar = (Scalar) functions.getQualified(signature, ident.argumentTypes());
+        }
+        assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
         Scalar compiled = scalar.compile(function.arguments());
         assertThat(compiled, matcher.apply(scalar));

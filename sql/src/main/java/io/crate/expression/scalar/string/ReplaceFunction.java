@@ -32,8 +32,6 @@ import org.elasticsearch.common.Strings;
 
 import java.util.List;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 
 public final class ReplaceFunction {
 
@@ -43,16 +41,17 @@ public final class ReplaceFunction {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            args -> new TripleScalar<>(
+            (signature, args) -> new TripleScalar<>(
                 new FunctionInfo(
                     new FunctionIdent(NAME, List.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING)),
                     DataTypes.STRING
                 ),
+                signature,
                 Strings::replace)
         );
     }

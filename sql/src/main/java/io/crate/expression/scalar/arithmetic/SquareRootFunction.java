@@ -37,8 +37,8 @@ public final class SquareRootFunction {
             var typeSignature = type.getTypeSignature();
             module.register(
                 scalar(NAME, typeSignature, typeSignature),
-                argumentTypes ->
-                    new DoubleScalar(NAME, argumentTypes.get(0), SquareRootFunction::sqrt)
+                (signature, argumentTypes) ->
+                    new DoubleScalar(NAME, signature, argumentTypes.get(0), SquareRootFunction::sqrt)
             );
         }
     }

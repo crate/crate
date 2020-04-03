@@ -38,6 +38,7 @@ import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.Rounding;
 import org.joda.time.DateTimeZone;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -72,8 +73,8 @@ public class DateTruncFunction extends Scalar<Long, Object> {
                     dataType.getTypeSignature(),
                     parseTypeSignature("text")
                 ),
-                argumentTypes ->
-                    new DateTruncFunction(info(argumentTypes))
+                (signature, argumentTypes) ->
+                    new DateTruncFunction(info(argumentTypes), signature)
             );
 
             // time zone aware variant
@@ -85,8 +86,8 @@ public class DateTruncFunction extends Scalar<Long, Object> {
                     dataType.getTypeSignature(),
                     parseTypeSignature("text")
                 ),
-                argumentTypes ->
-                    new DateTruncFunction(info(argumentTypes))
+                (signature, argumentTypes) ->
+                    new DateTruncFunction(info(argumentTypes), signature)
             );
         }
     }
@@ -98,21 +99,32 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     }
 
 
-    private FunctionInfo info;
-    private Rounding tzRounding;
+    private final FunctionInfo info;
+    private final Signature signature;
+    @Nullable
+    private final Rounding tzRounding;
 
-    DateTruncFunction(FunctionInfo info) {
-        this.info = info;
+    DateTruncFunction(FunctionInfo info, Signature signature) {
+        this(info, signature, null);
     }
 
-    private DateTruncFunction(FunctionInfo info, Rounding tzRounding) {
-        this(info);
+    private DateTruncFunction(FunctionInfo info,
+                              Signature signature,
+                              @Nullable Rounding tzRounding) {
+        this.info = info;
+        this.signature = signature;
         this.tzRounding = tzRounding;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
@@ -134,7 +146,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
             timeZone = (String) ((Input<?>) arguments.get(1)).value();
         }
 
-        return new DateTruncFunction(this.info, rounding(interval, timeZone));
+        return new DateTruncFunction(this.info, signature, rounding(interval, timeZone));
     }
 
     @Override

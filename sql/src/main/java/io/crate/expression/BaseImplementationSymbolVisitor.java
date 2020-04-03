@@ -36,6 +36,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 
 import java.util.List;
 import java.util.Locale;
@@ -53,7 +54,15 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
     @Override
     public Input<?> visitFunction(Function function, C context) {
         FunctionIdent ident = function.info().ident();
-        final FunctionImplementation functionImplementation = functions.getQualified(ident);
+        Signature signature = function.signature();
+        FunctionImplementation functionImplementation;
+        if (signature == null) {
+            functionImplementation = functions.getQualified(ident);
+        } else {
+            functionImplementation = functions.getQualified(signature, ident.argumentTypes());
+        }
+        assert functionImplementation != null : "Function implementation not found using full qualified lookup";
+
         if (functionImplementation instanceof Scalar<?, ?>) {
             List<Symbol> arguments = function.arguments();
             Scalar<?, ?> scalarImpl = ((Scalar) functionImplementation).compile(arguments);

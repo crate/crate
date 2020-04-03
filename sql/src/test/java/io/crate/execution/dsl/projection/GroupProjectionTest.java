@@ -65,6 +65,7 @@ public class GroupProjectionTest extends CrateUnitTest {
         List<Aggregation> aggregations = Collections.singletonList(
             new Aggregation(
                 CountAggregation.COUNT_STAR_FUNCTION,
+                CountAggregation.COUNT_STAR_SIGNATURE,
                 CountAggregation.COUNT_STAR_FUNCTION.returnType(),
                 Collections.emptyList()
             )

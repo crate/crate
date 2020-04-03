@@ -35,8 +35,8 @@ public class LeastFunction extends ConditionalCompareFunction {
 
     private static final String NAME = "least";
 
-    private LeastFunction(FunctionInfo info) {
-        super(info);
+    private LeastFunction(FunctionInfo info, Signature signature) {
+        super(info, signature);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -55,7 +55,8 @@ public class LeastFunction extends ConditionalCompareFunction {
                     parseTypeSignature("E"))
                 .withVariableArity()
                 .withTypeVariableConstraints(typeVariable("E")),
-            args -> new LeastFunction(FunctionInfo.of(NAME, args, tryFindNotNullType(args)))
+            (signature, args) ->
+                new LeastFunction(FunctionInfo.of(NAME, args, tryFindNotNullType(args)), signature)
         );
     }
 }

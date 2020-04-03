@@ -36,6 +36,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.function.BiFunction;
 
@@ -61,9 +62,8 @@ public class CastFunction extends Scalar<Object, Object> {
                     .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
                     .argumentTypes(parseTypeSignature("E"), parseTypeSignature("V"))
                     .returnType(function.getValue().getTypeSignature())
-                    .forbidCoercion()
                     .build(),
-                args -> {
+                (signature, args) -> {
                     DataType<?> sourceType = args.get(0);
                     DataType<?> targetType = args.get(1);
                     if (!sourceType.isConvertableTo(targetType)) {
@@ -71,6 +71,7 @@ public class CastFunction extends Scalar<Object, Object> {
                     }
                     return new CastFunction(
                         new FunctionInfo(new FunctionIdent(function.getKey(), args), targetType),
+                        signature,
                         (argument, returnType) -> {
                             throw new ConversionException(argument, returnType);
                         },
@@ -90,7 +91,7 @@ public class CastFunction extends Scalar<Object, Object> {
                     .returnType(function.getValue().getTypeSignature())
                     .forbidCoercion()
                     .build(),
-                args -> {
+                (signature, args) -> {
                     DataType<?> sourceType = args.get(0);
                     DataType<?> targetType = function.getValue();
                     if (!sourceType.isConvertableTo(targetType)) {
@@ -98,6 +99,7 @@ public class CastFunction extends Scalar<Object, Object> {
                     }
                     return new CastFunction(
                         new FunctionInfo(new FunctionIdent(function.getKey(), args), targetType),
+                        signature,
                         (argument, returnType) -> {
                             throw new ConversionException(argument, returnType);
                         },
@@ -117,8 +119,9 @@ public class CastFunction extends Scalar<Object, Object> {
                     .argumentTypes(parseTypeSignature("E"), parseTypeSignature("V"))
                     .returnType(function.getValue().getTypeSignature())
                     .build(),
-                args -> new CastFunction(
+                (signature, args) -> new CastFunction(
                     new FunctionInfo(new FunctionIdent(tryCastName, args), args.get(1)),
+                    signature,
                     (argument, returnType) -> Literal.NULL,
                     (argument, returnType) -> null
                 )
@@ -132,8 +135,9 @@ public class CastFunction extends Scalar<Object, Object> {
                     .argumentTypes(parseTypeSignature("E"))
                     .returnType(function.getValue().getTypeSignature())
                     .build(),
-                args -> new CastFunction(
+                (signature, args) -> new CastFunction(
                     new FunctionInfo(new FunctionIdent(tryCastName, args), function.getValue()),
+                    signature,
                     (argument, returnType) -> Literal.NULL,
                     (argument, returnType) -> null
                 )
@@ -146,13 +150,16 @@ public class CastFunction extends Scalar<Object, Object> {
 
     private final DataType<?> returnType;
     private final FunctionInfo info;
+    private final Signature signature;
     private final BiFunction<Symbol, DataType<?>, Symbol> onNormalizeException;
     private final BiFunction<Object, DataType<?>, Object> onEvaluateException;
 
     private CastFunction(FunctionInfo info,
+                         Signature signature,
                          BiFunction<Symbol, DataType<?>, Symbol> onNormalizeException,
                          BiFunction<Object, DataType<?>, Object> onEvaluateException) {
         this.info = info;
+        this.signature = signature;
         this.returnType = info.returnType();
         this.onNormalizeException = onNormalizeException;
         this.onEvaluateException = onEvaluateException;
@@ -171,6 +178,12 @@ public class CastFunction extends Scalar<Object, Object> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

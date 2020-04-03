@@ -32,6 +32,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.joda.time.Period;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -45,7 +46,8 @@ public class IntervalArithmeticScalar extends Scalar<Period, Object> {
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
             ),
-            args -> new IntervalArithmeticScalar("+", ArithmeticFunctions.Names.ADD)
+            (signature, args) ->
+                new IntervalArithmeticScalar("+", ArithmeticFunctions.Names.ADD, signature)
         );
         module.register(
             Signature.scalar(
@@ -54,19 +56,22 @@ public class IntervalArithmeticScalar extends Scalar<Period, Object> {
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
             ),
-            args -> new IntervalArithmeticScalar("-", ArithmeticFunctions.Names.SUBTRACT)
+            (signature, args) ->
+                new IntervalArithmeticScalar("-", ArithmeticFunctions.Names.SUBTRACT, signature)
         );
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
     private final BiFunction<Period, Period, Period> operation;
 
-    IntervalArithmeticScalar(String operator, String name) {
+    IntervalArithmeticScalar(String operator, String name, Signature signature) {
         info = new FunctionInfo(
             new FunctionIdent(
                 name,
                 List.of(DataTypes.INTERVAL, DataTypes.INTERVAL)),
             DataTypes.INTERVAL);
+        this.signature = signature;
 
         switch (operator) {
             case "+":
@@ -85,6 +90,12 @@ public class IntervalArithmeticScalar extends Scalar<Period, Object> {
     @Override
     public FunctionInfo info() {
         return this.info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

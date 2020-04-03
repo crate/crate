@@ -29,6 +29,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
@@ -37,7 +38,6 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
 
     public static final String NAME = "collection_avg";
-    private final FunctionInfo info;
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -46,15 +46,20 @@ public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
                 parseTypeSignature("array(E)"),
                 DataTypes.DOUBLE.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new CollectionAverageFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.DOUBLE)
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.DOUBLE),
+                    signature
                 )
         );
     }
 
-    private CollectionAverageFunction(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    private CollectionAverageFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
@@ -79,5 +84,11 @@ public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

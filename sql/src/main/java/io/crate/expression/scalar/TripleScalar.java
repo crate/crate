@@ -26,6 +26,9 @@ import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
+
+import javax.annotation.Nullable;
 
 
 /**
@@ -36,16 +39,31 @@ import io.crate.metadata.Scalar;
 public final class TripleScalar<R, T> extends Scalar<R, T> {
 
     private final FunctionInfo info;
+    @Nullable
+    private final Signature signature;
     private final ThreeParametersFunction<T, T, T, R> func;
 
     public TripleScalar(FunctionInfo info, ThreeParametersFunction<T, T, T, R> func) {
+        this(info, null, func);
+    }
+
+    public TripleScalar(FunctionInfo info,
+                        @Nullable Signature signature,
+                        ThreeParametersFunction<T, T, T, R> func) {
         this.info = info;
+        this.signature = signature;
         this.func = func;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @SafeVarargs

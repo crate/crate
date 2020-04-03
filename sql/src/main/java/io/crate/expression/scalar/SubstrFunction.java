@@ -31,16 +31,11 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class SubstrFunction extends Scalar<String, Object> {
 
     public static final String NAME = "substr";
-
-    private FunctionInfo info;
-
-    private SubstrFunction(FunctionInfo info) {
-        this.info = info;
-    }
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -50,9 +45,10 @@ public class SubstrFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new SubstrFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING)
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING),
+                    signature
                 )
         );
         module.register(
@@ -63,16 +59,31 @@ public class SubstrFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new SubstrFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING)
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING),
+                    signature
                 )
         );
+    }
+
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    private SubstrFunction(FunctionInfo info, Signature signature) {
+        this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

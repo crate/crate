@@ -37,9 +37,11 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -109,9 +111,21 @@ public class ProjectionBuilder {
                     throw new AssertionError("Invalid mode: " + mode.name());
             }
 
+            FunctionIdent ident = function.info().ident();
+            Signature signature = function.signature();
+            AggregationFunction<?, ?> aggregationFunction;
+            if (signature == null) {
+                aggregationFunction = (AggregationFunction<?, ?>) this.functions.getQualified(ident);
+            } else {
+                aggregationFunction = (AggregationFunction<?, ?>) this.functions.getQualified(signature, ident.argumentTypes());
+            }
+            assert aggregationFunction != null :
+                "Aggregation function implementation not found using full qualified lookup: " + function;
+
             Aggregation aggregation = new Aggregation(
                 function.info(),
-                mode.returnType(((AggregationFunction) this.functions.getQualified(function.info().ident()))),
+                signature,
+                mode.returnType(aggregationFunction),
                 aggregationInputs,
                 filterInput
             );

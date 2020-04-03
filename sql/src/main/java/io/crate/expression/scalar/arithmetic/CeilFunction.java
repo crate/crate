@@ -41,12 +41,13 @@ public final class CeilFunction {
             for (var name : List.of(CEIL, CEILING)) {
                 module.register(
                     scalar(name, typeSignature, typeSignature),
-                    argumentTypes -> {
+                    (signature, argumentTypes) -> {
                         DataType<?> argType = argumentTypes.get(0);
                         DataType<?> returnType = DataTypes.getIntegralReturnType(argType);
                         assert returnType != null : "Could not get integral type of " + argType;
                         return new UnaryScalar<>(
                             name,
+                            signature,
                             argType,
                             returnType,
                             x -> returnType.value(Math.ceil(((Number) x).doubleValue()))

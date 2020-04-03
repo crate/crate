@@ -38,10 +38,11 @@ public class ExpFunction {
             var typeSignature = type.getTypeSignature();
             module.register(
                 scalar(NAME, typeSignature, typeSignature),
-                argumentTypes -> {
+                (signature, argumentTypes) -> {
                     DataType<?> argType = argumentTypes.get(0);
                     return new UnaryScalar<>(
                         NAME,
+                        signature,
                         argType,
                         argType,
                         x -> argType.value(Math.exp(((Number) x).doubleValue()))

@@ -35,8 +35,6 @@ import java.security.MessageDigest;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 public final class HashFunctions {
 
     public static void register(ScalarFunctionModule module) {
@@ -48,11 +46,11 @@ public final class HashFunctions {
         module.register(
             Signature.scalar(
                 name,
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
-                new UnaryScalar<>(name, DataTypes.STRING, DataTypes.STRING, func)
+            (signature, args) ->
+                new UnaryScalar<>(name, signature, DataTypes.STRING, DataTypes.STRING, func)
         );
     }
 

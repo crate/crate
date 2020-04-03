@@ -45,6 +45,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -78,6 +79,8 @@ public class Function extends Symbol implements Cloneable {
     private final List<Symbol> arguments;
     private final FunctionInfo info;
     @Nullable
+    private final Signature signature;
+    @Nullable
     private final Symbol filter;
 
     public static Function of(String name, List<Symbol> arguments, DataType<?> returnType) {
@@ -98,17 +101,27 @@ public class Function extends Symbol implements Cloneable {
             filter = null;
         }
         arguments = List.copyOf(Symbols.listFromStream(in));
+        if (in.getVersion().onOrAfter(Version.V_4_2_0) && in.readBoolean()) {
+            signature = new Signature(in);
+        } else {
+            signature = null;
+        }
     }
 
     public Function(FunctionInfo info, List<Symbol> arguments) {
-        this(info, arguments, null);
+        this(info, null, arguments);
     }
 
-    public Function(FunctionInfo info, List<Symbol> arguments, Symbol filter) {
+    public Function(FunctionInfo info, Signature signature, List<Symbol> arguments) {
+        this(info, signature, arguments, null);
+    }
+
+    public Function(FunctionInfo info, Signature signature, List<Symbol> arguments, Symbol filter) {
         Preconditions.checkNotNull(info, "function info is null");
         Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size(),
             "number of arguments must match the number of argumentTypes of the FunctionIdent");
         this.info = info;
+        this.signature = signature;
         this.arguments = List.copyOf(arguments);
         this.filter = filter;
     }
@@ -119,6 +132,11 @@ public class Function extends Symbol implements Cloneable {
 
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    public Signature signature() {
+        return signature;
     }
 
     @Nullable
@@ -170,7 +188,9 @@ public class Function extends Symbol implements Cloneable {
         }
         return new Function(
             new FunctionInfo(new FunctionIdent(info.ident().name(), Symbols.typeView(newArgs)), newDataType),
-            newArgs
+            signature,
+            newArgs,
+            null
         );
     }
 
@@ -191,6 +211,12 @@ public class Function extends Symbol implements Cloneable {
             Symbols.nullableToStream(filter, out);
         }
         Symbols.toStream(arguments, out);
+        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
+            out.writeBoolean(signature != null);
+            if (signature != null) {
+                signature.writeTo(out);
+            }
+        }
     }
 
     @Override

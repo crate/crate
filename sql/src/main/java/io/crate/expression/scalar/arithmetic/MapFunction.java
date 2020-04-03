@@ -33,6 +33,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,19 +54,48 @@ public class MapFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_map";
 
-    private final FunctionInfo info;
+    public static final Signature SIGNATURE =
+        Signature.builder()
+            .name(new FunctionName(null, NAME))
+            .kind(FunctionInfo.Type.SCALAR)
+            .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
+            .argumentTypes(parseTypeSignature("text"), parseTypeSignature("V"))
+            // This is not 100% correct because each variadic `V` is type independent, resulting in a return type
+            // of e.g. `object(text, int, text, geo_point, ...)`.
+            // This is *ok* as the returnType is currently not used directly, only for function description.
+            .returnType(parseTypeSignature("object(text, V)"))
+            .variableArityGroup(List.of(parseTypeSignature("text"), parseTypeSignature("V")))
+            .build();
 
-    private MapFunction(FunctionInfo info) {
-        this.info = info;
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            SIGNATURE,
+            (signature, args) -> new MapFunction(createInfo(args), signature)
+        );
     }
 
     public static FunctionInfo createInfo(List<DataType> dataTypes) {
         return new FunctionInfo(new FunctionIdent(NAME, dataTypes), ObjectType.untyped());
     }
 
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    private MapFunction(FunctionInfo info, Signature signature) {
+        this.info = info;
+        this.signature = signature;
+    }
+
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @SafeVarargs
@@ -76,22 +106,5 @@ public class MapFunction extends Scalar<Object, Object> {
             m.put((String) args[i].value(), args[i + 1].value());
         }
         return m;
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(
-            Signature.builder()
-                .name(new FunctionName(null, NAME))
-                .kind(FunctionInfo.Type.SCALAR)
-                .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
-                .argumentTypes(parseTypeSignature("text"), parseTypeSignature("V"))
-                // This is not 100% correct because each variadic `V` is type independent, resulting in a return type
-                // of e.g. `object(text, int, text, geo_point, ...)`.
-                // This is *ok* as the returnType is currently not used directly, only for function description.
-                .returnType(parseTypeSignature("object(text, V)"))
-                .variableArityGroup(List.of(parseTypeSignature("text"), parseTypeSignature("V")))
-                .build(),
-            args -> new MapFunction(createInfo(args))
-        );
     }
 }

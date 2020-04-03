@@ -23,10 +23,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
@@ -35,10 +37,12 @@ import static io.crate.operation.language.JavaScriptLanguage.resolvePolyglotFunc
 public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
     private final FunctionInfo info;
+    private final Signature signature;
     private final String script;
 
-    JavaScriptUserDefinedFunction(FunctionInfo info, String script) {
+    JavaScriptUserDefinedFunction(FunctionInfo info, Signature signature, String script) {
         this.info = info;
+        this.signature = signature;
         this.script = script;
     }
 
@@ -79,6 +83,12 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     private class CompiledFunction extends Scalar<Object, Object> {

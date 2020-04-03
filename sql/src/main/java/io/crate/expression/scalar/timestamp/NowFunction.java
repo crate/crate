@@ -31,9 +31,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
-
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class NowFunction extends Scalar<Long, Object> {
 
@@ -48,10 +47,16 @@ public final class NowFunction extends Scalar<Long, Object> {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("timestamp with time zone")
+                DataTypes.TIMESTAMPZ.getTypeSignature()
             ),
-            args -> new NowFunction()
+            (signature, args) -> new NowFunction(signature)
         );
+    }
+
+    private final Signature signature;
+
+    public NowFunction(Signature signature) {
+        this.signature = signature;
     }
 
     @Override
@@ -63,5 +68,11 @@ public final class NowFunction extends Scalar<Long, Object> {
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }
