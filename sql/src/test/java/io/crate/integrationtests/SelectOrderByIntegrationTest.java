@@ -157,7 +157,13 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select str from t1 order by upper(str) limit 5");
-        assertNull(response.rows()[0][0]);
+        assertThat(printedTable(response.rows()), is(
+            "a\n" +
+            "b\n" +
+            "NULL\n" +
+            "NULL\n" +
+            "NULL\n"
+        ));
 
         execute("select i from t1 order by ln(i)");
         assertThat(response.rows()[0][0], is(2));

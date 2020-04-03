@@ -57,5 +57,8 @@ None
 Fixes
 =====
 
+- Fixed an issue that could lead to incorrect ordering of a result sets if
+  using ``ORDER BY`` on a column of type ``IP`` or on a scalar function.
+
 - Fixed an issue that caused a ``NullPointerException`` if using ``COPY TO``
   with a ``WHERE`` clause with filters on primary key columns.

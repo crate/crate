@@ -58,7 +58,7 @@ import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 
-import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -171,11 +171,13 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 indexName,
                 fieldComparatorSource,
                 context.reverseFlag);
+        } else if (symbol.valueType().equals(DataTypes.IP)) {
+            SortField.Type type = LUCENE_TYPE_MAP.get(symbol.valueType());
+            return customSortField(symbol.toString(), symbol, context, type == null);
         } else {
             return context.context.getFieldData(fieldType)
                 .sortField(NullValueOrder.fromFlag(context.nullFirst), sortMode, context.reverseFlag);
         }
-
     }
 
     @Override
@@ -198,15 +200,15 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                                       final boolean missingNullValue) {
         InputFactory.Context<? extends LuceneCollectorExpression<?>> inputContext = docInputFactory.getCtx(context.txnCtx);
         final Input input = inputContext.add(symbol);
-        final Collection<? extends LuceneCollectorExpression<?>> expressions = inputContext.expressions();
+        final List<? extends LuceneCollectorExpression<?>> expressions = inputContext.expressions();
 
         return new SortField(name, new FieldComparatorSource() {
             @Override
             public FieldComparator<?> newComparator(String fieldName, int numHits, int sortPos, boolean reversed) {
-                for (LuceneCollectorExpression collectorExpression : expressions) {
+                for (LuceneCollectorExpression<?> collectorExpression : expressions) {
                     collectorExpression.startCollect(context.context);
                 }
-                DataType dataType = symbol.valueType();
+                DataType<Object> dataType = (DataType<Object>) symbol.valueType();
                 Object missingValue = missingNullValue ? null : SortSymbolVisitor.missingObject(
                     dataType,
                     NullValueOrder.fromFlag(context.nullFirst),
@@ -215,7 +217,11 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                     numHits,
                     expressions,
                     input,
-                    dataType,
+                    // for non `null` sentinel values, the nullSentinel already implies reverse+nullsFirst logic
+                    // for `null` sentinels we need to have a comparator that can deal with that
+                    missingValue == null
+                        ? context.nullFirst ^ reversed ? Comparator.nullsFirst(dataType) : Comparator.nullsLast(dataType)
+                        : dataType,
                     missingValue
                 );
             }

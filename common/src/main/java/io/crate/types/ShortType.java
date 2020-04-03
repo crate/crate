@@ -77,7 +77,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
 
     @Override
     public int compare(Short val1, Short val2) {
-        return nullSafeCompareValueTo(val1, val2, Short::compare);
+        return Short.compare(val1, val2);
     }
 
     @Override

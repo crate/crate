@@ -78,7 +78,7 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
 
     @Override
     public int compare(Integer val1, Integer val2) {
-        return nullSafeCompareValueTo(val1, val2, Integer::compare);
+        return Integer.compare(val1, val2);
     }
 
     @Override

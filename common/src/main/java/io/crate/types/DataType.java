@@ -27,7 +27,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.Comparator;
-import java.util.Objects;
 import java.util.Set;
 
 public abstract class DataType<T> implements Comparable, Writeable, Comparator<T> {
@@ -106,19 +105,6 @@ public abstract class DataType<T> implements Comparable, Writeable, Comparator<T
             return false;
         }
         return possibleConversions.contains(other.id());
-    }
-
-    static <T> int nullSafeCompareValueTo(T val1, T val2, Comparator<T> cmp) {
-        if (val1 == null) {
-            if (val2 == null) {
-                return 0;
-            }
-            return -1;
-        }
-        if (val2 == null) {
-            return 1;
-        }
-        return Objects.compare(val1, val2, cmp);
     }
 
     @Override

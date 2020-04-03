@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -185,7 +186,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         Literal literal = (Literal) obj;
         if (valueType().equals(literal.valueType())) {
             DataType type = valueType();
-            return type.compare(value, literal.value) == 0;
+            return Comparator.nullsFirst(type).compare(value, literal.value) == 0;
         }
         return false;
     }
