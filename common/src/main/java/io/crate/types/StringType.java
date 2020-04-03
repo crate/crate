@@ -21,13 +21,7 @@
 
 package io.crate.types;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Comparator;
-
+import io.crate.Streamer;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,7 +29,11 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
-import io.crate.Streamer;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Locale;
+import java.util.Map;
 
 public class StringType extends DataType<String> implements Streamer<String> {
 
@@ -108,7 +106,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
 
     @Override
     public int compare(String val1, String val2) {
-        return Comparator.<String>nullsFirst(Comparator.naturalOrder()).compare(val1, val2);
+        return val1.compareTo(val2);
     }
 
     @Override
