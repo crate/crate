@@ -24,25 +24,79 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.module.EnterpriseFunctionsModule;
-import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.List;
 import java.util.function.BiFunction;
 
 import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class NthValueFunctions implements WindowFunction {
 
     public static final String LAST_VALUE_NAME = "last_value";
     private static final String FIRST_VALUE_NAME = "first_value";
     private static final String NTH_VALUE = "nth_value";
+
+    public static void register(EnterpriseFunctionsModule module) {
+        module.register(
+            Signature.window(
+                FIRST_VALUE_NAME,
+                parseTypeSignature("E"),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args ->
+                new NthValueFunctions(
+                    new FunctionInfo(
+                        new FunctionIdent(FIRST_VALUE_NAME, args),
+                        args.get(0),
+                        FunctionInfo.Type.WINDOW),
+                    (frame, inputs) -> 0)
+        );
+
+        module.register(
+            Signature.window(
+                LAST_VALUE_NAME,
+                parseTypeSignature("E"),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args ->
+                new NthValueFunctions(
+                    new FunctionInfo(
+                        new FunctionIdent(LAST_VALUE_NAME, args),
+                        args.get(0),
+                        FunctionInfo.Type.WINDOW),
+                    (frame, inputs) -> frame.size() - 1)
+        );
+
+        module.register(
+            Signature.window(
+                NTH_VALUE,
+                parseTypeSignature("E"),
+                DataTypes.INTEGER.getTypeSignature(),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args ->
+                new NthValueFunctions(
+                    new FunctionInfo(
+                        new FunctionIdent(NTH_VALUE, args),
+                        args.get(0),
+                        FunctionInfo.Type.WINDOW),
+                    (frame, inputs) -> {
+                        Number position = (Number) inputs[1].value();
+                        if (position == null) {
+                            // treating a null position as an out-of-bounds position
+                            return -1;
+                        }
+                        return position.intValue() - 1;
+                    })
+        );
+    }
 
     private final FunctionInfo info;
     private final BiFunction<WindowFrameState, Input[], Integer> frameIndexSupplier;
@@ -98,47 +152,5 @@ public class NthValueFunctions implements WindowFunction {
         }
 
         return resultForCurrentFrame;
-    }
-
-    public static void register(EnterpriseFunctionsModule module) {
-        module.register(FIRST_VALUE_NAME, new BaseFunctionResolver(FuncParams.SINGLE_ANY) {
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new NthValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(FIRST_VALUE_NAME, dataTypes), dataTypes.get(0), FunctionInfo.Type.WINDOW),
-                    (frame, inputs) -> 0
-                );
-            }
-        });
-        module.register(LAST_VALUE_NAME, new BaseFunctionResolver(FuncParams.SINGLE_ANY) {
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new NthValueFunctions(
-                    new FunctionInfo(
-                        new FunctionIdent(LAST_VALUE_NAME, dataTypes), dataTypes.get(0), FunctionInfo.Type.WINDOW),
-                    (frame, inputs) -> frame.size() - 1
-                );
-            }
-        });
-        module.register(NTH_VALUE, new BaseFunctionResolver(FuncParams.builder(Param.ANY, Param.NUMERIC).build()) {
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new NthValueFunctions(
-                    new FunctionInfo(new FunctionIdent(NTH_VALUE, dataTypes), dataTypes.get(0), FunctionInfo.Type.WINDOW),
-                    (frame, inputs) -> {
-                        Number position = (Number) inputs[1].value();
-                        if (position == null) {
-                            // treating a null position as an out-of-bounds position
-                            return -1;
-                        }
-                        return position.intValue() - 1;
-                    }
-                );
-            }
-        });
     }
 }

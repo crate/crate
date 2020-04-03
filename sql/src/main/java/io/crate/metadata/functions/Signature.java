@@ -60,6 +60,25 @@ public final class Signature {
     }
 
     /**
+     * Shortcut for creating a signature of type {@link FunctionInfo.Type#WINDOW}.
+     * The last element of the given types is handled as the return type.
+     *
+     * @param name      The fqn function name.
+     * @param types     The argument and return (last element) types
+     * @return          The created signature
+     */
+    public static Signature window(FunctionName name, TypeSignature... types) {
+        return signatureBuilder(name, FunctionInfo.Type.WINDOW, types).build();
+    }
+
+    /**
+     * See {@link #window(FunctionName, TypeSignature...)}
+     */
+    public static Signature window(String name, TypeSignature... types) {
+        return scalar(new FunctionName(null, name), types);
+    }
+
+    /**
      * Shortcut for creating a signature of type {@link FunctionInfo.Type#SCALAR}.
      * The last element of the given types is handled as the return type.
      *
