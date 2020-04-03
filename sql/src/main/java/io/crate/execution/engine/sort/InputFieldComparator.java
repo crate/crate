@@ -24,7 +24,6 @@ package io.crate.execution.engine.sort;
 
 import io.crate.data.Input;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
@@ -32,6 +31,7 @@ import org.apache.lucene.search.Scorable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -42,19 +42,19 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     private final Object[] values;
     private final Input<?> input;
     private final List<? extends LuceneCollectorExpression<?>> collectorExpressions;
+    private final Comparator<Object> comparator;
     private final @Nullable Object missingValue;
-    private final DataType valueType;
     private Object bottom;
     private Object top;
 
     InputFieldComparator(int numHits,
                          List<? extends LuceneCollectorExpression<?>> collectorExpressions,
                          Input<?> input,
-                         DataType valueType,
+                         Comparator<Object> comparator,
                          @Nullable Object missingValue) {
         this.collectorExpressions = collectorExpressions;
+        this.comparator = comparator;
         this.missingValue = missingValue;
-        this.valueType = valueType;
         this.values = new Object[numHits];
         this.input = input;
     }
@@ -68,9 +68,8 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public int compare(int slot1, int slot2) {
-        return valueType.compare(values[slot1], values[slot2]);
+        return comparator.compare(values[slot1], values[slot2]);
     }
 
     @Override
@@ -83,13 +82,12 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
         top = value;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public int compareBottom(int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
             collectorExpressions.get(i).setNextDocId(doc);
         }
-        return valueType.compare(bottom, getFirstNonNullOrNull(input.value(), missingValue));
+        return comparator.compare(bottom, getFirstNonNullOrNull(input.value(), missingValue));
     }
 
     @Nullable
@@ -101,13 +99,12 @@ class InputFieldComparator extends FieldComparator<Object> implements LeafFieldC
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public int compareTop(int doc) throws IOException {
         for (int i = 0; i < collectorExpressions.size(); i++) {
             collectorExpressions.get(i).setNextDocId(doc);
         }
-        return valueType.compare(top, getFirstNonNullOrNull(input.value(), missingValue));
+        return comparator.compare(top, getFirstNonNullOrNull(input.value(), missingValue));
     }
 
     @Override

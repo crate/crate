@@ -39,6 +39,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.SortField;
@@ -46,6 +47,7 @@ import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 
+import java.util.Comparator;
 import java.util.List;
 
 public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbolContext, SortField> {
@@ -128,11 +130,12 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 columnIdent.fqn(),
                 fieldComparatorSource,
                 context.reverseFlag);
+        } else if (symbol.valueType().equals(DataTypes.IP)) {
+            return customSortField(symbol.toString(), symbol, context);
         } else {
             return context.context.getFieldData(fieldType)
                 .sortField(NullValueOrder.fromFlag(context.nullFirst), sortMode, context.reverseFlag);
         }
-
     }
 
     @Override
@@ -166,7 +169,8 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 for (int i = 0; i < expressions.size(); i++) {
                     expressions.get(i).startCollect(collectorContext);
                 }
-                DataType<?> dataType = symbol.valueType();
+                @SuppressWarnings("unchecked")
+                DataType<Object> dataType = (DataType<Object>) symbol.valueType();
                 Object nullSentinel = NullSentinelValues.nullSentinel(
                     dataType,
                     NullValueOrder.fromFlag(nullFirst),
@@ -175,11 +179,14 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                     numHits,
                     expressions,
                     input,
-                    dataType,
+                    // for non `null` sentinel values, the nullSentinel already implies reverse+nullsFirst logic
+                    // for `null` sentinels we need to have a comparator that can deal with that
+                    nullSentinel == null
+                        ? nullFirst ^ reversed ? Comparator.nullsFirst(dataType) : Comparator.nullsLast(dataType)
+                        : dataType,
                     nullSentinel
                 );
             }
         }, context.reverseFlag);
     }
-
 }

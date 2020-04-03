@@ -31,7 +31,6 @@ import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.Locale;
 
 public class IntervalType extends DataType<Period> implements FixedWidthType, Streamer<Period> {
@@ -101,8 +100,9 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Cannot convert %s to interval", value));
     }
 
+    @Override
     public int compare(Period p1, Period p2) {
-        return nullSafeCompareValueTo(p1.toStandardDuration(), p2.toStandardDuration(), Comparator.naturalOrder());
+        return p1.toStandardDuration().compareTo(p2.toStandardDuration());
 
     }
 

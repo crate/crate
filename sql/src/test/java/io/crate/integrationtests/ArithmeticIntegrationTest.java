@@ -22,13 +22,13 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.TestingHelpers;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Locale;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -96,7 +96,6 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectOrderByScalar() throws Exception {
         execute("create table t (d double, i integer, name string) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into t (d, name) values (?, ?)", new Object[][]{
             new Object[]{1.3d, "Arthur"},
             new Object[]{1.6d, null},
@@ -106,35 +105,42 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from t order by round(d) * 2 + 3");
         assertThat(response.rowCount(), is(3L));
-        assertThat((Double) response.rows()[0][0], is(1.3d));
+        assertThat(response.rows()[0][0], is(1.3d));
 
         execute("select name from t order by substr(name, 1, 1) nulls first");
         assertThat(response.rowCount(), is(3L));
         assertThat(response.rows()[0][0], nullValue());
-        assertThat((String) response.rows()[1][0], is("Arthur"));
+        assertThat(response.rows()[1][0], is("Arthur"));
+
+        execute("select name from t order by substr(name, 1, 1) nulls last");
+        assertThat(printedTable(response.rows()), is(
+            "Arthur\n" +
+            "Marvin\n" +
+            "NULL\n"
+        ));
 
         execute("select * from t order by ceil(d), d");
         assertThat(response.rowCount(), is(3L));
-        assertThat((Double) response.rows()[0][0], is(1.3d));
+        assertThat(response.rows()[0][0], is(1.3d));
 
         execute("select * from t order by floor(d), d");
         assertThat(response.rowCount(), is(3L));
-        assertThat((Double) response.rows()[0][0], is(1.3d));
+        assertThat(response.rows()[0][0], is(1.3d));
 
         execute("insert into t (d, i) values (?, ?), (?, ?)", new Object[]{-0.2, 10, 0.1, 5});
         execute("refresh table t");
 
         execute("select * from t order by abs(d)");
         assertThat(response.rowCount(), is(5L));
-        assertThat((Double) response.rows()[0][0], is(0.1));
+        assertThat(response.rows()[0][0], is(0.1));
 
         execute("select i from t order by ln(i)");
         assertThat(response.rowCount(), is(5L));
-        assertThat((Integer) response.rows()[0][0], is(5));
+        assertThat(response.rows()[0][0], is(5));
 
         execute("select i from t order by log(i, 100)");
         assertThat(response.rowCount(), is(5L));
-        assertThat((Integer) response.rows()[0][0], is(5));
+        assertThat(response.rows()[0][0], is(5));
     }
 
     @Test
@@ -183,12 +189,12 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select l, log(d,l) from t order by l, log(d,l) desc");
         assertThat(response.rowCount(), is(5L));
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("2| 6.6293566200796095\n" +
-               "2| 6.499845887083206\n" +
-               "4| 3.3146783100398047\n" +
-               "4| 3.249922943541603\n" +
-               "31234594433| 0.19015764044502392\n"));
+        assertThat(printedTable(response.rows()), is(
+            "2| 6.6293566200796095\n" +
+            "2| 6.499845887083206\n" +
+            "4| 3.3146783100398047\n" +
+            "4| 3.249922943541603\n" +
+            "31234594433| 0.19015764044502392\n"));
     }
 
     @Test
@@ -270,19 +276,19 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select i from t where i%2 = 0 order by i");
         assertThat(response.rowCount(), is(3L));
 
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n10\n193384\n"));
+        assertThat(printedTable(response.rows()), is("2\n10\n193384\n"));
 
         execute("select l from t where i * -1 > 0");
         assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("4\n"));
+        assertThat(printedTable(response.rows()), is("4\n"));
 
         execute("select l from t where cast(i * 2  as long) = l");
         assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+        assertThat(printedTable(response.rows()), is("2\n"));
 
         execute("select i%3, sum(l) from t where i+1 > 2 group by i%3 order by sum(l)");
         assertThat(response.rowCount(), is(2L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "2| 5\n" +
             "1| 31234594454\n"));
     }
@@ -296,7 +302,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select i, i%3 from t order by i%3, l");
         assertThat(response.rowCount(), is(5L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "-1| -1\n" +
             "1| 1\n" +
             "10| 1\n" +

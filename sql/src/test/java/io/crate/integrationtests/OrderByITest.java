@@ -35,16 +35,21 @@ public class OrderByITest extends SQLTransportIntegrationTest {
         execute("create table t1 (" +
                 "  ipp ip" +
                 ")");
-        ensureYellow();
         execute("insert into t1 (ipp) values (?)", new Object[][]{
             {"127.0.0.1"},
             {null},
             {"10.0.0.1"},
+            {"10.200.1.100"},
+            {"10.220.1.120"},
+            {"10.220.1.20"}
         });
         execute("refresh table t1");
         execute("select ipp from t1 order by ipp");
         assertThat(TestingHelpers.printedTable(response.rows()), Is.is(
             "10.0.0.1\n" +
+            "10.200.1.100\n" +
+            "10.220.1.120\n" +
+            "10.220.1.20\n" +
             "127.0.0.1\n" +
             "NULL\n"));
 
@@ -52,6 +57,9 @@ public class OrderByITest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.printedTable(response.rows()), Is.is(
             "NULL\n" +
             "127.0.0.1\n" +
+            "10.220.1.20\n" +
+            "10.220.1.120\n" +
+            "10.200.1.100\n" +
             "10.0.0.1\n"));
     }
 
