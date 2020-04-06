@@ -72,6 +72,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.types.DataType;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
@@ -421,8 +422,12 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
             partitionedByInputs);
-        // plain insert usecase only. No conflict on update, returnvalues are not supported anyway on bulk
-        if (updateColumnNames == null && updateColumnNames.length == 0) {
+
+        // plain insert usecase. No conflict on update, returnvalues are not supported anyway on bulk,
+        // only supported on 4.2 or after
+        if (updateColumnNames == null && updateColumnNames.length == 0 &&
+            !plannerContext.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)
+        ) {
             Function<ShardId, ShardInsertRequest> newRequest = new ShardInsertRequest.Builder(
                 plannerContext.transactionContext().sessionSettings(),
                 BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
@@ -484,7 +489,7 @@ public class InsertFromValues implements LogicalPlan {
                     : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
 
             Function<Symbol[], GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item>> grouper =
-                (assignmentSources) -> createBulkUpsertRowsByShardGrouper(
+                (assignmentSources) -> createRowsByShardGrouper(
                 assignmentSources,
                 insertInputs,
                 indexNameResolver,
@@ -619,7 +624,7 @@ public class InsertFromValues implements LogicalPlan {
             true);
     }
 
-    private GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> createBulkUpsertRowsByShardGrouper(
+    private GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> createRowsByShardGrouper(
         Symbol[] assignmentSources,
         List<Input<?>> insertInputs,
         Supplier<String> indexNameResolver,

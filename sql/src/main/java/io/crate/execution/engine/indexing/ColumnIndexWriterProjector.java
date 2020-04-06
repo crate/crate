@@ -42,6 +42,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
@@ -102,7 +103,9 @@ public class ColumnIndexWriterProjector implements Projector {
 
         Symbol[] returnValueOrNull = returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]);
         // Optimization for the plain insert usecase, no return values no update-on-conflict
-        if (returnValueOrNull == null && updateAssignments == null) {
+        if (returnValueOrNull == null && updateAssignments == null &&
+            !clusterService.state().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)
+            ) {
             Function<ShardId, ShardInsertRequest> requestFactory = new ShardInsertRequest.Builder(
                 txnCtx.sessionSettings(),
                 ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
