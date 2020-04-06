@@ -277,8 +277,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                         throw new RuntimeException(e);
                     }
                 }
-                for (TransportShardUpsertAction action : internalCluster().getInstances(
-                        TransportShardUpsertAction.class)) {
+                for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
                     try {
                         Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
                         assertThat(operations.size(), is(0));

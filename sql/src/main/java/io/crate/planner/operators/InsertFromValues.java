@@ -42,7 +42,6 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.GeneratedColumns;
 import io.crate.execution.dml.upsert.InsertSourceFromCells;
 import io.crate.execution.dml.upsert.ShardInsertRequest;
@@ -222,6 +221,7 @@ public class InsertFromValues implements LogicalPlan {
                 subQueryResults));
 
         List<Symbol> returnValues = this.writerProjection.returnValues();
+        // plain insert usecase only. No conflict on update, no returnvalues
         if (returnValues.isEmpty() && updateColumnNames != null && updateColumnNames.length == 0) {
             Function<ShardId, ShardInsertRequest> newRequest = new ShardInsertRequest.Builder(
                 plannerContext.transactionContext().sessionSettings(),
@@ -234,14 +234,18 @@ public class InsertFromValues implements LogicalPlan {
                     ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
                     : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
 
-            var grouper = createInsertRowsByShardGrouper(
-                insertInputs,
-                indexNameResolver,
-                context,
-                plannerContext,
-                dependencies.clusterService());
+            var insertValues = new InputRow(insertInputs);
+            Function<String, ShardInsertRequest.Item> itemFactory = id -> new ShardInsertRequest.Item(
+                id,
+                insertValues.materialize(),
+                null,
+                null,
+                null
+            );
 
-            execute(dependencies,
+            executeAction(
+                dependencies,
+                context,
                 plannerContext,
                 consumer,
                 returnValues,
@@ -250,8 +254,8 @@ public class InsertFromValues implements LogicalPlan {
                 clusterByInput,
                 indexNameResolver,
                 tableInfo,
-                grouper,
                 newRequest,
+                itemFactory,
                 dependencies.transportActionProvider().transportShardInsertAction()
             );
         } else {
@@ -268,15 +272,18 @@ public class InsertFromValues implements LogicalPlan {
                     ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
                     : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
 
-            var grouper = createUpsertRowsByShardGrouper(
-                assignmentSources,
-                insertInputs,
-                indexNameResolver,
-                context,
-                plannerContext,
-                dependencies.clusterService());
+            InputRow insertValues = new InputRow(insertInputs);
 
-            execute(dependencies,
+            Function<String, ShardUpsertRequest.Item> itemFactory = id ->
+                new ShardUpsertRequest.Item(
+                    id,
+                    assignmentSources,
+                    insertValues.materialize(),
+                    null, null, null);
+
+            executeAction(
+                dependencies,
+                context,
                 plannerContext,
                 consumer,
                 returnValues,
@@ -285,15 +292,16 @@ public class InsertFromValues implements LogicalPlan {
                 clusterByInput,
                 indexNameResolver,
                 tableInfo,
-                grouper,
                 newRequest,
+                itemFactory,
                 dependencies.transportActionProvider().transportShardUpsertAction()
             );
         }
     }
 
-    public <TReq extends ShardWriteRequest<TReq, TItem>, TItem extends ShardWriteRequest.Item> void execute(
+    public <TReq extends ShardWriteRequest<TReq, TItem>, TItem extends ShardWriteRequest.Item> void executeAction(
         DependencyCarrier dependencies,
+        InputFactory.Context<CollectExpression<Row, ?>> context,
         PlannerContext plannerContext,
         RowConsumer consumer,
         List<Symbol> returnValues,
@@ -302,10 +310,19 @@ public class InsertFromValues implements LogicalPlan {
         Input<?> clusterByInput,
         Supplier<String> indexNameResolver,
         DocTableInfo tableInfo,
-        GroupRowsByShard<TReq, TItem> grouper,
         Function<ShardId, TReq> newRequest,
+        Function<String, TItem> itemFactory,
         TransportShardWriteAction<TReq, TItem> transportShardWriteAction
     ) {
+
+        GroupRowsByShard<TReq, TItem> grouper = createRowsByShardGrouper(
+            indexNameResolver,
+            context,
+            plannerContext,
+            dependencies.clusterService(),
+            itemFactory
+        );
+
         var shardedRequests = new ShardedRequests<>(newRequest);
         HashMap<String, InsertSourceFromCells> validatorsCache = new HashMap<>();
         for (Row row : rows) {
@@ -333,9 +350,8 @@ public class InsertFromValues implements LogicalPlan {
             dependencies.clusterService(),
             plannerContext.jobId()
         ).thenCompose(acknowledgedResponse -> {
-            var shardRequests = resolveAndGroupShardRequests(shardedRequests,
-                                                             dependencies.clusterService()).values();
-            return execute(shardRequests, transportShardWriteAction, dependencies.scheduler());
+            var shardRequests = resolveAndGroupShardRequests(shardedRequests, dependencies.clusterService()).values();
+            return executeAction(shardRequests, transportShardWriteAction, dependencies.scheduler());
         }).whenComplete((response, t) -> {
             if (t == null) {
                 if (returnValues.isEmpty()) {
@@ -348,7 +364,7 @@ public class InsertFromValues implements LogicalPlan {
                                                              false), null);
                 }
             } else {
-                consumer.accept(null, (Throwable) t);
+                consumer.accept(null, t);
             }
         });
     }
@@ -405,7 +421,7 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
             partitionedByInputs);
-        // plain insert usecase only, no conflict on update, returnvalues are not supported anyway on bulk
+        // plain insert usecase only. No conflict on update, returnvalues are not supported anyway on bulk
         if (updateColumnNames == null && updateColumnNames.length == 0) {
             Function<ShardId, ShardInsertRequest> newRequest = new ShardInsertRequest.Builder(
                 plannerContext.transactionContext().sessionSettings(),
@@ -419,29 +435,38 @@ public class InsertFromValues implements LogicalPlan {
                     ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
                     : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
 
+            InputRow insertValues = new InputRow(insertInputs);
+
+            Function<String, ShardInsertRequest.Item> itemFactory = id -> new ShardInsertRequest.Item(
+                id,
+                insertValues.materialize(),
+                null,
+                null,
+                null
+            );
+
             Function<Symbol[], GroupRowsByShard<ShardInsertRequest, ShardInsertRequest.Item>> grouper =
-                (assignmentSources) -> createInsertRowsByShardGrouper(
-                    insertInputs,
+                (assignmentSources) -> createRowsByShardGrouper(
                     indexNameResolver,
                     context,
                     plannerContext,
-                    dependencies.clusterService());
+                    dependencies.clusterService(),
+                    itemFactory
+                    );
 
-            return executeBulk(
+            return executeBulkAction(
                 dependencies,
                 plannerContext,
                 primaryKeyInputs,
                 clusterByInput,
-                insertInputs,
                 indexNameResolver,
-                context,
                 tableInfo,
                 bulkParams,
                 subQueryResults,
                 assignments,
-                updateColumnNames,
                 newRequest,
-                grouper
+                grouper,
+                dependencies.transportActionProvider().transportShardInsertAction()
             );
         } else {
             Function<ShardId, ShardUpsertRequest> newRequest = new ShardUpsertRequest.Builder(
@@ -459,7 +484,7 @@ public class InsertFromValues implements LogicalPlan {
                     : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
 
             Function<Symbol[], GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item>> grouper =
-                (assignmentSources) -> createUpsertRowsByShardGrouper(
+                (assignmentSources) -> createBulkUpsertRowsByShardGrouper(
                 assignmentSources,
                 insertInputs,
                 indexNameResolver,
@@ -467,39 +492,36 @@ public class InsertFromValues implements LogicalPlan {
                 plannerContext,
                 dependencies.clusterService());
 
-            return executeBulk(
+            return executeBulkAction(
                 dependencies,
                 plannerContext,
                 primaryKeyInputs,
                 clusterByInput,
-                insertInputs,
                 indexNameResolver,
-                context,
                 tableInfo,
                 bulkParams,
                 subQueryResults,
                 assignments,
-                updateColumnNames,
                 newRequest,
-                grouper
+                grouper,
+                dependencies.transportActionProvider().transportShardUpsertAction()
             );
         }
     }
 
-    private <TReq extends ShardWriteRequest<TReq, TItem>, TItem extends ShardWriteRequest.Item> List<CompletableFuture<Long>> executeBulk(
+    private <TReq extends ShardWriteRequest<TReq, TItem>, TItem extends ShardWriteRequest.Item> List<CompletableFuture<Long>> executeBulkAction(
         DependencyCarrier dependencies,
         PlannerContext plannerContext,
         List<Input<?>> primaryKeyInputs,
         Input<?> clusterByInput,
-        List<Input<?>> insertInputs,
         Supplier<String> indexNameResolver,
-        InputFactory.Context<CollectExpression<Row, ?>> context,
         DocTableInfo tableInfo,
         List<Row> bulkParams,
         SubQueryResults subQueryResults,
         Assignments assignments,
         Function<ShardId, TReq> newRequest,
-        Function<Symbol[], GroupRowsByShard<TReq, TItem>> buildGrouper
+        Function<Symbol[], GroupRowsByShard<TReq, TItem>> buildGrouper,
+        TransportShardWriteAction<TReq, TItem> action
     ) {
 
         var shardedRequests = new ShardedRequests<>(newRequest);
@@ -516,16 +538,7 @@ public class InsertFromValues implements LogicalPlan {
             } else {
                 assignmentSources = null;
             }
-
             var grouper = buildGrouper.apply(assignmentSources);
-            createUpsertRowsByShardGrouper(
-                assignmentSources,
-                insertInputs,
-                indexNameResolver,
-                context,
-                plannerContext,
-                dependencies.clusterService());
-
             try {
                 Iterator<Row> rows = evaluateValueTableFunction(
                     tableFunctionRelation.functionImplementation(),
@@ -565,8 +578,8 @@ public class InsertFromValues implements LogicalPlan {
             shardedRequests.itemsByMissingIndex().keySet(),
             dependencies.clusterService(), plannerContext.jobId()
         ).thenCompose(acknowledgedResponse -> {
-            var shardUpsertRequests = resolveAndGroupShardRequests(shardedRequests, dependencies.clusterService()).values();
-            return execute(shardUpsertRequests, actionProvider.transportShardUpsertAction(), dependencies.scheduler());
+            var shardRequests = resolveAndGroupShardRequests(shardedRequests, dependencies.clusterService()).values();
+            return executeAction(shardRequests, action, dependencies.scheduler());
         }).whenComplete((response, t) -> {
             if (t == null) {
                 long[] resultRowCount = createBulkResponse(response, bulkParams.size(), bulkIndices);
@@ -582,21 +595,12 @@ public class InsertFromValues implements LogicalPlan {
         return results;
     }
 
-    private GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> createUpsertRowsByShardGrouper(
-        Symbol[] assignmentSources,
-        List<Input<?>> insertInputs,
+    private <TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item> GroupRowsByShard<TReq, TItem> createRowsByShardGrouper(
         Supplier<String> indexNameResolver,
         InputFactory.Context<CollectExpression<Row, ?>> collectContext,
         PlannerContext plannerContext,
-        ClusterService clusterService) {
-        InputRow insertValues = new InputRow(insertInputs);
-        Function<String, ShardUpsertRequest.Item> itemFactory = id ->
-            new ShardUpsertRequest.Item(
-                id,
-                assignmentSources,
-                insertValues.materialize(),
-                null, null, null);
-
+        ClusterService clusterService,
+        Function<String, TItem> itemFactory) {
         var rowShardResolver = new RowShardResolver(
             plannerContext.transactionContext(),
             plannerContext.functions(),
@@ -615,16 +619,18 @@ public class InsertFromValues implements LogicalPlan {
             true);
     }
 
-    private GroupRowsByShard<ShardInsertRequest, ShardInsertRequest.Item> createInsertRowsByShardGrouper(
+    private GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> createBulkUpsertRowsByShardGrouper(
+        Symbol[] assignmentSources,
         List<Input<?>> insertInputs,
         Supplier<String> indexNameResolver,
         InputFactory.Context<CollectExpression<Row, ?>> collectContext,
         PlannerContext plannerContext,
         ClusterService clusterService) {
         InputRow insertValues = new InputRow(insertInputs);
-        Function<String, ShardInsertRequest.Item> itemFactory = id ->
-            new ShardInsertRequest.Item(
+        Function<String, ShardUpsertRequest.Item> itemFactory = id ->
+            new ShardUpsertRequest.Item(
                 id,
+                assignmentSources,
                 insertValues.materialize(),
                 null, null, null);
 
@@ -785,9 +791,9 @@ public class InsertFromValues implements LogicalPlan {
         return shardedRequests.itemsByShard();
     }
 
-    private <TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item> CompletableFuture<ShardResponse.CompressedResult> execute(
+    private <TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item> CompletableFuture<ShardResponse.CompressedResult> executeAction(
         Collection<TReq> shardUpsertRequests,
-        TransportShardAction<TReq, TItem> shardUpsertAction,
+        TransportShardWriteAction shardUpsertAction,
         ScheduledExecutorService scheduler) {
         ShardResponse.CompressedResult compressedResult = new ShardResponse.CompressedResult();
         if (shardUpsertRequests.isEmpty()) {
