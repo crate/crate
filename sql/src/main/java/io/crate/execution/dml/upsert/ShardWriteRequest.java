@@ -53,7 +53,6 @@ public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends 
 
     protected Set<Mode> modes;
 
-
     protected ShardWriteRequest(StreamInput in) throws IOException {
         super(in);
         this.modes = EnumSets.unpackFromInt(in.readVInt(), Mode.class);

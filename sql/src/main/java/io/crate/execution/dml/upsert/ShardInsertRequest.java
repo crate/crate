@@ -27,12 +27,9 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.settings.SessionSettings;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -95,15 +92,11 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
             out.writeVInt(0);
         }
         sessionSettings.writeTo(out);
-
-        boolean allOn4_2 = out.getVersion().onOrAfter(Version.V_4_2_0);
-
         out.writeVInt(items.size());
         for (ShardInsertRequest.Item item : items) {
             item.writeTo(out, insertValuesStreamer);
         }
     }
-
 
     @Nullable
     @Override
@@ -147,20 +140,7 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
                     @Nullable Long primaryTerm
         ) {
             super(id, version, seqNo, primaryTerm);
-            if (version != null) {
-                this.version = version;
-            }
-            if (seqNo != null) {
-                this.seqNo = seqNo;
-            }
-            if (primaryTerm != null) {
-                this.primaryTerm = primaryTerm;
-            }
             this.insertValues = insertValues;
-        }
-
-        boolean retryOnConflict() {
-            return seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && version == Versions.MATCH_ANY;
         }
 
         @Nullable
@@ -178,7 +158,7 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
             return null;
         }
 
-        public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
+        public Item(StreamInput in, Streamer[] insertValueStreamers) throws IOException {
             super(in);
             int missingAssignmentsSize = in.readVInt();
             if (missingAssignmentsSize > 0) {
@@ -190,26 +170,20 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
             }
         }
 
-        public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers) throws IOException {
+        public void writeTo(StreamOutput out, Streamer[] insertValueStreamers) throws IOException {
             super.writeTo(out);
-            if (insertValues != null) {
-                assert insertValueStreamers != null : "streamers are required to stream insert values";
-                out.writeVInt(insertValues.length);
-                for (int i = 0; i < insertValues.length; i++) {
-                    insertValueStreamers[i].writeValueTo(out, insertValues[i]);
-                }
-            } else {
-                out.writeVInt(0);
+            assert insertValueStreamers != null : "streamers are required to stream insert values";
+            out.writeVInt(insertValues.length);
+            for (int i = 0; i < insertValues.length; i++) {
+                insertValueStreamers[i].writeValueTo(out, insertValues[i]);
             }
         }
     }
-
 
     public static class Builder {
 
         private final SessionSettings sessionSettings;
         private final TimeValue timeout;
-        @Nullable
         private final Reference[] insertColumns;
         private final UUID jobId;
         @Nullable
