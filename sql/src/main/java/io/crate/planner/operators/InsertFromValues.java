@@ -223,7 +223,9 @@ public class InsertFromValues implements LogicalPlan {
 
         List<Symbol> returnValues = this.writerProjection.returnValues();
         // plain insert usecase only. No conflict on update, no returnvalues
-        if (returnValues.isEmpty() && updateColumnNames != null && updateColumnNames.length == 0) {
+        if (returnValues.isEmpty() && updateColumnNames != null && updateColumnNames.length == 0 &&
+            !plannerContext.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)
+        ) {
             Function<ShardId, ShardInsertRequest> newRequest = new ShardInsertRequest.Builder(
                 plannerContext.transactionContext().sessionSettings(),
                 BULK_REQUEST_TIMEOUT_SETTING.setting().get(dependencies.settings()),
