@@ -184,8 +184,6 @@ public class ColumnIndexWriterProjector implements Projector {
                 upsertResultContext
             );
         }
-
-
     }
 
     @Override
