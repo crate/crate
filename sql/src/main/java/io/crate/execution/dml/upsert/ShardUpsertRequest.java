@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.settings.SessionSettings;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -158,7 +159,6 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
         }
     }
 
-
     @Nullable
     @Override
     public SessionSettings sessionSettings() {
@@ -187,6 +187,9 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
      * A single update item.
      */
     public static class Item extends ShardWriteRequest.Item {
+
+        @Nullable
+        protected BytesReference source;
 
         /**
          * List of symbols used on update if document exist
@@ -221,6 +224,17 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
             this.insertValues = insertValues;
         }
 
+        @Nullable
+        @Override
+        public BytesReference source() {
+            return source;
+        }
+
+        @Override
+        public void source(BytesReference source) {
+            this.source = source;
+        }
+
         boolean retryOnConflict() {
             return seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && version == Versions.MATCH_ANY;
         }
@@ -252,6 +266,21 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
                     insertValues[i] = insertValueStreamers[i].readValueFrom(in);
                 }
             }
+
+            if (in.readBoolean()) {
+                source = in.readBytesReference();
+            }
+
+            if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
+                // All return values are stored now in the Request object since they are equal for all items.
+                // For BwC reason, when a node < 4.2 still sends returnvalues make sure the data is consumed.
+                int returnValueSize = in.readVInt();
+                if (returnValueSize > 0) {
+                    for (int i = 0; i < returnValueSize; i++) {
+                        Symbols.fromStream(in);
+                    }
+                }
+            }
         }
 
         public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers, boolean allOn4_2) throws IOException {
@@ -273,6 +302,15 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
                     insertValueStreamers[i].writeValueTo(out, insertValues[i]);
                 }
             } else {
+                out.writeVInt(0);
+            }
+            boolean sourceAvailable = source != null;
+            out.writeBoolean(sourceAvailable);
+            if (sourceAvailable) {
+                out.writeBytesReference(source);
+            }
+            if (allOn4_2) {
+                // All return values are stored in the Request object, this is just for BwC reasons
                 out.writeVInt(0);
             }
         }

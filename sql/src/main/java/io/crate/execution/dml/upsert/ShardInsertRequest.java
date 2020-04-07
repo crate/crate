@@ -27,6 +27,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.settings.SessionSettings;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.TimeValue;
@@ -127,6 +128,9 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
      */
     public static class Item extends ShardWriteRequest.Item {
 
+        @Nullable
+        protected BytesReference source;
+
         /**
          * List of objects used on insert
          */
@@ -141,6 +145,17 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
         ) {
             super(id, version, seqNo, primaryTerm);
             this.insertValues = insertValues;
+        }
+
+        @Nullable
+        @Override
+        public BytesReference source() {
+            return source;
+        }
+
+        @Override
+        public void source(BytesReference source) {
+            this.source = source;
         }
 
         @Nullable
@@ -168,6 +183,9 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
                     insertValues[i] = insertValueStreamers[i].readValueFrom(in);
                 }
             }
+            if (in.readBoolean()) {
+                source = in.readBytesReference();
+            }
         }
 
         public void writeTo(StreamOutput out, Streamer[] insertValueStreamers) throws IOException {
@@ -176,6 +194,11 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
             out.writeVInt(insertValues.length);
             for (int i = 0; i < insertValues.length; i++) {
                 insertValueStreamers[i].writeValueTo(out, insertValues[i]);
+            }
+            boolean sourceAvailable = source != null;
+            out.writeBoolean(sourceAvailable);
+            if (sourceAvailable) {
+                out.writeBytesReference(source);
             }
         }
     }

@@ -100,14 +100,8 @@ public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends 
      */
     public abstract static class Item extends ShardRequest.Item {
 
-        @Nullable
-        private BytesReference source;
-
         protected Item(StreamInput in) throws IOException {
             super(in);
-            if (in.readBoolean()) {
-                source = in.readBytesReference();
-            }
         }
 
         protected Item(String id,
@@ -128,13 +122,9 @@ public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends 
         }
 
         @Nullable
-        public BytesReference source() {
-            return source;
-        }
+        public abstract BytesReference source();
 
-        public void source(BytesReference source) {
-            this.source = source;
-        }
+        public abstract void source(BytesReference source);
 
         boolean retryOnConflict() {
             return seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && version == Versions.MATCH_ANY;
@@ -149,11 +139,6 @@ public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends 
 
         public void writeTo(StreamOutput out) throws IOException {
             super.writeTo(out);
-            boolean sourceAvailable = source != null;
-            out.writeBoolean(sourceAvailable);
-            if (sourceAvailable) {
-                out.writeBytesReference(source);
-            }
         }
     }
 }
