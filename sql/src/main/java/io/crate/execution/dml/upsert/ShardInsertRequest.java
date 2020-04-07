@@ -293,8 +293,8 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
                 jobId,
                 sessionSettings,
                 insertColumns,
-                validateGeneratedColumns,
                 continueOnError,
+                validateGeneratedColumns,
                 duplicateKeyAction
             ).timeout(timeout);
         }
