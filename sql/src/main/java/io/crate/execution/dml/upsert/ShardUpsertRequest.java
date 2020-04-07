@@ -118,9 +118,9 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
             validateConstraints = modes.contains(Mode.VALIDATE_CONSTRAINTS);
             if (modes.contains(Mode.DUPLICATE_KEY_IGNORE)) {
                 duplicateKeyAction = DuplicateKeyAction.IGNORE;
-            } else if(modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
+            } else if (modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
                 duplicateKeyAction = DuplicateKeyAction.OVERWRITE;
-            } else if(modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
+            } else if (modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
                 duplicateKeyAction = DuplicateKeyAction.UPDATE_OR_FAIL;
             }
         } else {

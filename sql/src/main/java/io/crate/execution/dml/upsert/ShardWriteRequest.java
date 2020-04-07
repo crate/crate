@@ -48,6 +48,7 @@ public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends 
         OVERWRITE,
         IGNORE
     }
+    
     // Mode is only used for internal storage and serialization
     protected enum Mode {
         DUPLICATE_KEY_UPDATE_OR_FAIL,
