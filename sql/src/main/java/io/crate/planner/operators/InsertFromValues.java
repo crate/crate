@@ -353,18 +353,20 @@ public class InsertFromValues implements LogicalPlan {
             dependencies.clusterService(),
             plannerContext.jobId()
         ).thenCompose(acknowledgedResponse -> {
-            var shardRequests = resolveAndGroupShardRequests(shardedRequests, dependencies.clusterService()).values();
-            return executeAction(shardRequests, transportShardWriteAction, dependencies.scheduler());
+            var shardRequests = resolveAndGroupShardRequests(
+                shardedRequests,
+                dependencies.clusterService()).values();
+            return executeAction(
+                shardRequests,
+                transportShardWriteAction,
+                dependencies.scheduler());
         }).whenComplete((response, t) -> {
             if (t == null) {
                 if (returnValues.isEmpty()) {
-                    consumer.accept(InMemoryBatchIterator.of(new Row1((long) response.numSuccessfulWrites()),
-                                                             SENTINEL),
+                    consumer.accept(InMemoryBatchIterator.of(new Row1((long) response.numSuccessfulWrites()), SENTINEL),
                                     null);
                 } else {
-                    consumer.accept(InMemoryBatchIterator.of(new CollectionBucket(response.resultRows()),
-                                                             SENTINEL,
-                                                             false), null);
+                    consumer.accept(InMemoryBatchIterator.of(new CollectionBucket(response.resultRows()), SENTINEL, false), null);
                 }
             } else {
                 consumer.accept(null, t);
@@ -585,8 +587,13 @@ public class InsertFromValues implements LogicalPlan {
             shardedRequests.itemsByMissingIndex().keySet(),
             dependencies.clusterService(), plannerContext.jobId()
         ).thenCompose(acknowledgedResponse -> {
-            var shardRequests = resolveAndGroupShardRequests(shardedRequests, dependencies.clusterService()).values();
-            return executeAction(shardRequests, action, dependencies.scheduler());
+            var shardRequests = resolveAndGroupShardRequests(
+                shardedRequests,
+                dependencies.clusterService()).values();
+            return executeAction(
+                shardRequests,
+                action,
+                dependencies.scheduler());
         }).whenComplete((response, t) -> {
             if (t == null) {
                 long[] resultRowCount = createBulkResponse(response, bulkParams.size(), bulkIndices);
