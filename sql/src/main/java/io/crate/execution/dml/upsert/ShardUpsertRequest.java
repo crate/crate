@@ -40,8 +40,10 @@ import org.elasticsearch.index.shard.ShardId;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -116,11 +118,9 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
             validateConstraints = modes.contains(Mode.VALIDATE_CONSTRAINTS);
             if (modes.contains(Mode.DUPLICATE_KEY_IGNORE)) {
                 duplicateKeyAction = DuplicateKeyAction.IGNORE;
-            }
-            if (modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
+            } else if(modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
                 duplicateKeyAction = DuplicateKeyAction.OVERWRITE;
-            }
-            if (modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
+            } else if(modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
                 duplicateKeyAction = DuplicateKeyAction.UPDATE_OR_FAIL;
             }
         } else {
@@ -234,6 +234,40 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
     @Override
     public DuplicateKeyAction duplicateKeyAction() {
         return duplicateKeyAction;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        ShardUpsertRequest items = (ShardUpsertRequest) o;
+        return continueOnError == items.continueOnError &&
+               validateConstraints == items.validateConstraints &&
+               Objects.equals(sessionSettings, items.sessionSettings) &&
+               duplicateKeyAction == items.duplicateKeyAction &&
+               Arrays.equals(updateColumns, items.updateColumns) &&
+               Arrays.equals(insertColumns, items.insertColumns) &&
+               Arrays.equals(returnValues, items.returnValues);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(super.hashCode(),
+                                  sessionSettings,
+                                  duplicateKeyAction,
+                                  continueOnError,
+                                  validateConstraints);
+        result = 31 * result + Arrays.hashCode(updateColumns);
+        result = 31 * result + Arrays.hashCode(insertColumns);
+        result = 31 * result + Arrays.hashCode(returnValues);
+        return result;
     }
 
     /**

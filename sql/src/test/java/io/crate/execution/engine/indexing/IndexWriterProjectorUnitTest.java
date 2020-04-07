@@ -107,6 +107,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             1,
             transportCreatePartitionsAction,
             (request, listener) -> {},
+            (request, listener) -> {},
             IndexNameResolver.forTable(BULK_IMPORT_IDENT),
             RAW_SOURCE_REFERENCE,
             Collections.singletonList(ID_IDENT),

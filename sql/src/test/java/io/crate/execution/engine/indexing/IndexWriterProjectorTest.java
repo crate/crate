@@ -69,7 +69,6 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
     private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
 
-
     @Test
     public void testIndexWriter() throws Throwable {
         execute("create table bulk_import (id int primary key, name string) with (number_of_replicas=0)");
@@ -94,6 +93,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),
             internalCluster().getInstance(TransportCreatePartitionsAction.class),
             internalCluster().getInstance(TransportShardInsertAction.class)::execute,
+            internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
             IndexNameResolver.forTable(bulkImportIdent),
             new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
                           RowGranularity.DOC,

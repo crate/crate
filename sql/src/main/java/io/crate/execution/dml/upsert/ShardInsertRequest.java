@@ -37,11 +37,13 @@ import org.elasticsearch.index.shard.ShardId;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
-public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, ShardInsertRequest.Item> {
+public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, ShardInsertRequest.Item> {
 
     private SessionSettings sessionSettings;
 
@@ -55,10 +57,14 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
     public ShardInsertRequest(ShardId shardId,
                               UUID jobId,
                               SessionSettings sessionSettings,
-                              Reference[] insertColumns) {
+                              Reference[] insertColumns,
+                              boolean continueOnError,
+                              boolean validateGeneratedColumns,
+                              DuplicateKeyAction duplicateKeyAction) {
         super(shardId, jobId);
         this.sessionSettings = sessionSettings;
         this.insertColumns = insertColumns;
+        this.modes = Mode.toEnumSet(continueOnError, validateGeneratedColumns, duplicateKeyAction);
     }
 
     public ShardInsertRequest(StreamInput in) throws IOException {
@@ -72,13 +78,13 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
             }
             insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         }
+        modes = EnumSets.unpackFromInt(in.readVInt(), Mode.class);
         sessionSettings = new SessionSettings(in);
         int numItems = in.readVInt();
         items = new ArrayList<>(numItems);
         for (int i = 0; i < numItems; i++) {
             items.add(new ShardInsertRequest.Item(in, insertValuesStreamer));
         }
-        modes = EnumSets.unpackFromInt(in.readVInt(), Mode.class);
     }
 
     @Override
@@ -94,12 +100,12 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
         } else {
             out.writeVInt(0);
         }
+        out.writeVInt(EnumSets.packToInt(modes));
         sessionSettings.writeTo(out);
         out.writeVInt(items.size());
         for (ShardInsertRequest.Item item : items) {
             item.writeTo(out, insertValuesStreamer);
         }
-        out.writeVInt(EnumSets.packToInt(modes));
     }
 
     @Nullable
@@ -150,10 +156,34 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
         return null;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        ShardInsertRequest items = (ShardInsertRequest) o;
+        return sessionSettings.equals(items.sessionSettings) &&
+               Arrays.equals(insertColumns, items.insertColumns) &&
+               modes.equals(items.modes);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(super.hashCode(), sessionSettings, modes);
+        result = 31 * result + Arrays.hashCode(insertColumns);
+        return result;
+    }
+
     /**
      * A single insert item.
      */
-    public static class Item extends ShardWriteRequest.Item {
+    public static final class Item extends ShardWriteRequest.Item {
 
         @Nullable
         protected BytesReference source;
@@ -262,7 +292,10 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
                 shardId,
                 jobId,
                 sessionSettings,
-                insertColumns
+                insertColumns,
+                validateGeneratedColumns,
+                continueOnError,
+                duplicateKeyAction
             ).timeout(timeout);
         }
     }

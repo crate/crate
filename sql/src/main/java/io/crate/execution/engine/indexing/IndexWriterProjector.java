@@ -27,6 +27,7 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.upsert.ShardInsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardWriteRequest;
@@ -40,6 +41,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -64,7 +66,7 @@ import java.util.function.Supplier;
 
 public class IndexWriterProjector implements Projector {
 
-    private final ShardingUpsertExecutor<ShardInsertRequest, ShardInsertRequest.Item> shardingUpsertExecutor;
+    private final ShardingUpsertExecutor<? extends ShardRequest<?, ?>, ? extends ShardRequest.Item> shardingUpsertExecutor;
 
     public IndexWriterProjector(ClusterService clusterService,
                                 NodeJobsCounter nodeJobsCounter,
@@ -77,6 +79,7 @@ public class IndexWriterProjector implements Projector {
                                 int targetTableNumReplicas,
                                 TransportCreatePartitionsAction transportCreatePartitionsAction,
                                 BulkRequestExecutor<ShardInsertRequest, ShardInsertRequest.Item> shardInsertAction,
+                                BulkRequestExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardUpsertAction,
                                 Supplier<String> indexNameResolver,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
@@ -102,39 +105,76 @@ public class IndexWriterProjector implements Projector {
         }
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
-        Function<ShardId, ShardInsertRequest> requestBuilder = new ShardInsertRequest.Builder(
-            txnCtx.sessionSettings(),
-            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            true,
-            new Reference[]{rawSourceReference},
-            jobId,
-            false,
-            overwriteDuplicates ? ShardWriteRequest.DuplicateKeyAction.OVERWRITE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
+
+        if (clusterService.state().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
+            Function<ShardId, ShardInsertRequest> requestBuilder = new ShardInsertRequest.Builder(
+                txnCtx.sessionSettings(),
+                ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+                true,
+                new Reference[]{rawSourceReference},
+                jobId,
+                false,
+                overwriteDuplicates ? ShardWriteRequest.DuplicateKeyAction.OVERWRITE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
             )::newRequest;
 
-        Function<String, ShardInsertRequest.Item> itemFactory =
-            id -> new ShardInsertRequest.Item(id, new Object[]{source.value()}, null, null, null);
+            Function<String, ShardInsertRequest.Item> itemFactory =
+                id -> new ShardInsertRequest.Item(id, new Object[]{source.value()}, null, null, null);
 
+            shardingUpsertExecutor = new ShardingUpsertExecutor<>(
+                clusterService,
+                nodeJobsCounter,
+                scheduler,
+                executor,
+                bulkActions,
+                jobId,
+                rowShardResolver,
+                itemFactory,
+                requestBuilder,
+                collectExpressions,
+                indexNameResolver,
+                autoCreateIndices,
+                shardInsertAction,
+                transportCreatePartitionsAction,
+                targetTableNumShards,
+                targetTableNumReplicas,
+                upsertResultContext
+            );
+        } else {
+            Function<ShardId, ShardUpsertRequest> requestBuilder = new ShardUpsertRequest.Builder(
+                txnCtx.sessionSettings(),
+                ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+                true,
+                null,
+                new Reference[]{rawSourceReference},
+                null,
+                jobId,
+                false,
+                overwriteDuplicates ? ShardWriteRequest.DuplicateKeyAction.OVERWRITE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
+            )::newRequest;
 
-        shardingUpsertExecutor = new ShardingUpsertExecutor<>(
-            clusterService,
-            nodeJobsCounter,
-            scheduler,
-            executor,
-            bulkActions,
-            jobId,
-            rowShardResolver,
-            itemFactory,
-            requestBuilder,
-            collectExpressions,
-            indexNameResolver,
-            autoCreateIndices,
-            shardInsertAction,
-            transportCreatePartitionsAction,
-            targetTableNumShards,
-            targetTableNumReplicas,
-            upsertResultContext
-        );
+            Function<String, ShardUpsertRequest.Item> itemFactory =
+                id -> new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null);
+
+            shardingUpsertExecutor = new ShardingUpsertExecutor<>(
+                clusterService,
+                nodeJobsCounter,
+                scheduler,
+                executor,
+                bulkActions,
+                jobId,
+                rowShardResolver,
+                itemFactory,
+                requestBuilder,
+                collectExpressions,
+                indexNameResolver,
+                autoCreateIndices,
+                shardUpsertAction,
+                transportCreatePartitionsAction,
+                targetTableNumShards,
+                targetTableNumReplicas,
+                upsertResultContext
+            );
+        }
     }
 
 

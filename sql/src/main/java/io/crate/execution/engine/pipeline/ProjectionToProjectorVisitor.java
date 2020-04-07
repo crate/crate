@@ -438,6 +438,7 @@ public class ProjectionToProjectorVisitor
             targetTableNumReplicas,
             transportActionProvider.transportBulkCreateIndicesAction(),
             transportActionProvider.transportShardInsertAction()::execute,
+            transportActionProvider.transportShardUpsertAction()::execute,
             indexNameResolver,
             projection.rawSourceReference(),
             projection.primaryKeys(),
