@@ -27,6 +27,7 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.execution.dml.upsert.ShardInsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardWriteRequest;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -63,7 +64,7 @@ import java.util.function.Supplier;
 
 public class IndexWriterProjector implements Projector {
 
-    private final ShardingUpsertExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardingUpsertExecutor;
+    private final ShardingUpsertExecutor<ShardInsertRequest, ShardInsertRequest.Item> shardingUpsertExecutor;
 
     public IndexWriterProjector(ClusterService clusterService,
                                 NodeJobsCounter nodeJobsCounter,
@@ -75,7 +76,7 @@ public class IndexWriterProjector implements Projector {
                                 int targetTableNumShards,
                                 int targetTableNumReplicas,
                                 TransportCreatePartitionsAction transportCreatePartitionsAction,
-                                BulkRequestExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardUpsertAction,
+                                BulkRequestExecutor<ShardInsertRequest, ShardInsertRequest.Item> shardInsertAction,
                                 Supplier<String> indexNameResolver,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
@@ -101,20 +102,19 @@ public class IndexWriterProjector implements Projector {
         }
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
-        Function<ShardId, ShardUpsertRequest> requestBuilder = new ShardUpsertRequest.Builder(
+        Function<ShardId, ShardInsertRequest> requestBuilder = new ShardInsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             true,
-            null,
             new Reference[]{rawSourceReference},
-            null,
             jobId,
             false,
             overwriteDuplicates ? ShardWriteRequest.DuplicateKeyAction.OVERWRITE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
             )::newRequest;
 
-        Function<String, ShardUpsertRequest.Item> itemFactory =
-            id -> new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null);
+        Function<String, ShardInsertRequest.Item> itemFactory =
+            id -> new ShardInsertRequest.Item(id, new Object[]{source.value()}, null, null, null);
+
 
         shardingUpsertExecutor = new ShardingUpsertExecutor<>(
             clusterService,
@@ -129,7 +129,7 @@ public class IndexWriterProjector implements Projector {
             collectExpressions,
             indexNameResolver,
             autoCreateIndices,
-            shardUpsertAction,
+            shardInsertAction,
             transportCreatePartitionsAction,
             targetTableNumShards,
             targetTableNumReplicas,

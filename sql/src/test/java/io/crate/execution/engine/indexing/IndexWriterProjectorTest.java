@@ -28,6 +28,7 @@ import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.execution.dml.upsert.TransportShardInsertAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
@@ -92,7 +93,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
             NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),
             internalCluster().getInstance(TransportCreatePartitionsAction.class),
-            internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
+            internalCluster().getInstance(TransportShardInsertAction.class)::execute,
             IndexNameResolver.forTable(bulkImportIdent),
             new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
                           RowGranularity.DOC,
