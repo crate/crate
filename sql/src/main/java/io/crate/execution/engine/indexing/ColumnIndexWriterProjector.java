@@ -31,7 +31,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.upsert.ShardInsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.execution.dml.upsert.ShardWriteRequest.Mode;
+import io.crate.execution.dml.upsert.ShardWriteRequest;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeJobsCounter;
@@ -113,7 +113,7 @@ public class ColumnIndexWriterProjector implements Projector {
                 columnReferences.toArray(new Reference[columnReferences.size()]),
                 jobId,
                 true,
-                ignoreDuplicateKeys ? Mode.DUPLICATE_KEY_IGNORE : Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                ignoreDuplicateKeys ? ShardWriteRequest.DuplicateKeyAction.IGNORE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
             )::newRequest;
 
             InputRow insertValues = new InputRow(insertInputs);
@@ -152,7 +152,7 @@ public class ColumnIndexWriterProjector implements Projector {
                 returnValueOrNull,
                 jobId,
                 true,
-                ignoreDuplicateKeys ? Mode.DUPLICATE_KEY_IGNORE : Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                ignoreDuplicateKeys ? ShardWriteRequest.DuplicateKeyAction.IGNORE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
             )::newRequest;
 
             InputRow insertValues = new InputRow(insertInputs);

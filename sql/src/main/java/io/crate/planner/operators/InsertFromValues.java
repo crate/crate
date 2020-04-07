@@ -234,8 +234,8 @@ public class InsertFromValues implements LogicalPlan {
                 plannerContext.jobId(),
                 false,
                 writerProjection.isIgnoreDuplicateKeys()
-                    ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
-                    : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
+                    ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
+                    : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL)::newRequest;
 
             var insertValues = new InputRow(insertInputs);
             Function<String, ShardInsertRequest.Item> itemFactory = id -> new ShardInsertRequest.Item(
@@ -272,8 +272,8 @@ public class InsertFromValues implements LogicalPlan {
                 plannerContext.jobId(),
                 false,
                 writerProjection.isIgnoreDuplicateKeys()
-                    ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
-                    : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
+                    ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
+                    : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL)::newRequest;
 
             InputRow insertValues = new InputRow(insertInputs);
 
@@ -441,8 +441,8 @@ public class InsertFromValues implements LogicalPlan {
                 plannerContext.jobId(),
                 true,
                 writerProjection.isIgnoreDuplicateKeys()
-                    ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
-                    : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
+                    ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
+                    : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL)::newRequest;
 
             InputRow insertValues = new InputRow(insertInputs);
 
@@ -489,8 +489,8 @@ public class InsertFromValues implements LogicalPlan {
                 plannerContext.jobId(),
                 true,
                 writerProjection.isIgnoreDuplicateKeys()
-                    ? ShardUpsertRequest.Mode.DUPLICATE_KEY_IGNORE
-                    : ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)::newRequest;
+                    ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
+                    : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL)::newRequest;
 
             Function<Symbol[], GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item>> grouper =
                 (assignmentSources) -> createRowsByShardGrouper(

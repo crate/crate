@@ -77,7 +77,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 null,
                 jobId,
                 false,
-                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
             ).newRequest(shardId);
 
         request.add(123, new ShardUpsertRequest.Item(
@@ -127,7 +127,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 null,
                 jobId,
                 false,
-                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
             ).newRequest(shardId);
 
         request.add(123, new ShardUpsertRequest.Item(

@@ -182,7 +182,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 null,
                 UUID.randomUUID(),
                 false,
-                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
             ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
@@ -204,7 +204,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 null,
                 UUID.randomUUID(),
                 false,
-                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
             ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
@@ -246,7 +246,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 null,
                 UUID.randomUUID(),
                 false,
-                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
             ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
@@ -268,7 +268,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 null,
                 UUID.randomUUID(),
                 false,
-                Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
         ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 

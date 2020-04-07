@@ -23,6 +23,7 @@
 package io.crate.execution.dml.upsert;
 
 import io.crate.Streamer;
+import io.crate.common.collections.EnumSets;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
@@ -49,12 +50,13 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
      */
     private Reference[] insertColumns;
 
+    private EnumSet<Mode> modes;
+
     public ShardInsertRequest(ShardId shardId,
                               UUID jobId,
-                              EnumSet<Mode> modes,
                               SessionSettings sessionSettings,
                               Reference[] insertColumns) {
-        super(shardId, jobId, modes);
+        super(shardId, jobId);
         this.sessionSettings = sessionSettings;
         this.insertColumns = insertColumns;
     }
@@ -70,13 +72,13 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
             }
             insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         }
-
         sessionSettings = new SessionSettings(in);
         int numItems = in.readVInt();
         items = new ArrayList<>(numItems);
         for (int i = 0; i < numItems; i++) {
             items.add(new ShardInsertRequest.Item(in, insertValuesStreamer));
         }
+        modes = EnumSets.unpackFromInt(in.readVInt(), Mode.class);
     }
 
     @Override
@@ -97,6 +99,7 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
         for (ShardInsertRequest.Item item : items) {
             item.writeTo(out, insertValuesStreamer);
         }
+        out.writeVInt(EnumSets.packToInt(modes));
     }
 
     @Nullable
@@ -121,6 +124,30 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
     @Override
     public Reference[] insertColumns() {
         return insertColumns;
+    }
+
+    @Override
+    public boolean continueOnError() {
+        return modes.contains(Mode.CONTINUE_ON_ERROR);
+    }
+
+    @Override
+    public boolean validateConstraints() {
+        return modes.contains(Mode.VALIDATE_CONSTRAINTS);
+    }
+
+    @Override
+    public DuplicateKeyAction duplicateKeyAction() {
+        if (modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
+            return DuplicateKeyAction.UPDATE_OR_FAIL;
+        }
+        if (modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
+            return DuplicateKeyAction.OVERWRITE;
+        }
+        if (modes.contains(Mode.DUPLICATE_KEY_IGNORE)) {
+            return DuplicateKeyAction.IGNORE;
+        }
+        return null;
     }
 
     /**
@@ -209,8 +236,9 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
         private final TimeValue timeout;
         private final Reference[] insertColumns;
         private final UUID jobId;
-        @Nullable
-        private final EnumSet<Mode> modes;
+        private final boolean validateGeneratedColumns;
+        private final boolean continueOnError;
+        private final DuplicateKeyAction duplicateKeyAction;
 
         public Builder(SessionSettings sessionSettings,
                        TimeValue timeout,
@@ -218,25 +246,21 @@ public class ShardInsertRequest extends ShardWriteRequest<ShardInsertRequest, Sh
                        Reference[] insertColumns,
                        UUID jobId,
                        boolean validateGeneratedColumns,
-                       Mode... modes) {
+                       DuplicateKeyAction duplicateKeyAction) {
             this.sessionSettings = sessionSettings;
             this.timeout = timeout;
             this.insertColumns = insertColumns;
             this.jobId = jobId;
-            this.modes = EnumSet.copyOf(List.of(modes));
-            if (validateGeneratedColumns) {
-                this.modes.add(Mode.VALIDATE_CONSTRAINTS);
-            }
-            if (continueOnError) {
-                this.modes.add(Mode.CONTINUE_ON_ERROR);
-            }
+            this.validateGeneratedColumns = validateGeneratedColumns;
+            this.continueOnError = continueOnError;
+            this.duplicateKeyAction = duplicateKeyAction;
+
         }
 
         public ShardInsertRequest newRequest(ShardId shardId) {
             return new ShardInsertRequest(
                 shardId,
                 jobId,
-                modes,
                 sessionSettings,
                 insertColumns
             ).timeout(timeout);

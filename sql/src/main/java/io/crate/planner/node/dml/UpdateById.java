@@ -118,7 +118,7 @@ public final class UpdateById implements Plan {
             returnValues,
             plannerContext.jobId(),
             false,
-            ShardUpsertRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+            ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL
         );
         UpdateRequests updateRequests = new UpdateRequests(requestBuilder, table, assignments);
         return new ShardRequestExecutor<>(

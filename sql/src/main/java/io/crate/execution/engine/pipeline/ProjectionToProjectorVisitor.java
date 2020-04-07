@@ -533,7 +533,7 @@ public class ProjectionToProjectorVisitor
                 projection.returnValues(),
                 context.jobId,
                 true,
-                ShardWriteRequest.Mode.DUPLICATE_KEY_UPDATE_OR_FAIL
+                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
             );
 
         return new ShardDMLExecutor<>(

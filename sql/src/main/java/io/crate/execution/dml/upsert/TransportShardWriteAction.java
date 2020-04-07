@@ -268,7 +268,7 @@ public abstract class TransportShardWriteAction
                 }
             } catch (VersionConflictEngineException e) {
                 lastException = e;
-                if (request.modes().contains(ShardWriteRequest.Mode.DUPLICATE_KEY_IGNORE)) {
+                if (request.duplicateKeyAction() == ShardWriteRequest.DuplicateKeyAction.IGNORE) {
                     // on conflict do nothing
                     item.source(null);
                     return null;
@@ -331,7 +331,7 @@ public abstract class TransportShardWriteAction
         }
         item.source(rawSource);
 
-        long version = request.modes().contains(ShardWriteRequest.Mode.DUPLICATE_KEY_OVERWRITE) ? Versions.MATCH_ANY : Versions.MATCH_DELETED;
+        long version = request.duplicateKeyAction() == ShardWriteRequest.DuplicateKeyAction.OVERWRITE ? Versions.MATCH_ANY : Versions.MATCH_DELETED;
         long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
 
