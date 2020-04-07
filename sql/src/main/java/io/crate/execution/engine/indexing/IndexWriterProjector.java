@@ -110,11 +110,11 @@ public class IndexWriterProjector implements Projector {
             Function<ShardId, ShardInsertRequest> requestBuilder = new ShardInsertRequest.Builder(
                 txnCtx.sessionSettings(),
                 ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+                overwriteDuplicates ? ShardWriteRequest.DuplicateKeyAction.OVERWRITE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
                 true,
                 new Reference[]{rawSourceReference},
                 jobId,
-                false,
-                overwriteDuplicates ? ShardWriteRequest.DuplicateKeyAction.OVERWRITE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
+                false
             )::newRequest;
 
             Function<String, ShardInsertRequest.Item> itemFactory =
@@ -143,13 +143,13 @@ public class IndexWriterProjector implements Projector {
             Function<ShardId, ShardUpsertRequest> requestBuilder = new ShardUpsertRequest.Builder(
                 txnCtx.sessionSettings(),
                 ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+                overwriteDuplicates ? ShardWriteRequest.DuplicateKeyAction.OVERWRITE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
                 true,
                 null,
                 new Reference[]{rawSourceReference},
                 null,
                 jobId,
-                false,
-                overwriteDuplicates ? ShardWriteRequest.DuplicateKeyAction.OVERWRITE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
+                false
             )::newRequest;
 
             Function<String, ShardUpsertRequest.Item> itemFactory =

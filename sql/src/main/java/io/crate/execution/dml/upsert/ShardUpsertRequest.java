@@ -406,15 +406,17 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
         private final boolean continueOnError;
         private final DuplicateKeyAction duplicateKeyAction;
 
-        public Builder(SessionSettings sessionSettings,
-                       TimeValue timeout,
-                       boolean continueOnError,
-                       @Nullable String[] assignmentsColumns,
-                       @Nullable Reference[] missingAssignmentsColumns,
-                       @Nullable Symbol[] returnValue,
-                       UUID jobId,
-                       boolean validateGeneratedColumns,
-                       DuplicateKeyAction duplicateKeyAction) {
+        public Builder(
+            SessionSettings sessionSettings,
+            TimeValue timeout,
+            DuplicateKeyAction duplicateKeyAction,
+            boolean continueOnError,
+            @Nullable String[] assignmentsColumns,
+            @Nullable Reference[] missingAssignmentsColumns,
+            @Nullable Symbol[] returnValue,
+            UUID jobId,
+            boolean validateGeneratedColumns
+        ) {
             this.sessionSettings = sessionSettings;
             this.timeout = timeout;
             this.assignmentsColumns = assignmentsColumns;

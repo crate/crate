@@ -526,16 +526,16 @@ public class ProjectionToProjectorVisitor
         Collector<ShardResponse, A, Iterable<Row>> collector) {
 
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-                context.txnCtx.sessionSettings(),
-                ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-                false,
-                projection.assignmentsColumns(),
-                null,
-                projection.returnValues(),
-                context.jobId,
-                true,
-                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
-            );
+            context.txnCtx.sessionSettings(),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
+            false,
+            projection.assignmentsColumns(),
+            null,
+            projection.returnValues(),
+            context.jobId,
+            true
+        );
 
         return new ShardDMLExecutor<>(
             ShardDMLExecutor.DEFAULT_BULK_SIZE,

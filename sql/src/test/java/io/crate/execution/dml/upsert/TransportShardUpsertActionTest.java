@@ -25,7 +25,6 @@ package io.crate.execution.dml.upsert;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.dml.upsert.ShardWriteRequest.Mode;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -174,16 +173,16 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-                DUMMY_SESSION_INFO,
-                TimeValue.timeValueSeconds(30),
-                false,
-                null,
-                new Reference[]{ID_REF},
-                null,
-                UUID.randomUUID(),
-                false,
-                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
-            ).newRequest(shardId);
+            DUMMY_SESSION_INFO,
+            TimeValue.timeValueSeconds(30),
+            ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
+            false,
+            null,
+            new Reference[]{ID_REF},
+            null,
+            UUID.randomUUID(),
+            false
+        ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
@@ -196,16 +195,16 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-                DUMMY_SESSION_INFO,
-                TimeValue.timeValueSeconds(30),
-                true,
-                null,
-                new Reference[]{ID_REF},
-                null,
-                UUID.randomUUID(),
-                false,
-                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
-            ).newRequest(shardId);
+            DUMMY_SESSION_INFO,
+            TimeValue.timeValueSeconds(30),
+            ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
+            true,
+            null,
+            new Reference[]{ID_REF},
+            null,
+            UUID.randomUUID(),
+            false
+        ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
@@ -240,13 +239,13 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
                 DUMMY_SESSION_INFO,
                 TimeValue.timeValueSeconds(30),
-                false,
+                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
+        false,
                 null,
                 new Reference[]{ID_REF},
                 null,
                 UUID.randomUUID(),
-                false,
-                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
+                false
             ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
@@ -262,13 +261,13 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
                 DUMMY_SESSION_INFO,
                 TimeValue.timeValueSeconds(30),
-                false,
+                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
+        false,
                 null,
                 new Reference[]{ID_REF},
                 null,
                 UUID.randomUUID(),
-                false,
-                ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
+                false
         ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 

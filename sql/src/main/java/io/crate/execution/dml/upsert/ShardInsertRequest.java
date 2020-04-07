@@ -270,13 +270,15 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         private final boolean continueOnError;
         private final DuplicateKeyAction duplicateKeyAction;
 
-        public Builder(SessionSettings sessionSettings,
-                       TimeValue timeout,
-                       boolean continueOnError,
-                       Reference[] insertColumns,
-                       UUID jobId,
-                       boolean validateGeneratedColumns,
-                       DuplicateKeyAction duplicateKeyAction) {
+        public Builder(
+            SessionSettings sessionSettings,
+            TimeValue timeout,
+            DuplicateKeyAction duplicateKeyAction,
+            boolean continueOnError,
+            Reference[] insertColumns,
+            UUID jobId,
+            boolean validateGeneratedColumns
+        ) {
             this.sessionSettings = sessionSettings;
             this.timeout = timeout;
             this.insertColumns = insertColumns;

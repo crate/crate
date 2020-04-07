@@ -48,7 +48,7 @@ public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends 
         OVERWRITE,
         IGNORE
     }
-    
+
     // Mode is only used for internal storage and serialization
     protected enum Mode {
         DUPLICATE_KEY_UPDATE_OR_FAIL,
@@ -76,7 +76,7 @@ public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends 
                     modes.add(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL);
                     break;
                 default:
-                    throw new IllegalArgumentException("Action not supported for serialization " + action.name());
+                    throw new IllegalArgumentException("DuplicateKeyAction not supported for serialization: " + action.name());
             }
             return EnumSet.copyOf(modes);
         }

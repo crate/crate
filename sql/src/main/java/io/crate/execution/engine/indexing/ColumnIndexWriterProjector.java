@@ -109,11 +109,11 @@ public class ColumnIndexWriterProjector implements Projector {
             Function<ShardId, ShardInsertRequest> requestFactory = new ShardInsertRequest.Builder(
                 txnCtx.sessionSettings(),
                 ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+                ignoreDuplicateKeys ? ShardWriteRequest.DuplicateKeyAction.IGNORE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
                 true, // continueOnErrors
                 columnReferences.toArray(new Reference[columnReferences.size()]),
                 jobId,
-                true,
-                ignoreDuplicateKeys ? ShardWriteRequest.DuplicateKeyAction.IGNORE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
+                true
             )::newRequest;
 
             InputRow insertValues = new InputRow(insertInputs);
@@ -146,13 +146,13 @@ public class ColumnIndexWriterProjector implements Projector {
             Function<ShardId, ShardUpsertRequest> requestFactory = new ShardUpsertRequest.Builder(
                 txnCtx.sessionSettings(),
                 ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+                ignoreDuplicateKeys ? ShardWriteRequest.DuplicateKeyAction.IGNORE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
                 true, // continueOnErrors
                 updateColumnNames,
                 columnReferences.toArray(new Reference[columnReferences.size()]),
                 returnValueOrNull,
                 jobId,
-                true,
-                ignoreDuplicateKeys ? ShardWriteRequest.DuplicateKeyAction.IGNORE : ShardWriteRequest.DuplicateKeyAction.UPDATE_OR_FAIL
+                true
             )::newRequest;
 
             InputRow insertValues = new InputRow(insertInputs);
