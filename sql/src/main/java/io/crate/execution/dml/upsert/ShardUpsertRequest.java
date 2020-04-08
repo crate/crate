@@ -23,7 +23,6 @@
 package io.crate.execution.dml.upsert;
 
 import io.crate.Streamer;
-import io.crate.common.collections.EnumSets;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
@@ -41,7 +40,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -112,24 +110,9 @@ public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertReque
             }
             insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         }
-
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            EnumSet<Mode> modes = EnumSets.unpackFromInt(in.readVInt(), Mode.class);
-            continueOnError = modes.contains(Mode.CONTINUE_ON_ERROR);
-            validateConstraints = modes.contains(Mode.VALIDATE_CONSTRAINTS);
-            if (modes.contains(Mode.DUPLICATE_KEY_IGNORE)) {
-                duplicateKeyAction = DuplicateKeyAction.IGNORE;
-            } else if (modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
-                duplicateKeyAction = DuplicateKeyAction.OVERWRITE;
-            } else if (modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
-                duplicateKeyAction = DuplicateKeyAction.UPDATE_OR_FAIL;
-            }
-        } else {
-            //For BwC reasons
-            continueOnError = in.readBoolean();
-            duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
-            validateConstraints = in.readBoolean();
-        }
+        continueOnError = in.readBoolean();
+        duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
+        validateConstraints = in.readBoolean();
 
         sessionSettings = new SessionSettings(in);
         int numItems = in.readVInt();
@@ -173,13 +156,9 @@ public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertReque
 
         boolean allOn4_2 = out.getVersion().onOrAfter(Version.V_4_2_0);
 
-        if (allOn4_2) {
-            out.writeVInt(EnumSets.packToInt(Mode.toEnumSet(continueOnError, validateConstraints, duplicateKeyAction)));
-        } else {
-            out.writeBoolean(continueOnError);
-            out.writeVInt(duplicateKeyAction.ordinal());
-            out.writeBoolean(validateConstraints);
-        }
+        out.writeBoolean(continueOnError);
+        out.writeVInt(duplicateKeyAction.ordinal());
+        out.writeBoolean(validateConstraints);
 
         sessionSettings.writeTo(out);
 
