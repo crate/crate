@@ -90,18 +90,19 @@ public abstract class TransportShardWriteAction
     private final Schemas schemas;
     private final Functions functions;
 
-    public TransportShardWriteAction(String actionName,
-                                     ThreadPool threadPool,
-                                     ClusterService clusterService,
-                                     TransportService transportService,
-                                     SchemaUpdateClient schemaUpdateClient,
-                                     TasksService tasksService,
-                                     IndicesService indicesService,
-                                     ShardStateAction shardStateAction,
-                                     Functions functions,
-                                     Schemas schemas,
-                                     IndexNameExpressionResolver indexNameExpressionResolver,
-                                     Writeable.Reader<Request> reader
+    public TransportShardWriteAction(
+        String actionName,
+        ThreadPool threadPool,
+        ClusterService clusterService,
+        TransportService transportService,
+        SchemaUpdateClient schemaUpdateClient,
+        TasksService tasksService,
+        IndicesService indicesService,
+        ShardStateAction shardStateAction,
+        Functions functions,
+        Schemas schemas,
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        Writeable.Reader<Request> reader
 
     ) {
         super(
@@ -121,9 +122,10 @@ public abstract class TransportShardWriteAction
     }
 
     @Override
-    protected WritePrimaryResult<Request, ShardResponse> processRequestItems(IndexShard indexShard,
-                                                                             Request request,
-                                                                             AtomicBoolean killed) {
+    protected WritePrimaryResult<Request, ShardResponse> processRequestItems(
+        IndexShard indexShard,
+        Request request,
+        AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
@@ -131,9 +133,8 @@ public abstract class TransportShardWriteAction
         GeneratedColumns.Validation valueValidation = request.validateConstraints()
             ? GeneratedColumns.Validation.VALUE_MATCH
             : GeneratedColumns.Validation.NONE;
-        // Can be null
+
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
-        // txnCtx is not needed for when insert is already string-based
         InsertSourceGen insertSourceGen = insertColumns == null
             ? null
             : InsertSourceGen.of(txnCtx, functions, tableInfo, indexName, valueValidation, Arrays.asList(insertColumns));

@@ -105,7 +105,7 @@ public class IndexWriterProjector implements Projector {
         }
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
-
+        // use insert instead of upsert if the other nodes >= 4.2
         if (clusterService.state().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
             Function<ShardId, ShardInsertRequest> requestBuilder = new ShardInsertRequest.Builder(
                 txnCtx.sessionSettings(),

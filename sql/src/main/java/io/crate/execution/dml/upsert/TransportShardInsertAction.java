@@ -42,16 +42,17 @@ public class TransportShardInsertAction extends
     private static final String ACTION_NAME = "internal:crate:sql/data/insert";
 
     @Inject
-    public TransportShardInsertAction(ThreadPool threadPool,
-                                      ClusterService clusterService,
-                                      TransportService transportService,
-                                      SchemaUpdateClient schemaUpdateClient,
-                                      TasksService tasksService,
-                                      IndicesService indicesService,
-                                      ShardStateAction shardStateAction,
-                                      Functions functions,
-                                      Schemas schemas,
-                                      IndexNameExpressionResolver indexNameExpressionResolver) {
+    public TransportShardInsertAction(
+        ThreadPool threadPool,
+        ClusterService clusterService,
+        TransportService transportService,
+        SchemaUpdateClient schemaUpdateClient,
+        TasksService tasksService,
+        IndicesService indicesService,
+        ShardStateAction shardStateAction,
+        Functions functions,
+        Schemas schemas,
+        IndexNameExpressionResolver indexNameExpressionResolver) {
         super(
             ACTION_NAME,
             threadPool,

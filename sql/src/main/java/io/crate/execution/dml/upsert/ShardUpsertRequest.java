@@ -47,7 +47,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
+public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     private SessionSettings sessionSettings;
 
@@ -73,15 +73,16 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
     @Nullable
     private Symbol[] returnValues;
 
-    public ShardUpsertRequest(ShardId shardId,
-                              UUID jobId,
-                              boolean continueOnError,
-                              boolean validateConstraints,
-                              DuplicateKeyAction duplicateKeyAction,
-                              SessionSettings sessionSettings,
-                              @Nullable String[] updateColumns,
-                              @Nullable Reference[] insertColumns,
-                              @Nullable Symbol[] returnValues) {
+    public ShardUpsertRequest(
+        ShardId shardId,
+        UUID jobId,
+        boolean continueOnError,
+        boolean validateConstraints,
+        DuplicateKeyAction duplicateKeyAction,
+        SessionSettings sessionSettings,
+        @Nullable String[] updateColumns,
+        @Nullable Reference[] insertColumns,
+        @Nullable Symbol[] returnValues) {
         super(shardId, jobId);
         assert updateColumns != null || insertColumns != null : "Missing updateAssignments, whether for update nor for insert";
         this.continueOnError = continueOnError;
@@ -124,6 +125,7 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
                 duplicateKeyAction = DuplicateKeyAction.UPDATE_OR_FAIL;
             }
         } else {
+            //For BwC reasons
             continueOnError = in.readBoolean();
             duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
             validateConstraints = in.readBoolean();
@@ -236,47 +238,14 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
         return duplicateKeyAction;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        if (!super.equals(o)) {
-            return false;
-        }
-        ShardUpsertRequest items = (ShardUpsertRequest) o;
-        return continueOnError == items.continueOnError &&
-               validateConstraints == items.validateConstraints &&
-               Objects.equals(sessionSettings, items.sessionSettings) &&
-               duplicateKeyAction == items.duplicateKeyAction &&
-               Arrays.equals(updateColumns, items.updateColumns) &&
-               Arrays.equals(insertColumns, items.insertColumns) &&
-               Arrays.equals(returnValues, items.returnValues);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(super.hashCode(),
-                                  sessionSettings,
-                                  duplicateKeyAction,
-                                  continueOnError,
-                                  validateConstraints);
-        result = 31 * result + Arrays.hashCode(updateColumns);
-        result = 31 * result + Arrays.hashCode(insertColumns);
-        result = 31 * result + Arrays.hashCode(returnValues);
-        return result;
-    }
 
     /**
      * A single update item.
      */
-    public static class Item extends ShardWriteRequest.Item {
+    public static final class Item extends ShardWriteRequest.Item {
 
         @Nullable
-        protected BytesReference source;
+        private BytesReference source;
 
         /**
          * List of symbols used on update if document exist
@@ -395,16 +364,16 @@ public class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, Sh
 
         private final SessionSettings sessionSettings;
         private final TimeValue timeout;
+        private final DuplicateKeyAction duplicateKeyAction;
+        private final boolean continueOnError;
         @Nullable
         private final String[] assignmentsColumns;
         @Nullable
         private final Reference[] missingAssignmentsColumns;
         private final UUID jobId;
+        private final boolean validateGeneratedColumns;
         @Nullable
         private final Symbol[] returnValues;
-        private final boolean validateGeneratedColumns;
-        private final boolean continueOnError;
-        private final DuplicateKeyAction duplicateKeyAction;
 
         public Builder(
             SessionSettings sessionSettings,

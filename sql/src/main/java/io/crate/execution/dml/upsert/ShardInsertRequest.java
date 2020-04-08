@@ -54,13 +54,14 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
 
     private EnumSet<Mode> modes;
 
-    public ShardInsertRequest(ShardId shardId,
-                              UUID jobId,
-                              SessionSettings sessionSettings,
-                              Reference[] insertColumns,
-                              boolean continueOnError,
-                              boolean validateGeneratedColumns,
-                              DuplicateKeyAction duplicateKeyAction) {
+    public ShardInsertRequest(
+        ShardId shardId,
+        UUID jobId,
+        SessionSettings sessionSettings,
+        Reference[] insertColumns,
+        boolean continueOnError,
+        boolean validateGeneratedColumns,
+        DuplicateKeyAction duplicateKeyAction) {
         super(shardId, jobId);
         this.sessionSettings = sessionSettings;
         this.insertColumns = insertColumns;
@@ -277,8 +278,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
             boolean continueOnError,
             Reference[] insertColumns,
             UUID jobId,
-            boolean validateGeneratedColumns
-        ) {
+            boolean validateGeneratedColumns) {
             this.sessionSettings = sessionSettings;
             this.timeout = timeout;
             this.insertColumns = insertColumns;
