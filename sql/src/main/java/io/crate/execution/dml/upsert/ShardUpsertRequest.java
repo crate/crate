@@ -153,8 +153,6 @@ public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertReque
             out.writeVInt(0);
         }
 
-        boolean allOn4_2 = out.getVersion().onOrAfter(Version.V_4_2_0);
-
         out.writeBoolean(continueOnError);
         out.writeVInt(duplicateKeyAction.ordinal());
         out.writeBoolean(validateConstraints);
@@ -163,9 +161,9 @@ public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertReque
 
         out.writeVInt(items.size());
         for (Item item : items) {
-            item.writeTo(out, insertValuesStreamer, allOn4_2);
+            item.writeTo(out, insertValuesStreamer);
         }
-        if (allOn4_2) {
+        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
             if (returnValues != null) {
                 out.writeVInt(returnValues.length);
                 for (Symbol returnValue : returnValues) {
@@ -339,7 +337,7 @@ public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertReque
             }
         }
 
-        public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers, boolean allOn4_2) throws IOException {
+        public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super.writeTo(out);
             if (updateAssignments != null) {
                 out.writeBoolean(true);
@@ -392,7 +390,6 @@ public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertReque
             return result;
         }
     }
-
 
     public static class Builder {
 

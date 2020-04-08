@@ -39,7 +39,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -62,7 +61,8 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         Reference[] insertColumns,
         boolean continueOnError,
         boolean validateGeneratedColumns,
-        DuplicateKeyAction duplicateKeyAction) {
+        DuplicateKeyAction duplicateKeyAction
+    ) {
         super(shardId, jobId);
         this.sessionSettings = sessionSettings;
         this.insertColumns = insertColumns;
@@ -110,7 +110,6 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         }
     }
 
-    @Nullable
     @Override
     public SessionSettings sessionSettings() {
         return sessionSettings;
@@ -128,7 +127,6 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         return null;
     }
 
-    @Nullable
     @Override
     public Reference[] insertColumns() {
         return insertColumns;
@@ -146,7 +144,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
 
     @Override
     public DuplicateKeyAction duplicateKeyAction() {
-        return Values.getDuplicateAction(values);
+        return Values.duplicationAction(values);
     }
 
     @Override
@@ -173,7 +171,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         return result;
     }
 
-    // Values is only used for internal storage and serialization
+    // Values are only used for internal storage and serialization
     private enum Values {
         DUPLICATE_KEY_UPDATE_OR_FAIL,
         DUPLICATE_KEY_OVERWRITE,
@@ -182,7 +180,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         VALIDATE_CONSTRAINTS;
 
         static EnumSet<Values> toEnumSet(boolean continueOnError, boolean validateConstraints, DuplicateKeyAction action) {
-            HashSet<Values> values = new HashSet<>();
+            ArrayList<Values> values = new ArrayList<>(3);
             if (continueOnError) {
                 values.add(Values.CONTINUE_ON_ERROR);
             }
@@ -205,7 +203,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
             return EnumSet.copyOf(values);
         }
 
-        static DuplicateKeyAction getDuplicateAction(EnumSet<Values> values) {
+        static DuplicateKeyAction duplicationAction(EnumSet<Values> values) {
             if (values.contains(Values.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
                 return DuplicateKeyAction.UPDATE_OR_FAIL;
             }
@@ -215,7 +213,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
             if (values.contains(Values.DUPLICATE_KEY_IGNORE)) {
                 return DuplicateKeyAction.IGNORE;
             }
-            throw new IllegalArgumentException("DuplicateKeyAction found");
+            throw new IllegalArgumentException("DuplicateKeyAction not found");
         }
 
         static boolean continueOnError(EnumSet<Values> values) {
@@ -241,11 +239,12 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         @Nullable
         private Object[] insertValues;
 
-        public Item(String id,
-                    Object[] insertValues,
-                    @Nullable Long version,
-                    @Nullable Long seqNo,
-                    @Nullable Long primaryTerm
+        public Item(
+            String id,
+            Object[] insertValues,
+            @Nullable Long version,
+            @Nullable Long seqNo,
+            @Nullable Long primaryTerm
         ) {
             super(id, version, seqNo, primaryTerm);
             this.insertValues = insertValues;
@@ -355,7 +354,6 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
             this.validateGeneratedColumns = validateGeneratedColumns;
             this.continueOnError = continueOnError;
             this.duplicateKeyAction = duplicateKeyAction;
-
         }
 
         public ShardInsertRequest newRequest(ShardId shardId) {
