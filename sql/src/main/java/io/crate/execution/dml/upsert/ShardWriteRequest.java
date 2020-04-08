@@ -57,7 +57,7 @@ public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends 
         CONTINUE_ON_ERROR,
         VALIDATE_CONSTRAINTS;
 
-        static EnumSet<Mode> toEnumSet(boolean continueOnError, boolean validateConstraints, DuplicateKeyAction action) {
+        protected static EnumSet<Mode> toEnumSet(boolean continueOnError, boolean validateConstraints, DuplicateKeyAction action) {
             Set<ShardWriteRequest.Mode> modes = new HashSet<>();
             if (continueOnError) {
                 modes.add(Mode.CONTINUE_ON_ERROR);
@@ -79,6 +79,19 @@ public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends 
                     throw new IllegalArgumentException("DuplicateKeyAction not supported for serialization: " + action.name());
             }
             return EnumSet.copyOf(modes);
+        }
+
+        protected static DuplicateKeyAction getDuplicateAction(EnumSet<Mode> modes) {
+            if (modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
+                return DuplicateKeyAction.UPDATE_OR_FAIL;
+            }
+            if (modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
+                return DuplicateKeyAction.OVERWRITE;
+            }
+            if (modes.contains(Mode.DUPLICATE_KEY_IGNORE)) {
+                return DuplicateKeyAction.IGNORE;
+            }
+            throw new IllegalArgumentException("No DuplicateKeyAction in the set");
         }
     }
 

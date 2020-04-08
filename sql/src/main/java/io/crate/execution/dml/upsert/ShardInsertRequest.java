@@ -145,16 +145,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
 
     @Override
     public DuplicateKeyAction duplicateKeyAction() {
-        if (modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
-            return DuplicateKeyAction.UPDATE_OR_FAIL;
-        }
-        if (modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
-            return DuplicateKeyAction.OVERWRITE;
-        }
-        if (modes.contains(Mode.DUPLICATE_KEY_IGNORE)) {
-            return DuplicateKeyAction.IGNORE;
-        }
-        return null;
+        return Mode.getDuplicateAction(modes);
     }
 
     @Override
