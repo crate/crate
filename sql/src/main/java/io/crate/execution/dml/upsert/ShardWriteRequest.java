@@ -35,9 +35,6 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 
@@ -47,52 +44,6 @@ public abstract class ShardWriteRequest<T extends ShardRequest<T, I>, I extends 
         UPDATE_OR_FAIL,
         OVERWRITE,
         IGNORE
-    }
-
-    // Mode is only used for internal storage and serialization
-    protected enum Mode {
-        DUPLICATE_KEY_UPDATE_OR_FAIL,
-        DUPLICATE_KEY_OVERWRITE,
-        DUPLICATE_KEY_IGNORE,
-        CONTINUE_ON_ERROR,
-        VALIDATE_CONSTRAINTS;
-
-        protected static EnumSet<Mode> toEnumSet(boolean continueOnError, boolean validateConstraints, DuplicateKeyAction action) {
-            Set<ShardWriteRequest.Mode> modes = new HashSet<>();
-            if (continueOnError) {
-                modes.add(Mode.CONTINUE_ON_ERROR);
-            }
-            if (validateConstraints) {
-                modes.add(Mode.VALIDATE_CONSTRAINTS);
-            }
-            switch (action) {
-                case IGNORE:
-                    modes.add(Mode.DUPLICATE_KEY_IGNORE);
-                    break;
-                case OVERWRITE:
-                    modes.add(Mode.DUPLICATE_KEY_OVERWRITE);
-                    break;
-                case UPDATE_OR_FAIL:
-                    modes.add(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL);
-                    break;
-                default:
-                    throw new IllegalArgumentException("DuplicateKeyAction not supported for serialization: " + action.name());
-            }
-            return EnumSet.copyOf(modes);
-        }
-
-        protected static DuplicateKeyAction getDuplicateAction(EnumSet<Mode> modes) {
-            if (modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
-                return DuplicateKeyAction.UPDATE_OR_FAIL;
-            }
-            if (modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
-                return DuplicateKeyAction.OVERWRITE;
-            }
-            if (modes.contains(Mode.DUPLICATE_KEY_IGNORE)) {
-                return DuplicateKeyAction.IGNORE;
-            }
-            throw new IllegalArgumentException("No DuplicateKeyAction in the set");
-        }
     }
 
     protected ShardWriteRequest(StreamInput in) throws IOException {

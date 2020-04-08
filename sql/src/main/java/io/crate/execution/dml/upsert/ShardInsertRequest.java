@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -135,12 +136,12 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
 
     @Override
     public boolean continueOnError() {
-        return modes.contains(Mode.CONTINUE_ON_ERROR);
+        return Mode.continueOnError(modes);
     }
 
     @Override
     public boolean validateConstraints() {
-        return modes.contains(Mode.VALIDATE_CONSTRAINTS);
+        return Mode.validateConstraints(modes);
     }
 
     @Override
@@ -170,6 +171,60 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         int result = Objects.hash(super.hashCode(), sessionSettings, modes);
         result = 31 * result + Arrays.hashCode(insertColumns);
         return result;
+    }
+
+    // Mode is only used for internal storage and serialization
+    private enum Mode {
+        DUPLICATE_KEY_UPDATE_OR_FAIL,
+        DUPLICATE_KEY_OVERWRITE,
+        DUPLICATE_KEY_IGNORE,
+        CONTINUE_ON_ERROR,
+        VALIDATE_CONSTRAINTS;
+
+        static EnumSet<Mode> toEnumSet(boolean continueOnError, boolean validateConstraints, DuplicateKeyAction action) {
+            HashSet<Mode> modes = new HashSet<>();
+            if (continueOnError) {
+                modes.add(Mode.CONTINUE_ON_ERROR);
+            }
+            if (validateConstraints) {
+                modes.add(Mode.VALIDATE_CONSTRAINTS);
+            }
+            switch (action) {
+                case IGNORE:
+                    modes.add(Mode.DUPLICATE_KEY_IGNORE);
+                    break;
+                case OVERWRITE:
+                    modes.add(Mode.DUPLICATE_KEY_OVERWRITE);
+                    break;
+                case UPDATE_OR_FAIL:
+                    modes.add(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL);
+                    break;
+                default:
+                    throw new IllegalArgumentException("DuplicateKeyAction not supported for serialization: " + action.name());
+            }
+            return EnumSet.copyOf(modes);
+        }
+
+        static DuplicateKeyAction getDuplicateAction(EnumSet<Mode> modes) {
+            if (modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
+                return DuplicateKeyAction.UPDATE_OR_FAIL;
+            }
+            if (modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
+                return DuplicateKeyAction.OVERWRITE;
+            }
+            if (modes.contains(Mode.DUPLICATE_KEY_IGNORE)) {
+                return DuplicateKeyAction.IGNORE;
+            }
+            throw new IllegalArgumentException("No DuplicateKeyAction in the set");
+        }
+
+        static boolean continueOnError(EnumSet<Mode> modes) {
+            return modes.contains(Mode.CONTINUE_ON_ERROR);
+        }
+
+        static boolean validateConstraints(EnumSet<Mode> modes) {
+            return modes.contains(Mode.VALIDATE_CONSTRAINTS);
+        }
     }
 
     /**

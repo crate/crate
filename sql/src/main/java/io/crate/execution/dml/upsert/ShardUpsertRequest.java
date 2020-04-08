@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
@@ -271,8 +270,6 @@ public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertReque
         @Nullable
         private Object[] insertValues;
 
-        protected Set<Mode> modes;
-
         public Item(String id,
                     @Nullable Symbol[] updateAssignments,
                     @Nullable Object[] insertValues,
@@ -384,13 +381,12 @@ public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertReque
             Item item = (Item) o;
             return Objects.equals(source, item.source) &&
                    Arrays.equals(updateAssignments, item.updateAssignments) &&
-                   Arrays.equals(insertValues, item.insertValues) &&
-                   Objects.equals(modes, item.modes);
+                   Arrays.equals(insertValues, item.insertValues);
         }
 
         @Override
         public int hashCode() {
-            int result = Objects.hash(super.hashCode(), source, modes);
+            int result = Objects.hash(super.hashCode(), source);
             result = 31 * result + Arrays.hashCode(updateAssignments);
             result = 31 * result + Arrays.hashCode(insertValues);
             return result;
