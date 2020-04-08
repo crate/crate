@@ -53,7 +53,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
      */
     private Reference[] insertColumns;
 
-    private EnumSet<Mode> modes;
+    private EnumSet<Values> values;
 
     public ShardInsertRequest(
         ShardId shardId,
@@ -66,7 +66,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         super(shardId, jobId);
         this.sessionSettings = sessionSettings;
         this.insertColumns = insertColumns;
-        this.modes = Mode.toEnumSet(continueOnError, validateGeneratedColumns, duplicateKeyAction);
+        this.values = Values.toEnumSet(continueOnError, validateGeneratedColumns, duplicateKeyAction);
     }
 
     public ShardInsertRequest(StreamInput in) throws IOException {
@@ -80,7 +80,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
             }
             insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         }
-        modes = EnumSets.unpackFromInt(in.readVInt(), Mode.class);
+        values = EnumSets.unpackFromInt(in.readVInt(), Values.class);
         sessionSettings = new SessionSettings(in);
         int numItems = in.readVInt();
         items = new ArrayList<>(numItems);
@@ -102,7 +102,7 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         } else {
             out.writeVInt(0);
         }
-        out.writeVInt(EnumSets.packToInt(modes));
+        out.writeVInt(EnumSets.packToInt(values));
         sessionSettings.writeTo(out);
         out.writeVInt(items.size());
         for (ShardInsertRequest.Item item : items) {
@@ -136,17 +136,17 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
 
     @Override
     public boolean continueOnError() {
-        return Mode.continueOnError(modes);
+        return Values.continueOnError(values);
     }
 
     @Override
     public boolean validateConstraints() {
-        return Mode.validateConstraints(modes);
+        return Values.validateConstraints(values);
     }
 
     @Override
     public DuplicateKeyAction duplicateKeyAction() {
-        return Mode.getDuplicateAction(modes);
+        return Values.getDuplicateAction(values);
     }
 
     @Override
@@ -163,67 +163,67 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
         ShardInsertRequest items = (ShardInsertRequest) o;
         return Objects.equals(sessionSettings, items.sessionSettings) &&
                Arrays.equals(insertColumns, items.insertColumns) &&
-               Objects.equals(modes, items.modes);
+               Objects.equals(values, items.values);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(super.hashCode(), sessionSettings, modes);
+        int result = Objects.hash(super.hashCode(), sessionSettings, values);
         result = 31 * result + Arrays.hashCode(insertColumns);
         return result;
     }
 
-    // Mode is only used for internal storage and serialization
-    private enum Mode {
+    // Values is only used for internal storage and serialization
+    private enum Values {
         DUPLICATE_KEY_UPDATE_OR_FAIL,
         DUPLICATE_KEY_OVERWRITE,
         DUPLICATE_KEY_IGNORE,
         CONTINUE_ON_ERROR,
         VALIDATE_CONSTRAINTS;
 
-        static EnumSet<Mode> toEnumSet(boolean continueOnError, boolean validateConstraints, DuplicateKeyAction action) {
-            HashSet<Mode> modes = new HashSet<>();
+        static EnumSet<Values> toEnumSet(boolean continueOnError, boolean validateConstraints, DuplicateKeyAction action) {
+            HashSet<Values> values = new HashSet<>();
             if (continueOnError) {
-                modes.add(Mode.CONTINUE_ON_ERROR);
+                values.add(Values.CONTINUE_ON_ERROR);
             }
             if (validateConstraints) {
-                modes.add(Mode.VALIDATE_CONSTRAINTS);
+                values.add(Values.VALIDATE_CONSTRAINTS);
             }
             switch (action) {
                 case IGNORE:
-                    modes.add(Mode.DUPLICATE_KEY_IGNORE);
+                    values.add(Values.DUPLICATE_KEY_IGNORE);
                     break;
                 case OVERWRITE:
-                    modes.add(Mode.DUPLICATE_KEY_OVERWRITE);
+                    values.add(Values.DUPLICATE_KEY_OVERWRITE);
                     break;
                 case UPDATE_OR_FAIL:
-                    modes.add(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL);
+                    values.add(Values.DUPLICATE_KEY_UPDATE_OR_FAIL);
                     break;
                 default:
                     throw new IllegalArgumentException("DuplicateKeyAction not supported for serialization: " + action.name());
             }
-            return EnumSet.copyOf(modes);
+            return EnumSet.copyOf(values);
         }
 
-        static DuplicateKeyAction getDuplicateAction(EnumSet<Mode> modes) {
-            if (modes.contains(Mode.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
+        static DuplicateKeyAction getDuplicateAction(EnumSet<Values> values) {
+            if (values.contains(Values.DUPLICATE_KEY_UPDATE_OR_FAIL)) {
                 return DuplicateKeyAction.UPDATE_OR_FAIL;
             }
-            if (modes.contains(Mode.DUPLICATE_KEY_OVERWRITE)) {
+            if (values.contains(Values.DUPLICATE_KEY_OVERWRITE)) {
                 return DuplicateKeyAction.OVERWRITE;
             }
-            if (modes.contains(Mode.DUPLICATE_KEY_IGNORE)) {
+            if (values.contains(Values.DUPLICATE_KEY_IGNORE)) {
                 return DuplicateKeyAction.IGNORE;
             }
-            throw new IllegalArgumentException("No DuplicateKeyAction in the set");
+            throw new IllegalArgumentException("DuplicateKeyAction found");
         }
 
-        static boolean continueOnError(EnumSet<Mode> modes) {
-            return modes.contains(Mode.CONTINUE_ON_ERROR);
+        static boolean continueOnError(EnumSet<Values> values) {
+            return values.contains(Values.CONTINUE_ON_ERROR);
         }
 
-        static boolean validateConstraints(EnumSet<Mode> modes) {
-            return modes.contains(Mode.VALIDATE_CONSTRAINTS);
+        static boolean validateConstraints(EnumSet<Values> values) {
+            return values.contains(Values.VALIDATE_CONSTRAINTS);
         }
     }
 
