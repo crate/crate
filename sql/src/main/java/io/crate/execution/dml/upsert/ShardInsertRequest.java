@@ -169,9 +169,9 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
             return false;
         }
         ShardInsertRequest items = (ShardInsertRequest) o;
-        return sessionSettings.equals(items.sessionSettings) &&
+        return Objects.equals(sessionSettings, items.sessionSettings) &&
                Arrays.equals(insertColumns, items.insertColumns) &&
-               modes.equals(items.modes);
+               Objects.equals(modes, items.modes);
     }
 
     @Override
@@ -258,6 +258,29 @@ public final class ShardInsertRequest extends ShardWriteRequest<ShardInsertReque
             if (sourceAvailable) {
                 out.writeBytesReference(source);
             }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if (!super.equals(o)) {
+                return false;
+            }
+            Item item = (Item) o;
+            return Objects.equals(source, item.source) &&
+                   Arrays.equals(insertValues, item.insertValues);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(super.hashCode(), source);
+            result = 31 * result + Arrays.hashCode(insertValues);
+            return result;
         }
     }
 

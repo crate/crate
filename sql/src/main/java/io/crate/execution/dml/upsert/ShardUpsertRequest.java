@@ -40,8 +40,10 @@ import org.elasticsearch.index.shard.ShardId;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -236,6 +238,39 @@ public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertReque
         return duplicateKeyAction;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        ShardUpsertRequest items = (ShardUpsertRequest) o;
+        return continueOnError == items.continueOnError &&
+               validateConstraints == items.validateConstraints &&
+               Objects.equals(sessionSettings, items.sessionSettings) &&
+               duplicateKeyAction == items.duplicateKeyAction &&
+               Arrays.equals(updateColumns, items.updateColumns) &&
+               Arrays.equals(insertColumns, items.insertColumns) &&
+               Arrays.equals(returnValues, items.returnValues);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(super.hashCode(),
+                                  sessionSettings,
+                                  duplicateKeyAction,
+                                  continueOnError,
+                                  validateConstraints);
+        result = 31 * result + Arrays.hashCode(updateColumns);
+        result = 31 * result + Arrays.hashCode(insertColumns);
+        result = 31 * result + Arrays.hashCode(returnValues);
+        return result;
+    }
 
     /**
      * A single update item.
@@ -354,6 +389,32 @@ public final class ShardUpsertRequest extends ShardWriteRequest<ShardUpsertReque
             if (sourceAvailable) {
                 out.writeBytesReference(source);
             }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if (!super.equals(o)) {
+                return false;
+            }
+            Item item = (Item) o;
+            return Objects.equals(source, item.source) &&
+                   Arrays.equals(updateAssignments, item.updateAssignments) &&
+                   Arrays.equals(insertValues, item.insertValues) &&
+                   Objects.equals(modes, item.modes);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(super.hashCode(), source, modes);
+            result = 31 * result + Arrays.hashCode(updateAssignments);
+            result = 31 * result + Arrays.hashCode(insertValues);
+            return result;
         }
     }
 
