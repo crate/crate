@@ -168,7 +168,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 }
             }
         }
-        return new WriteReplicaResult<>(request, translogLocation, null, indexShard, logger);
+        return new WriteReplicaResult<>(request, translogLocation, null, indexShard);
     }
 
     private Engine.DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {

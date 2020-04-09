@@ -246,7 +246,7 @@ public abstract class TransportShardWriteAction
             }
             location = indexResult.getTranslogLocation();
         }
-        return new WriteReplicaResult<>(request, location, null, indexShard, logger);
+        return new WriteReplicaResult<>(request, location, null, indexShard);
     }
 
     @Nullable

@@ -207,7 +207,7 @@ public abstract class TransportWriteAction<
         private ActionListener<TransportResponse.Empty> listener;
 
         public WriteReplicaResult(ReplicaRequest request, @Nullable Location location,
-                                  @Nullable Exception operationFailure, IndexShard replica, Logger logger) {
+                                  @Nullable Exception operationFailure, IndexShard replica) {
             super(operationFailure);
             this.location = location;
             if (operationFailure != null) {

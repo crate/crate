@@ -128,7 +128,7 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
     @Override
     protected WriteReplicaResult shardOperationOnReplica(ResyncReplicationRequest request, IndexShard replica) throws Exception {
         Translog.Location location = performOnReplica(request, replica);
-        return new WriteReplicaResult(request, location, null, replica, logger);
+        return new WriteReplicaResult(request, location, null, replica);
     }
 
     public static Translog.Location performOnReplica(ResyncReplicationRequest request, IndexShard replica) throws Exception {

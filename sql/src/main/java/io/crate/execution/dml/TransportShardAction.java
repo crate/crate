@@ -67,7 +67,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         implements KillAllListener {
 
     private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
-    private final MappingUpdatePerformer mappingUpdate;
+    protected final MappingUpdatePerformer mappingUpdate;
 
     protected TransportShardAction(String actionName,
                                    TransportService transportService,

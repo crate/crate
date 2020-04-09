@@ -42,12 +42,11 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.GeneratedColumns;
 import io.crate.execution.dml.upsert.InsertSourceFromCells;
 import io.crate.execution.dml.upsert.ShardInsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.execution.dml.upsert.ShardWriteRequest;
-import io.crate.execution.dml.upsert.TransportShardWriteAction;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -303,7 +302,7 @@ public class InsertFromValues implements LogicalPlan {
         }
     }
 
-    public <TReq extends ShardWriteRequest<TReq, TItem>, TItem extends ShardWriteRequest.Item> void executeAction(
+    public <TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item> void executeAction(
         DependencyCarrier dependencies,
         InputFactory.Context<CollectExpression<Row, ?>> context,
         PlannerContext plannerContext,
@@ -316,7 +315,7 @@ public class InsertFromValues implements LogicalPlan {
         DocTableInfo tableInfo,
         Function<ShardId, TReq> newRequest,
         Function<String, TItem> itemFactory,
-        TransportShardWriteAction<TReq, TItem> transportShardWriteAction
+        TransportShardAction<TReq, TItem> transportShardWriteAction
     ) {
 
         GroupRowsByShard<TReq, TItem> grouper = createRowsByShardGrouper(
@@ -519,7 +518,7 @@ public class InsertFromValues implements LogicalPlan {
         }
     }
 
-    private <TReq extends ShardWriteRequest<TReq, TItem>, TItem extends ShardWriteRequest.Item> List<CompletableFuture<Long>> executeBulkAction(
+    private <TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item> List<CompletableFuture<Long>> executeBulkAction(
         DependencyCarrier dependencies,
         PlannerContext plannerContext,
         List<Input<?>> primaryKeyInputs,
@@ -531,7 +530,7 @@ public class InsertFromValues implements LogicalPlan {
         Assignments assignments,
         Function<ShardId, TReq> newRequest,
         Function<Symbol[], GroupRowsByShard<TReq, TItem>> buildGrouper,
-        TransportShardWriteAction<TReq, TItem> action
+        TransportShardAction<TReq, TItem> action
     ) {
 
         var shardedRequests = new ShardedRequests<>(newRequest);
@@ -808,7 +807,7 @@ public class InsertFromValues implements LogicalPlan {
 
     private <TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item> CompletableFuture<ShardResponse.CompressedResult> executeAction(
         Collection<TReq> shardUpsertRequests,
-        TransportShardWriteAction shardUpsertAction,
+        TransportShardAction shardUpsertAction,
         ScheduledExecutorService scheduler) {
         ShardResponse.CompressedResult compressedResult = new ShardResponse.CompressedResult();
         if (shardUpsertRequests.isEmpty()) {
