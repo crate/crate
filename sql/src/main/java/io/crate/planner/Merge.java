@@ -128,11 +128,8 @@ public class Merge implements ExecutionPlan, ResultDescription {
             subExecutionPlan.addProjection(projection);
         }
         if (topN != null) {
-            subExecutionPlan.addProjection(topN, TopN.NO_LIMIT, 0, null);
+            subExecutionPlan.addProjection(topN, TopN.NO_LIMIT, 0, resultDescription.orderBy());
         }
-        // resultDescription.orderBy can be ignored here because it is only relevant to do a sorted merge
-        // (of a pre-sorted result)
-        // In this case there is only one node/bucket which is already correctly sorted
         return subExecutionPlan;
     }
 

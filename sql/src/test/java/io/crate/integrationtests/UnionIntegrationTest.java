@@ -22,11 +22,11 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -240,7 +240,7 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
                 "union all " +
                 "select id, text, [1,2], {custom = true} from t3 where arr is not null " +
                 "order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "1| text| [1, 2, 3]| {temperature=42}\n" +
             "42| magic number| [1, 2, 3]| {temperature=42}\n" +
             "1000| text1| [1, 2, 3]| {temperature=42}\n" +
@@ -271,5 +271,30 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
             new Object[] {1000},
             new Object[] {1000}
         ));
+    }
+
+    @Test
+    public void test_union_with_group_by_and_order_plus_limit_and_offset() {
+        execute(
+            "SELECT\n" +
+            "    id,\n" +
+            "    max(num) AS num\n" +
+            "FROM\n" +
+            "    unnest(ARRAY['index_1', 'index_1'], ARRAY[1, 4]) AS t (id, num)\n" +
+            "GROUP BY id\n" +
+            "UNION ALL\n" +
+            "SELECT\n" +
+            "    id,\n" +
+            "    max(num) AS num\n" +
+            "FROM\n" +
+            "    unnest(ARRAY['index_2', 'index_2'], ARRAY[2, 3]) AS t (id, num)\n" +
+            "GROUP BY id ORDER BY num ASC\n" +
+            "LIMIT 100 offset 1;\n"
+        );
+        assertThat(
+            printedTable(response.rows()),
+            is("index_1| 4\n")
+        );
+
     }
 }
