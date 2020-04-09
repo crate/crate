@@ -104,7 +104,7 @@ public class ColumnIndexWriterProjector implements Projector {
         Symbol[] returnValueOrNull = returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]);
         // Optimization for the plain insert usecase, no return values no update-on-conflict
         if (returnValueOrNull == null && updateAssignments == null &&
-            !clusterService.state().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)
+            clusterService.state().getNodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)
             ) {
             Function<ShardId, ShardInsertRequest> requestFactory = new ShardInsertRequest.Builder(
                 txnCtx.sessionSettings(),
