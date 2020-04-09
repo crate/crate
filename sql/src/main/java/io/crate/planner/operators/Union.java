@@ -141,12 +141,16 @@ public class Union implements LogicalPlan {
             : null;
 
         ExecutionPlan left = lhs.build(
-            plannerContext, projectionBuilder, limit + offset, offset, null, childPageSizeHint, params, subQueryResults);
+            plannerContext, projectionBuilder, limit + offset, TopN.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
         ExecutionPlan right = rhs.build(
-            plannerContext, projectionBuilder, limit + offset, offset, null, childPageSizeHint, params, subQueryResults);
+            plannerContext, projectionBuilder, limit + offset, TopN.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
 
-        left = addMergeIfNeeded(left, plannerContext);
-        right = addMergeIfNeeded(right, plannerContext);
+        if (left.resultDescription().hasRemainingLimitOrOffset()) {
+            left = Merge.ensureOnHandler(left, plannerContext);
+        }
+        if (right.resultDescription().hasRemainingLimitOrOffset()) {
+            right = Merge.ensureOnHandler(right, plannerContext);
+        }
 
         ResultDescription leftResultDesc = left.resultDescription();
         ResultDescription rightResultDesc = right.resultDescription();
@@ -218,22 +222,5 @@ public class Union implements LogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitUnion(this, context);
-    }
-
-    /**
-     * Wraps the plan inside a Merge plan if limit or offset need to be applied.
-     */
-    private static ExecutionPlan addMergeIfNeeded(ExecutionPlan plan, PlannerContext plannerContext) {
-        ResultDescription resultDescription = plan.resultDescription();
-        if (resultDescription.hasRemainingLimitOrOffset()) {
-            // Do a merge because we have to apply a limit/offset projection
-            //
-            // Note: Currently, this is performed on the handler node. It would be possible to
-            // do this on another involved node instead but we don't do that for now because
-            // the Merge of the union itself is always performed on the handler. So the
-            // performance gain would be small.
-            return Merge.ensureOnHandler(plan, plannerContext);
-        }
-        return plan;
     }
 }
