@@ -163,5 +163,8 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused a ``OFFSET`` as part of a ``UNION`` to be applied
+  incorrectly.
+
 - Fixed an issue that could lead to incorrect ordering of a result sets if
   using ``ORDER BY`` on a column of type ``IP`` or on a scalar function.

@@ -29,6 +29,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlannerTest;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -91,7 +92,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, instanceOf(UnionExecutionPlan.class));
         UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) plan;
         assertThat(unionExecutionPlan.mergePhase().numInputs(), is(2));
-        assertThat(unionExecutionPlan.orderBy(), is(nullValue()));
+        assertThat(unionExecutionPlan.orderBy(), Matchers.notNullValue());
         assertThat(unionExecutionPlan.mergePhase().projections(), contains(
             instanceOf(TopNProjection.class)
         ));
