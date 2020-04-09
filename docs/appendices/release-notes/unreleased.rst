@@ -69,6 +69,9 @@ None
 Changes
 =======
 
+- Added the scalar function ``CURRENT_TIME``, which returns the time portion
+  of ``CURRENT_TIMESTAMP`` in absolute milliseconds, see :ref:`current_time`.
+
 - Added the ``varchar`` and ``character varying`` types. Currently as aliases
   for ``text``. Length limitations are not supported.
 

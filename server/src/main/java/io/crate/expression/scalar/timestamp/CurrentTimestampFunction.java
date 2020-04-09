@@ -68,20 +68,19 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
     @Override
     @SafeVarargs
     public final Long evaluate(TransactionContext txnCtx, Input<Integer>... args) {
-        long millis = txnCtx.currentTimeMillis();
-        Integer precision = 3;
+        return applyPrecision(txnCtx.currentTimeMillis(), args);
+    }
+
+    static long applyPrecision(long millis, Input<Integer>... args) {
+        int factor;
+        Integer precision = DEFAULT_PRECISION;
         if (args.length == 1) {
             precision = args[0].value();
             if (precision == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "NULL precision not supported for %s", NAME));
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,"NULL precision not supported for %s", NAME));
             }
         }
-        return applyPrecision(millis, precision);
-    }
-
-    private static long applyPrecision(long millis, int precision) {
-        int factor;
         switch (precision) {
             case 0:
                 factor = 1000;

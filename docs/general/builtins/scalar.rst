@@ -816,6 +816,22 @@ are given.
    ``System.currentTimeMillis()``. So its actual result depends on the
    underlying operating system.
 
+.. _current_time:
+
+``CURRENT_TIME``
+----------------
+
+The ``CURRENT_TIME`` expression returns the time portion of ``CURRENT_TIMESTAMP``
+in absolute milliseconds. The same time value is returned for every invocation of
+a single statement, and will match the time portion of invocations to
+``CURRENT_TIMESTAMP`` in the same statement.
+
+Synopsis::
+
+    CURRENT_TIME [ ( precision ) ]
+
+Where ``precision`` is defined in :ref:`current_timestamp`.
+
 .. _now:
 
 ``now()``
