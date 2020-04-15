@@ -24,44 +24,44 @@ package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 
-import java.util.List;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.DataTypes.tryFindNotNullType;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
-public class NullIfFunction extends ConditionalFunction {
+public class NullIfFunction extends Scalar<Object, Object> {
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("E"),
+                parseTypeSignature("E"),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args -> new NullIfFunction(FunctionInfo.of(NAME, args, tryFindNotNullType(args)))
+        );
+    }
+
     public static final String NAME = "nullif";
+    private FunctionInfo info;
 
     private NullIfFunction(FunctionInfo info) {
-        super(info);
+        this.info = info;
     }
 
     @Override
-    public Object evaluate(TransactionContext txnCtx, Input... args) {
+    public FunctionInfo info() {
+        return info;
+    }
+
+    @Override
+    public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         Object arg0Value = args[0].value();
         return arg0Value != null && arg0Value.equals(args[1].value()) ? null : arg0Value;
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
-    }
-
-    static class Resolver extends BaseFunctionResolver {
-
-        private static final Param PARAM_TYPE = Param.of();
-
-        protected Resolver() {
-            super(FuncParams.builder(PARAM_TYPE, PARAM_TYPE).build());
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new NullIfFunction(createInfo(NAME, dataTypes));
-        }
     }
 }
