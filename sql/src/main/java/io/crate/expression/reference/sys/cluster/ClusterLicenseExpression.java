@@ -31,8 +31,6 @@ import org.elasticsearch.common.inject.Inject;
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-
 
 public class ClusterLicenseExpression extends NestedObjectExpression {
 
@@ -59,15 +57,12 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
 
     private void fillChildImplementations(LicenseData licenseData) {
         if (licenseData != null) {
-            childImplementations.put(EXPIRY_DATE, forFunction(ignored -> {
-                if (licenseData.expiryDateInMs() == Long.MAX_VALUE) {
-                    return null;
-                } else {
-                    return licenseData.expiryDateInMs();
-                }
-            }));
-            childImplementations.put(ISSUED_TO, forFunction(ignored -> licenseData.issuedTo()));
-            childImplementations.put(MAX_NODES, forFunction(ignored -> licenseData.maxNumberOfNodes()));
+            var expiryDateInMs = licenseData.expiryDateInMs() == Long.MAX_VALUE
+                ? null
+                : licenseData.expiryDateInMs();
+            childImplementations.put(EXPIRY_DATE, constant(expiryDateInMs));
+            childImplementations.put(ISSUED_TO, constant(licenseData.issuedTo()));
+            childImplementations.put(MAX_NODES, constant(licenseData.maxNumberOfNodes()));
         } else if (licenseService.getMode() == LicenseService.Mode.ENTERPRISE) {
             // The admin-ui will switch it's view between CE and Enterprise based on a non-null value of `issued_to`.
             // To prevent a race-condition (wrong admin-ui view) on node startup, we set a dummy value here.

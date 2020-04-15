@@ -163,6 +163,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that would lead to incorrect result when selecting the
+  :ref:`cluster license <sys-cluster-license>` object column, namely, the
+  fields of the object would contain the null values, even though the license.
+
 - Fixed an issue that caused a ``OFFSET`` as part of a ``UNION`` to be applied
   incorrectly.
 

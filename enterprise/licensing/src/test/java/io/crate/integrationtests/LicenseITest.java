@@ -21,9 +21,12 @@ package io.crate.integrationtests;
 import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.license.LicenseKey;
 import io.crate.testing.SQLResponse;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Map;
+
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
 public class LicenseITest extends SQLTransportIntegrationTest {
@@ -45,6 +48,16 @@ public class LicenseITest extends SQLTransportIntegrationTest {
     @Test
     public void testLicenseCheckIsAvailableOnSysChecks() {
         SQLResponse response = execute("select severity, passed from sys.checks where id = 6");
-        assertThat(response.rows()[0][0], Matchers.is(SysCheck.Severity.LOW.value()));
+        assertThat(response.rows()[0][0], is(SysCheck.Severity.LOW.value()));
+    }
+
+    @Test
+    public void test_select_license_object_column_result_in_non_null_values_for_its_fields() {
+        SQLResponse response = execute("select license from sys.cluster");
+        //noinspection unchecked
+        Map<String, Object> license = (Map<String, Object>) response.rows()[0][0];
+        assertThat(license.get("max_nodes"), not(nullValue()));
+        assertThat(license.get("expiry_date"), nullValue()); // unlimited license expiry date
+        assertThat(license.get("issued_to"), not(nullValue()));
     }
 }
