@@ -2262,7 +2262,7 @@ Example:
 -------------------------------------
 
 The ``if`` function is a conditional function comparing to *if* statements of
-most other programming languages. If the given *condition* expresion evaluates
+most other programming languages. If the given *condition* expression evaluates
 to `true`, the *result* expression is evaluated and it's value is returned. If
 the *condition* evaluates to `false`, the *result* expression is not evaluated
 and the optional given *default* expression is evaluated instead and it's value
