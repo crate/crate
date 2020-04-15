@@ -22,32 +22,12 @@
 
 package io.crate.expression.scalar.conditional;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.Collections;
-
 public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
-
-    @Test
-    public void testArgsLength() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("dummy function requires at least one argument");
-        ConditionalFunction.createInfo("dummy", Collections.<DataType>emptyList());
-    }
-
-    @Test
-    public void testInvalidDataType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("all arguments for dummy function must have the same data type");
-        ConditionalFunction.createInfo("dummy",
-            ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.INTEGER));
-    }
 
     @Test
     public void testCoalesce() throws Exception {
@@ -83,8 +63,8 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullIfInvalidArgsLength() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The number of arguments is incorrect");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: nullif(bigint, bigint, bigint)");
         assertEvaluate("nullif(1, 2, 3)", null);
     }
 
@@ -196,5 +176,4 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("CASE 45 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",40L);
         assertEvaluate("CASE 34 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",34L);
     }
-
 }
