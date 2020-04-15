@@ -24,10 +24,16 @@ package io.crate.expression.scalar.conditional;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.DataTypes.tryFindNotNullType;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 public class GreatestFunction extends ConditionalCompareFunction {
-    public static final String NAME = "greatest";
+
+    private static final String NAME = "greatest";
 
     private GreatestFunction(FunctionInfo info) {
         super(info);
@@ -41,6 +47,15 @@ public class GreatestFunction extends ConditionalCompareFunction {
     }
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new ConditionalFunctionResolver(NAME, GreatestFunction::new));
+        module.register(
+            Signature
+                .scalar(
+                    NAME,
+                    parseTypeSignature("E"),
+                    parseTypeSignature("E"))
+                .withVariableArity()
+                .withTypeVariableConstraints(typeVariable("E")),
+            args -> new GreatestFunction(FunctionInfo.of(NAME, args, tryFindNotNullType(args)))
+        );
     }
 }

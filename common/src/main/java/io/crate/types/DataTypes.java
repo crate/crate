@@ -446,7 +446,7 @@ public final class DataTypes {
     /**
      * Returns the first data type that is not {@link UndefinedType}, or {@code UNDEFINED} if none found.
      */
-    public static DataType tryFindNotNullType(List<DataType> dataTypes) {
+    public static DataType<?> tryFindNotNullType(List<DataType> dataTypes) {
         return dataTypes.stream()
             .filter(t -> t != UNDEFINED)
             .findFirst().orElse(UNDEFINED);

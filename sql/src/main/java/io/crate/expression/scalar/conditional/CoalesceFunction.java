@@ -25,27 +25,48 @@ package io.crate.expression.scalar.conditional;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 
-public class CoalesceFunction extends ConditionalFunction {
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+public class CoalesceFunction extends Scalar<Object, Object> {
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature
+                .scalar(
+                    NAME,
+                    parseTypeSignature("E"),
+                    parseTypeSignature("E"))
+                .withVariableArity()
+                .withTypeVariableConstraints(typeVariable("E")),
+            args -> new CoalesceFunction(FunctionInfo.of(NAME, args, args.get(0)))
+        );
+    }
+
     public static final String NAME = "coalesce";
+    private final FunctionInfo info;
 
     private CoalesceFunction(FunctionInfo info) {
-        super(info);
+        this.info = info;
     }
 
     @Override
-    public Object evaluate(TransactionContext txnCtx, Input... args) {
-        for (Input input : args) {
+    public FunctionInfo info() {
+        return info;
+    }
+
+    @Override
+    public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+        for (Input<?> input : args) {
             Object value = input.value();
             if (value != null) {
                 return value;
             }
         }
         return null;
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new ConditionalFunctionResolver(NAME, CoalesceFunction::new));
     }
 }

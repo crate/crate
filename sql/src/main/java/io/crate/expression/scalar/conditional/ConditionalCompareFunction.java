@@ -24,18 +24,26 @@ package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 
 import java.util.Comparator;
 
-abstract class ConditionalCompareFunction extends ConditionalFunction implements Comparator {
+abstract class ConditionalCompareFunction extends Scalar<Object, Object> implements Comparator<Object> {
+
+    private final FunctionInfo info;
 
     ConditionalCompareFunction(FunctionInfo info) {
-        super(info);
+        this.info = info;
     }
 
     @Override
-    public Object evaluate(TransactionContext txnCtx, Input... args) {
+    public FunctionInfo info() {
+        return info;
+    }
+
+    @Override
+    public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         assert args != null : "args must not be null";
         assert args.length > 0 : "number of args must be > 1";
 
@@ -44,7 +52,7 @@ abstract class ConditionalCompareFunction extends ConditionalFunction implements
         }
 
         Object result = null;
-        for (Input input : args) {
+        for (Input<?> input : args) {
             result = extrema(result, input.value());
         }
 

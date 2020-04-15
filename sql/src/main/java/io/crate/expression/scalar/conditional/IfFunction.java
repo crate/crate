@@ -24,17 +24,14 @@ package io.crate.expression.scalar.conditional;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
-import java.util.List;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 /**
  * Conditional If/Else function, CASE expressions can be converted to chain of {@link IfFunction}s.
@@ -52,10 +49,32 @@ import java.util.List;
  *      if(id = 0, 'zero', if(id % 2 = 0, 'even', 'odd'))
  *
  * </pre>
- *
- *
  */
 public class IfFunction extends Scalar<Object, Object> {
+
+    public static void register(ScalarFunctionModule module) {
+        // if (condition, result)
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.BOOLEAN.getTypeSignature(),
+                parseTypeSignature("E"),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args -> new IfFunction(FunctionInfo.of(NAME, args, args.get(1)))
+        );
+        // if (condition, result, default)
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.BOOLEAN.getTypeSignature(),
+                parseTypeSignature("E"),
+                parseTypeSignature("E"),
+                parseTypeSignature("E")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            args -> new IfFunction(FunctionInfo.of(NAME, args, args.get(1)))
+        );
+    }
 
     public static final String NAME = "if";
 
@@ -71,7 +90,7 @@ public class IfFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Object evaluate(TransactionContext txnCtx, Input... args) {
+    public Object evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         Boolean condition = (Boolean) args[0].value();
         if (condition != null && condition) {
             return args[1].value();
@@ -83,27 +102,5 @@ public class IfFunction extends Scalar<Object, Object> {
         return null;
     }
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
-    }
 
-    private static FunctionInfo createInfo(List<DataType> dataTypes) {
-        // return type and default return type have already been matched
-        DataType returnType = dataTypes.get(1);
-        return new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.SCALAR);
-    }
-
-    private static class Resolver extends BaseFunctionResolver {
-
-        public Resolver() {
-            super(FuncParams.builder(Param.BOOLEAN, Param.ANY)
-                .withVarArgs(Param.ANY).limitVarArgOccurrences(1)
-                .build());
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new IfFunction(createInfo(dataTypes));
-        }
-    }
 }
