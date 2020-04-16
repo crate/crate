@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.expression.scalar.arithmetic.IntervalTimestampScalar;
+import io.crate.expression.scalar.arithmetic.IntervalTimestampArithmeticScalar;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
@@ -33,6 +33,7 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 
@@ -54,8 +55,8 @@ class ArithmeticOperatorsFactory {
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
-                    return new IntervalTimestampScalar(
-                        "+", "add-interval", fstArgDataType, sndArgDataType, fstArgDataType);
+                    return new IntervalTimestampArithmeticScalar(
+                        "+", "add-interval", List.of(fstArgDataType, sndArgDataType), fstArgDataType);
                 }
                 return ADD_LONG_FUNCTION;
             case DoubleType.ID:
@@ -78,8 +79,8 @@ class ArithmeticOperatorsFactory {
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
-                    return new IntervalTimestampScalar(
-                        "-", "sub-interval", fstArgDataType, sndArgDataType, fstArgDataType);
+                    return new IntervalTimestampArithmeticScalar(
+                        "-", "sub-interval", List.of(fstArgDataType, sndArgDataType), fstArgDataType);
                 }
                 return SUB_LONG_FUNCTION;
             case DoubleType.ID:

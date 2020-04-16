@@ -27,6 +27,8 @@ import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.scalar.arithmetic.CeilFunction;
 import io.crate.expression.scalar.arithmetic.ExpFunction;
 import io.crate.expression.scalar.arithmetic.FloorFunction;
+import io.crate.expression.scalar.arithmetic.IntervalArithmeticScalar;
+import io.crate.expression.scalar.arithmetic.IntervalTimestampArithmeticScalar;
 import io.crate.expression.scalar.arithmetic.LogFunction;
 import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.scalar.arithmetic.NegateFunctions;
@@ -143,6 +145,8 @@ public class ScalarFunctionModule extends AbstractModule {
         RegexpReplaceFunction.register(this);
 
         ArithmeticFunctions.register(this);
+        IntervalTimestampArithmeticScalar.register(this);
+        IntervalArithmeticScalar.register(this);
 
         DistanceFunction.register(this);
         WithinFunction.register(this);

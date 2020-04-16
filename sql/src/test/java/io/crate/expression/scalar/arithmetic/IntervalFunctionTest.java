@@ -22,6 +22,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.hamcrest.Matchers;
 import org.joda.time.Period;
@@ -50,14 +51,15 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
     public void test_null_interval() {
         assertEvaluate("null + interval '1 second'", Matchers.nullValue());
         assertEvaluate("null - interval '1 second'", Matchers.nullValue());
-        assertEvaluate("null * interval '1 second'", Matchers.nullValue());
-        assertEvaluate("null / interval '1 second'", Matchers.nullValue());
-        assertEvaluate("null % interval '1 second'", Matchers.nullValue());
         assertEvaluate("interval '1 second' + null", Matchers.nullValue());
         assertEvaluate("interval '1 second' - null", Matchers.nullValue());
-        assertEvaluate("interval '1 second' * null", Matchers.nullValue());
-        assertEvaluate("interval '1 second' / null", Matchers.nullValue());
-        assertEvaluate("interval '1 second' % null", Matchers.nullValue());
+    }
+
+    @Test
+    public void test_unsupported_arithmetic_operator_on_interval_types() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("* is not supported on expressions of type interval");
+        assertEvaluate("null * interval '1 second'", Matchers.nullValue());
     }
 
     @Test
@@ -68,14 +70,12 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("'86400000'::timestamp + interval '-1 second'", Matchers.is(86399000L));
         assertEvaluate("'86400000'::timestamp - interval '1000 years'", Matchers.is(-31556822400000L));
         assertEvaluate("'9223372036854775807'::timestamp - interval '1 second'", Matchers.is(9223372036854774807L));
-
     }
 
     @Test
     public void test_unallowed_operations() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Unsupported operator for interval -");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast `'PT1S'` of type `interval` to any of the types");
         assertEvaluate("interval '1 second' - '86401000'::timestamp", Matchers.is(86400000L));
     }
-
 }
