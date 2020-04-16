@@ -23,48 +23,60 @@
 package io.crate.expression.scalar.arithmetic;
 
 import io.crate.data.Input;
+import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.types.DataType;
-import io.crate.types.IntervalType;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 import org.joda.time.Period;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.function.BiFunction;
 
-public class IntervalTimestampScalar extends Scalar<Long, Object> implements BiFunction<Long, Period, Long> {
+public class IntervalArithmeticScalar extends Scalar<Period, Object> {
 
-    private final BiFunction<DateTime, Period, DateTime> operation;
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature.scalar(
+                ArithmeticFunctions.Names.ADD,
+                DataTypes.INTERVAL.getTypeSignature(),
+                DataTypes.INTERVAL.getTypeSignature(),
+                DataTypes.INTERVAL.getTypeSignature()
+            ),
+            args -> new IntervalArithmeticScalar("+", ArithmeticFunctions.Names.ADD)
+        );
+        module.register(
+            Signature.scalar(
+                ArithmeticFunctions.Names.SUBTRACT,
+                DataTypes.INTERVAL.getTypeSignature(),
+                DataTypes.INTERVAL.getTypeSignature(),
+                DataTypes.INTERVAL.getTypeSignature()
+            ),
+            args -> new IntervalArithmeticScalar("-", ArithmeticFunctions.Names.SUBTRACT)
+        );
+    }
+
     private final FunctionInfo info;
-    private final int periodIdx;
-    private final int timestampIdx;
+    private final BiFunction<Period, Period, Period> operation;
 
-    public IntervalTimestampScalar(String operator, String name, DataType firstType, DataType secondType, DataType returnType) {
-        this.info = new FunctionInfo(new FunctionIdent(name, Arrays.asList(firstType, secondType)), returnType);
-        if (firstType.id() == IntervalType.ID) {
-            periodIdx = 0;
-            timestampIdx = 1;
-        } else {
-            periodIdx = 1;
-            timestampIdx = 0;
-        }
+    IntervalArithmeticScalar(String operator, String name) {
+        info = new FunctionInfo(
+            new FunctionIdent(
+                name,
+                List.of(DataTypes.INTERVAL, DataTypes.INTERVAL)),
+            DataTypes.INTERVAL);
 
         switch (operator) {
             case "+":
-                operation = DateTime::plus;
+                operation = Period::plus;
                 break;
             case "-":
-                if (firstType.id() == IntervalType.ID) {
-                    throw new IllegalArgumentException("Unsupported operator for interval " + operator);
-                }
-                operation = DateTime::minus;
+                operation = Period::minus;
                 break;
             default:
-                operation = (a,b) -> {
+                operation = (a, b) -> {
                     throw new IllegalArgumentException("Unsupported operator for interval " + operator);
                 };
         }
@@ -76,17 +88,13 @@ public class IntervalTimestampScalar extends Scalar<Long, Object> implements BiF
     }
 
     @Override
-    public Long evaluate(TransactionContext txnCtx, Input<Object>... args) {
-        final Long timestamp = (Long) args[timestampIdx].value();
-        final Period period = (Period) args[periodIdx].value();
-        return apply(timestamp, period);
-    }
+    public Period evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+        Period fst = (Period) args[0].value();
+        Period snd = (Period) args[1].value();
 
-    @Override
-    public Long apply(Long timestamp, Period period) {
-        if (period == null || timestamp == null) {
+        if (fst == null || snd == null) {
             return null;
         }
-        return operation.apply(new DateTime(timestamp, DateTimeZone.UTC), period).toInstant().getMillis();
+        return operation.apply(fst, snd);
     }
 }

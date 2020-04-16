@@ -23,10 +23,7 @@
 package io.crate.expression.scalar.arithmetic;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.common.collections.Lists2;
-import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.BaseFunctionResolver;
@@ -34,7 +31,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ByteType;
@@ -43,25 +39,20 @@ import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
-import io.crate.types.IntervalType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
-import org.elasticsearch.common.util.set.Sets;
-import org.joda.time.Period;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 
 public class ArithmeticFunctions {
 
     private static final Param ARITHMETIC_TYPE = Param.of(
-        DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.INTERVAL, DataTypes.UNDEFINED);
+        DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.UNDEFINED);
 
     public static class Names {
         public static final String ADD = "add";
@@ -175,25 +166,9 @@ public class ArithmeticFunctions {
             this.features = features;
         }
 
-        @Nullable
-        @Override
-        public List<DataType> getSignature(List<? extends FuncArg> dataTypes) {
-            if (dataTypes.size() == 2) {
-                DataType fst = dataTypes.get(0).valueType();
-                DataType snd = dataTypes.get(1).valueType();
-
-                if ((isInterval(fst) && isTimestamp(snd)) ||
-                    (isTimestamp(fst) && isInterval(snd))) {
-                    return Lists2.map(dataTypes, FuncArg::valueType);
-                }
-            }
-            return super.getSignature(dataTypes);
-        }
-
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             assert dataTypes.size() == 2 : "Arithmetic operator must receive two arguments";
-
             DataType<?> fst = dataTypes.get(0);
             DataType<?> snd = dataTypes.get(1);
 
@@ -213,11 +188,6 @@ public class ArithmeticFunctions {
                     case IntegerType.ID:
                         scalar = new BinaryScalar<>(integerFunction, name, DataTypes.INTEGER, features);
                         break;
-
-                    case IntervalType.ID:
-                        scalar = new IntervalArithmeticScalar(operator, name);
-                        break;
-
                     case LongType.ID:
                     case TimestampType.ID_WITH_TZ:
                     case TimestampType.ID_WITHOUT_TZ:
@@ -231,28 +201,9 @@ public class ArithmeticFunctions {
                 return scalar;
             }
 
-            if (isInterval(fst) && isTimestamp(snd)) {
-                return new IntervalTimestampScalar(operator, name, fst, snd, snd);
-            }
-            if (isTimestamp(fst) && isInterval(snd)) {
-                return new IntervalTimestampScalar(operator, name, fst, snd, fst);
-            }
-
             throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "Arithmetic operation are not supported for type %s %s", fst, snd));
         }
-
-        private static boolean isInterval(DataType d) {
-            return d.id() == IntervalType.ID;
-        }
-
-        private static boolean isTimestamp(DataType d) {
-            return TIMESTAMP_IDS.contains(d.id());
-        }
-
-        static final Set<Integer> TIMESTAMP_IDS = Sets.newHashSet(DataTypes.TIMESTAMP.id(),
-                                                                  DataTypes.TIMESTAMPZ.id());
-
     }
 
     public static Function of(String name, Symbol first, Symbol second, Set<FunctionInfo.Feature> features) {
@@ -266,44 +217,5 @@ public class ArithmeticFunctions {
             ),
             ImmutableList.of(first, second)
         );
-    }
-
-    private static final class IntervalArithmeticScalar extends Scalar<Period, Object> {
-
-        private final FunctionInfo info;
-        private final BiFunction<Period, Period, Period> operation;
-
-        IntervalArithmeticScalar(String operator, String name) {
-            this.info = new FunctionInfo(
-                new FunctionIdent(name, Arrays.asList(DataTypes.INTERVAL, DataTypes.INTERVAL)), DataTypes.INTERVAL);
-            switch (operator) {
-                case "+":
-                    operation = Period::plus;
-                    break;
-                case "-":
-                    operation = Period::minus;
-                    break;
-                default:
-                    operation = (a,b) -> {
-                        throw new IllegalArgumentException("Unsupported operator for interval " + operator);
-                    };
-            }
-        }
-
-        @Override
-        public Period evaluate(TransactionContext txnCtx, Input<Object>... args) {
-            Period fst = (Period) args[0].value();
-            Period snd = (Period) args[1].value();
-
-            if (fst == null || snd == null) {
-                return null;
-            }
-            return operation.apply(fst, snd);
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return this.info;
-        }
     }
 }

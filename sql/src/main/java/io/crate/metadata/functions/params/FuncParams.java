@@ -88,9 +88,6 @@ import java.util.Objects;
 public class FuncParams {
 
     public static final FuncParams NONE = FuncParams.builder().build();
-    public static final FuncParams SINGLE_ANY = FuncParams.builder(Param.ANY).build();
-    public static final FuncParams SINGLE_NUMERIC = FuncParams.builder(Param.NUMERIC).build();
-    public static final FuncParams ANY_VAR_ARGS_SAME_TYPE = FuncParams.builder().withVarArgs(Param.ANY).build();
 
     private static final int UNLIMITED_VAR_ARGS = -1;
     private static final int MAX_ARGS_TO_PRINT = 5;
