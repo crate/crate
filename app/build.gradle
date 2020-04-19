@@ -433,6 +433,7 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
         executable = rootProject.jdks.runtime.getBinJavaPath()
     }
     systemProperties += ['es.path.home': "${rootDir}/sandbox/crate"]
+    systemProperties System.getProperties()
 }
 
 task(run, dependsOn: 'classes', type: JavaExec) {
