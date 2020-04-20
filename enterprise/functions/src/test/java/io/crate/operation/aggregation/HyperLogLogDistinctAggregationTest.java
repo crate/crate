@@ -18,25 +18,24 @@
 
 package io.crate.operation.aggregation;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
-import io.crate.metadata.FunctionIdent;
+import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
+import io.crate.metadata.SearchPath;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.IntegerType;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
@@ -55,7 +54,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
 
     private Object executeAggregationWithPrecision(DataType dataType, Object[][] data) throws Exception {
         return executeAggregation(HyperLogLogDistinctAggregation.NAME, dataType, data,
-            Arrays.asList(dataType, IntegerType.INSTANCE));
+            List.of(dataType, DataTypes.INTEGER));
     }
 
     private Object[][] createTestData(int numRows, @Nullable Integer precision) {
@@ -73,11 +72,17 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
     @Test
     public void testReturnTypeIsAlwaysLong() {
         // Return type is fixed to Long
-        FunctionImplementation func = functions.getQualified(
-            new FunctionIdent(HyperLogLogDistinctAggregation.NAME, ImmutableList.of(DataTypes.INTEGER)));
+        FunctionImplementation func = functions.resolveBuiltInFunctionBySignature(
+            new FunctionName(null, HyperLogLogDistinctAggregation.NAME),
+            List.of(DataTypes.INTEGER),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
         assertEquals(DataTypes.LONG, func.info().returnType());
-        func = functions.getQualified(
-            new FunctionIdent(HyperLogLogDistinctAggregation.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER)));
+        func = functions.resolveBuiltInFunctionBySignature(
+            new FunctionName(null, HyperLogLogDistinctAggregation.NAME),
+            List.of(DataTypes.INTEGER, DataTypes.INTEGER),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
         assertEquals(DataTypes.LONG, func.info().returnType());
     }
 
