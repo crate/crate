@@ -44,6 +44,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,6 +53,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
@@ -97,7 +99,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         // select x, y * 2 ... group by x, y * 2
 
         // keys: [ in(0), in(1) + 10 ]
-        Function add = ArithmeticFunctions.of(
+        Function add = of(
             ArithmeticFunctions.Names.ADD,
             new InputColumn(1, DataTypes.INTEGER),
             Literal.of(10),
@@ -132,7 +134,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         // select count(x), x, y * 2 ... group by x, y * 2
 
         // keys: [ in(0), in(1) + 10 ]
-        Function add = ArithmeticFunctions.of(
+        Function add = of(
             ArithmeticFunctions.Names.ADD,
             new InputColumn(1, DataTypes.INTEGER),
             Literal.of(10),
@@ -204,5 +206,18 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         Input<?> input2 = ctx.add(symbol);
 
         assertThat(input1, sameInstance(input2));
+    }
+
+    private static Function of(String name, Symbol first, Symbol second, Set<FunctionInfo.Feature> features) {
+        List<DataType> dataTypes = List.of(first.valueType(), second.valueType());
+        return new Function(
+            new FunctionInfo(
+                new FunctionIdent(name, dataTypes),
+                dataTypes.get(0),
+                FunctionInfo.Type.SCALAR,
+                features
+            ),
+            List.of(first, second)
+        );
     }
 }

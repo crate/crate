@@ -28,9 +28,11 @@ import io.crate.data.Row1;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
@@ -55,12 +57,16 @@ public class MapRowUsingInputsTest extends CrateUnitTest {
     public void createInputs() throws Exception {
         InputFactory inputFactory = new InputFactory(getFunctions());
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
-        inputs = Collections.singletonList(ctx.add(ArithmeticFunctions.of(
-            ArithmeticFunctions.Names.ADD,
-            new InputColumn(0, DataTypes.LONG),
-            Literal.of(2L),
-            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
-        )));
+        Function add = new Function(
+            new FunctionInfo(
+                new FunctionIdent(ArithmeticFunctions.Names.ADD, List.of(DataTypes.LONG, DataTypes.LONG)),
+                DataTypes.LONG,
+                FunctionInfo.Type.SCALAR,
+                FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
+            ),
+            List.of(new InputColumn(0, DataTypes.INTEGER), Literal.of(2))
+        );
+        inputs = Collections.singletonList(ctx.add(add));
         expressions = ctx.expressions();
     }
 
