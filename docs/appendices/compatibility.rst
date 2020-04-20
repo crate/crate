@@ -31,7 +31,8 @@ how data types of standard SQL map to CrateDB :ref:`data-types`.
 +-----------------------------------+-----------------------------+
 | boolean, bool                     | boolean                     |
 +-----------------------------------+-----------------------------+
-| char [(n)], varchar [(n)]         | string, text, varchar       |
+| char [(n)], varchar [(n)]         | string, text, varchar,      |
+|                                   | character varying           |
 +-----------------------------------+-----------------------------+
 | timestamp with time zone          | timestamp with time zone,   |
 |                                   | timestamptz                 |

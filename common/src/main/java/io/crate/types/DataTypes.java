@@ -324,6 +324,7 @@ public final class DataTypes {
         entry("double", DOUBLE),
         entry("string", STRING),
         entry("varchar", STRING),
+        entry("character varying", STRING),
         entry("timestamptz", TIMESTAMPZ),
         // The usage of the `timestamp` data type as a data type with time
         // zone is deprecate, use `timestamp with time zone` or `timestamptz`

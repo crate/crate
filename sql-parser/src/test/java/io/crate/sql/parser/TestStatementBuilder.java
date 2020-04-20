@@ -113,6 +113,7 @@ public class TestStatementBuilder {
         printStatement("ANALYZE");
     }
 
+
     @Test
     public void testEmptyOverClauseAfterFunction() {
         printStatement("SELECT avg(x) OVER () FROM t");
@@ -529,6 +530,7 @@ public class TestStatementBuilder {
     public void testCreateTableStmtBuilder() {
         printStatement("create table if not exists t (id integer primary key, name string)");
         printStatement("create table t (id double precision)");
+        printStatement("create table t (id character varying)");
         printStatement("create table t (id integer primary key, value array(double precision))");
         printStatement("create table t (id integer, value double precision not null)");
         printStatement("create table t (id integer primary key, name string)");
