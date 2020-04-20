@@ -69,7 +69,8 @@ None
 Changes
 =======
 
-- Added the ``varchar`` type without length limitation as alias to ``text``.
+- Added the ``varchar`` and ``character varying`` types. Currently as aliases
+  for ``text``. Length limitations are not supported.
 
 - Add the :ref:`CHECK <check_constraint>` constraint syntax, which specifies
   that the values of certain columns must satisfy a boolean expression on

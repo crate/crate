@@ -1335,4 +1335,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expectMessage("Cannot use the type `interval` for column: i");
         analyze("create table test (i interval)");
     }
+
+    @Test
+    public void test_character_varying_type_can_be_used_in_create_table() throws Exception {
+        BoundCreateTable stmt = analyze("create table tbl (name character varying)");
+        assertThat(
+            mapToSortedString(stmt.mappingProperties()),
+            is("name={position=1, type=keyword}"));
+    }
 }
