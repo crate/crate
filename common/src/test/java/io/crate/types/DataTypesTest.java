@@ -276,6 +276,11 @@ public class DataTypesTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_varchar_is_aliased_to_string() throws Exception {
+        assertThat(DataTypes.ofName("varchar"), is(DataTypes.STRING));
+    }
+
+    @Test
     public void testInt4IsAliasedToInteger() {
         assertThat(DataTypes.ofName("int4"), is(DataTypes.INTEGER));
     }
