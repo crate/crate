@@ -67,6 +67,25 @@ public final class Signature implements Writeable {
     }
 
     /**
+     * Shortcut for creating a signature of type {@link FunctionInfo.Type#TABLE}.
+     * The last element of the given types is handled as the return type.
+     *
+     * @param name      The fqn function name.
+     * @param types     The argument and return (last element) types
+     * @return          The created signature
+     */
+    public static Signature table(FunctionName name, TypeSignature... types) {
+        return signatureBuilder(name, FunctionInfo.Type.TABLE, types).build();
+    }
+
+    /**
+     * See {@link #table(FunctionName, TypeSignature...)}
+     */
+    public static Signature table(String name, TypeSignature... types) {
+        return table(new FunctionName(null, name), types);
+    }
+
+    /**
      * Shortcut for creating a signature of type {@link FunctionInfo.Type#WINDOW}.
      * The last element of the given types is handled as the return type.
      *
