@@ -28,7 +28,6 @@ import io.crate.data.Row;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
@@ -56,12 +55,20 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
     }
 
     protected Iterable<Row> execute(String expr) {
-        Symbol functionSymbol = sqlExpressions.asSymbol(expr);
-        functionSymbol = sqlExpressions.normalize(functionSymbol);
-        Function function = (Function) functionSymbol;
-        FunctionIdent ident = function.info().ident();
-        TableFunctionImplementation<?> tableFunction = (TableFunctionImplementation) functions.getQualified(ident);
-        return tableFunction.evaluate(
+        Symbol functionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(expr));
+
+        var function = (Function) functionSymbol;
+        var signature = function.signature();
+        TableFunctionImplementation<?> functionImplementation;
+        if (signature == null) {
+            functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
+                function.info().ident());
+        } else {
+            functionImplementation = (TableFunctionImplementation<?>) functions.getQualified(
+                signature,
+                function.info().ident().argumentTypes());
+        }
+        return functionImplementation.evaluate(
             txnCtx,
             function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
     }
