@@ -69,6 +69,8 @@ None
 Changes
 =======
 
+- Added the ``varchar`` type without length limitation as alias to ``text``.
+
 - Add the :ref:`CHECK <check_constraint>` constraint syntax, which specifies
   that the values of certain columns must satisfy a boolean expression on
   insert and update.
