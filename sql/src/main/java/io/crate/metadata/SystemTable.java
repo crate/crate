@@ -26,9 +26,11 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
+import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
@@ -148,11 +150,17 @@ public final class SystemTable<T> implements TableInfo {
         private final ColumnIdent column;
         private final DataType<U> type;
         private final Function<T, U> getProperty;
+        private final boolean isNullable;
 
         public Column(ColumnIdent column, DataType<U> type, Function<T, U> getProperty) {
+            this(column, type, getProperty, true);
+        }
+
+        public Column(ColumnIdent column, DataType<U> type, Function<T, U> getProperty, boolean isNullable) {
             this.column = column;
             this.type = type;
             this.getProperty = getProperty;
+            this.isNullable = isNullable;
         }
 
         @Override
@@ -165,7 +173,7 @@ public final class SystemTable<T> implements TableInfo {
 
         public abstract <U> Builder<T> add(String column, DataType<U> type, Function<T, U> getProperty);
 
-        protected abstract <U> Builder<T> add(ColumnIdent column, DataType<U> type, Function<T, U> getProperty);
+        protected abstract <U> Builder<T> add(Column<T, U> column);
     }
 
     public static class RelationBuilder<T> extends Builder<T> {
@@ -183,12 +191,21 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public <U> RelationBuilder<T> add(String column, DataType<U> type, Function<T, U> getProperty) {
-            return add(new ColumnIdent(column), type, getProperty);
+            return add(new Column<>(new ColumnIdent(column), type, getProperty));
+        }
+
+        public <U> RelationBuilder<T> addNonNull(String column, DataType<U> type, Function<T, U> getProperty) {
+            return add(new Column<>(
+                new ColumnIdent(column),
+                type,
+                getProperty,
+                false
+            ));
         }
 
         @Override
-        protected <U> RelationBuilder<T> add(ColumnIdent column, DataType<U> type, Function<T, U> getProperty) {
-            columns.add(new Column<>(column, type, getProperty));
+        protected <U> RelationBuilder<T> add(Column<T, U> column) {
+            columns.add(column);
             return this;
         }
 
@@ -205,6 +222,9 @@ public final class SystemTable<T> implements TableInfo {
                         new ReferenceIdent(relationName, column.column),
                         RowGranularity.DOC,
                         column.type,
+                        ColumnPolicy.DYNAMIC,
+                        IndexType.NOT_ANALYZED,
+                        column.isNullable,
                         rootColIdx,
                         null
                     )
@@ -253,12 +273,12 @@ public final class SystemTable<T> implements TableInfo {
             }
 
             public <U> ObjectBuilder<T, P> add(String column, DataType<U> type, Function<T, U> getProperty) {
-                return add(baseColumn.append(column), type, getProperty);
+                return add(new Column<>(baseColumn.append(column), type, getProperty));
             }
 
             @Override
-            protected <U> ObjectBuilder<T, P> add(ColumnIdent column, DataType<U> type, Function<T, U> getProperty) {
-                columns.add(new Column<>(column, type, getProperty));
+            protected <U> ObjectBuilder<T, P> add(Column<T, U> column) {
+                columns.add(column);
                 return this;
             }
 
@@ -282,7 +302,7 @@ public final class SystemTable<T> implements TableInfo {
                     typeBuilder.setInnerType(column.column.leafName(), column.type);
                 }
                 ObjectType objectType = typeBuilder.build();
-                parent.add(baseColumn, objectType, new ObjectExpression<>(directChildren));
+                parent.add(new Column<>(baseColumn, objectType, new ObjectExpression<>(directChildren)));
                 for (Column<T, ?> column : columns) {
                     addColumnToParent(column);
                 }
@@ -290,7 +310,7 @@ public final class SystemTable<T> implements TableInfo {
             }
 
             public <U> void addColumnToParent(Column<T, U> column) {
-                parent.add(column.column, column.type, column.getProperty);
+                parent.add(new Column<>(column.column, column.type, column.getProperty));
             }
         }
 
@@ -319,7 +339,7 @@ public final class SystemTable<T> implements TableInfo {
                     typeBuilder.setInnerType(column.column.leafName(), column.type);
                 }
                 ObjectType objectType = typeBuilder.build();
-                parent.add(baseColumn, new ArrayType<>(objectType), getLeafColumnValues(directChildren));
+                parent.add(new Column<>(baseColumn, new ArrayType<>(objectType), getLeafColumnValues(directChildren)));
                 for (var column : columns) {
                     addColumnToParent(column);
                 }
@@ -347,29 +367,31 @@ public final class SystemTable<T> implements TableInfo {
             }
 
             public <U> void addColumnToParent(Column<ItemType, U> column) {
-                parent.add(column.column, new ArrayType<>(column.type), xs -> {
-                    var items = getItems.apply(xs);
-                    ArrayList<U> result = new ArrayList<>(items.size());
-                    for (ItemType item : items) {
-                        result.add(column.getProperty.apply(item));
+                parent.add(new Column<>(
+                    column.column,
+                    new ArrayType<>(column.type),
+                    xs -> {
+                        var items = getItems.apply(xs);
+                        ArrayList<U> result = new ArrayList<>(items.size());
+                        for (ItemType item : items) {
+                            result.add(column.getProperty.apply(item));
+                        }
+                        return result;
                     }
-                    return result;
-                });
+                ));
             }
 
             @Override
             public <U> ObjectArrayBuilder<ItemType, ParentItemType, P> add(String column,
                                                                            DataType<U> type,
                                                                            Function<ItemType, U> getProperty) {
-                return add(baseColumn.append(column), type, getProperty);
+                return add(new Column<>(baseColumn.append(column), type, getProperty));
             }
 
 
             @Override
-            protected <U> ObjectArrayBuilder<ItemType, ParentItemType, P> add(ColumnIdent column,
-                                                                              DataType<U> type,
-                                                                              Function<ItemType, U> getProperty) {
-                columns.add(new Column<>(column, type, getProperty));
+            protected <U> ObjectArrayBuilder<ItemType, ParentItemType, P> add(Column<ItemType, U> column) {
+                columns.add(column);
                 return this;
             }
         }

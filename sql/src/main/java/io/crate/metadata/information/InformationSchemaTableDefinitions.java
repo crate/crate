@@ -69,7 +69,7 @@ public class InformationSchemaTableDefinitions {
             (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn())
                          // we also need to check for views which have privileges set
                          || user.hasAnyPrivilege(Privilege.Clazz.VIEW, c.tableInfo.ident().fqn()),
-            InformationColumnsTableInfo.expression()
+            InformationColumnsTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationTableConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::constraints,
