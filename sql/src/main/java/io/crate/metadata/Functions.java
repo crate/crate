@@ -439,7 +439,15 @@ public class Functions {
             return applicableFunctions;
         }
 
-        List<ApplicableFunction> mostSpecificFunctions = selectMostSpecificFunctions(applicableFunctions);
+        List<TypeSignature> argumentTypeSignatures = Lists2.map(argumentTypes, DataType::getTypeSignature);
+        List<ApplicableFunction> mostSpecificFunctions = selectMostSpecificFunctionsByExactTypeMatches(
+            applicableFunctions,
+            argumentTypeSignatures);
+        if (mostSpecificFunctions.size() <= 1) {
+            return mostSpecificFunctions;
+        }
+
+        mostSpecificFunctions = selectMostSpecificFunctionsByPrecedence(applicableFunctions);
         if (mostSpecificFunctions.size() <= 1) {
             return mostSpecificFunctions;
         }
@@ -469,7 +477,33 @@ public class Functions {
         return mostSpecificFunctions;
     }
 
-    private static List<ApplicableFunction> selectMostSpecificFunctions(List<ApplicableFunction> candidates) {
+    private static List<ApplicableFunction> selectMostSpecificFunctionsByExactTypeMatches(List<ApplicableFunction> candidates,
+                                                                                          List<TypeSignature> actualArgumentTypes) {
+        List<ApplicableFunction> representatives = new ArrayList<>();
+
+        for (ApplicableFunction current : candidates) {
+            boolean found = false;
+            for (int i = 0; i < representatives.size(); i++) {
+                ApplicableFunction representative = representatives.get(i);
+                if (hasMoreExactTypeMatches(current, representative, actualArgumentTypes)) {
+                    representatives.set(i, current);
+                }
+                if (hasMoreExactTypeMatches(current, representative, actualArgumentTypes)
+                    || hasMoreExactTypeMatches(representative, current, actualArgumentTypes)) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                representatives.add(current);
+            }
+        }
+
+        return representatives;
+    }
+
+    private static List<ApplicableFunction> selectMostSpecificFunctionsByPrecedence(List<ApplicableFunction> candidates) {
         List<ApplicableFunction> representatives = new ArrayList<>();
 
         for (ApplicableFunction current : candidates) {
@@ -514,11 +548,36 @@ public class Functions {
         return leftArgsCount >= rightArgsCount;
     }
 
+    private static boolean hasMoreExactTypeMatches(ApplicableFunction left,
+                                                   ApplicableFunction right,
+                                                   List<TypeSignature> actualArgumentTypes) {
+        int leftExactMatches = numberOfExactTypeMatches(
+            actualArgumentTypes,
+            left.getBoundSignature().getArgumentTypes()
+        );
+        int rightExactMatches = numberOfExactTypeMatches(
+            actualArgumentTypes,
+            right.getBoundSignature().getArgumentTypes()
+        );
+        return leftExactMatches > rightExactMatches;
+    }
+
     private static boolean returnTypeIsTheSame(List<ApplicableFunction> applicableFunctions) {
         Set<DataType<?>> returnTypes = applicableFunctions.stream()
             .map(function -> function.getBoundSignature().getReturnType().createType())
             .collect(Collectors.toSet());
         return returnTypes.size() == 1;
+    }
+
+    private static int numberOfExactTypeMatches(List<TypeSignature> actualArgumentTypes,
+                                                List<TypeSignature> declaredArgumentTypes) {
+        int cnt = 0;
+        for (int i = 0; i < actualArgumentTypes.size(); i++) {
+            if (actualArgumentTypes.get(i).equals(declaredArgumentTypes.get(i))) {
+                cnt++;
+            }
+        }
+        return cnt;
     }
 
     private static class ApplicableFunction implements Supplier<FunctionImplementation> {
