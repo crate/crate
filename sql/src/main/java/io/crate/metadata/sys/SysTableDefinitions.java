@@ -84,7 +84,7 @@ public class SysTableDefinitions {
             false));
         tableDefinitions.put(SysOperationsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeOperations()),
-            SysOperationsTableInfo.expressions(localNode),
+            SysOperationsTableInfo.create(localNode).expressions(),
             false));
         tableDefinitions.put(SysOperationsLogTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.operationsLog()),

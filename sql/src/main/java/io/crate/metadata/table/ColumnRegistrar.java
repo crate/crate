@@ -118,13 +118,6 @@ public class ColumnRegistrar<T> {
     }
 
     public <R> ColumnRegistrar<T> register(String column,
-                                           String child,
-                                           DataType<R> type,
-                                           @Nullable RowCollectExpressionFactory<T> expression) {
-        return register(new ColumnIdent(column, child), type, true, expression);
-    }
-
-    public <R> ColumnRegistrar<T> register(String column,
                                            DataType<R> type,
                                            @Nullable RowCollectExpressionFactory<T> expression) {
         return register(new ColumnIdent(column), type, true, expression);
