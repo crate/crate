@@ -135,7 +135,7 @@ public class SysTableDefinitions {
             false));
         tableDefinitions.put(SysSegmentsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(shardSegmentInfos),
-            SysSegmentsTableInfo.expressions(clusterService::localNode),
+            SysSegmentsTableInfo.create(clusterService::localNode).expressions(),
             true));
     }
 
