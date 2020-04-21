@@ -10,7 +10,6 @@ pull_request_rules:
       - '#approved-reviews-by>=1'
       - status-success=ci/jenkins/pr_tests
       - status-success~=^Test CrateDB SQL on ubuntu
-      - status-success~=^Test CrateDB SQL on windows
     name: default
   - actions:
       backport:
