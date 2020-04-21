@@ -123,13 +123,6 @@ public class ColumnRegistrar<T> {
         return register(new ColumnIdent(column), type, true, expression);
     }
 
-    public <R> ColumnRegistrar<T> register(String column,
-                                           DataType<R> type,
-                                           boolean nullable,
-                                           @Nullable RowCollectExpressionFactory<T> expression) {
-        return register(new ColumnIdent(column), type, nullable, expression);
-    }
-
     public ColumnRegistrar<T> register(ColumnIdent column,
                                        DataType<?> type,
                                        boolean nullable,

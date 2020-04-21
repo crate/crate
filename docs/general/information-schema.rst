@@ -312,38 +312,38 @@ infinite recursion of your mind, beware!)::
     +--------------------------+-----------+------------------+
     | column_name              | data_type | ordinal_position |
     +--------------------------+-----------+------------------+
-    | character_maximum_length | integer   |               11 |
-    | character_octet_length   | integer   |               12 |
-    | character_set_catalog    | text      |               19 |
-    | character_set_name       | text      |               21 |
-    | character_set_schema     | text      |               20 |
-    | check_action             | integer   |               32 |
-    | check_references         | text      |               31 |
-    | collation_catalog        | text      |               22 |
-    | collation_name           | text      |               24 |
-    | collation_schema         | text      |               23 |
-    | column_default           | text      |               10 |
-    | column_name              | text      |                4 |
-    | data_type                | text      |                6 |
-    | datetime_precision       | integer   |               16 |
-    | domain_catalog           | text      |               25 |
-    | domain_name              | text      |               27 |
-    | domain_schema            | text      |               26 |
-    | generation_expression    | text      |                9 |
-    | interval_precision       | integer   |               18 |
-    | interval_type            | text      |               17 |
-    | is_generated             | text      |                7 |
-    | is_nullable              | boolean   |                8 |
-    | numeric_precision        | integer   |               13 |
-    | numeric_precision_radix  | integer   |               14 |
-    | numeric_scale            | integer   |               15 |
-    | ordinal_position         | integer   |                5 |
-    | table_catalog            | text      |                3 |
-    | table_name               | text      |                2 |
-    | table_schema             | text      |                1 |
-    | udt_catalog              | text      |               28 |
-    | udt_name                 | text      |               30 |
-    | udt_schema               | text      |               29 |
+    | character_maximum_length | integer   |                1 |
+    | character_octet_length   | integer   |                2 |
+    | character_set_catalog    | text      |                3 |
+    | character_set_name       | text      |                4 |
+    | character_set_schema     | text      |                5 |
+    | check_action             | integer   |                6 |
+    | check_references         | text      |                7 |
+    | collation_catalog        | text      |                8 |
+    | collation_name           | text      |                9 |
+    | collation_schema         | text      |               10 |
+    | column_default           | text      |               11 |
+    | column_name              | text      |               12 |
+    | data_type                | text      |               13 |
+    | datetime_precision       | integer   |               14 |
+    | domain_catalog           | text      |               15 |
+    | domain_name              | text      |               16 |
+    | domain_schema            | text      |               17 |
+    | generation_expression    | text      |               18 |
+    | interval_precision       | integer   |               19 |
+    | interval_type            | text      |               20 |
+    | is_generated             | text      |               21 |
+    | is_nullable              | boolean   |               22 |
+    | numeric_precision        | integer   |               23 |
+    | numeric_precision_radix  | integer   |               24 |
+    | numeric_scale            | integer   |               25 |
+    | ordinal_position         | integer   |               26 |
+    | table_catalog            | text      |               27 |
+    | table_name               | text      |               28 |
+    | table_schema             | text      |               29 |
+    | udt_catalog              | text      |               30 |
+    | udt_name                 | text      |               31 |
+    | udt_schema               | text      |               32 |
     +--------------------------+-----------+------------------+
     SELECT 32 rows in set (... sec)
 
