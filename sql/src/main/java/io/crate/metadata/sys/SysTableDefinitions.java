@@ -113,7 +113,7 @@ public class SysTableDefinitions {
         tableDefinitions.put(SysAllocationsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> sysAllocations,
             (user, allocation) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, allocation.fqn()),
-            SysAllocationsTableInfo.expressions()
+            SysAllocationsTableInfo.create().expressions()
         ));
 
         SummitsIterable summits = new SummitsIterable();

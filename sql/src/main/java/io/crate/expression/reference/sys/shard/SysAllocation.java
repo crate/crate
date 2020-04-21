@@ -160,11 +160,8 @@ public class SysAllocation {
         }
 
         @Nullable
-        public String[] explanations() {
-            if (explanations == null) {
-                return null;
-            }
-            return explanations.toArray(new String[0]);
+        public List<String> explanations() {
+            return explanations;
         }
     }
 }

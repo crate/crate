@@ -174,6 +174,9 @@ public final class SystemTable<T> implements TableInfo {
         private List<ColumnIdent> primaryKeys = List.of();
         private BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting;
 
+        /**
+         * Override the routing funciton, if not overriden it defaults to `Routing.forTableOnSingleNode`
+         */
         public RelationBuilder<T> withRouting(BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting) {
             this.getRouting = getRouting;
             return this;

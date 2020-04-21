@@ -78,7 +78,7 @@ public class SysAllocationsTest extends SQLTransportIntegrationTest {
         Map decision = (Map) decisions.get(0);
         assertNotNull("nodeId must not be null", decision.get("node_id"));
         assertNotNull("nodeName must not be null", decision.get("node_name"));
-        assertThat(((String[]) decision.get("explanations"))[0],
+        assertThat(((List<String>) decision.get("explanations")).get(0),
             startsWith("the shard cannot be allocated to the same node on which a copy of the shard already exists"));
 
         // second row: STARTED shard
