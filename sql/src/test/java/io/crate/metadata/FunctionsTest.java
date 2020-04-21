@@ -168,4 +168,29 @@ public class FunctionsTest extends CrateUnitTest {
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
         assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.STRING));
     }
+
+    @Test
+    public void test_signature_with_more_exact_argument_matches_is_more_specific() {
+        register(
+            Signature.scalar(
+                "foo",
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature()
+            ),
+            args -> () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+        );
+        register(
+            Signature.scalar(
+                "foo",
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature()
+            ),
+            args -> () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+        );
+
+        var impl = resolve("foo", List.of(Literal.of(1), Literal.of(1L)));
+        assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.INTEGER, DataTypes.INTEGER));
+    }
 }
