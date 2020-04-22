@@ -22,45 +22,39 @@
 
 package io.crate.metadata.information;
 
+import static io.crate.execution.engine.collect.sources.InformationSchemaIterables.PK_SUFFIX;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
+
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.execution.engine.collect.sources.InformationSchemaIterables.PK_SUFFIX;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.INTEGER;
+import io.crate.metadata.SystemTable;
 
 /**
  * Table which contains the primary keys of all user tables.
  */
-public class InformationKeyColumnUsageTableInfo extends InformationTableInfo<InformationSchemaIterables.KeyColumnUsage> {
+public class InformationKeyColumnUsageTableInfo {
 
     public static final String NAME = "key_column_usage";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    private static ColumnRegistrar<InformationSchemaIterables.KeyColumnUsage> columnRegistrar() {
-        return new ColumnRegistrar<InformationSchemaIterables.KeyColumnUsage>(IDENT, RowGranularity.DOC)
-            .register("constraint_catalog", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
-            .register("constraint_schema", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
-            .register("constraint_name", STRING, () -> forFunction(k -> k.getTableName() + PK_SUFFIX))
-            .register("table_catalog", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
-            .register("table_schema", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
-            .register("table_name", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getTableName))
-            .register("column_name", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getPkColumnIdent))
-            .register("ordinal_position", INTEGER, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getOrdinal));
-    }
-
-    static Map<ColumnIdent, RowCollectExpressionFactory<InformationSchemaIterables.KeyColumnUsage>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    InformationKeyColumnUsageTableInfo() {
-        super(IDENT, columnRegistrar(), "constraint_catalog", "constraint_schema", "constraint_name", "column_name");
+    public static SystemTable<InformationSchemaIterables.KeyColumnUsage> create() {
+        return SystemTable.<InformationSchemaIterables.KeyColumnUsage>builder()
+            .add("constraint_catalog", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
+            .add("constraint_schema", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
+            .add("constraint_name", STRING, k -> k.getTableName() + PK_SUFFIX)
+            .add("table_catalog", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
+            .add("table_schema", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
+            .add("table_name", STRING, InformationSchemaIterables.KeyColumnUsage::getTableName)
+            .add("column_name", STRING, InformationSchemaIterables.KeyColumnUsage::getPkColumnIdent)
+            .add("ordinal_position", INTEGER, InformationSchemaIterables.KeyColumnUsage::getOrdinal)
+            .setPrimaryKeys(
+                new ColumnIdent("constraint_catalog"),
+                new ColumnIdent("constraint_schema"),
+                new ColumnIdent("constraint_name"),
+                new ColumnIdent("column_name")
+            )
+            .build(IDENT);
     }
 }
