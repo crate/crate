@@ -21,133 +21,113 @@
 
 package io.crate.metadata.information;
 
-import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.expression.NestableInput;
-import io.crate.expression.reference.MapLookupByPathExpression;
-import io.crate.expression.reference.partitioned.PartitionsSettingsExpression;
-import io.crate.expression.reference.partitioned.PartitionsVersionExpression;
-import io.crate.expression.symbol.DynamicReference;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexMappings;
-import io.crate.metadata.PartitionInfo;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.types.ObjectType;
-import org.elasticsearch.Version;
-
-import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.STRING;
+import static org.elasticsearch.index.IndexModule.INDEX_STORE_TYPE_SETTING;
+import static org.elasticsearch.index.MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING;
+import static org.elasticsearch.index.MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING;
+import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 
-public class InformationPartitionsTableInfo extends InformationTableInfo<PartitionInfo> {
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
+import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.MapperService;
+
+import io.crate.common.StringUtils;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexMappings;
+import io.crate.metadata.PartitionInfo;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+
+public class InformationPartitionsTableInfo {
 
     public static final String NAME = "table_partitions";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<PartitionInfo>> expressions() {
-        return columnRegistrar().expressions();
-    }
 
-    private static ColumnRegistrar<PartitionInfo> columnRegistrar() {
-        return new ColumnRegistrar<PartitionInfo>(IDENT, RowGranularity.DOC)
-            .register("table_schema", STRING, () -> forFunction(r -> r.name().relationName().schema()))
-            .register("table_name", STRING, () -> forFunction(r -> r.name().relationName().name()))
-            .register("partition_ident", STRING, () -> forFunction(r -> r.name().ident()))
-            .register("values", ObjectType.untyped(), () -> new NestableCollectExpression<PartitionInfo, Map<String, Object>>() {
-                private Map<String, Object> value;
+    public static SystemTable<PartitionInfo> create() {
+        return SystemTable.<PartitionInfo>builder(IDENT)
+            .add("table_schema", STRING, r -> r.name().relationName().schema())
+            .add("table_name", STRING, r -> r.name().relationName().name())
+            .add("partition_ident", STRING, r -> r.name().ident())
+            .addDynamicObject("values", STRING, PartitionInfo::values)
+            .add("number_of_shards", INTEGER, PartitionInfo::numberOfShards)
+            .add("number_of_replicas", STRING, PartitionInfo::numberOfReplicas)
+            .add("routing_hash_function", STRING, r -> IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME)
+            .add("closed", BOOLEAN, PartitionInfo::isClosed)
+            .startObject("version")
+                .add(Version.Property.CREATED.toString(), STRING, r -> r.versionCreated().externalNumber())
+                .add(Version.Property.UPGRADED.toString(), STRING, r -> r.versionUpgraded().externalNumber())
+            .endObject()
+            .startObject("settings")
+                .startObject("blocks")
+                    .add("read_only", BOOLEAN, r -> (Boolean) r.tableParameters().get(IndexMetaData.INDEX_READ_ONLY_SETTING.getKey()))
+                    .add("read", BOOLEAN, r -> (Boolean) r.tableParameters().get(IndexMetaData.INDEX_BLOCKS_READ_SETTING.getKey()))
+                    .add("write", BOOLEAN, r -> (Boolean) r.tableParameters().get(IndexMetaData.INDEX_BLOCKS_WRITE_SETTING.getKey()))
+                    .add("metadata", BOOLEAN, r -> (Boolean) r.tableParameters().get(IndexMetaData.INDEX_BLOCKS_METADATA_SETTING.getKey()))
+                .endObject()
 
-                @Override
-                public void setNextRow(PartitionInfo row) {
-                    value = row.values();
-                }
+                .add("codec", STRING, r -> (String) r.tableParameters().getOrDefault(INDEX_CODEC_SETTING.getKey(), INDEX_CODEC_SETTING.getDefault(Settings.EMPTY)))
 
-                @Override
-                public Map<String, Object> value() {
-                    return value;
-                }
+                .startObject("store")
+                    .add("type", STRING, r -> StringUtils.nullOrString(r.tableParameters().get(INDEX_STORE_TYPE_SETTING.getKey())))
+                .endObject()
 
-                @Override
-                public NestableInput getChild(String name) {
-                    // The input values could be of mixed types (select values['p'];  t1 (p int); t2 (p string))
-                    // The result is casted to string because streaming (via pg) doesn't support mixed types;
-                    return new MapLookupByPathExpression<>(
-                        PartitionInfo::values, Collections.singletonList(name), STRING::value);
-                }
-            })
-            .register("number_of_shards", INTEGER, () -> forFunction(PartitionInfo::numberOfShards))
-            .register("number_of_replicas", STRING, () -> forFunction(PartitionInfo::numberOfReplicas))
-            .register("routing_hash_function", STRING, () -> forFunction(r -> IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME))
-            .register("closed", BOOLEAN, () -> forFunction(PartitionInfo::isClosed))
-            .register("version", ObjectType.builder()
-                .setInnerType(Version.Property.CREATED.toString(), STRING)
-                .setInnerType(Version.Property.UPGRADED.toString(), STRING)
-                .build(), PartitionsVersionExpression::new)
-            .register("settings", ObjectType.builder()
-                .setInnerType("blocks", ObjectType.builder()
-                    .setInnerType("read_only", BOOLEAN)
-                    .setInnerType("read", BOOLEAN)
-                    .setInnerType("write", BOOLEAN)
-                    .setInnerType("metadata", BOOLEAN)
-                    .build())
-                .setInnerType("codec", STRING)
-                .setInnerType("store", ObjectType.builder()
-                    .setInnerType("type", STRING)
-                    .build())
-                .setInnerType("translog", ObjectType.builder()
-                    .setInnerType("flush_threshold_size", LONG)
-                    .setInnerType("sync_interval", LONG)
-                    .build())
-                .setInnerType("routing", ObjectType.builder()
-                    .setInnerType("allocation", ObjectType.builder()
-                        .setInnerType("enable", STRING)
-                        .setInnerType("total_shards_per_node", INTEGER)
-                        .build())
-                    .build())
-                .setInnerType("warmer", ObjectType.builder()
-                    .setInnerType("enabled", BOOLEAN)
-                    .build())
-                .setInnerType("unassigned", ObjectType.builder()
-                    .setInnerType("node_left", ObjectType.builder()
-                        .setInnerType("delayed_timeout", LONG)
-                        .build())
-                    .build())
-                .setInnerType("mapping", ObjectType.builder()
-                    .setInnerType("total_fields", ObjectType.builder()
-                        .setInnerType("limit", INTEGER)
-                        .build())
-                    .build())
-                .setInnerType("merge", ObjectType.builder()
-                    .setInnerType("scheduler", ObjectType.builder()
-                        .setInnerType("max_thread_count", INTEGER)
-                        .build())
-                    .build())
-                .setInnerType("write", ObjectType.builder()
-                    .setInnerType("wait_for_active_shards", STRING).build())
-                .build(), PartitionsSettingsExpression::new);
-    }
+                .startObject("translog")
+                    .add("flush_threshold_size", LONG, r -> (Long) r.tableParameters().get(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey()))
+                    .add("sync_interval", LONG, r -> (Long) r.tableParameters().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()))
+                    .add("durability", STRING, r -> StringUtils.nullOrString(r.tableParameters().get(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey())))
+                .endObject()
 
-    InformationPartitionsTableInfo() {
-        super(IDENT, columnRegistrar(), "table_schema","table_name", "partition_ident");
-    }
+                .startObject("routing")
+                    .startObject("allocation")
+                        .add("enable", STRING, r ->
+                            StringUtils.nullOrString(r.tableParameters().get(EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey())))
+                        .add("total_shards_per_node", INTEGER, r ->
+                            (Integer) r.tableParameters().get(ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING.getKey()))
+                    .endObject()
+                .endObject()
 
-    @Nullable
-    @Override
-    public Reference getReference(ColumnIdent column) {
-        if (!column.isTopLevel() && column.name().equals("values")) {
-            DynamicReference ref = new DynamicReference(new ReferenceIdent(ident(), column), rowGranularity());
-            ref.valueType(STRING);
-            return ref;
-        }
-        return super.getReference(column);
+                .startObject("warmer")
+                    .add("enabled", BOOLEAN, r -> (Boolean) r.tableParameters().get(IndexSettings.INDEX_WARMER_ENABLED_SETTING.getKey()))
+                .endObject()
+
+                .startObject("unassigned")
+                    .startObject("node_left")
+                        .add("delayed_timeout", LONG, r -> (Long) r.tableParameters().get(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey()))
+                    .endObject()
+                .endObject()
+
+                .startObject("mapping")
+                    .startObject("total_fields")
+                        .add("limit", INTEGER, r -> (Integer) r.tableParameters().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()))
+                    .endObject()
+                .endObject()
+
+                .startObject("merge")
+                    .startObject("scheduler")
+                        .add("max_thread_count", INTEGER, r -> (Integer) r.tableParameters().get(MAX_THREAD_COUNT_SETTING.getKey()))
+                        .add("max_merge_count", INTEGER, r -> (Integer) r.tableParameters().get(MAX_MERGE_COUNT_SETTING.getKey()))
+                    .endObject()
+                .endObject()
+
+                .startObject("write")
+                    .add("wait_for_active_shards", STRING, r -> (String) r.tableParameters().get(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()))
+                .endObject()
+
+            .endObject()
+            .setPrimaryKeys(
+                new ColumnIdent("table_schema"),
+                new ColumnIdent("table_name"),
+                new ColumnIdent("partition_ident")
+            )
+            .build();
     }
 }

@@ -35,7 +35,7 @@ public class SysOperationsLogTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations_log");
 
     static SystemTable<OperationContextLog> create() {
-        return SystemTable.<OperationContextLog>builder()
+        return SystemTable.<OperationContextLog>builder(IDENT)
             .add("id", STRING, l -> String.valueOf(l.id()))
             .add("job_id", STRING, l -> String.valueOf(l.id()))
             .add("name", STRING, OperationContextLog::name)
@@ -44,6 +44,6 @@ public class SysOperationsLogTableInfo {
             .add("used_bytes", LONG, OperationContextLog::usedBytes)
             .add("error", STRING, OperationContextLog::errorMessage)
             .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(IDENT, nodes))
-            .build(IDENT);
+            .build();
     }
 }

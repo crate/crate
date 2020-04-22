@@ -398,7 +398,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "is_deferrable", "table_catalog", "table_name", "table_schema"));
         execute("SELECT constraint_name, constraint_type, table_name, table_schema FROM " +
                 "information_schema.table_constraints ORDER BY table_schema ASC, table_name ASC");
-        assertEquals(27L, response.rowCount());
         assertThat(printedTable(response.rows()),
             is(
                 "columns_pk| PRIMARY KEY| columns| information_schema\n" +
@@ -602,7 +601,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(770, response.rowCount());
+        assertEquals(772, response.rowCount());
     }
 
     @Test
@@ -940,15 +939,16 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "   table_schema, " +
                 "   partition_ident, " +
                 "   values, " +
+                "   values['par'], " +
                 "   number_of_shards, " +
                 "   number_of_replicas, " +
                 "   settings['write']['wait_for_active_shards'] " +
                 "from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(3, response.rowCount());
 
-        Object[] row1 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04132", ImmutableMap.of("par", 1), 5, "0-1", "1"};
-        Object[] row2 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04134", ImmutableMap.of("par", 2), 5, "0-1", "1"};
-        Object[] row3 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04136", ImmutableMap.of("par", 3), 5, "0-1", "1"};
+        Object[] row1 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04132", ImmutableMap.of("par", 1), "1", 5, "0-1", "1"};
+        Object[] row2 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04134", ImmutableMap.of("par", 2), "2", 5, "0-1", "1"};
+        Object[] row3 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04136", ImmutableMap.of("par", 3), "3", 5, "0-1", "1"};
 
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);

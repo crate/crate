@@ -44,7 +44,7 @@ public class SysSegmentsTableInfo {
 
     @SuppressWarnings("unchecked")
     public static SystemTable<ShardSegment> create(Supplier<DiscoveryNode> localNode) {
-        return SystemTable.<ShardSegment>builder()
+        return SystemTable.<ShardSegment>builder(IDENT)
             .add("table_schema", STRING, r -> r.getIndexParts().getSchema())
             .add("table_name", STRING, r -> r.getIndexParts().getTable())
             .add("partition_ident", STRING, r -> r.getIndexParts().getPartitionIdent())
@@ -66,6 +66,6 @@ public class SysSegmentsTableInfo {
             .add("compound", BOOLEAN, r -> r.getSegment().compound)
             .add("attributes", ObjectType.untyped(), r -> (Map<String, Object>) (Map<?, ?>) r.getSegment().getAttributes())
             .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(IDENT, nodes))
-            .build(IDENT);
+            .build();
     }
 }

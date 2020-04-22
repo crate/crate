@@ -41,7 +41,7 @@ public class PgProcTable {
         "pg_proc");
 
     public static SystemTable<Entry> create() {
-        return SystemTable.<Entry>builder()
+        return SystemTable.<Entry>builder(IDENT)
             .add("oid", INTEGER, x -> x.oid)
             .add("proname", STRING, x -> x.functionName.name())
             .add("pronamespace", INTEGER, x -> x.schemaOid)
@@ -72,7 +72,7 @@ public class PgProcTable {
             .add("probin", STRING, x -> null)
             .add("proconfig", STRING_ARRAY, x -> null)
             .add("proacl", STRING_ARRAY, x -> null)
-            .build(IDENT);
+            .build();
     }
 
     public static final class Entry {

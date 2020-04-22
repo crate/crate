@@ -37,7 +37,7 @@ public class SysAllocationsTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "allocations");
 
     public static SystemTable<SysAllocation> create() {
-        return SystemTable.<SysAllocation>builder()
+        return SystemTable.<SysAllocation>builder(IDENT)
             .add("table_schema", STRING, SysAllocation::tableSchema)
             .add("table_name", STRING, SysAllocation::tableName)
             .add("partition_ident", STRING, SysAllocation::partitionIdent)
@@ -57,6 +57,6 @@ public class SysAllocationsTableInfo {
                 new ColumnIdent("partition_ident"),
                 new ColumnIdent("shard_id")
             )
-            .build(IDENT);
+            .build();
     }
 }

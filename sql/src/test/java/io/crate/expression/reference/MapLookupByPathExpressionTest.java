@@ -38,7 +38,7 @@ public class MapLookupByPathExpressionTest {
     public void testInvalidPathResultsInNull() throws Exception {
         HashMap<String, Object> m = new HashMap<>();
         m.put("correct", 10);
-        MapLookupByPathExpression<Map<String, Object>, Object> expr =
+        MapLookupByPathExpression<Map<String, Object>> expr =
             new MapLookupByPathExpression<>(Function.identity(), Collections.singletonList("incorrect"), Function.identity());
 
         expr.setNextRow(m);
@@ -49,7 +49,7 @@ public class MapLookupByPathExpressionTest {
     public void testCorrectPathReturnsValue() throws Exception {
         HashMap<String, Object> m = new HashMap<>();
         m.put("correct", 10);
-        MapLookupByPathExpression<Map<String, Object>, Object> expr =
+        MapLookupByPathExpression<Map<String, Object>> expr =
             new MapLookupByPathExpression<>(Function.identity(), Collections.singletonList("correct"), Function.identity());
 
         expr.setNextRow(m);

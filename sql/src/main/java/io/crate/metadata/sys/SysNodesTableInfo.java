@@ -96,7 +96,7 @@ public class SysNodesTableInfo {
 
 
     public static SystemTable<NodeStatsContext> create() {
-        return SystemTable.<NodeStatsContext>builder()
+        return SystemTable.<NodeStatsContext>builder(IDENT)
             .add("id", STRING, NodeStatsContext::id)
             .add("name", STRING, NodeStatsContext::name)
             .add("hostname", STRING, NodeStatsContext::hostname)
@@ -251,6 +251,6 @@ public class SysNodesTableInfo {
                 .endObjectArray()
             .endObject()
             .setPrimaryKeys(new ColumnIdent("id"))
-            .build(IDENT);
+            .build();
     }
 }
