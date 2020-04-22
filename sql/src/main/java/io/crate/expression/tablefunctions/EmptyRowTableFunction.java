@@ -47,7 +47,6 @@ public class EmptyRowTableFunction {
     static class EmptyRowTableFunctionImplementation extends TableFunctionImplementation<Object> {
 
         private final FunctionInfo info;
-        private final RowType emptyRow = new RowType(List.of());
 
         private EmptyRowTableFunctionImplementation(FunctionInfo info) {
             this.info = info;
@@ -66,7 +65,7 @@ public class EmptyRowTableFunction {
 
         @Override
         public RowType returnType() {
-            return emptyRow;
+            return RowType.EMPTY;
         }
 
         @Override

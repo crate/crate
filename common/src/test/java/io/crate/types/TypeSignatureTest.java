@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static io.crate.common.collections.Lists2.getOnlyElement;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -69,5 +70,66 @@ public class TypeSignatureTest extends CrateUnitTest {
             contains(
                 new TypeSignature(DataTypes.STRING.getName()),
                 new TypeSignature(ArrayType.NAME, List.of(new TypeSignature(DataTypes.INTEGER.getName())))));
+    }
+
+    @Test
+    public void test_parse_record() {
+        var signature = parseTypeSignature("record(text, integer)");
+
+        assertThat(signature.getBaseTypeName(), is(RowType.NAME));
+        assertThat(
+            signature.getParameters(),
+            contains(
+                new TypeSignature(DataTypes.STRING.getName()),
+                new TypeSignature(DataTypes.INTEGER.getName())));
+    }
+
+    @Test
+    public void test_parse_record_with_named_data_type() {
+        var signature = parseTypeSignature("record(field1 text)");
+
+        assertThat(signature.getBaseTypeName(), is(RowType.NAME));
+        var innerSignature = (ParameterTypeSignature) getOnlyElement(signature.getParameters());
+        assertThat(innerSignature.parameterName(), is("field1"));
+        assertThat(innerSignature.getBaseTypeName(), is(DataTypes.STRING.getName()));
+    }
+
+    @Test
+    public void test_parse_record_with_named_data_types_that_contain_whitespaces() {
+        var signature = parseTypeSignature("record(field1 double precision)");
+
+        assertThat(signature.getBaseTypeName(), is(RowType.NAME));
+        var innerSignature = (ParameterTypeSignature) getOnlyElement(signature.getParameters());
+        assertThat(innerSignature.parameterName(), is("field1"));
+        assertThat(innerSignature.getBaseTypeName(), is(DataTypes.DOUBLE.getName()));
+    }
+
+    @Test
+    public void test_parse_array_with_nested_record_type() {
+        var signature = parseTypeSignature("array(record(double precision))");
+
+        assertThat(signature.getBaseTypeName(), is(ArrayType.NAME));
+        assertThat(
+            signature.getParameters(),
+            contains(
+                new TypeSignature(
+                    RowType.NAME,
+                    List.of(new TypeSignature(DataTypes.DOUBLE.getName()))
+                )
+            )
+        );
+    }
+
+    @Test
+    public void test_parse_record_with_nested_named_record_type() {
+        var signature = parseTypeSignature("record(field1 record(timestamp without time zone))");
+
+        assertThat(signature.getBaseTypeName(), is(RowType.NAME));
+        var innerSignature = (ParameterTypeSignature) getOnlyElement(signature.getParameters());
+        assertThat(innerSignature.parameterName(), is("field1"));
+        assertThat(innerSignature.getBaseTypeName(), is(RowType.NAME));
+        assertThat(
+            innerSignature.getParameters(),
+            contains(new TypeSignature(DataTypes.TIMESTAMP.getName())));
     }
 }

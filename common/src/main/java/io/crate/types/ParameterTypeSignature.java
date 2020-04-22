@@ -27,17 +27,17 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-final class ObjectParameterTypeSignature extends TypeSignature {
+final class ParameterTypeSignature extends TypeSignature {
 
     private final String parameterName;
 
-    public ObjectParameterTypeSignature(String parameterName,
-                                        TypeSignature typeSignature) {
+    public ParameterTypeSignature(String parameterName,
+                                  TypeSignature typeSignature) {
         super(typeSignature.getBaseTypeName(), typeSignature.getParameters());
         this.parameterName = parameterName;
     }
 
-    public ObjectParameterTypeSignature(StreamInput in) throws IOException {
+    public ParameterTypeSignature(StreamInput in) throws IOException {
         super(in);
         parameterName = in.readString();
     }
