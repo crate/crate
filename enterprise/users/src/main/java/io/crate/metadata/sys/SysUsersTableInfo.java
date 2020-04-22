@@ -32,11 +32,11 @@ public class SysUsersTableInfo {
     private static final String PASSWORD_PLACEHOLDER = "********";
 
     public static SystemTable<User> create() {
-        return SystemTable.<User>builder()
+        return SystemTable.<User>builder(IDENT)
             .add("name", STRING, User::name)
             .add("superuser", BOOLEAN, User::isSuperUser)
             .add("password", STRING, x -> x.password() == null ? null : PASSWORD_PLACEHOLDER)
             .setPrimaryKeys(new ColumnIdent("name"))
-            .build(IDENT);
+            .build();
     }
 }

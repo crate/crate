@@ -39,7 +39,7 @@ public class SysOperationsTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations");
 
     public static SystemTable<OperationContext> create(Supplier<DiscoveryNode> localNode) {
-        return SystemTable.<OperationContext>builder()
+        return SystemTable.<OperationContext>builder(IDENT)
             .add("id", STRING, c -> String.valueOf(c.id()))
             .add("job_id", STRING, c -> c.jobId().toString())
             .add("name", STRING, OperationContext::name)
@@ -50,6 +50,6 @@ public class SysOperationsTableInfo {
                 .add("name", STRING, ignored -> localNode.get().getName())
             .endObject()
             .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(IDENT, nodes))
-            .build(IDENT);
+            .build();
     }
 }

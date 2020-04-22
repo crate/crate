@@ -31,16 +31,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class MapLookupByPathExpression<T, R> implements NestableCollectExpression<T, R> {
+public final class MapLookupByPathExpression<T> implements NestableCollectExpression<T, Object> {
 
     private final Function<T, Map<String, Object>> getMap;
     private final List<String> path;
-    private final Function<Object, R> castResultValue;
-    private R value;
+    private final Function<Object, Object> castResultValue;
+    private Object value;
 
     public MapLookupByPathExpression(Function<T, Map<String, Object>> getMap,
                                      List<String> path,
-                                     Function<Object, R> castResultValue) {
+                                     Function<Object, Object> castResultValue) {
         this.getMap = getMap;
         this.path = path;
         this.castResultValue = castResultValue;
@@ -48,16 +48,20 @@ public final class MapLookupByPathExpression<T, R> implements NestableCollectExp
 
     @Override
     public void setNextRow(T row) {
-        value = castResultValue.apply(Maps.getByPath(getMap.apply(row), path));
+        if (path.isEmpty()) {
+            value = getMap.apply(row);
+        } else {
+            value = castResultValue.apply(Maps.getByPath(getMap.apply(row), path));
+        }
     }
 
     @Override
-    public R value() {
+    public Object value() {
         return value;
     }
 
     @Override
-    public NestableInput getChild(String name) {
+    public NestableInput<?> getChild(String name) {
         ArrayList<String> newPath = new ArrayList<>(path.size() + 1);
         newPath.addAll(path);
         newPath.add(name);

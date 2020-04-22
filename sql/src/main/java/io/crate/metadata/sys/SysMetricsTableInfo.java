@@ -41,7 +41,7 @@ public class SysMetricsTableInfo {
     public static final RelationName NAME = new RelationName(SysSchemaInfo.NAME, "jobs_metrics");
 
     public static SystemTable<MetricsView> create(Supplier<DiscoveryNode> localNode) {
-        return SystemTable.<MetricsView>builder()
+        return SystemTable.<MetricsView>builder(NAME)
             .add("total_count", LONG, MetricsView::totalCount)
             .add("sum_of_durations", LONG, MetricsView::sumOfDurations)
             .add("failed_count", LONG, MetricsView::failedCount)
@@ -66,6 +66,6 @@ public class SysMetricsTableInfo {
                 .add("labels", STRING_ARRAY, x -> List.copyOf(x.classification().labels()))
             .endObject()
             .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(NAME, nodes))
-            .build(NAME);
+            .build();
     }
 }

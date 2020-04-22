@@ -40,7 +40,7 @@ public class InformationKeyColumnUsageTableInfo {
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     public static SystemTable<InformationSchemaIterables.KeyColumnUsage> create() {
-        return SystemTable.<InformationSchemaIterables.KeyColumnUsage>builder()
+        return SystemTable.<InformationSchemaIterables.KeyColumnUsage>builder(IDENT)
             .add("constraint_catalog", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
             .add("constraint_schema", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
             .add("constraint_name", STRING, k -> k.getTableName() + PK_SUFFIX)
@@ -55,6 +55,6 @@ public class InformationKeyColumnUsageTableInfo {
                 new ColumnIdent("constraint_name"),
                 new ColumnIdent("column_name")
             )
-            .build(IDENT);
+            .build();
     }
 }

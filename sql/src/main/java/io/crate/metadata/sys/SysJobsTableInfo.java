@@ -39,7 +39,7 @@ public class SysJobsTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs");
 
     public static SystemTable<JobContext> create(Supplier<DiscoveryNode> localNode) {
-        return SystemTable.<JobContext>builder()
+        return SystemTable.<JobContext>builder(IDENT)
             .add("id", STRING, c -> c.id().toString())
             .add("username", STRING, JobContext::username)
             .startObject("node")
@@ -50,6 +50,6 @@ public class SysJobsTableInfo {
             .add("started", TIMESTAMPZ, JobContext::started)
             .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(IDENT, nodes))
             .setPrimaryKeys(new ColumnIdent("id"))
-            .build(IDENT);
+            .build();
     }
 }

@@ -39,7 +39,7 @@ public class SysSnapshotsTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "snapshots");
 
     static SystemTable<SysSnapshot> create() {
-        return SystemTable.<SysSnapshot>builder()
+        return SystemTable.<SysSnapshot>builder(IDENT)
             .add("name", STRING, SysSnapshot::name)
             .add("repository", STRING, SysSnapshot::repository)
             .add("concrete_indices", STRING_ARRAY, SysSnapshot::concreteIndices)
@@ -50,7 +50,7 @@ public class SysSnapshotsTableInfo {
             .add("failures", STRING_ARRAY, SysSnapshot::failures)
             .setPrimaryKeys(new ColumnIdent("name"), new ColumnIdent("repository"))
             .withRouting(SysSnapshotsTableInfo::getRouting)
-            .build(IDENT);
+            .build();
     }
 
     private static Routing getRouting(DiscoveryNodes nodes, RoutingProvider routingProvider) {

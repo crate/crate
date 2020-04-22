@@ -37,7 +37,7 @@ public class SysSummitsTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME,"summits");
 
     public static SystemTable<SummitsContext> create() {
-        return SystemTable.<SummitsContext>builder()
+        return SystemTable.<SummitsContext>builder(IDENT)
             .add("mountain", STRING, SummitsContext::mountain)
             .add("height", INTEGER, SummitsContext::height)
             .add("prominence", INTEGER, SummitsContext::prominence)
@@ -49,6 +49,6 @@ public class SysSummitsTableInfo {
             .add("first_ascent", INTEGER, SummitsContext::firstAscent)
             .withRouting((nodes, routingProvider) -> Routing.forTableOnSingleNode(IDENT, nodes.getLocalNodeId()))
             .setPrimaryKeys(new ColumnIdent("mountain"))
-            .build(IDENT);
+            .build();
     }
 }

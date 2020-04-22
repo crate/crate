@@ -46,7 +46,7 @@ public class InformationSchemaInfo implements SchemaInfo {
             .put(InformationViewsTableInfo.NAME, new InformationViewsTableInfo())
             .put(InformationColumnsTableInfo.NAME, InformationColumnsTableInfo.create())
             .put(InformationKeyColumnUsageTableInfo.NAME, InformationKeyColumnUsageTableInfo.create())
-            .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo())
+            .put(InformationPartitionsTableInfo.NAME, InformationPartitionsTableInfo.create())
             .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo())
             .put(InformationReferentialConstraintsTableInfo.NAME, new InformationReferentialConstraintsTableInfo())
             .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo())

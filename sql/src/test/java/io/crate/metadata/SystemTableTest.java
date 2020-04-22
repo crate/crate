@@ -37,13 +37,14 @@ public class SystemTableTest {
 
     @Test
     public void test_create_system_table_with_nested_object() {
-        var table = SystemTable.builder()
+        var relation = new RelationName("doc", "dummy");
+        var table = SystemTable.builder(relation)
             .startObject("obj_a")
                 .startObject("obj_b")
                     .add("x", DataTypes.INTEGER, x -> 1)
                 .endObject()
             .endObject()
-            .build(new RelationName("doc", "dummy"));
+            .build();
 
         assertThat(
             table.columns(),
@@ -81,12 +82,13 @@ public class SystemTableTest {
 
     @Test
     public void test_object_array() throws Exception {
-        var table = SystemTable.builder()
+        var relation = new RelationName("doc", "dummy");
+        var table = SystemTable.builder(relation)
             .startObjectArray("points", x -> List.of(new Point(10, 20), new Point(30, 40)))
                 .add("x", DataTypes.INTEGER, point -> point.x)
                 .add("y", DataTypes.INTEGER, point -> point.y)
             .endObjectArray()
-            .build(new RelationName("doc", "dummy"));
+            .build();
         assertThat(
             table.getReference(new ColumnIdent("points")),
             isReference("points")

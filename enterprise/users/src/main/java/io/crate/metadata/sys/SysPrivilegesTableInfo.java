@@ -44,7 +44,7 @@ public class SysPrivilegesTableInfo {
     }
 
     public static SystemTable<PrivilegeRow> create() {
-        return SystemTable.<PrivilegeRow>builder()
+        return SystemTable.<PrivilegeRow>builder(IDENT)
             .add("grantee", STRING, x -> x.grantee)
             .add("grantor", STRING, x -> x.privilege.grantor())
             .add("state", STRING, x -> x.privilege.state().toString())
@@ -58,7 +58,7 @@ public class SysPrivilegesTableInfo {
                 new ColumnIdent("class"),
                 new ColumnIdent("ident")
             )
-            .build(IDENT);
+            .build();
     }
 
     public static Iterable<PrivilegeRow> buildPrivilegesRows(Iterable<User> users) {

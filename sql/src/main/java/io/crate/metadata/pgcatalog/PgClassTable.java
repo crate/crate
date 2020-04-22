@@ -39,7 +39,7 @@ public class PgClassTable {
     private static final String PERSISTENCE_PERMANENT = "p";
 
     public static SystemTable<Entry> create(TableStats tableStats) {
-        return SystemTable.<Entry>builder()
+        return SystemTable.<Entry>builder(IDENT)
             .add("oid", INTEGER, x -> x.oid)
             .add("relname", STRING, x -> x.name)
             .add("relnamespace", INTEGER, x -> x.schemaOid)
@@ -76,7 +76,7 @@ public class PgClassTable {
             .add("reloptions", STRING_ARRAY, x -> null)
             .startObjectArray("relpartbound", x -> null)
             .endObjectArray()
-            .build(IDENT);
+            .build();
     }
 
     public static final class Entry {

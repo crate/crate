@@ -38,7 +38,7 @@ public class PgIndexTable {
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_index");
 
     public static SystemTable<Entry> create() {
-        return SystemTable.<Entry>builder()
+        return SystemTable.<Entry>builder(IDENT)
             .add("indrelid", INTEGER, x -> x.indRelId)
             .add("indexrelid", INTEGER, x -> x.indexRelId)
             .add("indnatts", SHORT, x -> (short) 0)
@@ -60,7 +60,7 @@ public class PgIndexTable {
             .endObjectArray()
             .startObjectArray("indpred", x -> null)
             .endObjectArray()
-            .build(IDENT);
+            .build();
     }
 
     public static final class Entry {

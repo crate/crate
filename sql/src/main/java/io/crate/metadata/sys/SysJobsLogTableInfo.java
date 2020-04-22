@@ -41,7 +41,7 @@ public class SysJobsLogTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs_log");
 
     public static SystemTable<JobContextLog> create(Supplier<DiscoveryNode> localNode) {
-        return SystemTable.<JobContextLog>builder()
+        return SystemTable.<JobContextLog>builder(IDENT)
             .add("id", STRING, x -> x.id().toString())
             .add("username", STRING, JobContextLog::username)
             .add("stmt", STRING, JobContextLog::statement)
@@ -58,6 +58,6 @@ public class SysJobsLogTableInfo {
             .endObject()
             .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(IDENT, nodes))
             .setPrimaryKeys(new ColumnIdent("id"))
-            .build(IDENT);
+            .build();
     }
 }

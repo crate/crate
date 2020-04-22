@@ -53,7 +53,7 @@ public class InformationColumnsTableInfo {
     private static final String IS_GENERATED_ALWAYS = "ALWAYS";
 
     public static SystemTable<ColumnContext> create() {
-        return SystemTable.<ColumnContext>builder()
+        return SystemTable.<ColumnContext>builder(IDENT)
             .addNonNull("table_schema", STRING, r -> r.info.ident().tableIdent().schema())
             .addNonNull("table_name", STRING, r -> r.info.ident().tableIdent().name())
             .addNonNull("table_catalog", STRING, r -> r.info.ident().tableIdent().schema())
@@ -119,7 +119,7 @@ public class InformationColumnsTableInfo {
                 new ColumnIdent("table_schema"),
                 new ColumnIdent("column_name")
             )
-            .build(IDENT);
+            .build();
     }
 
     private static final Integer NUMERIC_PRECISION_RADIX = 2; // Binary
