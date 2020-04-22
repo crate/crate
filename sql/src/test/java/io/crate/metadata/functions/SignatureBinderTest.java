@@ -26,6 +26,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.RowType;
 import io.crate.types.TypeSignature;
 import org.junit.Test;
 
@@ -258,6 +259,40 @@ public class SignatureBinderTest extends CrateUnitTest {
                 DataTypes.LONG)
             .withoutCoercion()
             .fails();
+    }
+
+    @Test
+    public void test_bind_record_type_signature_as_argument_type() {
+        var signature = functionSignature()
+            .returnType(parseTypeSignature("T"))
+            .argumentTypes(parseTypeSignature("record(T)"))
+            .typeVariableConstraints(List.of(typeVariable("T")))
+            .build();
+
+        assertThat(signature)
+            .boundTo(new RowType(List.of(DataTypes.LONG)))
+            .produces(new BoundVariables(
+                Map.of("T", type("bigint"))));
+
+        assertThat(signature)
+            .boundTo("bigint")
+            .withCoercion()
+            .fails();
+
+    }
+
+    @Test
+    public void test_bind_record_type_signature_as_return_type() {
+        var signature = functionSignature()
+            .returnType(parseTypeSignature("record(col T)"))
+            .argumentTypes(parseTypeSignature("T"))
+            .typeVariableConstraints(List.of(typeVariable("T")))
+            .build();
+
+        assertThat(signature)
+            .boundTo("bigint")
+            .produces(new BoundVariables(
+                Map.of("T", type("bigint"))));
     }
 
     @Test

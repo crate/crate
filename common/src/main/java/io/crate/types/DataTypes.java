@@ -84,6 +84,12 @@ public final class DataTypes {
 
     public static final IntervalType INTERVAL = IntervalType.INSTANCE;
 
+    public static Set<String> PRIMITIVE_TYPE_NAMES_WITH_SPACES = Set.of(
+        TIMESTAMPZ.getName(),
+        TIMESTAMP.getName(),
+        DOUBLE.getName()
+    );
+
     public static final List<DataType> PRIMITIVE_TYPES = List.of(
         BYTE,
         BOOLEAN,
@@ -306,6 +312,7 @@ public final class DataTypes {
         entry(SHORT.getName(), SHORT),
         entry(INTEGER.getName(), INTEGER),
         entry(LONG.getName(), LONG),
+        entry(RowType.EMPTY.getName(), RowType.EMPTY),
         entry(TIMESTAMPZ.getName(), TIMESTAMPZ),
         entry(TIMESTAMP.getName(), TIMESTAMP),
         entry(ObjectType.NAME, ObjectType.untyped()),

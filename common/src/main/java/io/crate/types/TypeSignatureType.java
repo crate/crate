@@ -31,7 +31,7 @@ import java.util.List;
 public enum TypeSignatureType {
 
     TYPE_SIGNATURE(TypeSignature::new),
-    OBJECT_PARAMETER_TYPE_SIGNATURE(ObjectParameterTypeSignature::new);
+    OBJECT_PARAMETER_TYPE_SIGNATURE(ParameterTypeSignature::new);
 
     public static final List<TypeSignatureType> VALUES = List.of(values());
 

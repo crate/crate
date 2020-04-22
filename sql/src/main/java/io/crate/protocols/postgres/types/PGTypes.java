@@ -33,7 +33,6 @@ import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -45,7 +44,7 @@ public class PGTypes {
         .put(DataTypes.STRING, VarCharType.INSTANCE)
         .put(DataTypes.BOOLEAN, BooleanType.INSTANCE)
         .put(ObjectType.untyped(), JsonType.INSTANCE)
-        .put(new RowType(List.of()), RecordType.EMPTY_RECORD)
+        .put(RowType.EMPTY, RecordType.EMPTY_RECORD)
         .put(DataTypes.SHORT, SmallIntType.INSTANCE)
         .put(DataTypes.INTEGER, IntegerType.INSTANCE)
         .put(DataTypes.LONG, BigIntType.INSTANCE)
@@ -73,7 +72,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.GEO_POINT), PGArray.POINT_ARRAY)
         .put(new ArrayType<>(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
         .put(new ArrayType<>(DataTypes.INTERVAL), PGArray.INTERVAL_ARRAY)
-        .put(new ArrayType<>(new RowType(List.of())), PGArray.EMPTY_RECORD_ARRAY)
+        .put(new ArrayType<>(RowType.EMPTY), PGArray.EMPTY_RECORD_ARRAY)
         .build();
 
     private static final IntObjectMap<DataType<?>> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();

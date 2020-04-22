@@ -57,7 +57,14 @@ public class TypeSignature implements Writeable {
      */
     public static TypeSignature parseTypeSignature(String signature) {
         if (!signature.contains("(")) {
-            return new TypeSignature(signature);
+            if (isNamedTypeSignature(signature)) {
+                int split = signature.indexOf(" ");
+                return new ParameterTypeSignature(
+                    signature.substring(0, split),
+                    new TypeSignature(signature.substring(split + 1)));
+            } else {
+                return new TypeSignature(signature);
+            }
         }
 
         String baseName = null;
@@ -81,7 +88,14 @@ public class TypeSignature implements Writeable {
                     parameters.add(parseTypeSignatureParameter(signature, parameterStart, i));
                     parameterStart = i + 1;
                     if (i == signature.length() - 1) {
-                        return new TypeSignature(baseName, parameters);
+                        if (isNamedTypeSignature(baseName)) {
+                            int split = baseName.indexOf(" ");
+                            return new ParameterTypeSignature(
+                                baseName.substring(0, split),
+                                new TypeSignature(baseName.substring(split + 1), parameters));
+                        } else {
+                            return new TypeSignature(baseName, parameters);
+                        }
                     }
                 }
             } else if (c == ',') {
@@ -94,6 +108,11 @@ public class TypeSignature implements Writeable {
         }
 
         throw new IllegalArgumentException(format(Locale.ENGLISH, "Bad type signature: '%s'", signature));
+    }
+
+    private static boolean isNamedTypeSignature(String signature) {
+        return !DataTypes.PRIMITIVE_TYPE_NAMES_WITH_SPACES.contains(signature)
+               && signature.contains(" ");
     }
 
     private static TypeSignature parseTypeSignatureParameter(String signature, int begin, int end) {
@@ -156,13 +175,25 @@ public class TypeSignature implements Writeable {
             var builder = ObjectType.builder();
             for (int i = 0; i < parameters.size() - 1;) {
                 var valTypeSignature = parameters.get(i + 1);
-                assert valTypeSignature instanceof ObjectParameterTypeSignature
-                    : "the inner type signature must be named (must have ObjectParameterTypeSignature type)";
-                var innerTypeName = ((ObjectParameterTypeSignature) valTypeSignature).parameterName();
+                assert valTypeSignature instanceof ParameterTypeSignature
+                    : "the inner type signature must be named (must have ParameterTypeSignature type)";
+                var innerTypeName = ((ParameterTypeSignature) valTypeSignature).parameterName();
                 builder.setInnerType(innerTypeName, valTypeSignature.createType());
                 i += 2;
             }
             return builder.build();
+        } else if (baseTypeName.equalsIgnoreCase(RowType.NAME)) {
+            ArrayList<String> fields = new ArrayList<>(parameters.size());
+            ArrayList<DataType<?>> dataTypes = new ArrayList<>(parameters.size());
+            for (int i = 0; i < parameters.size(); i++) {
+                var parameterTypeSignature = parameters.get(i);
+                assert parameterTypeSignature instanceof ParameterTypeSignature
+                    : "the inner type signature must be named (must have ParameterTypeSignature type)";
+
+                fields.add(((ParameterTypeSignature) parameterTypeSignature).parameterName());
+                dataTypes.add(parameterTypeSignature.createType());
+            }
+            return new RowType(dataTypes, fields);
         }
         return DataTypes.ofName(baseTypeName);
     }
@@ -197,7 +228,7 @@ public class TypeSignature implements Writeable {
             return true;
         }
         if (o == null ||
-            !(getClass() == o.getClass() || getClass() == ObjectParameterTypeSignature.class)) {
+            !(getClass() == o.getClass() || getClass() == ParameterTypeSignature.class)) {
             return false;
         }
         TypeSignature that = (TypeSignature) o;
