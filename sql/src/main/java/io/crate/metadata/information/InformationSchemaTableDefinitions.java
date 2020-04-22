@@ -88,7 +88,7 @@ public class InformationSchemaTableDefinitions {
         tableDefinitions.put(InformationKeyColumnUsageTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::keyColumnUsage,
             (user, k) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, k.getFQN()),
-            InformationKeyColumnUsageTableInfo.expressions()
+            InformationKeyColumnUsageTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationReferentialConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
