@@ -121,28 +121,6 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
         try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
     }
 
-    @Test
-    public void testClientCertAuthWithValidCert() throws Exception {
-        Properties properties = new Properties();
-        properties.setProperty("user", "crate");
-        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
-            conn.createStatement().execute("CREATE USER localhost");
-            conn.createStatement().execute("GRANT DQL TO localhost");
-        }
-
-        try {
-            System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
-            System.setProperty("javax.net.ssl.trustStorePassword", "keystorePassword");
-            properties.setProperty("user", "localhost");
-            properties.setProperty("ssl", "true");
-            properties.setProperty("sslfactory", "io.crate.shade.org.postgresql.ssl.DefaultJavaSSLFactory");
-            try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
-            }
-        } finally {
-            System.clearProperty("javax.net.ssl.trustStore");
-            System.clearProperty("javax.net.ssl.trustStorePassword");
-        }
-    }
 
     @Test
     public void testClientCertAuthWithoutCert() throws Exception {

@@ -122,7 +122,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_11'
-            sh 'JAVA_HOME=$(jabba which --home $JDK_11) ./gradlew --no-daemon hdfsTest s3Test monitoringTest gtest dnsDiscoveryTest'
+            sh 'JAVA_HOME=$(jabba which --home $JDK_11) ./gradlew --no-daemon hdfsTest s3Test monitoringTest gtest dnsDiscoveryTest sslTest'
           }
         }
       }
