@@ -22,7 +22,6 @@ import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProviderImpl;
 import io.crate.test.integration.CrateUnitTest;
-import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.ssl.SslHandler;
 import org.elasticsearch.client.node.NodeClient;
@@ -32,12 +31,15 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.security.KeyStore;
+import java.security.Security;
 import java.util.Collections;
 
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
@@ -49,11 +51,18 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
 
     private static File trustStoreFile;
     private static File keyStoreFile;
+    private static String defaultKeyStoreType = KeyStore.getDefaultType();
 
     @BeforeClass
     public static void beforeTests() throws IOException {
         trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
         keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
+        Security.setProperty("keystore.type", "jks");
+    }
+
+    @AfterClass
+    public static void resetKeyStoreType() {
+        Security.setProperty("keystore.type", defaultKeyStoreType);
     }
 
     @Test

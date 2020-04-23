@@ -67,12 +67,6 @@ allprojects {
         systemProperty "tests.gradle", "true"
         systemProperty "file.encoding", "UTF-8"
 
-        if (JavaVersion.current() > JavaVersion.VERSION_1_9) {
-            // Java 10 uses JKCS12 as detault store type
-            // but for tests we want to use JKS only
-            systemProperty "java.security.properties", file("$rootDir/gradle/java10.security")
-        }
-
         // pass system properties to gradle process
         // you you can filter tests by test groups,
         // e.g. -Dtests.nightly=true

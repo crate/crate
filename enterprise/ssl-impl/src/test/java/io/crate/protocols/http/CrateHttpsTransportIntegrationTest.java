@@ -36,6 +36,8 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.KeyStore;
+import java.security.Security;
 
 import static com.google.common.base.Strings.repeat;
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
@@ -52,6 +54,7 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
 
     private static File trustStoreFile;
     private static File keyStoreFile;
+    private static String defaultKeyStoreType = KeyStore.getDefaultType();
 
     public CrateHttpsTransportIntegrationTest() {
         super(true);
@@ -63,12 +66,14 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
         trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
         System.setProperty("javax.net.ssl.trustStore", trustStoreFile.getAbsolutePath());
         System.setProperty("javax.net.ssl.trustStorePassword", "truststorePassword");
+        Security.setProperty("keystore.type", "jks");
     }
 
     @AfterClass
     public static void afterIntegrationTest() {
         System.clearProperty("javax.net.ssl.trustStore");
         System.clearProperty("javax.net.ssl.trustStorePassword");
+        Security.setProperty("keystore.type", defaultKeyStoreType);
     }
 
     @Override
