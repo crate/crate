@@ -50,7 +50,7 @@ public class InformationSchemaInfo implements SchemaInfo {
             .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo())
             .put(InformationReferentialConstraintsTableInfo.NAME, InformationReferentialConstraintsTableInfo.create())
             .put(InformationRoutinesTableInfo.NAME, InformationRoutinesTableInfo.create())
-            .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo())
+            .put(InformationSchemataTableInfo.NAME, InformationSchemataTableInfo.create())
             .put(InformationSqlFeaturesTableInfo.NAME, new InformationSqlFeaturesTableInfo())
             .build();
     }

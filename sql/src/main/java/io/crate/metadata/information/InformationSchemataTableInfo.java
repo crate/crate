@@ -21,33 +21,22 @@
 
 package io.crate.metadata.information;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.SchemaInfo;
-
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.STRING;
 
-public class InformationSchemataTableInfo extends InformationTableInfo<SchemaInfo> {
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.table.SchemaInfo;
+
+public class InformationSchemataTableInfo {
 
     public static final String NAME = "schemata";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    private static ColumnRegistrar<SchemaInfo> columnRegistrar() {
-        return new ColumnRegistrar<SchemaInfo>(IDENT, RowGranularity.DOC)
-            .register("schema_name", STRING, () -> forFunction(SchemaInfo::name));
-    }
-
-    static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    InformationSchemataTableInfo() {
-        super(IDENT, columnRegistrar(), "schema_name");
+    public static SystemTable<SchemaInfo> create() {
+        return SystemTable.<SchemaInfo>builder(IDENT)
+            .add("schema_name", STRING, SchemaInfo::name)
+            .setPrimaryKeys(new ColumnIdent("schema_name"))
+            .build();
     }
 }

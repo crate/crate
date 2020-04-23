@@ -45,7 +45,7 @@ public class InformationSchemaTableDefinitions {
         tableDefinitions.put(InformationSchemataTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
             (user, s) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name()),
-            InformationSchemataTableInfo.expressions()
+            InformationSchemataTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationTablesTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::relations,
