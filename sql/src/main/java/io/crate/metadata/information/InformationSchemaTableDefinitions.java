@@ -92,7 +92,7 @@ public class InformationSchemaTableDefinitions {
         ));
         tableDefinitions.put(InformationReferentialConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
-            InformationReferentialConstraintsTableInfo.expressions(),
+            InformationReferentialConstraintsTableInfo.create().expressions(),
             false));
     }
 

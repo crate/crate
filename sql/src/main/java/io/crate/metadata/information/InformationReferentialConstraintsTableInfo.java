@@ -21,40 +21,33 @@
 
 package io.crate.metadata.information;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 import static io.crate.types.DataTypes.STRING;
 
-public class InformationReferentialConstraintsTableInfo extends InformationTableInfo<Void> {
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+
+public class InformationReferentialConstraintsTableInfo {
 
     public static final String NAME = "referential_constraints";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    private static ColumnRegistrar<Void> columnRegistrar() {
-        return new ColumnRegistrar<Void>(IDENT, RowGranularity.DOC)
-            .register("constraint_catalog", STRING, () -> constant(null))
-            .register("constraint_schema", STRING, () -> constant(null))
-            .register("constraint_name", STRING, () -> constant(null))
-            .register("unique_constraint_catalog", STRING, () -> constant(null))
-            .register("unique_constraint_schema", STRING, () -> constant(null))
-            .register("unique_constraint_name", STRING, () -> constant(null))
-            .register("match_option", STRING, () -> constant(null))
-            .register("update_rule", STRING, () -> constant(null))
-            .register("delete_rule", STRING, () -> constant(null));
-    }
-
-    static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    InformationReferentialConstraintsTableInfo() {
-        super(IDENT, columnRegistrar(), "constraint_catalog", "constraint_schema", "constraint_name");
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(IDENT)
+            .add("constraint_catalog", STRING, ignored -> null)
+            .add("constraint_schema", STRING, ignored -> null)
+            .add("constraint_name", STRING, ignored -> null)
+            .add("unique_constraint_catalog", STRING, ignored -> null)
+            .add("unique_constraint_schema", STRING, ignored -> null)
+            .add("unique_constraint_name", STRING, ignored -> null)
+            .add("match_option", STRING, ignored -> null)
+            .add("update_rule", STRING, ignored -> null)
+            .add("delete_rule", STRING, ignored -> null)
+            .setPrimaryKeys(
+                new ColumnIdent("constraint_catalog"),
+                new ColumnIdent("constraint_schema"),
+                new ColumnIdent("constraint_name")
+            )
+            .build();
     }
 }
