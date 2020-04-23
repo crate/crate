@@ -28,6 +28,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -78,7 +80,8 @@ public class SslConfigurationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testSslContextCreation() {
+    public void test_netty_ssl_context_can_be_built_and_doesnt_override_default_context() throws Exception {
+        var defaultSSLContext = SSLContext.getDefault();
         Settings settings = Settings.builder()
             .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH_SETTING_NAME, trustStoreFile.getAbsolutePath())
             .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD_SETTING_NAME, TRUSTSTORE_PASSWORD)
@@ -91,6 +94,8 @@ public class SslConfigurationTest extends CrateUnitTest {
         assertThat(sslContext.cipherSuites(), not(empty()));
         // check that we don't offer NULL ciphers which do not encrypt
         assertThat(sslContext.cipherSuites(), not(hasItem(containsString("NULL"))));
+
+        assertThat(defaultSSLContext, Matchers.sameInstance(SSLContext.getDefault()));
     }
 
     @Test
