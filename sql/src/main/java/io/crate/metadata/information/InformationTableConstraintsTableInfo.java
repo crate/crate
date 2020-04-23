@@ -21,42 +21,34 @@
 
 package io.crate.metadata.information;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.ConstraintInfo;
-
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.STRING;
 
-public class InformationTableConstraintsTableInfo extends InformationTableInfo<ConstraintInfo> {
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.table.ConstraintInfo;
+
+public class InformationTableConstraintsTableInfo {
 
     public static final String NAME = "table_constraints";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    private static ColumnRegistrar<ConstraintInfo> columnRegistrar() {
-        return new ColumnRegistrar<ConstraintInfo>(IDENT, RowGranularity.DOC)
-            .register("constraint_schema", STRING, () -> forFunction(r -> r.relationName().schema()))
-            .register("constraint_name", STRING, () -> forFunction(ConstraintInfo::constraintName))
-            .register("constraint_catalog", STRING, () -> forFunction(r -> r.relationName().schema()))
-            .register("table_catalog", STRING, () -> forFunction(r -> r.relationName().schema()))
-            .register("table_schema", STRING, () -> forFunction(r -> r.relationName().schema()))
-            .register("table_name", STRING, () -> forFunction(r -> r.relationName().name()))
-            .register("constraint_type", STRING, () -> forFunction(r -> r.constraintType().toString()))
-            .register("is_deferrable", STRING, () -> constant("NO"))
-            .register("initially_deferred", STRING, () -> constant("NO"));
-    }
-
-    static Map<ColumnIdent, RowCollectExpressionFactory<ConstraintInfo>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    InformationTableConstraintsTableInfo() {
-        super(IDENT, columnRegistrar(), "constraint_catalog", "constraint_schema", "constraint_name");
+    public static SystemTable<ConstraintInfo> create() {
+        return SystemTable.<ConstraintInfo>builder(IDENT)
+            .add("constraint_schema", STRING, r -> r.relationName().schema())
+            .add("constraint_name", STRING, ConstraintInfo::constraintName)
+            .add("constraint_catalog", STRING, r -> r.relationName().schema())
+            .add("table_catalog", STRING, r -> r.relationName().schema())
+            .add("table_schema", STRING, r -> r.relationName().schema())
+            .add("table_name", STRING, r -> r.relationName().name())
+            .add("constraint_type", STRING, r -> r.constraintType().toString())
+            .add("is_deferrable", STRING, ignored -> "NO")
+            .add("initially_deferred", STRING, ignored -> "NO")
+            .setPrimaryKeys(
+                new ColumnIdent("constraint_catalog"),
+                new ColumnIdent("constraint_schema"),
+                new ColumnIdent("constraint_name")
+            )
+            .build();
     }
 }
