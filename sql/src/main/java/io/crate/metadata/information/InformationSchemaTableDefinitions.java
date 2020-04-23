@@ -83,7 +83,7 @@ public class InformationSchemaTableDefinitions {
         ));
         tableDefinitions.put(InformationSqlFeaturesTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.features()),
-            InformationSqlFeaturesTableInfo.expressions(),
+            InformationSqlFeaturesTableInfo.create().expressions(),
             false));
         tableDefinitions.put(InformationKeyColumnUsageTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::keyColumnUsage,

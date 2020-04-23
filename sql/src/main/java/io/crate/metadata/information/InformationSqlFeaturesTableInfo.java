@@ -22,42 +22,37 @@
 
 package io.crate.metadata.information;
 
-import io.crate.execution.engine.collect.files.SqlFeatureContext;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING;
 
+import io.crate.execution.engine.collect.files.SqlFeatureContext;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 
-public class InformationSqlFeaturesTableInfo extends InformationTableInfo<SqlFeatureContext> {
+
+public class InformationSqlFeaturesTableInfo {
 
     public static final String NAME = "sql_features";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    private static ColumnRegistrar<SqlFeatureContext> columnRegistrar() {
-        return new ColumnRegistrar<SqlFeatureContext>(IDENT, RowGranularity.DOC)
-            .register("feature_id", STRING, () -> forFunction(SqlFeatureContext::getFeatureId))
-            .register("feature_name", STRING, () -> forFunction(SqlFeatureContext::getFeatureName))
-            .register("sub_feature_id", STRING, () -> forFunction(SqlFeatureContext::getSubFeatureId))
-            .register("sub_feature_name", STRING, () -> forFunction(SqlFeatureContext::getSubFeatureName))
-            .register("is_supported", BOOLEAN, () -> forFunction(SqlFeatureContext::isSupported))
-            .register("is_verified_by", STRING, () -> forFunction(SqlFeatureContext::getIsVerifiedBy))
-            .register("comments", STRING, () -> forFunction(SqlFeatureContext::getComments));
-    }
-
-    static Map<ColumnIdent, RowCollectExpressionFactory<SqlFeatureContext>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    InformationSqlFeaturesTableInfo() {
-        super(IDENT, columnRegistrar(), "feature_id", "feature_name", "sub_feature_id", "sub_feature_name",
-              "is_supported", "is_verified_by");
+    public static SystemTable<SqlFeatureContext> create() {
+        return SystemTable.<SqlFeatureContext>builder(IDENT)
+            .add("feature_id", STRING, SqlFeatureContext::getFeatureId)
+            .add("feature_name", STRING, SqlFeatureContext::getFeatureName)
+            .add("sub_feature_id", STRING, SqlFeatureContext::getSubFeatureId)
+            .add("sub_feature_name", STRING, SqlFeatureContext::getSubFeatureName)
+            .add("is_supported", BOOLEAN, SqlFeatureContext::isSupported)
+            .add("is_verified_by", STRING, SqlFeatureContext::getIsVerifiedBy)
+            .add("comments", STRING, SqlFeatureContext::getComments)
+            .setPrimaryKeys(
+                new ColumnIdent("feature_id"),
+                new ColumnIdent("feature_name"),
+                new ColumnIdent("sub_feature_id"),
+                new ColumnIdent("sub_feature_name"),
+                new ColumnIdent("is_supported"),
+                new ColumnIdent("is_verified_by")
+            )
+            .build();
     }
 }
