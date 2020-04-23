@@ -32,6 +32,7 @@ __pycache__/
 .venv/
 *.pyc
 *.pyo
+.mypy_cache/
 blackbox/get-pip.py
 blackbox/.mypy_cache/
 develop-eggs/

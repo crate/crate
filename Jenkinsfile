@@ -69,7 +69,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon hdfsTest s3Test monitoringTest gtest dnsDiscoveryTest'
+            sh './gradlew --no-daemon hdfsTest s3Test monitoringTest gtest dnsDiscoveryTest sslTest'
           }
         }
       }
