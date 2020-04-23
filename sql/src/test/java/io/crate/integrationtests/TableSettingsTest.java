@@ -196,7 +196,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
         execute("alter table settings_table reset (\"routing.allocation.exclude.foo\")");
         execute("select settings['routing']['allocation']['exclude'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertThat(printedTable(response.rows()), is("NULL\n"));
+        assertThat(printedTable(response.rows()), is("{}\n"));
 
         execute("alter table settings_table set (" +
                 "\"routing.allocation.exclude.foo\" = 'bar', \"routing.allocation.exclude.foo2\" = 'bar2')");

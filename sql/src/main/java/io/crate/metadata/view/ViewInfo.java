@@ -22,21 +22,24 @@
 
 package io.crate.metadata.view;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import com.google.common.annotations.VisibleForTesting;
+
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.Operation;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ViewInfo implements RelationInfo {
 
@@ -74,8 +77,8 @@ public class ViewInfo implements RelationInfo {
     }
 
     @Override
-    public Map<String, Object> parameters() {
-        return Collections.emptyMap();
+    public Settings parameters() {
+        return Settings.EMPTY;
     }
 
     @Override

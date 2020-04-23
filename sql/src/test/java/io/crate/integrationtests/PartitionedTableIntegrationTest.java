@@ -257,7 +257,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             "   quote string," +
             "   timestamp timestamp with time zone" +
             ") partitioned by(timestamp) with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("select * from information_schema.tables where table_schema = ? order by table_name", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(response.rowCount(), is(1L));

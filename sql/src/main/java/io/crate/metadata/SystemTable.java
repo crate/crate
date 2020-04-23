@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -41,6 +42,7 @@ import javax.annotation.Nullable;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.settings.Settings;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
@@ -55,6 +57,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 public final class SystemTable<T> implements TableInfo {
@@ -108,7 +111,7 @@ public final class SystemTable<T> implements TableInfo {
             if (dynamic != null) {
                 return dynamic.apply(column);
             }
-        } while ((parent = column.getParent()) != null);
+        } while ((parent = parent.getParent()) != null);
         return null;
     }
 
@@ -142,8 +145,8 @@ public final class SystemTable<T> implements TableInfo {
     }
 
     @Override
-    public Map<String, Object> parameters() {
-        return Map.of();
+    public Settings parameters() {
+        return Settings.EMPTY;
     }
 
     @Override
@@ -168,10 +171,10 @@ public final class SystemTable<T> implements TableInfo {
 
     static class Column<T, U> {
 
-        private final ColumnIdent column;
-        private final DataType<U> type;
-        private final Function<T, U> getProperty;
-        private final boolean isNullable;
+        protected final ColumnIdent column;
+        protected final DataType<U> type;
+        protected final Function<T, U> getProperty;
+        protected final boolean isNullable;
 
         public Column(ColumnIdent column, DataType<U> type, Function<T, U> getProperty) {
             this(column, type, getProperty, true);
@@ -194,6 +197,23 @@ public final class SystemTable<T> implements TableInfo {
         }
     }
 
+    static class DynamicColumn<T> extends Column<T, Map<String, Object>> {
+
+        private final DataType<?> leafType;
+
+        public DynamicColumn(ColumnIdent column,
+                             DataType<?> leafType,
+                             Function<T, Map<String, Object>> getObject) {
+            super(column, ObjectType.untyped(), getObject);
+            this.leafType = leafType;
+        }
+
+        @Override
+        public void addExpression(HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions) {
+            expressions.put(column, () -> new MapLookupByPathExpression<>(getProperty, List.of(), leafType::value));
+        }
+    }
+
     public abstract static class Builder<T> {
 
         public abstract <U> Builder<T> add(String column, DataType<U> type, Function<T, U> getProperty);
@@ -204,7 +224,6 @@ public final class SystemTable<T> implements TableInfo {
     public static class RelationBuilder<T> extends Builder<T> {
 
         private final RelationName name;
-        private final HashMap<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns = new HashMap<>();
         private final ArrayList<Column<T, ?>> columns = new ArrayList<>();
         private List<ColumnIdent> primaryKeys = List.of();
         private BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting;
@@ -242,21 +261,11 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public RelationBuilder<T> addDynamicObject(String column, DataType<?> leafType, Function<T, Map<String, Object>> getObject) {
-            var columnIdent = new ColumnIdent(column);
-            dynamicColumns.put(columnIdent, wanted -> {
-                var ref = new DynamicReference(new ReferenceIdent(name, wanted), RowGranularity.DOC, ColumnPolicy.DYNAMIC);
-                ref.valueType(leafType);
-                return ref;
-            });
-            return add(new Column<>(columnIdent, ObjectType.untyped(), getObject, true) {
-                @Override
-                public void addExpression(HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions) {
-                    expressions.put(columnIdent, () -> new MapLookupByPathExpression<>(getObject, List.of(), leafType::value));
-                }
-            });
+            return add(new DynamicColumn<>(new ColumnIdent(column), DataTypes.STRING, getObject));
         }
 
         public SystemTable<T> build() {
+            HashMap<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns = new HashMap<>();
             LinkedHashMap<ColumnIdent, Reference> refByColumns = new LinkedHashMap<>();
             HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions = new HashMap<>();
             columns.sort(Comparator.comparing(x -> x.column));
@@ -280,6 +289,14 @@ public final class SystemTable<T> implements TableInfo {
                 if (column.column.isTopLevel()) {
                     rootColIdx++;
                 }
+                if (column instanceof DynamicColumn<?>) {
+                    final DataType<?> leafType = ((DynamicColumn<?>) column).leafType;
+                    dynamicColumns.put(column.column, wanted -> {
+                        var ref = new DynamicReference(new ReferenceIdent(name, wanted), RowGranularity.DOC, ColumnPolicy.DYNAMIC);
+                        ref.valueType(leafType);
+                        return ref;
+                    });
+                }
             }
             return new SystemTable<>(
                name,
@@ -293,7 +310,11 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public ObjectBuilder<T, RelationBuilder<T>> startObject(String column) {
-            return new ObjectBuilder<>(this, new ColumnIdent(column));
+            return new ObjectBuilder<>(this, new ColumnIdent(column), t -> false);
+        }
+
+        public ObjectBuilder<T, RelationBuilder<T>> startObject(String column, Predicate<T> objectIsNull) {
+            return new ObjectBuilder<>(this, new ColumnIdent(column), objectIsNull);
         }
 
         public <U> ObjectArrayBuilder<U, T, RelationBuilder<T>> startObjectArray(String column, Function<T, List<U>> getItems) {
@@ -311,14 +332,20 @@ public final class SystemTable<T> implements TableInfo {
         private final P parent;
         private final ColumnIdent baseColumn;
         private final ArrayList<Column<T, ?>> columns = new ArrayList<>();
+        private final Predicate<T> objectIsNull;
 
-        public ObjectBuilder(P parent, ColumnIdent baseColumn) {
+        private ObjectBuilder(P parent, ColumnIdent baseColumn, Predicate<T> objectIsNull) {
             this.parent = parent;
             this.baseColumn = baseColumn;
+            this.objectIsNull = objectIsNull;
         }
 
         public <U> ObjectBuilder<T, P> add(String column, DataType<U> type, Function<T, U> getProperty) {
             return add(new Column<>(baseColumn.append(column), type, getProperty));
+        }
+
+        public ObjectBuilder<T, P> addDynamicObject(String column, DataType<?> leafType, Function<T, Map<String, Object>> getObject) {
+            return add(new DynamicColumn<>(baseColumn.append(column), leafType, getObject));
         }
 
         @Override
@@ -332,7 +359,7 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public ObjectBuilder<T, ObjectBuilder<T, P>> startObject(String column) {
-            return new ObjectBuilder<>(this, baseColumn.append(column));
+            return new ObjectBuilder<>(this, baseColumn.append(column), objectIsNull);
         }
 
         public P endObject() {
@@ -347,7 +374,7 @@ public final class SystemTable<T> implements TableInfo {
                 typeBuilder.setInnerType(column.column.leafName(), column.type);
             }
             ObjectType objectType = typeBuilder.build();
-            parent.add(new Column<>(baseColumn, objectType, new ObjectExpression<>(directChildren)));
+            parent.add(new Column<>(baseColumn, objectType, new ObjectExpression<>(directChildren, objectIsNull)));
             for (Column<T, ?> column : columns) {
                 addColumnToParent(column);
             }
@@ -486,13 +513,18 @@ public final class SystemTable<T> implements TableInfo {
     static class ObjectExpression<T> implements Function<T, Map<String, Object>> {
 
         private final List<Column<T, ?>> columns;
+        private final Predicate<T> objectIsNull;
 
-        ObjectExpression(List<Column<T, ?>> columns) {
+        ObjectExpression(List<Column<T, ?>> columns, Predicate<T> objectIsNull) {
             this.columns = columns;
+            this.objectIsNull = objectIsNull;
         }
 
         @Override
         public Map<String, Object> apply(T t) {
+            if (objectIsNull.test(t)) {
+                return null;
+            }
             HashMap<String, Object> values = new HashMap<>(columns.size());
             for (int i = 0; i < columns.size(); i++) {
                 Column<T, ?> column = columns.get(i);
