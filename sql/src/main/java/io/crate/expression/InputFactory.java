@@ -37,9 +37,9 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -201,7 +201,16 @@ public class InputFactory {
 
         @Override
         public Input<?> visitAggregation(Aggregation symbol, Void context) {
-            FunctionImplementation impl = functions.getQualified(symbol.functionIdent());
+            var ident = symbol.functionIdent();
+            var signature = symbol.signature();
+            FunctionImplementation impl;
+            if (signature == null) {
+                impl = functions.getQualified(ident);
+            } else {
+                impl = functions.getQualified(signature, ident.argumentTypes());
+            }
+            assert impl != null : "Function implementation not found using full qualified lookup";
+
             //noinspection unchecked
             Input<Boolean> filter = (Input<Boolean>) symbol.filter().accept(this, context);
             AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, filter);

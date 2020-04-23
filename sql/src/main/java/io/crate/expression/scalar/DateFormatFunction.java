@@ -34,8 +34,9 @@ import io.crate.types.TimestampType;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import javax.annotation.Nullable;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
@@ -45,9 +46,12 @@ public class DateFormatFunction extends Scalar<String, Object> {
     public static final String DEFAULT_FORMAT = "%Y-%m-%dT%H:%i:%s.%fZ";
 
     public static void register(ScalarFunctionModule module) {
-        Function<List<DataType>, FunctionImplementation> functionFactory = args -> new DateFormatFunction(
-            new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING)
-        );
+        BiFunction<Signature, List<DataType>, FunctionImplementation> functionFactory =
+            (signature, args) ->
+                new DateFormatFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING),
+                    signature
+                );
 
         List<DataType<?>> supportedTimestampTypes = List.of(
             DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
@@ -91,11 +95,12 @@ public class DateFormatFunction extends Scalar<String, Object> {
         }
     }
 
-    private FunctionInfo info;
+    private final FunctionInfo info;
+    private final Signature signature;
 
-
-    public DateFormatFunction(FunctionInfo info) {
+    public DateFormatFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
@@ -133,5 +138,11 @@ public class DateFormatFunction extends Scalar<String, Object> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

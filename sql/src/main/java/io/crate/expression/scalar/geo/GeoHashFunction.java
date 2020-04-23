@@ -32,7 +32,6 @@ import org.locationtech.spatial4j.shape.Point;
 import java.util.List;
 
 import static io.crate.metadata.functions.Signature.scalar;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class GeoHashFunction {
 
@@ -45,10 +44,16 @@ public final class GeoHashFunction {
                 scalar(
                     "geohash",
                     inputType.getTypeSignature(),
-                    parseTypeSignature("text")
+                    DataTypes.STRING.getTypeSignature()
                 ),
-                args ->
-                    new UnaryScalar<>("geohash", inputType, DataTypes.STRING, GeoHashFunction::getGeoHash)
+                (signature, args) ->
+                    new UnaryScalar<>(
+                        "geohash",
+                        signature,
+                        inputType,
+                        DataTypes.STRING,
+                        GeoHashFunction::getGeoHash
+                    )
             );
         }
     }

@@ -25,47 +25,46 @@ package io.crate.expression.tablefunctions;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Function;
+
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class PgExpandArray extends TableFunctionImplementation<List<Object>> {
 
     private static final String NAME = "_pg_expandarray";
     private static final FunctionName FUNCTION_NAME = new FunctionName(InformationSchemaInfo.NAME, NAME);
-    private final RowType resultType;
-    private final FunctionInfo info;
 
     public static void register(TableFunctionModule module) {
         module.register(
-            FUNCTION_NAME,
-            new BaseFunctionResolver(FuncParams.builder(Param.ANY_ARRAY).build()) {
-                @Override
-                public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-                    assert types.size() == 1 : "_pg_expandarray must have a single argument due to funcParams";
-                    DataType<?> dataType = types.get(0);
-                    assert dataType instanceof ArrayType : "Argument to _pg_expandarray must be an array";
-                    return new PgExpandArray((ArrayType<?>) dataType);
-                }
-            }
+            Signature.table(
+                FUNCTION_NAME,
+                parseTypeSignature("array(E)"),
+                parseTypeSignature("record(x E, n integer)")
+            ).withTypeVariableConstraints(typeVariable("E")),
+            (signature, argTypes) -> new PgExpandArray(signature, (ArrayType<?>) argTypes.get(0))
         );
     }
 
-    public PgExpandArray(ArrayType<?> argType) {
+    private final Signature signature;
+    private final RowType resultType;
+    private final FunctionInfo info;
+
+    public PgExpandArray(Signature signature, ArrayType<?> argType) {
+        this.signature = signature;
         resultType = new RowType(
             List.of(argType.innerType(), DataTypes.INTEGER),
             List.of("x", "n")
@@ -105,6 +104,12 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

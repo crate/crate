@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.window;
 
+import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.IntervalTimestampArithmeticScalar;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -56,7 +57,12 @@ class ArithmeticOperatorsFactory {
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
                     return new IntervalTimestampArithmeticScalar(
-                        "+", "add-interval", List.of(fstArgDataType, sndArgDataType), fstArgDataType);
+                        "+",
+                        ArithmeticFunctions.Names.ADD,
+                        List.of(fstArgDataType, sndArgDataType),
+                        fstArgDataType,
+                        IntervalTimestampArithmeticScalar.signatureFor(fstArgDataType, ArithmeticFunctions.Names.ADD)
+                    );
                 }
                 return ADD_LONG_FUNCTION;
             case DoubleType.ID:
@@ -80,7 +86,12 @@ class ArithmeticOperatorsFactory {
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
                     return new IntervalTimestampArithmeticScalar(
-                        "-", "sub-interval", List.of(fstArgDataType, sndArgDataType), fstArgDataType);
+                        "-",
+                        ArithmeticFunctions.Names.SUBTRACT,
+                        List.of(fstArgDataType, sndArgDataType),
+                        fstArgDataType,
+                        IntervalTimestampArithmeticScalar.signatureFor(fstArgDataType, ArithmeticFunctions.Names.SUBTRACT)
+                    );
                 }
                 return SUB_LONG_FUNCTION;
             case DoubleType.ID:

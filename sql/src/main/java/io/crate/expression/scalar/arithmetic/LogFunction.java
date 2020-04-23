@@ -27,10 +27,10 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.util.List;
+import javax.annotation.Nullable;
 
 import static io.crate.metadata.functions.Signature.scalar;
 import static io.crate.types.TypeSignature.parseTypeSignature;
@@ -38,8 +38,6 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 public abstract class LogFunction extends Scalar<Number, Number> {
 
     public static final String NAME = "log";
-    private static final List<DataType> ALLOWED_TYPES = DataTypes.NUMERIC_PRIMITIVE_TYPES;
-    protected final FunctionInfo info;
 
     public static void register(ScalarFunctionModule module) {
         LogBaseFunction.registerLogBaseFunctions(module);
@@ -47,9 +45,23 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         LnFunction.registerLnFunctions(module);
     }
 
+    protected final FunctionInfo info;
+    protected final Signature signature;
+
+    LogFunction(FunctionInfo info, Signature signature) {
+        this.info = info;
+        this.signature = signature;
+    }
+
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     /**
@@ -67,10 +79,6 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         return result;
     }
 
-    LogFunction(FunctionInfo info) {
-        this.info = info;
-    }
-
     static class LogBaseFunction extends LogFunction {
 
         static void registerLogBaseFunctions(ScalarFunctionModule module) {
@@ -81,16 +89,17 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature(),
                     parseTypeSignature("double precision")),
-                args -> new LogBaseFunction(
+                (signature, args) -> new LogBaseFunction(
                     new FunctionInfo(
                         new FunctionIdent(NAME, args), DataTypes.DOUBLE
-                    )
+                    ),
+                    signature
                 )
             );
         }
 
-        LogBaseFunction(FunctionInfo info) {
-            super(info);
+        LogBaseFunction(FunctionInfo info, Signature signature) {
+            super(info, signature);
         }
 
         @Override
@@ -123,14 +132,15 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()
                 ),
-                args -> new Log10Function(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.DOUBLE)
+                (signature, args) -> new Log10Function(
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.DOUBLE),
+                    signature
                 )
             );
         }
 
-        Log10Function(FunctionInfo info) {
-            super(info);
+        Log10Function(FunctionInfo info, Signature signature) {
+            super(info, signature);
         }
 
         @Override
@@ -159,16 +169,17 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()
                 ),
-                args -> new LnFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.DOUBLE)
+                (signature, args) -> new LnFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.DOUBLE),
+                    signature
                 )
             );
         }
 
         public static final String NAME = "ln";
 
-        LnFunction(FunctionInfo info) {
-            super(info);
+        LnFunction(FunctionInfo info, Signature signature) {
+            super(info, signature);
         }
 
         @Override

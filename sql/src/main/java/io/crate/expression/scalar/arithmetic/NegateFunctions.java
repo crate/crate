@@ -41,9 +41,9 @@ public final class NegateFunctions {
                 parseTypeSignature("double precision")
             )
                 .withForbiddenCoercion(),
-            argumentTypes -> {
+            (signature, argumentTypes) -> {
                 DataType<?> dataType = argumentTypes.get(0);
-                return new UnaryScalar<Double, Double>(NAME, dataType, dataType, x -> x * -1);
+                return new UnaryScalar<Double, Double>(NAME, signature, dataType, dataType, x -> x * -1);
             }
         );
         module.register(
@@ -53,9 +53,9 @@ public final class NegateFunctions {
                 parseTypeSignature("float")
             )
                 .withForbiddenCoercion(),
-            argumentTypes -> {
+            (signature, argumentTypes) -> {
                 DataType<?> dataType = argumentTypes.get(0);
-                return new UnaryScalar<Float, Float>(NAME, dataType, dataType, x -> x * -1);
+                return new UnaryScalar<Float, Float>(NAME, signature, dataType, dataType, x -> x * -1);
             }
         );
         module.register(
@@ -65,9 +65,9 @@ public final class NegateFunctions {
                 parseTypeSignature("integer")
             )
                 .withForbiddenCoercion(),
-            argumentTypes -> {
+            (signature, argumentTypes) -> {
                 DataType<?> dataType = argumentTypes.get(0);
-                return new UnaryScalar<Integer, Integer>(NAME, dataType, dataType, x -> x * -1);
+                return new UnaryScalar<Integer, Integer>(NAME, signature, dataType, dataType, x -> x * -1);
             }
         );
         module.register(
@@ -77,9 +77,9 @@ public final class NegateFunctions {
                 parseTypeSignature("bigint")
             )
                 .withForbiddenCoercion(),
-            argumentTypes -> {
+            (signature, argumentTypes) -> {
                 DataType<?> dataType = argumentTypes.get(0);
-                return new UnaryScalar<Long, Long>(NAME, dataType, dataType, x -> x * -1);
+                return new UnaryScalar<Long, Long>(NAME, signature, dataType, dataType, x -> x * -1);
             }
         );
         module.register(
@@ -89,9 +89,9 @@ public final class NegateFunctions {
                 parseTypeSignature("smallint")
             )
                 .withForbiddenCoercion(),
-            argumentTypes -> {
+            (signature, argumentTypes) -> {
                 DataType<?> dataType = argumentTypes.get(0);
-                return new UnaryScalar<Short, Short>(NAME, dataType, dataType, x -> (short) (x * -1));
+                return new UnaryScalar<Short, Short>(NAME, signature, dataType, dataType, x -> (short) (x * -1));
             }
         );
     }

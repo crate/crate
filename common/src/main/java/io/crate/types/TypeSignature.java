@@ -22,6 +22,11 @@
 
 package io.crate.types;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,7 +35,7 @@ import java.util.Objects;
 
 import static java.lang.String.format;
 
-public class TypeSignature {
+public class TypeSignature implements Writeable {
 
     /**
      * Creates a type signature out of the given signature string.
@@ -52,7 +57,14 @@ public class TypeSignature {
      */
     public static TypeSignature parseTypeSignature(String signature) {
         if (!signature.contains("(")) {
-            return new TypeSignature(signature);
+            if (isNamedTypeSignature(signature)) {
+                int split = signature.indexOf(" ");
+                return new ParameterTypeSignature(
+                    signature.substring(0, split),
+                    new TypeSignature(signature.substring(split + 1)));
+            } else {
+                return new TypeSignature(signature);
+            }
         }
 
         String baseName = null;
@@ -76,7 +88,14 @@ public class TypeSignature {
                     parameters.add(parseTypeSignatureParameter(signature, parameterStart, i));
                     parameterStart = i + 1;
                     if (i == signature.length() - 1) {
-                        return new TypeSignature(baseName, parameters);
+                        if (isNamedTypeSignature(baseName)) {
+                            int split = baseName.indexOf(" ");
+                            return new ParameterTypeSignature(
+                                baseName.substring(0, split),
+                                new TypeSignature(baseName.substring(split + 1), parameters));
+                        } else {
+                            return new TypeSignature(baseName, parameters);
+                        }
                     }
                 }
             } else if (c == ',') {
@@ -91,10 +110,25 @@ public class TypeSignature {
         throw new IllegalArgumentException(format(Locale.ENGLISH, "Bad type signature: '%s'", signature));
     }
 
+    private static boolean isNamedTypeSignature(String signature) {
+        return !DataTypes.PRIMITIVE_TYPE_NAMES_WITH_SPACES.contains(signature)
+               && signature.contains(" ");
+    }
+
     private static TypeSignature parseTypeSignatureParameter(String signature, int begin, int end) {
         String parameterName = signature.substring(begin, end).trim();
         return parseTypeSignature(parameterName);
     }
+
+    public static void toStream(TypeSignature typeSignature, StreamOutput out) throws IOException {
+        out.writeVInt(typeSignature.type().ordinal());
+        typeSignature.writeTo(out);
+    }
+
+    public static TypeSignature fromStream(StreamInput in) throws IOException {
+        return TypeSignatureType.VALUES.get(in.readVInt()).newInstance(in);
+    }
+
 
     private final String baseTypeName;
     private final List<TypeSignature> parameters;
@@ -106,6 +140,15 @@ public class TypeSignature {
     public TypeSignature(String baseTypeName, List<TypeSignature> parameters) {
         this.baseTypeName = baseTypeName;
         this.parameters = parameters;
+    }
+
+    public TypeSignature(StreamInput in) throws IOException {
+        baseTypeName = in.readString();
+        int numParams = in.readVInt();
+        parameters = new ArrayList<>(numParams);
+        for (int i = 0; i < numParams; i++) {
+            parameters.add(fromStream(in));
+        }
     }
 
     public String getBaseTypeName() {
@@ -132,15 +175,36 @@ public class TypeSignature {
             var builder = ObjectType.builder();
             for (int i = 0; i < parameters.size() - 1;) {
                 var valTypeSignature = parameters.get(i + 1);
-                assert valTypeSignature instanceof ObjectParameterTypeSignature
-                    : "the inner type signature must be named (must have ObjectParameterTypeSignature type)";
-                var innerTypeName = ((ObjectParameterTypeSignature) valTypeSignature).parameterName();
+                assert valTypeSignature instanceof ParameterTypeSignature
+                    : "the inner type signature must be named (must have ParameterTypeSignature type)";
+                var innerTypeName = ((ParameterTypeSignature) valTypeSignature).parameterName();
                 builder.setInnerType(innerTypeName, valTypeSignature.createType());
                 i += 2;
             }
             return builder.build();
+        } else if (baseTypeName.equalsIgnoreCase(RowType.NAME)) {
+            ArrayList<String> fields = new ArrayList<>(parameters.size());
+            ArrayList<DataType<?>> dataTypes = new ArrayList<>(parameters.size());
+            for (int i = 0; i < parameters.size(); i++) {
+                var parameterTypeSignature = parameters.get(i);
+                assert parameterTypeSignature instanceof ParameterTypeSignature
+                    : "the inner type signature must be named (must have ParameterTypeSignature type)";
+
+                fields.add(((ParameterTypeSignature) parameterTypeSignature).parameterName());
+                dataTypes.add(parameterTypeSignature.createType());
+            }
+            return new RowType(dataTypes, fields);
         }
         return DataTypes.ofName(baseTypeName);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(baseTypeName);
+        out.writeVInt(parameters.size());
+        for (TypeSignature parameter : parameters) {
+            toStream(parameter, out);
+        }
     }
 
     @Override
@@ -164,7 +228,7 @@ public class TypeSignature {
             return true;
         }
         if (o == null ||
-            !(getClass() == o.getClass() || getClass() == ObjectParameterTypeSignature.class)) {
+            !(getClass() == o.getClass() || getClass() == ParameterTypeSignature.class)) {
             return false;
         }
         TypeSignature that = (TypeSignature) o;
@@ -175,5 +239,9 @@ public class TypeSignature {
     @Override
     public int hashCode() {
         return Objects.hash(baseTypeName, parameters);
+    }
+
+    public TypeSignatureType type() {
+        return TypeSignatureType.TYPE_SIGNATURE;
     }
 }

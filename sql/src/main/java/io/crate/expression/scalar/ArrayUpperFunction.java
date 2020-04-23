@@ -30,6 +30,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
@@ -40,7 +41,6 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
     public static final String ARRAY_UPPER = "array_upper";
     public static final String ARRAY_LENGTH = "array_length";
-    private FunctionInfo functionInfo;
 
     public static void register(ScalarFunctionModule module) {
         for (var name : List.of(ARRAY_UPPER, ARRAY_LENGTH)) {
@@ -51,22 +51,34 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E")),
-                argumentTypes -> {
+                (signature, argumentTypes) -> {
                     ensureInnerTypeIsNotUndefined(argumentTypes, name);
                     return new ArrayUpperFunction(
-                        new FunctionInfo(new FunctionIdent(name, argumentTypes), DataTypes.INTEGER));
+                        new FunctionInfo(new FunctionIdent(name, argumentTypes), DataTypes.INTEGER),
+                        signature
+                    );
                 }
             );
         }
     }
 
-    private ArrayUpperFunction(FunctionInfo functionInfo) {
+    private final FunctionInfo functionInfo;
+    private final Signature signature;
+
+    private ArrayUpperFunction(FunctionInfo functionInfo, Signature signature) {
         this.functionInfo = functionInfo;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return functionInfo;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

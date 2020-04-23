@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import static io.crate.metadata.functions.Signature.scalar;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class CoordinateFunction {
 
@@ -41,8 +40,8 @@ public final class CoordinateFunction {
     private static void register(ScalarFunctionModule module, String name, Function<Object, Double> func) {
         for (DataType<?> inputType : SUPPORTED_INPUT_TYPES) {
             module.register(
-                scalar(name, inputType.getTypeSignature(), parseTypeSignature("double precision")),
-                args -> new UnaryScalar<>(name, inputType, DataTypes.DOUBLE, func)
+                scalar(name, inputType.getTypeSignature(), DataTypes.DOUBLE.getTypeSignature()),
+                (signature, args) -> new UnaryScalar<>(name, signature, inputType, DataTypes.DOUBLE, func)
             );
         }
     }

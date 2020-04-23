@@ -22,17 +22,38 @@
 
 package io.crate.types;
 
-final class ObjectParameterTypeSignature extends TypeSignature {
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import java.io.IOException;
+
+final class ParameterTypeSignature extends TypeSignature {
 
     private final String parameterName;
 
-    public ObjectParameterTypeSignature(String parameterName,
-                                        TypeSignature typeSignature) {
+    public ParameterTypeSignature(String parameterName,
+                                  TypeSignature typeSignature) {
         super(typeSignature.getBaseTypeName(), typeSignature.getParameters());
         this.parameterName = parameterName;
     }
 
+    public ParameterTypeSignature(StreamInput in) throws IOException {
+        super(in);
+        parameterName = in.readString();
+    }
+
     public String parameterName() {
         return parameterName;
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(parameterName);
+    }
+
+    @Override
+    public TypeSignatureType type() {
+        return TypeSignatureType.OBJECT_PARAMETER_TYPE_SIGNATURE;
     }
 }

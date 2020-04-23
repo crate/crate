@@ -27,9 +27,11 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.function.DoubleUnaryOperator;
 
 import static java.util.Collections.singletonList;
@@ -43,16 +45,29 @@ import static java.util.Collections.singletonList;
 public final class DoubleScalar extends Scalar<Double, Number> {
 
     private final FunctionInfo info;
+    @Nullable
+    private final Signature signature;
     private final DoubleUnaryOperator func;
 
     public DoubleScalar(String name, DataType inputType, DoubleUnaryOperator func) {
+        this(name, null, inputType, func);
+    }
+
+    public DoubleScalar(String name, Signature signature, DataType inputType, DoubleUnaryOperator func) {
         this.info = new FunctionInfo(new FunctionIdent(name, singletonList(inputType)), DataTypes.DOUBLE);
+        this.signature = signature;
         this.func = func;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @SafeVarargs

@@ -37,6 +37,7 @@ import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,33 +47,44 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 public final class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
 
     public static final String NAME = "array_agg";
+    public static final Signature SIGNATURE =
+        Signature.aggregate(
+            NAME,
+            parseTypeSignature("E"),
+            parseTypeSignature("array(E)")
+        ).withTypeVariableConstraints(typeVariable("E"));
+
 
     public static void register(AggregationImplModule module) {
         module.register(
-            Signature.aggregate(
-                NAME,
-                parseTypeSignature("E"),
-                parseTypeSignature("array(E)")
-            ).withTypeVariableConstraints(typeVariable("E")),
-            args -> new ArrayAgg(args.get(0))
+            SIGNATURE,
+            (signature, args) -> new ArrayAgg(signature, args.get(0))
         );
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
     private final SizeEstimator<Object> sizeEstimator;
 
-    public ArrayAgg(DataType<?> argType) {
+    public ArrayAgg(Signature signature, DataType<?> argType) {
         this.sizeEstimator = SizeEstimatorFactory.create(argType);
         this.info = new FunctionInfo(
             new FunctionIdent(NAME, List.of(argType)),
             new ArrayType<>(argType),
             Type.AGGREGATE
         );
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

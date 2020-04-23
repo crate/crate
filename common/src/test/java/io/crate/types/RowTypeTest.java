@@ -1,13 +1,16 @@
 package io.crate.types;
 
-import java.util.List;
-
+import io.crate.data.RowN;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.data.RowN;
-import io.crate.test.integration.CrateUnitTest;
+import java.util.List;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 public class RowTypeTest extends CrateUnitTest {
 
@@ -36,5 +39,17 @@ public class RowTypeTest extends CrateUnitTest {
         var streamedRow = rowType.streamer().readValueFrom(in);
 
         assertThat(streamedRow, Matchers.is(row));
+    }
+
+    @Test
+    public void test_row_type_create_type_from_signature_round_trip() {
+        var expected = new RowType(
+            List.of(DataTypes.INTEGER, DataTypes.STRING),
+            List.of("field1", "field2"));
+
+        var actual = expected.getTypeSignature().createType();
+
+        assertThat(actual, instanceOf(RowType.class));
+        assertThat(actual.getTypeParameters(), is(equalTo(expected.getTypeParameters())));
     }
 }

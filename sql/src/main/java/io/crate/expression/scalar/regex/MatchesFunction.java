@@ -34,52 +34,70 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
-
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class MatchesFunction extends Scalar<List<String>, Object> {
 
     public static final String NAME = "regexp_matches";
 
-    private FunctionInfo info;
-    private RegexMatcher regexMatcher;
-
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("array(text)")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING_ARRAY.getTypeSignature()
             ),
-            args ->
+            (signature, args) ->
                 new MatchesFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING_ARRAY)
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING_ARRAY),
+                    signature
                 )
         );
         module.register(
             Signature.scalar(
                 NAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text"),
-                parseTypeSignature("array(text)")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING_ARRAY.getTypeSignature()
             ),
-            args ->
+            (signature, args) ->
                 new MatchesFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING_ARRAY)
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.STRING_ARRAY),
+                    signature
                 )
         );
     }
 
-    private MatchesFunction(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final Signature signature;
+    @Nullable
+    private final RegexMatcher regexMatcher;
+
+    private MatchesFunction(FunctionInfo info,
+                            Signature signature) {
+        this(info, signature, null);
+    }
+
+    private MatchesFunction(FunctionInfo info,
+                            Signature signature,
+                            @Nullable RegexMatcher regexMatcher) {
         this.info = info;
+        this.signature = signature;
+        this.regexMatcher = regexMatcher;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     RegexMatcher regexMatcher() {
@@ -133,9 +151,7 @@ public class MatchesFunction extends Scalar<List<String>, Object> {
         }
 
         if (pattern != null) {
-            regexMatcher = new RegexMatcher(pattern, flags);
-        } else {
-            regexMatcher = null;
+            return new MatchesFunction(info, signature, new RegexMatcher(pattern, flags));
         }
         return this;
     }

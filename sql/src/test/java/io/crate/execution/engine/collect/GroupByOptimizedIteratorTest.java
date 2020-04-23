@@ -90,8 +90,10 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
 
         inExpr = new InputCollectExpression(0);
-        CountAggregation aggregation = ((CountAggregation) getFunctions().getQualified(
-            new FunctionIdent(CountAggregation.NAME, Collections.emptyList())));
+        CountAggregation aggregation = (CountAggregation) getFunctions().getQualified(
+            CountAggregation.COUNT_STAR_SIGNATURE,
+            Collections.emptyList()
+        );
         aggregationContexts = Collections.singletonList(new AggregationContext(aggregation, () -> true));
     }
 

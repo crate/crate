@@ -31,11 +31,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BiFunction;
-
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class StringLeftRightFunction extends Scalar<String, Object> {
 
@@ -43,38 +42,48 @@ public class StringLeftRightFunction extends Scalar<String, Object> {
         module.register(
             Signature.scalar(
                 "left",
-                parseTypeSignature("text"),
-                parseTypeSignature("integer"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
-                new StringLeftRightFunction("left", StringLeftRightFunction::left)
+            (signature, args) ->
+                new StringLeftRightFunction("left", signature, StringLeftRightFunction::left)
         );
         module.register(
             Signature.scalar(
                 "right",
-                parseTypeSignature("text"),
-                parseTypeSignature("integer"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
-                new StringLeftRightFunction("right", StringLeftRightFunction::right)
+            (signature, args) ->
+                new StringLeftRightFunction("right", signature, StringLeftRightFunction::right)
         );
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
     private final BiFunction<String, Integer, String> func;
 
-    private StringLeftRightFunction(String funcName, BiFunction<String, Integer, String> func) {
+    private StringLeftRightFunction(String funcName,
+                                    Signature signature,
+                                    BiFunction<String, Integer, String> func) {
         info = new FunctionInfo(new FunctionIdent(funcName,
                                                   List.of(DataTypes.STRING, DataTypes.INTEGER)),
                                 DataTypes.STRING);
+        this.signature = signature;
         this.func = func;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

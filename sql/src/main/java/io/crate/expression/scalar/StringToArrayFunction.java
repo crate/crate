@@ -40,17 +40,6 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
 
     private static final String NAME = "string_to_array";
 
-    private final FunctionInfo info;
-
-    private StringToArrayFunction(FunctionInfo info) {
-        this.info = info;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
@@ -59,9 +48,10 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
             ),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new StringToArrayFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING_ARRAY)
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING_ARRAY),
+                    signature
                 )
         );
         module.register(
@@ -72,11 +62,31 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
             ),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new StringToArrayFunction(
-                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING_ARRAY)
+                    new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.STRING_ARRAY),
+                    signature
                 )
         );
+    }
+
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    private StringToArrayFunction(FunctionInfo info, Signature signature) {
+        this.info = info;
+        this.signature = signature;
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

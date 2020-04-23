@@ -42,8 +42,6 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
     public static final String NAME = "min";
 
-    private final FunctionInfo info;
-
     public static void register(AggregationImplModule mod) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             var fixedWidthType = supportedType instanceof FixedWidthType;
@@ -52,7 +50,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
                     NAME,
                     supportedType.getTypeSignature(),
                     supportedType.getTypeSignature()),
-                args -> {
+                (signature, args) -> {
                     var arg = args.get(0); // f(x) -> x
                     var info = new FunctionInfo(
                         new FunctionIdent(NAME, args),
@@ -60,8 +58,8 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
                         FunctionInfo.Type.AGGREGATE
                     );
                     return fixedWidthType
-                        ? new FixedMinimumAggregation(info)
-                        : new VariableMinimumAggregation(info);
+                        ? new FixedMinimumAggregation(info, signature)
+                        : new VariableMinimumAggregation(info, signature);
                 }
             );
         }
@@ -71,8 +69,8 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         private final SizeEstimator<Object> estimator;
 
-        VariableMinimumAggregation(FunctionInfo info) {
-            super(info);
+        VariableMinimumAggregation(FunctionInfo info, Signature signature) {
+            super(info, signature);
             estimator = SizeEstimatorFactory.create(partialType());
         }
 
@@ -108,8 +106,8 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         private final int size;
 
-        FixedMinimumAggregation(FunctionInfo info) {
-            super(info);
+        FixedMinimumAggregation(FunctionInfo info, Signature signature) {
+            super(info, signature);
             size = ((FixedWidthType) partialType()).fixedSize();
         }
 
@@ -138,13 +136,23 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
     }
 
-    MinimumAggregation(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    private MinimumAggregation(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import io.crate.expression.AbstractFunctionModule;
 import io.crate.expression.scalar.arithmetic.AbsFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
@@ -75,67 +76,12 @@ import io.crate.expression.scalar.systeminformation.VersionFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.scalar.timestamp.TimezoneFunction;
-import io.crate.metadata.FuncResolver;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.TypeLiteral;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
-public class ScalarFunctionModule extends AbstractModule {
-
-    private Map<FunctionIdent, FunctionImplementation> functions = new HashMap<>();
-    private Map<FunctionName, FunctionResolver> resolver = new HashMap<>();
-    private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
-    private MapBinder<FunctionName, FunctionResolver> resolverBinder;
-
-    private HashMap<FunctionName, List<FuncResolver>> functionImplementations = new HashMap<>();
-    private MapBinder<FunctionName, List<FuncResolver>> implementationsBinder;
-
-    /**
-     * @deprecated Use {@link #register(Signature, Function)} instead.
-     */
-    @Deprecated()
-    public void register(FunctionImplementation impl) {
-        functions.put(impl.info().ident(), impl);
-    }
-
-    /**
-     * @deprecated Use {@link #register(Signature, Function)} instead.
-     */
-    @Deprecated()
-    public void register(String name, FunctionResolver functionResolver) {
-        register(new FunctionName(name), functionResolver);
-    }
-
-    /**
-     * @deprecated Use {@link #register(Signature, Function)} instead.
-     */
-    @Deprecated()
-    public void register(FunctionName qualifiedName, FunctionResolver functionResolver) {
-        resolver.put(qualifiedName, functionResolver);
-    }
-
-    public void register(Signature signature, Function<List<DataType>, FunctionImplementation> factory) {
-        List<FuncResolver> functions = functionImplementations.computeIfAbsent(
-            signature.getName(),
-            k -> new ArrayList<>());
-        functions.add(new FuncResolver(signature, factory));
-    }
-
+public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImplementation> {
 
     @Override
-    protected void configure() {
+    public void configureFunctions() {
         NegateFunctions.register(this);
         CollectionCountFunction.register(this);
         CollectionAverageFunction.register(this);
@@ -223,34 +169,5 @@ public class ScalarFunctionModule extends AbstractModule {
         CurrentDatabaseFunction.register(this);
         VersionFunction.register(this);
         ObjDescriptionFunction.register(this);
-
-        // bind all registered functions and resolver
-        // by doing it here instead of the register functions, plugins can also use the
-        // register functions in their onModule(...) hooks
-        functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-        resolverBinder = MapBinder.newMapBinder(binder(), FunctionName.class, FunctionResolver.class);
-        for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functions.entrySet()) {
-            functionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
-        }
-        for (Map.Entry<FunctionName, FunctionResolver> entry : resolver.entrySet()) {
-            resolverBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
-        }
-
-        // clear registration maps
-        functions = null;
-        resolver = null;
-
-        // New signature registry
-        implementationsBinder = MapBinder.newMapBinder(
-            binder(),
-            new TypeLiteral<FunctionName>() {},
-            new TypeLiteral<List<FuncResolver>>() {});
-        for (Map.Entry<FunctionName, List<FuncResolver>> entry : functionImplementations.entrySet()) {
-            implementationsBinder.addBinding(entry.getKey()).toProvider(entry::getValue);
-        }
-
-        // clear registration maps
-        functionImplementations = null;
     }
-
 }

@@ -170,7 +170,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
             return replacement;
         }
         ArrayList<Symbol> replacedFunctionArgs = getProcessedArgs(symbol.arguments(), sourceSymbols);
-        return new Function(symbol.info(), replacedFunctionArgs);
+        return new Function(symbol.info(), symbol.signature(), replacedFunctionArgs);
     }
 
     @Nullable
@@ -206,6 +206,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         }
         return new WindowFunction(
             windowFunction.info(),
+            windowFunction.signature(),
             replacedFunctionArgs,
             filterWithReplacedArgs,
             windowFunction.windowDefinition()

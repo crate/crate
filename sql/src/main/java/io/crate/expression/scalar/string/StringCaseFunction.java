@@ -29,20 +29,19 @@ import io.crate.types.DataTypes;
 
 import java.util.Locale;
 
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
 public final class StringCaseFunction {
 
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 "upper",
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            args ->
+            (signature, args) ->
                 new UnaryScalar<String, String>(
                     "upper",
+                    signature,
                     DataTypes.STRING,
                     DataTypes.STRING,
                     val -> val.toUpperCase(Locale.ENGLISH)
@@ -51,12 +50,13 @@ public final class StringCaseFunction {
         module.register(
             Signature.scalar(
                 "lower",
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            args ->
+            (signature, args) ->
                 new UnaryScalar<String, String>(
                     "lower",
+                    signature,
                     DataTypes.STRING,
                     DataTypes.STRING,
                     val -> val.toLowerCase(Locale.ENGLISH)

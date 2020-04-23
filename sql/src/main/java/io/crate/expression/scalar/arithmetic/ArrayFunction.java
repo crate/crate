@@ -32,6 +32,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,21 +42,22 @@ import static io.crate.types.TypeSignature.parseTypeSignature;
 public class ArrayFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_array";
-    private final FunctionInfo info;
+    public static final Signature SIGNATURE =
+        Signature.builder()
+            .name(NAME)
+            .kind(FunctionInfo.Type.SCALAR)
+            .typeVariableConstraints(typeVariable("E"))
+            .argumentTypes(parseTypeSignature("E"))
+            .returnType(parseTypeSignature("array(E)"))
+            .setVariableArity(true)
+            .build();
+
 
     public static void register(ScalarFunctionModule module) {
         module.register(
-            Signature.builder()
-                .name(NAME)
-                .kind(FunctionInfo.Type.SCALAR)
-                .typeVariableConstraints(typeVariable("E"))
-                .argumentTypes(parseTypeSignature("E"))
-                .returnType(parseTypeSignature("array(E)"))
-                .setVariableArity(true)
-                .build(),
-            args -> new ArrayFunction(createInfo(args))
+            SIGNATURE,
+            (signature, args) -> new ArrayFunction(createInfo(args), signature)
         );
-
     }
 
     public static FunctionInfo createInfo(List<DataType> argumentTypes) {
@@ -63,13 +65,23 @@ public class ArrayFunction extends Scalar<Object, Object> {
         return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), new ArrayType<>(innerType));
     }
 
-    private ArrayFunction(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    private ArrayFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @SafeVarargs

@@ -36,6 +36,8 @@ public final class RowType extends DataType<Row> implements Streamer<Row> {
 
     public static final int ID = 18;
     public static final String NAME = "record";
+    public static final RowType EMPTY = new RowType(List.of());
+
     private final List<DataType<?>> fieldTypes;
     private final List<String> fieldNames;
 
@@ -160,5 +162,26 @@ public final class RowType extends DataType<Row> implements Streamer<Row> {
             }
         }
         return 0;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        ArrayList<TypeSignature> parameters = new ArrayList<>(fieldNames.size());
+        for (int i = 0; i < fieldNames.size(); i++) {
+            var fieldName = fieldNames.get(i);
+            var fieldType = fieldTypes.get(i);
+            parameters.add(
+                new ParameterTypeSignature(
+                    fieldName,
+                    fieldType.getTypeSignature()
+                )
+            );
+        }
+        return new TypeSignature(NAME, parameters);
+    }
+
+    @Override
+    public List<DataType<?>> getTypeParameters() {
+        return fieldTypes;
     }
 }

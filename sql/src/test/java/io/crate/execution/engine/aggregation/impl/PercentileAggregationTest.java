@@ -24,7 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -43,16 +43,12 @@ import static org.hamcrest.Matchers.nullValue;
 
 public class PercentileAggregationTest extends AggregationTest {
 
-    private static final String NAME = "percentile";
-
     private Object execSingleFractionPercentile(DataType<?> valueType, Object[][] rows) throws Exception {
-        String name = "percentile";
-        return executeAggregation(name, valueType, rows, List.of(valueType, DataTypes.DOUBLE));
+        return executeAggregation(PercentileAggregation.NAME, valueType, rows, List.of(valueType, DataTypes.DOUBLE));
     }
 
     private Object execArrayFractionPercentile(DataType<?> valueType, Object[][] rows) throws Exception {
-        String name = "percentile";
-        return executeAggregation(name, valueType, rows, List.of(valueType, DataTypes.DOUBLE_ARRAY));
+        return executeAggregation(PercentileAggregation.NAME, valueType, rows, List.of(valueType, DataTypes.DOUBLE_ARRAY));
     }
 
     private PercentileAggregation singleArgPercentile;
@@ -61,9 +57,23 @@ public class PercentileAggregationTest extends AggregationTest {
     @Before
     public void initFunctions() throws Exception {
         singleArgPercentile = (PercentileAggregation) functions.getQualified(
-            new FunctionIdent(NAME, Arrays.asList(DataTypes.DOUBLE, DataTypes.DOUBLE)));
+            Signature.aggregate(
+                PercentileAggregation.NAME,
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            List.of(DataTypes.DOUBLE, DataTypes.DOUBLE)
+        );
         arraysPercentile = (PercentileAggregation) functions.getQualified(
-            new FunctionIdent(NAME, Arrays.asList(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY)));
+            Signature.aggregate(
+                PercentileAggregation.NAME,
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
+                DataTypes.DOUBLE_ARRAY.getTypeSignature()
+            ),
+            List.of(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY)
+        );
     }
 
     @Test
@@ -188,7 +198,14 @@ public class PercentileAggregationTest extends AggregationTest {
     @Test
     public void testSingleItemFractionsArgumentResultsInArrayResult() {
         AggregationFunction impl = (AggregationFunction<?, ?>) functions.getQualified(
-            new FunctionIdent(NAME, Arrays.asList(DataTypes.LONG, DataTypes.DOUBLE_ARRAY)));
+            Signature.aggregate(
+                PercentileAggregation.NAME,
+                DataTypes.LONG.getTypeSignature(),
+                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
+                DataTypes.DOUBLE_ARRAY.getTypeSignature()
+            ),
+            List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY)
+        );
 
         RamAccounting ramAccounting = RamAccounting.NO_ACCOUNTING;
         Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);

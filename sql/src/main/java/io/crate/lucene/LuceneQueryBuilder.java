@@ -404,6 +404,7 @@ public class LuceneQueryBuilder {
                     if (ref.column().equals(DocSysColumns.UID)) {
                         return new Function(
                             function.info(),
+                            function.signature(),
                             ImmutableList.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right)
                         );
                     } else {

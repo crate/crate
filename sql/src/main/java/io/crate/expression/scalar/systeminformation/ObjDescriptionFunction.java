@@ -34,13 +34,13 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public final class ObjDescriptionFunction extends Scalar<String, Object> {
 
     private static final String NAME = "obj_description";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
-    private final FunctionInfo info;
 
     public static void register(ScalarFunctionModule module) {
         module.register(
@@ -54,11 +54,15 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
         );
     }
 
-    public ObjDescriptionFunction(List<DataType> argumentTypes) {
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    public ObjDescriptionFunction(Signature signature, List<DataType> argumentTypes) {
         info = new FunctionInfo(
             new FunctionIdent(FQN, argumentTypes),
             DataTypes.STRING
         );
+        this.signature = signature;
     }
 
     @SafeVarargs
@@ -71,5 +75,11 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

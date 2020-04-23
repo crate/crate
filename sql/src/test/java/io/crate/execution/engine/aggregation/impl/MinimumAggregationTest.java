@@ -24,11 +24,14 @@ package io.crate.execution.engine.aggregation.impl;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.junit.Test;
+
+import java.util.List;
 
 public class MinimumAggregationTest extends AggregationTest {
 
@@ -38,7 +41,10 @@ public class MinimumAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        FunctionImplementation min = functions.getQualified(new FunctionIdent("min", ImmutableList.of(DataTypes.INTEGER)));
+        FunctionImplementation min = functions.getQualified(
+            Signature.aggregate("min", DataTypes.INTEGER.getTypeSignature(), DataTypes.INTEGER.getTypeSignature()),
+            List.of(DataTypes.INTEGER)
+        );
         assertEquals(DataTypes.INTEGER, min.info().returnType());
     }
 

@@ -60,6 +60,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
@@ -90,6 +91,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
     private ProjectionToProjectorVisitor visitor;
     private FunctionInfo countInfo;
     private FunctionInfo avgInfo;
+    private Signature avgSignature;
     private Functions functions;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
@@ -119,6 +121,11 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         avgInfo = new FunctionInfo(
             new FunctionIdent(AverageAggregation.NAME, Collections.singletonList(DataTypes.INTEGER)),
             DataTypes.DOUBLE);
+        avgSignature = Signature.aggregate(
+            "avg",
+            DataTypes.INTEGER.getTypeSignature(),
+            DataTypes.DOUBLE.getTypeSignature()
+        );
     }
 
     @Test
@@ -168,10 +175,12 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         AggregationProjection projection = new AggregationProjection(Arrays.asList(
             new Aggregation(
                 avgInfo,
+                avgSignature,
                 avgInfo.returnType(),
                 Collections.singletonList(new InputColumn(1))),
             new Aggregation(
                 countInfo,
+                CountAggregation.SIGNATURE,
                 countInfo.returnType(),
                 Collections.singletonList(new InputColumn(0)))
         ), RowGranularity.SHARD, AggregateMode.ITER_FINAL);
@@ -203,10 +212,12 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         List<Aggregation> aggregations = Arrays.asList(
             new Aggregation(
                 avgInfo,
+                avgSignature,
                 avgInfo.returnType(),
                 Collections.singletonList(new InputColumn(1))),
             new Aggregation(
                 countInfo,
+                CountAggregation.SIGNATURE,
                 countInfo.returnType(),
                 Collections.singletonList(new InputColumn(0)))
         );

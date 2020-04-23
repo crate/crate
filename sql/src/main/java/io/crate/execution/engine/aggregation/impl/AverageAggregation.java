@@ -46,7 +46,6 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
     public static final String[] NAMES = new String[]{"avg", "mean"};
     public static final String NAME = NAMES[0];
-    private final FunctionInfo info;
 
     static {
         DataTypes.register(AverageStateType.ID, in -> AverageStateType.INSTANCE);
@@ -66,11 +65,15 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                         functionName,
                         supportedType.getTypeSignature(),
                         DataTypes.DOUBLE.getTypeSignature()),
-                    args -> new AverageAggregation(
-                        new FunctionInfo(
-                            new FunctionIdent(functionName, args),
-                            DataTypes.DOUBLE,
-                            FunctionInfo.Type.AGGREGATE))
+                    (signature, args) ->
+                        new AverageAggregation(
+                            new FunctionInfo(
+                                new FunctionIdent(functionName, args),
+                                DataTypes.DOUBLE,
+                                FunctionInfo.Type.AGGREGATE
+                            ),
+                            signature
+                        )
                 );
             }
         }
@@ -166,8 +169,12 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
     }
 
-    AverageAggregation(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    AverageAggregation(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
@@ -240,5 +247,11 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

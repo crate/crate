@@ -26,18 +26,25 @@ import io.crate.common.collections.Lists2;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.types.TypeSignature;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-public final class Signature {
+public final class Signature implements Writeable {
 
     /**
      * See {@link #aggregate(FunctionName, TypeSignature...)}
      */
     public static Signature aggregate(String name, TypeSignature... types) {
-        return scalar(new FunctionName(null, name), types);
+        return aggregate(new FunctionName(null, name), types);
     }
 
     /**
@@ -57,6 +64,25 @@ public final class Signature {
      */
     public static Signature scalar(String name, TypeSignature... types) {
         return scalar(new FunctionName(null, name), types);
+    }
+
+    /**
+     * Shortcut for creating a signature of type {@link FunctionInfo.Type#TABLE}.
+     * The last element of the given types is handled as the return type.
+     *
+     * @param name      The fqn function name.
+     * @param types     The argument and return (last element) types
+     * @return          The created signature
+     */
+    public static Signature table(FunctionName name, TypeSignature... types) {
+        return signatureBuilder(name, FunctionInfo.Type.TABLE, types).build();
+    }
+
+    /**
+     * See {@link #table(FunctionName, TypeSignature...)}
+     */
+    public static Signature table(String name, TypeSignature... types) {
+        return table(new FunctionName(null, name), types);
     }
 
     /**
@@ -128,10 +154,11 @@ public final class Signature {
             kind = signature.getKind();
             argumentTypes = signature.getArgumentTypes();
             returnType = signature.getReturnType();
-            typeVariableConstraints = signature.getTypeVariableConstraints();
-            variableArityGroup = signature.getVariableArityGroup();
-            variableArity = signature.isVariableArity();
-            allowCoercion = signature.isCoercionAllowed();
+            assert signature.getBindingInfo() != null : "Expecting the signature's binding info to be not null";
+            typeVariableConstraints = signature.getBindingInfo().getTypeVariableConstraints();
+            variableArityGroup = signature.getBindingInfo().getVariableArityGroup();
+            variableArity = signature.getBindingInfo().isVariableArity();
+            allowCoercion = signature.getBindingInfo().isCoercionAllowed();
         }
 
         public Builder name(String name) {
@@ -208,10 +235,8 @@ public final class Signature {
     private final FunctionInfo.Type kind;
     private final List<TypeSignature> argumentTypes;
     private final TypeSignature returnType;
-    private final List<TypeVariableConstraint> typeVariableConstraints;
-    private final List<TypeSignature> variableArityGroup;
-    private final boolean variableArity;
-    private final boolean allowCoercion;
+    @Nullable
+    private final SignatureBindingInfo bindingInfo;
 
     private Signature(FunctionName name,
                       FunctionInfo.Type kind,
@@ -224,11 +249,25 @@ public final class Signature {
         this.name = name;
         this.kind = kind;
         this.argumentTypes = argumentTypes;
-        this.typeVariableConstraints = typeVariableConstraints;
         this.returnType = returnType;
-        this.variableArityGroup = variableArityGroup;
-        this.variableArity = variableArity;
-        this.allowCoercion = allowCoercion;
+        this.bindingInfo = new SignatureBindingInfo(
+            typeVariableConstraints,
+            variableArityGroup,
+            variableArity,
+            allowCoercion
+        );
+    }
+
+    public Signature(StreamInput in) throws IOException {
+        name = new FunctionName(in);
+        kind = FunctionInfo.Type.values()[in.readVInt()];
+        int argsSize = in.readVInt();
+        argumentTypes = new ArrayList<>(argsSize);
+        for (int i = 0; i < argsSize; i++) {
+            argumentTypes.add(TypeSignature.fromStream(in));
+        }
+        returnType = TypeSignature.fromStream(in);
+        bindingInfo = null;
     }
 
     public Signature withTypeVariableConstraints(TypeVariableConstraint... typeVariableConstraints) {
@@ -269,25 +308,48 @@ public final class Signature {
         return returnType;
     }
 
-    public List<TypeVariableConstraint> getTypeVariableConstraints() {
-        return typeVariableConstraints;
+    @Nullable
+    public SignatureBindingInfo getBindingInfo() {
+        return bindingInfo;
     }
 
-    public List<TypeSignature> getVariableArityGroup() {
-        return variableArityGroup;
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        name.writeTo(out);
+        out.writeVInt(kind.ordinal());
+        out.writeVInt(argumentTypes.size());
+        for (TypeSignature typeSignature : argumentTypes) {
+            TypeSignature.toStream(typeSignature, out);
+        }
+        TypeSignature.toStream(returnType, out);
     }
 
-    public boolean isVariableArity() {
-        return variableArity;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Signature signature = (Signature) o;
+        return name.equals(signature.name) &&
+               kind == signature.kind &&
+               argumentTypes.equals(signature.argumentTypes) &&
+               returnType.equals(signature.returnType);
     }
 
-    public boolean isCoercionAllowed() {
-        return allowCoercion;
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, kind, argumentTypes, returnType);
     }
 
     @Override
     public String toString() {
-        List<String> allConstraints = Lists2.map(typeVariableConstraints, TypeVariableConstraint::toString);
+        List<String> allConstraints = List.of();
+        if (bindingInfo != null) {
+            allConstraints = Lists2.map(bindingInfo.getTypeVariableConstraints(), TypeVariableConstraint::toString);
+        }
 
         return name + (allConstraints.isEmpty() ? "" : "<" + String.join(",", allConstraints) + ">") +
                "(" + Lists2.joinOn(",", argumentTypes, TypeSignature::toString) + "):" + returnType;

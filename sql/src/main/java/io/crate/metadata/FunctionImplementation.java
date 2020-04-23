@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.functions.Signature;
 
 import javax.annotation.Nullable;
 
@@ -35,6 +36,17 @@ public interface FunctionImplementation {
      * Provides meta information about this function implementation.
      */
     FunctionInfo info();
+
+    /**
+     * Return the declared signature for this implementation.
+     * This should be favoured over {@link #info()}.
+     *
+     * @return  NULL for functions using the old registry
+     */
+    @Nullable
+    default Signature signature() {
+        return null;
+    }
 
     /**
      * Normalize a symbol into a simplified form.

@@ -35,6 +35,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.SearchPath;
 import io.crate.test.integration.CrateUnitTest;
@@ -83,6 +84,13 @@ public abstract class AggregationTest extends CrateUnitTest {
             inputs = new InputCollectExpression[0];
         }
         AggregationFunction impl = (AggregationFunction) functions.getQualified(fi);
+        if (impl == null) {
+            impl = (AggregationFunction) functions.resolveBuiltInFunctionBySignature(
+                new FunctionName(null, name),
+                argumentTypes,
+                SearchPath.pathWithPGCatalogAndDoc()
+            );
+        }
         List<Object> states = new ArrayList<>();
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
@@ -114,7 +122,7 @@ public abstract class AggregationTest extends CrateUnitTest {
         AggregationFunction function =
             (AggregationFunction) functions.get(null, functionName, arguments, SearchPath.pathWithPGCatalogAndDoc());
         return function.normalizeSymbol(
-            new Function(function.info(), arguments),
+            new Function(function.info(), function.signature(), arguments),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
     }
 }

@@ -27,8 +27,10 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.BinaryOperator;
@@ -37,17 +39,34 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
 
     private final BinaryOperator<T> func;
     private final FunctionInfo info;
+    @Nullable
+    private final Signature signature;
     private final DataType<T> type;
 
     public BinaryScalar(BinaryOperator<T> func, String name, DataType<T> type, Set<FunctionInfo.Feature> feature) {
+        this(func, name, null, type, feature);
+    }
+
+    public BinaryScalar(BinaryOperator<T> func,
+                        String name,
+                        @Nullable Signature signature,
+                        DataType<T> type,
+                        Set<FunctionInfo.Feature> feature) {
         this.func = func;
         this.info = new FunctionInfo(new FunctionIdent(name, Arrays.asList(type, type)), type, FunctionInfo.Type.SCALAR, feature);
+        this.signature = signature;
         this.type = type;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

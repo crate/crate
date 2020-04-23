@@ -20,32 +20,28 @@
  * agreement.
  */
 
-package io.crate.expression.scalar.string;
+package io.crate.types;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.scalar.UnaryScalar;
-import io.crate.metadata.functions.Signature;
-import io.crate.sql.Identifiers;
-import io.crate.types.DataTypes;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 
+import java.io.IOException;
+import java.util.List;
 
-public final class QuoteIdentFunction {
+public enum TypeSignatureType {
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
-            Signature.scalar(
-                "quote_ident",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
-            (signature, args) ->
-                new UnaryScalar<>(
-                    "quote_ident",
-                    signature,
-                    DataTypes.STRING,
-                    DataTypes.STRING,
-                    Identifiers::quoteIfNeeded
-                )
-        );
+    TYPE_SIGNATURE(TypeSignature::new),
+    OBJECT_PARAMETER_TYPE_SIGNATURE(ParameterTypeSignature::new);
+
+    public static final List<TypeSignatureType> VALUES = List.of(values());
+
+    private final Writeable.Reader<TypeSignature> reader;
+
+    TypeSignatureType(Writeable.Reader<TypeSignature> reader) {
+        this.reader = reader;
+    }
+
+    public TypeSignature newInstance(StreamInput in) throws IOException {
+        return reader.read(in);
     }
 }

@@ -36,6 +36,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -50,53 +51,63 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                     timestampType.getTypeSignature(),
                     timestampType.getTypeSignature()
                 ).withForbiddenCoercion(),
-                args -> new IntervalTimestampArithmeticScalar(
-                    "+",
-                    ArithmeticFunctions.Names.ADD,
-                    args,
-                    args.get(1))
+                (signature, args) ->
+                    new IntervalTimestampArithmeticScalar(
+                        "+",
+                        ArithmeticFunctions.Names.ADD,
+                        args,
+                        args.get(1),
+                        signature
+                    )
             );
             module.register(
-                Signature.scalar(
-                    ArithmeticFunctions.Names.ADD,
-                    timestampType.getTypeSignature(),
-                    DataTypes.INTERVAL.getTypeSignature(),
-                    timestampType.getTypeSignature()
-                ).withForbiddenCoercion(),
-                args -> new IntervalTimestampArithmeticScalar(
-                    "+",
-                    ArithmeticFunctions.Names.ADD,
-                    args,
-                    args.get(0))
+                signatureFor(timestampType, ArithmeticFunctions.Names.ADD),
+                (signature, args) ->
+                    new IntervalTimestampArithmeticScalar(
+                        "+",
+                        ArithmeticFunctions.Names.ADD,
+                        args,
+                        args.get(0),
+                        signature
+                    )
             );
 
             module.register(
-                Signature.scalar(
-                    ArithmeticFunctions.Names.SUBTRACT,
-                    timestampType.getTypeSignature(),
-                    DataTypes.INTERVAL.getTypeSignature(),
-                    timestampType.getTypeSignature()
-                ).withForbiddenCoercion(),
-                args -> new IntervalTimestampArithmeticScalar(
-                    "-",
-                    ArithmeticFunctions.Names.SUBTRACT,
-                    args,
-                    args.get(0)
-                )
+                signatureFor(timestampType, ArithmeticFunctions.Names.SUBTRACT),
+                (signature, args) ->
+                    new IntervalTimestampArithmeticScalar(
+                        "-",
+                        ArithmeticFunctions.Names.SUBTRACT,
+                        args,
+                        args.get(0),
+                        signature
+                    )
             );
         }
     }
 
+    public static Signature signatureFor(DataType<?> timestampType, String name) {
+        return Signature.scalar(
+            name,
+            timestampType.getTypeSignature(),
+            DataTypes.INTERVAL.getTypeSignature(),
+            timestampType.getTypeSignature()
+        ).withForbiddenCoercion();
+    }
+
     private final BiFunction<DateTime, Period, DateTime> operation;
     private final FunctionInfo info;
+    private final Signature signature;
     private final int periodIdx;
     private final int timestampIdx;
 
     public IntervalTimestampArithmeticScalar(String operator,
                                              String name,
                                              List<DataType> argTypes,
-                                             DataType<?> returnType) {
+                                             DataType<?> returnType,
+                                             Signature signature) {
         this.info = new FunctionInfo(new FunctionIdent(name, argTypes), returnType);
+        this.signature = signature;
         var firstArgType = argTypes.get(0);
         if (firstArgType.id() == IntervalType.ID) {
             periodIdx = 0;
@@ -126,6 +137,12 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
     @Override
     public FunctionInfo info() {
         return this.info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

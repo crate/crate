@@ -35,7 +35,7 @@ import java.util.List;
 public enum AggregateMode {
     ITER_PARTIAL {
         @Override
-        public DataType returnType(AggregationFunction function) {
+        public DataType returnType(AggregationFunction<?, ?> function) {
             return function.partialType();
         }
 
@@ -49,7 +49,7 @@ public enum AggregateMode {
 
     private static final List<AggregateMode> VALUES = ImmutableList.copyOf(values());
 
-    public DataType returnType(AggregationFunction function) {
+    public DataType returnType(AggregationFunction<?, ?> function) {
         return function.info().returnType();
     }
 

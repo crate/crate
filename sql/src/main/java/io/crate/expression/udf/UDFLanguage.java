@@ -23,6 +23,7 @@
 package io.crate.expression.udf;
 
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 
 import javax.annotation.Nullable;
 import javax.script.ScriptException;
@@ -46,7 +47,7 @@ public interface UDFLanguage {
      * @return the function implementation
      * @throws ScriptException if the implementation cannot be created
      */
-    Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException;
+    Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData, Signature signature) throws ScriptException;
 
     /**
      * Validate the function code provided by the meta data.

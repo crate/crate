@@ -26,13 +26,13 @@ import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 
 import java.util.function.DoubleUnaryOperator;
 
 import static io.crate.metadata.functions.Signature.scalar;
 import static io.crate.types.DataTypes.NUMERIC_PRIMITIVE_TYPES;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class TrigonometricFunctions {
 
@@ -51,10 +51,16 @@ public final class TrigonometricFunctions {
                     "atan2",
                     inputType.getTypeSignature(),
                     inputType.getTypeSignature(),
-                    parseTypeSignature("double precision")
+                    DataTypes.DOUBLE.getTypeSignature()
                 ),
-                argumentTypes ->
-                    new BinaryScalar<>(Math::atan2, "atan2", DoubleType.INSTANCE, FunctionInfo.DETERMINISTIC_ONLY)
+                (signature, argumentTypes) ->
+                    new BinaryScalar<>(
+                        Math::atan2,
+                        "atan2",
+                        signature,
+                        DoubleType.INSTANCE,
+                        FunctionInfo.DETERMINISTIC_ONLY
+                    )
             );
         }
     }
@@ -65,10 +71,10 @@ public final class TrigonometricFunctions {
                 scalar(
                     name,
                     inputType.getTypeSignature(),
-                    parseTypeSignature("double precision")
+                    DataTypes.DOUBLE.getTypeSignature()
                 ),
-                argumentTypes ->
-                    new DoubleScalar(name, inputType, func)
+                (signature, argumentTypes) ->
+                    new DoubleScalar(name, signature, inputType, func)
             );
         }
     }

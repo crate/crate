@@ -30,6 +30,8 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
+
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
@@ -61,7 +63,8 @@ public class IfFunction extends Scalar<Object, Object> {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            args -> new IfFunction(FunctionInfo.of(NAME, args, args.get(1)))
+            (signature, args) ->
+                new IfFunction(FunctionInfo.of(NAME, args, args.get(1)), signature)
         );
         // if (condition, result, default)
         module.register(
@@ -72,21 +75,30 @@ public class IfFunction extends Scalar<Object, Object> {
                 parseTypeSignature("E"),
                 parseTypeSignature("E")
             ).withTypeVariableConstraints(typeVariable("E")),
-            args -> new IfFunction(FunctionInfo.of(NAME, args, args.get(1)))
+            (signature, args) ->
+                new IfFunction(FunctionInfo.of(NAME, args, args.get(1)), signature)
         );
     }
 
     public static final String NAME = "if";
 
     private final FunctionInfo info;
+    private final Signature signature;
 
-    private IfFunction(FunctionInfo info) {
+    private IfFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

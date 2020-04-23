@@ -26,15 +26,15 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public class FuncResolver {
 
     private final Signature signature;
-    private final Function<List<DataType>, FunctionImplementation> factory;
+    private final BiFunction<Signature, List<DataType>, FunctionImplementation> factory;
 
     public FuncResolver(Signature signature,
-                        Function<List<DataType>, FunctionImplementation> factory) {
+                        BiFunction<Signature, List<DataType>, FunctionImplementation> factory) {
         this.signature = signature;
         this.factory = factory;
     }
@@ -43,7 +43,7 @@ public class FuncResolver {
         return signature;
     }
 
-    public Function<List<DataType>, FunctionImplementation> getFactory() {
+    public BiFunction<Signature, List<DataType>, FunctionImplementation> getFactory() {
         return factory;
     }
 

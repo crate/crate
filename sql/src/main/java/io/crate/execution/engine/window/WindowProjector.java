@@ -39,9 +39,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.DataType;
 import io.crate.types.IntervalType;
@@ -84,8 +86,15 @@ public class WindowProjector {
             InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
             ctx.add(windowFunctionContext.inputs());
 
-            FunctionImplementation impl = functions.getQualified(
-                windowFunctionContext.function().info().ident());
+            FunctionIdent ident = windowFunctionContext.function().info().ident();
+            Signature signature = windowFunctionContext.function().signature();
+            FunctionImplementation impl;
+            if (signature == null) {
+                impl = functions.getQualified(ident);
+            } else {
+                impl = functions.getQualified(signature, ident.argumentTypes());
+            }
+            assert impl != null : "Function implementation not found using full qualified lookup";
             if (impl instanceof AggregationFunction) {
                 var filterInputFactoryCtx = inputFactory.ctxForInputColumns(txnCtx);
                 //noinspection unchecked

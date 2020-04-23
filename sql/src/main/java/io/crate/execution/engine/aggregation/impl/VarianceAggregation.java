@@ -61,11 +61,15 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()),
-                args -> new VarianceAggregation(
-                    new FunctionInfo(
-                        new FunctionIdent(NAME, args),
-                        DataTypes.DOUBLE,
-                        FunctionInfo.Type.AGGREGATE))
+                (signature, args) ->
+                    new VarianceAggregation(
+                        new FunctionInfo(
+                            new FunctionIdent(NAME, args),
+                            DataTypes.DOUBLE,
+                            FunctionInfo.Type.AGGREGATE
+                        ),
+                        signature
+                    )
             );
         }
     }
@@ -122,11 +126,12 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
 
-    public VarianceAggregation(FunctionInfo info) {
+    public VarianceAggregation(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
-
 
     @Nullable
     @Override
@@ -196,5 +201,11 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

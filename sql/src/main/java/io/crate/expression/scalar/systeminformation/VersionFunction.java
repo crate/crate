@@ -35,6 +35,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -54,7 +55,7 @@ public class VersionFunction extends Scalar<String, Void> {
                 FQN,
                 DataTypes.STRING.getTypeSignature()
             ),
-            args -> new VersionFunction()
+            (signature, args) -> new VersionFunction(signature)
         );
 
     }
@@ -89,6 +90,12 @@ public class VersionFunction extends Scalar<String, Void> {
 
     private static final String VERSION = formatVersion();
 
+    private final Signature signature;
+
+    public VersionFunction(Signature signature) {
+        this.signature = signature;
+    }
+
     @Override
     public String evaluate(TransactionContext txnCtx, Input<Void>... args) {
         return VERSION;
@@ -97,5 +104,11 @@ public class VersionFunction extends Scalar<String, Void> {
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

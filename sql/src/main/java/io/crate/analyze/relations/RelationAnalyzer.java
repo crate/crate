@@ -59,6 +59,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -613,8 +614,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         Function function = (Function) symbol;
         FunctionIdent ident = function.info().ident();
+        Signature signature = function.signature();
 
-        FunctionImplementation functionImplementation = functions.getQualified(ident);
+        FunctionImplementation functionImplementation;
+        if (signature == null) {
+            functionImplementation = functions.getQualified(ident);
+        } else {
+            functionImplementation = functions.getQualified(signature, ident.argumentTypes());
+        }
+        assert functionImplementation != null : "Function implementation not found using full qualified lookup";
         TableFunctionImplementation<?> tableFunction = TableFunctionFactory.from(functionImplementation);
         TableFunctionRelation tableRelation = new TableFunctionRelation(tableFunction, function);
         context.addSourceRelation(tableRelation);
@@ -696,6 +704,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             List<Symbol> columnValues = Lists2.map(columns.get(c), s -> s.cast(targetType));
             arrays.add(new Function(
                 new FunctionInfo(new FunctionIdent(ArrayFunction.NAME, Symbols.typeView(columnValues)), arrayType),
+                ArrayFunction.SIGNATURE,
                 columnValues
             ));
         }

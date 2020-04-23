@@ -35,12 +35,14 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import javax.script.ScriptException;
 import java.util.List;
 import java.util.Locale;
@@ -59,16 +61,25 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     public static class DummyFunction<InputType> extends Scalar<String, InputType>  {
 
         private final FunctionInfo info;
+        private final Signature signature;
         private final UserDefinedFunctionMetaData metaData;
 
-        private DummyFunction(UserDefinedFunctionMetaData metaData) {
+        private DummyFunction(UserDefinedFunctionMetaData metaData,
+                              Signature signature) {
             this.info = new FunctionInfo(new FunctionIdent(metaData.schema(), metaData.name(), metaData.argumentTypes()), DataTypes.STRING);
+            this.signature = signature;
             this.metaData = metaData;
         }
 
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Nullable
+        @Override
+        public Signature signature() {
+            return signature;
         }
 
         @Override
@@ -81,8 +92,9 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     public static class DummyLang implements UDFLanguage {
 
         @Override
-        public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
-            return new DummyFunction<>(metaData);
+        public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData,
+                                                   Signature signature) throws ScriptException {
+            return new DummyFunction<>(metaData, signature);
         }
 
         @Override

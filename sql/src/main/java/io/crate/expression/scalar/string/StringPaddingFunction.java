@@ -32,9 +32,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.Locale;
-
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class StringPaddingFunction extends Scalar<String, Object> {
 
@@ -48,13 +47,14 @@ public class StringPaddingFunction extends Scalar<String, Object> {
         module.register(
             Signature.scalar(
                 LNAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("integer"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new StringPaddingFunction(
                     new FunctionInfo(new FunctionIdent(LNAME, argumentTypes), DataTypes.STRING),
+                    signature,
                     StringPaddingFunction::lpad
                 )
         );
@@ -62,14 +62,15 @@ public class StringPaddingFunction extends Scalar<String, Object> {
         module.register(
             Signature.scalar(
                 LNAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("integer"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new StringPaddingFunction(
                     new FunctionInfo(new FunctionIdent(LNAME, argumentTypes), DataTypes.STRING),
+                    signature,
                     StringPaddingFunction::lpad
                 )
         );
@@ -77,13 +78,14 @@ public class StringPaddingFunction extends Scalar<String, Object> {
         module.register(
             Signature.scalar(
                 RNAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("integer"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new StringPaddingFunction(
                     new FunctionInfo(new FunctionIdent(RNAME, argumentTypes), DataTypes.STRING),
+                    signature,
                     StringPaddingFunction::rpad
                 )
         );
@@ -91,30 +93,41 @@ public class StringPaddingFunction extends Scalar<String, Object> {
         module.register(
             Signature.scalar(
                 RNAME,
-                parseTypeSignature("text"),
-                parseTypeSignature("integer"),
-                parseTypeSignature("text"),
-                parseTypeSignature("text")
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
             ),
-            argumentTypes ->
+            (signature, argumentTypes) ->
                 new StringPaddingFunction(
                     new FunctionInfo(new FunctionIdent(RNAME, argumentTypes), DataTypes.STRING),
+                    signature,
                     StringPaddingFunction::rpad
                 )
         );
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
     private final ThreeParametersFunction<char[], Integer, char[], String> func;
 
-    private StringPaddingFunction(FunctionInfo info, ThreeParametersFunction<char[], Integer, char[], String> func) {
+    private StringPaddingFunction(FunctionInfo info,
+                                  Signature signature,
+                                  ThreeParametersFunction<char[], Integer, char[], String> func) {
         this.info = info;
+        this.signature = signature;
         this.func = func;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override

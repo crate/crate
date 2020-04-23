@@ -39,6 +39,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +56,14 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         DataTypes.STRING,
         FunctionInfo.Type.AGGREGATE
     );
+    public static final Signature SIGNATURE =
+        Signature.aggregate(
+            NAME,
+            DataTypes.STRING.getTypeSignature(),
+            DataTypes.STRING.getTypeSignature(),
+            DataTypes.STRING.getTypeSignature()
+        );
+
 
     private static final int LIST_ENTRY_OVERHEAD = 32;
 
@@ -64,12 +73,8 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
 
     public static void register(AggregationImplModule mod) {
         mod.register(
-            Signature.aggregate(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()),
-            args -> new StringAgg()
+            SIGNATURE,
+            (signature, args) -> new StringAgg(signature)
         );
     }
 
@@ -137,6 +142,12 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         public void writeValueTo(StreamOutput out, StringAggState val) throws IOException {
             val.writeTo(out);
         }
+    }
+
+    private final Signature signature;
+
+    public StringAgg(Signature signature) {
+        this.signature = signature;
     }
 
     @Override
@@ -236,5 +247,11 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

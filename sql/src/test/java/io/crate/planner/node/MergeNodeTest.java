@@ -49,14 +49,14 @@ import java.util.UUID;
 import static org.hamcrest.core.Is.is;
 
 public class MergeNodeTest extends CrateUnitTest {
-
-
+    
     @Test
     public void testSerialization() throws Exception {
         List<Symbol> keys = Collections.singletonList(new InputColumn(0, DataTypes.STRING));
         List<Aggregation> aggregations = Collections.singletonList(
             new Aggregation(
                 CountAggregation.COUNT_STAR_FUNCTION,
+                CountAggregation.COUNT_STAR_SIGNATURE,
                 CountAggregation.COUNT_STAR_FUNCTION.returnType(),
                 Collections.emptyList()
             )

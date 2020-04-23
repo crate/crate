@@ -40,7 +40,7 @@ import java.util.List;
 
 class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
 
-    private static final String NAME = "percentile";
+    public static final String NAME = "percentile";
 
     static {
         DataTypes.register(TDigestStateType.ID, in -> TDigestStateType.INSTANCE);
@@ -54,11 +54,15 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                     supportedType.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()),
-                args -> new PercentileAggregation(
-                    new FunctionInfo(
-                        new FunctionIdent(NAME, args),
-                        DataTypes.DOUBLE,
-                        FunctionInfo.Type.AGGREGATE))
+                (signature, args) ->
+                    new PercentileAggregation(
+                        new FunctionInfo(
+                            new FunctionIdent(NAME, args),
+                            DataTypes.DOUBLE,
+                            FunctionInfo.Type.AGGREGATE
+                        ),
+                        signature
+                    )
             );
             mod.register(
                 Signature.aggregate(
@@ -67,24 +71,36 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                     DataTypes.DOUBLE_ARRAY.getTypeSignature(),
                     DataTypes.DOUBLE_ARRAY.getTypeSignature()
                 ),
-                args -> new PercentileAggregation(
-                    new FunctionInfo(
-                        new FunctionIdent(NAME, args),
-                        DataTypes.DOUBLE_ARRAY,
-                        FunctionInfo.Type.AGGREGATE))
+                (signature, args) ->
+                    new PercentileAggregation(
+                        new FunctionInfo(
+                            new FunctionIdent(NAME, args),
+                            DataTypes.DOUBLE_ARRAY,
+                            FunctionInfo.Type.AGGREGATE
+                        ),
+                        signature
+                    )
             );
         }
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
 
-    PercentileAggregation(FunctionInfo info) {
+    PercentileAggregation(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Nullable

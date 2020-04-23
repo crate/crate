@@ -31,16 +31,17 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.locationtech.spatial4j.shape.Point;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.metadata.functions.Signature.scalar;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class DistanceFunction extends Scalar<Double, Point> {
 
@@ -48,7 +49,6 @@ public class DistanceFunction extends Scalar<Double, Point> {
     private static final List<DataType<?>> SUPPORTED_TYPES = List.of(
         DataTypes.STRING, DataTypes.GEO_POINT, DataTypes.DOUBLE_ARRAY);
 
-    private final FunctionInfo info;
     private static final FunctionInfo GEO_POINT_INFO = genInfo(Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT));
 
     public static void register(ScalarFunctionModule module) {
@@ -58,9 +58,9 @@ public class DistanceFunction extends Scalar<Double, Point> {
                     NAME,
                     inputType.getTypeSignature(),
                     inputType.getTypeSignature(),
-                    parseTypeSignature("double precision")
+                    DataTypes.DOUBLE.getTypeSignature()
                 ),
-                argumentTypes -> new DistanceFunction(genInfo(argumentTypes))
+                (signature, argumentTypes) -> new DistanceFunction(genInfo(argumentTypes), signature)
             );
         }
     }
@@ -69,13 +69,23 @@ public class DistanceFunction extends Scalar<Double, Point> {
         return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.DOUBLE);
     }
 
-    private DistanceFunction(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final Signature signature;
+
+    private DistanceFunction(FunctionInfo info, Signature signature) {
         this.info = info;
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
@@ -134,10 +144,10 @@ public class DistanceFunction extends Scalar<Double, Point> {
 
         // ensure reference is the first argument.
         if (!arg1IsReference) {
-            return new Function(GEO_POINT_INFO, Arrays.asList(arg2, arg1));
+            return new Function(GEO_POINT_INFO, signature, Arrays.asList(arg2, arg1));
         }
         if (literalConverted) {
-            return new Function(GEO_POINT_INFO, Arrays.asList(arg1, arg2));
+            return new Function(GEO_POINT_INFO, signature, Arrays.asList(arg1, arg2));
         }
         return symbol;
     }

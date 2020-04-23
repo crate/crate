@@ -27,8 +27,10 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Function;
 
@@ -42,19 +44,42 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
 
     private final FunctionInfo info;
     private final Function<T, R> func;
+    @Nullable
+    private final Signature signature;
 
     public UnaryScalar(FunctionIdent functionIdent, DataType<?> returnType, Function<T, R> func) {
-        this.info = new FunctionInfo(functionIdent, returnType);
-        this.func = func;
+        this(functionIdent, null, returnType, func);
     }
 
     public UnaryScalar(String name, DataType<?> argType, DataType<?> returnType, Function<T, R> func) {
         this(new FunctionIdent(name, List.of(argType)), returnType, func);
     }
 
+    public UnaryScalar(String name,
+                       Signature signature,
+                       DataType<?> argType, DataType<?> returnType,
+                       Function<T, R> func) {
+        this(new FunctionIdent(name, List.of(argType)), signature, returnType, func);
+    }
+
+    public UnaryScalar(FunctionIdent functionIdent,
+                       @Nullable Signature signature,
+                       DataType<?> returnType,
+                       Function<T, R> func) {
+        this.info = new FunctionInfo(functionIdent, returnType);
+        this.signature = signature;
+        this.func = func;
+    }
+
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @SafeVarargs
