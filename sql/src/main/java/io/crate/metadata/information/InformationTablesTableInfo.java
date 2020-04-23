@@ -22,33 +22,45 @@
 package io.crate.metadata.information;
 
 import io.crate.common.collections.Lists2;
-import io.crate.expression.reference.information.TablesSettingsExpression;
-import io.crate.expression.reference.information.TablesVersionExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SystemTable;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.ShardedTable;
+import io.crate.metadata.table.StoredTable;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
+import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.translog.Translog;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
+import static org.elasticsearch.index.IndexModule.INDEX_STORE_TYPE_SETTING;
+import static org.elasticsearch.index.IndexSettings.INDEX_REFRESH_INTERVAL_SETTING;
+import static org.elasticsearch.index.MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING;
+import static org.elasticsearch.index.MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING;
+import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 
-public class InformationTablesTableInfo extends InformationTableInfo<RelationInfo> {
+public class InformationTablesTableInfo {
 
     public static final String NAME = "tables";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
@@ -56,27 +68,27 @@ public class InformationTablesTableInfo extends InformationTableInfo<RelationInf
     private static final String SELF_REFERENCING_COLUMN_NAME = "_id";
     private static final String REFERENCE_GENERATION = "SYSTEM GENERATED";
 
-    private static ColumnRegistrar<RelationInfo> columnRegistrar() {
-        return new ColumnRegistrar<RelationInfo>(IDENT, RowGranularity.DOC)
-            .register("table_schema", STRING, () -> forFunction(r -> r.ident().schema()))
-            .register("table_name", STRING, () -> forFunction(r -> r.ident().name()))
-            .register("table_catalog", STRING, () -> forFunction(r -> r.ident().schema()))
-            .register("table_type", STRING, () -> forFunction(r -> r.relationType().pretty()))
-            .register("number_of_shards", INTEGER, () -> forFunction(row -> {
+    public static SystemTable<RelationInfo> create() {
+        return SystemTable.<RelationInfo>builder(IDENT)
+            .add("table_schema", STRING, r -> r.ident().schema())
+            .add("table_name", STRING, r -> r.ident().name())
+            .add("table_catalog", STRING, r -> r.ident().schema())
+            .add("table_type", STRING, r -> r.relationType().pretty())
+            .add("number_of_shards", INTEGER, row -> {
                 if (row instanceof ShardedTable) {
                     return ((ShardedTable) row).numberOfShards();
                 }
                 return null;
-            }))
-            .register("number_of_replicas", STRING,
-                () -> forFunction(row -> {
+            })
+            .add("number_of_replicas", STRING,
+                row -> {
                     if (row instanceof ShardedTable) {
                         return ((ShardedTable) row).numberOfReplicas();
                     }
                     return null;
-                }))
-            .register("clustered_by", STRING,
-                () -> forFunction(row -> {
+                })
+            .add("clustered_by", STRING,
+                row -> {
                     if (row instanceof ShardedTable) {
                         ColumnIdent clusteredBy = ((ShardedTable) row).clusteredBy();
                         if (clusteredBy == null) {
@@ -85,9 +97,9 @@ public class InformationTablesTableInfo extends InformationTableInfo<RelationInf
                         return clusteredBy.fqn();
                     }
                     return null;
-                }))
-            .register("partitioned_by", STRING_ARRAY,
-                () -> forFunction(row -> {
+                })
+            .add("partitioned_by", STRING_ARRAY,
+                row -> {
                     if (row instanceof DocTableInfo) {
                         List<ColumnIdent> partitionedBy = ((DocTableInfo) row).partitionedBy();
                         if (partitionedBy == null || partitionedBy.isEmpty()) {
@@ -96,99 +108,175 @@ public class InformationTablesTableInfo extends InformationTableInfo<RelationInf
                         return Lists2.map(partitionedBy, ColumnIdent::fqn);
                     }
                     return null;
-                }))
-            .register("blobs_path", STRING,
-                () -> forFunction(row -> {
+                })
+            .add("blobs_path", STRING,
+                row -> {
                     if (row instanceof BlobTableInfo) {
                         return ((BlobTableInfo) row).blobsPath();
                     }
                     return null;
-                }))
-            .register("column_policy", STRING,
-                () -> forFunction(row -> {
+                })
+            .add("column_policy", STRING,
+                row -> {
                     if (row instanceof DocTableInfo) {
                         return ((DocTableInfo) row).columnPolicy().lowerCaseName();
                     }
                     return ColumnPolicy.STRICT.lowerCaseName();
-                }))
-            .register("routing_hash_function", STRING,
-                () -> forFunction(row -> {
+                })
+            .add("routing_hash_function", STRING,
+                row -> {
                     if (row instanceof ShardedTable) {
                         return IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME;
                     }
                     return null;
-                }))
-            .register("version", ObjectType.builder()
-                .setInnerType(Version.Property.CREATED.toString(), STRING)
-                .setInnerType(Version.Property.UPGRADED.toString(), STRING)
-                .build(), TablesVersionExpression::new)
-            .register("closed", BOOLEAN, () -> forFunction(row -> {
+                })
+            .startObject("version", x -> !(x instanceof ShardedTable))
+                .add(
+                    Version.Property.CREATED.toString(),
+                    STRING,
+                    x -> {
+                        if (x instanceof StoredTable) {
+                            Version version = ((StoredTable) x).versionCreated();
+                            return version == null ? null : version.externalNumber();
+                        }
+                        return null;
+                    }
+                )
+                .add(
+                    Version.Property.UPGRADED.toString(),
+                    STRING,
+                    x -> {
+                        if (x instanceof StoredTable) {
+                            Version version = ((StoredTable) x).versionUpgraded();
+                            return version == null ? null : version.externalNumber();
+                        }
+                        return null;
+                    }
+                )
+            .endObject()
+            .add("closed", BOOLEAN, row -> {
                 if (row instanceof ShardedTable) {
                     return ((ShardedTable) row).isClosed();
                 }
                 return null;
-            }))
-            .register("reference_generation", STRING, () -> forFunction(r -> REFERENCE_GENERATION))
-            .register("self_referencing_column_name", STRING,() -> forFunction(row -> {
+            })
+            .add("reference_generation", STRING, r -> REFERENCE_GENERATION)
+            .add("self_referencing_column_name", STRING,row -> {
                 if (row instanceof ShardedTable) {
                     return SELF_REFERENCING_COLUMN_NAME;
                 }
                 return null;
-            }))
-            .register("settings", ObjectType.builder()
-                .setInnerType("refresh_interval", LONG)
-                .setInnerType("blocks", ObjectType.builder()
-                    .setInnerType("read_only", BOOLEAN)
-                    .setInnerType("read", BOOLEAN)
-                    .setInnerType("write", BOOLEAN)
-                    .setInnerType("metadata", BOOLEAN)
-                    .build())
-                .setInnerType("codec", STRING)
-                .setInnerType("store", ObjectType.builder()
-                    .setInnerType("type", STRING)
-                    .build())
-                .setInnerType("translog", ObjectType.builder()
-                    .setInnerType("flush_threshold_size", LONG)
-                    .setInnerType("sync_interval", LONG)
-                    .build())
-                .setInnerType("routing", ObjectType.builder()
-                    .setInnerType("allocation", ObjectType.builder()
-                        .setInnerType("enable", STRING)
-                        .setInnerType("total_shards_per_node", INTEGER)
-                        .setInnerType("require", ObjectType.untyped())
-                        .setInnerType("include", ObjectType.untyped())
-                        .setInnerType("exclude", ObjectType.untyped())
-                        .build())
-                    .build())
-                .setInnerType("warmer", ObjectType.builder()
-                    .setInnerType("enabled", BOOLEAN)
-                    .build())
-                .setInnerType("write", ObjectType.builder()
-                    .setInnerType("wait_for_active_shards", STRING)
-                    .build())
-                .setInnerType("unassigned", ObjectType.builder()
-                    .setInnerType("node_left", ObjectType.builder()
-                        .setInnerType("delayed_timeout", LONG)
-                        .build())
-                    .build())
-                .setInnerType("merge", ObjectType.builder()
-                    .setInnerType("scheduler", ObjectType.builder()
-                        .setInnerType("max_thread_count", INTEGER)
-                        .build())
-                    .build())
-                .setInnerType("mapping", ObjectType.builder()
-                    .setInnerType("total_fields", ObjectType.builder()
-                        .setInnerType("limit", LONG)
-                        .build())
-                    .build())
-                .build(), TablesSettingsExpression::new);
+            })
+            .startObject("settings", x -> !(x instanceof ShardedTable))
+                .add("refresh_interval", LONG, fromTimeValue(INDEX_REFRESH_INTERVAL_SETTING))
+
+                .startObject("blocks")
+                    .add("read_only", BOOLEAN, fromSetting(IndexMetaData.INDEX_READ_ONLY_SETTING))
+                    .add("read", BOOLEAN, fromSetting(IndexMetaData.INDEX_BLOCKS_READ_SETTING))
+                    .add("write", BOOLEAN, fromSetting(IndexMetaData.INDEX_BLOCKS_WRITE_SETTING))
+                    .add("metadata", BOOLEAN, fromSetting(IndexMetaData.INDEX_BLOCKS_METADATA_SETTING))
+                .endObject()
+                .add("codec", STRING, fromSetting(INDEX_CODEC_SETTING))
+                .startObject("store")
+                    .add("type", STRING, fromSetting(INDEX_STORE_TYPE_SETTING))
+                .endObject()
+
+                .startObject("translog")
+                    .add("flush_threshold_size", LONG, fromByteSize(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING))
+                    .add("sync_interval", LONG, fromTimeValue(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING))
+                    .add("durability", STRING, fromSetting(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING, Translog.Durability::name))
+                .endObject()
+
+                .startObject("routing")
+                    .startObject("allocation")
+                        .add("enable", STRING, fromSetting(EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING, EnableAllocationDecider.Allocation::toString))
+                        .add("total_shards_per_node", INTEGER, fromSetting(ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING))
+                        .addDynamicObject("require", STRING, fromSetting(IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_SETTING))
+                        .addDynamicObject("include", STRING, fromSetting(IndexMetaData.INDEX_ROUTING_INCLUDE_GROUP_SETTING))
+                        .addDynamicObject("exclude", STRING, fromSetting(IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_SETTING))
+                    .endObject()
+                .endObject()
+
+                .startObject("warmer")
+                    .add("enabled", BOOLEAN, fromSetting(IndexSettings.INDEX_WARMER_ENABLED_SETTING))
+                .endObject()
+
+                .startObject("unassigned")
+                    .startObject("node_left")
+                        .add("delayed_timeout", LONG, fromTimeValue(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING))
+                    .endObject()
+                .endObject()
+
+                .startObject("mapping")
+                    .startObject("total_fields")
+                        .add("limit", INTEGER, fromSetting(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING, INTEGER::value))
+                    .endObject()
+                .endObject()
+
+                .startObject("merge")
+                    .startObject("scheduler")
+                        .add("max_thread_count", INTEGER, fromSetting(MAX_THREAD_COUNT_SETTING))
+                        .add("max_merge_count", INTEGER, fromSetting(MAX_MERGE_COUNT_SETTING))
+                    .endObject()
+                .endObject()
+
+
+                .startObject("write")
+                    .add("wait_for_active_shards", STRING, fromSetting(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS, ActiveShardCount::toString))
+                .endObject()
+
+            .endObject()
+            .setPrimaryKeys(
+                new ColumnIdent("table_catalog"),
+                new ColumnIdent("table_schema"),
+                new ColumnIdent("table_name")
+            )
+            .build();
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<RelationInfo>> expressions() {
-        return columnRegistrar().expressions();
+    private static Function<RelationInfo, Long> fromByteSize(Setting<ByteSizeValue> byteSizeSetting) {
+        return rel -> {
+            if (rel instanceof StoredTable) {
+                return byteSizeSetting.get(rel.parameters()).getBytes();
+            }
+            return null;
+        };
     }
 
-    InformationTablesTableInfo() {
-        super(IDENT, columnRegistrar(), "table_catalog", "table_schema", "table_name");
+    private static <T> Function<RelationInfo, T> fromSetting(Setting<T> setting) {
+        return rel -> {
+            if (rel instanceof StoredTable) {
+                return setting.get(rel.parameters());
+            }
+            return null;
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Function<RelationInfo, Map<String, Object>> fromSetting(Setting.AffixSetting<T> setting) {
+        return rel -> {
+            if (rel instanceof StoredTable) {
+                return (Map<String, Object>) setting.getAsMap(rel.parameters());
+            }
+            return null;
+        };
+    }
+
+    private static <T, U> Function<RelationInfo, U> fromSetting(Setting<T> setting, Function<T, U> andThen) {
+        return rel -> {
+            if (rel instanceof StoredTable) {
+                return andThen.apply(setting.get(rel.parameters()));
+            }
+            return null;
+        };
+    }
+
+    private static Function<RelationInfo, Long> fromTimeValue(Setting<TimeValue> timeValueSetting) {
+        return rel -> {
+            if (rel instanceof StoredTable) {
+                return timeValueSetting.get(rel.parameters()).millis();
+            }
+            return null;
+        };
     }
 }

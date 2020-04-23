@@ -193,14 +193,13 @@ public class TableParameters {
         return key;
     }
 
-    public static Map<String, Object> tableParametersFromIndexMetaData(IndexMetaData metaData) {
-        Settings settings = metaData.getSettings();
+    public static Map<String, Object> tableParametersFromIndexMetaData(Settings settings) {
         ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
-        for (Setting setting : SUPPORTED_SETTINGS) {
+        for (Setting<?> setting : SUPPORTED_SETTINGS) {
             boolean shouldBeExcluded = EXCLUDED_SETTING_FOR_METADATA_IMPORT.contains(setting);
             if (shouldBeExcluded == false) {
                 if (setting instanceof Setting.AffixSetting) {
-                    flattenAffixSetting(builder, settings, (Setting.AffixSetting) setting);
+                    flattenAffixSetting(builder, settings, (Setting.AffixSetting<?>) setting);
                 } else if (settings.hasValue(setting.getKey())) {
                     builder.put(setting.getKey(), convertEsSettingType(setting.get(settings)));
                 }

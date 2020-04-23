@@ -70,7 +70,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
-import static io.crate.analyze.TableParameters.stripIndexPrefix;
 
 public class MetaDataToASTNodeResolver {
 
@@ -261,10 +260,13 @@ public class MetaDataToASTNodeResolver {
                 )
             );
             // we want a sorted map of table parameters
-            TreeMap<String, Object> tableParameters = new TreeMap<>(tableInfo.parameters());
+
+            TreeMap<String, Object> tableParameters = new TreeMap<>(
+                TableParameters.tableParametersFromIndexMetaData(tableInfo.parameters())
+            );
             for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
                 properties.add(new GenericProperty<>(
-                        stripIndexPrefix(entry.getKey()),
+                        TableParameters.stripIndexPrefix(entry.getKey()),
                         Literal.fromObject(entry.getValue())
                     )
                 );

@@ -22,14 +22,15 @@
 
 package io.crate.metadata;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.CheckConstraint;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Base interface for tables ({@link io.crate.metadata.table.TableInfo}) and views ({@link io.crate.metadata.view.ViewInfo}).
@@ -66,7 +67,7 @@ public interface RelationInfo extends Iterable<Reference> {
         return List.of();
     }
 
-    Map<String, Object> parameters();
+    Settings parameters();
 
     Set<Operation> supportedOperations();
 

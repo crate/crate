@@ -22,7 +22,6 @@
 package io.crate.metadata.blob;
 
 import io.crate.analyze.NumberOfReplicas;
-import io.crate.analyze.TableParameters;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.RelationUnknown;
@@ -84,7 +83,7 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
             indexMetaData.getIndex().getName(),
             indexMetaData.getNumberOfShards(),
             NumberOfReplicas.fromSettings(settings),
-            TableParameters.tableParametersFromIndexMetaData(indexMetaData),
+            settings,
             blobsPath(settings),
             IndexMetaData.SETTING_INDEX_VERSION_CREATED.get(settings),
             settings.getAsVersion(IndexMetaData.SETTING_VERSION_UPGRADED, null),

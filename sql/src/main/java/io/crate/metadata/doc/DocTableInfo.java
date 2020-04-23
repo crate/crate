@@ -21,6 +21,21 @@
 
 package io.crate.metadata.doc;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
@@ -43,18 +58,6 @@ import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 
 /**
@@ -128,7 +131,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final List<ColumnIdent> partitionedBy;
     private final int numberOfShards;
     private final String numberOfReplicas;
-    private final Map<String, Object> tableParameters;
+    private final Settings tableParameters;
     private final TableColumn docColumn;
     private final Set<Operation> supportedOperations;
 
@@ -161,7 +164,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         IndexNameExpressionResolver indexNameExpressionResolver,
                         int numberOfShards,
                         String numberOfReplicas,
-                        Map<String, Object> tableParameters,
+                        Settings tableParameters,
                         List<ColumnIdent> partitionedBy,
                         List<PartitionName> partitions,
                         ColumnPolicy columnPolicy,
@@ -383,7 +386,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return closed;
     }
 
-    public Map<String, Object> parameters() {
+    public Settings parameters() {
         return tableParameters;
     }
 

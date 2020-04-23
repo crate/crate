@@ -42,7 +42,7 @@ public class InformationSchemaInfo implements SchemaInfo {
     @Inject
     public InformationSchemaInfo() {
         tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
-            .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo())
+            .put(InformationTablesTableInfo.NAME, InformationTablesTableInfo.create())
             .put(InformationViewsTableInfo.NAME, InformationViewsTableInfo.create())
             .put(InformationColumnsTableInfo.NAME, InformationColumnsTableInfo.create())
             .put(InformationKeyColumnUsageTableInfo.NAME, InformationKeyColumnUsageTableInfo.create())

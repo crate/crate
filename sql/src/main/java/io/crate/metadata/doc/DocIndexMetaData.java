@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import io.crate.Constants;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.TableParameters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
@@ -98,7 +97,7 @@ public class DocIndexMetaData {
     private final RelationName ident;
     private final int numberOfShards;
     private final String numberOfReplicas;
-    private final Map<String, Object> tableParameters;
+    private final Settings tableParameters;
     private final Map<String, Object> indicesMap;
     private final ImmutableList<ColumnIdent> partitionedBy;
     private final Set<Operation> supportedOperations;
@@ -134,7 +133,7 @@ public class DocIndexMetaData {
         Settings settings = metaData.getSettings();
         this.numberOfReplicas = NumberOfReplicas.fromSettings(settings);
         this.mappingMap = getMappingMap(metaData);
-        this.tableParameters = TableParameters.tableParametersFromIndexMetaData(metaData);
+        this.tableParameters = metaData.getSettings();
 
         Map<String, Object> metaMap = Maps.get(mappingMap, "_meta");
         indicesMap = Maps.getOrDefault(metaMap, "indices", ImmutableMap.of());
@@ -670,7 +669,7 @@ public class DocIndexMetaData {
         return columnPolicy;
     }
 
-    public Map<String, Object> tableParameters() {
+    public Settings tableParameters() {
         return tableParameters;
     }
 

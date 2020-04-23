@@ -415,7 +415,9 @@ public class TestingHelpers {
     }
 
     public static void assertCrateVersion(Object object, Version versionCreated, Version versionUpgraded) {
-        assertThat((Map<String, String>) object,
+        var map = (Map<String, String>) object;
+        assertThat(
+            map,
             allOf(
                 hasEntry(
                     is(Version.Property.CREATED.toString()),

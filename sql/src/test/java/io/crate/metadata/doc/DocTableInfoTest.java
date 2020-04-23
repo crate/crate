@@ -16,6 +16,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -53,7 +54,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             new IndexNameExpressionResolver(),
             5,
             "0",
-            ImmutableMap.of(),
+            Settings.EMPTY,
             ImmutableList.of(),
             ImmutableList.of(),
             ColumnPolicy.DYNAMIC,
@@ -109,7 +110,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             new IndexNameExpressionResolver(),
             5,
             "0",
-            ImmutableMap.of(),
+            Settings.EMPTY,
             ImmutableList.of(),
             ImmutableList.of(),
             ColumnPolicy.DYNAMIC,

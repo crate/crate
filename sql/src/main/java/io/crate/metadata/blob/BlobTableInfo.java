@@ -41,6 +41,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -61,7 +62,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final String blobsPath;
     private final TableParameters supportedTableParameters;
-    private final Map<String, Object> tableParameters;
+    private final Settings tableParameters;
     private final Version versionCreated;
     private final Version versionUpgraded;
     private final boolean closed;
@@ -78,7 +79,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                          String index,
                          int numberOfShards,
                          String numberOfReplicas,
-                         Map<String, Object> tableParameters,
+                         Settings tableParameters,
                          String blobsPath,
                          @Nullable Version versionCreated,
                          @Nullable Version versionUpgraded,
@@ -175,7 +176,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         return supportedTableParameters;
     }
 
-    public Map<String, Object> parameters() {
+    public Settings parameters() {
         return tableParameters;
     }
 
