@@ -74,6 +74,11 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
         List<FuncResolver> functions = functionImplementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());
+        var duplicate = functions.stream().filter(fr -> fr.getSignature().equals(signature)).findFirst();
+        if (duplicate.isPresent()) {
+            throw new IllegalStateException(
+                "A function already exists for signature = " + signature);
+        }
         functions.add(new FuncResolver(signature, factory));
     }
 
@@ -83,6 +88,8 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
     protected void configure() {
         configureFunctions();
         // bind all registered functions and resolver
+        // by doing it here instead of the register functions, plugins can also use the
+        // register functions in their onModule(...) hooks
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
         resolverBinder = MapBinder.newMapBinder(binder(), FunctionName.class, FunctionResolver.class);
         for (Map.Entry<FunctionIdent, T> entry : functions.entrySet()) {
@@ -96,7 +103,7 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
         functions = null;
         resolver = null;
 
-        // V2
+        // New signature registry
         implementationsBinder = MapBinder.newMapBinder(
             binder(),
             new TypeLiteral<FunctionName>() {},
