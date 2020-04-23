@@ -21,11 +21,14 @@ package io.crate.protocols.ssl;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.handler.ssl.SslContext;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.KeyStore;
+import java.security.Security;
 
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
 import static org.hamcrest.CoreMatchers.not;
@@ -37,11 +40,18 @@ public class SslContextProviderTest extends CrateUnitTest {
 
     private static File trustStoreFile;
     private static File keyStoreFile;
+    private static String defaultKeyStoreType = KeyStore.getDefaultType();
 
     @BeforeClass
     public static void beforeTests() throws IOException {
         trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
         keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
+        Security.setProperty("keystore.type", "jks");
+    }
+
+    @AfterClass
+    public static void resetKeyStoreType() {
+        Security.setProperty("keystore.type", defaultKeyStoreType);
     }
 
     @Test

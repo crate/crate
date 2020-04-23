@@ -23,6 +23,7 @@ import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.postgresql.util.PSQLException;
@@ -32,6 +33,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.security.KeyStore;
+import java.security.Security;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -48,6 +51,7 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
 
     private static File trustStoreFile;
     private static File keyStoreFile;
+    private static String defaultKeyStoreType = KeyStore.getDefaultType();
 
     public AuthenticationWithSSLIntegrationTest() {
         super(true);
@@ -57,6 +61,12 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
     public static void beforeIntegrationTest() throws IOException {
         keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
         trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
+        Security.setProperty("keystore.type", "jks");
+    }
+
+    @AfterClass
+    public static void resetKeyStoreType() {
+        Security.setProperty("keystore.type", defaultKeyStoreType);
     }
 
     @Override
