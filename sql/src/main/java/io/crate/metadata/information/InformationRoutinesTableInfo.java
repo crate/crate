@@ -21,40 +21,28 @@
 
 package io.crate.metadata.information;
 
-import io.crate.metadata.ColumnIdent;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.STRING;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutineInfo;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.SystemTable;
 
-import java.util.Map;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-
-public class InformationRoutinesTableInfo extends InformationTableInfo<RoutineInfo> {
+public class InformationRoutinesTableInfo {
 
     public static final String NAME = "routines";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    private static ColumnRegistrar<RoutineInfo> columnRegistrar() {
-        return new ColumnRegistrar<RoutineInfo>(IDENT, RowGranularity.DOC)
-            .register("routine_name", STRING, () -> forFunction(RoutineInfo::name))
-            .register("routine_type", STRING, () -> forFunction(RoutineInfo::type))
-            .register("routine_schema", STRING, () -> forFunction(RoutineInfo::schema))
-            .register("specific_name", STRING, () -> forFunction(RoutineInfo::specificName))
-            .register("routine_body", STRING, () -> forFunction(RoutineInfo::body))
-            .register("routine_definition", STRING, () -> forFunction(RoutineInfo::definition))
-            .register("data_type", STRING, () -> forFunction(RoutineInfo::dataType))
-            .register("is_deterministic", BOOLEAN, () -> forFunction(RoutineInfo::isDeterministic));
-    }
-
-    static Map<ColumnIdent, RowCollectExpressionFactory<RoutineInfo>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    InformationRoutinesTableInfo() {
-        super(IDENT, columnRegistrar());
+    public static SystemTable<RoutineInfo> create() {
+        return SystemTable.<RoutineInfo>builder(IDENT)
+            .add("routine_name", STRING, RoutineInfo::name)
+            .add("routine_type", STRING, RoutineInfo::type)
+            .add("routine_schema", STRING, RoutineInfo::schema)
+            .add("specific_name", STRING, RoutineInfo::specificName)
+            .add("routine_body", STRING, RoutineInfo::body)
+            .add("routine_definition", STRING, RoutineInfo::definition)
+            .add("data_type", STRING, RoutineInfo::dataType)
+            .add("is_deterministic", BOOLEAN, RoutineInfo::isDeterministic)
+            .build();
     }
 }

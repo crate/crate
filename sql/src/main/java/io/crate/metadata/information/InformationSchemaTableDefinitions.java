@@ -79,7 +79,7 @@ public class InformationSchemaTableDefinitions {
         tableDefinitions.put(InformationRoutinesTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::routines,
             (user, r) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, r.schema()),
-            InformationRoutinesTableInfo.expressions()
+            InformationRoutinesTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationSqlFeaturesTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.features()),
