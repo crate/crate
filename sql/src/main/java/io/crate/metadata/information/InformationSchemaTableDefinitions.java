@@ -45,7 +45,7 @@ public class InformationSchemaTableDefinitions {
         tableDefinitions.put(InformationSchemataTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
             (user, s) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name()),
-            InformationSchemataTableInfo.expressions()
+            InformationSchemataTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationTablesTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::relations,
@@ -74,16 +74,16 @@ public class InformationSchemaTableDefinitions {
         tableDefinitions.put(InformationTableConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::constraints,
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relationName().fqn()),
-            InformationTableConstraintsTableInfo.expressions()
+            InformationTableConstraintsTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationRoutinesTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::routines,
             (user, r) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, r.schema()),
-            InformationRoutinesTableInfo.expressions()
+            InformationRoutinesTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationSqlFeaturesTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.features()),
-            InformationSqlFeaturesTableInfo.expressions(),
+            InformationSqlFeaturesTableInfo.create().expressions(),
             false));
         tableDefinitions.put(InformationKeyColumnUsageTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::keyColumnUsage,
@@ -92,7 +92,7 @@ public class InformationSchemaTableDefinitions {
         ));
         tableDefinitions.put(InformationReferentialConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
-            InformationReferentialConstraintsTableInfo.expressions(),
+            InformationReferentialConstraintsTableInfo.create().expressions(),
             false));
     }
 
