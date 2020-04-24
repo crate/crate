@@ -26,25 +26,20 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
 import io.crate.types.RowType;
-import io.crate.types.TimestampType;
 import org.joda.time.Period;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -53,7 +48,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
 
 /**
  * <pre>
@@ -71,7 +65,103 @@ import java.util.stream.Collectors;
 public final class GenerateSeries<T extends Number> extends TableFunctionImplementation<T> {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "generate_series");
+
+    public static void register(TableFunctionModule module) {
+        // without step
+        module.register(
+            Signature.table(
+                NAME,
+                DataTypes.LONG.getTypeSignature(),
+                DataTypes.LONG.getTypeSignature(),
+                new RowType(List.of(DataTypes.LONG)).getTypeSignature()),
+            (signature, argTypes) -> new GenerateSeries<>(
+                signature,
+                argTypes,
+                1L,
+                (x, y) -> x - y,
+                Long::sum,
+                (x, y) -> x / y,
+                Long::compare)
+        );
+        module.register(
+            Signature.table(
+                NAME,
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                new RowType(List.of(DataTypes.INTEGER)).getTypeSignature()),
+            (signature, argTypes) -> new GenerateSeries<>(
+                signature,
+                argTypes,
+                1,
+                (x, y) -> x - y,
+                Integer::sum,
+                (x, y) -> x / y,
+                Integer::compare)
+        );
+
+        // with step
+        module.register(
+            Signature.table(
+                NAME,
+                DataTypes.LONG.getTypeSignature(),
+                DataTypes.LONG.getTypeSignature(),
+                DataTypes.LONG.getTypeSignature(),
+                new RowType(List.of(DataTypes.LONG)).getTypeSignature()),
+            (signature, argTypes) -> new GenerateSeries<>(
+                signature,
+                argTypes,
+                1L,
+                (x, y) -> x - y,
+                Long::sum,
+                (x, y) -> x / y,
+                Long::compare)
+        );
+        module.register(
+            Signature.table(
+                NAME,
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                new RowType(List.of(DataTypes.INTEGER)).getTypeSignature()),
+            (signature, argTypes) -> new GenerateSeries<>(
+                signature,
+                argTypes,
+                1,
+                (x, y) -> x - y,
+                Integer::sum,
+                (x, y) -> x / y,
+                Integer::compare)
+        );
+
+        // generate_series(ts, ts, interval)
+        for (var supportedType : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
+            module.register(
+                Signature.table(
+                    NAME,
+                    supportedType.getTypeSignature(),
+                    supportedType.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    new RowType(List.of(supportedType)).getTypeSignature()),
+                GenerateSeriesIntervals::new
+            );
+            module.register(
+                Signature.table(
+                    NAME,
+                    supportedType.getTypeSignature(),
+                    supportedType.getTypeSignature(),
+                    new RowType(List.of(supportedType)).getTypeSignature()),
+                (signature, argTypes) -> {
+                    throw new IllegalArgumentException(
+                        "generate_series(start, stop) has type `" + argTypes.get(0).getName() +
+                        "` for start, but requires long/int values for start and stop, " +
+                        "or if used with timestamps, it requires a third argument for the step (interval)");
+                }
+            );
+        }
+    }
+
     private final FunctionInfo info;
+    private final Signature signature;
     private final T defaultStep;
     private final BinaryOperator<T> minus;
     private final BinaryOperator<T> plus;
@@ -79,61 +169,24 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     private final Comparator<T> comparator;
     private final RowType returnType;
 
-    public static void register(TableFunctionModule module) {
-        Param startAndEnd = Param.of(DataTypes.LONG, DataTypes.INTEGER, DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP);
-        Param stepType = Param.of(DataTypes.LONG, DataTypes.INTEGER, DataTypes.INTERVAL);
-        FuncParams.Builder paramsBuilder = FuncParams
-            .builder(startAndEnd, startAndEnd)
-            .withVarArgs(stepType)
-            .limitVarArgOccurrences(1);
-        module.register(NAME, new BaseFunctionResolver(paramsBuilder.build()) {
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
-                DataType<?> startType = types.get(0);
-                DataType<?> stopType = types.get(1);
-                assert startType.equals(stopType) : "Start and stop type must be the same, got: " + startType + " and " + stopType;
-                if (types.size() == 2 && !startType.equals(DataTypes.INTEGER) && !startType.equals(DataTypes.LONG)) {
-                    throw new IllegalArgumentException(
-                        "generate_series(start, stop) has type `" + startType.getName() +
-                        "` for start, but requires long/int values for start and stop, " +
-                        "or if used with timestamps, it requires a third argument for the step (interval)");
-                }
-                switch (stopType.id()) {
-                    case IntegerType.ID:
-                        return new GenerateSeries<>(types, 1, (x, y) -> x - y, Integer::sum, (x, y) -> x / y, Integer::compare);
-
-                    case LongType.ID:
-                        return new GenerateSeries<>(types, 1L, (x, y) -> x - y, Long::sum, (x, y) -> x / y, Long::compare);
-
-                    case TimestampType.ID_WITH_TZ:
-                    case TimestampType.ID_WITHOUT_TZ:
-                        return new GenerateSeriesIntervals(types);
-
-                    default:
-                        var typeNames = types.stream()
-                            .map(DataType::getName)
-                            .collect(Collectors.joining(", "));
-                        throw new IllegalArgumentException(
-                            "Couldn't find variant of generate_series(start, stop [, step]) that matches the given types: " + typeNames);
-                }
-            }
-        });
-    }
-
-    private GenerateSeries(List<DataType> dataTypes,
+    private GenerateSeries(Signature signature,
+                           List<DataType> dataTypes,
                            T defaultStep,
                            BinaryOperator<T> minus,
                            BinaryOperator<T> plus,
                            BinaryOperator<T> divide,
                            Comparator<T> comparator) {
+        this.signature = signature;
         this.defaultStep = defaultStep;
         this.minus = minus;
         this.plus = plus;
         this.divide = divide;
         this.comparator = comparator;
-        FunctionIdent functionIdent = new FunctionIdent(NAME, dataTypes);
         this.returnType = new RowType(List.of((DataType<?>) dataTypes.get(0)));
-        this.info = new FunctionInfo(functionIdent, dataTypes.get(0), FunctionInfo.Type.TABLE);
+        this.info = new FunctionInfo(
+            new FunctionIdent(NAME, dataTypes),
+            dataTypes.get(0),
+            FunctionInfo.Type.TABLE);
     }
 
     @Override
@@ -159,7 +212,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
             @Override
             @Nonnull
             public Iterator<Row> iterator() {
-                return new Iterator<Row>() {
+                return new Iterator<>() {
                     boolean doStep = false;
                     T val = startInclusive;
 
@@ -196,6 +249,12 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         return info;
     }
 
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
+    }
+
     @Override
     public RowType returnType() {
         return returnType;
@@ -210,16 +269,23 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
 
         private final FunctionInfo info;
         private final RowType returnType;
+        private final Signature signature;
 
-        public GenerateSeriesIntervals(List<DataType> types) {
-            FunctionIdent functionIdent = new FunctionIdent(NAME, types);
+        public GenerateSeriesIntervals(Signature signature, List<DataType> types) {
+            this.signature = signature;
+            info = new FunctionInfo(new FunctionIdent(NAME, types), types.get(0), FunctionInfo.Type.TABLE);
             returnType = new RowType(List.of((DataType<?>) types.get(0)));
-            this.info = new FunctionInfo(functionIdent, types.get(0), FunctionInfo.Type.TABLE);
         }
 
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Nullable
+        @Override
+        public Signature signature() {
+            return signature;
         }
 
         @Override
