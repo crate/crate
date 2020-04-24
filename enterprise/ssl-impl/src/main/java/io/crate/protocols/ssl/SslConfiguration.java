@@ -18,20 +18,6 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.common.Optionals;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
-import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslHandler;
-import io.netty.handler.ssl.SslProvider;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.security.Key;
@@ -46,6 +32,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.common.Optionals;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.ssl.SslProvider;
 
 /**
  * Builds a Netty {@link SSLContext} which is passed upon creation of a {@link SslHandler}
@@ -177,7 +179,6 @@ public final class SslConfiguration {
             // If we just specify "TLS" here, it depends on the JVM implementation which version we'll get.
             SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
             sslContext.init(keyManagers, trustManagers, null);
-            SSLContext.setDefault(sslContext);
 
             var keyStoreRootCerts = getRootCertificates(keyStore);
             var keyStoreCertChain = getCertificateChain(keyStore);

@@ -170,6 +170,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused ``COPY FROM`` from a ``HTTPS`` URL to fail with
+  ``No X509TrustManager implementation available`` if CrateDB is configured to
+  use ``SSL``.
+
 - Fixed an issue that would lead to incorrect result when selecting the
   :ref:`cluster license <sys-cluster-license>` object column, namely, the
   fields of the object would contain the null values, even though the license.

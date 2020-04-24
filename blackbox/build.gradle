@@ -66,6 +66,10 @@ task s3Test(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
     commandLine "$projectDir/bin/test-s3"
 }
 
+task sslTest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
+    commandLine "$projectDir/bin/test-ssl"
+}
+
 task monitoringTest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
     commandLine "$projectDir/bin/test-jmx"
 }
