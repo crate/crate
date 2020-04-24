@@ -57,20 +57,4 @@ None
 Fixes
 =====
 
-- Fixed an issue that caused ``COPY FROM`` from a ``HTTPS`` URL to fail with
-  ``No X509TrustManager implementation available`` if CrateDB is configured to
-  use ``SSL``.
-
-- Fixed an issue that would lead to incorrect result when selecting the
-  :ref:`cluster license <sys-cluster-license>` object column, namely, the
-  fields of the object would contain null values, even though the license
-  was set.
-
-- Fixed an issue that caused a ``OFFSET`` as part of a ``UNION`` to be applied
-  incorrectly.
-
-- Fixed an issue that could lead to incorrect ordering of a result sets if
-  using ``ORDER BY`` on a column of type ``IP`` or on a scalar function.
-
-- Fixed an issue that caused a ``NullPointerException`` if using ``COPY TO``
-  with a ``WHERE`` clause with filters on primary key columns.
+None
