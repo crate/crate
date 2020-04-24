@@ -1,0 +1,53 @@
+.. _version_4.1.5:
+
+=============
+Version 4.1.5
+=============
+
+Released on 2020-04-24.
+
+.. NOTE::
+
+    If upgrading a cluster, you must be running CrateDB 4.0.2 or higher before
+    you upgrade to 4.1.5.
+
+    We recommend that you upgrade to the latest 4.0 release before moving to
+    4.1.5.
+
+    A rolling upgrade to 4.1.5 from 4.0.2+ is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.1.0` release notes for a full list of changes in the
+4.1 series.
+
+
+Fixes
+=====
+
+- Fixed an issue that caused ``COPY FROM`` from a ``HTTPS`` URL to fail with
+  ``No X509TrustManager implementation available`` if CrateDB is configured to
+  use ``SSL``.
+
+- Fixed an issue that would lead to incorrect result when selecting the
+  :ref:`cluster license <sys-cluster-license>` object column, namely, the
+  fields of the object would contain null values, even though the license
+  was set.
+
+- Fixed an issue that caused a ``OFFSET`` as part of a ``UNION`` to be applied
+  incorrectly.
+
+- Fixed an issue that could lead to incorrect ordering of a result sets if
+  using ``ORDER BY`` on a column of type ``IP`` or on a scalar function.
+
+- Fixed an issue that caused a ``NullPointerException`` if using ``COPY TO``
+  with a ``WHERE`` clause with filters on primary key columns.
