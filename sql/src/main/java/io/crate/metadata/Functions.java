@@ -478,15 +478,17 @@ public class Functions {
             return applicableFunctions;
         }
 
+        // Find most specific by number of exact argument type matches
         List<TypeSignature> argumentTypeSignatures = Lists2.map(argumentTypes, DataType::getTypeSignature);
-        List<ApplicableFunction> mostSpecificFunctions = selectMostSpecificFunctionsByExactTypeMatches(
+        List<ApplicableFunction> mostSpecificFunctions = selectMostSpecificFunctions(
             applicableFunctions,
-            argumentTypeSignatures);
+            (l, r) -> hasMoreExactTypeMatches(l, r, argumentTypeSignatures));
         if (mostSpecificFunctions.size() <= 1) {
             return mostSpecificFunctions;
         }
 
-        mostSpecificFunctions = selectMostSpecificFunctionsByPrecedence(applicableFunctions);
+        // Find most specific by type precedence
+        mostSpecificFunctions = selectMostSpecificFunctions(applicableFunctions, Functions::isMoreSpecificThan);
         if (mostSpecificFunctions.size() <= 1) {
             return mostSpecificFunctions;
         }
@@ -516,44 +518,21 @@ public class Functions {
         return mostSpecificFunctions;
     }
 
-    private static List<ApplicableFunction> selectMostSpecificFunctionsByExactTypeMatches(List<ApplicableFunction> candidates,
-                                                                                          List<TypeSignature> actualArgumentTypes) {
+    private static List<ApplicableFunction> selectMostSpecificFunctions(
+        List<ApplicableFunction> candidates,
+        BiFunction<ApplicableFunction, ApplicableFunction, Boolean> isMoreSpecific) {
         List<ApplicableFunction> representatives = new ArrayList<>();
 
         for (ApplicableFunction current : candidates) {
             boolean found = false;
             for (int i = 0; i < representatives.size(); i++) {
                 ApplicableFunction representative = representatives.get(i);
-                if (hasMoreExactTypeMatches(current, representative, actualArgumentTypes)) {
-                    representatives.set(i, current);
-                }
-                if (hasMoreExactTypeMatches(current, representative, actualArgumentTypes)
-                    || hasMoreExactTypeMatches(representative, current, actualArgumentTypes)) {
+                if (isMoreSpecific.apply(current, representative)) {
+                    representatives.clear();
+                    representatives.add(current);
                     found = true;
                     break;
-                }
-            }
-
-            if (!found) {
-                representatives.add(current);
-            }
-        }
-
-        return representatives;
-    }
-
-    private static List<ApplicableFunction> selectMostSpecificFunctionsByPrecedence(List<ApplicableFunction> candidates) {
-        List<ApplicableFunction> representatives = new ArrayList<>();
-
-        for (ApplicableFunction current : candidates) {
-            boolean found = false;
-            for (int i = 0; i < representatives.size(); i++) {
-                ApplicableFunction representative = representatives.get(i);
-                if (isMoreSpecificThan(current, representative)) {
-                    representatives.set(i, current);
-                }
-                if (isMoreSpecificThan(current, representative)
-                    || isMoreSpecificThan(representative, current)) {
+                } else if (isMoreSpecific.apply(representative, current)) {
                     found = true;
                     break;
                 }
