@@ -1689,8 +1689,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testSelectStarFromUnnestWithInvalidArguments() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `1` of type `bigint` to type `undefined_array`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: unnest(bigint, text)");
         analyze("select * from unnest(1, 'foo')");
     }
 
