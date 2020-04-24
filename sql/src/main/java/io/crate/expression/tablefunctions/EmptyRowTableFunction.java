@@ -24,17 +24,14 @@ package io.crate.expression.tablefunctions;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.types.DataType;
-import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -44,17 +41,38 @@ public class EmptyRowTableFunction {
 
     private static final String NAME = "empty_row";
 
+    public static void register(TableFunctionModule module) {
+        module.register(
+            Signature.table(NAME, RowType.EMPTY.getTypeSignature()),
+            (signature, argTypes) -> new EmptyRowTableFunctionImplementation(
+                signature,
+                new FunctionInfo(
+                    new FunctionIdent(NAME, argTypes),
+                    RowType.EMPTY,
+                    FunctionInfo.Type.TABLE)
+            )
+        );
+    }
+
     static class EmptyRowTableFunctionImplementation extends TableFunctionImplementation<Object> {
 
         private final FunctionInfo info;
+        private final Signature signature;
 
-        private EmptyRowTableFunctionImplementation(FunctionInfo info) {
+        private EmptyRowTableFunctionImplementation(Signature signature, FunctionInfo info) {
             this.info = info;
+            this.signature = signature;
         }
 
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Nullable
+        @Override
+        public Signature signature() {
+            return signature;
         }
 
         @Override
@@ -72,16 +90,5 @@ public class EmptyRowTableFunction {
         public boolean hasLazyResultSet() {
             return false;
         }
-    }
-
-    public static void register(TableFunctionModule module) {
-        module.register(NAME, new BaseFunctionResolver(FuncParams.NONE) {
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new EmptyRowTableFunctionImplementation(
-                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), ObjectType.untyped(), FunctionInfo.Type.TABLE));
-            }
-        });
     }
 }
