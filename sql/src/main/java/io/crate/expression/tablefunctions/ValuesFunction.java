@@ -24,34 +24,49 @@ package io.crate.expression.tablefunctions;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.RowType;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import static io.crate.metadata.functions.params.Param.ANY_ARRAY;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class ValuesFunction {
 
     public static final String NAME = "_values";
 
+    public static final Signature SIGNATURE = Signature
+        .table(
+            NAME,
+            parseTypeSignature("array(E)"),
+            RowType.EMPTY.getTypeSignature())
+        .withTypeVariableConstraints(typeVariableOfAnyType("E"))
+        .withVariableArity();
+
+    public static void register(TableFunctionModule module) {
+        module.register(SIGNATURE, ValuesTableFunctionImplementation::new);
+    }
+
     private static class ValuesTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final FunctionInfo info;
         private final RowType returnType;
+        private final Signature signature;
 
-        private ValuesTableFunctionImplementation(List<DataType> argTypes) {
+        private ValuesTableFunctionImplementation(Signature signature,
+                                                  List<DataType> argTypes) {
+            this.signature = signature;
             ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {
                 DataType<?> dataType = argTypes.get(i);
@@ -72,6 +87,12 @@ public class ValuesFunction {
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Nullable
+        @Override
+        public Signature signature() {
+            return signature;
         }
 
         @Override
@@ -103,16 +124,5 @@ public class ValuesFunction {
         public boolean hasLazyResultSet() {
             return false;
         }
-    }
-
-    public static void register(TableFunctionModule module) {
-        module.register(NAME, new BaseFunctionResolver(
-            FuncParams.builder().withIndependentVarArgs(ANY_ARRAY).build()) {
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new ValuesTableFunctionImplementation(dataTypes);
-            }
-        });
     }
 }

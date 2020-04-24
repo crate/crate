@@ -708,9 +708,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 columnValues
             ));
         }
-        FunctionIdent functionIdent = new FunctionIdent(ValuesFunction.NAME, Symbols.typeView(arrays));
-        FunctionImplementation implementation = functions.getQualified(functionIdent);
-        Function function = new Function(implementation.info(), arrays);
+        FunctionImplementation implementation = functions.getQualified(
+            ValuesFunction.SIGNATURE,
+            Symbols.typeView(arrays)
+        );
+        Function function = new Function(
+            implementation.info(),
+            implementation.signature(),
+            arrays
+        );
         TableFunctionImplementation<?> tableFunc = TableFunctionFactory.from(implementation);
         TableFunctionRelation relation = new TableFunctionRelation(tableFunc, function);
         context.startRelation();
