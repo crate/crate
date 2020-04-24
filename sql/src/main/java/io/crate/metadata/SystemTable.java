@@ -295,139 +295,141 @@ public final class SystemTable<T> implements TableInfo {
             return this;
         }
 
-        public static class ObjectBuilder<T, P extends Builder<T>> extends Builder<T> {
 
-            private final P parent;
-            private final ColumnIdent baseColumn;
-            private final ArrayList<Column<T, ?>> columns = new ArrayList<>();
+    }
 
-            public ObjectBuilder(P parent, ColumnIdent baseColumn) {
-                this.parent = parent;
-                this.baseColumn = baseColumn;
-            }
+    public static class ObjectBuilder<T, P extends Builder<T>> extends Builder<T> {
 
-            public <U> ObjectBuilder<T, P> add(String column, DataType<U> type, Function<T, U> getProperty) {
-                return add(new Column<>(baseColumn.append(column), type, getProperty));
-            }
+        private final P parent;
+        private final ColumnIdent baseColumn;
+        private final ArrayList<Column<T, ?>> columns = new ArrayList<>();
 
-            @Override
-            protected <U> ObjectBuilder<T, P> add(Column<T, U> column) {
-                columns.add(column);
-                return this;
-            }
-
-            public <U> ObjectArrayBuilder<U, T, ObjectBuilder<T, P>> startObjectArray(String column, Function<T, List<U>> getItems) {
-                return new ObjectArrayBuilder<>(this, baseColumn.append(column), getItems);
-            }
-
-            public ObjectBuilder<T, ObjectBuilder<T, P>> startObject(String column) {
-                return new ObjectBuilder<>(this, baseColumn.append(column));
-            }
-
-            public P endObject() {
-                ObjectType.Builder typeBuilder = ObjectType.builder();
-                ArrayList<Column<T, ?>> directChildren = new ArrayList<>();
-                for (var col : columns) {
-                    if (col.column.path().size() == baseColumn.path().size() + 1) {
-                        directChildren.add(col);
-                    }
-                }
-                for (var column : directChildren) {
-                    typeBuilder.setInnerType(column.column.leafName(), column.type);
-                }
-                ObjectType objectType = typeBuilder.build();
-                parent.add(new Column<>(baseColumn, objectType, new ObjectExpression<>(directChildren)));
-                for (Column<T, ?> column : columns) {
-                    addColumnToParent(column);
-                }
-                return parent;
-            }
-
-            public <U> void addColumnToParent(Column<T, U> column) {
-                parent.add(new Column<>(column.column, column.type, column.getProperty));
-            }
+        public ObjectBuilder(P parent, ColumnIdent baseColumn) {
+            this.parent = parent;
+            this.baseColumn = baseColumn;
         }
 
-        public static class ObjectArrayBuilder<ItemType, ParentItemType, P extends Builder<ParentItemType>> extends Builder<ItemType> {
+        public <U> ObjectBuilder<T, P> add(String column, DataType<U> type, Function<T, U> getProperty) {
+            return add(new Column<>(baseColumn.append(column), type, getProperty));
+        }
 
-            private final P parent;
-            private final ArrayList<Column<ItemType, ?>> columns = new ArrayList<>();
-            private final ColumnIdent baseColumn;
-            private final Function<ParentItemType, List<ItemType>> getItems;
+        @Override
+        protected <U> ObjectBuilder<T, P> add(Column<T, U> column) {
+            columns.add(column);
+            return this;
+        }
 
-            public ObjectArrayBuilder(P parent, ColumnIdent baseColumn, Function<ParentItemType, List<ItemType>> getItems) {
-                this.parent = parent;
-                this.baseColumn = baseColumn;
-                this.getItems = getItems;
+        public <U> ObjectArrayBuilder<U, T, ObjectBuilder<T, P>> startObjectArray(String column, Function<T, List<U>> getItems) {
+            return new ObjectArrayBuilder<>(this, baseColumn.append(column), getItems);
+        }
+
+        public ObjectBuilder<T, ObjectBuilder<T, P>> startObject(String column) {
+            return new ObjectBuilder<>(this, baseColumn.append(column));
+        }
+
+        public P endObject() {
+            ObjectType.Builder typeBuilder = ObjectType.builder();
+            ArrayList<Column<T, ?>> directChildren = new ArrayList<>();
+            for (var col : columns) {
+                if (col.column.path().size() == baseColumn.path().size() + 1) {
+                    directChildren.add(col);
+                }
             }
-
-            public P endObjectArray() {
-                ObjectType.Builder typeBuilder = ObjectType.builder();
-                ArrayList<Column<ItemType, ?>> directChildren = new ArrayList<>();
-                for (var col : columns) {
-                    if (col.column.path().size() == baseColumn.path().size() + 1) {
-                        directChildren.add(col);
-                    }
-                }
-                for (var column : directChildren) {
-                    typeBuilder.setInnerType(column.column.leafName(), column.type);
-                }
-                ObjectType objectType = typeBuilder.build();
-                parent.add(new Column<>(baseColumn, new ArrayType<>(objectType), getLeafColumnValues(directChildren)));
-                for (var column : columns) {
-                    addColumnToParent(column);
-                }
-                return parent;
+            for (var column : directChildren) {
+                typeBuilder.setInnerType(column.column.leafName(), column.type);
             }
+            ObjectType objectType = typeBuilder.build();
+            parent.add(new Column<>(baseColumn, objectType, new ObjectExpression<>(directChildren)));
+            for (Column<T, ?> column : columns) {
+                addColumnToParent(column);
+            }
+            return parent;
+        }
 
-            public Function<ParentItemType, List<Map<String, Object>>> getLeafColumnValues(ArrayList<Column<ItemType, ?>> directChildren) {
-                return xs -> {
-                    var items = getItems.apply(xs);
-                    ArrayList<Map<String, Object>> result = new ArrayList<>(items.size());
-                    for (ItemType item : items) {
-                        HashMap<String, Object> map = new HashMap<>(directChildren.size());
-                        for (int i = 0; i < directChildren.size(); i++) {
-                            Column<ItemType, ?> column = directChildren.get(i);
-                            try {
-                                Object value = column.getProperty.apply(item);
-                                map.put(column.column.leafName(), value);
-                            } catch (NullPointerException ignored) {
-                            }
+        private <U> void addColumnToParent(Column<T, U> column) {
+            parent.add(new Column<>(column.column, column.type, column.getProperty));
+        }
+    }
+
+    public static class ObjectArrayBuilder<ItemType, ParentItemType, P extends Builder<ParentItemType>> extends Builder<ItemType> {
+
+        private final P parent;
+        private final ArrayList<Column<ItemType, ?>> columns = new ArrayList<>();
+        private final ColumnIdent baseColumn;
+        private final Function<ParentItemType, List<ItemType>> getItems;
+
+        public ObjectArrayBuilder(P parent, ColumnIdent baseColumn, Function<ParentItemType, List<ItemType>> getItems) {
+            this.parent = parent;
+            this.baseColumn = baseColumn;
+            this.getItems = getItems;
+        }
+
+        public P endObjectArray() {
+            ObjectType.Builder typeBuilder = ObjectType.builder();
+            ArrayList<Column<ItemType, ?>> directChildren = new ArrayList<>();
+            for (var col : columns) {
+                if (col.column.path().size() == baseColumn.path().size() + 1) {
+                    directChildren.add(col);
+                }
+            }
+            for (var column : directChildren) {
+                typeBuilder.setInnerType(column.column.leafName(), column.type);
+            }
+            ObjectType objectType = typeBuilder.build();
+            parent.add(new Column<>(baseColumn, new ArrayType<>(objectType), getLeafColumnValues(directChildren)));
+            for (var column : columns) {
+                addColumnToParent(column);
+            }
+            return parent;
+        }
+
+        public Function<ParentItemType, List<Map<String, Object>>> getLeafColumnValues(ArrayList<Column<ItemType, ?>> directChildren) {
+            return xs -> {
+                var items = getItems.apply(xs);
+                ArrayList<Map<String, Object>> result = new ArrayList<>(items.size());
+                for (ItemType item : items) {
+                    HashMap<String, Object> map = new HashMap<>(directChildren.size());
+                    for (int i = 0; i < directChildren.size(); i++) {
+                        Column<ItemType, ?> column = directChildren.get(i);
+                        try {
+                            Object value = column.getProperty.apply(item);
+                            map.put(column.column.leafName(), value);
+                        } catch (NullPointerException ignored) {
                         }
-                        result.add(map);
+                    }
+                    result.add(map);
+                }
+                return result;
+            };
+        }
+
+        private <U> void addColumnToParent(Column<ItemType, U> column) {
+            parent.add(new Column<>(
+                column.column,
+                new ArrayType<>(column.type),
+                xs -> {
+                    var items = getItems.apply(xs);
+                    ArrayList<U> result = new ArrayList<>(items.size());
+                    for (ItemType item : items) {
+                        result.add(column.getProperty.apply(item));
                     }
                     return result;
-                };
-            }
+                }
+            ));
+        }
 
-            public <U> void addColumnToParent(Column<ItemType, U> column) {
-                parent.add(new Column<>(
-                    column.column,
-                    new ArrayType<>(column.type),
-                    xs -> {
-                        var items = getItems.apply(xs);
-                        ArrayList<U> result = new ArrayList<>(items.size());
-                        for (ItemType item : items) {
-                            result.add(column.getProperty.apply(item));
-                        }
-                        return result;
-                    }
-                ));
-            }
-
-            @Override
-            public <U> ObjectArrayBuilder<ItemType, ParentItemType, P> add(String column,
-                                                                           DataType<U> type,
-                                                                           Function<ItemType, U> getProperty) {
-                return add(new Column<>(baseColumn.append(column), type, getProperty));
-            }
+        @Override
+        public <U> ObjectArrayBuilder<ItemType, ParentItemType, P> add(String column,
+                                                                        DataType<U> type,
+                                                                        Function<ItemType, U> getProperty) {
+            return add(new Column<>(baseColumn.append(column), type, getProperty));
+        }
 
 
-            @Override
-            protected <U> ObjectArrayBuilder<ItemType, ParentItemType, P> add(Column<ItemType, U> column) {
-                columns.add(column);
-                return this;
-            }
+        @Override
+        protected <U> ObjectArrayBuilder<ItemType, ParentItemType, P> add(Column<ItemType, U> column) {
+            columns.add(column);
+            return this;
         }
     }
 
