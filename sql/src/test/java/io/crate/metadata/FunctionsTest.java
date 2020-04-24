@@ -180,11 +180,23 @@ public class FunctionsTest extends CrateUnitTest {
 
     @Test
     public void test_signature_with_more_exact_argument_matches_is_more_specific() {
+        // We had a regression where this worked for 2 signatures (1 matching, 1 not matching)
+        // but not with multiple not matching signatures. So lets use at least 2 not matching.
+        register(
+            Signature.scalar(
+                "foo",
+                DataTypes.BOOLEAN.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature()
+            ),
+            (signature, args) ->
+                () -> new FunctionInfo(new FunctionIdent("foo", args), DataTypes.INTEGER)
+        );
         register(
             Signature.scalar(
                 "foo",
                 DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.SHORT.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ),
             (signature, args) ->
