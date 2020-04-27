@@ -84,7 +84,7 @@ public class PgCatalogTableDefinitions {
         ));
         tableDefinitions.put(PgAttrDefTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(Collections.emptyList()),
-            PgAttrDefTable.expressions(),
+            PgAttrDefTable.create().expressions(),
             false));
         tableDefinitions.put(PgAttributeTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::columns,
