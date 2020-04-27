@@ -181,8 +181,8 @@ applied cluster settings.
     | settings['indices']['recovery']['retry_delay_network']                            | text             |
     | settings['indices']['recovery']['retry_delay_state_sync']                         | text             |
     | settings['logger']                                                                | object_array     |
-    | settings['logger']['level']                                                       | text             |
-    | settings['logger']['name']                                                        | text             |
+    | settings['logger']['level']                                                       | text_array       |
+    | settings['logger']['name']                                                        | text_array       |
     | settings['memory']                                                                | object           |
     | settings['memory']['allocation']                                                  | object           |
     | settings['memory']['allocation']['type']                                          | text             |

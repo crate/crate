@@ -24,14 +24,14 @@ package io.crate.metadata.sys;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.StaticTableReferenceResolver;
-import io.crate.expression.reference.sys.cluster.ClusterLicenseExpression;
-import io.crate.license.LicenseData;
 import io.crate.license.LicenseService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.settings.CrateSetting;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -41,12 +41,10 @@ public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_license_data_can_be_selected() {
         LicenseService licenseService = mock(LicenseService.class);
-        when(licenseService.currentLicense()).thenReturn(new LicenseData(
-            2037,
-            "dummy",
-            270
-        ));
-        SysClusterTableInfo clusterTable = SysClusterTableInfo.of(
+        when(licenseService.getExpiryDateInMs()).thenReturn(2037L);
+        when(licenseService.getIssuedTo()).thenReturn("dummy");
+        when(licenseService.getMaxNodes()).thenReturn(270);
+        var clusterTable = SysClusterTableInfo.of(
             clusterService,
             new CrateSettings(clusterService, clusterService.getSettings()),
             licenseService);
@@ -73,9 +71,9 @@ public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_issued_to_is_set_with_dummy_value_if_data_is_null_and_mode_is_enterprise() {
-        LicenseService licenseService = mock(LicenseService.class);
+        LicenseService licenseService = mock(LicenseService.class, Mockito.CALLS_REAL_METHODS);
         when(licenseService.getMode()).thenReturn(LicenseService.Mode.ENTERPRISE);
-        SysClusterTableInfo clusterTable = SysClusterTableInfo.of(
+        var clusterTable = SysClusterTableInfo.of(
             clusterService,
             new CrateSettings(clusterService, clusterService.getSettings()),
             licenseService);
@@ -85,6 +83,6 @@ public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
             "license",
             "issued_to")));
         issuedTo.setNextRow(null);
-        assertThat(issuedTo.value(), Matchers.is(ClusterLicenseExpression.LICENSE_IS_LOADING));
+        assertThat(issuedTo.value(), Matchers.is(LicenseService.LICENSE_IS_LOADING));
     }
 }

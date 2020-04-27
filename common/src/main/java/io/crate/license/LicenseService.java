@@ -29,6 +29,8 @@ import java.util.concurrent.CompletableFuture;
 
 public interface LicenseService {
 
+    static final String LICENSE_IS_LOADING = "License is loading";
+
     enum LicenseState {
         VALID,
         EXPIRED,
@@ -53,5 +55,38 @@ public interface LicenseService {
 
     default Mode getMode() {
         return Mode.CE;
+    }
+
+    @Nullable
+    default Long getExpiryDateInMs() {
+        var currentLicense = currentLicense();
+        if (currentLicense == null) {
+            return null;
+        }
+        var expiryDateInMs = currentLicense.expiryDateInMs();
+        return expiryDateInMs == Long.MAX_VALUE ? null : expiryDateInMs;
+    }
+
+    @Nullable
+    default String getIssuedTo() {
+        var currentLicense = currentLicense();
+        if (currentLicense != null) {
+            return currentLicense.issuedTo();
+        } else if (getMode() == Mode.ENTERPRISE) {
+            // The admin-ui will switch it's view between CE and Enterprise based on a non-null value of `issued_to`
+            // To prevent a race-condition (wrong admin-ui view) on node startup, we set a dummy value here.
+            return LICENSE_IS_LOADING;
+        } else {
+            return null;
+        }
+    }
+
+    @Nullable
+    default Integer getMaxNodes() {
+        var currentLicense = currentLicense();
+        if (currentLicense == null) {
+            return null;
+        }
+        return currentLicense.maxNumberOfNodes();
     }
 }
