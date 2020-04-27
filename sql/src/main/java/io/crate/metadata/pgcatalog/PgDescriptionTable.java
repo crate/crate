@@ -22,52 +22,22 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterState;
-
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
 
-public final class PgDescriptionTable extends StaticTableInfo<Void> {
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+
+public final class PgDescriptionTable {
 
     public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_description");
 
-    PgDescriptionTable() {
-        super(NAME, columnRegistrar());
-    }
-
-    private static ColumnRegistrar<Void> columnRegistrar() {
-        return new ColumnRegistrar<Void>(NAME, RowGranularity.DOC)
-            .register("objoid", INTEGER, () -> constant(null))
-            .register("classoid", INTEGER, () -> constant(null))
-            .register("objsubid", INTEGER, () -> constant(null))
-            .register("description", STRING , () -> constant(null));
-    }
-
-    static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    @Override
-    public Routing getRouting(ClusterState state, RoutingProvider routingProvider, WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection, SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(NAME, state.getNodes().getLocalNodeId());
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(NAME)
+            .add("objoid", INTEGER, c -> null)
+            .add("classoid", INTEGER, c -> null)
+            .add("objsubid", INTEGER, c -> null)
+            .add("description", STRING , c -> null)
+            .build();
     }
 }

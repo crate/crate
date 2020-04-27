@@ -103,7 +103,7 @@ public class PgCatalogTableDefinitions {
         ));
         tableDefinitions.put(PgDescriptionTable.NAME, new StaticTableDefinition<>(
             () -> completedFuture(emptyList()),
-            PgDescriptionTable.expressions(),
+            PgDescriptionTable.create().expressions(),
             false)
         );
         Iterable<NamedSessionSetting> sessionSettings =
