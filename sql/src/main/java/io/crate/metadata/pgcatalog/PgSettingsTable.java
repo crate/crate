@@ -22,74 +22,39 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.settings.session.NamedSessionSetting;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterState;
-
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.BOOLEAN;
+
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.settings.session.NamedSessionSetting;
 
 
-public class PgSettingsTable extends StaticTableInfo<NamedSessionSetting> {
+public class PgSettingsTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_settings");
 
-    @SuppressWarnings({"unchecked"})
-    private static ColumnRegistrar<NamedSessionSetting> columnRegistrar() {
-        return new ColumnRegistrar<NamedSessionSetting>(IDENT, RowGranularity.DOC)
-            .register("name", STRING, () -> forFunction(NamedSessionSetting::name))
-            .register("setting", STRING, () -> forFunction(NamedSessionSetting::value))
-            .register("unit", STRING, () -> constant(null))
-            .register("category", STRING, () -> constant(null))
-            .register("short_desc", STRING, () -> forFunction(NamedSessionSetting::description))
-            .register("extra_desc", STRING, () -> constant(null))
-            .register("context", STRING, () -> constant(null))
-            .register("vartype", STRING, () -> forFunction(NamedSessionSetting::type))
-            .register("source", STRING, () -> constant(null))
-            .register("enumvals", STRING_ARRAY, () -> constant(null))
-            .register("min_val", STRING, () -> constant(null))
-            .register("max_val", STRING, () -> constant(null))
-            .register("boot_val", STRING, () -> forFunction(NamedSessionSetting::defaultValue))
-            .register("reset_val", STRING, () -> forFunction(NamedSessionSetting::defaultValue))
-            .register("sourcefile", STRING, () -> constant(null))
-            .register("sourceline", INTEGER, () -> constant(null))
-            .register("pending_restart", BOOLEAN, () -> constant(null));
-    }
-
-    PgSettingsTable() {
-        super(IDENT, columnRegistrar());
-    }
-
-    static Map<ColumnIdent, RowCollectExpressionFactory<NamedSessionSetting>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    @Override
-    public Routing getRouting(ClusterState state,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
+    public static SystemTable<NamedSessionSetting> create() {
+        return SystemTable.<NamedSessionSetting>builder(IDENT)
+            .add("name", STRING, NamedSessionSetting::name)
+            .add("setting", STRING, NamedSessionSetting::value)
+            .add("unit", STRING, c -> null)
+            .add("category", STRING, c -> null)
+            .add("short_desc", STRING, NamedSessionSetting::description)
+            .add("extra_desc", STRING, c -> null)
+            .add("context", STRING, c -> null)
+            .add("vartype", STRING, NamedSessionSetting::type)
+            .add("source", STRING, c -> null)
+            .add("enumvals", STRING_ARRAY, c -> null)
+            .add("min_val", STRING, c -> null)
+            .add("max_val", STRING, c -> null)
+            .add("boot_val", STRING, NamedSessionSetting::defaultValue)
+            .add("reset_val", STRING, NamedSessionSetting::defaultValue)
+            .add("sourcefile", STRING, c -> null)
+            .add("sourceline", INTEGER, c -> null)
+            .add("pending_restart", BOOLEAN, c -> null)
+            .build();
     }
 }
