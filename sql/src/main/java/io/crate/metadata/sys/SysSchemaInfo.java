@@ -55,7 +55,7 @@ public class SysSchemaInfo implements SchemaInfo {
         tableInfos.put(SysOperationsTableInfo.IDENT.name(), SysOperationsTableInfo.create(localNode));
         tableInfos.put(SysOperationsLogTableInfo.IDENT.name(), SysOperationsLogTableInfo.create());
         tableInfos.put(SysChecksTableInfo.IDENT.name(), SysChecksTableInfo.create());
-        tableInfos.put(SysNodeChecksTableInfo.IDENT.name(), new SysNodeChecksTableInfo());
+        tableInfos.put(SysNodeChecksTableInfo.IDENT.name(), SysNodeChecksTableInfo.create());
         tableInfos.put(SysRepositoriesTableInfo.IDENT.name(), SysRepositoriesTableInfo.create(clusterService.getClusterSettings().maskedSettings()));
         tableInfos.put(SysSnapshotsTableInfo.IDENT.name(), SysSnapshotsTableInfo.create());
         tableInfos.put(SysSummitsTableInfo.IDENT.name(), SysSummitsTableInfo.create());
