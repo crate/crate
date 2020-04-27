@@ -75,7 +75,7 @@ public class PgCatalogTableDefinitions {
         );
         tableDefinitions.put(PgDatabaseTable.NAME, new StaticTableDefinition<>(
             () -> completedFuture(singletonList(null)),
-            PgDatabaseTable.expressions(),
+            PgDatabaseTable.create().expressions(),
             false));
         tableDefinitions.put(PgNamespaceTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
