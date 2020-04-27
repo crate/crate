@@ -22,30 +22,17 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.protocols.postgres.types.PGType;
-import org.elasticsearch.cluster.ClusterState;
-
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 
-public class PgTypeTable extends StaticTableInfo<PGType> {
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.protocols.postgres.types.PGType;
+
+public class PgTypeTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_type");
 
@@ -53,64 +40,44 @@ public class PgTypeTable extends StaticTableInfo<PGType> {
 
     private static final String TYPTYPE = "b";
 
-    static Map<ColumnIdent, RowCollectExpressionFactory<PGType>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    private static ColumnRegistrar<PGType> columnRegistrar() {
-        return new ColumnRegistrar<PGType>(IDENT, RowGranularity.DOC)
-            .register("oid", INTEGER, () -> forFunction(PGType::oid))
-            .register("typname", STRING, () -> forFunction(PGType::typName))
-            .register("typdelim", STRING, () -> forFunction(PGType::typDelim))
-            .register("typelem", INTEGER, () -> forFunction(PGType::typElem))
-            .register("typlen", SHORT, () -> forFunction(PGType::typeLen))
-            .register("typbyval", BOOLEAN, () -> constant(true))
-            .register("typtype", STRING, () -> constant(TYPTYPE))
-            .register("typcategory", STRING, () -> forFunction(PGType::typeCategory))
-            .register("typowner", INTEGER, () -> constant(null))
-            .register("typisdefined", BOOLEAN, () -> constant(true))
+    @SuppressWarnings("rawtypes")
+    public static SystemTable<PGType> create() {
+        return SystemTable.<PGType>builder(IDENT)
+            .add("oid", INTEGER, PGType::oid)
+            .add("typname", STRING, PGType::typName)
+            .add("typdelim", STRING, PGType::typDelim)
+            .add("typelem", INTEGER, PGType::typElem)
+            .add("typlen", SHORT, PGType::typeLen)
+            .add("typbyval", BOOLEAN, c -> true)
+            .add("typtype", STRING, c -> TYPTYPE)
+            .add("typcategory", STRING, PGType::typeCategory)
+            .add("typowner", INTEGER, c -> null)
+            .add("typisdefined", BOOLEAN, c -> true)
             // Zero for non-composite types, otherwise should point
             // to the pg_class table entry.
-            .register("typrelid", INTEGER, () -> constant(0))
-            .register("typndims", INTEGER, () -> constant(0))
-            .register("typcollation", INTEGER, () -> constant(0))
-            .register("typdefault", STRING, () -> constant(null))
-            .register("typbasetype", INTEGER, () -> constant(0))
-            .register("typtypmod", INTEGER, () -> constant(-1))
-            .register("typnamespace", INTEGER, () -> constant(TYPE_NAMESPACE_OID))
-            .register("typarray", INTEGER, () -> forFunction(PGType::typArray))
-            .register("typinput", STRING, () -> forFunction(t -> {
+            .add("typrelid", INTEGER, c -> 0)
+            .add("typndims", INTEGER, c -> 0)
+            .add("typcollation", INTEGER, c -> 0)
+            .add("typdefault", STRING, c -> null)
+            .add("typbasetype", INTEGER, c -> 0)
+            .add("typtypmod", INTEGER, c -> -1)
+            .add("typnamespace", INTEGER, c -> TYPE_NAMESPACE_OID)
+            .add("typarray", INTEGER, PGType::typArray)
+            .add("typinput", STRING, t -> {
                 if (t.typArray() == 0) {
                     return "array_in";
                 } else {
                     return t.typName() + "_in";
                 }
-            }))
-            .register("typoutput", STRING, () -> forFunction(t -> {
+            })
+            .add("typoutput", STRING, t -> {
                 if (t.typArray() == 0) {
                     return "array_out";
                 } else {
                     return t.typName() + "_out";
                 }
-            }))
-            .register("typnotnull", BOOLEAN, () -> constant(false));
-    }
-
-    PgTypeTable() {
-        super(IDENT, columnRegistrar());
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState clusterState,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
+            })
+            .add("typnotnull", BOOLEAN, c -> false)
+            .build();
     }
 }
