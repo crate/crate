@@ -24,41 +24,34 @@ package io.crate.metadata.information;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.SystemTable;
 import io.crate.metadata.view.ViewInfo;
 
-import java.util.Map;
 
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING;
 
-public class InformationViewsTableInfo extends InformationTableInfo<ViewInfo> {
+public class InformationViewsTableInfo {
 
     public static final String NAME = "views";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     private static final String CHECK_OPTION_NONE = "NONE";
 
-    private static ColumnRegistrar<ViewInfo> columnRegistrar() {
-        return new ColumnRegistrar<ViewInfo>(IDENT, RowGranularity.DOC)
-            .register("table_catalog", STRING, () -> forFunction(r -> r.ident().schema()))
-            .register("table_schema", STRING, () -> forFunction(r -> r.ident().schema()))
-            .register("table_name", STRING, () -> forFunction(r -> r.ident().name()))
-            .register("view_definition", STRING, () -> forFunction(ViewInfo::definition))
-            .register("check_option", STRING, () -> forFunction(r -> CHECK_OPTION_NONE))
-            .register("is_updatable", BOOLEAN, () -> forFunction(r -> false))
-            .register("owner", STRING, () -> forFunction(ViewInfo::owner));
-    }
-
-    static Map<ColumnIdent, RowCollectExpressionFactory<ViewInfo>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    InformationViewsTableInfo() {
-        super(IDENT, columnRegistrar(), "table_catalog", "table_name", "table_schema"
-        );
+    public static SystemTable<ViewInfo> create() {
+        return SystemTable.<ViewInfo>builder(IDENT)
+            .add("table_catalog", STRING, r -> r.ident().schema())
+            .add("table_schema", STRING, r -> r.ident().schema())
+            .add("table_name", STRING, r -> r.ident().name())
+            .add("view_definition", STRING, ViewInfo::definition)
+            .add("check_option", STRING, r -> CHECK_OPTION_NONE)
+            .add("is_updatable", BOOLEAN, r -> false)
+            .add("owner", STRING, ViewInfo::owner)
+            .setPrimaryKeys(
+                new ColumnIdent("table_catalog"),
+                new ColumnIdent("table_name"),
+                new ColumnIdent("table_schema")
+            )
+            .build();
     }
 }
