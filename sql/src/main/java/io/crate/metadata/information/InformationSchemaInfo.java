@@ -43,7 +43,7 @@ public class InformationSchemaInfo implements SchemaInfo {
     public InformationSchemaInfo() {
         tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
             .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo())
-            .put(InformationViewsTableInfo.NAME, new InformationViewsTableInfo())
+            .put(InformationViewsTableInfo.NAME, InformationViewsTableInfo.create())
             .put(InformationColumnsTableInfo.NAME, InformationColumnsTableInfo.create())
             .put(InformationKeyColumnUsageTableInfo.NAME, InformationKeyColumnUsageTableInfo.create())
             .put(InformationPartitionsTableInfo.NAME, InformationPartitionsTableInfo.create())

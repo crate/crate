@@ -57,7 +57,7 @@ public class InformationSchemaTableDefinitions {
         tableDefinitions.put(InformationViewsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::views,
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.VIEW, t.ident().fqn()),
-            InformationViewsTableInfo.expressions()
+            InformationViewsTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationPartitionsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::partitions,
