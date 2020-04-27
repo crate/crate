@@ -22,57 +22,24 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterState;
-
-import java.util.Collections;
-import java.util.Map;
-import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.types.DataTypes.STRING;
+
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 
 
-public class PgAttrDefTable extends StaticTableInfo<Void> {
+public class PgAttrDefTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attrdef");
 
-    static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    private static ColumnRegistrar<Void> columnRegistrar() {
-        return new ColumnRegistrar<Void>(IDENT, RowGranularity.DOC)
-            .register("oid", INTEGER, () -> constant(0))
-            .register("adrelid", INTEGER, () -> constant(0))
-            .register("adnum", INTEGER, () -> constant(0))
-            .register("adbin", STRING, () -> constant(null))
-            .register("adsrc", STRING, () -> constant(null));
-    }
-
-    PgAttrDefTable() {
-        super(IDENT, columnRegistrar(), Collections.emptyList());
-    }
-
-    @Override
-    public Routing getRouting(ClusterState state,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(IDENT)
+            .add("oid", INTEGER, x -> 0)
+            .add("adrelid", INTEGER, x -> 0)
+            .add("adnum", INTEGER, x -> 0)
+            .add("adbin", STRING, x -> null)
+            .add("adsrc", STRING, x -> null)
+            .build();
     }
 }
