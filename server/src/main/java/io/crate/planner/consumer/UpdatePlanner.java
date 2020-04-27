@@ -134,7 +134,7 @@ public final class UpdatePlanner {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         DocTableInfo tableInfo = docTable.tableInfo();
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-            normalizer, query, tableInfo, plannerCtx.transactionContext());
+            normalizer, query, tableInfo, plannerCtx.transactionContext(), functions);
 
         if (detailedQuery.docKeys().isPresent()) {
             return new UpdateById(

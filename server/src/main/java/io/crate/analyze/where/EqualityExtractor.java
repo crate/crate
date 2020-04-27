@@ -175,8 +175,8 @@ public class EqualityExtractor {
 
         private void initProxies(Map<Function, EqProxy> existingProxies) {
             Symbol left = origin.arguments().get(0);
-            DataType leftType = origin.info().ident().argumentTypes().get(0);
-            DataType rightType = ((ArrayType) origin.info().ident().argumentTypes().get(1)).innerType();
+            DataType<?> leftType = origin.info().ident().argumentTypes().get(0);
+            DataType<?> rightType = ((ArrayType<?>) origin.info().ident().argumentTypes().get(1)).innerType();
             FunctionInfo eqInfo = new FunctionInfo(
                 new FunctionIdent(
                     EqOperator.NAME,
@@ -184,10 +184,11 @@ public class EqualityExtractor {
                 ),
                 DataTypes.BOOLEAN
             );
-            Literal arrayLiteral = (Literal) origin.arguments().get(1);
+            Literal<?> arrayLiteral = (Literal<?>) origin.arguments().get(1);
+
             proxies = new HashMap<>();
-            for (Literal arrayElem : Literal.explodeCollection(arrayLiteral)) {
-                Function f = new Function(eqInfo, Arrays.asList(left, arrayElem));
+            for (Literal<?> arrayElem : Literal.explodeCollection(arrayLiteral)) {
+                Function f = new Function(eqInfo, EqOperator.SIGNATURE, Arrays.asList(left, arrayElem));
                 EqProxy existingProxy = existingProxies.get(f);
                 if (existingProxy == null) {
                     existingProxy = new ChildEqProxy(f, this);

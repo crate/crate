@@ -28,6 +28,9 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.symbol.FetchStub;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -35,6 +38,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -52,6 +56,16 @@ import static org.hamcrest.Matchers.is;
 
 public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
 
+    public static Function of(String name, List<Symbol> arguments, DataType<?> returnType) {
+        return new Function(
+            new FunctionInfo(
+                new FunctionIdent(name, Symbols.typeView(arguments)),
+                returnType
+            ),
+            arguments
+        );
+    }
+
     @Test
     public void test_fetch_rewrite_on_eval_removes_eval_and_extends_replaced_outputs() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
@@ -62,7 +76,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         var x = e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
         var collect = new Collect(false, relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
-        var eval = new Eval(collect, List.of(Function.of("add", List.of(x, x), DataTypes.INTEGER)));
+        var eval = new Eval(collect, List.of(of("add", List.of(x, x), DataTypes.INTEGER)));
 
         FetchRewrite fetchRewrite = eval.rewriteToFetch(new TableStats(), List.of());
         assertThat(fetchRewrite, Matchers.notNullValue());

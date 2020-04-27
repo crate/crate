@@ -28,9 +28,12 @@ import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateUnitTest;
@@ -44,6 +47,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -82,8 +86,16 @@ public class JoinPhaseTest extends CrateUnitTest {
             ImmutableList.of(),
             DistributionInfo.DEFAULT_BROADCAST,
             null);
-        joinCondition = EqOperator.createFunction(
-            new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING));
+        joinCondition = new Function(
+            new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, List.of(DataTypes.STRING, DataTypes.STRING)),
+                DataTypes.BOOLEAN
+            ),
+            List.of(
+                new InputColumn(0, DataTypes.STRING),
+                new InputColumn(1, DataTypes.STRING)
+            )
+        );
     }
 
     @Test

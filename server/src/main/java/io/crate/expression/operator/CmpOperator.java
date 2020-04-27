@@ -24,17 +24,11 @@ package io.crate.expression.operator;
 
 import io.crate.common.collections.MapComparator;
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.metadata.functions.Signature;
 
-import java.util.List;
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.IntPredicate;
@@ -42,16 +36,24 @@ import java.util.function.IntPredicate;
 public final class CmpOperator extends Operator<Object> {
 
     private final FunctionInfo info;
+    private final Signature signature;
     private final IntPredicate isMatch;
 
-    public CmpOperator(FunctionInfo info, IntPredicate cmpResultIsMatch) {
+    public CmpOperator(FunctionInfo info, Signature signature, IntPredicate cmpResultIsMatch) {
         this.info = info;
+        this.signature = signature;
         this.isMatch = cmpResultIsMatch;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
@@ -74,35 +76,6 @@ public final class CmpOperator extends Operator<Object> {
             return isMatch.test(Objects.compare((Map) left, (Map) right, MapComparator.getInstance()));
         } else {
             return null;
-        }
-    }
-
-    protected static class CmpResolver extends BaseFunctionResolver {
-
-        private static final Param PRIMITIVE_TYPES = Param.of(DataTypes.PRIMITIVE_TYPES);
-
-        private final String name;
-        private final IntPredicate isMatch;
-
-        CmpResolver(String name, IntPredicate isMatch) {
-            this(name, FuncParams.builder(PRIMITIVE_TYPES, PRIMITIVE_TYPES).build(), isMatch);
-        }
-
-        CmpResolver(String name, FuncParams funcParams, IntPredicate isMatch) {
-            super(funcParams);
-            this.name = name;
-            this.isMatch = isMatch;
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            FunctionInfo info = createInfo(name, dataTypes);
-            return new CmpOperator(info, isMatch);
-        }
-
-
-        protected static FunctionInfo createInfo(String name, List<DataType> dataTypes) {
-            return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.BOOLEAN);
         }
     }
 }

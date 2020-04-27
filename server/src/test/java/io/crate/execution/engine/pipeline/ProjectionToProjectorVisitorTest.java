@@ -270,8 +270,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         List<Symbol> arguments = Arrays.asList(Literal.of(2), new InputColumn(1));
         EqOperator op =
             (EqOperator) functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
-        Function function = new Function(
-            op.info(), arguments);
+        Function function = new Function(op.info(), op.signature(), arguments);
         FilterProjection projection = new FilterProjection(function,
             Arrays.asList(new InputColumn(0), new InputColumn(1)));
 

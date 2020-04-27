@@ -21,9 +21,12 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.expression.symbol.InputColumn;
-import io.crate.metadata.RowGranularity;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -31,13 +34,25 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 public class FilterProjectionTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
+        var eqFunction =  new Function(
+            new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, List.of(DataTypes.INTEGER, DataTypes.INTEGER)),
+                DataTypes.BOOLEAN
+            ),
+            List.of(
+                new InputColumn(0, DataTypes.INTEGER),
+                new InputColumn(1, DataTypes.INTEGER)
+            )
+        );
+
         FilterProjection p = new FilterProjection(
-            EqOperator.createFunction(new InputColumn(0, DataTypes.INTEGER), new InputColumn(1, DataTypes.INTEGER)),
+            eqFunction,
             Collections.singletonList(new InputColumn(0))
         );
         p.requiredGranularity(RowGranularity.SHARD);

@@ -24,46 +24,47 @@ package io.crate.expression.operator.any;
 import io.crate.data.Input;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.TriPredicate;
-import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
-import java.util.List;
+import javax.annotation.Nullable;
 
 import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
 
 public class AnyLikeOperator extends Operator<Object> {
 
-    public static FunctionResolver resolverFor(String name,
-                                               TriPredicate<String, String, Integer> matcher,
-                                               int patternMatchingFlags) {
-        return new AnyLikeResolver(name, matcher, patternMatchingFlags);
-    }
-
     private final FunctionInfo info;
+    private final Signature signature;
     private final TriPredicate<String, String, Integer> matcher;
     private final int patternMatchingFlags;
 
-    private AnyLikeOperator(FunctionInfo info,
-                            TriPredicate<String, String, Integer> matcher,
-                            int patternMatchingFlags) {
+    public AnyLikeOperator(FunctionInfo info,
+                           Signature signature,
+                           TriPredicate<String, String, Integer> matcher,
+                           int patternMatchingFlags) {
         this.info = info;
+        this.signature = signature;
         this.matcher = matcher;
         this.patternMatchingFlags = patternMatchingFlags;
+        DataType<?> innerType = ((ArrayType<?>) info.ident().argumentTypes().get(1)).innerType();
+        if (innerType.id() == ObjectType.ID) {
+            throw new IllegalArgumentException("ANY on object arrays is not supported");
+        }
     }
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     private Boolean doEvaluate(Object left, Iterable<?> rightIterable) {
@@ -84,7 +85,7 @@ public class AnyLikeOperator extends Operator<Object> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         Object value = args[0].value();
         Object collectionReference = args[1].value();
 
@@ -92,43 +93,5 @@ public class AnyLikeOperator extends Operator<Object> {
             return null;
         }
         return doEvaluate(value, collectionValueToIterable(collectionReference));
-    }
-
-    private static class AnyLikeResolver extends BaseFunctionResolver {
-        private final String name;
-        private final TriPredicate<String, String, Integer> matches;
-        private final int patternMatchingFlags;
-
-        AnyLikeResolver(String name,
-                        TriPredicate<String, String, Integer> matches,
-                        int patternMatchingFlags) {
-            super(FuncParams.builder(
-                Param.ANY,
-                Param.of(
-                    new ArrayType<>(DataTypes.UNDEFINED))
-                    .withInnerType(Param.ANY))
-                      .build());
-            this.name = name;
-            this.matches = matches;
-            this.patternMatchingFlags = patternMatchingFlags;
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            DataType<?> innerType = ((ArrayType<?>) dataTypes.get(1)).innerType();
-            if (!innerType.equals(dataTypes.get(0))) {
-                throw new IllegalArgumentException(
-                    "The inner type of the array/set passed to ANY must match its left expression");
-            }
-            if (innerType.id() == ObjectType.ID) {
-                throw new IllegalArgumentException("ANY on object arrays is not supported");
-            }
-
-            return new AnyLikeOperator(
-                new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.BOOLEAN),
-                matches,
-                patternMatchingFlags
-            );
-        }
     }
 }

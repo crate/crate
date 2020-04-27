@@ -23,19 +23,12 @@ package io.crate.expression.operator.any;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.Operator;
-import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.ArrayType;
-import io.crate.types.BooleanType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
-import java.util.List;
+import javax.annotation.Nullable;
 import java.util.function.IntPredicate;
 
 import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
@@ -45,14 +38,16 @@ public final class AnyOperator extends Operator<Object> {
     public static final String OPERATOR_PREFIX = "any_";
 
     private final FunctionInfo functionInfo;
+    private final Signature signature;
     private final IntPredicate cmpIsMatch;
     private final DataType leftType;
 
     /**
      * @param cmpIsMatch predicate to test if a comparison (-1, 0, 1) should be considered a match
      */
-    AnyOperator(FunctionInfo functionInfo, IntPredicate cmpIsMatch) {
+    AnyOperator(FunctionInfo functionInfo, Signature signature, IntPredicate cmpIsMatch) {
         this.functionInfo = functionInfo;
+        this.signature = signature;
         this.cmpIsMatch = cmpIsMatch;
         this.leftType = functionInfo.ident().argumentTypes().get(0);
     }
@@ -60,6 +55,12 @@ public final class AnyOperator extends Operator<Object> {
     @Override
     public FunctionInfo info() {
         return functionInfo;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @SuppressWarnings("unchecked")
@@ -78,7 +79,7 @@ public final class AnyOperator extends Operator<Object> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
         assert args[0] != null : "1st argument must not be null";
@@ -89,34 +90,5 @@ public final class AnyOperator extends Operator<Object> {
             return null;
         }
         return doEvaluate(item, collectionValueToIterable(items));
-    }
-
-    public static final class AnyResolver extends BaseFunctionResolver {
-
-        private final String name;
-        private final IntPredicate cmpIsMatch;
-
-        AnyResolver(String name, IntPredicate cmpIsMatch) {
-            super(FuncParams.builder(
-                Param.ANY,
-                Param.of(
-                    new ArrayType<>(DataTypes.UNDEFINED))
-                    .withInnerType(Param.ANY))
-                .build());
-            this.name = name;
-            this.cmpIsMatch = cmpIsMatch;
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            DataType<?> innerType = ((ArrayType<?>) dataTypes.get(1)).innerType();
-            if (!innerType.equals(dataTypes.get(0))) {
-                throw new IllegalArgumentException(
-                    "The inner type of the array/set passed to ANY must match its left expression");
-            }
-
-            return new AnyOperator(
-                new FunctionInfo(new FunctionIdent(name, dataTypes), BooleanType.INSTANCE), cmpIsMatch);
-        }
     }
 }

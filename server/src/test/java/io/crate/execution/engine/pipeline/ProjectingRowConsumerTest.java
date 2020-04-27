@@ -130,7 +130,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
         List<Symbol> arguments = Arrays.asList(Literal.of(2), new InputColumn(1, DataTypes.INTEGER));
         EqOperator op =
             (EqOperator) functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
-        Function function = new Function(op.info(), arguments);
+        Function function = new Function(op.info(), op.signature(), arguments);
         FilterProjection filterProjection = new FilterProjection(function,
             Arrays.asList(new InputColumn(0), new InputColumn(1)));
 

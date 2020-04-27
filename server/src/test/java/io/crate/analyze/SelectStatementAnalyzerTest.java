@@ -160,7 +160,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation relation =  analyze("select * from sys.nodes where port['http'] = -400");
         Function whereClause = (Function) relation.where();
         Symbol symbol = whereClause.arguments().get(1);
-        assertThat(((Literal) symbol).value(), is(-400));
+        assertThat(((Literal<?>) symbol).value(), is(-400));
     }
 
     @Test
@@ -803,8 +803,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testArrayCompareInvalidArray() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `name` of type `text` to type `undefined_array`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: any_=(text, text)");
         analyze("select * from users where 'George' = ANY (name)");
     }
 
@@ -846,8 +846,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // users.friends is an object array,
         // so its fields are selected as arrays,
         // ergo simple comparison does not work here
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `friends['id']` of type `bigint_array` to type `integer`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: op_=(bigint_array, integer)");
         analyze("select * from users where 5 = friends['id']");
     }
 
@@ -984,8 +984,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testAnyLikeInvalidArray() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `name` of type `text` to type `undefined_array`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("any_like(text, text)");
         analyze("select * from users where 'awesome' LIKE ANY (name)");
     }
 
@@ -1275,9 +1275,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testRegexpMatchInvalidArg() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `floats` of type `real` to type `text`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: op_~(real, text)");
         analyze("select * from users where floats ~ 'foo'");
+    }
+
+    @Test
+    public void testRegexpMatchCaseInsensitiveInvalidArg() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: op_~*(real, text)");
+        analyze("select * from users where floats ~* 'foo'");
     }
 
     @Test
@@ -1733,7 +1740,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "order by 2, 3");
         assertThat(relation.having(), notNullValue());
         assertThat(relation.having(),
-            isSQL("(NOT (collect_set(sys.shards.recovery['size']['percent']) = [100.0]))"));
+            isSQL("(NOT (_cast(collect_set(sys.shards.recovery['size']['percent']), 'array(double precision)') = [100.0]))"));
     }
 
     @Test

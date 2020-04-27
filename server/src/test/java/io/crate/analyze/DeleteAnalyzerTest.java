@@ -95,8 +95,10 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(actualStatement.query(), equalTo(expectedStatement.query()));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWhereClauseObjectArrayField() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: op_=(bigint_array, integer)");
         e.analyze("delete from users where friends['id'] = 5");
     }
 

@@ -22,38 +22,14 @@
 
 package io.crate.expression.operator;
 
+import io.crate.expression.AbstractFunctionModule;
 import io.crate.expression.operator.any.AnyOperators;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.FunctionResolver;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-import java.util.HashMap;
-import java.util.Map;
-
-public class OperatorModule extends AbstractModule {
-
-    private Map<FunctionIdent, FunctionImplementation> functions = new HashMap<>();
-    private Map<FunctionName, FunctionResolver> dynamicFunctionResolvers = new HashMap<>();
-    private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
-    private MapBinder<FunctionName, FunctionResolver> dynamicFunctionBinder;
-
-    public void registerOperatorFunction(FunctionImplementation impl) {
-        functions.put(impl.info().ident(), impl);
-    }
-
-    public void registerDynamicOperatorFunction(String name, FunctionResolver resolver) {
-        registerDynamicOperatorFunction(new FunctionName(name), resolver);
-    }
-
-    public void registerDynamicOperatorFunction(FunctionName qualifiedName, FunctionResolver resolver) {
-        dynamicFunctionResolvers.put(qualifiedName, resolver);
-    }
+public class OperatorModule extends AbstractFunctionModule<FunctionImplementation> {
 
     @Override
-    protected void configure() {
+    public void configureFunctions() {
         AndOperator.register(this);
         OrOperator.register(this);
         EqOperator.register(this);
@@ -68,22 +44,5 @@ public class OperatorModule extends AbstractModule {
         AnyOperators.register(this);
         AllOperator.register(this);
         LikeOperators.register(this);
-
-        // bind all registered functions and resolver
-        // by doing it here instead of the register functions, plugins can also use the
-        // register functions in their onModule(...) hooks
-        functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-        dynamicFunctionBinder = MapBinder.newMapBinder(binder(), FunctionName.class, FunctionResolver.class);
-        for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functions.entrySet()) {
-            functionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
-
-        }
-        for (Map.Entry<FunctionName, FunctionResolver> entry : dynamicFunctionResolvers.entrySet()) {
-            dynamicFunctionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
-        }
-
-        // clear registration maps
-        functions = null;
-        dynamicFunctionResolvers = null;
     }
 }

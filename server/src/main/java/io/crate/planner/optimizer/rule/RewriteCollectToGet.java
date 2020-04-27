@@ -86,7 +86,8 @@ public final class RewriteCollectToGet implements Rule<Collect> {
             normalizer,
             where.queryOrFallback(),
             relation.tableInfo(),
-            txnCtx
+            txnCtx,
+            functions
         );
         Optional<DocKeys> docKeys = detailedQuery.docKeys();
         //noinspection OptionalIsPresent no capturing lambda allocation
