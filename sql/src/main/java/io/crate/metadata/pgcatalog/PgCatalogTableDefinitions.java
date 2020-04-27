@@ -90,7 +90,7 @@ public class PgCatalogTableDefinitions {
             informationSchemaIterables::columns,
             (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn())
                          || user.hasAnyPrivilege(Privilege.Clazz.VIEW, c.tableInfo.ident().fqn()),
-            PgAttributeTable.expressions()
+            PgAttributeTable.create().expressions()
         ));
         tableDefinitions.put(PgIndexTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.pgIndices()),
