@@ -91,7 +91,7 @@ public final class DeletePlanner {
         DocTableInfo table = tableRel.tableInfo();
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-            normalizer, delete.query(), table, context.transactionContext());
+            normalizer, delete.query(), table, context.transactionContext(), context.functions());
 
         if (!detailedQuery.partitions().isEmpty()) {
             return new DeletePartitions(table.ident(), detailedQuery.partitions());

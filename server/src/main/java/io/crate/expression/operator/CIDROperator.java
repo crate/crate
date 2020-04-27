@@ -22,24 +22,22 @@
 
 package io.crate.expression.operator;
 
+import io.crate.common.collections.Tuple;
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.network.InetAddresses;
 
+import javax.annotation.Nullable;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Locale;
 
 public final class CIDROperator {
@@ -48,8 +46,20 @@ public final class CIDROperator {
 
     private static final int IPV4_ADDRESS_LEN = 4;
 
+    private static final FunctionInfo INFO = new FunctionInfo(
+        new FunctionIdent(CONTAINED_WITHIN, Arrays.asList(DataTypes.IP, DataTypes.STRING)),
+        DataTypes.BOOLEAN);
+
     public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(CONTAINED_WITHIN, new CIDRResolver());
+        module.register(
+            Signature.scalar(
+                CONTAINED_WITHIN,
+                DataTypes.IP.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                Operator.RETURN_TYPE.getTypeSignature()
+            ),
+            (signature, dataTypes) -> new ContainedWithinOperator(signature)
+        );
     }
 
     public static boolean containedWithin(String ipStr, String cidrStr) {
@@ -93,53 +103,37 @@ public final class CIDROperator {
         return new BigInteger(1, maskBuffer.array()).not().shiftRight(prefixLength);
     }
 
-    private static class CIDRResolver extends BaseFunctionResolver {
+    public static class ContainedWithinOperator extends Scalar<Boolean, Object> {
 
-        private CIDRResolver() {
-            super(
-                FuncParams.builder(
-                    Param.of(DataTypes.IP, DataTypes.STRING),
-                    Param.of(DataTypes.STRING)
-                ).build());
+        private final Signature signature;
+
+        public ContainedWithinOperator(Signature signature) {
+            this.signature = signature;
         }
 
         @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new ContainedWithinOperator(
-                FunctionInfo.of(
-                    CONTAINED_WITHIN,
-                    dataTypes,
-                    DataTypes.BOOLEAN
-                )
-            );
+        public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
+            assert args.length == 2 : "number of args must be 2";
+            String left = (String) args[0].value();
+            if (null == left) {
+                return null;
+            }
+            String right = (String) args[1].value();
+            if (null == right) {
+                return null;
+            }
+            return containedWithin(left, right);
         }
 
-        private static class ContainedWithinOperator extends Scalar<Boolean, Object> {
+        @Override
+        public FunctionInfo info() {
+            return INFO;
+        }
 
-            private final FunctionInfo info;
-
-            private ContainedWithinOperator(FunctionInfo info) {
-                this.info = info;
-            }
-
-            @Override
-            public FunctionInfo info() {
-                return info;
-            }
-
-            @Override
-            public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
-                assert args.length == 2 : "number of args must be 2";
-                String left = (String) args[0].value();
-                if (null == left) {
-                    return null;
-                }
-                String right = (String) args[1].value();
-                if (null == right) {
-                    return null;
-                }
-                return containedWithin(left, right);
-            }
+        @Nullable
+        @Override
+        public Signature signature() {
+            return signature;
         }
     }
 }

@@ -24,11 +24,14 @@ package io.crate.expression.operator;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.automaton.ByteRunAutomaton;
 import org.apache.lucene.util.automaton.RegExp;
 
+import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static io.crate.expression.scalar.regex.RegexMatcher.isPcrePattern;
 
@@ -39,12 +42,30 @@ public class RegexpMatchOperator extends Operator<String> {
     public static final FunctionInfo INFO = generateInfo(NAME, DataTypes.STRING);
 
     public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new RegexpMatchOperator());
+        var supportedArgumentTypes = List.of(DataTypes.STRING, DataTypes.UNDEFINED);
+        for (var left : supportedArgumentTypes) {
+            for (var right : supportedArgumentTypes) {
+                module.register(
+                    Signature.scalar(
+                        NAME,
+                        left.getTypeSignature(),
+                        right.getTypeSignature(),
+                        Operator.RETURN_TYPE.getTypeSignature()
+                    ).withForbiddenCoercion(),
+                    (signature, dataTypes) -> new RegexpMatchOperator(signature)
+                );
+            }
+        }
     }
 
+    private final Signature signature;
+
+    public RegexpMatchOperator(Signature signature) {
+        this.signature = signature;
+    }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<String>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<String>[] args) {
         assert args.length == 2 : "invalid number of arguments";
         String source = args[0].value();
         if (source == null) {
@@ -67,5 +88,11 @@ public class RegexpMatchOperator extends Operator<String> {
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 }

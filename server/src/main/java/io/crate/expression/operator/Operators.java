@@ -21,16 +21,17 @@
 
 package io.crate.expression.operator;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.expression.predicate.NotPredicate;
+
+import java.util.Set;
 
 public class Operators {
 
-    public static final ImmutableSet<String> LOGICAL_OPERATORS = ImmutableSet.of(
+    public static final Set<String> LOGICAL_OPERATORS = Set.of(
         AndOperator.NAME, OrOperator.NAME, NotPredicate.NAME
     );
 
-    public static final ImmutableSet<String> COMPARISON_OPERATORS = ImmutableSet.of(
+    public static final Set<String> COMPARISON_OPERATORS = Set.of(
         EqOperator.NAME,
         GtOperator.NAME, GteOperator.NAME,
         LtOperator.NAME, LteOperator.NAME,

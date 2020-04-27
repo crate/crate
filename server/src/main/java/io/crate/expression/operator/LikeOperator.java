@@ -27,27 +27,36 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.regex.Pattern;
 
 public class LikeOperator extends Operator<String> {
 
-    public static FunctionImplementation of(String name,
+    public static FunctionImplementation of(Signature signature,
                                             TriPredicate<String, String, Integer> matcher,
                                             int patternMatchingFlags) {
-        return new LikeOperator(generateInfo(name, DataTypes.STRING), matcher, patternMatchingFlags);
+        return new LikeOperator(
+            generateInfo(signature.getName().name(), DataTypes.STRING),
+            signature,
+            matcher,
+            patternMatchingFlags);
     }
 
     private final FunctionInfo info;
+    private final Signature signature;
     private final TriPredicate<String, String, Integer> matcher;
     private final int patternMatchingFlags;
 
     private LikeOperator(FunctionInfo info,
+                         Signature signature,
                          TriPredicate<String, String, Integer> matcher,
                          int patternMatchingFlags) {
         this.info = info;
+        this.signature = signature;
         this.matcher = matcher;
         this.patternMatchingFlags = patternMatchingFlags;
     }
@@ -55,6 +64,12 @@ public class LikeOperator extends Operator<String> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
@@ -65,7 +80,7 @@ public class LikeOperator extends Operator<String> {
             if (value == null) {
                 return this;
             }
-            return new CompiledLike(info, (String) value, patternMatchingFlags);
+            return new CompiledLike(info, signature, (String) value, patternMatchingFlags);
         }
         return super.compile(arguments);
     }
@@ -85,16 +100,24 @@ public class LikeOperator extends Operator<String> {
 
     private static class CompiledLike extends Scalar<Boolean, String> {
         private final FunctionInfo info;
+        private final Signature signature;
         private final Pattern pattern;
 
-        CompiledLike(FunctionInfo info, String pattern, int patternMatchingFlags) {
+        CompiledLike(FunctionInfo info, Signature signature, String pattern, int patternMatchingFlags) {
             this.info = info;
+            this.signature = signature;
             this.pattern = LikeOperators.makePattern(pattern, patternMatchingFlags);
         }
 
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Nullable
+        @Override
+        public Signature signature() {
+            return signature;
         }
 
         @SafeVarargs

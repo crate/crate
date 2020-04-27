@@ -13,7 +13,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MapBackedRefResolver;
@@ -29,7 +28,6 @@ import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -73,7 +71,10 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         Reference load_1 = dummyLoadInfo;
         Literal<Double> d01 = Literal.of(0.08);
         Function load_eq_01 = new Function(
-            functionInfo(EqOperator.NAME, DataTypes.DOUBLE), Arrays.<Symbol>asList(load_1, d01));
+            functionInfo(EqOperator.SIGNATURE, DataTypes.DOUBLE),
+            EqOperator.SIGNATURE,
+            List.of(load_1, d01)
+        );
 
         Symbol name_ref = new Reference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "foo"), "name"),
@@ -86,7 +87,10 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         Symbol y_literal = Literal.of("y");
 
         Function name_eq_x = new Function(
-            functionInfo(EqOperator.NAME, DataTypes.STRING), List.of(name_ref, x_literal));
+            functionInfo(EqOperator.SIGNATURE, DataTypes.STRING),
+            EqOperator.SIGNATURE,
+            List.of(name_ref, x_literal)
+        );
 
         Function nameNeqX = new Function(
             functionInfo(NotPredicate.SIGNATURE, DataTypes.BOOLEAN),
@@ -94,7 +98,9 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
             Collections.singletonList(name_eq_x));
 
         Function name_eq_y = new Function(
-            functionInfo(EqOperator.NAME, DataTypes.STRING), Arrays.asList(name_ref, y_literal));
+            functionInfo(EqOperator.SIGNATURE, DataTypes.STRING),
+            EqOperator.SIGNATURE,
+            List.of(name_ref, y_literal));
 
         Function nameNeqY = new Function(
             functionInfo(NotPredicate.SIGNATURE, DataTypes.BOOLEAN),
@@ -102,10 +108,16 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
             Collections.singletonList(name_eq_y));
 
         Function op_and = new Function(
-            functionInfo(AndOperator.NAME, DataTypes.BOOLEAN), List.of(nameNeqX, nameNeqY));
+            functionInfo(AndOperator.SIGNATURE, DataTypes.BOOLEAN),
+            AndOperator.SIGNATURE,
+            List.of(nameNeqX, nameNeqY)
+        );
 
         return new Function(
-            functionInfo(OrOperator.NAME, DataTypes.BOOLEAN), List.of(load_eq_01, op_and));
+            functionInfo(OrOperator.SIGNATURE, DataTypes.BOOLEAN),
+            OrOperator.SIGNATURE,
+            List.of(load_eq_01, op_and)
+        );
     }
 
     @Test
@@ -131,19 +143,5 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
     private FunctionInfo functionInfo(Signature signature, DataType dataType) {
         return functions.getQualified(signature, List.of(dataType, dataType)).info();
-    }
-
-    private FunctionInfo functionInfo(String name, DataType dataType, boolean isPredicate) {
-        List<DataType> dataTypes;
-        if (isPredicate) {
-            dataTypes = List.of(dataType);
-        } else {
-            dataTypes = List.of(dataType, dataType);
-        }
-        return functions.getQualified(new FunctionIdent(name, dataTypes)).info();
-    }
-
-    private FunctionInfo functionInfo(String name, DataType<?> dataType) {
-        return functionInfo(name, dataType, false);
     }
 }

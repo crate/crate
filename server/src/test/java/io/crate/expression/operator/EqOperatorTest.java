@@ -69,6 +69,7 @@ public class EqOperatorTest extends AbstractScalarFunctionsTest {
     public void testEvaluateEqOperator() {
         assertNormalize("{l=1, b=true} = {l=1, b=true}", isLiteral(true));
         assertNormalize("{l=2, b=true} = {l=1, b=true}", isLiteral(false));
+        assertNormalize("{l=2, b=true} = {}", isLiteral(false));
 
         assertNormalize("1.2 = null", isLiteral(null));
         assertNormalize("'foo' = null", isLiteral(null));

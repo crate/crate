@@ -25,8 +25,13 @@ package io.crate.expression.operator.any;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.operator.LikeOperators;
+import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OperatorModule;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
+import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +40,8 @@ import java.util.Locale;
 import java.util.function.IntPredicate;
 
 import static io.crate.expression.operator.any.AnyOperator.OPERATOR_PREFIX;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class AnyOperators {
 
@@ -82,9 +89,20 @@ public final class AnyOperators {
 
     public static void register(OperatorModule module) {
         for (var type : Type.values()) {
-            module.registerDynamicOperatorFunction(
-                type.opName,
-                new AnyOperator.AnyResolver(type.opName, type.cmp));
+            module.register(
+                Signature.scalar(
+                    type.opName,
+                    parseTypeSignature("E"),
+                    parseTypeSignature("array(E)"),
+                    Operator.RETURN_TYPE.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E")),
+                (signature, dataTypes) ->
+                    new AnyOperator(
+                        new FunctionInfo(new FunctionIdent(signature.getName().name(), dataTypes), DataTypes.BOOLEAN),
+                        signature,
+                        type.cmp
+                    )
+            );
         }
     }
 

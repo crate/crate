@@ -21,34 +21,12 @@
 
 package io.crate.expression.operator.any;
 
-import io.crate.expression.operator.input.ObjectInput;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 import org.junit.Test;
-
-import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
-
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-
-    private Boolean anyEq(Object value, Object arrayExpr) {
-        AnyOperator anyOperator = new AnyOperator(
-            new FunctionInfo(
-                new FunctionIdent("any_=", List.of(
-                    DataTypes.UNTYPED_OBJECT, new ArrayType<>(DataTypes.UNTYPED_OBJECT))),
-                DataTypes.BOOLEAN),
-            cmp -> cmp == 0
-        );
-        return anyOperator.evaluate(txnCtx, new ObjectInput(value), new ObjectInput(arrayExpr));
-    }
 
     @Test
     public void testEvaluate() throws Exception {
@@ -61,9 +39,9 @@ public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateNull() throws Exception {
-        assertNull(anyEq(null, null));
-        assertNull(anyEq(42, null));
-        assertNull(anyEq(null, new Object[]{1}));
+        assertEvaluate("null = ANY(null)", null);
+        assertEvaluate("42 = ANY(null)", null);
+        assertEvaluate("null = ANY([1])", null);
     }
 
     @Test
@@ -79,13 +57,6 @@ public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
         assertNormalize("42 = ANY([1, 42, 2])", isLiteral(true));
         assertNormalize("42 = ANY([42])", isLiteral(true));
         assertNormalize("42 = ANY([41, 43, -42])", isLiteral(false));
-    }
-
-    @Test
-    public void testExceptionForwardingForIllegalInput() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast bar to Iterable");
-        anyEq(1, "bar");
     }
 
     @Test

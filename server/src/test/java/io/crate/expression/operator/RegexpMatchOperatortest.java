@@ -21,75 +21,39 @@
 
 package io.crate.expression.operator;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.expression.symbol.Function;
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.TransactionContext;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.Arrays;
-
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
-public class RegexpMatchOperatortest extends CrateUnitTest {
-
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-
-
-    private static Symbol normalizeSymbol(String source, String pattern) {
-        RegexpMatchOperator op = new RegexpMatchOperator();
-        Function function = new Function(
-            op.info(),
-            Arrays.<Symbol>asList(Literal.of(source), Literal.of(pattern))
-        );
-        return op.normalizeSymbol(function, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
-    }
-
-    private Boolean regexpNormalize(String source, String pattern) {
-        return (Boolean) ((Literal) normalizeSymbol(source, pattern)).value();
-    }
+public class RegexpMatchOperatortest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalize() throws Exception {
-        assertThat(regexpNormalize("", ""), is(true));
-        assertThat(regexpNormalize("abc", "a.c"), is(true));
-        assertThat(regexpNormalize("AbC", "a.c"), is(false));
-        assertThat(regexpNormalize("abbbbc", "a(b{1,4})c"), is(true));
-        assertThat(regexpNormalize("abc", "a~bc"), is(false));
-        assertThat(regexpNormalize("100 €", "<10-101> €|$"), is(true));
+        assertNormalize("'' ~ ''", is(Literal.of(true)));
+        assertNormalize("'abc' ~ 'a.c'", is(Literal.of(true)));
+        assertNormalize("'AbC' ~ 'a.c'", is(Literal.of(false)));
+        assertNormalize("'abbbbc' ~ 'a(b{1,4})c'", is(Literal.of(true)));
+        assertNormalize("'abc' ~ 'a~bc'", is(Literal.of(false)));
+        assertNormalize("'100 €' ~ '<10-101> €|$'", is(Literal.of(true)));
     }
 
     @Test
-    public void testNormalizeNull() throws Exception {
-        assertThat(regexpNormalize(null, "foo"), is(nullValue()));
-        assertThat(regexpNormalize("foo", null), is(nullValue()));
-        assertThat(regexpNormalize(null, null), is(nullValue()));
-    }
-
-    // evaluate
-
-    private Boolean regexpEvaluate(String source, String pattern) {
-        RegexpMatchOperator op = new RegexpMatchOperator();
-        return op.evaluate(txnCtx, Literal.of(source), Literal.of(pattern));
+    public void testNullValues() throws Exception {
+        assertNormalize("null ~ 'foo'", is(Literal.of(DataTypes.BOOLEAN, null)));
+        assertNormalize("'foo' ~ null", is(Literal.of(DataTypes.BOOLEAN, null)));
+        assertNormalize("null ~ null", is(Literal.of(DataTypes.BOOLEAN, null)));
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertThat(regexpEvaluate("foo bar", "([A-Z][^ ]+ ?){2}"), is(false));  // case-insensitive matching should fail
-        assertThat(regexpEvaluate("Foo Bar", "([A-Z][^ ]+ ?){2}"), is(true));
-        assertThat(regexpEvaluate("1000 $", "(<1-9999>) $|€"), is(true));
-        assertThat(regexpEvaluate("10000 $", "(<1-9999>) $|€"), is(false));
-        assertThat(regexpEvaluate("", ""), is(true));
-    }
-
-    @Test
-    public void testEvaluateNull() throws Exception {
-        assertThat(regexpEvaluate(null, "foo"), is(nullValue()));
-        assertThat(regexpEvaluate("foo", null), is(nullValue()));
-        assertThat(regexpEvaluate(null, null), is(nullValue()));
+        // case-insensitive matching should fail
+        assertEvaluate("'foo bar' ~ '([A-Z][^ ]+ ?){2}'", false);
+        assertEvaluate("'Foo Bar' ~ '([A-Z][^ ]+ ?){2}'", true);
+        assertEvaluate("'1000 $' ~ '(<1-9999>) $|€'", true);
+        assertEvaluate("'10000 $' ~ '(<1-9999>) $|€'", false);
+        assertEvaluate("'' ~ ''", true);
     }
 }

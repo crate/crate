@@ -369,8 +369,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         analyze("update users set friends[1] = 2");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWhereClauseObjectArrayField() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: op_=(bigint_array, integer)");
         analyze("update users set awesome=true where friends['id'] = 5");
     }
 

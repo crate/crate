@@ -22,7 +22,6 @@
 
 package io.crate.expression.operator;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -34,6 +33,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import java.util.List;
 
 public abstract class Operator<I> extends Scalar<Boolean, I> {
 
@@ -53,6 +54,6 @@ public abstract class Operator<I> extends Scalar<Boolean, I> {
     }
 
     static FunctionInfo generateInfo(String name, DataType<?> type) {
-        return new FunctionInfo(new FunctionIdent(name, ImmutableList.of(type, type)), RETURN_TYPE);
+        return new FunctionInfo(new FunctionIdent(name, List.of(type, type)), RETURN_TYPE);
     }
 }
