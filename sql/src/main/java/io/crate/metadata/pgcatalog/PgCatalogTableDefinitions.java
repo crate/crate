@@ -54,7 +54,7 @@ public class PgCatalogTableDefinitions {
             new StaticTableDefinition<>(
                 tableStats::statsEntries,
                 (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relation().fqn()),
-                PgStatsTable.expressions()
+                PgStatsTable.create().expressions()
             )
         );
         tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
