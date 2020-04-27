@@ -22,90 +22,54 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.ConstraintInfo;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
-
-import java.util.Map;
-
 import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
 import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.SHORT_ARRAY;
-import static io.crate.types.DataTypes.INTEGER_ARRAY;
 import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.SHORT_ARRAY;
+import static io.crate.types.DataTypes.STRING;
 
-public class PgConstraintTable extends StaticTableInfo<ConstraintInfo> {
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.table.ConstraintInfo;
+import io.crate.types.ObjectType;
+
+public class PgConstraintTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_constraint");
 
     private static final String NO_ACTION = "a";
     private static final String MATCH_SIMPLE = "s";
 
-    static Map<ColumnIdent, RowCollectExpressionFactory<ConstraintInfo>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    @SuppressWarnings({"unchecked"})
-    private static ColumnRegistrar<ConstraintInfo> columnRegistrar() {
-        return new ColumnRegistrar<ConstraintInfo>(IDENT, RowGranularity.DOC)
-           .register("oid", INTEGER, () -> forFunction(c -> constraintOid(c.relationName().fqn(), c.constraintName(), c.constraintType().toString())))
-           .register("conname", STRING, () -> forFunction(ConstraintInfo::constraintName))
-           .register("connamespace", INTEGER, () -> forFunction(c -> schemaOid(c.relationName().schema())))
-           .register("contype", STRING, () -> forFunction(c -> c.constraintType().postgresChar()))
-           .register("condeferrable", BOOLEAN, () -> constant(false))
-           .register("condeferred", BOOLEAN, () -> constant(false))
-           .register("convalidated", BOOLEAN, () -> constant(true))
-           .register("conrelid", INTEGER, () -> forFunction(c -> relationOid(c.relationInfo())))
-           .register("contypid", INTEGER, () -> constant(0))
-           .register("conindid", INTEGER, () -> constant(0))
-           .register("confrelid", INTEGER, () -> constant(0))
-           .register("confupdtype", STRING, () -> constant(NO_ACTION))
-           .register("confdeltype", STRING, () -> constant(NO_ACTION))
-           .register("confmatchtype", STRING, () -> constant(MATCH_SIMPLE))
-           .register("conislocal", BOOLEAN, () -> constant(true))
-           .register("coninhcount", INTEGER, () -> constant(0))
-           .register("connoinherit", BOOLEAN, () -> constant(true))
-           .register("conkey", SHORT_ARRAY, () -> constant(null))
-           .register("confkey", SHORT_ARRAY, () -> constant(null))
-           .register("conpfeqop", INTEGER_ARRAY, () -> constant(null))
-           .register("conppeqop", INTEGER_ARRAY, () -> constant(null))
-           .register("conffeqop", INTEGER_ARRAY, () -> constant(null))
-           .register("conexclop", INTEGER_ARRAY, () -> constant(null))
-           .register("conbin", ObjectType.untyped(), () -> constant(null))
-           .register("consrc", STRING, () -> constant(null));
-    }
-
-    PgConstraintTable() {
-        super(IDENT,columnRegistrar());
-    }
-
-
-    @Override
-    public Routing getRouting(ClusterState state,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
+    public static SystemTable<ConstraintInfo> create() {
+        return SystemTable.<ConstraintInfo>builder(IDENT)
+           .add("oid", INTEGER, c -> constraintOid(c.relationName().fqn(), c.constraintName(), c.constraintType().toString()))
+           .add("conname", STRING, ConstraintInfo::constraintName)
+           .add("connamespace", INTEGER, c -> schemaOid(c.relationName().schema()))
+           .add("contype", STRING, c -> c.constraintType().postgresChar())
+           .add("condeferrable", BOOLEAN, c -> false)
+           .add("condeferred", BOOLEAN, c -> false)
+           .add("convalidated", BOOLEAN, c -> true)
+           .add("conrelid", INTEGER, c -> relationOid(c.relationInfo()))
+           .add("contypid", INTEGER, c -> 0)
+           .add("conindid", INTEGER, c -> 0)
+           .add("confrelid", INTEGER, c -> 0)
+           .add("confupdtype", STRING, c -> NO_ACTION)
+           .add("confdeltype", STRING, c -> NO_ACTION)
+           .add("confmatchtype", STRING, c -> MATCH_SIMPLE)
+           .add("conislocal", BOOLEAN, c -> true)
+           .add("coninhcount", INTEGER, c -> 0)
+           .add("connoinherit", BOOLEAN, c -> true)
+           .add("conkey", SHORT_ARRAY, c -> null)
+           .add("confkey", SHORT_ARRAY, c -> null)
+           .add("conpfeqop", INTEGER_ARRAY, c -> null)
+           .add("conppeqop", INTEGER_ARRAY, c -> null)
+           .add("conffeqop", INTEGER_ARRAY, c -> null)
+           .add("conexclop", INTEGER_ARRAY, c -> null)
+           .add("conbin", ObjectType.untyped(), c -> null)
+           .add("consrc", STRING, c -> null)
+           .build();
     }
 }

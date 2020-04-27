@@ -99,7 +99,7 @@ public class PgCatalogTableDefinitions {
         tableDefinitions.put(PgConstraintTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::constraints,
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relationName().fqn()),
-            PgConstraintTable.expressions()
+            PgConstraintTable.create().expressions()
         ));
         tableDefinitions.put(PgDescriptionTable.NAME, new StaticTableDefinition<>(
             () -> completedFuture(emptyList()),
