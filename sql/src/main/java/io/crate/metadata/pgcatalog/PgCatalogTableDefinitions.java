@@ -112,7 +112,7 @@ public class PgCatalogTableDefinitions {
                 .iterator();
         tableDefinitions.put(PgSettingsTable.IDENT, new StaticTableDefinition<>(
             () -> sessionSettings,
-            PgSettingsTable.expressions(),
+            PgSettingsTable.create().expressions(),
             (txnCtx, settingInfo) -> settingInfo.resolveValue(txnCtx)
             )
         );
