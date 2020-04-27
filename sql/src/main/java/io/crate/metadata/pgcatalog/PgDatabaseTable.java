@@ -22,66 +22,36 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.Constants;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterState;
-
-import java.util.Map;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class PgDatabaseTable extends StaticTableInfo<Void> {
+import io.crate.Constants;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+
+public class PgDatabaseTable {
 
     public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_database");
 
-    static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    private static ColumnRegistrar<Void> columnRegistrar() {
-        return new ColumnRegistrar<Void>(NAME, RowGranularity.DOC)
-            .register("oid", INTEGER, () -> constant(0))
-            .register("datname", STRING, () -> constant(Constants.DB_NAME))
-            .register("datdba", INTEGER, () -> constant(1))
-            .register("encoding", INTEGER, () -> constant(6))
-            .register("datcollate", STRING, () -> constant("en_US.UTF-8"))
-            .register("datctype", STRING, () -> constant("en_US.UTF-8"))
-            .register("datistemplate", BOOLEAN,() -> constant(false))
-            .register("datallowconn", BOOLEAN, () -> constant(true))
-            .register("datconnlimit", INTEGER,() -> constant(-1)) // no limit
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(NAME)
+            .add("oid", INTEGER, c -> 0)
+            .add("datname", STRING, c -> Constants.DB_NAME)
+            .add("datdba", INTEGER, c -> 1)
+            .add("encoding", INTEGER, c -> 6)
+            .add("datcollate", STRING, c -> "en_US.UTF-8")
+            .add("datctype", STRING, c -> "en_US.UTF-8")
+            .add("datistemplate", BOOLEAN,c -> false)
+            .add("datallowconn", BOOLEAN, c -> true)
+            .add("datconnlimit", INTEGER,c -> -1) // no limit
             // We don't have any good values for these
-            .register("datlastsysoid", INTEGER, () -> constant(null))
-            .register("datfrozenxid", INTEGER, () -> constant(null))
-            .register("datminmxid", INTEGER, () -> constant(null))
-            .register("dattablespace", INTEGER, () -> constant(null))
-            .register("datacl", STRING_ARRAY, () -> constant(null));
-    }
-
-    PgDatabaseTable() {
-        super(NAME, columnRegistrar());
-    }
-
-    @Override
-    public Routing getRouting(ClusterState state, RoutingProvider routingProvider, WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection, SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(NAME, state.getNodes().getLocalNodeId());
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
+            .add("datlastsysoid", INTEGER, c -> null)
+            .add("datfrozenxid", INTEGER, c -> null)
+            .add("datminmxid", INTEGER, c -> null)
+            .add("dattablespace", INTEGER, c -> null)
+            .add("datacl", STRING_ARRAY, c -> null)
+            .build();
     }
 }
