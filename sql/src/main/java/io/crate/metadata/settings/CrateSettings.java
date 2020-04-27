@@ -22,22 +22,16 @@
 
 package io.crate.metadata.settings;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import com.google.common.base.Joiner;
-import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.expression.NestableInput;
-import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.memory.MemoryManagerFactory;
-import io.crate.statistics.TableStatsService;
-import io.crate.settings.CrateSetting;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-import io.crate.udc.service.UDCService;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -60,18 +54,20 @@ import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.cluster.gracefulstop.DecommissioningService;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.memory.MemoryManagerFactory;
+import io.crate.settings.CrateSetting;
+import io.crate.statistics.TableStatsService;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.udc.service.UDCService;
 
 public final class CrateSettings implements ClusterStateListener {
 
-    public static final List<CrateSetting> CRATE_CLUSTER_SETTINGS = List.of(
+    public static final List<CrateSetting<?>> CRATE_CLUSTER_SETTINGS = List.of(
         // STATS
         JobsLogService.STATS_ENABLED_SETTING,
         JobsLogService.STATS_JOBS_LOG_SIZE_SETTING,
@@ -108,7 +104,7 @@ public final class CrateSettings implements ClusterStateListener {
         MemoryManagerFactory.MEMORY_ALLOCATION_TYPE
     );
 
-    private static final List<CrateSetting> EXPOSED_ES_SETTINGS = List.of(
+    private static final List<CrateSetting<?>> EXPOSED_ES_SETTINGS = List.of(
         // CLUSTER
         CrateSetting.of(InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING, DataTypes.STRING),
         // CLUSTER ROUTING
@@ -183,7 +179,7 @@ public final class CrateSettings implements ClusterStateListener {
     );
 
 
-    public static final List<CrateSetting> BUILT_IN_SETTINGS = Stream.concat(CRATE_CLUSTER_SETTINGS.stream(), EXPOSED_ES_SETTINGS.stream())
+    public static final List<CrateSetting<?>> BUILT_IN_SETTINGS = Stream.concat(CRATE_CLUSTER_SETTINGS.stream(), EXPOSED_ES_SETTINGS.stream())
         .filter(cs -> cs.getKey().startsWith("crate.internal.") == false)  // don't expose internal settings
         .collect(Collectors.toList());
     private static final List<String> BUILT_IN_SETTING_NAMES = BUILT_IN_SETTINGS.stream()
@@ -244,10 +240,8 @@ public final class CrateSettings implements ClusterStateListener {
         return name.startsWith("logger.");
     }
 
-
     private final Logger logger;
     private final Settings initialSettings;
-    private final Map<String, NestableInput> referenceImplementationTree;
 
     private volatile Settings settings;
 
@@ -255,12 +249,11 @@ public final class CrateSettings implements ClusterStateListener {
     public CrateSettings(ClusterService clusterService, Settings settings) {
         logger = LogManager.getLogger(this.getClass());
         Settings.Builder defaultsBuilder = Settings.builder();
-        for (CrateSetting builtInSetting : BUILT_IN_SETTINGS) {
+        for (CrateSetting<?> builtInSetting : BUILT_IN_SETTINGS) {
             defaultsBuilder.put(builtInSetting.getKey(), builtInSetting.setting().getDefaultRaw(settings));
         }
         initialSettings = defaultsBuilder.put(settings).build();
         this.settings = initialSettings;
-        referenceImplementationTree = buildReferenceTree();
         clusterService.addListener(this);
     }
 
@@ -278,132 +271,7 @@ public final class CrateSettings implements ClusterStateListener {
 
     }
 
-    Settings settings() {
+    public Settings settings() {
         return settings;
-    }
-
-    public Map<String, NestableInput> referenceImplementationTree() {
-        return referenceImplementationTree;
-    }
-
-    private Map<String, NestableInput> buildReferenceTree() {
-        Map<String, NestableInput> referenceMap = new HashMap<>(BUILT_IN_SETTINGS.size());
-        for (CrateSetting crateSetting : BUILT_IN_SETTINGS) {
-            if (crateSetting.isGroupSetting()) {
-                Map<String, Settings> settingsMap = initialSettings.getGroups(crateSetting.getKey(), true);
-                for (Map.Entry<String, Settings> entry : settingsMap.entrySet()) {
-                    buildGroupSettingReferenceTree(crateSetting.getKey(), entry.getKey(), entry.getValue(),
-                        referenceMap);
-                }
-            }
-            buildReferenceTree(referenceMap, crateSetting);
-        }
-        return referenceMap;
-    }
-
-    @VisibleForTesting
-    void buildGroupSettingReferenceTree(String prefix,
-                                        String settingKey,
-                                        Settings settingValue,
-                                        Map<String, NestableInput> referenceMap) {
-        //this is a nested setting
-        if (!settingValue.isEmpty()) {
-            //we need to build the reference tree for the current setting
-            buildReferenceTree(referenceMap,
-                CrateSetting.of(Setting.groupSetting(prefix + settingKey + ".",
-                    Setting.Property.NodeScope),
-                    ObjectType.untyped()));
-            //build the reference tree for every child setting
-            for (String settingName : settingValue.keySet()) {
-                String nestedPrefix = prefix + settingKey + "." + settingName;
-
-                buildReferenceTree(referenceMap,
-                    CrateSetting.of(Setting.simpleString(nestedPrefix,
-                        Setting.Property.NodeScope),
-                        DataTypes.STRING));
-            }
-        }
-    }
-
-    private void buildReferenceTree(Map<String, NestableInput> referenceMap, CrateSetting<?> crateSetting) {
-        String fullName = crateSetting.setting().getKey();
-        List<String> parts = crateSetting.path();
-        int numParts = parts.size();
-        String name = parts.get(numParts - 1);
-        if (numParts == 1) {
-            // top level setting
-            referenceMap.put(fullName, new SettingExpression(this, crateSetting, fullName));
-        } else {
-            NestableInput nestableInput = new SettingExpression(this, crateSetting, name);
-
-            String topLevelName = parts.get(0);
-            NestedSettingExpression topLevelImpl = (NestedSettingExpression) referenceMap.get(topLevelName);
-            if (topLevelImpl == null) {
-                topLevelImpl = new NestedSettingExpression();
-                referenceMap.put(topLevelName, topLevelImpl);
-            }
-
-            // group settings have empty name, parent is created above
-            if (numParts == 2 && name.isEmpty() == false) {
-                topLevelImpl.putChildImplementation(name, nestableInput);
-            } else {
-                // find parent impl
-                NestedSettingExpression parentImpl = topLevelImpl;
-                for (int i = 1; i < numParts - 1; i++) {
-                    String currentName = parts.get(i);
-                    NestedSettingExpression current = (NestedSettingExpression) parentImpl.childImplementations().get(currentName);
-                    if (current == null) {
-                        current = new NestedSettingExpression();
-                        parentImpl.putChildImplementation(currentName, current);
-                    }
-                    parentImpl = current;
-                }
-                // group settings have empty name, parents are created above
-                if (name.isEmpty() == false) {
-                    parentImpl.putChildImplementation(name, nestableInput);
-                }
-            }
-        }
-    }
-
-    static class SettingExpression implements NestableCollectExpression<Void, Object> {
-        private final CrateSettings crateSettings;
-        private final CrateSetting<?> crateSetting;
-        private final String name;
-
-        SettingExpression(CrateSettings crateSettings, CrateSetting<?> crateSetting, String name) {
-            this.crateSettings = crateSettings;
-            this.crateSetting = crateSetting;
-            this.name = name;
-        }
-
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public Object value() {
-            return crateSetting.dataType().value(crateSetting.setting().get(crateSettings.settings()));
-        }
-
-        @Override
-        public void setNextRow(Void aVoid) {
-        }
-    }
-
-    @VisibleForTesting
-    static class NestedSettingExpression extends NestedObjectExpression implements NestableCollectExpression<Void, Map<String, Object>> {
-
-        void putChildImplementation(String name, NestableInput settingExpression) {
-            childImplementations.put(name, settingExpression);
-        }
-
-        public Map<String, NestableInput> childImplementations() {
-            return childImplementations;
-        }
-
-        @Override
-        public void setNextRow(Void aVoid) {
-        }
     }
 }

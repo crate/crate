@@ -22,56 +22,51 @@
 
 package io.crate.expression.reference.sys.cluster;
 
-import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.common.collections.Maps;
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.plugin.SQLPlugin;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Test;
+
+import io.crate.cluster.gracefulstop.DecommissioningService;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.license.CeLicenseService;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.sys.SysClusterTableInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitTest {
-
-    @Override
-    protected Collection<Setting<?>> additionalClusterSettings() {
-        return new SQLPlugin(Settings.EMPTY).getSettings();
-    }
 
     @Test
     public void testSettingsAreAppliedImmediately() throws Exception {
         Settings settings = Settings.builder().put("bulk.request_timeout", "20s").build();
-        // build cluster service mock to pass initial settings
-        ClusterService clusterService = mock(ClusterService.class);
-        when(clusterService.getSettings()).thenReturn(settings);
+        var sysCluster = SysClusterTableInfo.of(
+            clusterService,
+            new CrateSettings(clusterService, settings),
+            new CeLicenseService()
+        );
 
-        ClusterSettingsExpression clusterSettingsExpression = new ClusterSettingsExpression(
-            clusterService, new CrateSettings(clusterService, clusterService.getSettings()));
-
-        assertThat(clusterSettingsExpression
-                .getChild("bulk")
-                .getChild("request_timeout").value(),
-            is("20s"));
+        var expressionFactory = sysCluster.expressions().get(new ColumnIdent("settings", List.of("bulk", "request_timeout")));
+        var expression = expressionFactory.create();
+        expression.setNextRow(null);
+        assertThat(expression.value(), is("20s"));
     }
 
     @Test
     public void testSettingsAreUpdated() throws Exception {
-        ClusterSettingsExpression expression = new ClusterSettingsExpression(
-            clusterService, new CrateSettings(clusterService, clusterService.getSettings()));
+        var sysCluster = SysClusterTableInfo.of(
+            clusterService,
+            new CrateSettings(clusterService, Settings.EMPTY),
+            new CeLicenseService()
+        );
 
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 1)
@@ -93,14 +88,20 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
         });
         latch.await(5, TimeUnit.SECONDS);
 
-        Map<String, Object> values = expression.value();
-        assertThat(
-            Maps.getByPath(values, JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey()), is(1));
 
-        assertThat(
-            Maps.getByPath(values, JobsLogService.STATS_ENABLED_SETTING.getKey()), is(false));
+        var jobsLogSize = sysCluster.expressions()
+            .get(new ColumnIdent("settings", List.of("stats", "jobs_log_size")))
+            .create();
+        assertThat(jobsLogSize.value(), is(1));
 
-        assertThat(
-            Maps.getByPath(values, DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey()), is("FULL"));
+        var statsEnabled = sysCluster.expressions()
+            .get(new ColumnIdent("settings", List.of("stats", "enabled")))
+            .create();
+        assertThat(statsEnabled.value(), is(false));
+
+        var minAvailability = sysCluster.expressions()
+            .get(new ColumnIdent("settings", List.of("cluster", "graceful_stop", "min_availability")))
+            .create();
+        assertThat(minAvailability.value(), is("FULL"));
     }
 }

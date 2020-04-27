@@ -63,7 +63,7 @@ public class SysTableDefinitions {
                                ShardSegments shardSegmentInfos,
                                TableHealthService tableHealthService) {
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
-        SysClusterTableInfo sysClusterTableInfo = (SysClusterTableInfo) sysSchemaInfo.getTableInfo(SysClusterTableInfo.IDENT.name());
+        var sysClusterTableInfo = (SystemTable<Void>) sysSchemaInfo.getTableInfo(SysClusterTableInfo.IDENT.name());
         assert sysClusterTableInfo != null : "sys.cluster table must exist in sys schema";
         tableDefinitions.put(SysClusterTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(Collections.singletonList(null)),

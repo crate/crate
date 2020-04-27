@@ -21,145 +21,185 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.expression.reference.sys.cluster.ClusterLicenseExpression;
-import io.crate.expression.reference.sys.cluster.ClusterLoggingOverridesExpression;
-import io.crate.expression.reference.sys.cluster.ClusterSettingsExpression;
-import io.crate.license.LicenseService;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.settings.CrateSetting;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
+
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
+import io.crate.license.LicenseService;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.SystemTable.Builder;
+import io.crate.metadata.SystemTable.ObjectBuilder;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.settings.CrateSetting;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.EXPIRY_DATE;
-import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.ISSUED_TO;
-import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.MAX_NODES;
-
-public class SysClusterTableInfo extends StaticTableInfo<Void> {
+public class SysClusterTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "cluster");
 
-    private final Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions;
+    public static class LoggerEntry {
 
-    public static SysClusterTableInfo of(ClusterService clusterService,
-                                         CrateSettings crateSettings,
-                                         LicenseService licenseService) {
-        ColumnRegistrar<Void> columnRegistrar = buildColumnRegistrar(clusterService, crateSettings, licenseService);
-        return new SysClusterTableInfo(columnRegistrar);
+        private final String loggerName;
+        private final String level;
+
+        public LoggerEntry(String loggerName, String level) {
+            this.loggerName = loggerName;
+            this.level = level;
+        }
+
+        public String loggerName() {
+            return loggerName;
+        }
+
+        public String level() {
+            return level;
+        }
     }
 
-    private SysClusterTableInfo(ColumnRegistrar<Void> columnRegistrar) {
-        super(IDENT, columnRegistrar, Collections.emptyList());
-        this.expressions = columnRegistrar.expressions();
-    }
-
-    public Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
-        return expressions;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState clusterState,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.CLUSTER;
-    }
-
-    private static ColumnRegistrar<Void> buildColumnRegistrar(ClusterService clusterService,
-                                                              CrateSettings crateSettings,
-                                                              LicenseService licenseService) {
+    public static SystemTable<Void> of(ClusterService clusterService,
+                                       CrateSettings crateSettings,
+                                       LicenseService licenseService) {
         Settings settings = clusterService.getSettings();
-        return new ColumnRegistrar<Void>(IDENT, RowGranularity.CLUSTER)
-            .register("id", DataTypes.STRING, () -> forFunction(nothing -> clusterService.state().metaData().clusterUUID()))
-            .register("name", DataTypes.STRING, () -> forFunction(nothing -> ClusterName.CLUSTER_NAME_SETTING.get(settings).value()))
-            .register("master_node", DataTypes.STRING, () -> forFunction(nothing -> clusterService.state().nodes().getMasterNodeId()))
-            .register(
-                "license",
-                ObjectType.builder()
-                    .setInnerType(EXPIRY_DATE, DataTypes.TIMESTAMPZ)
-                    .setInnerType(ISSUED_TO, DataTypes.STRING)
-                    .setInnerType(MAX_NODES, DataTypes.INTEGER)
-                    .build(),
-                () -> new ClusterLicenseExpression(licenseService)
-            )
-            .register(
-                ClusterSettingsExpression.NAME,
-                buildSettingsObjectType(),
-                () -> new ClusterSettingsExpression(clusterService, crateSettings)
+        var relBuilder = SystemTable.<Void>builder(IDENT)
+            .add("id", DataTypes.STRING, nothing -> clusterService.state().metaData().clusterUUID())
+            .add("name", DataTypes.STRING, nothing -> ClusterName.CLUSTER_NAME_SETTING.get(settings).value())
+            .add("master_node", DataTypes.STRING, nothing -> clusterService.state().nodes().getMasterNodeId())
+            .startObject("license", x -> licenseService.currentLicense() == null)
+                .add("expiry_date", DataTypes.TIMESTAMPZ, x -> licenseService.getExpiryDateInMs())
+                .add("issued_to", DataTypes.STRING, x -> licenseService.getIssuedTo())
+                .add("max_nodes", DataTypes.INTEGER, x -> licenseService.getMaxNodes())
+            .endObject();
+
+        var settingsBuilder = relBuilder.startObject("settings")
+            .startObjectArray("logger", extractLoggers(crateSettings))
+                .add("name", DataTypes.STRING, LoggerEntry::loggerName)
+                .add("level", DataTypes.STRING, LoggerEntry::level)
+            .endObjectArray();
+
+        // turns the settings:
+        //
+        // [
+        //  [stats, enabled],
+        //  [stats, jobs_log_size],
+        //  ...
+        // ]
+        //
+        // into tree form:
+        //
+        //   Node
+        //    name: stats
+        //    children: [
+        //      Leaf:
+        //        name: enabled
+        //        value: CrateSetting{stats.enabled}
+        //      Leaf:
+        //        name: jobs_log_size
+        //        value: CrateSetting{stats.jobs_log_size}
+        //
+        //
+        // To make it easier to build the objects
+        var rootNode = toTree(CrateSettings.BUILT_IN_SETTINGS);
+
+        for (var child : rootNode.children) {
+            addSetting(crateSettings, settingsBuilder, child);
+        }
+        return settingsBuilder
+            .endObject()
+            .build();
+    }
+
+    private static void addSetting(CrateSettings crateSettings,
+                                   ObjectBuilder<Void, ? extends Builder<Void>> settingsBuilder,
+                                   Node<CrateSetting<?>> element) {
+        if (element instanceof Leaf<?>) {
+            Leaf<CrateSetting<?>> leaf = (Leaf<CrateSetting<?>>) element;
+            var crateSetting = leaf.value;
+            var valueType = (DataType<Object>) leaf.value.dataType();
+            settingsBuilder.add(
+                leaf.name,
+                valueType,
+                x -> valueType.value(crateSetting.setting().get(crateSettings.settings()))
             );
-    }
-
-    private static ObjectType buildSettingsObjectType() {
-        ObjectType.Builder settingTypeBuilder = ObjectType.builder()
-            .setInnerType(ClusterLoggingOverridesExpression.NAME, new ArrayType<>(
-                ObjectType.builder()
-                    .setInnerType(ClusterLoggingOverridesExpression.ClusterLoggingOverridesChildExpression.NAME, DataTypes.STRING)
-                    .setInnerType(ClusterLoggingOverridesExpression.ClusterLoggingOverridesChildExpression.LEVEL, DataTypes.STRING)
-                    .build()));
-
-        // register all exposed crate and elasticsearch settings
-        Map<String, CrateSetting<?>> settingsMap = new HashMap<>();
-        Settings.Builder settingsBuilder = Settings.builder();
-        for (CrateSetting<?> crateSetting : CrateSettings.BUILT_IN_SETTINGS) {
-            settingsBuilder.put(crateSetting.getKey(), crateSetting.getDefault().toString());
-            settingsMap.put(crateSetting.getKey(), crateSetting);
-        }
-
-        Map<String, Object> structuredSettingsMap = settingsBuilder.build().getAsStructuredMap();
-        for (Map.Entry<String, Object> entry : structuredSettingsMap.entrySet()) {
-            buildObjectType(settingTypeBuilder, entry.getKey(), entry.getValue(), Collections.emptyList(), settingsMap::get);
-        }
-
-        return settingTypeBuilder.build();
-    }
-
-    private static void buildObjectType(ObjectType.Builder builder,
-                                        String name,
-                                        Object val,
-                                        List<String> path,
-                                        Function<String, CrateSetting> resolver) {
-        List<String> newPath = new ArrayList<>(path);
-        newPath.add(name);
-        String fqnName = String.join(".", newPath);
-        if (val instanceof Map) {
-            ObjectType.Builder innerBuilder = ObjectType.builder();
-            //noinspection unchecked
-            for (Map.Entry<String, Object> entry : ((Map<String, Object>) val).entrySet()) {
-                buildObjectType(innerBuilder, entry.getKey(), entry.getValue(), newPath, resolver);
-            }
-            builder.setInnerType(name, innerBuilder.build());
         } else {
-            CrateSetting crateSetting = resolver.apply(fqnName);
-            builder.setInnerType(name, crateSetting.dataType());
+            var node = (Node<CrateSetting<?>>) element;
+            var objectSetting = settingsBuilder.startObject(node.name);
+            for (var c : node.children) {
+                addSetting(crateSettings, objectSetting, c);
+            }
+            objectSetting.endObject();
         }
     }
 
+    private static Function<Void, List<LoggerEntry>> extractLoggers(CrateSettings crateSettings) {
+        return x -> {
+            var settings = crateSettings.settings();
+            ArrayList<LoggerEntry> loggers = new ArrayList<>();
+            for (var settingName : settings.keySet()) {
+                if (settingName.startsWith("logger.")) {
+                    loggers.add(new LoggerEntry(settingName, settings.get(settingName).toUpperCase(Locale.ENGLISH)));
+                }
+            }
+            return loggers;
+        };
+    }
+
+
+    static Node<CrateSetting<?>> toTree(List<CrateSetting<?>> builtInSettings) {
+        Node<CrateSetting<?>> rootNode = new Node<>("root");
+        for (var crateSetting : builtInSettings) {
+            rootNode.add(crateSetting.path(), crateSetting);
+        }
+        return rootNode;
+    }
+
+    static class Node<T> {
+
+        final String name;
+        final ArrayList<Node<T>> children = new ArrayList<>();
+
+        public Node(String name) {
+            this.name = name;
+        }
+
+        public void add(List<String> path, T value) {
+            switch (path.size()) {
+                case 0:
+                    throw new IllegalArgumentException("Path must not be empty");
+
+                case 1:
+                    children.add(new Leaf<>(path.get(0), value));
+                    break;
+
+                default:
+                    var valueName = path.get(0);
+                    for (var child : children) {
+                        if (child.name.equals(valueName)) {
+                            child.add(path.subList(1, path.size()), value);
+                            return;
+                        }
+                    }
+                    Node<T> newChild = new Node<>(valueName);
+                    children.add(newChild);
+                    newChild.add(path.subList(1, path.size()), value);
+                    break;
+            }
+        }
+    }
+
+    static class Leaf<T> extends Node<T> {
+
+        final T value;
+
+        public Leaf(String name, T value) {
+            super(name);
+            this.value = value;
+        }
+    }
 }
