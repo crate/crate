@@ -21,61 +21,30 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
+import static io.crate.types.DataTypes.STRING;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.repositories.Repository;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.types.DataTypes.STRING;
-
-public class SysRepositoriesTableInfo extends StaticTableInfo<Repository> {
+public class SysRepositoriesTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "repositories");
-    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    static Map<ColumnIdent, RowCollectExpressionFactory<Repository>> expressions(List<Setting<?>> maskedSettings) {
-        return columnRegistrar(maskedSettings).expressions();
-    }
-
-    static ColumnRegistrar<Repository> columnRegistrar(List<Setting<?>> maskedSettings) {
-        return new ColumnRegistrar<Repository>(IDENT, GRANULARITY)
-            .register("name", STRING, () -> forFunction((Repository r) -> r.getMetadata().name()))
-            .register("type", STRING, () -> forFunction((Repository r) -> r.getMetadata().type()))
-            .register("settings", ObjectType.untyped(), () ->
-                forFunction((Repository r) -> r.getMetadata().settings().getAsStructuredMap(
-                    maskedSettings.stream().map(Setting::getKey).collect(Collectors.toSet()))));
-    }
-
-    SysRepositoriesTableInfo(List<Setting<?>> maskedSettings) {
-        super(IDENT, columnRegistrar(maskedSettings), "name");
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return GRANULARITY;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState clusterState,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return routingProvider.forRandomMasterOrDataNode(IDENT, clusterState.getNodes());
+    public static SystemTable<Repository> create(List<Setting<?>> maskedSettings) {
+        var maskedSettingNames = maskedSettings.stream().map(Setting::getKey).collect(Collectors.toSet());
+        return SystemTable.<Repository>builder(IDENT)
+            .add("name", STRING, (Repository r) -> r.getMetadata().name())
+            .add("type", STRING, (Repository r) -> r.getMetadata().type())
+            .addDynamicObject("settings", STRING, r -> r.getMetadata().settings().getAsStructuredMap(maskedSettingNames))
+            .setPrimaryKeys(new ColumnIdent("name"))
+            .withRouting((nodes, routingProvider) -> routingProvider.forRandomMasterOrDataNode(IDENT, nodes))
+            .build();
     }
 }
