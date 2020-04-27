@@ -627,7 +627,7 @@ public class ProjectionToProjectorVisitor
         } else {
             InputFactory.Context<NestableCollectExpression<SysNodeCheck, ?>> cntx = new InputFactory(
                 functions).ctxForRefs(
-                context.txnCtx, new StaticTableReferenceResolver<>(SysNodeChecksTableInfo.expressions()));
+                context.txnCtx, new StaticTableReferenceResolver<>(SysNodeChecksTableInfo.create().expressions()));
             cntx.add(List.of(projection.returnValues()));
             return new SysUpdateResultSetProjector(rowUpdater,
                                                    rowWriter,

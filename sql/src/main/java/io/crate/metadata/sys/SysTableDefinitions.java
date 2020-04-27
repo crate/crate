@@ -99,7 +99,7 @@ public class SysTableDefinitions {
 
         tableDefinitions.put(SysNodeChecksTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(sysNodeChecks),
-            SysNodeChecksTableInfo.expressions(),
+            SysNodeChecksTableInfo.create().expressions(),
             true));
         tableDefinitions.put(SysRepositoriesTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(repositoriesService.getRepositoriesList()),

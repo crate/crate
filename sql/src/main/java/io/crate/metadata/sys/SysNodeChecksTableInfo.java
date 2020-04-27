@@ -22,35 +22,25 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.expression.reference.sys.check.node.SysNodeCheck;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterState;
-
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
 
+import java.util.EnumSet;
+import java.util.Set;
 
-public class SysNodeChecksTableInfo extends StaticTableInfo<SysNodeCheck> {
+import io.crate.expression.reference.sys.check.node.SysNodeCheck;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.table.Operation;
+
+
+public class SysNodeChecksTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "node_checks");
-    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     private static final Set<Operation> SUPPORTED_OPERATIONS = EnumSet.of(Operation.READ, Operation.UPDATE);
 
@@ -58,42 +48,21 @@ public class SysNodeChecksTableInfo extends StaticTableInfo<SysNodeCheck> {
         public static final ColumnIdent ACKNOWLEDGED = new ColumnIdent("acknowledged");
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
-    private static ColumnRegistrar<SysNodeCheck> columnRegistrar() {
-        return new ColumnRegistrar<SysNodeCheck>(IDENT, GRANULARITY)
-            .register("id", INTEGER, () -> forFunction(SysNodeCheck::id))
-            .register("node_id", STRING, () -> forFunction(SysNodeCheck::nodeId))
-            .register("severity", INTEGER, () -> forFunction((SysNodeCheck x) -> x.severity().value()))
-            .register("description", STRING, () -> forFunction(SysNodeCheck::description))
-            .register("passed", BOOLEAN, () -> forFunction(SysNodeCheck::isValid))
-            .register("acknowledged", BOOLEAN, () -> forFunction(SysNodeCheck::acknowledged))
-            .register(DocSysColumns.ID.name(), STRING, () -> forFunction(SysNodeCheck::rowId))
-            .putInfoOnly(DocSysColumns.ID, DocSysColumns.forTable(IDENT, DocSysColumns.ID));
-    }
-
-    SysNodeChecksTableInfo() {
-        super(IDENT, columnRegistrar(), "id", "node_id");
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return GRANULARITY;
-    }
-
-    @Override
-    public Routing getRouting(ClusterState clusterState,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return Routing.forTableOnAllNodes(IDENT, clusterState.getNodes());
-    }
-
-    @Override
-    public Set<Operation> supportedOperations() {
-        return SUPPORTED_OPERATIONS;
+    public static SystemTable<SysNodeCheck> create() {
+        return SystemTable.<SysNodeCheck>builder(IDENT)
+            .add("id", INTEGER, SysNodeCheck::id)
+            .add("node_id", STRING, SysNodeCheck::nodeId)
+            .add("severity", INTEGER, (SysNodeCheck x) -> x.severity().value())
+            .add("description", STRING, SysNodeCheck::description)
+            .add("passed", BOOLEAN, SysNodeCheck::isValid)
+            .add("acknowledged", BOOLEAN, SysNodeCheck::acknowledged)
+            .add(DocSysColumns.ID.name(), STRING, SysNodeCheck::rowId)
+            .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(IDENT, nodes))
+            .withSupportedOperations(SUPPORTED_OPERATIONS)
+            .setPrimaryKeys(
+                new ColumnIdent("id"),
+                new ColumnIdent("node_id")
+            )
+            .build();
     }
 }

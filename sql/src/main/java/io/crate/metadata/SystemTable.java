@@ -66,15 +66,18 @@ public final class SystemTable<T> implements TableInfo {
     private final List<Reference> rootColumns;
     private final BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting;
     private final Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns;
+    private final Set<Operation> supportedOperations;
 
     public SystemTable(RelationName name,
                        Map<ColumnIdent, Reference> columns,
                        Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions,
                        List<ColumnIdent> primaryKeys,
                        Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns,
+                       Set<Operation> supportedOperations,
                        @Nullable BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting) {
         this.name = name;
         this.columns = columns;
+        this.supportedOperations = supportedOperations;
         this.getRouting = getRouting == null
             ? (nodes, routingProvider) -> Routing.forTableOnSingleNode(name, nodes.getLocalNodeId())
             : getRouting;
@@ -145,7 +148,7 @@ public final class SystemTable<T> implements TableInfo {
 
     @Override
     public Set<Operation> supportedOperations() {
-        return Operation.SYS_READ_ONLY;
+        return supportedOperations;
     }
 
     @Override
@@ -205,6 +208,7 @@ public final class SystemTable<T> implements TableInfo {
         private final ArrayList<Column<T, ?>> columns = new ArrayList<>();
         private List<ColumnIdent> primaryKeys = List.of();
         private BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting;
+        private Set<Operation> supportedOperations = Operation.SYS_READ_ONLY;
 
         RelationBuilder(RelationName name) {
             this.name = name;
@@ -215,6 +219,11 @@ public final class SystemTable<T> implements TableInfo {
          */
         public RelationBuilder<T> withRouting(BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting) {
             this.getRouting = getRouting;
+            return this;
+        }
+
+        public RelationBuilder<T> withSupportedOperations(Set<Operation> supportedOperations) {
+            this.supportedOperations = supportedOperations;
             return this;
         }
 
@@ -278,6 +287,7 @@ public final class SystemTable<T> implements TableInfo {
                expressions,
                primaryKeys,
                dynamicColumns,
+               supportedOperations,
                getRouting
            );
         }
@@ -294,8 +304,6 @@ public final class SystemTable<T> implements TableInfo {
             this.primaryKeys = Arrays.asList(primaryKeys);
             return this;
         }
-
-
     }
 
     public static class ObjectBuilder<T, P extends Builder<T>> extends Builder<T> {
