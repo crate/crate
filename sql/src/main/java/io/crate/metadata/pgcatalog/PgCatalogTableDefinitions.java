@@ -80,7 +80,7 @@ public class PgCatalogTableDefinitions {
         tableDefinitions.put(PgNamespaceTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
             (user, s) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name()),
-            PgNamespaceTable.expressions()
+            PgNamespaceTable.create().expressions()
         ));
         tableDefinitions.put(PgAttrDefTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(Collections.emptyList()),
