@@ -55,6 +55,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.planner.Merge;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -1973,5 +1974,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void test_table_function_with_multiple_columns_in_select_list_has_row_type() {
         AnalyzedRelation rel = analyze("select unnest([1, 2], [3, 4])");
         assertThat(rel.outputs().get(0).valueType().getName(), is("record"));
+    }
+
+    @Test
+    public void test_select_sys_columns_on_aliased_table() throws Exception {
+        AnalyzedRelation rel = analyze("SELECT t._score, t._id, t._version, t._score, t._uid, t._doc, t._raw, t._primary_term FROM t1 as t");
+        assertThat(rel.outputs().size(), is(8));
     }
 }

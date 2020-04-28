@@ -23,6 +23,7 @@
 package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -34,6 +35,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
@@ -111,6 +113,10 @@ public class DocSysColumns {
             ColumnIdent columnIdent = entry.getKey();
             consumer.accept(columnIdent, newInfo(relationName, columnIdent, entry.getValue()));
         }
+    }
+
+    public static List<Reference> forTable(RelationName relationName) {
+        return Lists2.map(COLUMN_IDENTS.entrySet(), e -> newInfo(relationName, e.getKey(), e.getValue()));
     }
 
     public static Reference forTable(RelationName table, ColumnIdent column) {

@@ -115,7 +115,10 @@ public class SelectAnalyzer {
 
         private static void addAllFieldsFromRelation(SelectAnalysis context, AnalyzedRelation relation) {
             for (Symbol field : relation.outputs()) {
-                context.add(Symbols.pathFromSymbol(field), field);
+                var columnIdent = Symbols.pathFromSymbol(field);
+                if (!columnIdent.isSystemColumn()) {
+                    context.add(Symbols.pathFromSymbol(field), field);
+                }
             }
         }
     }
