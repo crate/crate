@@ -386,18 +386,54 @@ public class SignatureBinder {
                                                Map<String, TypeVariableConstraint> typeVariableConstraints,
                                                List<TypeSignature> builder,
                                                int actualArity) {
-        TypeVariableConstraint typeVariableConstraint = typeVariableConstraints.get(typeSignature.getBaseTypeName());
+        TypeVariableConstraint typeVariableConstraint = resolveTypeVariableConstraint(
+            typeSignature,
+            typeVariableConstraints
+        );
         if (typeVariableConstraint != null && typeVariableConstraint.isAnyAllowed()) {
             // Type variables defaults to be bound to the same type.
             // To support independent variable type arguments, each vararg must be bound to a dedicated type variable.
-            String constraintName = "_generated_" + typeSignature.getBaseTypeName() + actualArity;
-            TypeSignature newTypeSignature = new TypeSignature(constraintName);
-            typeVariableConstraints.put(constraintName, typeVariableOfAnyType(constraintName));
+            var newConstraintName = "_generated_" + typeVariableConstraint + actualArity;
+            var newTypeSignature = replaceTypeVariable(
+                typeSignature,
+                typeVariableConstraint.getName(),
+                newConstraintName
+            );
+            typeVariableConstraints.put(newConstraintName, typeVariableOfAnyType(newConstraintName));
             builder.add(newTypeSignature);
         } else {
             builder.add(typeSignature);
         }
+    }
 
+    @Nullable
+    private static TypeVariableConstraint resolveTypeVariableConstraint(
+        TypeSignature signature,
+        Map<String, TypeVariableConstraint> constraints) {
+
+        if (signature.getParameters().isEmpty()) {
+            return constraints.get(signature.getBaseTypeName());
+        } else {
+            for (var parameterSignature : signature.getParameters()) {
+                var constraint = resolveTypeVariableConstraint(parameterSignature, constraints);
+                if (constraint != null) {
+                    return constraint;
+                }
+            }
+            return null;
+        }
+    }
+
+    private static TypeSignature replaceTypeVariable(TypeSignature signature, String oldVar, String newVar) {
+        if (signature.getBaseTypeName().equalsIgnoreCase(oldVar)) {
+            return new TypeSignature(newVar, signature.getParameters());
+        } else {
+            ArrayList<TypeSignature> parameters = new ArrayList<>();
+            for (var parameter : signature.getParameters()) {
+                parameters.add(replaceTypeVariable(parameter, oldVar, newVar));
+            }
+            return new TypeSignature(signature.getBaseTypeName(), parameters);
+        }
     }
 
     private static boolean satisfiesCoercion(CoercionType coercionType,

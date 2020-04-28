@@ -356,6 +356,62 @@ public class SignatureBinderTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_variable_arity_with_array_nested_variable_constraint_of_any_type() {
+        Signature signature = functionSignature()
+            .returnType(parseTypeSignature("integer"))
+            .argumentTypes(parseTypeSignature("array(E)"))
+            .typeVariableConstraints(List.of(typeVariableOfAnyType("E")))
+            .setVariableArity(true)
+            .build();
+
+        // arity 1
+        assertThat(signature)
+            .boundTo("array(text)")
+            .produces(new BoundVariables(
+                Map.of(
+                    "E", type("text")
+                )
+            ));
+        // arity 2
+        assertThat(signature)
+            .boundTo("array(text)", "array(integer)")
+            .produces(new BoundVariables(
+                Map.of(
+                    "E", type("text"),
+                    "_generated_E1", type("integer")
+                )
+            ));
+    }
+
+    @Test
+    public void test_variable_arity_with_multi_array_nested_variable_constraint_of_any_type() {
+        Signature signature = functionSignature()
+            .returnType(parseTypeSignature("integer"))
+            .argumentTypes(parseTypeSignature("array(array(E))"))
+            .typeVariableConstraints(List.of(typeVariableOfAnyType("E")))
+            .setVariableArity(true)
+            .build();
+
+        // arity 1
+        assertThat(signature)
+            .boundTo("array(array(text))")
+            .produces(new BoundVariables(
+                Map.of(
+                    "E", type("text")
+                )
+            ));
+        // arity 2
+        assertThat(signature)
+            .boundTo("array(array(text))", "array(array(long))")
+            .produces(new BoundVariables(
+                Map.of(
+                    "E", type("text"),
+                    "_generated_E1", type("long")
+                )
+            ));
+    }
+
+    @Test
     public void testVarArgs() {
         Signature variableArityFunction = functionSignature()
             .returnType(parseTypeSignature("boolean"))
