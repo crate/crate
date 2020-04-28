@@ -27,16 +27,21 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import static io.crate.common.collections.Lists2.concat;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
     public DocTableRelation(DocTableInfo tableInfo) {
-        super(tableInfo);
+        // System columns are excluded from `tableInfo.columns()` by default,
+        // but parent relations need to be able to see them so that they're selectable.
+        // E.g. in `select a._id from tbl as a`
+        super(tableInfo, concat(tableInfo.columns(), DocSysColumns.forTable(tableInfo.ident())));
     }
 
     @Override

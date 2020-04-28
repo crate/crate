@@ -27,10 +27,12 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 
+import java.util.List;
+
 public class TableRelation extends AbstractTableRelation<TableInfo> {
 
     public TableRelation(TableInfo tableInfo) {
-        super(tableInfo);
+        super(tableInfo, List.copyOf(tableInfo.columns()));
     }
 
     @Override
