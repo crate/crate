@@ -174,7 +174,7 @@ public class ShardCollectSource implements CollectSource {
                               CrateCircuitBreakerService circuitBreakerService) {
         this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
             SysShardsTableInfo.unassignedShardsExpressions());
-        this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.expressions());
+        this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.create().expressions());
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.remoteCollectorFactory = remoteCollectorFactory;

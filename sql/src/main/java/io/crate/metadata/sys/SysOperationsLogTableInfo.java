@@ -43,7 +43,7 @@ public class SysOperationsLogTableInfo {
             .add("ended", TIMESTAMPZ, OperationContextLog::ended)
             .add("used_bytes", LONG, OperationContextLog::usedBytes)
             .add("error", STRING, OperationContextLog::errorMessage)
-            .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(IDENT, nodes))
+            .withRouting((state, routingProvider, sessionContext) -> Routing.forTableOnAllNodes(IDENT, state.getNodes()))
             .build();
     }
 }

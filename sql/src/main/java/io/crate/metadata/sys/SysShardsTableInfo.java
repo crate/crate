@@ -21,36 +21,23 @@
 
 package io.crate.metadata.sys;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.STRING;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.analyze.user.Privilege;
-import io.crate.auth.user.User;
-import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.expression.NestableInput;
-import io.crate.expression.reference.sys.shard.NodeNestableInput;
-import io.crate.expression.reference.sys.shard.ShardMinLuceneVersionExpression;
-import io.crate.expression.reference.sys.shard.ShardNumDocsExpression;
-import io.crate.expression.reference.sys.shard.ShardPartitionOrphanedExpression;
-import io.crate.expression.reference.sys.shard.ShardRecoveryExpression;
-import io.crate.expression.reference.sys.shard.ShardRowContext;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.shard.unassigned.UnassignedShard;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
-import io.crate.types.ObjectType;
-import org.apache.lucene.store.AlreadyClosedException;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
@@ -58,22 +45,24 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.function.Function;
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.user.Privilege;
+import io.crate.auth.user.User;
+import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.NestableInput;
+import io.crate.expression.reference.sys.shard.ShardRowContext;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.shard.unassigned.UnassignedShard;
+import io.crate.types.DataTypes;
 
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.metadata.table.ColumnRegistrar.entry;
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.STRING;
-
-public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
+public class SysShardsTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "shards");
 
@@ -107,10 +96,6 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
         static final ColumnIdent TRANSLOG_STATS = new ColumnIdent("translog_stats");
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<ShardRowContext>> expressions() {
-        return columnRegistrar().expressions();
-    }
-
     public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>>builder()
             .put(Columns.SCHEMA_NAME, () -> forFunction(UnassignedShard::schemaName))
@@ -134,91 +119,73 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
             .build();
     }
 
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(
-        Columns.SCHEMA_NAME,
-        Columns.TABLE_NAME,
-        Columns.ID,
-        Columns.PARTITION_IDENT
-    );
+    public static SystemTable<ShardRowContext> create() {
+        return SystemTable.<ShardRowContext>builder(IDENT, RowGranularity.SHARD)
+            .add("schema_name", STRING, r -> r.indexParts().getSchema())
+            .add("table_name", STRING, r -> r.indexParts().getTable())
+            .add("id", INTEGER, ShardRowContext::id)
+            .add("partition_ident", STRING, ShardRowContext::partitionIdent)
+            .add("num_docs", LONG, ShardRowContext::numDocs)
+            .add("primary", BOOLEAN, r -> r.indexShard().routingEntry().primary())
+            .add("relocating_node", STRING, r -> r.indexShard().routingEntry().relocatingNodeId())
+            .add("size", LONG, ShardRowContext::size)
+            .add("state", STRING, r -> r.indexShard().state().toString())
+            .add("routing_state", STRING,r -> r.indexShard().routingEntry().state().toString())
+            .add("orphan_partition", BOOLEAN, ShardRowContext::isOrphanedPartition)
 
-    private static final ObjectType TYPE_RECOVERY_SIZE = ObjectType.builder()
-        .setInnerType("used", LONG)
-        .setInnerType("reused", LONG)
-        .setInnerType("recovered", LONG)
-        .setInnerType("percent", FloatType.INSTANCE)
-        .build();
+            .startObject("recovery")
+                .add("stage", STRING, ShardRowContext::recoveryStage)
+                .add("type", STRING, ShardRowContext::recoveryType)
+                .add("total_time", LONG, ShardRowContext::recoveryTotalTime)
 
-    private static final ObjectType TYPE_RECOVERY_FILES = ObjectType.builder()
-        .setInnerType("used", IntegerType.INSTANCE)
-        .setInnerType("reused", IntegerType.INSTANCE)
-        .setInnerType("recovered", IntegerType.INSTANCE)
-        .setInnerType("percent", FloatType.INSTANCE)
-        .build();
+                .startObject("size")
+                    .add("used", LONG, ShardRowContext::recoverySizeUsed)
+                    .add("reused", LONG, ShardRowContext::recoverySizeReused)
+                    .add("recovered", LONG, ShardRowContext::recoverySizeRecoveredBytes)
+                    .add("percent", DataTypes.FLOAT, ShardRowContext::recoverySizeRecoveredBytesPercent)
+                .endObject()
 
-    private static ColumnRegistrar<ShardRowContext> columnRegistrar() {
-        return new ColumnRegistrar<ShardRowContext>(IDENT, RowGranularity.SHARD)
-            .register("schema_name", STRING, () -> forFunction(r -> r.indexParts().getSchema()))
-            .register("table_name", STRING, () -> forFunction(r -> r.indexParts().getTable()))
-            .register("id", INTEGER, () -> forFunction(ShardRowContext::id))
-            .register("partition_ident", STRING,() -> forFunction(ShardRowContext::partitionIdent))
-            .register("num_docs", LONG, ShardNumDocsExpression::new)
-            .register("primary", BOOLEAN, () -> forFunction(r -> r.indexShard().routingEntry().primary()))
-            .register("relocating_node", STRING, () -> forFunction(r -> r.indexShard().routingEntry().relocatingNodeId()))
-            .register("size", LONG, () -> forFunction(ShardRowContext::size))
-            .register("state", STRING, () -> forFunction(r -> r.indexShard().state().toString()))
-            .register("routing_state", STRING,() -> forFunction(r -> r.indexShard().routingEntry().state().toString()))
-            .register("orphan_partition", BOOLEAN, ShardPartitionOrphanedExpression::new)
-            .register("recovery", ObjectType.builder()
-                .setInnerType("stage", STRING)
-                .setInnerType("type", STRING)
-                .setInnerType("total_time", LONG)
-                .setInnerType("size", TYPE_RECOVERY_SIZE)
-                .setInnerType("files", TYPE_RECOVERY_FILES)
-                .build(), ShardRecoveryExpression::new)
-            .register("path", STRING, () -> forFunction(ShardRowContext::path))
-            .register("blob_path", STRING,() -> forFunction(ShardRowContext::blobPath))
-            .register("min_lucene_version", STRING, ShardMinLuceneVersionExpression::new)
-            .register("node", ObjectType.builder()
-                .setInnerType("id", STRING)
-                .setInnerType("name", STRING)
-                .build(), NodeNestableInput::new)
-            .register(
-                Columns.SEQ_NO_STATS.name(),
-                ColumnRegistrar.object(
-                    entry(SeqNoStats.MAX_SEQ_NO, LONG, orDefaultIfClosed(r -> r.indexShard().seqNoStats().getMaxSeqNo(), 0L)),
-                    entry(SeqNoStats.LOCAL_CHECKPOINT, LONG, orDefaultIfClosed(r -> r.indexShard().seqNoStats().getLocalCheckpoint(), 0L)),
-                    entry(SeqNoStats.GLOBAL_CHECKPOINT, LONG, orDefaultIfClosed(r -> r.indexShard().seqNoStats().getGlobalCheckpoint(), 0L))
-                )
+                .startObject("files")
+                    .add("used", INTEGER, ShardRowContext::recoveryFilesUsed)
+                    .add("reused", INTEGER, ShardRowContext::recoveryFilesReused)
+                    .add("recovered", INTEGER, ShardRowContext::recoveryFilesRecovered)
+                    .add("percent", DataTypes.FLOAT, ShardRowContext::recoveryFilesPercent)
+                .endObject()
+
+            .endObject()
+
+            .add("path", STRING, ShardRowContext::path)
+            .add("blob_path", STRING, ShardRowContext::blobPath)
+            .add("min_lucene_version", STRING, ShardRowContext::minLuceneVersion)
+            .startObject("node")
+                .add("id", STRING, x -> x.clusterService().localNode().getId())
+                .add("name", STRING, x -> x.clusterService().localNode().getName())
+            .endObject()
+            .startObject(Columns.SEQ_NO_STATS.name())
+                .add(SeqNoStats.MAX_SEQ_NO, LONG, ShardRowContext::maxSeqNo)
+                .add(SeqNoStats.LOCAL_CHECKPOINT, LONG, ShardRowContext::localSeqNoCheckpoint)
+                .add(SeqNoStats.GLOBAL_CHECKPOINT, LONG, ShardRowContext::globalSeqNoCheckpoint)
+            .endObject()
+            .startObject(Columns.TRANSLOG_STATS.name())
+                .add("size", LONG, ShardRowContext::translogSizeInBytes)
+                .add("uncommitted_size", LONG, ShardRowContext::translogUncommittedSizeInBytes)
+                .add("number_of_operations", INTEGER, ShardRowContext::translogEstimatedNumberOfOperations)
+                .add("uncommitted_operations", INTEGER, ShardRowContext::translogUncommittedOperations)
+            .endObject()
+            .setPrimaryKeys(
+                Columns.SCHEMA_NAME,
+                Columns.TABLE_NAME,
+                Columns.ID,
+                Columns.PARTITION_IDENT
             )
-            .register(
-                Columns.TRANSLOG_STATS.name(),
-                ColumnRegistrar.object(
-                    entry("size", LONG, orDefaultIfClosed(r -> r.indexShard().translogStats().getTranslogSizeInBytes(), 0L)),
-                    entry("uncommitted_size", LONG, orDefaultIfClosed(r -> r.indexShard().translogStats().getUncommittedSizeInBytes(), 0L)),
-                    entry("number_of_operations", INTEGER, orDefaultIfClosed(r -> r.indexShard().translogStats().estimatedNumberOfOperations(), 0)),
-                    entry("uncommitted_operations", INTEGER, orDefaultIfClosed(r -> r.indexShard().translogStats().getUncommittedOperations(), 0))
-                )
-            );
+            .withRouting(SysShardsTableInfo::getRouting)
+            .build();
     }
 
-    private static <T, U> Function<T, U> orDefaultIfClosed(Function<T, U> getProperty, U defaultVal) {
-        return x -> {
-            try {
-                return getProperty.apply(x);
-            } catch (AlreadyClosedException e) {
-                return defaultVal;
-            }
-        };
-    }
-
-    SysShardsTableInfo() {
-        super(IDENT, columnRegistrar(), PRIMARY_KEY);
-    }
-
-    private void processShardRouting(String localNodeId,
-                                     Map<String, Map<String, IntIndexedContainer>> routing,
-                                     ShardRouting shardRouting,
-                                     ShardId shardId) {
+    private static void processShardRouting(String localNodeId,
+                                            Map<String, Map<String, IntIndexedContainer>> routing,
+                                            ShardRouting shardRouting,
+                                            ShardId shardId) {
         String node;
         int id;
         String index = shardId.getIndex().getName();
@@ -244,24 +211,13 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
         shards.add(id);
     }
 
-    @Override
-    public RowGranularity rowGranularity() {
-        return RowGranularity.SHARD;
-    }
-
     /**
      * Retrieves the routing for sys.shards
      * <p>
      * This routing contains ALL shards of ALL indices.
      * Any shards that are not yet assigned to a node will have a NEGATIVE shard id (see {@link UnassignedShard}
      */
-    @Override
-    public Routing getRouting(ClusterState clusterState,
-                              RoutingProvider routingProvider,
-                              WhereClause whereClause,
-                              RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        // TODO: filter on whereClause
+    public static Routing getRouting(ClusterState clusterState, RoutingProvider routingProvider, SessionContext sessionContext) {
         String[] concreteIndices = Arrays.stream(clusterState.metaData().getConcreteAllOpenIndices())
             .filter(index -> !IndexParts.isDangling(index))
             .toArray(String[]::new);
@@ -299,7 +255,7 @@ public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
         }
 
         @Override
-        public NestableInput getChild(String name) {
+        public NestableInput<?> getChild(String name) {
             return this;
         }
     }

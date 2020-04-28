@@ -24,22 +24,24 @@ package io.crate.expression.reference.sys;
 import com.google.common.collect.ImmutableMap;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.sys.shard.ShardRecoveryStateExpression;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.license.CeLicenseService;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SystemTable;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
@@ -62,6 +64,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.indices.recovery.RecoveryState;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -88,6 +91,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     private IndexShard indexShard;
     private Schemas schemas;
     private String indexUUID;
+    private SystemTable<ShardRowContext> sysShards;
 
     @Before
     public void prepare()  {
@@ -101,6 +105,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
             new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), (ident, state) -> null , functions, udfService)
         );
         resolver = new ShardReferenceResolver(schemas, new ShardRowContext(indexShard, clusterService));
+        sysShards = (SystemTable<ShardRowContext>) schemas.getTableInfo(SysShardsTableInfo.IDENT);
     }
 
     private IndexShard mockIndexShard() {
@@ -149,21 +154,6 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         when(recoveryStateTimer.time()).thenReturn(10000L);
 
         return indexShard;
-    }
-
-    @Test
-    public void testShardInfoLookup() throws Exception {
-        Reference info = new Reference(
-            new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),
-            RowGranularity.SHARD,
-            IntegerType.INSTANCE,
-            ColumnPolicy.STRICT,
-            Reference.IndexType.NOT_ANALYZED,
-            true,
-            3,
-            null
-        );
-        assertEquals(info, schemas.getTableInfo(SysShardsTableInfo.IDENT).getReference(SysShardsTableInfo.Columns.ID));
     }
 
     @Test
@@ -347,18 +337,12 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testShardRecoveryStateExpressionNullRecoveryState(){
+    public void test_recovery_type_is_null_if_recovery_state_is_null(){
         when(indexShard.recoveryState()).thenReturn(null);
-        ShardRecoveryStateExpression shardRecoveryStateExpression = new ShardRecoveryStateExpression<Long>() {
-            @Override
-            public Long innerValue(RecoveryState recoveryState) {
-                return recoveryState.getTimer().time();
-            }
-        };
-        ShardRowContext shardRowContext = new ShardRowContext(indexShard, clusterService);
-        shardRecoveryStateExpression.setNextRow(shardRowContext);
 
-        assertNull(shardRecoveryStateExpression.value());
+        var ref = sysShards.getReference(new ColumnIdent("recovery", "type"));
+        var input = resolver.getImplementation(ref);
+        assertThat(input.value(), Matchers.nullValue());
     }
 
     @Test

@@ -56,7 +56,7 @@ public class SysJobsLogTableInfo {
                 .add("id", STRING, ignored -> localNode.get().getId())
                 .add("name", STRING, ignored -> localNode.get().getName())
             .endObject()
-            .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(IDENT, nodes))
+            .withRouting((state, routingProvider, sessionContext) -> Routing.forTableOnAllNodes(IDENT, state.getNodes()))
             .setPrimaryKeys(new ColumnIdent("id"))
             .build();
     }

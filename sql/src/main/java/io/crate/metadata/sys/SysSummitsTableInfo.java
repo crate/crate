@@ -22,15 +22,14 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.execution.engine.collect.files.SummitsContext;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.SystemTable;
-
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
+
+import io.crate.execution.engine.collect.files.SummitsContext;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 
 public class SysSummitsTableInfo {
 
@@ -47,7 +46,6 @@ public class SysSummitsTableInfo {
             .add("region", STRING, SummitsContext::region)
             .add("country", STRING, SummitsContext::country)
             .add("first_ascent", INTEGER, SummitsContext::firstAscent)
-            .withRouting((nodes, routingProvider) -> Routing.forTableOnSingleNode(IDENT, nodes.getLocalNodeId()))
             .setPrimaryKeys(new ColumnIdent("mountain"))
             .build();
     }

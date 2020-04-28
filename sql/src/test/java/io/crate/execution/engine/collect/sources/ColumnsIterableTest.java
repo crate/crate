@@ -22,41 +22,38 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import static io.crate.testing.T3.T1;
+import static io.crate.testing.T3.T1_DEFINITION;
+import static io.crate.testing.T3.T4;
+import static io.crate.testing.T3.T4_DEFINITION;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.ImmutableList;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.table.StaticTableInfo;
+import io.crate.metadata.SystemTable;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterState;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static io.crate.testing.T3.T1_DEFINITION;
-import static io.crate.testing.T3.T1;
-import static io.crate.testing.T3.T4_DEFINITION;
-import static io.crate.testing.T3.T4;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
 
@@ -120,22 +117,16 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
             null,
             null
         );
-        RelationInfo v3TableInfo = new StaticTableInfo(relationName, Map.of(columnIdent, reference), List.of(reference), Collections.emptyList()) {
-            @Override
-            public RowGranularity rowGranularity() {
-                return RowGranularity.DOC;
-            }
-
-            @Override
-            public Routing getRouting(ClusterState state,
-                                      RoutingProvider routingProvider,
-                                      WhereClause whereClause,
-                                      RoutingProvider.ShardSelection shardSelection,
-                                      SessionContext sessionContext) {
-                return Routing.forTableOnSingleNode(relationName, state.getNodes().getLocalNodeId());
-            }
-        };
-
+        SystemTable<Void> v3TableInfo = new SystemTable<>(
+            relationName,
+            Map.of(columnIdent, reference),
+            Map.of(),
+            List.of(),
+            Map.of(),
+            Set.of(),
+            RowGranularity.DOC,
+            null
+        );
         InformationSchemaIterables.ColumnsIterable columnsIt = new InformationSchemaIterables.ColumnsIterable(v3TableInfo);
         for (ColumnContext context : columnsIt) {
             assertThat(context.getOrdinal(), notNullValue());

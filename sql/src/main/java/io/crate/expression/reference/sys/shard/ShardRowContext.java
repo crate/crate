@@ -28,7 +28,10 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
@@ -142,5 +145,208 @@ public class ShardRowContext {
     @Nullable
     public String templateName() {
         return templateName;
+    }
+
+    @Nullable
+    public Long numDocs() {
+        if (blobShard == null) {
+            try {
+                return indexShard.docStats().getCount();
+            } catch (IllegalIndexShardStateException e) {
+                return null;
+            }
+        } else {
+            return blobShard.getBlobsCount();
+        }
+    }
+
+    public boolean isOrphanedPartition() {
+        if (aliasName != null && templateName != null) {
+            MetaData metaData = clusterService.state().metaData();
+            return !(metaData.templates().containsKey(templateName) && metaData.hasConcreteIndex(aliasName));
+        } else {
+            return false;
+        }
+    }
+
+    @Nullable
+    public String minLuceneVersion() {
+        long numDocs;
+        try {
+            numDocs = indexShard.docStats().getCount();
+        } catch (IllegalIndexShardStateException e) {
+            return null;
+        }
+        if (numDocs == 0) {
+            // If there are no documents we've no segments and `indexShard.minimumCompatibleVersion`
+            // will return the version the index was created with.
+            // That would cause `TableNeedsUpgradeSysCheck` to trigger a warning
+            //
+            // If a new segment is created in an empty shard it will use the newer lucene version
+            return Version.CURRENT.luceneVersion.toString();
+        }
+        try {
+            return indexShard.minimumCompatibleVersion().toString();
+        } catch (AlreadyClosedException e) {
+            return null;
+        }
+    }
+
+    @Nullable
+    public Long maxSeqNo() {
+        try {
+            var stats = indexShard.seqNoStats();
+            return stats == null ? null : stats.getMaxSeqNo();
+        } catch (AlreadyClosedException e) {
+            return 0L;
+        }
+    }
+
+    @Nullable
+    public Long localSeqNoCheckpoint() {
+        try {
+            var stats = indexShard.seqNoStats();
+            return stats == null ? null : stats.getLocalCheckpoint();
+        } catch (AlreadyClosedException e) {
+            return 0L;
+        }
+    }
+
+    @Nullable
+    public Long globalSeqNoCheckpoint() {
+        try {
+            var stats = indexShard.seqNoStats();
+            return stats == null ? null : stats.getGlobalCheckpoint();
+        } catch (AlreadyClosedException e) {
+            return 0L;
+        }
+    }
+
+    @Nullable
+    public Long translogSizeInBytes() {
+        try {
+            var stats = indexShard.translogStats();
+            return stats == null ? null : stats.getTranslogSizeInBytes();
+        } catch (AlreadyClosedException e) {
+            return 0L;
+        }
+    }
+
+    @Nullable
+    public Long translogUncommittedSizeInBytes() {
+        try {
+            var stats = indexShard.translogStats();
+            return stats == null ? null : stats.getUncommittedSizeInBytes();
+        } catch (AlreadyClosedException e) {
+            return 0L;
+        }
+    }
+
+    @Nullable
+    public Integer translogEstimatedNumberOfOperations() {
+        try {
+            var stats = indexShard.translogStats();
+            return stats == null ? null : stats.estimatedNumberOfOperations();
+        } catch (AlreadyClosedException e) {
+            return 0;
+        }
+    }
+
+    @Nullable
+    public Integer translogUncommittedOperations() {
+        try {
+            var stats = indexShard.translogStats();
+            return stats == null ? null : stats.getUncommittedOperations();
+        } catch (AlreadyClosedException e) {
+            return 0;
+        }
+    }
+
+    @Nullable
+    public String recoveryStage() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getStage().name();
+    }
+
+    @Nullable
+    public String recoveryType() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getRecoverySource().getType().name();
+    }
+
+    @Nullable
+    public Long recoveryTotalTime() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getTimer().time();
+    }
+
+    @Nullable
+    public Long recoverySizeUsed() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getIndex().totalBytes();
+    }
+
+    @Nullable
+    public Long recoverySizeReused() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getIndex().reusedBytes();
+    }
+
+    @Nullable
+    public Long recoverySizeRecoveredBytes() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getIndex().recoveredBytes();
+    }
+
+    @Nullable
+    public Float recoverySizeRecoveredBytesPercent() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getIndex().recoveredBytesPercent();
+    }
+
+    @Nullable
+    public Integer recoveryFilesUsed() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getIndex().totalFileCount();
+    }
+
+    @Nullable
+    public Integer recoveryFilesReused() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getIndex().reusedFileCount();
+    }
+
+    @Nullable
+    public Integer recoveryFilesRecovered() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getIndex().recoveredFileCount();
+    }
+
+    @Nullable
+    public Float recoveryFilesPercent() {
+        var recoveryState = indexShard.recoveryState();
+        return recoveryState == null
+            ? null
+            : recoveryState.getIndex().recoveredFilesPercent();
     }
 }

@@ -48,7 +48,7 @@ public class SysSchemaInfo implements SchemaInfo {
         tableInfos = new HashMap<>();
         tableInfos.put(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService, crateSettings, licenseService));
         tableInfos.put(SysNodesTableInfo.IDENT.name(), SysNodesTableInfo.create());
-        tableInfos.put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo());
+        tableInfos.put(SysShardsTableInfo.IDENT.name(), SysShardsTableInfo.create());
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
         tableInfos.put(SysJobsTableInfo.IDENT.name(), SysJobsTableInfo.create(localNode));
         tableInfos.put(SysJobsLogTableInfo.IDENT.name(), SysJobsLogTableInfo.create(localNode));

@@ -42,25 +42,6 @@ public interface NestableCollectExpression<T, R> extends CollectExpression<T, R>
         return new FuncExpression<>(fun);
     }
 
-    static <T, I> NestableCollectExpression<T, Object> withNullableProperty(Function<T, I> getProperty,
-                                                                            Function<I, ?> extractValue) {
-        return new NestableCollectExpression<>() {
-
-            private Object value;
-
-            @Override
-            public void setNextRow(T t) {
-                I intermediate = getProperty.apply(t);
-                value = intermediate == null ? null : extractValue.apply(intermediate);
-            }
-
-            @Override
-            public Object value() {
-                return value;
-            }
-        };
-    }
-
     class FuncExpression<T, R> implements NestableCollectExpression<T, R> {
 
         private final Function<T, R> f;

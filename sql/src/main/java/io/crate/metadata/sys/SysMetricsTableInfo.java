@@ -65,7 +65,7 @@ public class SysMetricsTableInfo {
                 .add("type", STRING, x -> x.classification().type().name())
                 .add("labels", STRING_ARRAY, x -> List.copyOf(x.classification().labels()))
             .endObject()
-            .withRouting((nodes, routingProvider) -> Routing.forTableOnAllNodes(NAME, nodes))
+            .withRouting((state, routingProvider, sessionContext) -> Routing.forTableOnAllNodes(NAME, state.getNodes()))
             .build();
     }
 }

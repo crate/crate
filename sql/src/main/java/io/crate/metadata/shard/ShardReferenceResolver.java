@@ -52,7 +52,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
 
     private static final Logger LOGGER = LogManager.getLogger(ShardReferenceResolver.class);
     private static final StaticTableReferenceResolver<ShardRowContext> SHARD_REFERENCE_RESOLVER_DELEGATE =
-        new StaticTableReferenceResolver<>(SysShardsTableInfo.expressions());
+        new StaticTableReferenceResolver<>(SysShardsTableInfo.create().expressions());
     private static final ReferenceResolver<NestableInput<?>> EMPTY_RESOLVER =
         new MapBackedRefResolver(Collections.emptyMap());
 

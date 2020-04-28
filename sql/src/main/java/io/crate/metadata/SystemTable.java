@@ -32,7 +32,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -41,7 +40,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.action.sql.SessionContext;
@@ -57,7 +55,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 public final class SystemTable<T> implements TableInfo {
@@ -67,9 +64,10 @@ public final class SystemTable<T> implements TableInfo {
     private final Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions;
     private final List<ColumnIdent> primaryKeys;
     private final List<Reference> rootColumns;
-    private final BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting;
+    private final GetRouting getRouting;
     private final Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns;
     private final Set<Operation> supportedOperations;
+    private final RowGranularity rowGranularity;
 
     public SystemTable(RelationName name,
                        Map<ColumnIdent, Reference> columns,
@@ -77,12 +75,14 @@ public final class SystemTable<T> implements TableInfo {
                        List<ColumnIdent> primaryKeys,
                        Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns,
                        Set<Operation> supportedOperations,
-                       @Nullable BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting) {
+                       RowGranularity rowGranularity,
+                       @Nullable GetRouting getRouting) {
         this.name = name;
         this.columns = columns;
         this.supportedOperations = supportedOperations;
+        this.rowGranularity = rowGranularity;
         this.getRouting = getRouting == null
-            ? (nodes, routingProvider) -> Routing.forTableOnSingleNode(name, nodes.getLocalNodeId())
+            ? (state, routingProvider, sessionContext) -> Routing.forTableOnSingleNode(name, state.getNodes().getLocalNodeId())
             : getRouting;
         this.rootColumns = columns.values().stream()
             .filter(x -> x.column().isTopLevel())
@@ -121,7 +121,7 @@ public final class SystemTable<T> implements TableInfo {
                               WhereClause whereClause,
                               RoutingProvider.ShardSelection shardSelection,
                               SessionContext sessionContext) {
-        return getRouting.apply(state.getNodes(), routingProvider);
+        return getRouting.getRouting(state, routingProvider, sessionContext);
     }
 
     @Override
@@ -131,7 +131,7 @@ public final class SystemTable<T> implements TableInfo {
 
     @Override
     public RowGranularity rowGranularity() {
-        return RowGranularity.DOC;
+        return rowGranularity;
     }
 
     @Override
@@ -167,6 +167,12 @@ public final class SystemTable<T> implements TableInfo {
 
     public Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions() {
         return expressions;
+    }
+
+    @FunctionalInterface
+    public interface GetRouting {
+
+        Routing getRouting(ClusterState state, RoutingProvider routingProvider, SessionContext sessionContext);
     }
 
     static class Column<T, U> {
@@ -225,18 +231,20 @@ public final class SystemTable<T> implements TableInfo {
 
         private final RelationName name;
         private final ArrayList<Column<T, ?>> columns = new ArrayList<>();
+        private final RowGranularity rowGranularity;
         private List<ColumnIdent> primaryKeys = List.of();
-        private BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting;
+        private GetRouting getRouting;
         private Set<Operation> supportedOperations = Operation.SYS_READ_ONLY;
 
-        RelationBuilder(RelationName name) {
+        RelationBuilder(RelationName name, RowGranularity rowGranularity) {
             this.name = name;
+            this.rowGranularity = rowGranularity;
         }
 
         /**
          * Override the routing funciton, if not overriden it defaults to `Routing.forTableOnSingleNode`
          */
-        public RelationBuilder<T> withRouting(BiFunction<DiscoveryNodes, RoutingProvider, Routing> getRouting) {
+        public RelationBuilder<T> withRouting(GetRouting getRouting) {
             this.getRouting = getRouting;
             return this;
         }
@@ -261,7 +269,7 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public RelationBuilder<T> addDynamicObject(String column, DataType<?> leafType, Function<T, Map<String, Object>> getObject) {
-            return add(new DynamicColumn<>(new ColumnIdent(column), DataTypes.STRING, getObject));
+            return add(new DynamicColumn<>(new ColumnIdent(column), leafType, getObject));
         }
 
         public SystemTable<T> build() {
@@ -305,6 +313,7 @@ public final class SystemTable<T> implements TableInfo {
                primaryKeys,
                dynamicColumns,
                supportedOperations,
+               rowGranularity,
                getRouting
            );
         }
@@ -506,9 +515,12 @@ public final class SystemTable<T> implements TableInfo {
     }
 
     public static <T> RelationBuilder<T> builder(RelationName name) {
-        return new RelationBuilder<>(name);
+        return new RelationBuilder<>(name, RowGranularity.DOC);
     }
 
+    public static <T> RelationBuilder<T> builder(RelationName name, RowGranularity rowGranularity) {
+        return new RelationBuilder<>(name, rowGranularity);
+    }
 
     static class ObjectExpression<T> implements Function<T, Map<String, Object>> {
 
