@@ -21,48 +21,60 @@
 
 package io.crate.expression.predicate;
 
-import com.google.common.base.Preconditions;
 import io.crate.data.Input;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
-    private final FunctionInfo info;
+    public static final Signature SIGNATURE = Signature.scalar(
+        NAME,
+        parseTypeSignature("E"),
+        DataTypes.BOOLEAN.getTypeSignature()
+    ).withTypeVariableConstraints(typeVariable("E"));
 
     public static void register(PredicateModule module) {
-        module.register(NAME, new Resolver());
+        module.register(
+            SIGNATURE,
+            (signature, argTypes) -> new IsNullPredicate<>(signature, generateInfo(argTypes)));
     }
 
     public static FunctionInfo generateInfo(List<DataType> types) {
         return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.BOOLEAN);
     }
 
-    IsNullPredicate(FunctionInfo info) {
+    private final Signature signature;
+    private final FunctionInfo info;
+
+    private IsNullPredicate(Signature signature, FunctionInfo info) {
+        this.signature = signature;
         this.info = info;
     }
-
 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
@@ -83,24 +95,5 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
     public Boolean evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 1 : "number of args must be 1";
         return args[0] == null || args[0].value() == null;
-    }
-
-    private static class Resolver implements FunctionResolver {
-
-        private final FuncParams funcParams = FuncParams.builder(Param.ANY).build();
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(
-                dataTypes.size() == 1, "the is null predicate takes only 1 argument");
-
-            return new IsNullPredicate<>(generateInfo(dataTypes));
-        }
-
-        @Nullable
-        @Override
-        public List<DataType> getSignature(List<? extends FuncArg> symbols) {
-            return funcParams.match(symbols);
-        }
     }
 }
