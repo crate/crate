@@ -14,3 +14,4 @@ Supplementary information for the CrateDB reference manual.
     release-notes/index
     compatibility
     compliance
+    resiliency
