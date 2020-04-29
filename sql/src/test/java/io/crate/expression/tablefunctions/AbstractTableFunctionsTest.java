@@ -44,7 +44,7 @@ import static org.mockito.Mockito.mock;
 
 public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
 
-    private SqlExpressions sqlExpressions;
+    protected SqlExpressions sqlExpressions;
     protected Functions functions;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 

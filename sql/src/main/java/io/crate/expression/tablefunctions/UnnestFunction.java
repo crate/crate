@@ -26,34 +26,56 @@ import com.google.common.collect.Iterators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.RowType;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import static io.crate.metadata.functions.params.Param.ANY_ARRAY;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class UnnestFunction {
 
     public static final String NAME = "unnest";
 
+    public static void register(TableFunctionModule module) {
+        module.register(
+            Signature
+                .table(
+                    NAME,
+                    parseTypeSignature("array(E)"),
+                    RowType.EMPTY.getTypeSignature())
+                .withTypeVariableConstraints(typeVariableOfAnyType("E"))
+                .withVariableArity(),
+            UnnestTableFunctionImplementation::new
+        );
+        // unnest() to keep it compatible with previous versions
+        module.register(
+            Signature.table(
+                NAME,
+                RowType.EMPTY.getTypeSignature()),
+            UnnestTableFunctionImplementation::new
+        );
+    }
+
     static class UnnestTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final FunctionInfo info;
         private final RowType returnType;
+        private final Signature signature;
 
-        private UnnestTableFunctionImplementation(List<DataType> argTypes) {
+        private UnnestTableFunctionImplementation(Signature signature, List<DataType> argTypes) {
+            this.signature = signature;
             ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {
                 DataType<?> dataType = argTypes.get(i);
@@ -72,6 +94,12 @@ public class UnnestFunction {
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Nullable
+        @Override
+        public Signature signature() {
+            return signature;
         }
 
         @Override
@@ -127,16 +155,5 @@ public class UnnestFunction {
                 return objects.iterator();
             }
         }
-    }
-
-    public static void register(TableFunctionModule module) {
-        module.register(NAME, new BaseFunctionResolver(
-            FuncParams.builder().withIndependentVarArgs(ANY_ARRAY).build()) {
-
-            @Override
-            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new UnnestTableFunctionImplementation(dataTypes);
-            }
-        });
     }
 }

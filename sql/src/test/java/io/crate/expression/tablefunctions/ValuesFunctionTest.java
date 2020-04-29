@@ -22,15 +22,14 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.metadata.FunctionIdent;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
+import io.crate.expression.symbol.Function;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
+import io.crate.types.RowType;
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.contains;
 
 public class ValuesFunctionTest extends AbstractTableFunctionsTest {
 
@@ -92,17 +91,21 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
 
     @Test
     public void test_function_return_type_of_the_next_nested_item() {
-        List<DataType> argumentTypes = List.of(new ArrayType<>(new ArrayType<>(DataTypes.STRING)));
-        var funcImplementation = functions.getQualified(
-            new FunctionIdent(ValuesFunction.NAME, argumentTypes));
+        Function function = (Function) sqlExpressions.asSymbol("_values([['a', 'b']])");
 
-        assertThat(funcImplementation.info().returnType(), is(new ArrayType<>(DataTypes.STRING)));
+        var funcImplementation = (TableFunctionImplementation<?>) functions.getQualified(
+            function.signature(),
+            function.info().ident().argumentTypes());
+
+        assertThat(funcImplementation.returnType(), instanceOf(RowType.class));
+        assertThat(funcImplementation.returnType().fieldTypes(), contains(DataTypes.STRING_ARRAY));
+
     }
 
     @Test
     public void test_function_arguments_must_have_array_types() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `200` of type `bigint` to type `undefined_array`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: _values(bigint)");
         assertExecute("_values(200)", "");
     }
 }
