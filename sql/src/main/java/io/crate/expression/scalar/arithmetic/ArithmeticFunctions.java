@@ -28,6 +28,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.BinaryOperator;
 
 public class ArithmeticFunctions {
@@ -48,6 +49,12 @@ public class ArithmeticFunctions {
                                         Names.MULTIPLY,
                                         Names.DIVIDE,
                                         Names.MOD, Names.MODULUS)) {
+            Set<FunctionInfo.Feature> features;
+            if (operatorName.equalsIgnoreCase(Names.ADD)) {
+                features = FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT;
+            } else {
+                features = FunctionInfo.DETERMINISTIC_ONLY;
+            }
             for (var supportType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER)) {
                 final BinaryOperator<Integer> operator;
                 switch (operatorName) {
@@ -81,7 +88,7 @@ public class ArithmeticFunctions {
                         operatorName,
                         signature,
                         DataTypes.INTEGER,
-                        FunctionInfo.DETERMINISTIC_ONLY)
+                        features)
                 );
             }
             for (var supportType : List.of(DataTypes.LONG, DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP)) {
@@ -117,7 +124,7 @@ public class ArithmeticFunctions {
                         operatorName,
                         signature,
                         DataTypes.LONG,
-                        FunctionInfo.DETERMINISTIC_ONLY)
+                        features)
                 );
             }
             BinaryOperator<Double> doubleOperator;
@@ -154,7 +161,7 @@ public class ArithmeticFunctions {
                     operatorName,
                     signature,
                     DataTypes.DOUBLE,
-                    FunctionInfo.DETERMINISTIC_ONLY)
+                    features)
             );
             BinaryOperator<Float> floatOperator;
             switch (operatorName) {
@@ -189,7 +196,7 @@ public class ArithmeticFunctions {
                     operatorName,
                     signature,
                     DataTypes.FLOAT,
-                    FunctionInfo.DETERMINISTIC_ONLY)
+                    features)
             );
         }
 

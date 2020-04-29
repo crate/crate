@@ -101,6 +101,6 @@ public class TypeInferenceTest extends AbstractScalarFunctionsTest {
     public void testTimestampOperations() {
         assertEvaluate("3::timestamp with time zone - 1", 2L);
         assertEvaluate("3000::timestamp with time zone / 1000", 3L);
-        assertEvaluate("3000::timestamp with time zone/ 1000.0", 3.0);
+        assertEvaluate("3000::timestamp with time zone / 1000.0", 3.0);
     }
 }

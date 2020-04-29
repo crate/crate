@@ -22,7 +22,6 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.hamcrest.Matchers;
 import org.joda.time.Period;
@@ -58,8 +57,8 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void test_unsupported_arithmetic_operator_on_interval_types() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("* is not supported on expressions of type interval");
-        assertEvaluate("null * interval '1 second'", Matchers.nullValue());
+        expectedException.expectMessage("unknown function: multiply(timestamp with time zone, interval)");
+        assertEvaluate("1::timestamp * interval '1 second'", Matchers.nullValue());
     }
 
     @Test
@@ -74,8 +73,8 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_unallowed_operations() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'PT1S'` of type `interval` to any of the types");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: subtract(interval, timestamp with time zone)");
         assertEvaluate("interval '1 second' - '86401000'::timestamp", Matchers.is(86400000L));
     }
 }
