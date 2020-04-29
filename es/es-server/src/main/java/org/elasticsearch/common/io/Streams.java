@@ -45,6 +45,22 @@ public abstract class Streams {
 
     public static final int BUFFER_SIZE = 1024 * 8;
 
+    /**
+     * OutputStream that just throws all the bytes away
+     */
+    public static final OutputStream NULL_OUTPUT_STREAM = new OutputStream() {
+
+        @Override
+        public void write(int b) throws IOException {
+            // no-op
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            // no-op
+        }
+    };
+
 
     //---------------------------------------------------------------------
     // Copy methods for java.io.InputStream / java.io.OutputStream
