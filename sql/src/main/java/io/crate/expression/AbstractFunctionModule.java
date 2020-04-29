@@ -52,22 +52,8 @@ public abstract class AbstractFunctionModule<T extends FunctionImplementation> e
     /**
      * @deprecated Use {@link #register(Signature, BiFunction)} instead.
      */
-    public void register(T impl) {
-        functions.put(impl.info().ident(), impl);
-    }
-
-    /**
-     * @deprecated Use {@link #register(Signature, BiFunction)} instead.
-     */
     public void register(String name, FunctionResolver functionResolver) {
-        register(new FunctionName(name), functionResolver);
-    }
-
-    /**
-     * @deprecated Use {@link #register(Signature, BiFunction)} instead.
-     */
-    public void register(FunctionName qualifiedName, FunctionResolver functionResolver) {
-        resolver.put(qualifiedName, functionResolver);
+        resolver.put(new FunctionName(name), functionResolver);
     }
 
     public void register(Signature signature, BiFunction<Signature, List<DataType>, FunctionImplementation> factory) {
