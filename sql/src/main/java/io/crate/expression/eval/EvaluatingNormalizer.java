@@ -45,7 +45,6 @@ import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -120,7 +119,8 @@ public class EvaluatingNormalizer {
 
                 Function function = new Function(
                     io.crate.expression.predicate.MatchPredicate.INFO,
-                    Arrays.asList(
+                    io.crate.expression.predicate.MatchPredicate.SIGNATURE,
+                    List.of(
                         new Function(
                             MapFunction.createInfo(Symbols.typeView(columnBoostMapArgs)),
                             MapFunction.SIGNATURE,

@@ -21,12 +21,10 @@
 
 package io.crate.expression.predicate;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -35,7 +33,7 @@ import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -45,55 +43,7 @@ import java.util.Set;
  */
 public class MatchPredicate implements FunctionImplementation {
 
-    public static final Set<DataType> SUPPORTED_TYPES = ImmutableSet.of(DataTypes.STRING, DataTypes.GEO_SHAPE);
-
-    private static final String DEFAULT_MATCH_TYPE_STRING = MultiMatchQueryType.BEST_FIELDS.toString().toLowerCase(Locale.ENGLISH);
-    private static final Map<DataType, String> DATA_TYPE_TO_DEFAULT_MATCH_TYPE = ImmutableMap.of(
-        DataTypes.STRING, DEFAULT_MATCH_TYPE_STRING,
-        DataTypes.GEO_SHAPE, "intersects"
-    );
-    private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = ImmutableSet.of("intersects", "disjoint", "within");
-
     public static final String NAME = "match";
-    public static final FunctionIdent IDENT = new FunctionIdent(
-        NAME,
-        Arrays.asList(ObjectType.untyped(), DataTypes.STRING, DataTypes.STRING, ObjectType.untyped())
-    );
-
-    public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN);
-
-
-    private static String defaultMatchType(DataType dataType) {
-        String matchType = DATA_TYPE_TO_DEFAULT_MATCH_TYPE.get(dataType);
-        if (matchType == null) {
-            throw new IllegalArgumentException("No default matchType found for dataType: " + dataType);
-        }
-        return matchType;
-    }
-
-
-    public static String getMatchType(@Nullable String matchType, DataType columnType) {
-        if (matchType == null) {
-            return defaultMatchType(columnType);
-        }
-        if (columnType.equals(DataTypes.STRING)) {
-            try {
-                MultiMatchQueryType.parse(matchType, LoggingDeprecationHandler.INSTANCE);
-                return matchType;
-            } catch (ElasticsearchParseException e) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "invalid MATCH type '%s' for type '%s'", matchType, columnType), e);
-            }
-        } else if (columnType.equals(DataTypes.GEO_SHAPE)) {
-            if (!SUPPORTED_GEO_MATCH_TYPES.contains(matchType)) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "invalid MATCH type '%s' for type '%s', valid types are: [%s]",
-                    matchType, columnType, Joiner.on(",").join(SUPPORTED_GEO_MATCH_TYPES)));
-            }
-            return matchType;
-        }
-        throw new IllegalArgumentException("No match type for dataType: " + columnType);
-    }
 
     /**
      * the match predicate is registered as a regular function
@@ -106,15 +56,94 @@ public class MatchPredicate implements FunctionImplementation {
      * 3. match_type - string (nullable)
      * 4. match_type options - object mapping option name to value (Object) (nullable)
      */
+    public static final Signature SIGNATURE = Signature.scalar(
+        NAME,
+        ObjectType.untyped().getTypeSignature(),
+        DataTypes.STRING.getTypeSignature(),
+        DataTypes.STRING.getTypeSignature(),
+        ObjectType.untyped().getTypeSignature(),
+        DataTypes.BOOLEAN.getTypeSignature()
+    );
+
     public static void register(PredicateModule module) {
-        module.register(new MatchPredicate());
+        module.register(
+            SIGNATURE,
+            (signature, dataTypes) -> new MatchPredicate(signature)
+        );
     }
 
-    private MatchPredicate() {
+    public static final Set<DataType<?>> SUPPORTED_TYPES = Set.of(DataTypes.STRING, DataTypes.GEO_SHAPE);
+
+    private static final Map<DataType<?>, String> DATA_TYPE_TO_DEFAULT_MATCH_TYPE = Map.of(
+        DataTypes.STRING,
+        MultiMatchQueryType.BEST_FIELDS.toString().toLowerCase(Locale.ENGLISH),
+        DataTypes.GEO_SHAPE,
+        "intersects"
+    );
+
+    private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = Set.of("intersects", "disjoint", "within");
+
+    public static final FunctionInfo INFO = new FunctionInfo(
+        new FunctionIdent(
+            NAME,
+            List.of(
+                ObjectType.untyped(),
+                DataTypes.STRING,
+                DataTypes.STRING,
+                ObjectType.untyped())),
+        DataTypes.BOOLEAN);
+
+    private final Signature signature;
+
+    private MatchPredicate(Signature signature) {
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
+    }
+
+    private static String defaultMatchType(DataType<?> dataType) {
+        String matchType = DATA_TYPE_TO_DEFAULT_MATCH_TYPE.get(dataType);
+        if (matchType == null) {
+            throw new IllegalArgumentException("No default matchType found for dataType: " + dataType);
+        }
+        return matchType;
+    }
+
+    public static String getMatchType(@Nullable String matchType, DataType<?> columnType) {
+        if (matchType == null) {
+            return defaultMatchType(columnType);
+        }
+        if (columnType.equals(DataTypes.STRING)) {
+            try {
+                MultiMatchQueryType.parse(matchType, LoggingDeprecationHandler.INSTANCE);
+                return matchType;
+            } catch (ElasticsearchParseException e) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "invalid MATCH type '%s' for type '%s'",
+                    matchType,
+                    columnType), e);
+            }
+        } else if (columnType.equals(DataTypes.GEO_SHAPE)) {
+            if (!SUPPORTED_GEO_MATCH_TYPES.contains(matchType)) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "invalid MATCH type '%s' for type '%s', valid types are: [%s]",
+                    matchType,
+                    columnType,
+                    String.join(",", SUPPORTED_GEO_MATCH_TYPES)));
+            }
+            return matchType;
+        }
+        throw new IllegalArgumentException("No match type for dataType: " + columnType);
     }
 }
