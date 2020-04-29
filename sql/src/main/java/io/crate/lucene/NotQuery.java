@@ -30,7 +30,6 @@ import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -149,8 +148,10 @@ final class NotQuery implements FunctionToQuery {
             }
         }
         if (ctx.hasStrictThreeValuedLogicFunction) {
-            FunctionInfo isNullInfo = IsNullPredicate.generateInfo(Collections.singletonList(arg.valueType()));
-            Function isNullFunction = new Function(isNullInfo, Collections.singletonList(arg));
+            Function isNullFunction = new Function(
+                IsNullPredicate.generateInfo(Collections.singletonList(arg.valueType())),
+                IsNullPredicate.SIGNATURE,
+                Collections.singletonList(arg));
             builder.add(
                 Queries.not(LuceneQueryBuilder.genericFunctionFilter(isNullFunction, context)),
                 BooleanClause.Occur.MUST

@@ -663,8 +663,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testNotTimestamp() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `date` of type `timestamp with time zone` to type `boolean`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: op_not(timestamp with time zone)");
         analyze("select id, name from parted where not date");
     }
 

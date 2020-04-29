@@ -63,8 +63,8 @@ public class EqualityExtractor {
 
     private static final Function NULL_MARKER = new Function(
         new FunctionInfo(
-            new FunctionIdent("null_marker", ImmutableList.<DataType>of()),
-            DataTypes.UNDEFINED), ImmutableList.<Symbol>of());
+            new FunctionIdent("null_marker", List.of()),
+            DataTypes.UNDEFINED), List.of());
     private static final EqProxy NULL_MARKER_PROXY = new EqProxy(NULL_MARKER);
 
     private EvaluatingNormalizer normalizer;
@@ -443,7 +443,7 @@ public class EqualityExtractor {
                 if (!context.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)) {
                     return Literal.BOOLEAN_TRUE;
                 }
-                return new Function(function.info(), newArgs);
+                return new Function(function.info(), function.signature(), newArgs);
             }
             context.seenUnknown = true;
             return Literal.BOOLEAN_TRUE;
