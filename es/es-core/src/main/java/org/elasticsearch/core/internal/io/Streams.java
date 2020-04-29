@@ -22,7 +22,6 @@ package org.elasticsearch.core.internal.io;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Objects;
 
 /**
  * Simple utility methods for file and stream copying.
@@ -44,17 +43,9 @@ public class Streams {
      * @throws IOException in case of I/O errors
      */
     public static long copy(final InputStream in, final OutputStream out) throws IOException {
-        Objects.requireNonNull(in, "No InputStream specified");
-        Objects.requireNonNull(out, "No OutputStream specified");
-        final byte[] buffer = new byte[8192];
         Exception err = null;
         try {
-            long byteCount = 0;
-            int bytesRead;
-            while ((bytesRead = in.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
-                byteCount += bytesRead;
-            }
+            final long byteCount = in.transferTo(out);
             out.flush();
             return byteCount;
         } catch (IOException | RuntimeException e) {
