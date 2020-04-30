@@ -2245,10 +2245,10 @@ public class InternalEngine extends Engine {
         Directory unwrap = FilterDirectory.unwrap(directory);
         boolean defaultOffHeap = FsDirectoryService.isHybridFs(unwrap) || unwrap instanceof MMapDirectory;
         return Map.of(
-            BlockTreeTermsReader.FST_MODE_KEY, // if we are using MMAP for term dics we force all off heap unless it's the ID field
+            // if we are using MMAP for term dics we force all off heap
+            BlockTreeTermsReader.FST_MODE_KEY,
             defaultOffHeap ? FSTLoadMode.OFF_HEAP.name() : FSTLoadMode.ON_HEAP.name()
-            , BlockTreeTermsReader.FST_MODE_KEY + "." + IdFieldMapper.NAME, // always force ID field on-heap for fast updates
-            FSTLoadMode.ON_HEAP.name());
+        );
     }
 
 

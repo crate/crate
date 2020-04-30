@@ -5354,8 +5354,7 @@ public class InternalEngineTests extends EngineTestCase {
             Directory unwrap = FilterDirectory.unwrap(dir);
             boolean isMMap = unwrap instanceof MMapDirectory;
             Map<String, String> readerAttributes = InternalEngine.getReaderAttributes(dir);
-            assertEquals(2, readerAttributes.size());
-            assertEquals("ON_HEAP", readerAttributes.get("blocktree.terms.fst._id"));
+            assertEquals(1, readerAttributes.size());
             if (isMMap) {
                 assertEquals("OFF_HEAP", readerAttributes.get("blocktree.terms.fst"));
             } else {
@@ -5367,8 +5366,7 @@ public class InternalEngineTests extends EngineTestCase {
             Map<String, String> readerAttributes =
                 InternalEngine.getReaderAttributes(randomBoolean() ? dir :
                     new MockDirectoryWrapper(random(), dir));
-            assertEquals(2, readerAttributes.size());
-            assertEquals("ON_HEAP", readerAttributes.get("blocktree.terms.fst._id"));
+            assertEquals(1, readerAttributes.size());
             assertEquals("OFF_HEAP", readerAttributes.get("blocktree.terms.fst"));
         }
 
@@ -5383,18 +5381,16 @@ public class InternalEngineTests extends EngineTestCase {
             Map<String, String> readerAttributes =
                 InternalEngine.getReaderAttributes(randomBoolean() ? directory :
                     new MockDirectoryWrapper(random(), directory));
-            assertEquals(2, readerAttributes.size());
+            assertEquals(1, readerAttributes.size());
 
             switch (IndexModule.defaultStoreType(true)) {
                 case HYBRIDFS:
                 case MMAPFS:
-                    assertEquals("ON_HEAP", readerAttributes.get("blocktree.terms.fst._id"));
                     assertEquals("OFF_HEAP", readerAttributes.get("blocktree.terms.fst"));
                     break;
                 case NIOFS:
                 case SIMPLEFS:
                 case FS:
-                    assertEquals("ON_HEAP", readerAttributes.get("blocktree.terms.fst._id"));
                     assertEquals("ON_HEAP", readerAttributes.get("blocktree.terms.fst"));
                     break;
                     default:
