@@ -74,6 +74,7 @@ public final class SubscriptFunctions {
                         new FunctionIdent(SubscriptRecordFunction.NAME, List.of(baseType, DataTypes.STRING)),
                         rowType.getFieldType(idx)
                     ),
+                    SubscriptRecordFunction.SIGNATURE,
                     List.of(baseSymbol, Literal.of(child))
                 );
                 if (path.size() > 1) {

@@ -21,60 +21,44 @@
 
 package io.crate.expression.scalar;
 
-import java.util.List;
-
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.types.DataType;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 public final class SubscriptRecordFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_subscript_record";
+    public static final Signature SIGNATURE = Signature.scalar(
+        NAME,
+        RowType.EMPTY.getTypeSignature(),
+        DataTypes.STRING.getTypeSignature(),
+        DataTypes.UNDEFINED.getTypeSignature());
 
     public static void register(ScalarFunctionModule module) {
         module.register(
-            NAME,
-            new FunctionResolver() {
-
-                @Override
-                public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
-                    if (funcArgs.size() < 2) {
-                        return null;
-                    }
-                    var firstArg = funcArgs.get(0);
-                    if (firstArg.valueType().id() != RowType.ID) {
-                        return null;
-                    }
-                    var secondArg = funcArgs.get(1);
-                    if (secondArg.valueType().id() != DataTypes.STRING.id()) {
-                        return null;
-                    }
-                    return List.of(firstArg.valueType(), secondArg.valueType());
-                }
-
-                @Override
-                public FunctionImplementation getForTypes(List<DataType> args) throws IllegalArgumentException {
-                    return new SubscriptRecordFunction((RowType) args.get(0));
-                }
-            }
+            SIGNATURE,
+            (signature, dataTypes) ->
+                new SubscriptRecordFunction(
+                    signature,
+                    (RowType) dataTypes.get(0))
         );
     }
 
-
+    private final Signature signature;
     private final RowType rowType;
     private final FunctionInfo info;
 
-
-    public SubscriptRecordFunction(RowType rowType) {
+    public SubscriptRecordFunction(Signature signature, RowType rowType) {
+        this.signature = signature;
         this.rowType = rowType;
         this.info = new FunctionInfo(
             new FunctionIdent(NAME, List.of(rowType, DataTypes.STRING)),
@@ -87,6 +71,11 @@ public final class SubscriptRecordFunction extends Scalar<Object, Object> {
         return info;
     }
 
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
+    }
 
     @Override
     @SafeVarargs
@@ -99,7 +88,8 @@ public final class SubscriptRecordFunction extends Scalar<Object, Object> {
         int idx = rowType.fieldNames().indexOf(fieldName);
         if (idx < 0) {
             // The ExpressionAnalyzer should prevent this case
-            throw new IllegalStateException("Couldn't find fieldname `" + fieldName + "` within RowType `" + rowType + "`");
+            throw new IllegalStateException(
+                "Couldn't find fieldname `" + fieldName + "` within RowType `" + rowType + "`");
         }
         return record.get(idx);
     }
