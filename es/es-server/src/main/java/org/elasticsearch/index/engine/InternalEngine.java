@@ -634,75 +634,76 @@ public class InternalEngine extends Engine {
         assert Objects.equals(get.uid().field(), IdFieldMapper.NAME) : get.uid().field();
         try (ReleasableLock ignored = readLock.acquire()) {
             ensureOpen();
-            SearcherScope scope;
-            if (get.realtime()) {
-                VersionValue versionValue = null;
-                try (Releasable ignore = versionMap.acquireLock(get.uid().bytes())) {
-                    // we need to lock here to access the version map to do this truly in RT
-                    versionValue = getVersionFromMap(get.uid().bytes());
-                }
-                if (versionValue != null) {
-                    if (versionValue.isDelete()) {
-                        return GetResult.NOT_EXISTS;
-                    }
-                    if (get.versionType().isVersionConflictForReads(versionValue.version, get.version())) {
-                        throw new VersionConflictEngineException(
-                            shardId,
-                            get.id(),
-                            get.versionType().explainConflictForReads(versionValue.version, get.version())
-                        );
-                    }
-                    if (get.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-                        get.getIfSeqNo() != versionValue.seqNo || get.getIfPrimaryTerm() != versionValue.term
-                    )) {
-                        throw new VersionConflictEngineException(
-                            shardId,
-                            get.id(),
-                            get.getIfSeqNo(),
-                            get.getIfPrimaryTerm(),
-                            versionValue.seqNo,
-                            versionValue.term
-                        );
-                    }
-                    if (get.isReadFromTranslog()) {
-                        // this is only used for updates - API _GET calls will always read form a reader for consistency
-                        // the update call doesn't need the consistency since it's source only + _parent but parent can go away in 7.0
-                        if (versionValue.getLocation() != null) {
-                            try {
-                                Translog.Operation operation = translog.readOperation(versionValue.getLocation());
-                                if (operation != null) {
-                                    // in the case of a already pruned translog generation we might get null here - yet very unlikely
-                                    final Translog.Index index = (Translog.Index) operation;
-                                    TranslogLeafReader reader = new TranslogLeafReader(index, engineConfig
-                                        .getIndexSettings().getIndexVersionCreated());
-                                    return new GetResult(new VersionsAndSeqNoResolver.DocIdAndVersion(0,
-                                                                                                      index.version(),
-                                                                                                      index.seqNo(),
-                                                                                                      index.primaryTerm(),
-                                                                                                      reader,
-                                                                                                      0),
-                                                         new Searcher("realtime_get",
-                                                                      new IndexSearcher(reader),
-                                                                      reader::close));
-                                }
-                            } catch (IOException e) {
-                                maybeFailEngine("realtime_get", e); // lets check if the translog has failed with a tragic event
-                                throw new EngineException(shardId, "failed to read operation from translog", e);
-                            }
-                        } else {
-                            trackTranslogLocation.set(true);
-                        }
-                    }
-                    refresh("realtime_get", SearcherScope.INTERNAL);
-                }
-                scope = SearcherScope.INTERNAL;
-            } else {
-                // we expose what has been externally expose in a point in time snapshot via an explicit refresh
-                scope = SearcherScope.EXTERNAL;
+            VersionValue versionValue = null;
+            try (Releasable ignore = versionMap.acquireLock(get.uid().bytes())) {
+                // we need to lock here to access the version map to do this truly in RT
+                versionValue = getVersionFromMap(get.uid().bytes());
             }
+            if (versionValue == null) {
+                // no version, get the version from the index, we know that we refresh on flush
+                return getFromSearcher(get, searcherFactory, SearcherScope.INTERNAL);
+            }
+            if (versionValue.isDelete()) {
+                return GetResult.NOT_EXISTS;
+            }
+            if (get.versionType().isVersionConflictForReads(versionValue.version, get.version())) {
+                throw new VersionConflictEngineException(
+                    shardId,
+                    get.id(),
+                    get.versionType().explainConflictForReads(versionValue.version, get.version())
+                );
+            }
+            if (get.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
+                get.getIfSeqNo() != versionValue.seqNo || get.getIfPrimaryTerm() != versionValue.term
+            )) {
+                throw new VersionConflictEngineException(
+                    shardId,
+                    get.id(),
+                    get.getIfSeqNo(),
+                    get.getIfPrimaryTerm(),
+                    versionValue.seqNo,
+                    versionValue.term
+                );
+            }
+            if (versionValue.getLocation() != null) {
+                try {
+                    Translog.Operation operation = translog.readOperation(versionValue.getLocation());
+                    // in the case of a already pruned translog generation we might get null here - yet very unlikely
+                    if (operation == null) {
+                        refresh("realtime_get", SearcherScope.INTERNAL);
+                        return getFromSearcher(get, searcherFactory, SearcherScope.INTERNAL);
+                    }
 
+                    final Translog.Index index = (Translog.Index) operation;
+                    TranslogLeafReader reader = new TranslogLeafReader(
+                        index,
+                        engineConfig.getIndexSettings().getIndexVersionCreated()
+                    );
+                    return new GetResult(
+                        new VersionsAndSeqNoResolver.DocIdAndVersion(
+                            0,
+                            index.version(),
+                            index.seqNo(),
+                            index.primaryTerm(),
+                            reader,
+                            0
+                        ),
+                        new Searcher(
+                            "realtime_get",
+                            new IndexSearcher(reader),
+                            reader::close
+                        )
+                    );
+                } catch (IOException e) {
+                    maybeFailEngine("realtime_get", e); // lets check if the translog has failed with a tragic event
+                    throw new EngineException(shardId, "failed to read operation from translog", e);
+                }
+            } else {
+                trackTranslogLocation.set(true);
+            }
+            refresh("realtime_get", SearcherScope.INTERNAL);
             // no version, get the version from the index, we know that we refresh on flush
-            return getFromSearcher(get, searcherFactory, scope);
+            return getFromSearcher(get, searcherFactory, SearcherScope.INTERNAL);
         }
     }
 
