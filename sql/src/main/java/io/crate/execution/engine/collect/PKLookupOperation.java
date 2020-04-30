@@ -79,7 +79,7 @@ public final class PKLookupOperation {
     @Nullable
     public static Doc lookupDoc(IndexShard shard, String id, long version, VersionType versionType, long seqNo, long primaryTerm) {
         Term uidTerm = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
-        Engine.Get get = new Engine.Get(true, true, id, uidTerm)
+        Engine.Get get = new Engine.Get(id, uidTerm)
             .version(version)
             .versionType(versionType)
             .setIfSeqNo(seqNo)

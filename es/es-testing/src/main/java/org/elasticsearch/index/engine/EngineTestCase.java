@@ -638,8 +638,8 @@ public abstract class EngineTestCase extends ESTestCase {
         return newUid(doc.id());
     }
 
-    protected Engine.Get newGet(boolean realtime, ParsedDocument doc) {
-        return new Engine.Get(realtime, false, doc.id(), newUid(doc));
+    protected Engine.Get newGet(ParsedDocument doc) {
+        return new Engine.Get(doc.id(), newUid(doc));
     }
 
     protected Engine.Index indexForDoc(ParsedDocument doc) {

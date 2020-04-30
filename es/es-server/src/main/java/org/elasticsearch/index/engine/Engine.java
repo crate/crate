@@ -1291,24 +1291,16 @@ public abstract class Engine implements Closeable {
     }
 
     public static class Get {
-        private final boolean realtime;
         private final Term uid;
         private final String id;
-        private final boolean readFromTranslog;
         private long version = Versions.MATCH_ANY;
         private VersionType versionType = VersionType.INTERNAL;
         private long ifSeqNo = UNASSIGNED_SEQ_NO;
         private long ifPrimaryTerm = UNASSIGNED_PRIMARY_TERM;
 
-        public Get(boolean realtime, boolean readFromTranslog, String id, Term uid) {
-            this.realtime = realtime;
+        public Get(String id, Term uid) {
             this.id = id;
             this.uid = uid;
-            this.readFromTranslog = readFromTranslog;
-        }
-
-        public boolean realtime() {
-            return this.realtime;
         }
 
         public String id() {
@@ -1335,10 +1327,6 @@ public abstract class Engine implements Closeable {
         public Get versionType(VersionType versionType) {
             this.versionType = versionType;
             return this;
-        }
-
-        public boolean isReadFromTranslog() {
-            return readFromTranslog;
         }
 
         public Get setIfSeqNo(long seqNo) {
