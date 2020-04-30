@@ -937,18 +937,6 @@ public final class XContentBuilder implements Closeable, Flushable {
         return this;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Misc.
-    //////////////////////////////////
-
-
-    public XContentBuilder percentageField(String rawFieldName, String readableFieldName, double percentage) throws IOException {
-        if (humanReadable) {
-            field(readableFieldName, String.format(Locale.ROOT, "%1.1f%%", percentage));
-        }
-        field(rawFieldName, percentage);
-        return this;
-    }
 
     ////////////////////////////////////////////////////////////////////////////
     // Raw fields
