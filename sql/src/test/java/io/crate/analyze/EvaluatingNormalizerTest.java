@@ -1,6 +1,5 @@
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.expression.NestableInput;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -23,6 +22,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -30,7 +30,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
@@ -40,7 +42,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class EvaluatingNormalizerTest extends CrateUnitTest {
 
-    private ReferenceResolver referenceResolver;
+    private ReferenceResolver<NestableInput<?>> referenceResolver;
     private Functions functions;
     private Reference dummyLoadInfo;
 
@@ -84,22 +86,26 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         Symbol y_literal = Literal.of("y");
 
         Function name_eq_x = new Function(
-            functionInfo(EqOperator.NAME, DataTypes.STRING), Arrays.<Symbol>asList(name_ref, x_literal));
+            functionInfo(EqOperator.NAME, DataTypes.STRING), List.of(name_ref, x_literal));
 
-        Function name_neq_x = new Function(
-            functionInfo(NotPredicate.NAME, DataTypes.BOOLEAN, true), Arrays.<Symbol>asList(name_eq_x));
+        Function nameNeqX = new Function(
+            functionInfo(NotPredicate.SIGNATURE, DataTypes.BOOLEAN),
+            NotPredicate.SIGNATURE,
+            Collections.singletonList(name_eq_x));
 
         Function name_eq_y = new Function(
-            functionInfo(EqOperator.NAME, DataTypes.STRING), Arrays.<Symbol>asList(name_ref, y_literal));
+            functionInfo(EqOperator.NAME, DataTypes.STRING), Arrays.asList(name_ref, y_literal));
 
-        Function name_neq_y = new Function(
-            functionInfo(NotPredicate.NAME, DataTypes.BOOLEAN, true), Arrays.<Symbol>asList(name_eq_y));
+        Function nameNeqY = new Function(
+            functionInfo(NotPredicate.SIGNATURE, DataTypes.BOOLEAN),
+            NotPredicate.SIGNATURE,
+            Collections.singletonList(name_eq_y));
 
         Function op_and = new Function(
-            functionInfo(AndOperator.NAME, DataTypes.BOOLEAN), Arrays.<Symbol>asList(name_neq_x, name_neq_y));
+            functionInfo(AndOperator.NAME, DataTypes.BOOLEAN), List.of(nameNeqX, nameNeqY));
 
         return new Function(
-            functionInfo(OrOperator.NAME, DataTypes.BOOLEAN), Arrays.<Symbol>asList(load_eq_01, op_and));
+            functionInfo(OrOperator.NAME, DataTypes.BOOLEAN), List.of(load_eq_01, op_and));
     }
 
     @Test
@@ -123,17 +129,21 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         assertThat(query, instanceOf(Function.class));
     }
 
+    private FunctionInfo functionInfo(Signature signature, DataType dataType) {
+        return functions.getQualified(signature, List.of(dataType, dataType)).info();
+    }
+
     private FunctionInfo functionInfo(String name, DataType dataType, boolean isPredicate) {
-        ImmutableList<DataType> dataTypes;
+        List<DataType> dataTypes;
         if (isPredicate) {
-            dataTypes = ImmutableList.of(dataType);
+            dataTypes = List.of(dataType);
         } else {
-            dataTypes = ImmutableList.of(dataType, dataType);
+            dataTypes = List.of(dataType, dataType);
         }
         return functions.getQualified(new FunctionIdent(name, dataTypes)).info();
     }
 
-    private FunctionInfo functionInfo(String name, DataType dataType) {
+    private FunctionInfo functionInfo(String name, DataType<?> dataType) {
         return functionInfo(name, dataType, false);
     }
 }

@@ -28,22 +28,42 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
     public static final FunctionInfo INFO = FunctionInfo.of(NAME, List.of(DataTypes.BOOLEAN), DataTypes.BOOLEAN);
+    public static final Signature SIGNATURE = Signature.scalar(
+        NAME,
+        DataTypes.BOOLEAN.getTypeSignature(),
+        DataTypes.BOOLEAN.getTypeSignature());
 
     public static void register(PredicateModule module) {
-        module.register(new NotPredicate());
+        module.register(
+            SIGNATURE,
+            (signature, argTypes) -> new NotPredicate(signature));
+    }
+
+    private final Signature signature;
+
+    private NotPredicate(Signature signature) {
+        this.signature = signature;
     }
 
     @Override
     public FunctionInfo info() {
         return INFO;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
