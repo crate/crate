@@ -38,7 +38,7 @@ import java.io.Closeable;
 
 class S3Service implements Closeable {
 
-    private static final Logger logger = LogManager.getLogger(S3Service.class);
+    private static final Logger LOGGER = LogManager.getLogger(S3Service.class);
 
     private volatile AmazonS3Reference clientCache;
     private volatile S3ClientSettings clientSettingsCache;
@@ -74,13 +74,13 @@ class S3Service implements Closeable {
 
     private AmazonS3 buildClient(final S3ClientSettings clientSettings) {
         final AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
-        builder.withCredentials(buildCredentials(logger, clientSettings));
+        builder.withCredentials(buildCredentials(LOGGER, clientSettings));
         builder.withClientConfiguration(buildConfiguration(clientSettings));
 
         final String endpoint = Strings.hasLength(clientSettings.endpoint)
             ? clientSettings.endpoint
             : Constants.S3_HOSTNAME;
-        logger.debug("using endpoint [{}]", endpoint);
+        LOGGER.debug("using endpoint [{}]", endpoint);
 
         // If the endpoint configuration isn't set on the builder then the default behaviour is to try
         // and work out what region we are in and use an appropriate endpoint - see AwsClientBuilder#setRegion.
