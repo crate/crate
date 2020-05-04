@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 class AwsEc2ServiceImpl implements AwsEc2Service {
 
-    private static final Logger logger = LogManager.getLogger(AwsEc2ServiceImpl.class);
+    private static final Logger LOGGER = LogManager.getLogger(AwsEc2ServiceImpl.class);
 
     public static final String EC2_METADATA_URL = "http://169.254.169.254/latest/meta-data/";
 
@@ -51,16 +51,16 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
 
 
     private AmazonEC2 buildClient(Ec2ClientSettings clientSettings) {
-        final AWSCredentialsProvider credentials = buildCredentials(logger, clientSettings);
-        final ClientConfiguration configuration = buildConfiguration(logger, clientSettings);
+        final AWSCredentialsProvider credentials = buildCredentials(LOGGER, clientSettings);
+        final ClientConfiguration configuration = buildConfiguration(LOGGER, clientSettings);
         final AmazonEC2 client = buildClient(credentials, configuration);
         if (Strings.hasText(clientSettings.endpoint)) {
-            logger.debug("using explicit ec2 endpoint [{}]", clientSettings.endpoint);
+            LOGGER.debug("using explicit ec2 endpoint [{}]", clientSettings.endpoint);
             client.setEndpoint(clientSettings.endpoint);
         } else {
             Region currentRegion = Regions.getCurrentRegion();
             if (currentRegion != null) {
-                logger.debug("using ec2 region [{}]", currentRegion);
+                LOGGER.debug("using ec2 region [{}]", currentRegion);
                 client.setRegion(currentRegion);
             }
         }
@@ -92,9 +92,9 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
         final RetryPolicy retryPolicy = new RetryPolicy(
             RetryPolicy.RetryCondition.NO_RETRY_CONDITION,
             (originalRequest, exception, retriesAttempted) -> {
-               // with 10 retries the max delay time is 320s/320000ms (10 * 2^5 * 1 * 1000)
-               logger.warn("EC2 API request failed, retry again. Reason was:", exception);
-               return 1000L * (long) (10d * Math.pow(2, retriesAttempted / 2.0d) * (1.0d + rand.nextDouble()));
+                // with 10 retries the max delay time is 320s/320000ms (10 * 2^5 * 1 * 1000)
+                logger.warn("EC2 API request failed, retry again. Reason was:", exception);
+                return 1000L * (long) (10d * Math.pow(2, retriesAttempted / 2.0d) * (1.0d + rand.nextDouble()));
             },
             10,
             false);
@@ -132,8 +132,10 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
     @Override
     public void refreshAndClearCache(Ec2ClientSettings clientSettings) {
         final LazyInitializable<AmazonEc2Reference, ElasticsearchException> newClient = new LazyInitializable<>(
-                () -> new AmazonEc2Reference(buildClient(clientSettings)), clientReference -> clientReference.incRef(),
-                clientReference -> clientReference.decRef());
+            () -> new AmazonEc2Reference(buildClient(clientSettings)),
+            clientReference -> clientReference.incRef(),
+            clientReference -> clientReference.decRef()
+        );
         final LazyInitializable<AmazonEc2Reference, ElasticsearchException> oldClient = this.lazyClientReference.getAndSet(newClient);
         if (oldClient != null) {
             oldClient.reset();

@@ -53,7 +53,7 @@ import java.nio.charset.StandardCharsets;
  */
 class Ec2NameResolver implements CustomNameResolver {
 
-    private static final Logger logger = LogManager.getLogger(Ec2NameResolver.class);
+    private static final Logger LOGGER = LogManager.getLogger(Ec2NameResolver.class);
 
     /**
      * enum that can be added to over time with more meta-data types (such as ipv6 when this is available)
@@ -92,11 +92,11 @@ class Ec2NameResolver implements CustomNameResolver {
         String metadataUrl = AwsEc2ServiceImpl.EC2_METADATA_URL + type.ec2Name;
         try {
             URL url = new URL(metadataUrl);
-            logger.debug("obtaining ec2 hostname from ec2 meta-data url {}", url);
+            LOGGER.debug("obtaining ec2 hostname from ec2 meta-data url {}", url);
             URLConnection urlConnection = url.openConnection();
             urlConnection.setConnectTimeout(2000);
             in = urlConnection.getInputStream();
-            try(BufferedReader urlReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            try (BufferedReader urlReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
                 String metadataResult = urlReader.readLine();
                 if (metadataResult == null || metadataResult.length() == 0) {
                     throw new IOException("no gce metadata returned from [" + url + "] for [" + type.configName + "]");
@@ -114,7 +114,6 @@ class Ec2NameResolver implements CustomNameResolver {
     @Override
     public InetAddress[] resolveDefault() {
         return null; // using this, one has to explicitly specify _ec2_ in network setting
-//        return resolve(Ec2HostnameType.DEFAULT, false);
     }
 
     @Override

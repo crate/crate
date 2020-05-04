@@ -61,8 +61,12 @@ final class Ec2ClientSettings {
             Property.NodeScope);
 
     /** The protocol to use to connect to to ec2. */
-    static final Setting<Protocol> PROTOCOL_SETTING = new Setting<>("discovery.ec2.protocol", "https",
-            s -> Protocol.valueOf(s.toUpperCase(Locale.ROOT)), Property.NodeScope);
+    static final Setting<Protocol> PROTOCOL_SETTING = new Setting<>(
+        "discovery.ec2.protocol",
+        "https",
+        s -> Protocol.valueOf(s.toUpperCase(Locale.ROOT)),
+        Property.NodeScope
+    );
 
     /** The username of a proxy to connect to s3 through. */
     static final Setting<SecureString> PROXY_USERNAME_SETTING = Setting.maskedString("discovery.ec2.proxy.username");
@@ -74,9 +78,9 @@ final class Ec2ClientSettings {
     static final Setting<TimeValue> READ_TIMEOUT_SETTING = Setting.timeSetting("discovery.ec2.read_timeout",
             TimeValue.timeValueMillis(ClientConfiguration.DEFAULT_SOCKET_TIMEOUT), Property.NodeScope);
 
-    private static final Logger logger = LogManager.getLogger(Ec2ClientSettings.class);
+    private static final Logger LOGGER = LogManager.getLogger(Ec2ClientSettings.class);
 
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(logger);
+    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LOGGER);
 
     /** Credentials to authenticate with ec2. */
     final AWSCredentials credentials;
@@ -130,7 +134,7 @@ final class Ec2ClientSettings {
                         SESSION_TOKEN_SETTING.getKey(), ACCESS_KEY_SETTING.getKey(), SECRET_KEY_SETTING.getKey());
                 }
 
-                logger.debug("Using either environment variables, system properties or instance profile credentials");
+                LOGGER.debug("Using either environment variables, system properties or instance profile credentials");
                 return null;
             } else {
                 if (key.length() == 0) {
@@ -144,10 +148,10 @@ final class Ec2ClientSettings {
 
                 final AWSCredentials credentials;
                 if (sessionToken.length() == 0) {
-                    logger.debug("Using basic key/secret credentials");
+                    LOGGER.debug("Using basic key/secret credentials");
                     credentials = new BasicAWSCredentials(key.toString(), secret.toString());
                 } else {
-                    logger.debug("Using basic session credentials");
+                    LOGGER.debug("Using basic session credentials");
                     credentials = new BasicSessionCredentials(key.toString(), secret.toString(), sessionToken.toString());
                 }
                 return credentials;

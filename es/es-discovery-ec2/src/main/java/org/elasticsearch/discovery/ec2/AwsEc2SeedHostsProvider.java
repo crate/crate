@@ -54,7 +54,7 @@ import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.TAG_PREFIX;
 
 class AwsEc2SeedHostsProvider implements SeedHostsProvider {
 
-    private static final Logger logger = LogManager.getLogger(AwsEc2SeedHostsProvider.class);
+    private static final Logger LOGGER = LogManager.getLogger(AwsEc2SeedHostsProvider.class);
 
     private final TransportService transportService;
 
@@ -88,8 +88,8 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
         this.availabilityZones = new HashSet<>();
         availabilityZones.addAll(AwsEc2Service.AVAILABILITY_ZONES_SETTING.get(settings));
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("using host_type [{}], tags [{}], groups [{}] with any_group [{}], availability_zones [{}]", hostType, tags,
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("using host_type [{}], tags [{}], groups [{}] with any_group [{}], availability_zones [{}]", hostType, tags,
                          groups, bindAnyGroup, availabilityZones);
         }
     }
@@ -112,12 +112,12 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
             // 2. We want to use two different strategies: (all security groups vs. any security groups)
             descInstances = clientReference.client().describeInstances(buildDescribeInstancesRequest());
         } catch (final AmazonClientException e) {
-            logger.info("Exception while retrieving instance list from AWS API: {}", e.getMessage());
-            logger.debug("Full exception:", e);
+            LOGGER.info("Exception while retrieving instance list from AWS API: {}", e.getMessage());
+            LOGGER.debug("Full exception:", e);
             return dynamicHosts;
         }
 
-        logger.trace("finding seed nodes...");
+        LOGGER.trace("finding seed nodes...");
         for (final Reservation reservation : descInstances.getReservations()) {
             for (final Instance instance : reservation.getInstances()) {
                 // lets see if we can filter based on groups
@@ -133,7 +133,7 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
                         // We check if we can find at least one group name or one group id in groups.
                         if (disjoint(securityGroupNames, groups)
                             && disjoint(securityGroupIds, groups)) {
-                            logger.trace("filtering out instance {} based on groups {}, not part of {}", instance.getInstanceId(),
+                            LOGGER.trace("filtering out instance {} based on groups {}, not part of {}", instance.getInstanceId(),
                                          instanceSecurityGroups, groups);
                             // continue to the next instance
                             continue;
@@ -141,7 +141,7 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
                     } else {
                         // We need tp match all group names or group ids, otherwise we ignore this instance
                         if (!(securityGroupNames.containsAll(groups) || securityGroupIds.containsAll(groups))) {
-                            logger.trace("filtering out instance {} based on groups {}, does not include all of {}",
+                            LOGGER.trace("filtering out instance {} based on groups {}, does not include all of {}",
                                          instance.getInstanceId(), instanceSecurityGroups, groups);
                             // continue to the next instance
                             continue;
@@ -161,12 +161,12 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
                 } else if (hostType.startsWith(TAG_PREFIX)) {
                     // Reading the node host from its metadata
                     final String tagName = hostType.substring(TAG_PREFIX.length());
-                    logger.debug("reading hostname from [{}] instance tag", tagName);
+                    LOGGER.debug("reading hostname from [{}] instance tag", tagName);
                     final List<Tag> tags = instance.getTags();
                     for (final Tag tag : tags) {
                         if (tag.getKey().equals(tagName)) {
                             address = tag.getValue();
-                            logger.debug("using [{}] as the instance address", address);
+                            LOGGER.debug("using [{}] as the instance address", address);
                         }
                     }
                 } else {
@@ -176,22 +176,21 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
                     try {
                         final TransportAddress[] addresses = transportService.addressesFromString(address);
                         for (int i = 0; i < addresses.length; i++) {
-                            logger.trace("adding {}, address {}, transport_address {}", instance.getInstanceId(), address, addresses[i]);
+                            LOGGER.trace("adding {}, address {}, transport_address {}", instance.getInstanceId(), address, addresses[i]);
                             dynamicHosts.add(addresses[i]);
                         }
                     } catch (final Exception e) {
                         final String finalAddress = address;
-                        logger.warn(
-                            (Supplier<?>)
-                                () -> new ParameterizedMessage("failed to add {}, address {}", instance.getInstanceId(), finalAddress), e);
+                        LOGGER.warn(
+                            (Supplier<?>) () -> new ParameterizedMessage("failed to add {}, address {}", instance.getInstanceId(), finalAddress), e);
                     }
                 } else {
-                    logger.trace("not adding {}, address is null, host_type {}", instance.getInstanceId(), hostType);
+                    LOGGER.trace("not adding {}, address is null, host_type {}", instance.getInstanceId(), hostType);
                 }
             }
         }
 
-        logger.debug("using dynamic transport addresses {}", dynamicHosts);
+        LOGGER.debug("using dynamic transport addresses {}", dynamicHosts);
 
         return dynamicHosts;
     }
@@ -224,7 +223,7 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
         private boolean empty = true;
 
         TransportAddressesCache(TimeValue refreshInterval) {
-            super(refreshInterval,  new ArrayList<>());
+            super(refreshInterval, new ArrayList<>());
         }
 
         @Override
