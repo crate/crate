@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.repositories.hdfs;
 
 import java.io.IOException;
@@ -46,6 +47,7 @@ class HdfsSecurityContext {
 
     private static final Permission[] SIMPLE_AUTH_PERMISSIONS;
     private static final Permission[] KERBEROS_AUTH_PERMISSIONS;
+
     static {
         // We can do FS ops with only a few elevated permissions:
         SIMPLE_AUTH_PERMISSIONS = new Permission[]{

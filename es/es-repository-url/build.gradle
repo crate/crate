@@ -19,8 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
+
 apply from: "$rootDir/gradle/javaModule.gradle"
 
 dependencies {
-    compile project(':es:es-server')
+    implementation project(':es:es-server')
 }
