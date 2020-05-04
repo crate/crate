@@ -313,13 +313,13 @@ public final class DiffableUtils {
             // filter out custom states not supported by the other node
             int diffCount = 0;
             for (Diff<T> diff : diffs.values()) {
-                if(valueSerializer.supportsVersion(diff, version)) {
+                if (valueSerializer.supportsVersion(diff, version)) {
                     diffCount++;
                 }
             }
             out.writeVInt(diffCount);
             for (Map.Entry<K, Diff<T>> entry : diffs.entrySet()) {
-                if(valueSerializer.supportsVersion(entry.getValue(), version)) {
+                if (valueSerializer.supportsVersion(entry.getValue(), version)) {
                     keySerializer.writeKey(entry.getKey(), out);
                     valueSerializer.writeDiff(entry.getValue(), out);
                 }
@@ -327,7 +327,7 @@ public final class DiffableUtils {
             // filter out custom states not supported by the other node
             int upsertsCount = 0;
             for (T upsert : upserts.values()) {
-                if(valueSerializer.supportsVersion(upsert, version)) {
+                if (valueSerializer.supportsVersion(upsert, version)) {
                     upsertsCount++;
                 }
             }
@@ -344,7 +344,9 @@ public final class DiffableUtils {
      * @param <K> type of key
      */
     public interface KeySerializer<K> {
+
         void writeKey(K key, StreamOutput out) throws IOException;
+
         K readKey(StreamInput in) throws IOException;
     }
 

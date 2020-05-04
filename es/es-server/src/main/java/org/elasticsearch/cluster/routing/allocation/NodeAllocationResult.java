@@ -20,7 +20,6 @@
 package org.elasticsearch.cluster.routing.allocation;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import javax.annotation.Nullable;
@@ -42,7 +41,7 @@ import static org.elasticsearch.cluster.routing.allocation.AbstractAllocationDec
  */
 public class NodeAllocationResult implements ToXContentObject, Writeable, Comparable<NodeAllocationResult> {
 
-    private static final Comparator<NodeAllocationResult> nodeResultComparator =
+    private static final Comparator<NodeAllocationResult> NODE_RESULT_COMPARATOR =
         Comparator.comparing(NodeAllocationResult::getNodeDecision)
             .thenComparingInt(NodeAllocationResult::getWeightRanking)
             .thenComparing(r -> r.getNode().getId());
@@ -172,7 +171,7 @@ public class NodeAllocationResult implements ToXContentObject, Writeable, Compar
 
     @Override
     public int compareTo(NodeAllocationResult other) {
-        return nodeResultComparator.compare(this, other);
+        return NODE_RESULT_COMPARATOR.compare(this, other);
     }
 
     /** A class that captures metadata about a shard store on a node. */

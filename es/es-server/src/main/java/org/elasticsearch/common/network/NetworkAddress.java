@@ -48,7 +48,8 @@ import java.util.Objects;
  */
 public final class NetworkAddress {
     /** No instantiation */
-    private NetworkAddress() {}
+    private NetworkAddress() {
+    }
 
     /**
      * Formats a network address for display purposes.

@@ -32,14 +32,15 @@ import java.io.Reader;
 public abstract class CustomDocValuesField implements IndexableField {
 
     public static final FieldType TYPE = new FieldType();
+
     static {
-      TYPE.setDocValuesType(DocValuesType.BINARY);
-      TYPE.freeze();
+        TYPE.setDocValuesType(DocValuesType.BINARY);
+        TYPE.freeze();
     }
 
     private final String name;
 
-    protected CustomDocValuesField(String  name) {
+    protected CustomDocValuesField(String name) {
         this.name = name;
     }
 

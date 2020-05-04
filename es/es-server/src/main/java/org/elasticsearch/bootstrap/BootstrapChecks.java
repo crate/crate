@@ -45,8 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * We enforce bootstrap checks once a node has the transport protocol bound to a non-loopback interface or if the system property {@code

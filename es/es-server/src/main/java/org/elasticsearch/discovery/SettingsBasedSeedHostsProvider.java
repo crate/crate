@@ -42,7 +42,7 @@ import static java.util.Collections.emptyList;
  */
 public class SettingsBasedSeedHostsProvider implements SeedHostsProvider {
 
-    private static final Logger logger = LogManager.getLogger(SettingsBasedSeedHostsProvider.class);
+    private static final Logger LOGGER = LogManager.getLogger(SettingsBasedSeedHostsProvider.class);
 
     public static final Setting<List<String>> DISCOVERY_SEED_HOSTS_SETTING =
         Setting.listSetting("discovery.seed_hosts", emptyList(), Function.identity(), Property.NodeScope);
@@ -57,7 +57,7 @@ public class SettingsBasedSeedHostsProvider implements SeedHostsProvider {
             configuredHosts = transportService.getDefaultSeedAddresses();
         }
 
-        logger.debug("using initial hosts {}", configuredHosts);
+        LOGGER.debug("using initial hosts {}", configuredHosts);
     }
 
     @Override

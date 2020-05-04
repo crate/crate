@@ -316,19 +316,18 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
     }
 
     private static boolean calledFromOutsideOrViaTragedyClose() {
-        List<StackTraceElement> frames = Stream.of(Thread.currentThread().getStackTrace()).
-                skip(3). //skip getStackTrace, current method and close method frames
-                limit(10). //limit depth of analysis to 10 frames, it should be enough to catch closing with, e.g. IOUtils
-                filter(f ->
-                    {
-                        try {
-                            return Translog.class.isAssignableFrom(Class.forName(f.getClassName()));
-                        } catch (Exception ignored) {
-                            return false;
-                        }
-                    }
-                ). //find all inner callers including Translog subclasses
-                collect(Collectors.toList());
+        List<StackTraceElement> frames = Stream.of(Thread.currentThread().getStackTrace())
+            .skip(3) //skip getStackTrace, current method and close method frames
+            .limit(10) //limit depth of analysis to 10 frames, it should be enough to catch closing with, e.g. IOUtils
+            .filter(f -> {
+                try {
+                    return Translog.class.isAssignableFrom(Class.forName(f.getClassName()));
+                } catch (Exception ignored) {
+                    return false;
+                }
+            }
+            ).collect(Collectors.toList()  //find all inner callers including Translog subclasses
+        );
         //the list of inner callers should be either empty or should contain closeOnTragicEvent method
         return frames.isEmpty() || frames.stream().anyMatch(f -> f.getMethodName().equals("closeOnTragicEvent"));
     }
@@ -1052,7 +1051,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
          */
         static void writeOperation(final StreamOutput output, final Operation operation) throws IOException {
             output.writeByte(operation.opType().id());
-            switch(operation.opType()) {
+            switch (operation.opType()) {
                 case CREATE:
                     // the serialization logic in Index was identical to that of Create when create was deprecated
                 case INDEX:
@@ -1271,7 +1270,8 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
         public static final int FORMAT_NO_VERSION_TYPE = FORMAT_NO_PARENT + 1;
         public static final int SERIALIZATION_FORMAT = FORMAT_NO_VERSION_TYPE;
 
-        private final String type, id;
+        private final String type;
+        private final String id;
         private final Term uid;
         private final long seqNo;
         private final long primaryTerm;
@@ -1869,10 +1869,27 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
         Checkpoint.write(channelFactory, checkpointFile, checkpoint, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
         IOUtils.fsync(checkpointFile, false);
         final String translogUUID = UUIDs.randomBase64UUID();
-        TranslogWriter writer = TranslogWriter.create(shardId, translogUUID, 1, location.resolve(getFilename(1)), channelFactory,
-            new ByteSizeValue(10), 1, initialGlobalCheckpoint,
-            () -> { throw new UnsupportedOperationException(); }, () -> { throw new UnsupportedOperationException(); }, primaryTerm,
-                new TragicExceptionHolder(), seqNo -> { throw new UnsupportedOperationException(); });
+        TranslogWriter writer = TranslogWriter.create(
+            shardId,
+            translogUUID,
+            1,
+            location.resolve(getFilename(1)),
+            channelFactory,
+            new ByteSizeValue(10),
+            1,
+            initialGlobalCheckpoint,
+            () -> {
+                throw new UnsupportedOperationException();
+            },
+            () -> {
+                throw new UnsupportedOperationException();
+            },
+            primaryTerm,
+            new TragicExceptionHolder(),
+            seqNo -> {
+                throw new UnsupportedOperationException();
+            }
+        );
         writer.close();
         return translogUUID;
     }

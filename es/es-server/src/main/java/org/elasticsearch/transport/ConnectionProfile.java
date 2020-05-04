@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.transport;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -163,6 +164,7 @@ public final class ConnectionProfile {
             compressionEnabled = source.getCompressionEnabled();
             pingInterval = source.getPingInterval();
         }
+
         /**
          * Sets a connect timeout for this connection profile
          */
@@ -286,7 +288,7 @@ public final class ConnectionProfile {
                 return handle.length;
             }
         }
-        throw new AssertionError("no handle found for type: "  + type);
+        throw new AssertionError("no handle found for type: " + type);
     }
 
     /**

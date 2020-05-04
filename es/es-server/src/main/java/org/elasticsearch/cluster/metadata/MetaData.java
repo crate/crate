@@ -80,7 +80,7 @@ import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, ToXContentFragment {
 
-    private static final Logger logger = LogManager.getLogger(MetaData.class);
+    private static final Logger LOGGER = LogManager.getLogger(MetaData.class);
 
     public static final String ALL = "_all";
     public static final String UNKNOWN_CLUSTER_UUID = "_na_";
@@ -898,12 +898,12 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
         public IndexMetaData getSafe(Index index) {
             IndexMetaData indexMetaData = get(index.getName());
             if (indexMetaData != null) {
-                if(indexMetaData.getIndexUUID().equals(index.getUUID())) {
+                if (indexMetaData.getIndexUUID().equals(index.getUUID())) {
                     return indexMetaData;
                 }
                 throw new IndexNotFoundException(index,
                     new IllegalStateException("index uuid doesn't match expected: [" + index.getUUID()
-                        + "] but got: [" + indexMetaData.getIndexUUID() +"]"));
+                        + "] but got: [" + indexMetaData.getIndexUUID() + "]"));
             }
             throw new IndexNotFoundException(index);
         }
@@ -1084,7 +1084,7 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
                 }
                 assert duplicates.size() > 0;
                 throw new IllegalStateException("index and alias names need to be unique, but the following duplicates were found ["
-                    + Strings.collectionToCommaDelimitedString(duplicates)+ "]");
+                    + Strings.collectionToCommaDelimitedString(duplicates) + "]");
 
             }
 
@@ -1138,7 +1138,6 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
         }
 
         public static void toXContent(MetaData metaData, XContentBuilder builder, ToXContent.Params params) throws IOException {
-            XContentContext context = XContentContext.valueOf(params.param(CONTEXT_MODE_PARAM, "API"));
 
             builder.startObject("meta-data");
 
@@ -1156,6 +1155,7 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
                 builder.endObject();
             }
 
+            XContentContext context = XContentContext.valueOf(params.param(CONTEXT_MODE_PARAM, "API"));
             if (context == XContentContext.API && !metaData.transientSettings().isEmpty()) {
                 builder.startObject("transient_settings");
                 metaData.transientSettings().toXContent(builder, new MapParams(Collections.singletonMap("flat_settings", "true")));
@@ -1234,7 +1234,7 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
                             Custom custom = parser.namedObject(Custom.class, currentFieldName, null);
                             builder.putCustom(custom.getWriteableName(), custom);
                         } catch (NamedObjectNotFoundException ex) {
-                            logger.warn("Skipping unknown custom object with type {}", currentFieldName);
+                            LOGGER.warn("Skipping unknown custom object with type {}", currentFieldName);
                             parser.skipChildren();
                         }
                     }
@@ -1257,6 +1257,7 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
     }
 
     private static final ToXContent.Params FORMAT_PARAMS;
+
     static {
         Map<String, String> params = new HashMap<>(2);
         params.put("binary", "true");

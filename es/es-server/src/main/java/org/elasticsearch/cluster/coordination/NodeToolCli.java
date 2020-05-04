@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.coordination;
 
 import org.elasticsearch.cli.CommandLoggingConfigurator;
@@ -33,8 +34,7 @@ import org.elasticsearch.env.NodeRepurposeCommand;
 public class NodeToolCli extends MultiCommand {
 
     public NodeToolCli() {
-        super("A CLI tool to do unsafe cluster and index manipulations on current node",
-            ()->{});
+        super("A CLI tool to do unsafe cluster and index manipulations on current node", () -> {});
         CommandLoggingConfigurator.configureLoggingWithoutConfig();
         subcommands.put("repurpose", new NodeRepurposeCommand());
         subcommands.put("unsafe-bootstrap", new UnsafeBootstrapMasterCommand());

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.rounding;
 
 import org.elasticsearch.common.unit.TimeValue;
@@ -180,8 +181,7 @@ public abstract class Rounding {
                     // Therefore the previous offset _is_ in effect at `alsoLocalStartOfDay`, and it's earlier than anyLocalStartOfDay,
                     // so this is the answer to use.
                     return alsoLocalStartOfDay;
-                }
-                else {
+                } else {
                     // The previous offset is not in effect at `alsoLocalStartOfDay`, so the current offset must be.
                     return anyLocalStartOfDay;
                 }

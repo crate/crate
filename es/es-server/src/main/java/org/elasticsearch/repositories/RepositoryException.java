@@ -49,7 +49,7 @@ public class RepositoryException extends ElasticsearchException {
         return repository;
     }
 
-    public RepositoryException(StreamInput in) throws IOException{
+    public RepositoryException(StreamInput in) throws IOException {
         super(in);
         repository = in.readOptionalString();
     }

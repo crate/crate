@@ -33,10 +33,10 @@ import java.util.concurrent.LinkedTransferQueue;
 
 public abstract class ConcurrentCollections {
 
-    static final int aggressiveConcurrencyLevel;
+    static final int AGGRESSIVE_CONCURRENCY_LEVEL;
 
     static {
-        aggressiveConcurrencyLevel = Math.max(Runtime.getRuntime().availableProcessors() * 2, 16);
+        AGGRESSIVE_CONCURRENCY_LEVEL = Math.max(Runtime.getRuntime().availableProcessors() * 2, 16);
     }
 
     /**
@@ -50,7 +50,7 @@ public abstract class ConcurrentCollections {
      * Creates a new CHM with an aggressive concurrency level, aimed at high concurrent update rate long living maps.
      */
     public static <K, V> ConcurrentMap<K, V> newConcurrentMapWithAggressiveConcurrency(int initalCapacity) {
-        return new ConcurrentHashMap<>(initalCapacity, 0.75f, aggressiveConcurrencyLevel);
+        return new ConcurrentHashMap<>(initalCapacity, 0.75f, AGGRESSIVE_CONCURRENCY_LEVEL);
     }
 
     public static <K, V> ConcurrentMap<K, V> newConcurrentMap() {

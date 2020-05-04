@@ -155,9 +155,9 @@ public class Manifest implements ToXContentFragment {
     }
 
     private List<IndexEntry> indexEntryList() {
-        return indexGenerations.entrySet().stream().
-                map(entry -> new IndexEntry(entry.getKey(), entry.getValue())).
-                collect(Collectors.toList());
+        return indexGenerations.entrySet().stream()
+            .map(entry -> new IndexEntry(entry.getKey(), entry.getValue()))
+            .collect(Collectors.toList());
     }
 
     private static long currentTerm(Object[] manifestFields) {
@@ -179,10 +179,14 @@ public class Manifest implements ToXContentFragment {
     }
 
     private static final ConstructingObjectParser<Manifest, Void> PARSER = new ConstructingObjectParser<>(
-            "manifest",
-            manifestFields ->
-                    new Manifest(currentTerm(manifestFields), clusterStateVersion(manifestFields), generation(manifestFields),
-                            indices(manifestFields)));
+        "manifest",
+        manifestFields -> new Manifest(
+            currentTerm(manifestFields),
+            clusterStateVersion(manifestFields),
+            generation(manifestFields),
+            indices(manifestFields)
+        )
+    );
 
     static {
         PARSER.declareLong(ConstructingObjectParser.constructorArg(), CURRENT_TERM_PARSE_FIELD);
@@ -213,8 +217,9 @@ public class Manifest implements ToXContentFragment {
         private static final ParseField INDEX_PARSE_FIELD = new ParseField("index");
 
         static final ConstructingObjectParser<IndexEntry, Void> INDEX_ENTRY_PARSER = new ConstructingObjectParser<>(
-                "indexEntry",
-                indexAndGeneration -> new IndexEntry((Index) indexAndGeneration[0], (long) indexAndGeneration[1]));
+            "indexEntry",
+            indexAndGeneration -> new IndexEntry((Index) indexAndGeneration[0], (long) indexAndGeneration[1])
+        );
 
         static {
             INDEX_ENTRY_PARSER.declareField(ConstructingObjectParser.constructorArg(),

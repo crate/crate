@@ -25,7 +25,10 @@ import java.io.IOException;
  * Allows pkg private access
  */
 public class OneMergeHelper {
-    private OneMergeHelper() {}
+
+    private OneMergeHelper() {
+    }
+
     public static String getSegmentName(MergePolicy.OneMerge merge) {
         return merge.info != null ? merge.info.info.name : "_na_";
     }
@@ -37,7 +40,7 @@ public class OneMergeHelper {
         if (thread instanceof ConcurrentMergeScheduler.MergeThread) {
             return ((ConcurrentMergeScheduler.MergeThread) thread).rateLimiter.getMBPerSec();
         }
-        assert false: "this is not merge thread";
+        assert false : "this is not merge thread";
         return Double.POSITIVE_INFINITY;
     }
 
@@ -53,9 +56,7 @@ public class OneMergeHelper {
             return ((ConcurrentMergeScheduler.MergeThread) thread).rateLimiter
                 .getTotalBytesWritten();
         }
-        assert false: "this is not merge thread";
+        assert false : "this is not merge thread";
         return merge.totalBytesSize();
     }
-
-
 }

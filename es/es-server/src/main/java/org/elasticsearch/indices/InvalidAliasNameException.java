@@ -37,7 +37,7 @@ public class InvalidAliasNameException extends ElasticsearchException {
         super("Invalid alias name [{}]: {}", name, description);
     }
 
-    public InvalidAliasNameException(StreamInput in) throws IOException{
+    public InvalidAliasNameException(StreamInput in) throws IOException {
         super(in);
     }
 

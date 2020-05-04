@@ -74,7 +74,7 @@ import java.util.function.Predicate;
 
 public class ShardStateAction {
 
-    private static final Logger logger = LogManager.getLogger(ShardStateAction.class);
+    private static final Logger LOGGER = LogManager.getLogger(ShardStateAction.class);
 
     public static final String SHARD_STARTED_ACTION_NAME = "internal:cluster/shard/started";
     public static final String SHARD_FAILED_ACTION_NAME = "internal:cluster/shard/failure";
@@ -94,19 +94,19 @@ public class ShardStateAction {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
 
-        transportService.registerRequestHandler(SHARD_STARTED_ACTION_NAME, ThreadPool.Names.SAME, StartedShardEntry::new, new ShardStartedTransportHandler(clusterService, new ShardStartedClusterStateTaskExecutor(allocationService, logger), logger));
-        transportService.registerRequestHandler(SHARD_FAILED_ACTION_NAME, ThreadPool.Names.SAME, FailedShardEntry::new, new ShardFailedTransportHandler(clusterService, new ShardFailedClusterStateTaskExecutor(allocationService, routingService, logger), logger));
+        transportService.registerRequestHandler(SHARD_STARTED_ACTION_NAME, ThreadPool.Names.SAME, StartedShardEntry::new, new ShardStartedTransportHandler(clusterService, new ShardStartedClusterStateTaskExecutor(allocationService, LOGGER), LOGGER));
+        transportService.registerRequestHandler(SHARD_FAILED_ACTION_NAME, ThreadPool.Names.SAME, FailedShardEntry::new, new ShardFailedTransportHandler(clusterService, new ShardFailedClusterStateTaskExecutor(allocationService, routingService, LOGGER), LOGGER));
     }
 
     private void sendShardAction(final String actionName, final ClusterState currentState, final TransportRequest request, final ActionListener<Void> listener) {
-        ClusterStateObserver observer = new ClusterStateObserver(currentState, clusterService, null, logger, threadPool.getThreadContext());
+        ClusterStateObserver observer = new ClusterStateObserver(currentState, clusterService, null, LOGGER, threadPool.getThreadContext());
         DiscoveryNode masterNode = currentState.nodes().getMasterNode();
         Predicate<ClusterState> changePredicate = MasterNodeChangePredicate.build(currentState);
         if (masterNode == null) {
-            logger.warn("no master known for action [{}] for shard entry [{}]", actionName, request);
+            LOGGER.warn("no master known for action [{}] for shard entry [{}]", actionName, request);
             waitForNewMasterAndRetry(actionName, observer, request, listener, changePredicate);
         } else {
-            logger.debug("sending [{}] to [{}] for shard entry [{}]", actionName, masterNode.getId(), request);
+            LOGGER.debug("sending [{}] to [{}] for shard entry [{}]", actionName, masterNode.getId(), request);
             transportService.sendRequest(masterNode,
                 actionName, request, new EmptyTransportResponseHandler(ThreadPool.Names.SAME) {
                     @Override
@@ -119,7 +119,7 @@ public class ShardStateAction {
                         if (isMasterChannelException(exp)) {
                             waitForNewMasterAndRetry(actionName, observer, request, listener, changePredicate);
                         } else {
-                            logger.warn(new ParameterizedMessage("unexpected failure while sending request [{}] to [{}] for shard entry [{}]", actionName, masterNode, request), exp);
+                            LOGGER.warn(new ParameterizedMessage("unexpected failure while sending request [{}] to [{}] for shard entry [{}]", actionName, masterNode, request), exp);
                             listener.onFailure(exp instanceof RemoteTransportException ? (Exception) (exp.getCause() instanceof Exception ? exp.getCause() : new ElasticsearchException(exp.getCause())) : exp);
                         }
                     }
@@ -200,15 +200,15 @@ public class ShardStateAction {
         observer.waitForNextChange(new ClusterStateObserver.Listener() {
             @Override
             public void onNewClusterState(ClusterState state) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("new cluster state [{}] after waiting for master election for shard entry [{}]", state, request);
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("new cluster state [{}] after waiting for master election for shard entry [{}]", state, request);
                 }
                 sendShardAction(actionName, state, request, listener);
             }
 
             @Override
             public void onClusterServiceClose() {
-                logger.warn("node closed while execution action [{}] for shard entry [{}]", actionName, request);
+                LOGGER.warn("node closed while execution action [{}] for shard entry [{}]", actionName, request);
                 listener.onFailure(new NodeClosedException(clusterService.localNode()));
             }
 

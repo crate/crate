@@ -32,6 +32,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.util.Map;
+
 /**
  * ClusterInfo is an object representing a map of nodes to {@link DiskUsage}
  * and a map of shard ids to shard sizes, see
@@ -39,6 +40,7 @@ import java.util.Map;
  * for the key used in the shardSizes map
  */
 public class ClusterInfo implements ToXContentFragment, Writeable {
+
     private final ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsage;
     private final ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsage;
     final ImmutableOpenMap<String, Long> shardSizes;
@@ -46,7 +48,7 @@ public class ClusterInfo implements ToXContentFragment, Writeable {
     final ImmutableOpenMap<ShardRouting, String> routingToDataPath;
 
     protected ClusterInfo() {
-       this(ImmutableOpenMap.of(), ImmutableOpenMap.of(), ImmutableOpenMap.of(), ImmutableOpenMap.of());
+        this(ImmutableOpenMap.of(), ImmutableOpenMap.of(), ImmutableOpenMap.of(), ImmutableOpenMap.of());
     }
 
     /**
@@ -71,7 +73,7 @@ public class ClusterInfo implements ToXContentFragment, Writeable {
         Map<String, DiskUsage> leastMap = in.readMap(StreamInput::readString, DiskUsage::new);
         Map<String, DiskUsage> mostMap = in.readMap(StreamInput::readString, DiskUsage::new);
         Map<String, Long> sizeMap = in.readMap(StreamInput::readString, StreamInput::readLong);
-        Map<ShardRouting, String> routingMap = in.readMap(ShardRouting::new, StreamInput::readString);
+        final Map<ShardRouting, String> routingMap = in.readMap(ShardRouting::new, StreamInput::readString);
 
         ImmutableOpenMap.Builder<String, DiskUsage> leastBuilder = ImmutableOpenMap.builder();
         this.leastAvailableSpaceUsage = leastBuilder.putAll(leastMap).build();

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.action.admin.indices.template.get;
 
 import org.elasticsearch.action.Action;

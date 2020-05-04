@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.indices.analysis;
 
 import org.apache.logging.log4j.LogManager;
@@ -77,7 +78,7 @@ import java.util.function.Function;
  */
 public class HunspellService {
 
-    private static final Logger logger = LogManager.getLogger(HunspellService.class);
+    private static final Logger LOGGER = LogManager.getLogger(HunspellService.class);
 
     public static final Setting<Boolean> HUNSPELL_LAZY_LOAD =
         Setting.boolSetting("indices.analysis.hunspell.dictionary.lazy", Boolean.FALSE, Property.NodeScope);
@@ -141,7 +142,7 @@ public class HunspellService {
                                 } catch (Exception e) {
                                     // The cache loader throws unchecked exception (see #loadDictionary()),
                                     // here we simply report the exception and continue loading the dictionaries
-                                    logger.error(() -> new ParameterizedMessage(
+                                    LOGGER.error(() -> new ParameterizedMessage(
                                             "exception while loading dictionary {}", file.getFileName()), e);
                                 }
                             }
@@ -162,11 +163,11 @@ public class HunspellService {
      * @throws Exception when loading fails (due to IO errors or malformed dictionary files)
      */
     private Dictionary loadDictionary(String locale, Settings nodeSettings, Environment env) throws Exception {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Loading hunspell dictionary [{}]...", locale);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Loading hunspell dictionary [{}]...", locale);
         }
         Path dicDir = hunspellDir.resolve(locale);
-        if (FileSystemUtils.isAccessibleDirectory(dicDir, logger) == false) {
+        if (FileSystemUtils.isAccessibleDirectory(dicDir, LOGGER) == false) {
             throw new ElasticsearchException(String.format(Locale.ROOT, "Could not find hunspell dictionary [%s]", locale));
         }
 
@@ -200,7 +201,7 @@ public class HunspellService {
             }
 
         } catch (Exception e) {
-            logger.error(() -> new ParameterizedMessage("Could not load hunspell dictionary [{}]", locale), e);
+            LOGGER.error(() -> new ParameterizedMessage("Could not load hunspell dictionary [{}]", locale), e);
             throw e;
         } finally {
             IOUtils.close(affixStream);

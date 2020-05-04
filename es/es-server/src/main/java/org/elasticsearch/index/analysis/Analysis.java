@@ -109,6 +109,7 @@ public class Analysis {
     }
 
     public static final Map<String, Set<?>> NAMED_STOP_WORDS;
+
     static {
         Map<String, Set<?>> namedStopWords = new HashMap<>();
         namedStopWords.put("_arabic_", ArabicAnalyzer.getDefaultStopSet());

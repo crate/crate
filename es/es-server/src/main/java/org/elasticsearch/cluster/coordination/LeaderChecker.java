@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class LeaderChecker {
 
-    private static final Logger logger = LogManager.getLogger(LeaderChecker.class);
+    private static final Logger LOGGER = LogManager.getLogger(LeaderChecker.class);
 
     public static final String LEADER_CHECK_ACTION_NAME = "internal:coordination/fault_detection/leader_check";
 
@@ -145,7 +145,7 @@ public class LeaderChecker {
      * should indicate whether nodes are known publication targets or not.
      */
     public void setCurrentNodes(DiscoveryNodes discoveryNodes) {
-        logger.trace("setCurrentNodes: {}", discoveryNodes);
+        LOGGER.trace("setCurrentNodes: {}", discoveryNodes);
         this.discoveryNodes = discoveryNodes;
     }
 
@@ -159,13 +159,13 @@ public class LeaderChecker {
         assert discoveryNodes != null;
 
         if (discoveryNodes.isLocalNodeElectedMaster() == false) {
-            logger.debug("non-master handling {}", request);
+            LOGGER.debug("non-master handling {}", request);
             throw new CoordinationStateRejectedException("non-leader rejecting leader check");
         } else if (discoveryNodes.nodeExists(request.getSender()) == false) {
-            logger.debug("leader check from unknown node: {}", request);
+            LOGGER.debug("leader check from unknown node: {}", request);
             throw new CoordinationStateRejectedException("leader check from unknown node");
         } else {
-            logger.trace("handling {}", request);
+            LOGGER.trace("handling {}", request);
         }
     }
 
@@ -174,7 +174,7 @@ public class LeaderChecker {
         if (checkScheduler != null) {
             checkScheduler.handleDisconnectedNode(discoveryNode);
         } else {
-            logger.trace("disconnect event ignored for {}, no check scheduler", discoveryNode);
+            LOGGER.trace("disconnect event ignored for {}, no check scheduler", discoveryNode);
         }
     }
 
@@ -191,19 +191,19 @@ public class LeaderChecker {
         @Override
         public void close() {
             if (isClosed.compareAndSet(false, true) == false) {
-                logger.trace("already closed, doing nothing");
+                LOGGER.trace("already closed, doing nothing");
             } else {
-                logger.debug("closed");
+                LOGGER.debug("closed");
             }
         }
 
         void handleWakeUp() {
             if (isClosed.get()) {
-                logger.trace("closed check scheduler woken up, doing nothing");
+                LOGGER.trace("closed check scheduler woken up, doing nothing");
                 return;
             }
 
-            logger.trace("checking {} with [{}] = {}", leader, LEADER_CHECK_TIMEOUT_SETTING.getKey(), leaderCheckTimeout);
+            LOGGER.trace("checking {} with [{}] = {}", leader, LEADER_CHECK_TIMEOUT_SETTING.getKey(), leaderCheckTimeout);
 
             transportService.sendRequest(leader, LEADER_CHECK_ACTION_NAME, new LeaderCheckRequest(transportService.getLocalNode()),
                 TransportRequestOptions.builder().withTimeout(leaderCheckTimeout).withType(Type.PING).build(),
@@ -218,7 +218,7 @@ public class LeaderChecker {
                     @Override
                     public void handleResponse(Empty response) {
                         if (isClosed.get()) {
-                            logger.debug("closed check scheduler received a response, doing nothing");
+                            LOGGER.debug("closed check scheduler received a response, doing nothing");
                             return;
                         }
 
@@ -229,25 +229,25 @@ public class LeaderChecker {
                     @Override
                     public void handleException(TransportException exp) {
                         if (isClosed.get()) {
-                            logger.debug("closed check scheduler received a response, doing nothing");
+                            LOGGER.debug("closed check scheduler received a response, doing nothing");
                             return;
                         }
 
                         if (exp instanceof ConnectTransportException || exp.getCause() instanceof ConnectTransportException) {
-                            logger.debug(new ParameterizedMessage("leader [{}] disconnected, failing immediately", leader), exp);
+                            LOGGER.debug(new ParameterizedMessage("leader [{}] disconnected, failing immediately", leader), exp);
                             leaderFailed();
                             return;
                         }
 
                         long failureCount = failureCountSinceLastSuccess.incrementAndGet();
                         if (failureCount >= leaderCheckRetryCount) {
-                            logger.debug(new ParameterizedMessage("{} consecutive failures (limit [{}] is {}) so leader [{}] has failed",
+                            LOGGER.debug(new ParameterizedMessage("{} consecutive failures (limit [{}] is {}) so leader [{}] has failed",
                                 failureCount, LEADER_CHECK_RETRY_COUNT_SETTING.getKey(), leaderCheckRetryCount, leader), exp);
                             leaderFailed();
                             return;
                         }
 
-                        logger.debug(new ParameterizedMessage("{} consecutive failures (limit [{}] is {}) with leader [{}]",
+                        LOGGER.debug(new ParameterizedMessage("{} consecutive failures (limit [{}] is {}) with leader [{}]",
                             failureCount, LEADER_CHECK_RETRY_COUNT_SETTING.getKey(), leaderCheckRetryCount, leader), exp);
                         scheduleNextWakeUp();
                     }
@@ -263,7 +263,7 @@ public class LeaderChecker {
             if (isClosed.compareAndSet(false, true)) {
                 transportService.getThreadPool().generic().execute(onLeaderFailure);
             } else {
-                logger.trace("already closed, not failing leader");
+                LOGGER.trace("already closed, not failing leader");
             }
         }
 
@@ -274,7 +274,7 @@ public class LeaderChecker {
         }
 
         private void scheduleNextWakeUp() {
-            logger.trace("scheduling next check of {} for [{}] = {}", leader, LEADER_CHECK_INTERVAL_SETTING.getKey(), leaderCheckInterval);
+            LOGGER.trace("scheduling next check of {} for [{}] = {}", leader, LEADER_CHECK_INTERVAL_SETTING.getKey(), leaderCheckInterval);
             transportService.getThreadPool().schedule(new Runnable() {
                 @Override
                 public void run() {

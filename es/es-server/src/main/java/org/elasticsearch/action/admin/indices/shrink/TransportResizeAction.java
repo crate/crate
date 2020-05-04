@@ -126,8 +126,11 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
     }
 
     // static for unittesting this method
-    static CreateIndexClusterStateUpdateRequest prepareCreateIndexRequest(final ResizeRequest resizeRequest, final ClusterState state
-        , final IntFunction<DocsStats> perShardDocStats, String sourceIndexName, String targetIndexName) {
+    static CreateIndexClusterStateUpdateRequest prepareCreateIndexRequest(final ResizeRequest resizeRequest,
+                                                                          final ClusterState state,
+                                                                          final IntFunction<DocsStats> perShardDocStats,
+                                                                          String sourceIndexName,
+                                                                          String targetIndexName) {
         final CreateIndexRequest targetIndex = resizeRequest.getTargetIndexRequest();
         final IndexMetaData metaData = state.metaData().index(sourceIndexName);
         if (metaData == null) {

@@ -44,5 +44,6 @@ public class ShapesAvailability {
         JTS_AVAILABLE = xJTS_AVAILABLE;
     }
 
-    private ShapesAvailability() {}
+    private ShapesAvailability() {
+    }
 }

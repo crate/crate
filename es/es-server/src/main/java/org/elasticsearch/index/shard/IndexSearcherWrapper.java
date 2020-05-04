@@ -61,6 +61,7 @@ public class IndexSearcherWrapper {
     protected IndexSearcher wrap(IndexSearcher searcher) throws IOException {
         return searcher;
     }
+
     /**
      * If there are configured {@link IndexSearcherWrapper} instances, the {@link IndexSearcher} of the provided engine searcher
      * gets wrapped and a new {@link Engine.Searcher} instances is returned, otherwise the provided {@link Engine.Searcher} is returned.

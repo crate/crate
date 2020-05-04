@@ -30,7 +30,7 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 
 public class OsService {
 
-    private static final Logger logger = LogManager.getLogger(OsService.class);
+    private static final Logger LOGGER = LogManager.getLogger(OsService.class);
 
     private final OsProbe probe;
     private final OsInfo info;
@@ -45,7 +45,7 @@ public class OsService {
         TimeValue refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
         this.info = probe.osInfo(refreshInterval.millis(), EsExecutors.numberOfProcessors(settings));
         this.osStatsCache = new OsStatsCache(refreshInterval, probe.osStats());
-        logger.debug("using refresh_interval [{}]", refreshInterval);
+        LOGGER.debug("using refresh_interval [{}]", refreshInterval);
     }
 
     public OsInfo info() {

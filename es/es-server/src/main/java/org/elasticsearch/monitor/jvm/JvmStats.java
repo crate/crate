@@ -44,24 +44,24 @@ import java.util.concurrent.TimeUnit;
 
 public class JvmStats implements Writeable {
 
-    private static final RuntimeMXBean runtimeMXBean;
-    private static final MemoryMXBean memoryMXBean;
-    private static final ThreadMXBean threadMXBean;
-    private static final ClassLoadingMXBean classLoadingMXBean;
+    private static final RuntimeMXBean RUNTIME_MXBEAN;
+    private static final MemoryMXBean MEMORY_MXBEAN;
+    private static final ThreadMXBean THREAD_MXBEAN;
+    private static final ClassLoadingMXBean CLASS_LOADING_MXBEAN;
 
     static {
-        runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-        memoryMXBean = ManagementFactory.getMemoryMXBean();
-        threadMXBean = ManagementFactory.getThreadMXBean();
-        classLoadingMXBean = ManagementFactory.getClassLoadingMXBean();
+        RUNTIME_MXBEAN = ManagementFactory.getRuntimeMXBean();
+        MEMORY_MXBEAN = ManagementFactory.getMemoryMXBean();
+        THREAD_MXBEAN = ManagementFactory.getThreadMXBean();
+        CLASS_LOADING_MXBEAN = ManagementFactory.getClassLoadingMXBean();
     }
 
     public static JvmStats jvmStats() {
-        MemoryUsage memUsage = memoryMXBean.getHeapMemoryUsage();
+        MemoryUsage memUsage = MEMORY_MXBEAN.getHeapMemoryUsage();
         long heapUsed = memUsage.getUsed() < 0 ? 0 : memUsage.getUsed();
         long heapCommitted = memUsage.getCommitted() < 0 ? 0 : memUsage.getCommitted();
         long heapMax = memUsage.getMax() < 0 ? 0 : memUsage.getMax();
-        memUsage = memoryMXBean.getNonHeapMemoryUsage();
+        memUsage = MEMORY_MXBEAN.getNonHeapMemoryUsage();
         long nonHeapUsed = memUsage.getUsed() < 0 ? 0 : memUsage.getUsed();
         long nonHeapCommitted = memUsage.getCommitted() < 0 ? 0 : memUsage.getCommitted();
         List<MemoryPoolMXBean> memoryPoolMXBeans = ManagementFactory.getMemoryPoolMXBeans();
@@ -85,7 +85,7 @@ public class JvmStats implements Writeable {
             }
         }
         Mem mem = new Mem(heapCommitted, heapUsed, heapMax, nonHeapCommitted, nonHeapUsed, Collections.unmodifiableList(pools));
-        Threads threads = new Threads(threadMXBean.getThreadCount(), threadMXBean.getPeakThreadCount());
+        Threads threads = new Threads(THREAD_MXBEAN.getThreadCount(), THREAD_MXBEAN.getPeakThreadCount());
 
         List<GarbageCollectorMXBean> gcMxBeans = ManagementFactory.getGarbageCollectorMXBeans();
         GarbageCollector[] collectors = new GarbageCollector[gcMxBeans.size()];
@@ -107,10 +107,10 @@ public class JvmStats implements Writeable {
             // buffer pools are not available
         }
 
-        Classes classes = new Classes(classLoadingMXBean.getLoadedClassCount(), classLoadingMXBean.getTotalLoadedClassCount(),
-                classLoadingMXBean.getUnloadedClassCount());
+        Classes classes = new Classes(CLASS_LOADING_MXBEAN.getLoadedClassCount(), CLASS_LOADING_MXBEAN.getTotalLoadedClassCount(),
+                CLASS_LOADING_MXBEAN.getUnloadedClassCount());
 
-        return new JvmStats(System.currentTimeMillis(), runtimeMXBean.getUptime(), mem, threads,
+        return new JvmStats(System.currentTimeMillis(), RUNTIME_MXBEAN.getUptime(), mem, threads,
                 garbageCollectors, bufferPoolsList, classes);
     }
 

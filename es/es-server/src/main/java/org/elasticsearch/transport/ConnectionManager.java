@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.transport;
 
 import org.apache.logging.log4j.Logger;
@@ -53,7 +54,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * the connection when the connection manager is closed.
  */
 public class ConnectionManager implements Closeable {
-    private static final Logger logger = LogManager.getLogger(ConnectionManager.class);
+
+    private static final Logger LOGGER = LogManager.getLogger(ConnectionManager.class);
 
     private final ConcurrentMap<DiscoveryNode, Transport.Connection> connectedNodes = ConcurrentCollections.newConcurrentMap();
     private final KeyedLock<String> connectionLock = new KeyedLock<>();
@@ -120,8 +122,8 @@ public class ConnectionManager implements Closeable {
                     connectionValidator.accept(connection, resolvedProfile);
                     // we acquire a connection lock, so no way there is an existing connection
                     connectedNodes.put(node, connection);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("connected to node [{}]", node);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("connected to node [{}]", node);
                     }
                     try {
                         connectionListener.onNodeConnected(node);
@@ -142,7 +144,7 @@ public class ConnectionManager implements Closeable {
                     throw new ConnectTransportException(node, "general node connection failure", e);
                 } finally {
                     if (success == false) { // close the connection if there is a failure
-                        logger.trace(() -> new ParameterizedMessage("failed to connect to [{}], cleaning dangling connections", node));
+                        LOGGER.trace(() -> new ParameterizedMessage("failed to connect to [{}], cleaning dangling connections", node));
                         IOUtils.closeWhileHandlingException(connection);
                     }
                 }
@@ -255,7 +257,7 @@ public class ConnectionManager implements Closeable {
     private class ScheduledPing extends AbstractLifecycleRunnable {
 
         private ScheduledPing() {
-            super(lifecycle, logger);
+            super(lifecycle, LOGGER);
         }
 
         @Override
@@ -263,7 +265,7 @@ public class ConnectionManager implements Closeable {
             for (Map.Entry<DiscoveryNode, Transport.Connection> entry : connectedNodes.entrySet()) {
                 Transport.Connection connection = entry.getValue();
                 if (connection.sendPing() == false) {
-                    logger.warn("attempted to send ping to connection without support for pings [{}]", connection);
+                    LOGGER.warn("attempted to send ping to connection without support for pings [{}]", connection);
                 }
             }
         }
@@ -274,7 +276,7 @@ public class ConnectionManager implements Closeable {
                 threadPool.schedule(this, pingSchedule, ThreadPool.Names.GENERIC);
             } catch (EsRejectedExecutionException ex) {
                 if (ex.isExecutorShutdown()) {
-                    logger.debug("couldn't schedule new ping execution, executor is shutting down", ex);
+                    LOGGER.debug("couldn't schedule new ping execution, executor is shutting down", ex);
                 } else {
                     throw ex;
                 }
@@ -284,9 +286,9 @@ public class ConnectionManager implements Closeable {
         @Override
         public void onFailure(Exception e) {
             if (lifecycle.stoppedOrClosed()) {
-                logger.trace("failed to send ping transport message", e);
+                LOGGER.trace("failed to send ping transport message", e);
             } else {
-                logger.warn("failed to send ping transport message", e);
+                LOGGER.warn("failed to send ping transport message", e);
             }
         }
     }

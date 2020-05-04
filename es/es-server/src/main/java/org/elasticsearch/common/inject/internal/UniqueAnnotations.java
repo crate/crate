@@ -28,17 +28,18 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * @author jessewilson@google.com (Jesse Wilson)
  */
 public class UniqueAnnotations {
+
     private UniqueAnnotations() {
     }
 
-    private static final AtomicInteger nextUniqueValue = new AtomicInteger(1);
+    private static final AtomicInteger NEXT_UNIQUE_VALUE = new AtomicInteger(1);
 
     /**
      * Returns an annotation instance that is not equal to any other annotation
      * instances, for use in creating distinct {@link org.elasticsearch.common.inject.Key}s.
      */
     public static Annotation create() {
-        return create(nextUniqueValue.getAndIncrement());
+        return create(NEXT_UNIQUE_VALUE.getAndIncrement());
     }
 
     static Annotation create(final int value) {

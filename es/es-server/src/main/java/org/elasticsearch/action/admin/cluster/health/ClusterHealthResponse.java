@@ -157,7 +157,7 @@ public class ClusterHealthResponse extends TransportResponse {
         numberOfPendingTasks = in.readInt();
         timedOut = in.readBoolean();
         numberOfInFlightFetch = in.readInt();
-        delayedUnassignedShards= in.readInt();
+        delayedUnassignedShards = in.readInt();
         taskMaxWaitingTime = in.readTimeValue();
     }
 

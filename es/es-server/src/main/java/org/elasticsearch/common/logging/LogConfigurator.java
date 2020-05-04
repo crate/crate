@@ -74,11 +74,11 @@ public class LogConfigurator {
      * we get around to configuring logging we check that no error-level log messages have been logged by the status logger. If they have we
      * fail startup and any such messages can be seen on the console.
      */
-    private static final AtomicBoolean error = new AtomicBoolean();
+    private static final AtomicBoolean ERROR = new AtomicBoolean();
     private static final StatusListener ERROR_LISTENER = new StatusConsoleListener(Level.ERROR) {
         @Override
         public void log(StatusData data) {
-            error.set(true);
+            ERROR.set(true);
             super.log(data);
         }
     };
@@ -88,7 +88,7 @@ public class LogConfigurator {
      * logged by the status logger before logging is configured.
      */
     public static void registerErrorListener() {
-        error.set(false);
+        ERROR.set(false);
         StatusLogger.getLogger().registerListener(ERROR_LISTENER);
     }
 
@@ -145,7 +145,7 @@ public class LogConfigurator {
 
     private static void checkErrorListener() {
         assert errorListenerIsRegistered() : "expected error listener to be registered";
-        if (error.get()) {
+        if (ERROR.get()) {
             throw new IllegalStateException("status logger logged an error before logging was configured");
         }
     }
@@ -263,9 +263,9 @@ public class LogConfigurator {
         Loggers.LOG_LEVEL_SETTING.getAllConcreteSettings(settings)
             // do not set a log level for a logger named level (from the default log setting)
             .filter(s -> s.getKey().equals(Loggers.LOG_DEFAULT_LEVEL_SETTING.getKey()) == false).forEach(s -> {
-            final Level level = s.get(settings);
-            Loggers.setLevel(LogManager.getLogger(s.getKey().substring("logger.".length())), level);
-        });
+                final Level level = s.get(settings);
+                Loggers.setLevel(LogManager.getLogger(s.getKey().substring("logger.".length())), level);
+            });
     }
 
     /**

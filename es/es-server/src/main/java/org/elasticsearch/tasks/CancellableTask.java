@@ -21,7 +21,6 @@ package org.elasticsearch.tasks;
 
 import javax.annotation.Nullable;
 
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**

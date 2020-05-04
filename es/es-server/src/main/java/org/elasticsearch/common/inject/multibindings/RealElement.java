@@ -23,13 +23,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author jessewilson@google.com (Jesse Wilson)
  */
 class RealElement implements Element {
-    private static final AtomicInteger nextUniqueId = new AtomicInteger(1);
+
+    private static final AtomicInteger NEXT_UNIQUE_ID = new AtomicInteger(1);
 
     private final int uniqueId;
     private final String setName;
 
     RealElement(String setName) {
-        uniqueId = nextUniqueId.getAndIncrement();
+        uniqueId = NEXT_UNIQUE_ID.getAndIncrement();
         this.setName = setName;
     }
 

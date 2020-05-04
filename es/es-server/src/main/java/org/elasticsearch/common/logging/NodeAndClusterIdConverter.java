@@ -35,7 +35,8 @@ import java.util.Locale;
 @Plugin(category = PatternConverter.CATEGORY, name = "NodeAndClusterIdConverter")
 @ConverterKeys({"node_and_cluster_id"})
 public final class NodeAndClusterIdConverter extends LogEventPatternConverter {
-    private static final SetOnce<String> nodeAndClusterId = new SetOnce<>();
+
+    private static final SetOnce<String> NODE_AND_CLUSTER_ID = new SetOnce<>();
 
     /**
      * Called by log4j2 to initialize this converter.
@@ -56,7 +57,7 @@ public final class NodeAndClusterIdConverter extends LogEventPatternConverter {
      * @param clusterUUID a clusterId received from cluster state update
      */
     public static void setNodeIdAndClusterId(String nodeId, String clusterUUID) {
-         nodeAndClusterId.set(formatIds(clusterUUID, nodeId));
+        NODE_AND_CLUSTER_ID.set(formatIds(clusterUUID, nodeId));
     }
 
     /**
@@ -66,8 +67,8 @@ public final class NodeAndClusterIdConverter extends LogEventPatternConverter {
      */
     @Override
     public void format(LogEvent event, StringBuilder toAppendTo) {
-        if (nodeAndClusterId.get() != null) {
-            toAppendTo.append(nodeAndClusterId.get());
+        if (NODE_AND_CLUSTER_ID.get() != null) {
+            toAppendTo.append(NODE_AND_CLUSTER_ID.get());
         }
         // nodeId/clusterUuid not received yet, not appending
     }

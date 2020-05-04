@@ -30,7 +30,7 @@ public class SnapshotFailedEngineException extends EngineException {
         super(shardId, "Snapshot failed", cause);
     }
 
-    public SnapshotFailedEngineException(StreamInput in) throws IOException{
+    public SnapshotFailedEngineException(StreamInput in) throws IOException {
         super(in);
     }
 }

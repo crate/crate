@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.settings;
 
 import org.apache.logging.log4j.LogManager;
@@ -167,7 +168,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         }
     }
 
-    public final static Set<Setting<?>> BUILT_IN_CLUSTER_SETTINGS = Set.of(
+    public static final Set<Setting<?>> BUILT_IN_CLUSTER_SETTINGS = Set.of(
         AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING,
         AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_FORCE_GROUP_SETTING,
         BalancedShardsAllocator.INDEX_BALANCE_FACTOR_SETTING,

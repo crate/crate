@@ -384,7 +384,8 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                 // deserializing cluster state that was sent by the master node,
                 // this check will be skipped.
                 // Also, don't take metadata mappers into account for the field limit check
-                checkTotalFieldsLimit(objectMappers.size() + fieldMappers.size() - metadataMappers.length + fieldAliasMappers.size() );
+                checkTotalFieldsLimit(
+                    objectMappers.size() + fieldMappers.size() - metadataMappers.length + fieldAliasMappers.size());
             }
 
             results.put(newMapper.type(), newMapper);

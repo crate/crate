@@ -75,7 +75,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
 
     private final Logger logger;
 
-    private static final AtomicLong idGenerator = new AtomicLong();
+    private static final AtomicLong ID_GENERATOR = new AtomicLong();
 
     private static final String RECOVERY_PREFIX = "recovery.";
 
@@ -118,7 +118,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                    final LongConsumer ensureClusterStateVersionCallback) {
         super("recovery_status");
         this.cancellableThreads = new CancellableThreads();
-        this.recoveryId = idGenerator.incrementAndGet();
+        this.recoveryId = ID_GENERATOR.incrementAndGet();
         this.listener = listener;
         this.logger = Loggers.getLogger(getClass(), indexShard.shardId());
         this.indexShard = indexShard;
@@ -520,7 +520,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
             : "file-pointer " + indexOutput.getFilePointer() + " != " + position;
         BytesRefIterator iterator = content.iterator();
         BytesRef scratch;
-        while((scratch = iterator.next()) != null) { // we iterate over all pages - this is a 0-copy for all core impls
+        while ((scratch = iterator.next()) != null) { // we iterate over all pages - this is a 0-copy for all core impls
             indexOutput.writeBytes(scratch.bytes, scratch.offset, scratch.length);
         }
         indexState.addRecoveredBytesToFile(name, content.length());
@@ -563,6 +563,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
         final BytesReference content;
         final long position;
         final boolean lastChunk;
+
         FileChunk(StoreFileMetaData md, BytesReference content, long position, boolean lastChunk) {
             this.md = md;
             this.content = content;

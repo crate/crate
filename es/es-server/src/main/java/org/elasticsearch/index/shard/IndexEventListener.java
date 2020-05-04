@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.shard;
 
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -46,31 +47,37 @@ public interface IndexEventListener {
      * @param oldRouting The old routing state (can be null)
      * @param newRouting The new routing state
      */
-    default void shardRoutingChanged(IndexShard indexShard, @Nullable ShardRouting oldRouting, ShardRouting newRouting) {}
+    default void shardRoutingChanged(IndexShard indexShard, @Nullable ShardRouting oldRouting,
+            ShardRouting newRouting) {
+    }
 
     /**
      * Called after the index shard has been created.
      */
-    default void afterIndexShardCreated(IndexShard indexShard) {}
+    default void afterIndexShardCreated(IndexShard indexShard) {
+    }
 
     /**
      * Called after the index shard has been started.
      */
-    default void afterIndexShardStarted(IndexShard indexShard) {}
+    default void afterIndexShardStarted(IndexShard indexShard) {
+    }
 
     /**
      * Called before the index shard gets closed.
      *
      * @param indexShard The index shard
      */
-    default void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {}
+    default void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {
+    }
 
     /**
      * Called after the index shard has been closed.
      *
      * @param shardId The shard id
      */
-    default void afterIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {}
+    default void afterIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {
+    }
 
     /**
      * Called after a shard's {@link org.elasticsearch.index.shard.IndexShardState} changes.
@@ -81,14 +88,19 @@ public interface IndexEventListener {
      * @param currentState the new shard state
      * @param reason the reason for the state change if there is one, null otherwise
      */
-    default void indexShardStateChanged(IndexShard indexShard, @Nullable IndexShardState previousState, IndexShardState currentState, @Nullable String reason) {}
+    default void indexShardStateChanged(IndexShard indexShard,
+                                        @Nullable IndexShardState previousState,
+                                        IndexShardState currentState,
+                                        @Nullable String reason) {
+    }
 
     /**
      * Called when a shard is marked as inactive
      *
      * @param indexShard The shard that was marked inactive
      */
-    default void onShardInactive(IndexShard indexShard) {}
+    default void onShardInactive(IndexShard indexShard) {
+    }
 
     /**
      * Called before the index gets created. Note that this is also called
@@ -165,5 +177,6 @@ public interface IndexEventListener {
      *
      * @param shardId the shard ID the store belongs to
      */
-    default void onStoreClosed(ShardId shardId) {}
+    default void onStoreClosed(ShardId shardId) {
+    }
 }

@@ -90,7 +90,8 @@ import static java.util.Collections.unmodifiableSet;
 /**
  * A component that holds all data paths for a single node.
  */
-public final class NodeEnvironment  implements Closeable {
+public final class NodeEnvironment implements Closeable {
+
     public static class NodePath {
         /* ${data.paths}/nodes/{node.id} */
         public final Path path;
@@ -426,7 +427,7 @@ public final class NodeEnvironment  implements Closeable {
 
     private static String toString(Collection<String> items) {
         StringBuilder b = new StringBuilder();
-        for(String item : items) {
+        for (String item : items) {
             if (b.length() > 0) {
                 b.append(", ");
             }
@@ -767,7 +768,7 @@ public final class NodeEnvironment  implements Closeable {
     public Path[] nodeDataPaths() {
         assertEnvIsLocked();
         Path[] paths = new Path[nodePaths.length];
-        for(int i=0;i<paths.length;i++) {
+        for (int i = 0; i < paths.length; i++) {
             paths[i] = nodePaths[i].path;
         }
         return paths;
@@ -1183,8 +1184,8 @@ public final class NodeEnvironment  implements Closeable {
         int count = shardPath.getNameCount();
 
         // Sanity check:
-        assert Integer.parseInt(shardPath.getName(count-1).toString()) >= 0;
-        assert "indices".equals(shardPath.getName(count-3).toString());
+        assert Integer.parseInt(shardPath.getName(count - 1).toString()) >= 0;
+        assert "indices".equals(shardPath.getName(count - 3).toString());
 
         return shardPath.getParent().getParent().getParent();
     }

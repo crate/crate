@@ -23,7 +23,8 @@ import java.lang.reflect.Array;
 
 public class ArrayUtils {
 
-    private ArrayUtils() {}
+    private ArrayUtils() {
+    }
 
     /**
      * Concatenates 2 arrays

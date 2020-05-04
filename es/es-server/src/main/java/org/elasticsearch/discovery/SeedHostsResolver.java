@@ -58,7 +58,7 @@ public class SeedHostsResolver extends AbstractLifecycleComponent implements Con
     public static final Setting<TimeValue> DISCOVERY_SEED_RESOLVER_TIMEOUT_SETTING =
         Setting.positiveTimeSetting("discovery.seed_resolver.timeout", TimeValue.timeValueSeconds(5), Setting.Property.NodeScope);
 
-    private static final Logger logger = LogManager.getLogger(SeedHostsResolver.class);
+    private static final Logger LOGGER = LogManager.getLogger(SeedHostsResolver.class);
 
     private final Settings settings;
     private final AtomicBoolean resolveInProgress = new AtomicBoolean();
@@ -120,7 +120,7 @@ public class SeedHostsResolver extends AbstractLifecycleComponent implements Con
             if (!future.isCancelled()) {
                 try {
                     final TransportAddress[] addresses = future.get();
-                    logger.trace("resolved host [{}] to {}", hostname, addresses);
+                    LOGGER.trace("resolved host [{}] to {}", hostname, addresses);
                     for (int addressId = 0; addressId < addresses.length; addressId++) {
                         final TransportAddress address = addresses[addressId];
                         // no point in pinging ourselves
@@ -131,13 +131,13 @@ public class SeedHostsResolver extends AbstractLifecycleComponent implements Con
                 } catch (final ExecutionException e) {
                     assert e.getCause() != null;
                     final String message = "failed to resolve host [" + hostname + "]";
-                    logger.warn(message, e.getCause());
+                    LOGGER.warn(message, e.getCause());
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     // ignore
                 }
             } else {
-                logger.warn("timed out after [{}] resolving host [{}]", resolveTimeout, hostname);
+                LOGGER.warn("timed out after [{}] resolving host [{}]", resolveTimeout, hostname);
             }
         }
         return Collections.unmodifiableList(transportAddresses);
@@ -145,7 +145,7 @@ public class SeedHostsResolver extends AbstractLifecycleComponent implements Con
 
     @Override
     protected void doStart() {
-        logger.debug("using max_concurrent_resolvers [{}], resolver timeout [{}]", concurrentConnects, resolveTimeout);
+        LOGGER.debug("using max_concurrent_resolvers [{}], resolver timeout [{}]", concurrentConnects, resolveTimeout);
         final ThreadFactory threadFactory = EsExecutors.daemonThreadFactory(settings, "[unicast_configured_hosts_resolver]");
         executorService.set(EsExecutors.newScaling(nodeName + "/" + "unicast_configured_hosts_resolver",
             0, concurrentConnects, 60, TimeUnit.SECONDS, threadFactory, transportService.getThreadPool().getThreadContext()));
@@ -164,7 +164,7 @@ public class SeedHostsResolver extends AbstractLifecycleComponent implements Con
     @Override
     public void resolveConfiguredHosts(Consumer<List<TransportAddress>> consumer) {
         if (lifecycle.started() == false) {
-            logger.debug("resolveConfiguredHosts: lifecycle is {}, not proceeding", lifecycle);
+            LOGGER.debug("resolveConfiguredHosts: lifecycle is {}, not proceeding", lifecycle);
             return;
         }
 
@@ -172,13 +172,13 @@ public class SeedHostsResolver extends AbstractLifecycleComponent implements Con
             transportService.getThreadPool().generic().execute(new AbstractRunnable() {
                 @Override
                 public void onFailure(Exception e) {
-                    logger.debug("failure when resolving unicast hosts list", e);
+                    LOGGER.debug("failure when resolving unicast hosts list", e);
                 }
 
                 @Override
                 protected void doRun() {
                     if (lifecycle.started() == false) {
-                        logger.debug("resolveConfiguredHosts.doRun: lifecycle is {}, not proceeding", lifecycle);
+                        LOGGER.debug("resolveConfiguredHosts.doRun: lifecycle is {}, not proceeding", lifecycle);
                         return;
                     }
 

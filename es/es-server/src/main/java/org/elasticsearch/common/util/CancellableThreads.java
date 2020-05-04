@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.util;
 
 import org.apache.lucene.util.SetOnce;
@@ -95,6 +96,7 @@ public class CancellableThreads {
             throw new RuntimeException("unexpected IO exception", e);
         }
     }
+
     /**
      * run the Interruptable, capturing the executing thread. Concurrent calls to {@link #cancel(String)} will interrupt this thread
      * causing the call to prematurely return.

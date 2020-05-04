@@ -230,7 +230,9 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     /**
      * Returns the maximum version between the 2
      */
-    public static Version max(Version version1, Version version2) { return version1.internalId > version2.internalId ? version1 : version2; }
+    public static Version max(Version version1, Version version2) {
+        return version1.internalId > version2.internalId ? version1 : version2;
+    }
 
     /**
      * Returns the version given its string representation, current version if the argument is null or empty
@@ -446,6 +448,8 @@ public class Version implements Comparable<Version>, ToXContentFragment {
                 case "CURRENT":
                 case "V_EMPTY":
                     continue;
+                default:
+                    break;
             }
             assert field.getName().matches("(ES_)?V(_\\d+)+(_(alpha|beta|rc)\\d+)?") : field.getName();
             try {

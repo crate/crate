@@ -97,16 +97,18 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
             long totalBytesWritten = OneMergeHelper.getTotalBytesWritten(thread, merge);
             double mbPerSec = OneMergeHelper.getMbPerSec(thread, merge);
 
-            String message = String.format(Locale.ROOT,
-                                           "merge segment [%s] done: took [%s], [%,.1f MB], [%,d docs], [%s stopped], [%s throttled], [%,.1f MB written], [%,.1f MB/sec throttle]",
-                                           OneMergeHelper.getSegmentName(merge),
-                                           TimeValue.timeValueMillis(tookMS),
-                                           totalSizeInBytes/1024f/1024f,
-                                           totalNumDocs,
-                                           TimeValue.timeValueMillis(stoppedMS),
-                                           TimeValue.timeValueMillis(throttledMS),
-                                           totalBytesWritten/1024f/1024f,
-                                           mbPerSec);
+            String message = String.format(
+                Locale.ROOT,
+                "merge segment [%s] done: took [%s], [%,.1f MB], [%,d docs], [%s stopped], [%s throttled], [%,.1f MB written], [%,.1f MB/sec throttle]",
+                OneMergeHelper.getSegmentName(merge),
+                TimeValue.timeValueMillis(tookMS),
+                totalSizeInBytes / 1024f / 1024f,
+                totalNumDocs,
+                TimeValue.timeValueMillis(stoppedMS),
+                TimeValue.timeValueMillis(throttledMS),
+                totalBytesWritten / 1024f / 1024f,
+                mbPerSec
+            );
 
             if (tookMS > 20000) { // if more than 20 seconds, DEBUG log it
                 logger.debug("{}", message);
@@ -119,12 +121,14 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
     /**
      * A callback allowing for custom logic before an actual merge starts.
      */
-    protected void beforeMerge(OnGoingMerge merge) {}
+    protected void beforeMerge(OnGoingMerge merge) {
+    }
 
     /**
      * A callback allowing for custom logic before an actual merge starts.
      */
-    protected void afterMerge(OnGoingMerge merge) {}
+    protected void afterMerge(OnGoingMerge merge) {
+    }
 
     @Override
     public MergeScheduler clone() {

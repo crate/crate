@@ -41,7 +41,7 @@ import java.util.stream.Stream;
  */
 public class Reconfigurator {
 
-    private static final Logger logger = LogManager.getLogger(Reconfigurator.class);
+    private static final Logger LOGGER = LogManager.getLogger(Reconfigurator.class);
 
     /**
      * The cluster usually requires a vote from at least half of the master nodes in order to commit a cluster state update, and to achieve
@@ -98,7 +98,7 @@ public class Reconfigurator {
     public VotingConfiguration reconfigure(Set<DiscoveryNode> liveNodes, Set<String> retiredNodeIds, DiscoveryNode currentMaster,
                                            VotingConfiguration currentConfig) {
         assert liveNodes.contains(currentMaster) : "liveNodes = " + liveNodes + " master = " + currentMaster;
-        logger.trace("{} reconfiguring {} based on liveNodes={}, retiredNodeIds={}, currentMaster={}",
+        LOGGER.trace("{} reconfiguring {} based on liveNodes={}, retiredNodeIds={}, currentMaster={}",
             this, currentConfig, liveNodes, retiredNodeIds, currentMaster);
 
         /*

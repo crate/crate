@@ -27,10 +27,12 @@ import org.apache.logging.log4j.Logger;
  * startup. If they are not available, this class will avoid calling code that loads these classes.
  */
 final class Natives {
-    /** no instantiation */
-    private Natives() {}
 
-    private static final Logger logger = LogManager.getLogger(Natives.class);
+    /** no instantiation */
+    private Natives() {
+    }
+
+    private static final Logger LOGGER = LogManager.getLogger(Natives.class);
 
     // marker to determine if the JNA class files are available to the JVM
     static final boolean JNA_AVAILABLE;
@@ -43,16 +45,16 @@ final class Natives {
             Class.forName("com.sun.jna.Native");
             v = true;
         } catch (ClassNotFoundException e) {
-            logger.warn("JNA not found. native methods will be disabled.", e);
+            LOGGER.warn("JNA not found. native methods will be disabled.", e);
         } catch (UnsatisfiedLinkError e) {
-            logger.warn("unable to load JNA native support library, native methods will be disabled.", e);
+            LOGGER.warn("unable to load JNA native support library, native methods will be disabled.", e);
         }
         JNA_AVAILABLE = v;
     }
 
     static void tryMlockall() {
         if (!JNA_AVAILABLE) {
-            logger.warn("cannot mlockall because JNA is not available");
+            LOGGER.warn("cannot mlockall because JNA is not available");
             return;
         }
         JNANatives.tryMlockall();
@@ -60,7 +62,7 @@ final class Natives {
 
     static boolean definitelyRunningAsRoot() {
         if (!JNA_AVAILABLE) {
-            logger.warn("cannot check if running as root because JNA is not available");
+            LOGGER.warn("cannot check if running as root because JNA is not available");
             return false;
         }
         return JNANatives.definitelyRunningAsRoot();
@@ -68,7 +70,7 @@ final class Natives {
 
     static void tryVirtualLock() {
         if (!JNA_AVAILABLE) {
-            logger.warn("cannot virtual lock because JNA is not available");
+            LOGGER.warn("cannot virtual lock because JNA is not available");
             return;
         }
         JNANatives.tryVirtualLock();
@@ -76,7 +78,7 @@ final class Natives {
 
     static void addConsoleCtrlHandler(ConsoleCtrlHandler handler) {
         if (!JNA_AVAILABLE) {
-            logger.warn("cannot register console handler because JNA is not available");
+            LOGGER.warn("cannot register console handler because JNA is not available");
             return;
         }
         JNANatives.addConsoleCtrlHandler(handler);
@@ -91,7 +93,7 @@ final class Natives {
 
     static void trySetMaxNumberOfThreads() {
         if (!JNA_AVAILABLE) {
-            logger.warn("cannot getrlimit RLIMIT_NPROC because JNA is not available");
+            LOGGER.warn("cannot getrlimit RLIMIT_NPROC because JNA is not available");
             return;
         }
         JNANatives.trySetMaxNumberOfThreads();
@@ -99,7 +101,7 @@ final class Natives {
 
     static void trySetMaxSizeVirtualMemory() {
         if (!JNA_AVAILABLE) {
-            logger.warn("cannot getrlimit RLIMIT_AS because JNA is not available");
+            LOGGER.warn("cannot getrlimit RLIMIT_AS because JNA is not available");
             return;
         }
         JNANatives.trySetMaxSizeVirtualMemory();
@@ -107,7 +109,7 @@ final class Natives {
 
     static void trySetMaxFileSize() {
         if (!JNA_AVAILABLE) {
-            logger.warn("cannot getrlimit RLIMIT_FSIZE because JNA is not available");
+            LOGGER.warn("cannot getrlimit RLIMIT_FSIZE because JNA is not available");
             return;
         }
         JNANatives.trySetMaxFileSize();

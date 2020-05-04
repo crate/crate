@@ -28,5 +28,4 @@
 
 <suppressions>
     <suppress files=".*[/\\]antlr.v4[/\\].*" checks="[a-zA-Z0-9]*"/>
-    <suppress files=".*[/\\]es[/\\]upstream[/\\].*" checks="[a-zA-Z0-9]*"/>
 </suppressions>

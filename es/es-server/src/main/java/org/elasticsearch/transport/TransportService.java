@@ -75,7 +75,7 @@ import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_INCLUDE_SE
 
 public class TransportService extends AbstractLifecycleComponent implements TransportMessageListener, TransportConnectionListener {
 
-    protected static final Logger logger = LogManager.getLogger(TransportService.class);
+    protected static final Logger LOGGER = LogManager.getLogger(TransportService.class);
 
     public static final Setting<TimeValue> TCP_CONNECT_TIMEOUT =
         timeSetting("transport.tcp.connect_timeout", NetworkService.TCP_CONNECT_TIMEOUT, Setting.Property.NodeScope);
@@ -175,7 +175,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         setTracerLogInclude(TRACE_LOG_INCLUDE_SETTING.get(settings));
         setTracerLogExclude(TRACE_LOG_EXCLUDE_SETTING.get(settings));
-        tracerLog = Loggers.getLogger(logger, ".tracer");
+        tracerLog = Loggers.getLogger(LOGGER, ".tracer");
         taskManager = createTaskManager(settings, threadPool);
         this.interceptor = transportInterceptor;
         this.asyncSender = interceptor.interceptSender(this::sendRequestInternal);
@@ -227,10 +227,10 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         transport.addMessageListener(this);
         connectionManager.addListener(this);
         transport.start();
-        if (transport.boundAddress() != null && logger.isInfoEnabled()) {
-            logger.info("{}", transport.boundAddress());
+        if (transport.boundAddress() != null && LOGGER.isInfoEnabled()) {
+            LOGGER.info("{}", transport.boundAddress());
             for (Map.Entry<String, BoundTransportAddress> entry : transport.profileBoundAddresses().entrySet()) {
-                logger.info("profile [{}]: {}", entry.getKey(), entry.getValue());
+                LOGGER.info("profile [{}]: {}", entry.getKey(), entry.getValue());
             }
         }
         localNode = localNodeFactory.apply(transport.boundAddress());
@@ -249,23 +249,26 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                 // callback that an exception happened, but on a different thread since we don't
                 // want handlers to worry about stack overflows
                 getExecutorService().execute(new AbstractRunnable() {
+
                     @Override
                     public void onRejection(Exception e) {
                         // if we get rejected during node shutdown we don't wanna bubble it up
-                        logger.debug(
+                        LOGGER.debug(
                             () -> new ParameterizedMessage(
                                 "failed to notify response handler on rejection, action: {}",
                                 holderToNotify.action()),
                             e);
                     }
+
                     @Override
                     public void onFailure(Exception e) {
-                        logger.warn(
+                        LOGGER.warn(
                             () -> new ParameterizedMessage(
                                 "failed to notify response handler on exception, action: {}",
                                 holderToNotify.action()),
                             e);
                     }
+
                     @Override
                     public void doRun() {
                         TransportException ex = new TransportException("transport stopped, action: " + holderToNotify.action());
@@ -627,36 +630,39 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                 // want handlers to worry about stack overflows
                 final SendRequestTransportException sendRequestException = new SendRequestTransportException(node, action, e);
                 threadPool.executor(ThreadPool.Names.GENERIC).execute(new AbstractRunnable() {
+
                     @Override
                     public void onRejection(Exception e) {
                         // if we get rejected during node shutdown we don't wanna bubble it up
-                        logger.debug(
+                        LOGGER.debug(
                             () -> new ParameterizedMessage(
                                 "failed to notify response handler on rejection, action: {}",
                                 contextToNotify.action()),
                             e);
                     }
+
                     @Override
                     public void onFailure(Exception e) {
-                        logger.warn(
+                        LOGGER.warn(
                             () -> new ParameterizedMessage(
                                 "failed to notify response handler on exception, action: {}",
                                 contextToNotify.action()),
                             e);
                     }
+
                     @Override
                     protected void doRun() throws Exception {
                         contextToNotify.handler().handleException(sendRequestException);
                     }
                 });
             } else {
-                logger.debug("Exception while sending request, handler likely already notified due to timeout", e);
+                LOGGER.debug("Exception while sending request, handler likely already notified due to timeout", e);
             }
         }
     }
 
     private void sendLocalRequest(long requestId, final String action, final TransportRequest request, TransportRequestOptions options) {
-        final DirectResponseChannel channel = new DirectResponseChannel(logger, localNode, action, requestId, this, threadPool);
+        final DirectResponseChannel channel = new DirectResponseChannel(LOGGER, localNode, action, requestId, this, threadPool);
         try {
             onRequestSent(localNode, requestId, action, request, options);
             onRequestReceived(requestId, action);
@@ -687,7 +693,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                             channel.sendResponse(e);
                         } catch (Exception inner) {
                             inner.addSuppressed(e);
-                            logger.warn(() -> new ParameterizedMessage(
+                            LOGGER.warn(() -> new ParameterizedMessage(
                                     "failed to notify channel of error message for action [{}]", action), inner);
                         }
                     }
@@ -704,7 +710,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                 channel.sendResponse(e);
             } catch (Exception inner) {
                 inner.addSuppressed(e);
-                logger.warn(
+                LOGGER.warn(
                     () -> new ParameterizedMessage(
                         "failed to notify channel of error message for action [{}]", action), inner);
             }
@@ -746,8 +752,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         // TODO we should makes this a hard validation and throw an exception but we need a good way to add backwards layer
         // for it. Maybe start with a deprecation layer
         if (isValidActionName(actionName) == false) {
-            logger.warn("invalid action name [" + actionName + "] must start with one of: " +
-                TransportService.VALID_ACTION_PREFIXES );
+            LOGGER.warn("invalid action name [" + actionName + "] must start with one of: " +
+                TransportService.VALID_ACTION_PREFIXES);
         }
     }
 
@@ -885,7 +891,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         try {
             blockIncomingRequestsLatch.await();
         } catch (InterruptedException e) {
-            logger.trace("interrupted while waiting for incoming requests block to be removed");
+            LOGGER.trace("interrupted while waiting for incoming requests block to be removed");
         }
         if (traceEnabled() && shouldTraceAction(action)) {
             traceReceivedRequest(requestId, action);
@@ -914,13 +920,13 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         TimeoutInfoHolder timeoutInfoHolder = timeoutInfoHandlers.remove(requestId);
         if (timeoutInfoHolder != null) {
             long time = threadPool.relativeTimeInMillis();
-            logger.warn("Received response for a request that has timed out, sent [{}ms] ago, timed out [{}ms] ago, " +
+            LOGGER.warn("Received response for a request that has timed out, sent [{}ms] ago, timed out [{}ms] ago, " +
                     "action [{}], node [{}], id [{}]", time - timeoutInfoHolder.sentTime(), time - timeoutInfoHolder.timeoutTime(),
                 timeoutInfoHolder.action(), timeoutInfoHolder.node(), requestId);
             action = timeoutInfoHolder.action();
             sourceNode = timeoutInfoHolder.node();
         } else {
-            logger.warn("Transport response handler not found of id [{}]", requestId);
+            LOGGER.warn("Transport response handler not found of id [{}]", requestId);
             action = null;
             sourceNode = null;
         }
@@ -949,7 +955,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                 }
             });
         } catch (EsRejectedExecutionException ex) {
-            logger.debug("Rejected execution on onConnectionClosed", ex);
+            LOGGER.debug("Rejected execution on onConnectionClosed", ex);
         }
     }
 
@@ -1082,7 +1088,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
         @Override
         public void handleResponse(T response) {
-            if(handler != null) {
+            if (handler != null) {
                 handler.cancel();
             }
             try (ThreadContext.StoredContext ignore = contextSupplier.get()) {
@@ -1092,7 +1098,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
         @Override
         public void handleException(TransportException exp) {
-            if(handler != null) {
+            if (handler != null) {
                 handler.cancel();
             }
             try (ThreadContext.StoredContext ignore = contextSupplier.get()) {
@@ -1117,6 +1123,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     }
 
     static class DirectResponseChannel implements TransportChannel {
+
         final Logger logger;
         final DiscoveryNode localNode;
         private final String action;

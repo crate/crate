@@ -36,7 +36,7 @@ public class IndexFailedEngineException extends EngineException {
 
     private final String id;
 
-    public IndexFailedEngineException(StreamInput in) throws IOException{
+    public IndexFailedEngineException(StreamInput in) throws IOException {
         super(in);
         type = in.readString();
         id = in.readString();

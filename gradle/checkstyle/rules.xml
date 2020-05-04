@@ -54,8 +54,10 @@
     <module name="SuppressionFilter">
         <property name="file" value="${checkstyleDir}/suppressions.xml" />
     </module>
+    <module name="SuppressWarningsFilter"/>
 
     <module name="TreeWalker">
+        <module name="SuppressWarningsHolder"/>
         <module name="OuterTypeFilename"/>
         <module name="IllegalTokenText">
             <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL"/>

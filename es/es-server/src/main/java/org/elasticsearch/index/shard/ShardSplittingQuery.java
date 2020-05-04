@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.shard;
 
 import org.apache.lucene.index.FieldInfo;
@@ -60,6 +61,7 @@ final class ShardSplittingQuery extends Query {
         this.indexMetaData = indexMetaData;
         this.shardId = shardId;
     }
+
     @Override
     public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) {
         return new ConstantScoreWeight(this, boost) {

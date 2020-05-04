@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.indices.analysis;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -43,7 +44,7 @@ public enum PreBuiltAnalyzers {
         }
     },
 
-    DEFAULT(CachingStrategy.ELASTICSEARCH){
+    DEFAULT(CachingStrategy.ELASTICSEARCH) {
         @Override
         protected Analyzer create(Version version) {
             // by calling get analyzer we are ensuring reuse of the same STANDARD analyzer for DEFAULT!
@@ -95,7 +96,7 @@ public enum PreBuiltAnalyzers {
         }
     };
 
-    protected abstract  Analyzer create(Version version);
+    protected abstract Analyzer create(Version version);
 
     protected final PreBuiltCacheFactory.PreBuiltCache<Analyzer> cache;
 

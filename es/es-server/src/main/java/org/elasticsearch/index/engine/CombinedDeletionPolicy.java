@@ -45,6 +45,7 @@ import java.util.function.LongSupplier;
  * the current global checkpoint except the index commit which has the highest max sequence number among those.
  */
 public class CombinedDeletionPolicy extends IndexDeletionPolicy {
+
     private final Logger logger;
     private final TranslogDeletionPolicy translogDeletionPolicy;
     private final SoftDeletesPolicy softDeletesPolicy;
@@ -58,8 +59,7 @@ public class CombinedDeletionPolicy extends IndexDeletionPolicy {
     /**
      * Information about the safe commit, for making decisions about recoveries.
      */
-    public static
-    class SafeCommitInfo {
+    public static class SafeCommitInfo {
 
         public final long localCheckpoint;
         public final int docCount;

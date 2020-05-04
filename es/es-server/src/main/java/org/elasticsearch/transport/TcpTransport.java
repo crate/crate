@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.transport;
 
 import com.carrotsearch.hppc.IntHashSet;
@@ -502,7 +503,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
     protected void bindServer(ProfileSettings profileSettings) {
         // Bind and start to accept incoming connections.
-        InetAddress hostAddresses[];
+        InetAddress[] hostAddresses;
         List<String> profileBindHosts = profileSettings.bindHosts;
         try {
             hostAddresses = networkService.resolveBindHostAddresses(profileBindHosts.toArray(Strings.EMPTY_ARRAY));

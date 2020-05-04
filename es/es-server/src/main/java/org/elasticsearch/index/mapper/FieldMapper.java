@@ -48,10 +48,13 @@ import java.util.Objects;
 import java.util.stream.StreamSupport;
 
 public abstract class FieldMapper extends Mapper implements Cloneable {
+
     public static final Setting<Boolean> IGNORE_MALFORMED_SETTING =
         Setting.boolSetting("index.mapping.ignore_malformed", false, Property.IndexScope);
+
     public static final Setting<Boolean> COERCE_SETTING =
         Setting.boolSetting("index.mapping.coerce", false, Property.IndexScope);
+
     public abstract static class Builder<T extends Builder, Y extends FieldMapper> extends Mapper.Builder<T, Y> {
 
         protected final MappedFieldType fieldType;
@@ -412,7 +415,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             builder.field("boost", fieldType().boost());
         }
 
-        boolean indexed =  fieldType().indexOptions() != IndexOptions.NONE;
+        boolean indexed = fieldType().indexOptions() != IndexOptions.NONE;
         boolean defaultIndexed = defaultFieldType.indexOptions() != IndexOptions.NONE;
         if (includeDefaults || indexed != defaultIndexed) {
             builder.field("index", indexed);

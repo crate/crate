@@ -25,7 +25,6 @@ import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.ScoreCachingWrappingScorer;
 import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SimpleCollector;
 
 import java.io.IOException;

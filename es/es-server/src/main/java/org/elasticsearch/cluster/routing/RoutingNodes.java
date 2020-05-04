@@ -738,7 +738,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         final List<ShardRouting> replicaSet = assignedShards.get(shard.shardId());
         if (replicaSet != null) {
             final Iterator<ShardRouting> iterator = replicaSet.iterator();
-            while(iterator.hasNext()) {
+            while (iterator.hasNext()) {
                 // yes we check identity here
                 if (shard == iterator.next()) {
                     iterator.remove();
@@ -800,7 +800,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         return nodesToShards.size();
     }
 
-    public static final class UnassignedShards implements Iterable<ShardRouting>  {
+    public static final class UnassignedShards implements Iterable<ShardRouting> {
 
         private final RoutingNodes nodes;
         private final List<ShardRouting> unassigned;
@@ -816,7 +816,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         }
 
         public void add(ShardRouting shardRouting) {
-            if(shardRouting.primary()) {
+            if (shardRouting.primary()) {
                 primaries++;
             }
             unassigned.add(shardRouting);
@@ -830,12 +830,16 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         /**
          * Returns the size of the non-ignored unassigned shards
          */
-        public int size() { return unassigned.size(); }
+        public int size() {
+            return unassigned.size();
+        }
 
         /**
          * Returns the size of the temporarily marked as ignored unassigned shards
          */
-        public int ignoredSize() { return ignored.size(); }
+        public int ignoredSize() {
+            return ignored.size();
+        }
 
         /**
          * Returns the number of non-ignored unassigned primaries
@@ -847,7 +851,9 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         /**
          * Returns the number of temporarily marked as ignored unassigned primaries
          */
-        public int getNumIgnoredPrimaries() { return ignoredPrimaries; }
+        public int getNumIgnoredPrimaries() {
+            return ignoredPrimaries;
+        }
 
         @Override
         public UnassignedIterator iterator() {
@@ -1172,12 +1178,12 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         }
 
         void addOutgoing(int howMany) {
-            assert outgoing + howMany >= 0 : outgoing + howMany+ " must be >= 0";
+            assert outgoing + howMany >= 0 : outgoing + howMany + " must be >= 0";
             outgoing += howMany;
         }
 
         void addIncoming(int howMany) {
-            assert incoming + howMany >= 0 : incoming + howMany+ " must be >= 0";
+            assert incoming + howMany >= 0 : incoming + howMany + " must be >= 0";
             incoming += howMany;
         }
 
@@ -1197,5 +1203,5 @@ public class RoutingNodes implements Iterable<RoutingNode> {
             }
             return recoveries;
         }
-     }
+    }
 }

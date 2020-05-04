@@ -53,7 +53,7 @@ import java.util.Set;
  */
 public class PeerRecoverySourceService implements IndexEventListener {
 
-    private static final Logger logger = LogManager.getLogger(PeerRecoverySourceService.class);
+    private static final Logger LOGGER = LogManager.getLogger(PeerRecoverySourceService.class);
 
     public static class Actions {
         public static final String START_RECOVERY = "internal:index/shard/recovery/start_recovery";
@@ -100,14 +100,14 @@ public class PeerRecoverySourceService implements IndexEventListener {
             && (
                 routingEntry.relocating() == false
                 || routingEntry.relocatingNodeId().equals(request.targetNode().getId()) == false)) {
-            logger.debug(
+            LOGGER.debug(
                 "delaying recovery of {} as source shard is not marked yet as relocating to {}",
                 request.shardId(), request.targetNode());
             throw new DelayRecoveryException("source shard is not marked yet as relocating to [" + request.targetNode() + "]");
         }
 
         RecoverySourceHandler handler = ongoingRecoveries.addNewRecovery(request, shard);
-        logger.trace(
+        LOGGER.trace(
             "[{}][{}] starting recovery to {}",
             request.shardId().getIndex().getName(), request.shardId().id(), request.targetNode());
         handler.recoverToTarget(ActionListener.runAfter(listener, () -> ongoingRecoveries.remove(shard, handler)));
@@ -200,7 +200,7 @@ public class PeerRecoverySourceService implements IndexEventListener {
                     recoveryChunkSizeInBytes
                 );
 
-                if (handler != null){
+                if (handler != null) {
                     return handler;
                 } else {
                     return new RecoverySourceHandler(

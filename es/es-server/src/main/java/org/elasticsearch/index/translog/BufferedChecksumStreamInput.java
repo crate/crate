@@ -40,7 +40,7 @@ public final class BufferedChecksumStreamInput extends FilterStreamInput {
     public BufferedChecksumStreamInput(StreamInput in, String source, BufferedChecksumStreamInput reuse) {
         super(in);
         this.source = source;
-        if (reuse == null ) {
+        if (reuse == null) {
             this.digest = new BufferedChecksum(new CRC32());
         } else {
             this.digest = reuse.digest;
@@ -114,7 +114,7 @@ public final class BufferedChecksumStreamInput extends FilterStreamInput {
         digest.reset();
     }
 
-    public String getSource(){
+    public String getSource() {
         return source;
     }
 }

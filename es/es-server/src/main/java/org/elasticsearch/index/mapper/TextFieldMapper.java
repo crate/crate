@@ -516,12 +516,10 @@ public class TextFieldMapper extends FieldMapper {
                 if (this.prefixFieldType == null) {
                     conflicts.add("mapper [" + name()
                         + "] has different [index_prefixes] settings, cannot change from disabled to enabled");
-                }
-                else if (otherType.prefixFieldType == null) {
+                } else if (otherType.prefixFieldType == null) {
                     conflicts.add("mapper [" + name()
                         + "] has different [index_prefixes] settings, cannot change from enabled to disabled");
-                }
-                else {
+                } else {
                     conflicts.add("mapper [" + name() + "] has different [index_prefixes] settings");
                 }
             }
@@ -761,12 +759,10 @@ public class TextFieldMapper extends FieldMapper {
         TextFieldMapper mw = (TextFieldMapper) mergeWith;
         if (this.prefixFieldMapper != null && mw.prefixFieldMapper != null) {
             this.prefixFieldMapper = (PrefixFieldMapper) this.prefixFieldMapper.merge(mw.prefixFieldMapper, updateAllTypes);
-        }
-        else if (this.prefixFieldMapper != null || mw.prefixFieldMapper != null) {
+        } else if (this.prefixFieldMapper != null || mw.prefixFieldMapper != null) {
             throw new IllegalArgumentException("mapper [" + name() + "] has different index_prefix settings, current ["
                 + this.prefixFieldMapper + "], merged [" + mw.prefixFieldMapper + "]");
-        }
-        else if (this.fieldType().indexPhrases != mw.fieldType().indexPhrases) {
+        } else if (this.fieldType().indexPhrases != mw.fieldType().indexPhrases) {
             throw new IllegalArgumentException("mapper [" + name() + "] has different index_phrases settings, current ["
                 + this.fieldType().indexPhrases + "], merged [" + mw.fieldType().indexPhrases + "]");
         }

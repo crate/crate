@@ -77,7 +77,7 @@ public class FilterAllocationDecider extends AllocationDecider {
     public static final Setting.AffixSetting<String> CLUSTER_ROUTING_INCLUDE_GROUP_SETTING =
         Setting.prefixKeySetting(CLUSTER_ROUTING_INCLUDE_GROUP_PREFIX + ".", key ->
             Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.NodeScope));
-    public static final Setting.AffixSetting<String>CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING =
+    public static final Setting.AffixSetting<String> CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING =
         Setting.prefixKeySetting(CLUSTER_ROUTING_EXCLUDE_GROUP_PREFIX + ".", key ->
             Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.NodeScope));
 
@@ -113,7 +113,7 @@ public class FilterAllocationDecider extends AllocationDecider {
             // this is a setting that can only be set within the system!
             IndexMetaData indexMd = allocation.metaData().getIndexSafe(shardRouting.index());
             DiscoveryNodeFilters initialRecoveryFilters = indexMd.getInitialRecoveryFilters();
-            if (initialRecoveryFilters != null  &&
+            if (initialRecoveryFilters != null &&
                 INITIAL_RECOVERY_TYPES.contains(shardRouting.recoverySource().getType()) &&
                 initialRecoveryFilters.match(node.node()) == false) {
                 String explanation = (shardRouting.recoverySource().getType() == RecoverySource.Type.LOCAL_SHARDS) ?
@@ -202,9 +202,11 @@ public class FilterAllocationDecider extends AllocationDecider {
     private void setClusterRequireFilters(Map<String, String> filters) {
         clusterRequireFilters = DiscoveryNodeFilters.buildFromKeyValue(AND, filters);
     }
+
     private void setClusterIncludeFilters(Map<String, String> filters) {
         clusterIncludeFilters = DiscoveryNodeFilters.buildFromKeyValue(OR, filters);
     }
+
     private void setClusterExcludeFilters(Map<String, String> filters) {
         clusterExcludeFilters = DiscoveryNodeFilters.buildFromKeyValue(OR, filters);
     }

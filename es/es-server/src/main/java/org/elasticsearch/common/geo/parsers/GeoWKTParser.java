@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.geo.parsers;
 
 import org.locationtech.jts.geom.Coordinate;
@@ -61,7 +62,8 @@ public class GeoWKTParser {
     private static final String EOL = "END-OF-LINE";
 
     // no instance
-    private GeoWKTParser() {}
+    private GeoWKTParser() {
+    }
 
     public static ShapeBuilder parse(XContentParser parser, final GeoShapeFieldMapper shapeMapper)
             throws IOException, ElasticsearchParseException {
@@ -135,13 +137,13 @@ public class GeoWKTParser {
         if (nextEmptyOrOpen(stream).equals(EMPTY)) {
             return null;
         }
-        double minLon = nextNumber(stream);
+        final double minLon = nextNumber(stream);
         nextComma(stream);
-        double maxLon = nextNumber(stream);
+        final double maxLon = nextNumber(stream);
         nextComma(stream);
-        double maxLat = nextNumber(stream);
+        final double maxLat = nextNumber(stream);
         nextComma(stream);
-        double minLat = nextNumber(stream);
+        final double minLat = nextNumber(stream);
         nextCloser(stream);
         return new EnvelopeBuilder(new Coordinate(minLon, maxLat), new Coordinate(maxLon, minLat));
     }
@@ -269,11 +271,15 @@ public class GeoWKTParser {
             case StreamTokenizer.TT_WORD:
                 final String word = stream.sval;
                 return word.equalsIgnoreCase(EMPTY) ? EMPTY : word;
-            case '(': return LPAREN;
-            case ')': return RPAREN;
-            case ',': return COMMA;
+            case '(':
+                return LPAREN;
+            case ')':
+                return RPAREN;
+            case ',':
+                return COMMA;
+            default:
+                throw new ElasticsearchParseException("expected word but found: " + tokenString(stream), stream.lineno());
         }
-        throw new ElasticsearchParseException("expected word but found: " + tokenString(stream), stream.lineno());
     }
 
     private static double nextNumber(StreamTokenizer stream) throws IOException, ElasticsearchParseException {
@@ -293,12 +299,17 @@ public class GeoWKTParser {
 
     private static String tokenString(StreamTokenizer stream) {
         switch (stream.ttype) {
-            case StreamTokenizer.TT_WORD: return stream.sval;
-            case StreamTokenizer.TT_EOF: return EOF;
-            case StreamTokenizer.TT_EOL: return EOL;
-            case StreamTokenizer.TT_NUMBER: return NUMBER;
+            case StreamTokenizer.TT_WORD:
+                return stream.sval;
+            case StreamTokenizer.TT_EOF:
+                return EOF;
+            case StreamTokenizer.TT_EOL:
+                return EOL;
+            case StreamTokenizer.TT_NUMBER:
+                return NUMBER;
+            default:
+                return "'" + (char) stream.ttype + "'";
         }
-        return "'" + (char) stream.ttype + "'";
     }
 
     private static boolean isNumberNext(StreamTokenizer stream) throws IOException {

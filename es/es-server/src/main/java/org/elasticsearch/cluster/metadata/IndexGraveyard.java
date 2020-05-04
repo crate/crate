@@ -69,6 +69,7 @@ public final class IndexGraveyard implements MetaData.Custom {
     public static final String TYPE = "index-graveyard";
     private static final ParseField TOMBSTONES_FIELD = new ParseField("tombstones");
     private static final ObjectParser<List<Tombstone>, Void> GRAVEYARD_PARSER;
+
     static {
         GRAVEYARD_PARSER = new ObjectParser<>("index_graveyard", ArrayList::new);
         GRAVEYARD_PARSER.declareObjectArray(List::addAll, Tombstone.getParser(), TOMBSTONES_FIELD);
@@ -358,6 +359,7 @@ public final class IndexGraveyard implements MetaData.Custom {
         private static final String DELETE_DATE_IN_MILLIS_KEY = "delete_date_in_millis";
         private static final String DELETE_DATE_KEY = "delete_date";
         private static final ObjectParser<Tombstone.Builder, Void> TOMBSTONE_PARSER;
+
         static {
             TOMBSTONE_PARSER = new ObjectParser<>("tombstoneEntry", Tombstone.Builder::new);
             TOMBSTONE_PARSER.declareObject(Tombstone.Builder::index, (parser, context) -> Index.fromXContent(parser),

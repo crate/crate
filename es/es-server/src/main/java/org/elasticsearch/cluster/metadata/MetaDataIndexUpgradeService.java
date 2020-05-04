@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.metadata;
 
 import org.apache.logging.log4j.LogManager;
@@ -50,7 +51,7 @@ import java.util.function.UnaryOperator;
  */
 public class MetaDataIndexUpgradeService {
 
-    private static final Logger logger = LogManager.getLogger(MetaDataIndexUpgradeService.class);
+    private static final Logger LOGGER = LogManager.getLogger(MetaDataIndexUpgradeService.class);
 
     private final Settings settings;
     private final NamedXContentRegistry xContentRegistry;
@@ -187,8 +188,8 @@ public class MetaDataIndexUpgradeService {
         final Settings settings = indexMetaData.getSettings();
         final Settings upgrade = indexScopedSettings.archiveUnknownOrInvalidSettings(
             settings,
-            e -> logger.warn("{} ignoring unknown index setting: [{}] with value [{}]; archiving", indexMetaData.getIndex(), e.getKey(), e.getValue()),
-            (e, ex) -> logger.warn(() -> new ParameterizedMessage("{} ignoring invalid index setting: [{}] with value [{}]; archiving", indexMetaData.getIndex(), e.getKey(), e.getValue()), ex));
+            e -> LOGGER.warn("{} ignoring unknown index setting: [{}] with value [{}]; archiving", indexMetaData.getIndex(), e.getKey(), e.getValue()),
+            (e, ex) -> LOGGER.warn(() -> new ParameterizedMessage("{} ignoring invalid index setting: [{}] with value [{}]; archiving", indexMetaData.getIndex(), e.getKey(), e.getValue()), ex));
         if (upgrade != settings) {
             return IndexMetaData.builder(indexMetaData).settings(upgrade).build();
         } else {

@@ -62,7 +62,8 @@ import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
  * A module for loading classes for node discovery.
  */
 public class DiscoveryModule {
-    private static final Logger logger = LogManager.getLogger(DiscoveryModule.class);
+
+    private static final Logger LOGGER = LogManager.getLogger(DiscoveryModule.class);
 
     public static final String ZEN2_DISCOVERY_TYPE = "zen";
 
@@ -134,7 +135,7 @@ public class DiscoveryModule {
             throw new IllegalArgumentException("Unknown discovery type [" + discoveryType + "]");
         }
 
-        logger.info("using discovery type [{}] and seed hosts providers {}", discoveryType, seedProviderNames);
+        LOGGER.info("using discovery type [{}] and seed hosts providers {}", discoveryType, seedProviderNames);
     }
 
     public Discovery getDiscovery() {

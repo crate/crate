@@ -55,10 +55,13 @@ public class NodeClient extends AbstractClient {
     }
 
     @Override
-    public <    Request extends TransportRequest,
-                Response extends TransportResponse,
-                RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>
-            > void doExecute(Action<Request, Response, RequestBuilder> action, Request request, ActionListener<Response> listener) {
+    public <Request extends TransportRequest,
+            Response extends TransportResponse,
+            RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> void doExecute(
+        Action<Request, Response, RequestBuilder> action,
+        Request request,
+        ActionListener<Response> listener) {
+
         // Discard the task because the Client interface doesn't use it.
         executeLocally(action, request, listener);
     }
@@ -68,9 +71,10 @@ public class NodeClient extends AbstractClient {
      * method if you don't need access to the task when listening for the response. This is the method used to implement the {@link Client}
      * interface.
      */
-    public <    Request extends TransportRequest,
-                Response extends TransportResponse
-            > Task executeLocally(GenericAction<Request, Response> action, Request request, ActionListener<Response> listener) {
+    public <Request extends TransportRequest,
+            Response extends TransportResponse> Task executeLocally(GenericAction<Request, Response> action,
+                                                                    Request request,
+                                                                    ActionListener<Response> listener) {
         return transportAction(action).execute(request, listener);
     }
 
@@ -78,9 +82,8 @@ public class NodeClient extends AbstractClient {
      * Get the {@link TransportAction} for an {@link Action}, throwing exceptions if the action isn't available.
      */
     @SuppressWarnings("unchecked")
-    private <    Request extends TransportRequest,
-                Response extends TransportResponse
-            > TransportAction<Request, Response> transportAction(GenericAction<Request, Response> action) {
+    private <Request extends TransportRequest,
+             Response extends TransportResponse> TransportAction<Request, Response> transportAction(GenericAction<Request, Response> action) {
         if (actions == null) {
             throw new IllegalStateException("NodeClient has not been initialized");
         }

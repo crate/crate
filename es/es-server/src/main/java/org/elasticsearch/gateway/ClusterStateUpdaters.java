@@ -37,7 +37,8 @@ import java.util.Map;
 import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
 
 public class ClusterStateUpdaters {
-    private static final Logger logger = LogManager.getLogger(ClusterStateUpdaters.class);
+
+    private static final Logger LOGGER = LogManager.getLogger(ClusterStateUpdaters.class);
 
     static ClusterState setLocalNode(final ClusterState clusterState, DiscoveryNode localNode) {
         return ClusterState.builder(clusterState)
@@ -50,26 +51,26 @@ public class ClusterStateUpdaters {
         final MetaData.Builder metaDataBuilder = MetaData.builder(clusterState.metaData());
 
         metaDataBuilder.persistentSettings(
-                clusterSettings.archiveUnknownOrInvalidSettings(
-                        clusterSettings.upgradeSettings(metaDataBuilder.persistentSettings()),
-                        e -> logUnknownSetting("persistent", e),
-                        (e, ex) -> logInvalidSetting("persistent", e, ex)));
+            clusterSettings.archiveUnknownOrInvalidSettings(
+                clusterSettings.upgradeSettings(metaDataBuilder.persistentSettings()),
+                e -> logUnknownSetting("persistent", e),
+                (e, ex) -> logInvalidSetting("persistent", e, ex)));
         metaDataBuilder.transientSettings(
-                clusterSettings.archiveUnknownOrInvalidSettings(
-                        clusterSettings.upgradeSettings(metaDataBuilder.transientSettings()),
-                        e -> logUnknownSetting("transient", e),
-                        (e, ex) -> logInvalidSetting("transient", e, ex)));
+            clusterSettings.archiveUnknownOrInvalidSettings(
+                clusterSettings.upgradeSettings(metaDataBuilder.transientSettings()),
+                e -> logUnknownSetting("transient", e),
+                (e, ex) -> logInvalidSetting("transient", e, ex)));
         return ClusterState.builder(clusterState).metaData(metaDataBuilder).build();
     }
 
     private static void logUnknownSetting(final String settingType, final Map.Entry<String, String> e) {
-        logger.warn("ignoring unknown {} setting: [{}] with value [{}]; archiving", settingType, e.getKey(), e.getValue());
+        LOGGER.warn("ignoring unknown {} setting: [{}] with value [{}]; archiving", settingType, e.getKey(), e.getValue());
     }
 
     private static void logInvalidSetting(final String settingType, final Map.Entry<String, String> e,
                                           final IllegalArgumentException ex) {
-        logger.warn(() -> new ParameterizedMessage("ignoring invalid {} setting: [{}] with value [{}]; archiving",
-                settingType, e.getKey(), e.getValue()), ex);
+        LOGGER.warn(() -> new ParameterizedMessage("ignoring invalid {} setting: [{}] with value [{}]; archiving",
+            settingType, e.getKey(), e.getValue()), ex);
     }
 
     static ClusterState recoverClusterBlocks(final ClusterState state) {

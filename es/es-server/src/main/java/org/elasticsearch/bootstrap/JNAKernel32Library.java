@@ -41,7 +41,7 @@ import java.util.List;
  */
 final class JNAKernel32Library {
 
-    private static final Logger logger = LogManager.getLogger(JNAKernel32Library.class);
+    private static final Logger LOGGER = LogManager.getLogger(JNAKernel32Library.class);
 
     // Callbacks must be kept around in order to be able to be called later,
     // when the Windows ConsoleCtrlHandler sends an event.
@@ -49,24 +49,24 @@ final class JNAKernel32Library {
 
     // Native library instance must be kept around for the same reason.
     private static final class Holder {
-        private static final JNAKernel32Library instance = new JNAKernel32Library();
+        private static final JNAKernel32Library INSTANCE = new JNAKernel32Library();
     }
 
     private JNAKernel32Library() {
         if (Constants.WINDOWS) {
             try {
                 Native.register("kernel32");
-                logger.debug("windows/Kernel32 library loaded");
+                LOGGER.debug("windows/Kernel32 library loaded");
             } catch (NoClassDefFoundError e) {
-                logger.warn("JNA not found. native methods and handlers will be disabled.");
+                LOGGER.warn("JNA not found. native methods and handlers will be disabled.");
             } catch (UnsatisfiedLinkError e) {
-                logger.warn("unable to link Windows/Kernel32 library. native methods and handlers will be disabled.");
+                LOGGER.warn("unable to link Windows/Kernel32 library. native methods and handlers will be disabled.");
             }
         }
     }
 
     static JNAKernel32Library getInstance() {
-        return Holder.instance;
+        return Holder.INSTANCE;
     }
 
     /**
@@ -99,6 +99,7 @@ final class JNAKernel32Library {
      * @throws java.lang.UnsatisfiedLinkError if the Kernel32 library is not loaded or if the native function is not found
      * @throws java.lang.NoClassDefFoundError if the library for native calls is missing
      */
+    @SuppressWarnings("checkstyle:methodname")
     native boolean SetConsoleCtrlHandler(StdCallLibrary.StdCallCallback handler, boolean add);
 
     /**
@@ -116,8 +117,8 @@ final class JNAKernel32Library {
 
         public boolean callback(long dwCtrlType) {
             int event = (int) dwCtrlType;
-            if (logger.isDebugEnabled()) {
-                logger.debug("console control handler receives event [{}@{}]", event, dwCtrlType);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("console control handler receives event [{}@{}]", event, dwCtrlType);
 
             }
             return handler.handle(event);
@@ -178,6 +179,7 @@ final class JNAKernel32Library {
      * @param size The size of the region to be locked, in bytes.
      * @return true if the function succeeds
      */
+    @SuppressWarnings("checkstyle:methodname")
     native boolean VirtualLock(Pointer address, SizeT size);
 
     /**
@@ -191,6 +193,7 @@ final class JNAKernel32Library {
      * @param length The size of the buffer pointed to by the memoryInfo parameter, in bytes.
      * @return the actual number of bytes returned in the information buffer.
      */
+    @SuppressWarnings("checkstyle:methodname")
     native int VirtualQueryEx(Pointer handle, Pointer address, MemoryBasicInformation memoryInfo, int length);
 
     /**
@@ -203,6 +206,7 @@ final class JNAKernel32Library {
      * @param maxSize The maximum working set size for the process, in bytes.
      * @return true if the function succeeds.
      */
+    @SuppressWarnings("checkstyle:methodname")
     native boolean SetProcessWorkingSetSize(Pointer handle, SizeT minSize, SizeT maxSize);
 
     /**
@@ -212,6 +216,7 @@ final class JNAKernel32Library {
      *
      * @return a pseudo handle to the current process.
      */
+    @SuppressWarnings("checkstyle:methodname")
     native Pointer GetCurrentProcess();
 
     /**
@@ -222,6 +227,7 @@ final class JNAKernel32Library {
      * @param handle A valid handle to an open object.
      * @return true if the function succeeds.
      */
+    @SuppressWarnings("checkstyle:methodname")
     native boolean CloseHandle(Pointer handle);
 
     /**
@@ -233,6 +239,7 @@ final class JNAKernel32Library {
      * @param cchBuffer     the size of the buffer
      * @return the length of the string copied into {@code lpszShortPath}, otherwise zero for failure
      */
+    @SuppressWarnings("checkstyle:methodname")
     native int GetShortPathNameW(WString lpszLongPath, char[] lpszShortPath, int cchBuffer);
 
     /**
@@ -244,6 +251,7 @@ final class JNAKernel32Library {
      * @param name job name
      * @return job handle if the function succeeds
      */
+    @SuppressWarnings("checkstyle:methodname")
     native Pointer CreateJobObjectW(Pointer jobAttributes, String name);
 
     /**
@@ -255,6 +263,7 @@ final class JNAKernel32Library {
      * @param process process handle
      * @return true if the function succeeds
      */
+    @SuppressWarnings("checkstyle:methodname")
     native boolean AssignProcessToJobObject(Pointer job, Pointer process);
 
     /**
@@ -262,22 +271,33 @@ final class JNAKernel32Library {
      *
      * https://msdn.microsoft.com/en-us/library/windows/desktop/ms684147%28v=vs.85%29.aspx
      */
+    @SuppressWarnings("checkstyle:TypeName")
     public static class JOBOBJECT_BASIC_LIMIT_INFORMATION extends Structure implements Structure.ByReference {
-      public long PerProcessUserTimeLimit;
-      public long PerJobUserTimeLimit;
-      public int LimitFlags;
-      public SizeT MinimumWorkingSetSize;
-      public SizeT MaximumWorkingSetSize;
-      public int ActiveProcessLimit;
-      public Pointer Affinity;
-      public int PriorityClass;
-      public int SchedulingClass;
 
-      @Override
-      protected List<String> getFieldOrder() {
-          return Arrays.asList("PerProcessUserTimeLimit", "PerJobUserTimeLimit", "LimitFlags", "MinimumWorkingSetSize",
-              "MaximumWorkingSetSize", "ActiveProcessLimit", "Affinity", "PriorityClass", "SchedulingClass");
-      }
+        public long PerProcessUserTimeLimit;
+        public long PerJobUserTimeLimit;
+        public int LimitFlags;
+        public SizeT MinimumWorkingSetSize;
+        public SizeT MaximumWorkingSetSize;
+        public int ActiveProcessLimit;
+        public Pointer Affinity;
+        public int PriorityClass;
+        public int SchedulingClass;
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return Arrays.asList(
+                "PerProcessUserTimeLimit",
+                "PerJobUserTimeLimit",
+                "LimitFlags",
+                "MinimumWorkingSetSize",
+                "MaximumWorkingSetSize",
+                "ActiveProcessLimit",
+                "Affinity",
+                "PriorityClass",
+                "SchedulingClass"
+            );
+        }
     }
 
     /**
@@ -302,6 +322,7 @@ final class JNAKernel32Library {
      * @param returnLength length of data written back to structure (or null if not wanted)
      * @return true if the function succeeds
      */
+    @SuppressWarnings("checkstyle:methodname")
     native boolean QueryInformationJobObject(Pointer job, int infoClass, Pointer info, int infoLength, Pointer returnLength);
 
     /**
@@ -315,5 +336,6 @@ final class JNAKernel32Library {
      * @param infoLength size of information structure
      * @return true if the function succeeds
      */
+    @SuppressWarnings("checkstyle:methodname")
     native boolean SetInformationJobObject(Pointer job, int infoClass, Pointer info, int infoLength);
 }

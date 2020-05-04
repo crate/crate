@@ -294,7 +294,7 @@ public final class MockTransportService extends TransportService {
     public void addFailToSendNoConnectRule(TransportAddress transportAddress, final Set<String> blockedActions) {
         transport().addSendBehavior(transportAddress, (connection, requestId, action, request, options) -> {
             if (blockedActions.contains(action)) {
-                logger.info("--> preventing {} request", action);
+                LOGGER.info("--> preventing {} request", action);
                 connection.close();
             }
             connection.sendRequest(requestId, action, request, options);
@@ -432,7 +432,7 @@ public final class MockTransportService extends TransportService {
 
                     @Override
                     public void onFailure(Exception e) {
-                        logger.debug("failed to send delayed request", e);
+                        LOGGER.debug("failed to send delayed request", e);
                     }
 
                     @Override

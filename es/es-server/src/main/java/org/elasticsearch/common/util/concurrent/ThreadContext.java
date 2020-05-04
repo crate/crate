@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.util.concurrent;
 
 import org.apache.logging.log4j.LogManager;
@@ -84,7 +85,7 @@ public final class ThreadContext implements Closeable, Writeable {
 
     public static final String PREFIX = "request.headers";
     public static final Setting<Settings> DEFAULT_HEADERS_SETTING = Setting.groupSetting(PREFIX + ".", Property.NodeScope);
-    private static final Logger logger = LogManager.getLogger(ThreadContext.class);
+    private static final Logger LOGGER = LogManager.getLogger(ThreadContext.class);
     private static final ThreadContextStruct DEFAULT_CONTEXT = new ThreadContextStruct();
     private final Map<String, String> defaultHeader;
     private final ContextThreadLocal threadLocal;
@@ -132,7 +133,7 @@ public final class ThreadContext implements Closeable, Writeable {
      */
     public StoredContext newStoredContext(boolean preserveResponseHeaders) {
         final ThreadContextStruct context = threadLocal.get();
-        return ()  -> {
+        return () -> {
             if (preserveResponseHeaders && threadLocal.get() != context) {
                 threadLocal.set(context.putResponseHeaders(threadLocal.get().responseHeaders));
             } else {
@@ -195,7 +196,7 @@ public final class ThreadContext implements Closeable, Writeable {
      */
     public String getHeader(String key) {
         String value = threadLocal.get().requestHeaders.get(key);
-        if (value == null)  {
+        if (value == null) {
             return defaultHeader.get(key);
         }
         return value;
@@ -359,6 +360,7 @@ public final class ThreadContext implements Closeable, Writeable {
         private final Map<String, Set<String>> responseHeaders;
         private final boolean isSystemContext;
         private long warningHeadersSize; //saving current warning headers' size not to recalculate the size with every new warning header
+
         private ThreadContextStruct(StreamInput in) throws IOException {
             final int numRequest = in.readVInt();
             Map<String, String> requestHeaders = numRequest == 0 ? Collections.emptyMap() : new HashMap<>(numRequest);
@@ -475,14 +477,14 @@ public final class ThreadContext implements Closeable, Writeable {
             //check if we can add another warning header - if max size within limits
             if (key.equals("Warning") && (maxWarningHeaderSize != -1)) { //if size is NOT unbounded, check its limits
                 if (warningHeadersSize > maxWarningHeaderSize) { // if max size has already been reached before
-                    logger.warn("Dropping a warning header, as their total size reached the maximum allowed of ["
+                    LOGGER.warn("Dropping a warning header, as their total size reached the maximum allowed of ["
                             + maxWarningHeaderSize + "] bytes set in ["
                             + HttpTransportSettings.SETTING_HTTP_MAX_WARNING_HEADER_SIZE.getKey() + "]!");
                     return this;
                 }
                 newWarningHeaderSize += "Warning".getBytes(StandardCharsets.UTF_8).length + value.getBytes(StandardCharsets.UTF_8).length;
                 if (newWarningHeaderSize > maxWarningHeaderSize) {
-                    logger.warn("Dropping a warning header, as their total size reached the maximum allowed of ["
+                    LOGGER.warn("Dropping a warning header, as their total size reached the maximum allowed of ["
                             + maxWarningHeaderSize + "] bytes set in ["
                             + HttpTransportSettings.SETTING_HTTP_MAX_WARNING_HEADER_SIZE.getKey() + "]!");
                     return new ThreadContextStruct(requestHeaders, responseHeaders,
@@ -509,7 +511,7 @@ public final class ThreadContext implements Closeable, Writeable {
             if ((key.equals("Warning")) && (maxWarningHeaderCount != -1)) { //if count is NOT unbounded, check its limits
                 final int warningHeaderCount = newResponseHeaders.containsKey("Warning") ? newResponseHeaders.get("Warning").size() : 0;
                 if (warningHeaderCount > maxWarningHeaderCount) {
-                    logger.warn("Dropping a warning header, as their total count reached the maximum allowed of ["
+                    LOGGER.warn("Dropping a warning header, as their total count reached the maximum allowed of ["
                             + maxWarningHeaderCount + "] set in ["
                             + HttpTransportSettings.SETTING_HTTP_MAX_WARNING_HEADER_COUNT.getKey() + "]!");
                     return this;
@@ -618,7 +620,7 @@ public final class ThreadContext implements Closeable, Writeable {
         @Override
         public void run() {
             boolean whileRunning = false;
-            try (ThreadContext.StoredContext ignore = stashContext()){
+            try (ThreadContext.StoredContext ignore = stashContext()) {
                 ctx.restore();
                 whileRunning = true;
                 in.run();

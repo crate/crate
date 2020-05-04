@@ -44,10 +44,10 @@ public class RootObjectMapper extends ObjectMapper {
 
     public static class Defaults {
         public static final FormatDateTimeFormatter[] DYNAMIC_DATE_TIME_FORMATTERS =
-                new FormatDateTimeFormatter[]{
-                        DateFieldMapper.DEFAULT_DATE_TIME_FORMATTER,
-                        Joda.getStrictStandardDateFormatter()
-                };
+            new FormatDateTimeFormatter[] {
+                DateFieldMapper.DEFAULT_DATE_TIME_FORMATTER,
+                Joda.getStrictStandardDateFormatter()
+            };
         public static final boolean DATE_DETECTION = false;
         public static final boolean NUMERIC_DETECTION = false;
     }
@@ -115,7 +115,8 @@ public class RootObjectMapper extends ObjectMapper {
                     List<FormatDateTimeFormatter> formatters = new ArrayList<>();
                     for (Object formatter : (List<?>) fieldNode) {
                         if (formatter.toString().startsWith("epoch_")) {
-                            throw new MapperParsingException("Epoch ["+ formatter +"] is not supported as dynamic date format");
+                            throw new MapperParsingException(
+                                "Epoch [" + formatter + "] is not supported as dynamic date format");
                         }
                         formatters.add(parseDateTimeFormatter(formatter));
                     }

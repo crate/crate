@@ -34,7 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-public abstract class ParseContext implements Iterable<ParseContext.Document>{
+public abstract class ParseContext implements Iterable<ParseContext.Document> {
 
     /** Fork of {@link org.apache.lucene.document.Document} with additional functionality. */
     public static class Document implements Iterable<IndexableField> {
@@ -526,10 +526,12 @@ public abstract class ParseContext implements Iterable<ParseContext.Document>{
      */
     public final ParseContext createExternalValueContext(final Object externalValue) {
         return new FilterParseContext(this) {
+
             @Override
             public boolean externalValueSet() {
                 return true;
             }
+
             @Override
             public Object externalValue() {
                 return externalValue;

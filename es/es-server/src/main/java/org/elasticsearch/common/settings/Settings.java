@@ -494,6 +494,7 @@ public final class Settings implements ToXContentFragment {
 
         return Collections.unmodifiableMap(groups);
     }
+
     /**
      * Returns group settings for the given setting prefix.
      */
@@ -1064,7 +1065,7 @@ public final class Settings implements ToXContentFragment {
          * Loads settings from the actual string content that represents them using {@link #fromXContent(XContentParser)}
          */
         public Builder loadFromSource(String source, XContentType xContentType) {
-            try (XContentParser parser =  XContentFactory.xContent(xContentType)
+            try (XContentParser parser = XContentFactory.xContent(xContentType)
                     .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, source)) {
                 this.put(fromXContent(parser, true, true));
             } catch (Exception e) {
@@ -1095,7 +1096,7 @@ public final class Settings implements ToXContentFragment {
                 throw new IllegalArgumentException("unable to detect content type from resource name [" + resourceName + "]");
             }
             // fromXContent doesn't use named xcontent or deprecation.
-            try (XContentParser parser =  XContentFactory.xContent(xContentType)
+            try (XContentParser parser = XContentFactory.xContent(xContentType)
                     .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, is)) {
                 if (parser.currentToken() == null) {
                     if (parser.nextToken() == null) {
@@ -1197,7 +1198,7 @@ public final class Settings implements ToXContentFragment {
         public Builder normalizePrefix(String prefix) {
             Map<String, Object> replacements = new HashMap<>();
             Iterator<Map.Entry<String, Object>> iterator = map.entrySet().iterator();
-            while(iterator.hasNext()) {
+            while (iterator.hasNext()) {
                 Map.Entry<String, Object> entry = iterator.next();
                 String key = entry.getKey();
                 if (key.startsWith(prefix) == false && key.endsWith("*") == false) {
@@ -1227,6 +1228,7 @@ public final class Settings implements ToXContentFragment {
         // we cache that size since we have to iterate the entire set
         // this is safe to do since this map is only used with unmodifiable maps
         private int size = -1;
+
         @Override
         public Set<Entry<String, Object>> entrySet() {
             Set<Entry<String, Object>> delegateSet = delegate.entrySet();

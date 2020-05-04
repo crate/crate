@@ -40,7 +40,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public class GatewayAllocator {
 
-    private static final Logger logger = LogManager.getLogger(GatewayAllocator.class);
+    private static final Logger LOGGER = LogManager.getLogger(GatewayAllocator.class);
 
     private final RoutingService routingService;
 
@@ -122,9 +122,9 @@ public class GatewayAllocator {
      */
     public AllocateUnassignedDecision decideUnassignedShardAllocation(ShardRouting unassignedShard, RoutingAllocation routingAllocation) {
         if (unassignedShard.primary()) {
-            return primaryShardAllocator.makeAllocationDecision(unassignedShard, routingAllocation, logger);
+            return primaryShardAllocator.makeAllocationDecision(unassignedShard, routingAllocation, LOGGER);
         } else {
-            return replicaShardAllocator.makeAllocationDecision(unassignedShard, routingAllocation, logger);
+            return replicaShardAllocator.makeAllocationDecision(unassignedShard, routingAllocation, LOGGER);
         }
     }
 

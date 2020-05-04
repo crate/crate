@@ -44,7 +44,7 @@ public class SortedSetDVOrdinalsIndexFieldData extends DocValuesIndexFieldData i
     private final IndexSettings indexSettings;
     private final IndexFieldDataCache cache;
     private final CircuitBreakerService breakerService;
-    private static final Logger logger = LogManager.getLogger(SortedSetDVOrdinalsIndexFieldData.class);
+    private static final Logger LOGGER = LogManager.getLogger(SortedSetDVOrdinalsIndexFieldData.class);
 
     public SortedSetDVOrdinalsIndexFieldData(IndexSettings indexSettings, IndexFieldDataCache cache, String fieldName,
             CircuitBreakerService breakerService) {
@@ -112,7 +112,7 @@ public class SortedSetDVOrdinalsIndexFieldData extends DocValuesIndexFieldData i
 
     @Override
     public IndexOrdinalsFieldData localGlobalDirect(DirectoryReader indexReader) throws Exception {
-        return GlobalOrdinalsBuilder.build(indexReader, this, indexSettings, breakerService, logger);
+        return GlobalOrdinalsBuilder.build(indexReader, this, indexSettings, breakerService, LOGGER);
     }
 
     @Override

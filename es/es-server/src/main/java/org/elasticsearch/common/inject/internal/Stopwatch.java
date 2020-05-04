@@ -26,7 +26,8 @@ import java.util.logging.Logger;
  * @author crazybob@google.com (Bob Lee)
  */
 public class Stopwatch {
-    private static final Logger logger = Logger.getLogger(Stopwatch.class.getName());
+
+    private static final Logger LOGGER = Logger.getLogger(Stopwatch.class.getName());
 
     private long startNS = System.nanoTime();
 
@@ -46,6 +47,6 @@ public class Stopwatch {
      * Resets and logs elapsed time in milliseconds.
      */
     public void resetAndLog(String label) {
-        logger.fine(label + ": " + reset() + "ms");
+        LOGGER.fine(label + ": " + reset() + "ms");
     }
 }

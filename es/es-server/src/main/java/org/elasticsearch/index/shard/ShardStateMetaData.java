@@ -66,7 +66,7 @@ public final class ShardStateMetaData {
             return false;
         }
         if (indexUUID != null ? !indexUUID.equals(that.indexUUID) : that.indexUUID != null) {
-          return false;
+            return false;
         }
         if (allocationId != null ? !allocationId.equals(that.allocationId) : that.allocationId != null) {
             return false;

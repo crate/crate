@@ -92,7 +92,7 @@ public final class CompositeBytesReference extends BytesReference {
         }
         // now adjust slices in front and at the end
         inSlice[0] = inSlice[0].slice(inSliceOffset, inSlice[0].length() - inSliceOffset);
-        inSlice[inSlice.length-1] = inSlice[inSlice.length-1].slice(0, to - offsets[limit]);
+        inSlice[inSlice.length - 1] = inSlice[inSlice.length - 1].slice(0, to - offsets[limit]);
         return new CompositeBytesReference(inSlice);
     }
 
@@ -146,6 +146,6 @@ public final class CompositeBytesReference extends BytesReference {
 
     @Override
     public long ramBytesUsed() {
-       return ramBytesUsed;
+        return ramBytesUsed;
     }
 }

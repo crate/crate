@@ -35,7 +35,8 @@ public class EpochSecondsDateFormatter implements DateFormatter {
     public static DateFormatter INSTANCE = new EpochSecondsDateFormatter();
     private static final Pattern SPLIT_BY_DOT_PATTERN = Pattern.compile("\\.");
 
-    private EpochSecondsDateFormatter() {}
+    private EpochSecondsDateFormatter() {
+    }
 
     @Override
     public TemporalAccessor parse(String input) {

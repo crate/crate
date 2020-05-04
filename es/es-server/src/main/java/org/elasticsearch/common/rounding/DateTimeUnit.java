@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.rounding;
 
 import org.elasticsearch.ElasticsearchException;
@@ -28,14 +29,14 @@ import java.util.function.Function;
 
 public enum DateTimeUnit {
 
-    WEEK_OF_WEEKYEAR(   (byte) 1, tz -> ISOChronology.getInstance(tz).weekOfWeekyear()),
-    YEAR_OF_CENTURY(    (byte) 2, tz -> ISOChronology.getInstance(tz).yearOfCentury()),
-    QUARTER(            (byte) 3, tz -> Joda.QuarterOfYear.getField(ISOChronology.getInstance(tz))),
-    MONTH_OF_YEAR(      (byte) 4, tz -> ISOChronology.getInstance(tz).monthOfYear()),
-    DAY_OF_MONTH(       (byte) 5, tz -> ISOChronology.getInstance(tz).dayOfMonth()),
-    HOUR_OF_DAY(        (byte) 6, tz -> ISOChronology.getInstance(tz).hourOfDay()),
-    MINUTES_OF_HOUR(    (byte) 7, tz -> ISOChronology.getInstance(tz).minuteOfHour()),
-    SECOND_OF_MINUTE(   (byte) 8, tz -> ISOChronology.getInstance(tz).secondOfMinute());
+    WEEK_OF_WEEKYEAR((byte) 1, tz -> ISOChronology.getInstance(tz).weekOfWeekyear()),
+    YEAR_OF_CENTURY((byte) 2, tz -> ISOChronology.getInstance(tz).yearOfCentury()),
+    QUARTER((byte) 3, tz -> Joda.QUARTER_OF_YEAR.getField(ISOChronology.getInstance(tz))),
+    MONTH_OF_YEAR((byte) 4, tz -> ISOChronology.getInstance(tz).monthOfYear()),
+    DAY_OF_MONTH((byte) 5, tz -> ISOChronology.getInstance(tz).dayOfMonth()),
+    HOUR_OF_DAY((byte) 6, tz -> ISOChronology.getInstance(tz).hourOfDay()),
+    MINUTES_OF_HOUR((byte) 7, tz -> ISOChronology.getInstance(tz).minuteOfHour()),
+    SECOND_OF_MINUTE((byte) 8, tz -> ISOChronology.getInstance(tz).secondOfMinute());
 
     private final byte id;
     private final Function<DateTimeZone, DateTimeField> fieldFunction;

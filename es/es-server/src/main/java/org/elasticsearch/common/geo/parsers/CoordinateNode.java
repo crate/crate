@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.geo.parsers;
 
 import org.locationtech.jts.geom.Coordinate;

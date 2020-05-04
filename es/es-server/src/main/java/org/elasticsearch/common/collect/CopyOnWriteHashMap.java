@@ -26,13 +26,11 @@ import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /**
  * An immutable map whose writes result in a new copy of the map to be created.
@@ -388,7 +386,7 @@ public final class CopyOnWriteHashMap<K, V> extends AbstractMap<K, V> {
         }
 
         private InnerNode<K, V> removeSlot(int hash6, int slot) {
-            final long mask2 = mask  & ~(1L << hash6);
+            final long mask2 = mask & ~(1L << hash6);
             final K[] keys2 = removeArrayElement(keys, slot);
             final Object[] subNodes2 = removeArrayElement(subNodes, slot);
             return new InnerNode<>(mask2, keys2, subNodes2);

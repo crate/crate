@@ -1470,7 +1470,8 @@ public class DateFormatters {
     public static ZonedDateTime toZonedDateTime(TemporalAccessor accessor, ZonedDateTime defaults) {
         try {
             return ZonedDateTime.from(accessor);
-        } catch (DateTimeException e ) {
+        } catch (DateTimeException e) {
+            // ignored
         }
 
         ZonedDateTime result = defaults;
@@ -1500,13 +1501,8 @@ public class DateFormatters {
                 return LocalDate.from(result)
                     .with(WeekFields.ISO.weekBasedYear(), accessor.getLong(WeekFields.ISO.weekBasedYear()))
                     // this exists solely to be BWC compatible with joda
-//                    .with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY))
                     .with(TemporalAdjusters.firstInMonth(DayOfWeek.MONDAY))
                     .atStartOfDay(defaults.getZone());
-//                return result.withHour(0).withMinute(0).withSecond(0)
-//                    .with(WeekFields.ISO.weekBasedYear(), 0)
-//                    .with(WeekFields.ISO.weekBasedYear(), accessor.getLong(WeekFields.ISO.weekBasedYear()));
-//                return ((ZonedDateTime) tmp).with(WeekFields.ISO.weekOfWeekBasedYear(), 1);
             }
         } else if (accessor.isSupported(IsoFields.WEEK_BASED_YEAR)) {
             // special case weekbased year

@@ -60,8 +60,9 @@ import java.util.Set;
  * @since 2.0
  */
 public final class Elements {
-    private static final BindingTargetVisitor<Object, Object> GET_INSTANCE_VISITOR
-            = new DefaultBindingTargetVisitor<Object, Object>() {
+
+    private static final BindingTargetVisitor<Object, Object> GET_INSTANCE_VISITOR = new DefaultBindingTargetVisitor<Object, Object>() {
+
         @Override
         public Object visit(InstanceBinding<?> binding) {
             return binding.getInstance();

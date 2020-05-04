@@ -36,20 +36,24 @@ public class DynamicTemplate implements ToXContentObject {
 
     public enum MatchType {
         SIMPLE {
+
             @Override
             public boolean matches(String pattern, String value) {
                 return Regex.simpleMatch(pattern, value);
             }
+
             @Override
             public String toString() {
                 return "simple";
             }
         },
         REGEX {
+
             @Override
             public boolean matches(String pattern, String value) {
                 return value.matches(pattern);
             }
+
             @Override
             public String toString() {
                 return "regex";
@@ -72,70 +76,84 @@ public class DynamicTemplate implements ToXContentObject {
     /** The type of a field as detected while parsing a json document. */
     public enum XContentFieldType {
         OBJECT {
+
             @Override
             public String defaultMappingType() {
                 return ObjectMapper.CONTENT_TYPE;
             }
+
             @Override
             public String toString() {
                 return "object";
             }
         },
         STRING {
+
             @Override
             public String defaultMappingType() {
                 return TextFieldMapper.CONTENT_TYPE;
             }
+
             @Override
             public String toString() {
                 return "string";
             }
         },
         LONG {
+
             @Override
             public String defaultMappingType() {
                 return NumberFieldMapper.NumberType.LONG.typeName();
             }
+
             @Override
             public String toString() {
                 return "long";
             }
         },
         DOUBLE {
+
             @Override
             public String defaultMappingType() {
                 return NumberFieldMapper.NumberType.FLOAT.typeName();
             }
+
             @Override
             public String toString() {
                 return "double";
             }
         },
         BOOLEAN {
+
             @Override
             public String defaultMappingType() {
                 return BooleanFieldMapper.CONTENT_TYPE;
             }
+
             @Override
             public String toString() {
                 return "boolean";
             }
         },
         DATE {
+
             @Override
             public String defaultMappingType() {
                 return DateFieldMapper.CONTENT_TYPE;
             }
+
             @Override
             public String toString() {
                 return "date";
             }
         },
         BINARY {
+
             @Override
             public String defaultMappingType() {
                 return BinaryFieldMapper.CONTENT_TYPE;
             }
+
             @Override
             public String toString() {
                 return "binary";
@@ -299,7 +317,7 @@ public class DynamicTemplate implements ToXContentObject {
             }
         }
         return type;
-     }
+    }
 
     public Map<String, Object> mappingForName(String name, String dynamicType) {
         return processMap(mapping, name, dynamicType);

@@ -41,6 +41,7 @@ public class Index implements Writeable, ToXContentObject {
     private static final String INDEX_UUID_KEY = "index_uuid";
     private static final String INDEX_NAME_KEY = "index_name";
     private static final ObjectParser<Builder, Void> INDEX_PARSER = new ObjectParser<>("index", Builder::new);
+
     static {
         INDEX_PARSER.declareString(Builder::name, new ParseField(INDEX_NAME_KEY));
         INDEX_PARSER.declareString(Builder::uuid, new ParseField(INDEX_UUID_KEY));

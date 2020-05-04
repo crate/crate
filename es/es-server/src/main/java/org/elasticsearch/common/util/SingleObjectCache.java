@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.util;
 
 import org.elasticsearch.common.unit.TimeValue;
@@ -27,7 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * A very simple single object cache that allows non-blocking refresh calls
  * triggered by expiry time.
  */
-public abstract class SingleObjectCache<T>{
+public abstract class SingleObjectCache<T> {
 
     private volatile T cached;
     private Lock refreshLock = new ReentrantLock();
@@ -48,7 +49,7 @@ public abstract class SingleObjectCache<T>{
      */
     public T getOrRefresh() {
         if (needsRefresh()) {
-            if(refreshLock.tryLock()) {
+            if (refreshLock.tryLock()) {
                 try {
                     if (needsRefresh()) { // check again!
                         cached = refresh();

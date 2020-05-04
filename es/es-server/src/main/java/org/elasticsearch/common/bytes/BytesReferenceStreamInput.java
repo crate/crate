@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.bytes;
 
 import org.apache.lucene.util.BytesRef;
@@ -87,7 +88,7 @@ final class BytesReferenceStreamInput extends StreamInput {
         if (offset >= length) {
             return -1;
         }
-        final int numBytesToCopy =  Math.min(len, length - offset);
+        final int numBytesToCopy = Math.min(len, length - offset);
         int remaining = numBytesToCopy; // copy the full length or the remaining part
         int destOffset = bOffset;
         while (remaining > 0) {
@@ -125,7 +126,7 @@ final class BytesReferenceStreamInput extends StreamInput {
     @Override
     public long skip(long n) throws IOException {
         final int skip = (int) Math.min(Integer.MAX_VALUE, n);
-        final int numBytesSkipped =  Math.min(skip, length - offset);
+        final int numBytesSkipped = Math.min(skip, length - offset);
         int remaining = numBytesSkipped;
         while (remaining > 0) {
             maybeNextSlice();

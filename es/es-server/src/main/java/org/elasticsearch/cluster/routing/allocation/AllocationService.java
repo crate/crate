@@ -62,7 +62,7 @@ import static org.elasticsearch.cluster.routing.UnassignedInfo.INDEX_DELAYED_NOD
  */
 public class AllocationService {
 
-    private static final Logger logger = LogManager.getLogger(AllocationService.class);
+    private static final Logger LOGGER = LogManager.getLogger(AllocationService.class);
 
     private final AllocationDeciders allocationDeciders;
     private GatewayAllocator gatewayAllocator;
@@ -161,7 +161,7 @@ public class AllocationService {
         if (staleShards.isEmpty() && failedShards.isEmpty()) {
             return clusterState;
         }
-        ClusterState tmpState = IndexMetaDataUpdater.removeStaleIdsWithoutRoutings(clusterState, staleShards, logger);
+        ClusterState tmpState = IndexMetaDataUpdater.removeStaleIdsWithoutRoutings(clusterState, staleShards, LOGGER);
 
         RoutingNodes routingNodes = getMutableRoutingNodes(tmpState);
         // shuffle the unassigned nodes, just so we won't have things like poison failed shards
@@ -178,7 +178,7 @@ public class AllocationService {
             ShardRouting failedShard = routingNodes.getByAllocationId(shardToFail.shardId(), shardToFail.allocationId().getId());
             if (failedShard != null) {
                 if (failedShard != shardToFail) {
-                    logger.trace("{} shard routing modified in an earlier iteration (previous: {}, current: {})",
+                    LOGGER.trace("{} shard routing modified in an earlier iteration (previous: {}, current: {})",
                         shardToFail.shardId(), shardToFail, failedShard);
                 }
                 int failedAllocations = failedShard.unassignedInfo() != null ? failedShard.unassignedInfo().getNumFailedAllocations() : 0;
@@ -189,10 +189,10 @@ public class AllocationService {
                 if (failedShardEntry.markAsStale()) {
                     allocation.removeAllocationId(failedShard);
                 }
-                logger.warn(new ParameterizedMessage("failing shard [{}]", failedShardEntry), failedShardEntry.getFailure());
-                routingNodes.failShard(logger, failedShard, unassignedInfo, indexMetaData, allocation.changes());
+                LOGGER.warn(new ParameterizedMessage("failing shard [{}]", failedShardEntry), failedShardEntry.getFailure());
+                routingNodes.failShard(LOGGER, failedShard, unassignedInfo, indexMetaData, allocation.changes());
             } else {
-                logger.trace("{} shard routing failed in an earlier iteration (routing: {})", shardToFail.shardId(), shardToFail);
+                LOGGER.trace("{} shard routing failed in an earlier iteration (routing: {})", shardToFail.shardId(), shardToFail);
             }
         }
         gatewayAllocator.applyFailedShards(allocation, failedShards);
@@ -252,7 +252,7 @@ public class AllocationService {
                             new IndexMetaData.Builder(indexMetaData).settingsVersion(1 + indexMetaData.getSettingsVersion());
                     metaDataBuilder.put(indexMetaDataBuilder);
                 }
-                logger.info("updating number_of_replicas to [{}] for indices {}", numberOfReplicas, indices);
+                LOGGER.info("updating number_of_replicas to [{}] for indices {}", numberOfReplicas, indices);
             }
             final ClusterState fixedState = ClusterState.builder(clusterState).routingTable(routingTableBuilder.build())
                 .metaData(metaDataBuilder).build();
@@ -327,7 +327,7 @@ public class AllocationService {
         allocation.debugDecision(true);
         // we ignore disable allocation, because commands are explicit
         allocation.ignoreDisable(true);
-        RoutingExplanations explanations = commands.execute(allocation, explain);
+        final RoutingExplanations explanations = commands.execute(allocation, explain);
         // we revert the ignore disable flag, since when rerouting, we want the original setting to take place
         allocation.ignoreDisable(false);
         // the assumption is that commands will move / act on shards (or fail through exceptions)
@@ -376,7 +376,7 @@ public class AllocationService {
         ClusterHealthStatus previousHealth = previousStateHealth.getStatus();
         ClusterHealthStatus currentHealth = newStateHealth.getStatus();
         if (!previousHealth.equals(currentHealth)) {
-            logger.info("Cluster health status changed from [{}] to [{}] (reason: [{}]).", previousHealth, currentHealth, reason);
+            LOGGER.info("Cluster health status changed from [{}] to [{}] (reason: [{}]).", previousHealth, currentHealth, reason);
         }
     }
 
@@ -417,7 +417,7 @@ public class AllocationService {
                 boolean delayed = INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.get(indexMetaData.getSettings()).nanos() > 0;
                 UnassignedInfo unassignedInfo = new UnassignedInfo(UnassignedInfo.Reason.NODE_LEFT, "node_left[" + node.nodeId() + "]",
                     null, 0, allocation.getCurrentNanoTime(), System.currentTimeMillis(), delayed, AllocationStatus.NO_ATTEMPT);
-                allocation.routingNodes().failShard(logger, shardRouting, unassignedInfo, indexMetaData, allocation.changes());
+                allocation.routingNodes().failShard(LOGGER, shardRouting, unassignedInfo, indexMetaData, allocation.changes());
             }
             // its a dead node, remove it, note, its important to remove it *after* we apply failed shard
             // since it relies on the fact that the RoutingNode exists in the list of nodes
@@ -436,7 +436,7 @@ public class AllocationService {
                 "shard routing to start does not exist in routing table, expected: " + startedShard + " but was: " +
                     routingNodes.getByAllocationId(startedShard.shardId(), startedShard.allocationId().getId());
 
-            routingNodes.startShard(logger, startedShard, routingAllocation.changes());
+            routingNodes.startShard(LOGGER, startedShard, routingAllocation.changes());
         }
     }
 

@@ -31,7 +31,7 @@ public class IndexStats implements Iterable<IndexShardStats> {
 
     private final String uuid;
 
-    private final ShardStats shards[];
+    private final ShardStats[] shards;
 
     public IndexStats(String index, String uuid, ShardStats[] shards) {
         this.index = index;

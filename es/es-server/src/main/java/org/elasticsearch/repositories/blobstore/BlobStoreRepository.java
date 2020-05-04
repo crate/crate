@@ -287,7 +287,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    protected void doStop() {}
+    protected void doStop() {
+    }
 
     @Override
     protected void doClose() {
@@ -318,13 +319,13 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
         BlobContainer blobContainer = this.blobContainer.get();
         if (blobContainer == null) {
-           synchronized (lock) {
-               blobContainer = this.blobContainer.get();
-               if (blobContainer == null) {
-                   blobContainer = blobStore().blobContainer(basePath());
-                   this.blobContainer.set(blobContainer);
-               }
-           }
+            synchronized (lock) {
+                blobContainer = this.blobContainer.get();
+                if (blobContainer == null) {
+                    blobContainer = blobStore().blobContainer(basePath());
+                    this.blobContainer.set(blobContainer);
+                }
+            }
         }
 
         return blobContainer;
@@ -920,7 +921,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         assertSnapshotOrGenericThread();
         BlobContainer testBlobContainer = blobStore().blobContainer(basePath().add(testBlobPrefix(seed)));
         if (testBlobContainer.blobExists("master.dat")) {
-            try  {
+            try {
                 BytesArray bytes = new BytesArray(seed);
                 try (InputStream stream = bytes.streamInput()) {
                     testBlobContainer.writeBlob("data-" + localNode.getId() + ".dat", stream, bytes.length(), true);
@@ -1220,7 +1221,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             long generation = findLatestFileNameGeneration(blobs);
             Tuple<BlobStoreIndexShardSnapshots, Integer> tuple = buildBlobStoreIndexShardSnapshots(blobs);
             BlobStoreIndexShardSnapshots snapshots = tuple.v1();
-            int fileListGeneration = tuple.v2();
+            final int fileListGeneration = tuple.v2();
 
             if (snapshots.snapshots().stream().anyMatch(sf -> sf.snapshot().equals(snapshotId.getName()))) {
                 throw new IndexShardSnapshotFailedException(shardId,

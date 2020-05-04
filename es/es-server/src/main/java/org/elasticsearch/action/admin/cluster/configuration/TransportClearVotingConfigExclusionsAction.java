@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.action.admin.cluster.configuration;
 
 import org.elasticsearch.ElasticsearchException;
@@ -115,10 +116,14 @@ public class TransportClearVotingConfigExclusionsAction
         clusterService.submitStateUpdateTask("clear-voting-config-exclusions", new ClusterStateUpdateTask(Priority.URGENT) {
             @Override
             public ClusterState execute(ClusterState currentState) {
-                final CoordinationMetaData newCoordinationMetaData =
-                        CoordinationMetaData.builder(currentState.coordinationMetaData()).clearVotingConfigExclusions().build();
-                final MetaData newMetaData = MetaData.builder(currentState.metaData()).
-                        coordinationMetaData(newCoordinationMetaData).build();
+                CoordinationMetaData newCoordinationMetaData = CoordinationMetaData
+                    .builder(currentState.coordinationMetaData())
+                    .clearVotingConfigExclusions()
+                    .build();
+                MetaData newMetaData = MetaData
+                    .builder(currentState.metaData())
+                    .coordinationMetaData(newCoordinationMetaData)
+                    .build();
                 return ClusterState.builder(currentState).metaData(newMetaData).build();
             }
 

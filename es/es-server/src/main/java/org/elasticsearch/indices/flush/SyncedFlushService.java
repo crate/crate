@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.indices.flush;
 
 import org.apache.logging.log4j.LogManager;
@@ -73,7 +74,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public class SyncedFlushService implements IndexEventListener {
 
-    private static final Logger logger = LogManager.getLogger(SyncedFlushService.class);
+    private static final Logger LOGGER = LogManager.getLogger(SyncedFlushService.class);
 
     private static final String PRE_SYNCED_FLUSH_ACTION_NAME = "internal:indices/flush/synced/pre";
     private static final String SYNCED_FLUSH_ACTION_NAME = "internal:indices/flush/synced/sync";
@@ -102,12 +103,12 @@ public class SyncedFlushService implements IndexEventListener {
             attemptSyncedFlush(indexShard.shardId(), new ActionListener<ShardsSyncedFlushResult>() {
                 @Override
                 public void onResponse(ShardsSyncedFlushResult syncedFlushResult) {
-                    logger.trace("{} sync flush on inactive shard returned successfully for sync_id: {}", syncedFlushResult.getShardId(), syncedFlushResult.syncId());
+                    LOGGER.trace("{} sync flush on inactive shard returned successfully for sync_id: {}", syncedFlushResult.getShardId(), syncedFlushResult.syncId());
                 }
 
                 @Override
                 public void onFailure(Exception e) {
-                    logger.debug(() -> new ParameterizedMessage("{} sync flush on inactive shard failed", indexShard.shardId()), e);
+                    LOGGER.debug(() -> new ParameterizedMessage("{} sync flush on inactive shard failed", indexShard.shardId()), e);
                 }
             });
         }
@@ -151,7 +152,7 @@ public class SyncedFlushService implements IndexEventListener {
 
                     @Override
                     public void onFailure(Exception e) {
-                        logger.debug("{} unexpected error while executing synced flush", shardId);
+                        LOGGER.debug("{} unexpected error while executing synced flush", shardId);
                         final int totalShards = indexMetaData.getNumberOfReplicas() + 1;
                         results.get(index).add(new ShardsSyncedFlushResult(shardId, totalShards, e.getMessage()));
                         if (countDown.countDown()) {
@@ -225,7 +226,7 @@ public class SyncedFlushService implements IndexEventListener {
                                     assert presyncResponses.values().stream().allMatch(r -> r.existingSyncId.equals(sharedSyncId)) :
                                         "Not all shards have the same existing sync id [" + sharedSyncId + "], responses [" + presyncResponses + "]";
                                     reportSuccessWithExistingSyncId(shardId, sharedSyncId, activeShards, totalShards, presyncResponses, actionListener);
-                                }else {
+                                } else {
                                     String syncId = UUIDs.randomBase64UUID();
                                     sendSyncRequests(syncId, activeShards, state, presyncResponses, shardId, totalShards, actionListener);
                                 }
@@ -305,11 +306,11 @@ public class SyncedFlushService implements IndexEventListener {
             final ShardRouting primaryShard = shardRoutingTable.primaryShard();
             final DiscoveryNode primaryNode = state.nodes().get(primaryShard.currentNodeId());
             if (primaryNode == null) {
-                logger.trace("{} failed to resolve node for primary shard {}, skipping sync", shardId, primaryShard);
+                LOGGER.trace("{} failed to resolve node for primary shard {}, skipping sync", shardId, primaryShard);
                 listener.onResponse(new InFlightOpsResponse(-1));
                 return;
             }
-            logger.trace("{} retrieving in flight operation count", shardId);
+            LOGGER.trace("{} retrieving in flight operation count", shardId);
             transportService.sendRequest(primaryNode, IN_FLIGHT_OPS_ACTION_NAME, new InFlightOpsRequest(shardId),
                     new TransportResponseHandler<InFlightOpsResponse>() {
 
@@ -325,7 +326,7 @@ public class SyncedFlushService implements IndexEventListener {
 
                         @Override
                         public void handleException(TransportException exp) {
-                            logger.debug("{} unexpected error while retrieving in flight op count", shardId);
+                            LOGGER.debug("{} unexpected error while retrieving in flight op count", shardId);
                             listener.onFailure(exp);
                         }
 
@@ -359,28 +360,28 @@ public class SyncedFlushService implements IndexEventListener {
         for (final ShardRouting shard : shards) {
             final DiscoveryNode node = state.nodes().get(shard.currentNodeId());
             if (node == null) {
-                logger.trace("{} is assigned to an unknown node. skipping for sync id [{}]. shard routing {}", shardId, syncId, shard);
+                LOGGER.trace("{} is assigned to an unknown node. skipping for sync id [{}]. shard routing {}", shardId, syncId, shard);
                 results.put(shard, new ShardSyncedFlushResponse("unknown node"));
                 countDownAndSendResponseIfDone(syncId, shards, shardId, totalShards, listener, countDown, results);
                 continue;
             }
             final PreSyncedFlushResponse preSyncedResponse = preSyncResponses.get(shard.currentNodeId());
             if (preSyncedResponse == null) {
-                logger.trace("{} can't resolve expected commit id for current node, skipping for sync id [{}]. shard routing {}", shardId, syncId, shard);
+                LOGGER.trace("{} can't resolve expected commit id for current node, skipping for sync id [{}]. shard routing {}", shardId, syncId, shard);
                 results.put(shard, new ShardSyncedFlushResponse("no commit id from pre-sync flush"));
                 countDownAndSendResponseIfDone(syncId, shards, shardId, totalShards, listener, countDown, results);
                 continue;
             }
             if (preSyncedResponse.numDocs != numDocsOnPrimary
                 && preSyncedResponse.numDocs != PreSyncedFlushResponse.UNKNOWN_NUM_DOCS && numDocsOnPrimary != PreSyncedFlushResponse.UNKNOWN_NUM_DOCS) {
-                logger.warn("{} can't to issue sync id [{}] for out of sync replica [{}] with num docs [{}]; num docs on primary [{}]",
+                LOGGER.warn("{} can't to issue sync id [{}] for out of sync replica [{}] with num docs [{}]; num docs on primary [{}]",
                     shardId, syncId, shard, preSyncedResponse.numDocs, numDocsOnPrimary);
                 results.put(shard, new ShardSyncedFlushResponse("out of sync replica; " +
                     "num docs on replica [" + preSyncedResponse.numDocs + "]; num docs on primary [" + numDocsOnPrimary + "]"));
                 countDownAndSendResponseIfDone(syncId, shards, shardId, totalShards, listener, countDown, results);
                 continue;
             }
-            logger.trace("{} sending synced flush request to {}. sync id [{}].", shardId, shard, syncId);
+            LOGGER.trace("{} sending synced flush request to {}. sync id [{}].", shardId, shard, syncId);
             transportService.sendRequest(node, SYNCED_FLUSH_ACTION_NAME, new ShardSyncedFlushRequest(shard.shardId(), syncId, preSyncedResponse.commitId),
                     new TransportResponseHandler<ShardSyncedFlushResponse>() {
 
@@ -399,7 +400,7 @@ public class SyncedFlushService implements IndexEventListener {
 
                         @Override
                         public void handleException(TransportException exp) {
-                            logger.trace(() -> new ParameterizedMessage("{} error while performing synced flush on [{}], skipping", shardId, shard), exp);
+                            LOGGER.trace(() -> new ParameterizedMessage("{} error while performing synced flush on [{}], skipping", shardId, shard), exp);
                             results.put(shard, new ShardSyncedFlushResponse(exp.getMessage()));
                             countDownAndSendResponseIfDone(syncId, shards, shardId, totalShards, listener, countDown, results);
                         }
@@ -428,10 +429,10 @@ public class SyncedFlushService implements IndexEventListener {
         final CountDown countDown = new CountDown(shards.size());
         final ConcurrentMap<String, PreSyncedFlushResponse> presyncResponses = ConcurrentCollections.newConcurrentMap();
         for (final ShardRouting shard : shards) {
-            logger.trace("{} sending pre-synced flush request to {}", shardId, shard);
+            LOGGER.trace("{} sending pre-synced flush request to {}", shardId, shard);
             final DiscoveryNode node = state.nodes().get(shard.currentNodeId());
             if (node == null) {
-                logger.trace("{} shard routing {} refers to an unknown node. skipping.", shardId, shard);
+                LOGGER.trace("{} shard routing {} refers to an unknown node. skipping.", shardId, shard);
                 if (countDown.countDown()) {
                     listener.onResponse(presyncResponses);
                 }
@@ -456,7 +457,7 @@ public class SyncedFlushService implements IndexEventListener {
 
                 @Override
                 public void handleException(TransportException exp) {
-                    logger.trace(() -> new ParameterizedMessage("{} error while performing pre synced flush on [{}], skipping", shardId, shard), exp);
+                    LOGGER.trace(() -> new ParameterizedMessage("{} error while performing pre synced flush on [{}], skipping", shardId, shard), exp);
                     if (countDown.countDown()) {
                         listener.onResponse(presyncResponses);
                     }
@@ -473,20 +474,20 @@ public class SyncedFlushService implements IndexEventListener {
     private PreSyncedFlushResponse performPreSyncedFlush(PreShardSyncedFlushRequest request) {
         IndexShard indexShard = indicesService.indexServiceSafe(request.shardId().getIndex()).getShard(request.shardId().id());
         FlushRequest flushRequest = new FlushRequest().force(false).waitIfOngoing(true);
-        logger.trace("{} performing pre sync flush", request.shardId());
+        LOGGER.trace("{} performing pre sync flush", request.shardId());
         indexShard.flush(flushRequest);
         final CommitStats commitStats = indexShard.commitStats();
         final Engine.CommitId commitId = commitStats.getRawCommitId();
-        logger.trace("{} pre sync flush done. commit id {}, num docs {}", request.shardId(), commitId, commitStats.getNumDocs());
+        LOGGER.trace("{} pre sync flush done. commit id {}, num docs {}", request.shardId(), commitId, commitStats.getNumDocs());
         return new PreSyncedFlushResponse(commitId, commitStats.getNumDocs(), commitStats.syncId());
     }
 
     private ShardSyncedFlushResponse performSyncedFlush(ShardSyncedFlushRequest request) {
         IndexService indexService = indicesService.indexServiceSafe(request.shardId().getIndex());
         IndexShard indexShard = indexService.getShard(request.shardId().id());
-        logger.trace("{} performing sync flush. sync id [{}], expected commit id {}", request.shardId(), request.syncId(), request.expectedCommitId());
+        LOGGER.trace("{} performing sync flush. sync id [{}], expected commit id {}", request.shardId(), request.syncId(), request.expectedCommitId());
         Engine.SyncedFlushResult result = indexShard.syncFlush(request.syncId(), request.expectedCommitId());
-        logger.trace("{} sync flush done. sync id [{}], result [{}]", request.shardId(), request.syncId(), result);
+        LOGGER.trace("{} sync flush done. sync id [{}], result [{}]", request.shardId(), request.syncId(), result);
         switch (result) {
             case SUCCESS:
                 return new ShardSyncedFlushResponse();
@@ -503,7 +504,7 @@ public class SyncedFlushService implements IndexEventListener {
         IndexService indexService = indicesService.indexServiceSafe(request.shardId().getIndex());
         IndexShard indexShard = indexService.getShard(request.shardId().id());
         if (indexShard.routingEntry().primary() == false) {
-            throw new IllegalStateException("[" + request.shardId() +"] expected a primary shard");
+            throw new IllegalStateException("[" + request.shardId() + "] expected a primary shard");
         }
         int opCount = indexShard.getActiveOperationsCount();
         return new InFlightOpsResponse(opCount);

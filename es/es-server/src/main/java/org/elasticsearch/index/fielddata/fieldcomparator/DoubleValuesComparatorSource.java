@@ -55,7 +55,8 @@ public class DoubleValuesComparatorSource extends IndexFieldData.XFieldComparato
         return indexFieldData.load(context).getDoubleValues();
     }
 
-    protected void setScorer(Scorer scorer) {}
+    protected void setScorer(Scorer scorer) {
+    }
 
     @Override
     public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) {

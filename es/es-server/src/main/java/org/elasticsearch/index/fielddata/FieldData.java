@@ -152,10 +152,12 @@ public enum FieldData {
      */
     public static SortedBinaryDocValues toString(final SortedNumericDocValues values) {
         return toString(new ToStringValues() {
+
             @Override
             public boolean advanceExact(int doc) throws IOException {
                 return values.advanceExact(doc);
             }
+
             @Override
             public void get(List<CharSequence> list) throws IOException {
                 for (int i = 0, count = values.docValueCount(); i < count; ++i) {
@@ -172,10 +174,12 @@ public enum FieldData {
      */
     public static SortedBinaryDocValues toString(final SortedNumericDoubleValues values) {
         return toString(new ToStringValues() {
+
             @Override
             public boolean advanceExact(int doc) throws IOException {
                 return values.advanceExact(doc);
             }
+
             @Override
             public void get(List<CharSequence> list) throws IOException {
                 for (int i = 0, count = values.docValueCount(); i < count; ++i) {
@@ -231,10 +235,12 @@ public enum FieldData {
      */
     public static SortedBinaryDocValues toString(final MultiGeoPointValues values) {
         return toString(new ToStringValues() {
+
             @Override
             public boolean advanceExact(int doc) throws IOException {
                 return values.advanceExact(doc);
             }
+
             @Override
             public void get(List<CharSequence> list) throws IOException {
                 for (int i = 0, count = values.docValueCount(); i < count; ++i) {

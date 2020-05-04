@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.action.support.master;
 
 import org.elasticsearch.cluster.ack.AckedRequest;
@@ -68,7 +69,7 @@ public abstract class AcknowledgedRequest<Request extends MasterNodeRequest<Requ
      * @return the current timeout as a {@link TimeValue}
      */
     public final TimeValue timeout() {
-        return  timeout;
+        return timeout;
     }
 
     @Override

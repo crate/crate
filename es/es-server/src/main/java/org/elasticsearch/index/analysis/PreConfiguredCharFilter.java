@@ -32,12 +32,17 @@ import java.util.function.Function;
  * Provides pre-configured, shared {@link CharFilter}s.
  */
 public class PreConfiguredCharFilter extends PreConfiguredAnalysisComponent<CharFilterFactory> {
+
     /**
      * Create a pre-configured char filter that may not vary at all.
      */
     public static PreConfiguredCharFilter singleton(String name, boolean useFilterForMultitermQueries, Function<Reader, Reader> create) {
-        return new PreConfiguredCharFilter(name, CachingStrategy.ONE, useFilterForMultitermQueries,
-                (reader, version) -> create.apply(reader));
+        return new PreConfiguredCharFilter(
+            name,
+            CachingStrategy.ONE,
+            useFilterForMultitermQueries,
+            (reader, version) -> create.apply(reader)
+        );
     }
 
     /**
@@ -45,8 +50,12 @@ public class PreConfiguredCharFilter extends PreConfiguredAnalysisComponent<Char
      */
     public static PreConfiguredCharFilter singletonWithVersion(String name, boolean useFilterForMultitermQueries,
             BiFunction<Reader, org.elasticsearch.Version, Reader> create) {
-        return new PreConfiguredCharFilter(name, CachingStrategy.ONE, useFilterForMultitermQueries,
-                (reader, version) -> create.apply(reader, version));
+        return new PreConfiguredCharFilter(
+            name,
+            CachingStrategy.ONE,
+            useFilterForMultitermQueries,
+            (reader, version) -> create.apply(reader, version)
+        );
     }
 
     /**
@@ -54,8 +63,12 @@ public class PreConfiguredCharFilter extends PreConfiguredAnalysisComponent<Char
      */
     public static PreConfiguredCharFilter luceneVersion(String name, boolean useFilterForMultitermQueries,
             BiFunction<Reader, org.apache.lucene.util.Version, Reader> create) {
-        return new PreConfiguredCharFilter(name, CachingStrategy.LUCENE, useFilterForMultitermQueries,
-                (reader, version) -> create.apply(reader, version.luceneVersion));
+        return new PreConfiguredCharFilter(
+            name,
+            CachingStrategy.LUCENE,
+            useFilterForMultitermQueries,
+            (reader, version) -> create.apply(reader, version.luceneVersion)
+        );
     }
 
     /**

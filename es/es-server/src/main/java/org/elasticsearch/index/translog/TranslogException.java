@@ -36,7 +36,7 @@ public class TranslogException extends ElasticsearchException {
         setShard(shardId);
     }
 
-    public TranslogException(StreamInput in) throws IOException{
+    public TranslogException(StreamInput in) throws IOException {
         super(in);
     }
 }

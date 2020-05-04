@@ -32,7 +32,7 @@ import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
  */
 public class SnapshotInProgressAllocationDecider extends AllocationDecider {
 
-    private static final Logger logger = LogManager.getLogger(SnapshotInProgressAllocationDecider.class);
+    private static final Logger LOGGER = LogManager.getLogger(SnapshotInProgressAllocationDecider.class);
 
     public static final String NAME = "snapshot_in_progress";
 
@@ -69,8 +69,8 @@ public class SnapshotInProgressAllocationDecider extends AllocationDecider {
                 SnapshotsInProgress.ShardSnapshotStatus shardSnapshotStatus = snapshot.shards().get(shardRouting.shardId());
                 if (shardSnapshotStatus != null && !shardSnapshotStatus.state().completed() && shardSnapshotStatus.nodeId() != null &&
                         shardSnapshotStatus.nodeId().equals(shardRouting.currentNodeId())) {
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("Preventing snapshotted shard [{}] from being moved away from node [{}]",
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Preventing snapshotted shard [{}] from being moved away from node [{}]",
                                 shardRouting.shardId(), shardSnapshotStatus.nodeId());
                     }
                     return allocation.decision(Decision.THROTTLE, NAME,

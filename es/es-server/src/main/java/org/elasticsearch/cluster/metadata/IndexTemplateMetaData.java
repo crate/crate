@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
@@ -91,7 +92,7 @@ public class IndexTemplateMetaData extends AbstractDiffable<IndexTemplateMetaDat
         this.name = name;
         this.order = order;
         this.version = version;
-        this.patterns= patterns;
+        this.patterns = patterns;
         this.settings = settings;
         this.mappings = mappings;
         this.aliases = aliases;

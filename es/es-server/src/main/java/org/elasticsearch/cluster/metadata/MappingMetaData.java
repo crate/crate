@@ -19,26 +19,21 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractDiffable;
-import org.elasticsearch.cluster.Diff;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.mapper.DateFieldMapper;
-import org.elasticsearch.index.mapper.DocumentMapper;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 
 import java.io.IOException;
 import java.util.Map;
 
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.cluster.AbstractDiffable;
+import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.mapper.DocumentMapper;
 
 /**
  * Mapping configuration for a type.

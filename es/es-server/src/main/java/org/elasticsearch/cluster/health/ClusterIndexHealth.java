@@ -56,35 +56,47 @@ public final class ClusterIndexHealth implements Iterable<ClusterShardHealth>, W
     private static final String UNASSIGNED_SHARDS = "unassigned_shards";
     private static final String SHARDS = "shards";
 
-    private static final ConstructingObjectParser<ClusterIndexHealth, String> PARSER =
-            new ConstructingObjectParser<>("cluster_index_health", true,
-                    (parsedObjects, index) -> {
-                        int i = 0;
-                        int numberOfShards = (int) parsedObjects[i++];
-                        int numberOfReplicas = (int) parsedObjects[i++];
-                        int activeShards = (int) parsedObjects[i++];
-                        int relocatingShards = (int) parsedObjects[i++];
-                        int initializingShards = (int) parsedObjects[i++];
-                        int unassignedShards = (int) parsedObjects[i++];
-                        int activePrimaryShards = (int) parsedObjects[i++];
-                        String statusStr = (String) parsedObjects[i++];
-                        ClusterHealthStatus status = ClusterHealthStatus.fromString(statusStr);
-                        @SuppressWarnings("unchecked") List<ClusterShardHealth> shardList = (List<ClusterShardHealth>) parsedObjects[i];
-                        final Map<Integer, ClusterShardHealth> shards;
-                        if (shardList == null || shardList.isEmpty()) {
-                            shards = emptyMap();
-                        } else {
-                            shards = new HashMap<>(shardList.size());
-                            for (ClusterShardHealth shardHealth : shardList) {
-                                shards.put(shardHealth.getShardId(), shardHealth);
-                            }
-                        }
-                        return new ClusterIndexHealth(index, numberOfShards, numberOfReplicas, activeShards, relocatingShards,
-                                initializingShards, unassignedShards, activePrimaryShards, status, shards);
-                    });
+    private static final ConstructingObjectParser<ClusterIndexHealth, String> PARSER = new ConstructingObjectParser<>(
+        "cluster_index_health",
+        true,
+        (parsedObjects, index) -> {
+            int i = 0;
+            int numberOfShards = (int) parsedObjects[i++];
+            int numberOfReplicas = (int) parsedObjects[i++];
+            int activeShards = (int) parsedObjects[i++];
+            int relocatingShards = (int) parsedObjects[i++];
+            int initializingShards = (int) parsedObjects[i++];
+            int unassignedShards = (int) parsedObjects[i++];
+            int activePrimaryShards = (int) parsedObjects[i++];
+            String statusStr = (String) parsedObjects[i++];
+            ClusterHealthStatus status = ClusterHealthStatus.fromString(statusStr);
+            @SuppressWarnings("unchecked") List<ClusterShardHealth> shardList = (List<ClusterShardHealth>) parsedObjects[i];
+            final Map<Integer, ClusterShardHealth> shards;
+            if (shardList == null || shardList.isEmpty()) {
+                shards = emptyMap();
+            } else {
+                shards = new HashMap<>(shardList.size());
+                for (ClusterShardHealth shardHealth : shardList) {
+                    shards.put(shardHealth.getShardId(), shardHealth);
+                }
+            }
+            return new ClusterIndexHealth(
+                index,
+                numberOfShards,
+                numberOfReplicas,
+                activeShards,
+                relocatingShards,
+                initializingShards,
+                unassignedShards,
+                activePrimaryShards,
+                status,
+                shards
+            );
+        }
+    );
 
     public static final ObjectParser.NamedObjectParser<ClusterShardHealth, String> SHARD_PARSER =
-            (XContentParser p, String indexIgnored, String shardId) -> ClusterShardHealth.innerFromXContent(p, Integer.valueOf(shardId));
+        (XContentParser p, String indexIgnored, String shardId) -> ClusterShardHealth.innerFromXContent(p, Integer.valueOf(shardId));
 
     static {
         PARSER.declareInt(constructorArg(), new ParseField(NUMBER_OF_SHARDS));

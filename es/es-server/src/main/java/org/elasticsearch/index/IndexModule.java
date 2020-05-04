@@ -401,11 +401,16 @@ public final class IndexModule {
      * creates a new mapper service to do administrative work like mapping updates. This *should not* be used for document parsing.
      * doing so will result in an exception.
      */
-    public MapperService newIndexMapperService(NamedXContentRegistry xContentRegistry, MapperRegistry mapperRegistry)
-        throws IOException {
-        return new MapperService(indexSettings, analysisRegistry.build(indexSettings), xContentRegistry,
+    public MapperService newIndexMapperService(NamedXContentRegistry xContentRegistry, MapperRegistry mapperRegistry) throws IOException {
+        return new MapperService(
+            indexSettings,
+            analysisRegistry.build(indexSettings),
+            xContentRegistry,
             mapperRegistry,
-            () -> { throw new UnsupportedOperationException("no index query shard context available"); });
+            () -> {
+                throw new UnsupportedOperationException("no index query shard context available");
+            }
+        );
     }
 
     /**

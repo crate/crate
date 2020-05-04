@@ -33,5 +33,6 @@ public class Classes {
         return !clazz.isInterface() && !Modifier.isAbstract(modifiers);
     }
 
-    private Classes() {}
+    private Classes() {
+    }
 }

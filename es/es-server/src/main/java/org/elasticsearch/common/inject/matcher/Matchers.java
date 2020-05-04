@@ -346,7 +346,7 @@ public class Matchers {
         return new InSubpackage(targetPackageName);
     }
 
-    private static class InSubpackage extends AbstractMatcher<Class>  {
+    private static class InSubpackage extends AbstractMatcher<Class> {
         private final String targetPackageName;
 
         InSubpackage(String targetPackageName) {

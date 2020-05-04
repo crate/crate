@@ -62,7 +62,7 @@ public class ExtractFunctions {
     private static final Map<Extract.Field, DateTimeField> FIELDS_MAP_WITH_INT_RETURN = Map.ofEntries(
         entry(CENTURY, ISOChronology.getInstanceUTC().centuryOfEra()),
         entry(YEAR, ISOChronology.getInstanceUTC().year()),
-        entry(QUARTER, Joda.QuarterOfYear.getField(ISOChronology.getInstanceUTC())),
+        entry(QUARTER, Joda.QUARTER_OF_YEAR.getField(ISOChronology.getInstanceUTC())),
         entry(MONTH, ISOChronology.getInstanceUTC().monthOfYear()),
         entry(WEEK, ISOChronology.getInstanceUTC().weekOfWeekyear()),
         entry(DAY_OF_MONTH, ISOChronology.getInstanceUTC().dayOfMonth()),

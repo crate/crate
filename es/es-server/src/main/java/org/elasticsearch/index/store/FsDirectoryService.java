@@ -164,7 +164,7 @@ public class FsDirectoryService extends DirectoryService {
 
         boolean useDelegate(String name) {
             String extension = FileSwitchDirectory.getExtension(name);
-            switch(extension) {
+            switch (extension) {
                 // Norms, doc values and term dictionaries are typically performance-sensitive and hot in the page
                 // cache, so we use mmap, which provides better performance.
                 case "nvd":

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.snapshots.blobstore;
 
 import org.elasticsearch.core.internal.io.IOUtils;

@@ -74,7 +74,8 @@ import java.util.function.UnaryOperator;
  * gathered results, re-creates {@link ClusterState} and broadcasts this state to other nodes in the cluster.
  */
 public class GatewayMetaState implements ClusterStateApplier, CoordinationState.PersistedState {
-    protected static final Logger logger = LogManager.getLogger(GatewayMetaState.class);
+
+    protected static final Logger LOGGER = LogManager.getLogger(GatewayMetaState.class);
 
     private final NodeEnvironment nodeEnv;
     private final MetaStateService metaStateService;
@@ -126,7 +127,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
                 .version(previousManifest.getClusterStateVersion())
                 .metaData(metaData).build();
 
-        logger.debug("took {} to load state", TimeValue.timeValueMillis(TimeValue.nsecToMSec(System.nanoTime() - startNS)));
+        LOGGER.debug("took {} to load state", TimeValue.timeValueMillis(TimeValue.nsecToMSec(System.nanoTime() - startNS)));
     }
 
     public void applyClusterStateUpdaters() {
@@ -178,7 +179,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
                         globalStateGeneration, indices);
                 writer.writeManifestAndCleanup("startup", newManifest);
             } catch (Exception e) {
-                logger.error("failed to read or upgrade local state, exiting...", e);
+                LOGGER.error("failed to read or upgrade local state, exiting...", e);
                 throw e;
             }
         }
@@ -214,7 +215,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
             updateClusterState(event.state(), event.previousState());
             incrementalWrite = true;
         } catch (WriteStateException e) {
-            logger.warn("Exception occurred when storing new meta data", e);
+            LOGGER.warn("Exception occurred when storing new meta data", e);
         }
     }
 
@@ -234,7 +235,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
         try {
             innerSetCurrentTerm(currentTerm);
         } catch (WriteStateException e) {
-            logger.error(new ParameterizedMessage("Failed to set current term to {}", currentTerm), e);
+            LOGGER.error(new ParameterizedMessage("Failed to set current term to {}", currentTerm), e);
             e.rethrowAsErrorOrUncheckedException();
         }
     }
@@ -252,7 +253,7 @@ public class GatewayMetaState implements ClusterStateApplier, CoordinationState.
             incrementalWrite = previousClusterState.term() == clusterState.term();
             updateClusterState(clusterState, previousClusterState);
         } catch (WriteStateException e) {
-            logger.error(new ParameterizedMessage("Failed to set last accepted state with version {}", clusterState.version()), e);
+            LOGGER.error(new ParameterizedMessage("Failed to set last accepted state with version {}", clusterState.version()), e);
             e.rethrowAsErrorOrUncheckedException();
         }
     }

@@ -59,7 +59,7 @@ import static org.elasticsearch.indices.cluster.IndicesClusterStateService.Alloc
  */
 public class MetaDataMappingService {
 
-    private static final Logger logger = LogManager.getLogger(MetaDataMappingService.class);
+    private static final Logger LOGGER = LogManager.getLogger(MetaDataMappingService.class);
 
     private final ClusterService clusterService;
     private final IndicesService indicesService;
@@ -108,7 +108,7 @@ public class MetaDataMappingService {
         Map<String, List<RefreshTask>> tasksPerIndex = new HashMap<>();
         for (RefreshTask task : allTasks) {
             if (task.index == null) {
-                logger.debug("ignoring a mapping task of type [{}] with a null index.", task);
+                LOGGER.debug("ignoring a mapping task of type [{}] with a null index.", task);
             }
             tasksPerIndex.computeIfAbsent(task.index, k -> new ArrayList<>()).add(task);
         }
@@ -120,7 +120,7 @@ public class MetaDataMappingService {
             IndexMetaData indexMetaData = mdBuilder.get(entry.getKey());
             if (indexMetaData == null) {
                 // index got deleted on us, ignore...
-                logger.debug("[{}] ignoring tasks - index meta data doesn't exist", entry.getKey());
+                LOGGER.debug("[{}] ignoring tasks - index meta data doesn't exist", entry.getKey());
                 continue;
             }
             final Index index = indexMetaData.getIndex();
@@ -132,7 +132,7 @@ public class MetaDataMappingService {
                 if (indexMetaData.isSameUUID(task.indexUUID)) {
                     hasTaskWithRightUUID = true;
                 } else {
-                    logger.debug("{} ignoring task [{}] - index meta data doesn't match task uuid", index, task);
+                    LOGGER.debug("{} ignoring task [{}] - index meta data doesn't match task uuid", index, task);
                 }
             }
             if (hasTaskWithRightUUID == false) {
@@ -183,14 +183,14 @@ public class MetaDataMappingService {
 
             // if a single type is not up-to-date, re-send everything
             if (updatedTypes.isEmpty() == false) {
-                logger.warn("[{}] re-syncing mappings with cluster state because of types [{}]", index, updatedTypes);
+                LOGGER.warn("[{}] re-syncing mappings with cluster state because of types [{}]", index, updatedTypes);
                 dirty = true;
                 for (DocumentMapper mapper : indexService.mapperService().docMappers(true)) {
                     builder.putMapping(new MappingMetaData(mapper));
                 }
             }
         } catch (Exception e) {
-            logger.warn(() -> new ParameterizedMessage("[{}] failed to refresh-mapping in cluster state", index), e);
+            LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to refresh-mapping in cluster state", index), e);
         }
         return dirty;
     }
@@ -204,7 +204,7 @@ public class MetaDataMappingService {
             refreshTask,
             ClusterStateTaskConfig.build(Priority.HIGH),
             refreshExecutor,
-                (source, e) -> logger.warn(() -> new ParameterizedMessage("failure during [{}]", source), e)
+            (source, e) -> LOGGER.warn(() -> new ParameterizedMessage("failure during [{}]", source), e)
         );
     }
 
@@ -301,19 +301,19 @@ public class MetaDataMappingService {
                     } else {
                         updatedMapping = true;
                         // use the merged mapping source
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("{} update_mapping [{}] with source [{}]", index, mergedMapper.type(), updatedSource);
-                        } else if (logger.isInfoEnabled()) {
-                            logger.info("{} update_mapping [{}]", index, mergedMapper.type());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("{} update_mapping [{}] with source [{}]", index, mergedMapper.type(), updatedSource);
+                        } else if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info("{} update_mapping [{}]", index, mergedMapper.type());
                         }
 
                     }
                 } else {
                     updatedMapping = true;
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("{} create_mapping [{}] with source [{}]", index, mappingType, updatedSource);
-                    } else if (logger.isInfoEnabled()) {
-                        logger.info("{} create_mapping [{}]", index, mappingType);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("{} create_mapping [{}] with source [{}]", index, mappingType, updatedSource);
+                    } else if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info("{} create_mapping [{}]", index, mappingType);
                     }
                 }
 
