@@ -241,6 +241,30 @@ public class TypeConversionTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_time_to_double_conversion() {
+        assertThat(TimeTZType.INSTANCE.isConvertableTo(DoubleType.INSTANCE, false),
+                   is(false));
+        assertThat(DoubleType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false),
+                   is(false));
+    }
+
+    @Test
+    public void test_time_to_long_conversion() {
+        assertThat(TimeTZType.INSTANCE.isConvertableTo(LongType.INSTANCE, false),
+                   is(false));
+        assertThat(LongType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false),
+                   is(false));
+    }
+
+    @Test
+    public void test_time_to_string_conversion() {
+        assertThat(TimeTZType.INSTANCE.isConvertableTo(StringType.INSTANCE, false),
+                   is(false));
+        assertThat(StringType.INSTANCE.isConvertableTo(TimeTZType.INSTANCE, false),
+                   is(true));
+    }
+
+    @Test
     public void test_object_to_object_conversion_when_either_has_no_inner_types() {
         var objectTypeWithInner = ObjectType.builder().setInnerType("field", DataTypes.STRING).build();
         var objectTypeWithoutInner = DataTypes.UNTYPED_OBJECT;
