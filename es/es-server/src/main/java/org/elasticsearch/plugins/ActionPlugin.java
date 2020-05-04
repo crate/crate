@@ -58,13 +58,6 @@ public interface ActionPlugin {
         return Collections.emptyList();
     }
 
-    /**
-     * Returns headers which should be copied from internal requests into tasks.
-     */
-    default Collection<String> getTaskHeaders() {
-        return Collections.emptyList();
-    }
-
     final class ActionHandler<Request extends TransportRequest, Response extends TransportResponse> {
         private final GenericAction<Request, Response> action;
         private final Class<? extends TransportAction<Request, Response>> transportAction;

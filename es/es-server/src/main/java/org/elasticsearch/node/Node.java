@@ -441,17 +441,12 @@ public class Node implements Closeable {
                                                                                                             indexMetaDataUpgraders);
             new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetaDataUpgraders);
             final Transport transport = networkModule.getTransportSupplier().get();
-            Set<String> taskHeaders = Stream.concat(
-                pluginsService.filterPlugins(ActionPlugin.class).stream().flatMap(p -> p.getTaskHeaders().stream()),
-                Stream.of(Task.X_OPAQUE_ID)
-            ).collect(Collectors.toSet());
             final TransportService transportService = newTransportService(settings,
                                                                           transport,
                                                                           threadPool,
                                                                           networkModule.getTransportInterceptor(),
                                                                           localNodeFactory,
-                                                                          settingsModule.getClusterSettings(),
-                                                                          taskHeaders);
+                                                                          settingsModule.getClusterSettings());
             final GatewayMetaState gatewayMetaState = new GatewayMetaState(settings,
                                                                            nodeEnvironment,
                                                                            metaStateService,
@@ -576,11 +571,13 @@ public class Node implements Closeable {
         }
     }
 
-    protected TransportService newTransportService(Settings settings, Transport transport, ThreadPool threadPool,
+    protected TransportService newTransportService(Settings settings,
+                                                   Transport transport,
+                                                   ThreadPool threadPool,
                                                    TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
-                                                   ClusterSettings clusterSettings, Set<String> taskHeaders) {
-        return new TransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings, taskHeaders);
+                                                   ClusterSettings clusterSettings) {
+        return new TransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings);
     }
 
     protected void processRecoverySettings(ClusterSettings clusterSettings, RecoverySettings recoverySettings) {

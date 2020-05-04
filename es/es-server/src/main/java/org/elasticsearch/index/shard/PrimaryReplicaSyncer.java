@@ -280,8 +280,8 @@ public class PrimaryReplicaSyncer {
         }
 
         @Override
-        public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
-            return new ResyncTask(id, type, action, getDescription(), parentTaskId, headers);
+        public Task createTask(long id, String type, String action, TaskId parentTaskId) {
+            return new ResyncTask(id, type, action, getDescription(), parentTaskId);
         }
 
         @Override
@@ -300,8 +300,8 @@ public class PrimaryReplicaSyncer {
         private volatile int totalOperations;
         private volatile int resyncedOperations;
 
-        public ResyncTask(long id, String type, String action, String description, TaskId parentTaskId, Map<String, String> headers) {
-            super(id, type, action, description, parentTaskId, headers);
+        public ResyncTask(long id, String type, String action, String description, TaskId parentTaskId) {
+            super(id, type, action, description, parentTaskId);
         }
 
         /**

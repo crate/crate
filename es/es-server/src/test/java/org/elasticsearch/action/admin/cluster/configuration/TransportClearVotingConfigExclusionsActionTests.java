@@ -93,8 +93,13 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
     @Before
     public void setupForTest() {
         final MockTransport transport = new MockTransport();
-        transportService = transport.createTransportService(Settings.EMPTY, threadPool,
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR, boundTransportAddress -> localNode, null, emptySet());
+        transportService = transport.createTransportService(
+            Settings.EMPTY,
+            threadPool,
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            boundTransportAddress -> localNode,
+            null
+        );
 
         new TransportClearVotingConfigExclusionsAction(
             transportService, clusterService, threadPool, new IndexNameExpressionResolver()); // registers action

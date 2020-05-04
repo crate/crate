@@ -115,18 +115,20 @@ public class MockNode extends Node {
     }
 
     @Override
-    protected TransportService newTransportService(Settings settings, Transport transport, ThreadPool threadPool,
+    protected TransportService newTransportService(Settings settings,
+                                                   Transport transport,
+                                                   ThreadPool threadPool,
                                                    TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
-                                                   ClusterSettings clusterSettings, Set<String> taskHeaders) {
+                                                   ClusterSettings clusterSettings) {
         // we use the MockTransportService.TestPlugin class as a marker to create a network
         // module with this MockNetworkService. NetworkService is such an integral part of the systme
         // we don't allow to plug it in from plugins or anything. this is a test-only override and
         // can't be done in a production env.
         if (getPluginsService().filterPlugins(MockTransportService.TestPlugin.class).isEmpty()) {
-            return super.newTransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings, taskHeaders);
+            return super.newTransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings);
         } else {
-            return new MockTransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings, taskHeaders);
+            return new MockTransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings);
         }
     }
 

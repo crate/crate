@@ -138,8 +138,13 @@ public class LeaderCheckerTests extends ESTestCase {
             }
         };
 
-        final TransportService transportService = mockTransport.createTransportService(settings,
-            deterministicTaskQueue.getThreadPool(), NOOP_TRANSPORT_INTERCEPTOR, boundTransportAddress -> localNode, null, emptySet());
+        final TransportService transportService = mockTransport.createTransportService(
+            settings,
+            deterministicTaskQueue.getThreadPool(),
+            NOOP_TRANSPORT_INTERCEPTOR,
+            boundTransportAddress -> localNode,
+            null
+        );
         transportService.start();
         transportService.acceptIncomingRequests();
 
@@ -240,8 +245,13 @@ public class LeaderCheckerTests extends ESTestCase {
             }
         };
 
-        final TransportService transportService = mockTransport.createTransportService(settings,
-            deterministicTaskQueue.getThreadPool(), NOOP_TRANSPORT_INTERCEPTOR, boundTransportAddress -> localNode, null, emptySet());
+        final TransportService transportService = mockTransport.createTransportService(
+            settings,
+            deterministicTaskQueue.getThreadPool(),
+            NOOP_TRANSPORT_INTERCEPTOR,
+            boundTransportAddress -> localNode,
+            null
+        );
         transportService.start();
         transportService.acceptIncomingRequests();
 
@@ -311,8 +321,13 @@ public class LeaderCheckerTests extends ESTestCase {
         final DeterministicTaskQueue deterministicTaskQueue = new DeterministicTaskQueue(settings, random());
         final CapturingTransport capturingTransport = new CapturingTransport();
 
-        final TransportService transportService = capturingTransport.createTransportService(settings,
-            deterministicTaskQueue.getThreadPool(), NOOP_TRANSPORT_INTERCEPTOR, boundTransportAddress -> localNode, null, emptySet());
+        final TransportService transportService = capturingTransport.createTransportService(
+            settings,
+            deterministicTaskQueue.getThreadPool(),
+            NOOP_TRANSPORT_INTERCEPTOR,
+            boundTransportAddress -> localNode,
+            null
+        );
         transportService.start();
         transportService.acceptIncomingRequests();
 

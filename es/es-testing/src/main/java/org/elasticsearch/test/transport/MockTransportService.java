@@ -97,11 +97,12 @@ public final class MockTransportService extends TransportService {
         }
     }
 
-    public static MockTransportService createNewService(Settings settings, Version version, ThreadPool threadPool,
+    public static MockTransportService createNewService(Settings settings,
+                                                        Version version,
+                                                        ThreadPool threadPool,
                                                         @Nullable ClusterSettings clusterSettings) {
         MockTcpTransport mockTcpTransport = newMockTransport(settings, version, threadPool);
-        return createNewService(settings, mockTcpTransport, version, threadPool, clusterSettings,
-            Collections.emptySet());
+        return createNewService(settings, mockTcpTransport, version, threadPool, clusterSettings);
     }
 
     public static MockTcpTransport newMockTransport(Settings settings, Version version, ThreadPool threadPool) {
@@ -116,13 +117,26 @@ public final class MockTransportService extends TransportService {
             new NoneCircuitBreakerService(), namedWriteableRegistry, new NetworkService(Collections.emptyList()), version);
     }
 
-    public static MockTransportService createNewService(Settings settings, Transport transport, Version version, ThreadPool threadPool,
-                                                        @Nullable ClusterSettings clusterSettings, Set<String> taskHeaders) {
-        return new MockTransportService(settings, transport, threadPool, TransportService.NOOP_TRANSPORT_INTERCEPTOR,
-            boundAddress ->
-                new DiscoveryNode(Node.NODE_NAME_SETTING.get(settings), UUIDs.randomBase64UUID(), boundAddress.publishAddress(),
-                    Node.NODE_ATTRIBUTES.getAsMap(settings), DiscoveryNode.getRolesFromSettings(settings), version),
-            clusterSettings, taskHeaders);
+    public static MockTransportService createNewService(Settings settings,
+                                                        Transport transport,
+                                                        Version version,
+                                                        ThreadPool threadPool,
+                                                        @Nullable ClusterSettings clusterSettings) {
+        return new MockTransportService(
+            settings,
+            transport,
+            threadPool,
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            boundAddress -> new DiscoveryNode(
+                Node.NODE_NAME_SETTING.get(settings),
+                UUIDs.randomBase64UUID(),
+                boundAddress.publishAddress(),
+                Node.NODE_ATTRIBUTES.getAsMap(settings),
+                DiscoveryNode.getRolesFromSettings(settings),
+                version
+            ),
+            clusterSettings
+        );
     }
 
     private final Transport original;
@@ -135,9 +149,19 @@ public final class MockTransportService extends TransportService {
      */
     public MockTransportService(Settings settings, Transport transport, ThreadPool threadPool, TransportInterceptor interceptor,
                                 @Nullable ClusterSettings clusterSettings) {
-        this(settings, transport, threadPool, interceptor, (boundAddress) ->
-            DiscoveryNode.createLocal(settings, boundAddress.publishAddress(), settings.get(Node.NODE_NAME_SETTING.getKey(),
-                UUIDs.randomBase64UUID())), clusterSettings, Collections.emptySet());
+        this(
+            settings,
+            transport,
+            threadPool,
+            interceptor,
+            (boundAddress) -> DiscoveryNode.createLocal(
+                settings,
+                boundAddress.publishAddress(),
+                settings.get(Node.NODE_NAME_SETTING.getKey(),
+                UUIDs.randomBase64UUID())
+            ),
+            clusterSettings
+        );
     }
 
     /**
@@ -146,17 +170,30 @@ public final class MockTransportService extends TransportService {
      * @param clusterSettings if non null the {@linkplain TransportService} will register with the {@link ClusterSettings} for settings
      *                        updates for {@link TransportSettings#TRACE_LOG_EXCLUDE_SETTING} and {@link TransportSettings#TRACE_LOG_INCLUDE_SETTING}.
      */
-    public MockTransportService(Settings settings, Transport transport, ThreadPool threadPool, TransportInterceptor interceptor,
+    public MockTransportService(Settings settings,
+                                Transport transport,
+                                ThreadPool threadPool,
+                                TransportInterceptor interceptor,
                                 Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
-                                @Nullable ClusterSettings clusterSettings, Set<String> taskHeaders) {
-        this(settings, new StubbableTransport(transport), threadPool, interceptor, localNodeFactory, clusterSettings, taskHeaders);
+                                @Nullable ClusterSettings clusterSettings) {
+        this(settings, new StubbableTransport(transport), threadPool, interceptor, localNodeFactory, clusterSettings);
     }
 
-    private MockTransportService(Settings settings, StubbableTransport transport, ThreadPool threadPool, TransportInterceptor interceptor,
+    private MockTransportService(Settings settings,
+                                 StubbableTransport transport,
+                                 ThreadPool threadPool,
+                                 TransportInterceptor interceptor,
                                  Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
-                                 @Nullable ClusterSettings clusterSettings, Set<String> taskHeaders) {
-        super(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings, taskHeaders,
-            new StubbableConnectionManager(new ConnectionManager(settings, transport, threadPool), settings, transport, threadPool));
+                                 @Nullable ClusterSettings clusterSettings) {
+        super(
+            settings,
+            transport,
+            threadPool,
+            interceptor,
+            localNodeFactory,
+            clusterSettings,
+            new StubbableConnectionManager(new ConnectionManager(settings, transport, threadPool), settings, transport, threadPool)
+        );
         this.original = transport.getDelegate();
     }
 
@@ -169,11 +206,11 @@ public final class MockTransportService extends TransportService {
     }
 
     @Override
-    protected TaskManager createTaskManager(Settings settings, ThreadPool threadPool, Set<String> taskHeaders) {
+    protected TaskManager createTaskManager(Settings settings, ThreadPool threadPool) {
         if (MockTaskManager.USE_MOCK_TASK_MANAGER_SETTING.get(settings)) {
-            return new MockTaskManager(settings, threadPool, taskHeaders);
+            return new MockTaskManager(settings, threadPool);
         } else {
-            return super.createTaskManager(settings, threadPool, taskHeaders);
+            return super.createTaskManager(settings, threadPool);
         }
     }
 

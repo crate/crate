@@ -78,10 +78,12 @@ public abstract class DisruptableMockTransport extends MockTransport {
     }
 
     @Override
-    public TransportService createTransportService(Settings settings, ThreadPool threadPool, TransportInterceptor interceptor,
+    public TransportService createTransportService(Settings settings,
+                                                   ThreadPool threadPool,
+                                                   TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
-                                                   @Nullable ClusterSettings clusterSettings, Set<String> taskHeaders) {
-        return new TransportService(settings, this, threadPool, interceptor, localNodeFactory, clusterSettings, taskHeaders);
+                                                   @Nullable ClusterSettings clusterSettings) {
+        return new TransportService(settings, this, threadPool, interceptor, localNodeFactory, clusterSettings);
     }
 
     @Override

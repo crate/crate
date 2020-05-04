@@ -31,8 +31,8 @@ public abstract class CancellableTask extends Task {
 
     private final AtomicReference<String> reason = new AtomicReference<>();
 
-    public CancellableTask(long id, String type, String action, String description, TaskId parentTaskId, Map<String, String> headers) {
-        super(id, type, action, description, parentTaskId, headers);
+    public CancellableTask(long id, String type, String action, String description, TaskId parentTaskId) {
+        super(id, type, action, description, parentTaskId);
     }
 
     /**

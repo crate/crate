@@ -75,15 +75,24 @@ public class MockTransport implements Transport, LifecycleComponent {
     private TransportMessageListener listener;
     private ConcurrentMap<Long, Tuple<DiscoveryNode, String>> requests = new ConcurrentHashMap<>();
 
-    public TransportService createTransportService(Settings settings, ThreadPool threadPool, TransportInterceptor interceptor,
+    public TransportService createTransportService(Settings settings,
+                                                   ThreadPool threadPool,
+                                                   TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
-                                                   @Nullable ClusterSettings clusterSettings, Set<String> taskHeaders) {
+                                                   @Nullable ClusterSettings clusterSettings) {
         StubbableConnectionManager connectionManager = new StubbableConnectionManager(new ConnectionManager(settings, this, threadPool),
             settings, this, threadPool);
         connectionManager.setDefaultNodeConnectedBehavior((cm, discoveryNode) -> nodeConnected(discoveryNode));
         connectionManager.setDefaultGetConnectionBehavior((cm, discoveryNode) -> openConnection(discoveryNode, null));
-        return new TransportService(settings, this, threadPool, interceptor, localNodeFactory, clusterSettings, taskHeaders,
-            connectionManager);
+        return new TransportService(
+            settings,
+            this,
+            threadPool,
+            interceptor,
+            localNodeFactory,
+            clusterSettings,
+            connectionManager
+        );
     }
 
     /**
