@@ -1,3 +1,5 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
 dependencies {
     implementation project(':es:es-server')
     implementation "com.microsoft.azure:azure-storage:${versions.azure_storage}"
