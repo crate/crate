@@ -61,11 +61,12 @@ import java.util.jar.Manifest;
 public class JarHell {
 
     /** no instantiation */
-    private JarHell() {}
+    private JarHell() {
+    }
 
     /** Simple driver class, can be used eg. from builds. Returns non-zero on jar-hell */
     @SuppressForbidden(reason = "command line tool")
-    public static void main(String args[]) throws Exception {
+    public static void main(String[] args) throws Exception {
         System.out.println("checking for jar hell...");
         checkJarHell(System.out::println);
         System.out.println("no jar hell found");
@@ -91,7 +92,7 @@ public class JarHell {
      * @return array of URLs
      * @throws IllegalStateException if the classpath contains empty elements
      */
-    public static Set<URL> parseClassPath()  {
+    public static Set<URL> parseClassPath() {
         return parseClassPath(System.getProperty("java.class.path"));
     }
 
@@ -105,7 +106,7 @@ public class JarHell {
     static Set<URL> parseClassPath(String classPath) {
         String pathSeparator = System.getProperty("path.separator");
         String fileSeparator = System.getProperty("file.separator");
-        String elements[] = classPath.split(pathSeparator);
+        String[] elements = classPath.split(pathSeparator);
         Set<URL> urlElements = new LinkedHashSet<>(); // order is already lost, but some filesystems have it
         for (String element : elements) {
             // Technically empty classpath element behaves like CWD.
@@ -204,7 +205,7 @@ public class JarHell {
                         String entry = root.relativize(file).toString();
                         if (entry.endsWith(".class")) {
                             // normalize with the os separator, remove '.class'
-                            entry = entry.replace(sep, ".").substring(0,  entry.length() - ".class".length());
+                            entry = entry.replace(sep, ".").substring(0, entry.length() - ".class".length());
                             checkClass(clazzes, entry, path);
                         }
                         return super.visitFile(file, attrs);

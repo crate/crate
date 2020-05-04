@@ -20,7 +20,6 @@ package org.elasticsearch.core.internal.io;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
@@ -137,7 +136,7 @@ public final class IOUtils {
                     object.close();
                 }
             } catch (final IOException | RuntimeException e) {
-
+                // ignore
             }
         }
     }
@@ -260,7 +259,7 @@ public final class IOUtils {
         } catch (final IOException ioe) {
             if (isDir) {
                 assert (LINUX || MAC_OS_X) == false :
-                        "on Linux and MacOSX fsyncing a directory should not throw IOException, "+
+                        "on Linux and MacOSX fsyncing a directory should not throw IOException, " +
                                 "we just don't want to rely on that in production (undocumented); got: " + ioe;
                 // ignore exception if it is a directory
                 return;
