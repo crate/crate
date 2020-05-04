@@ -102,6 +102,10 @@ Administration
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
 
+- Added new type :ref:`time with time zone <time-data-type>`, a.k.a `timetz`,
+  which is to be used as return type for time related functions such as the
+  future `current_time`.
+
 - Added the :ref:`oid_regproc` alias data type that is used to reference
   functions in the :ref:`postgres_pg_catalog` tables.
 

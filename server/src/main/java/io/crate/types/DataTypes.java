@@ -70,6 +70,8 @@ public final class DataTypes {
     public static final IntegerType INTEGER = IntegerType.INSTANCE;
     public static final LongType LONG = LongType.INSTANCE;
 
+    public static final TimeTZType TIMETZ = TimeTZType.INSTANCE;
+
     public static final TimestampType TIMESTAMPZ = TimestampType.INSTANCE_WITH_TZ;
     public static final TimestampType TIMESTAMP = TimestampType.INSTANCE_WITHOUT_TZ;
 
@@ -93,6 +95,7 @@ public final class DataTypes {
     public static Set<String> PRIMITIVE_TYPE_NAMES_WITH_SPACES = Set.of(
         TIMESTAMPZ.getName(),
         TIMESTAMP.getName(),
+        TIMETZ.getName(),
         DOUBLE.getName()
     );
 
@@ -118,7 +121,7 @@ public final class DataTypes {
 
 
     public static final Set<DataType> STORAGE_UNSUPPORTED = Set.of(
-        INTERVAL
+        INTERVAL, TIMETZ
     );
 
     public static final List<DataType> NUMERIC_PRIMITIVE_TYPES = List.of(
@@ -151,6 +154,7 @@ public final class DataTypes {
             entry(ShortType.ID, in -> SHORT),
             entry(IntegerType.ID, in -> INTEGER),
             entry(LongType.ID, in -> LONG),
+            entry(TimeTZType.ID, in -> TIMETZ),
             entry(TimestampType.ID_WITH_TZ, in -> TIMESTAMPZ),
             entry(TimestampType.ID_WITHOUT_TZ, in -> TIMESTAMP),
             entry(ObjectType.ID, ObjectType::new),
@@ -184,7 +188,7 @@ public final class DataTypes {
         entry(DOUBLE.id(), NUMBER_CONVERSIONS),
         entry(BOOLEAN.id(), Set.of(STRING.id())),
         entry(STRING.id(), Stream.concat(
-            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID, RegprocType.ID),
+            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID, RegprocType.ID, TimeTZType.ID),
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
         entry(IP.id(), Set.of(STRING.id())),
@@ -336,6 +340,7 @@ public final class DataTypes {
         entry(INTEGER.getName(), INTEGER),
         entry(LONG.getName(), LONG),
         entry(RowType.EMPTY.getName(), RowType.EMPTY),
+        entry(TIMETZ.getName(), TIMETZ),
         entry(TIMESTAMPZ.getName(), TIMESTAMPZ),
         entry(TIMESTAMP.getName(), TIMESTAMP),
         entry(ObjectType.NAME, UNTYPED_OBJECT),
@@ -355,6 +360,7 @@ public final class DataTypes {
         entry("string", STRING),
         entry("varchar", STRING),
         entry("character varying", STRING),
+        entry("timetz", TIMETZ),
         entry("timestamptz", TIMESTAMPZ),
         // The usage of the `timestamp` data type as a data type with time
         // zone is deprecate, use `timestamp with time zone` or `timestamptz`
