@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -313,7 +314,10 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
 
     @Test
     public void testNullOperators() throws Exception {
-        DataType<?> type = randomType();
+        DataType<?> type;
+        do {
+           type = randomType();
+        } while (type == DataTypes.INTERVAL);
         execute("create table t1 (c " + type.getName() + ") with (number_of_replicas = 0)");
         Supplier dataGenerator = DataTypeTesting.getDataGenerator(type);
 

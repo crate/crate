@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.crate.types.TimeType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Scorable;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -177,6 +178,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case TimestampType.ID_WITHOUT_TZ:
                 return new LongColumnReference(fqn);
             case IntegerType.ID:
+            case TimeType.ID:
                 return new IntegerColumnReference(fqn);
             case GeoPointType.ID:
                 return new GeoPointColumnReference(fqn);

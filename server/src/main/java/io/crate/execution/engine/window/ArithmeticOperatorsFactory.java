@@ -32,6 +32,7 @@ import io.crate.types.IntegerType;
 import io.crate.types.IntervalType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
+import io.crate.types.TimeType;
 import io.crate.types.TimestampType;
 
 import java.util.List;
@@ -72,6 +73,7 @@ class ArithmeticOperatorsFactory {
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
+            case TimeType.ID:
                 return ADD_INTEGER_FUNCTION;
             default:
                 throw new UnsupportedOperationException(
@@ -101,6 +103,7 @@ class ArithmeticOperatorsFactory {
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
+            case TimeType.ID:
                 return SUB_INTEGER_FUNCTION;
             default:
                 throw new UnsupportedOperationException(

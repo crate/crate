@@ -69,6 +69,8 @@ public final class DataTypes {
     public static final IntegerType INTEGER = IntegerType.INSTANCE;
     public static final LongType LONG = LongType.INSTANCE;
 
+    public static final TimeType TIME = TimeType.INSTANCE;
+
     public static final TimestampType TIMESTAMPZ = TimestampType.INSTANCE_WITH_TZ;
     public static final TimestampType TIMESTAMP = TimestampType.INSTANCE_WITHOUT_TZ;
 
@@ -90,6 +92,7 @@ public final class DataTypes {
     public static Set<String> PRIMITIVE_TYPE_NAMES_WITH_SPACES = Set.of(
         TIMESTAMPZ.getName(),
         TIMESTAMP.getName(),
+        TIME.getName(),
         DOUBLE.getName()
     );
 
@@ -104,6 +107,7 @@ public final class DataTypes {
         INTEGER,
         INTERVAL,
         LONG,
+        TIME,
         TIMESTAMPZ,
         TIMESTAMP
     );
@@ -148,6 +152,7 @@ public final class DataTypes {
             entry(ShortType.ID, in -> SHORT),
             entry(IntegerType.ID, in -> INTEGER),
             entry(LongType.ID, in -> LONG),
+            entry(TimeType.ID, in -> TIME),
             entry(TimestampType.ID_WITH_TZ, in -> TIMESTAMPZ),
             entry(TimestampType.ID_WITHOUT_TZ, in -> TIMESTAMP),
             entry(ObjectType.ID, ObjectType::new),
@@ -181,6 +186,7 @@ public final class DataTypes {
         entry(IP.id(), Set.of(STRING.id())),
         entry(TIMESTAMPZ.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMP.id())),
         entry(TIMESTAMP.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id())),
+        entry(TIME.id(), Set.of(BOOLEAN.id(), STRING.id(), INTEGER.id())),
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
         entry(GEO_POINT.id(), Set.of()),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
@@ -193,11 +199,11 @@ public final class DataTypes {
      * used to store the value)
      */
     private static final Map<Integer, Set<DataType>> SAFE_CONVERSIONS = Map.of(
-        BYTE.id(), Set.of(SHORT, INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
-        SHORT.id(), Set.of(INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
-        INTEGER.id(), Set.of(LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
+        BYTE.id(), Set.of(SHORT, INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, TIME, FLOAT, DOUBLE),
+        SHORT.id(), Set.of(INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, TIME, FLOAT, DOUBLE),
+        INTEGER.id(), Set.of(LONG, TIMESTAMPZ, TIMESTAMP, TIME, FLOAT, DOUBLE),
         LONG.id(), Set.of(TIMESTAMPZ, TIMESTAMP, DOUBLE),
-        FLOAT.id(), Set.of(DOUBLE));
+        FLOAT.id(), Set.of(TIME, DOUBLE));
 
     public static boolean isArray(DataType<?> type) {
         return type.id() == ArrayType.ID;
@@ -327,6 +333,7 @@ public final class DataTypes {
         entry(INTEGER.getName(), INTEGER),
         entry(LONG.getName(), LONG),
         entry(RowType.EMPTY.getName(), RowType.EMPTY),
+        entry(TIME.getName(), TIME),
         entry(TIMESTAMPZ.getName(), TIMESTAMPZ),
         entry(TIMESTAMP.getName(), TIMESTAMP),
         entry(ObjectType.NAME, UNTYPED_OBJECT),
@@ -346,6 +353,7 @@ public final class DataTypes {
         entry("string", STRING),
         entry("varchar", STRING),
         entry("character varying", STRING),
+        entry("time", TIME),
         entry("timestamptz", TIMESTAMPZ),
         // The usage of the `timestamp` data type as a data type with time
         // zone is deprecate, use `timestamp with time zone` or `timestamptz`
@@ -407,6 +415,7 @@ public final class DataTypes {
     );
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
+        entry(TIME.id(), "integer"),
         entry(TIMESTAMPZ.id(), "date"),
         entry(TIMESTAMP.id(), "date"),
         entry(STRING.id(), "text"),

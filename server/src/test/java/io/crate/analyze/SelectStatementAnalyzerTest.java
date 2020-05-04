@@ -1911,6 +1911,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_cast_time_from_string_literal()  {
+        AnalyzedRelation relation = analyze("select time without time zone '23:59:59.999+02'");
+        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIME));
+
+        // time is always without time zone
+        relation = analyze("select time '23:59:59.999+02'");
+        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIME));
+        assertThat(relation.outputs().get(0).toString(), is("86399999"));
+    }
+
+    @Test
     public void test_element_within_object_array_of_derived_table_can_be_accessed_using_subscript() {
         QueriedSelectRelation relation = analyze("select s.friends['id'] from (select friends from doc.users) s");
         assertThat(
