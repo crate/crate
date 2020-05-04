@@ -13,3 +13,4 @@ This section of the documentation covers important CrateDB concepts.
     shared-nothing
     storage-consistency
     resiliency
+    architecture-reference/index
