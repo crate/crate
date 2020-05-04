@@ -191,9 +191,9 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     protected final PortsRange port;
 
-    protected final String bindHosts[];
+    protected final String[] bindHosts;
 
-    protected final String publishHosts[];
+    protected final String[] publishHosts;
 
     protected final boolean detailedErrorsEnabled;
     protected final ThreadPool threadPool;
@@ -322,7 +322,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     private BoundTransportAddress createBoundHttpAddress() {
         // Bind and start to accept incoming connections.
-        InetAddress hostAddresses[];
+        InetAddress[] hostAddresses;
         try {
             hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
         } catch (IOException e) {
