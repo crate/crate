@@ -51,7 +51,7 @@ class UniqueTokenFilter extends TokenFilter {
     @Override
     public final boolean incrementToken() throws IOException {
         while (input.incrementToken()) {
-            final char term[] = termAttribute.buffer();
+            final char[] term = termAttribute.buffer();
             final int length = termAttribute.length();
 
             boolean duplicate;
@@ -67,7 +67,7 @@ class UniqueTokenFilter extends TokenFilter {
             }
 
             // clone the term, and add to the set of seen terms.
-            char saved[] = new char[length];
+            char[] saved = new char[length];
             System.arraycopy(term, 0, saved, 0, length);
             previous.add(saved);
 

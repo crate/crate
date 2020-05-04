@@ -40,7 +40,7 @@ public class FingerprintAnalyzerProvider extends AbstractIndexAnalyzerProvider<A
 
     public static int DEFAULT_MAX_OUTPUT_SIZE = 255;
     public static CharArraySet DEFAULT_STOP_WORDS = CharArraySet.EMPTY_SET;
-    public static final char DEFAULT_SEPARATOR  = ' ';
+    public static final char DEFAULT_SEPARATOR = ' ';
 
     private final FingerprintAnalyzer analyzer;
 

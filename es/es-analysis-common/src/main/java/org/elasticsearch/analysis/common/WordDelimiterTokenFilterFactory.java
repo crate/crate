@@ -97,10 +97,7 @@ public class WordDelimiterTokenFilterFactory extends AbstractTokenFilterFactory 
 
     @Override
     public TokenStream create(TokenStream tokenStream) {
-         return new WordDelimiterFilter(tokenStream,
-                     charTypeTable,
-                     flags,
-                     protoWords);
+        return new WordDelimiterFilter(tokenStream, charTypeTable, flags, protoWords);
     }
 
     public int getFlag(int flag, Settings settings, String key, boolean defaultValue) {
@@ -133,30 +130,32 @@ public class WordDelimiterTokenFilterFactory extends AbstractTokenFilterFactory 
         }
 
         // ensure the table is always at least as big as DEFAULT_WORD_DELIM_TABLE for performance
-        byte types[] = new byte[Math.max(
-                typeMap.lastKey() + 1, WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE.length)];
-        for (int i = 0; i < types.length; i++)
+        byte[] types = new byte[Math.max(typeMap.lastKey() + 1, WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE.length)];
+        for (int i = 0; i < types.length; i++) {
             types[i] = WordDelimiterIterator.getType(i);
-        for (Map.Entry<Character, Byte> mapping : typeMap.entrySet())
+        }
+        for (Map.Entry<Character, Byte> mapping : typeMap.entrySet()) {
             types[mapping.getKey()] = mapping.getValue();
+        }
         return types;
     }
 
     private static Byte parseType(String s) {
-        if (s.equals("LOWER"))
+        if (s.equals("LOWER")) {
             return WordDelimiterFilter.LOWER;
-        else if (s.equals("UPPER"))
+        } else if (s.equals("UPPER")) {
             return WordDelimiterFilter.UPPER;
-        else if (s.equals("ALPHA"))
+        } else if (s.equals("ALPHA")) {
             return WordDelimiterFilter.ALPHA;
-        else if (s.equals("DIGIT"))
+        } else if (s.equals("DIGIT")) {
             return WordDelimiterFilter.DIGIT;
-        else if (s.equals("ALPHANUM"))
+        } else if (s.equals("ALPHANUM")) {
             return WordDelimiterFilter.ALPHANUM;
-        else if (s.equals("SUBWORD_DELIM"))
+        } else if (s.equals("SUBWORD_DELIM")) {
             return WordDelimiterFilter.SUBWORD_DELIM;
-        else
+        } else {
             return null;
+        }
     }
 
     private static String parseString(String s) {
@@ -194,6 +193,9 @@ public class WordDelimiterTokenFilterFactory extends AbstractTokenFilterFactory 
                             throw new RuntimeException("Invalid escaped char in [" + s + "]");
                         c = (char) Integer.parseInt(s.substring(readPos, readPos + 4), 16);
                         readPos += 4;
+                        break;
+
+                    default:
                         break;
                 }
             }

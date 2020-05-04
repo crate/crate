@@ -111,6 +111,9 @@ public class MappingCharFilterFactory extends AbstractCharFilterFactory implemen
                         c = (char) Integer.parseInt(s.substring(readPos, readPos + 4), 16);
                         readPos += 4;
                         break;
+
+                    default:
+                        break;
                 }
             }
             out[writePos++] = c;
