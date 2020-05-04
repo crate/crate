@@ -101,7 +101,7 @@ class JsonType extends PGType<Object> {
     @Override
     Object decodeUTF8Text(byte[] bytes) {
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(
+            XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
             if (bytes.length > 1 && bytes[0] == '[') {
                 parser.nextToken();

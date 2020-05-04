@@ -75,7 +75,7 @@ public class ViewsMetaDataTest extends CrateUnitTest {
         views.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             xContentRegistry(),
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             BytesReference.toBytes(BytesReference.bytes(builder)));

@@ -52,7 +52,7 @@ public enum XContentType {
 
         @Override
         public XContent xContent() {
-            return JsonXContent.jsonXContent;
+            return JsonXContent.JSON_XCONTENT;
         }
     },
     /**
@@ -71,7 +71,7 @@ public enum XContentType {
 
         @Override
         public XContent xContent() {
-            return SmileXContent.smileXContent;
+            return SmileXContent.SMILE_XCONTENT;
         }
     },
     /**
@@ -90,7 +90,7 @@ public enum XContentType {
 
         @Override
         public XContent xContent() {
-            return YamlXContent.yamlXContent;
+            return YamlXContent.YAML_XCONTENT;
         }
     };
 

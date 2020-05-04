@@ -1021,10 +1021,10 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     private boolean assertPreviousStateConsistency(ClusterChangedEvent event) {
         assert event.previousState() == coordinationState.get().getLastAcceptedState() ||
             XContentHelper.convertToMap(
-                JsonXContent.jsonXContent, Strings.toString(event.previousState()), false
+                JsonXContent.JSON_XCONTENT, Strings.toString(event.previousState()), false
             ).equals(
                 XContentHelper.convertToMap(
-                    JsonXContent.jsonXContent,
+                    JsonXContent.JSON_XCONTENT,
                     Strings.toString(clusterStateWithNoMasterBlock(coordinationState.get().getLastAcceptedState())),
                     false))
             : Strings.toString(event.previousState()) + " vs "

@@ -142,7 +142,7 @@ class DDLClusterStateHelpers {
     }
 
     private static Map<String, Object> parseMapping(String mappingSource) {
-        try (XContentParser parser = JsonXContent.jsonXContent
+        try (XContentParser parser = JsonXContent.JSON_XCONTENT
             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)) {
             return parser.map();
         } catch (IOException e) {

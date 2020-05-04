@@ -117,7 +117,7 @@ public class AlterTableRequest extends AcknowledgedRequest<AlterTableRequest> {
         if (mappingDelta == null) {
             return Collections.emptyMap();
         }
-        return XContentHelper.convertToMap(JsonXContent.jsonXContent, mappingDelta, false);
+        return XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, mappingDelta, false);
     }
 
     @Override

@@ -1,3 +1,5 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
 dependencies {
     implementation project(':es:es-core')
 

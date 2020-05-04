@@ -39,7 +39,7 @@ public class FromRawInsertSource implements InsertSourceGen {
 
     @Override
     public Map<String, Object> generateSourceAndCheckConstraints(Object[] values) throws IOException {
-        return JsonXContent.jsonXContent.createParser(
+        return JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY,
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             new BytesArray(((String) values[0])).array()

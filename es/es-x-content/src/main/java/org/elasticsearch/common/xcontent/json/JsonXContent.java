@@ -44,21 +44,22 @@ import java.util.Set;
 public class JsonXContent implements XContent {
 
     public static XContentBuilder contentBuilder() throws IOException {
-        return XContentBuilder.builder(jsonXContent);
+        return XContentBuilder.builder(JSON_XCONTENT);
     }
-    private static final JsonFactory jsonFactory;
 
-    public static final JsonXContent jsonXContent;
+    private static final JsonFactory JSON_FACTORY;
+
+    public static final JsonXContent JSON_XCONTENT;
 
     static {
-        jsonFactory = new JsonFactory();
-        jsonFactory.configure(JsonGenerator.Feature.QUOTE_FIELD_NAMES, true);
-        jsonFactory.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-        jsonFactory.configure(JsonFactory.Feature.FAIL_ON_SYMBOL_HASH_OVERFLOW, false); // this trips on many mappings now...
+        JSON_FACTORY = new JsonFactory();
+        JSON_FACTORY.configure(JsonGenerator.Feature.QUOTE_FIELD_NAMES, true);
+        JSON_FACTORY.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+        JSON_FACTORY.configure(JsonFactory.Feature.FAIL_ON_SYMBOL_HASH_OVERFLOW, false); // this trips on many mappings now...
         // Do not automatically close unclosed objects/arrays in com.fasterxml.jackson.core.json.UTF8JsonGenerator#close() method
-        jsonFactory.configure(JsonGenerator.Feature.AUTO_CLOSE_JSON_CONTENT, false);
-        jsonFactory.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled());
-        jsonXContent = new JsonXContent();
+        JSON_FACTORY.configure(JsonGenerator.Feature.AUTO_CLOSE_JSON_CONTENT, false);
+        JSON_FACTORY.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled());
+        JSON_XCONTENT = new JsonXContent();
     }
 
     private JsonXContent() {
@@ -76,36 +77,36 @@ public class JsonXContent implements XContent {
 
     @Override
     public XContentGenerator createGenerator(OutputStream os, Set<String> includes, Set<String> excludes) throws IOException {
-        return new JsonXContentGenerator(jsonFactory.createGenerator(os, JsonEncoding.UTF8), os, includes, excludes);
+        return new JsonXContentGenerator(JSON_FACTORY.createGenerator(os, JsonEncoding.UTF8), os, includes, excludes);
     }
 
     @Override
     public XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, String content) throws IOException {
-        return new JsonXContentParser(xContentRegistry, deprecationHandler, jsonFactory.createParser(new StringReader(content)));
+        return new JsonXContentParser(xContentRegistry, deprecationHandler, JSON_FACTORY.createParser(new StringReader(content)));
     }
 
     @Override
     public XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, InputStream is) throws IOException {
-        return new JsonXContentParser(xContentRegistry, deprecationHandler, jsonFactory.createParser(is));
+        return new JsonXContentParser(xContentRegistry, deprecationHandler, JSON_FACTORY.createParser(is));
     }
 
     @Override
     public XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, byte[] data) throws IOException {
-        return new JsonXContentParser(xContentRegistry, deprecationHandler, jsonFactory.createParser(data));
+        return new JsonXContentParser(xContentRegistry, deprecationHandler, JSON_FACTORY.createParser(data));
     }
 
     @Override
     public XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, byte[] data, int offset, int length) throws IOException {
-        return new JsonXContentParser(xContentRegistry, deprecationHandler, jsonFactory.createParser(data, offset, length));
+        return new JsonXContentParser(xContentRegistry, deprecationHandler, JSON_FACTORY.createParser(data, offset, length));
     }
 
     @Override
     public XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, Reader reader) throws IOException {
-        return new JsonXContentParser(xContentRegistry, deprecationHandler, jsonFactory.createParser(reader));
+        return new JsonXContentParser(xContentRegistry, deprecationHandler, JSON_FACTORY.createParser(reader));
     }
 }

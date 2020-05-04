@@ -149,7 +149,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     private static Map<String,Object> mapFromJSONString(String value) {
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(
+            XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY,
                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                 value

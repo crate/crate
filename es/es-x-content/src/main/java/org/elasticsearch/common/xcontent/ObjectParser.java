@@ -19,13 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
+
 package org.elasticsearch.common.xcontent;
 
 import javax.annotation.Nullable;
 import org.elasticsearch.common.ParseField;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -138,7 +138,7 @@ public final class ObjectParser<Value, Context> extends AbstractObjectParser<Val
         } else {
             token = parser.nextToken();
             if (token != XContentParser.Token.START_OBJECT) {
-                throw new XContentParseException(parser.getTokenLocation(), "[" + name  + "] Expected START_OBJECT but was: " + token);
+                throw new XContentParseException(parser.getTokenLocation(), "[" + name + "] Expected START_OBJECT but was: " + token);
             }
         }
 
@@ -150,7 +150,7 @@ public final class ObjectParser<Value, Context> extends AbstractObjectParser<Val
                 fieldParser = getParser(currentFieldName, parser);
             } else {
                 if (currentFieldName == null) {
-                    throw new XContentParseException(parser.getTokenLocation(), "[" + name  + "] no field found");
+                    throw new XContentParseException(parser.getTokenLocation(), "[" + name + "] no field found");
                 }
                 if (fieldParser == null) {
                     assert ignoreUnknownFields : "this should only be possible if configured to ignore known fields";
@@ -173,13 +173,14 @@ public final class ObjectParser<Value, Context> extends AbstractObjectParser<Val
         try {
             return parse(parser, valueSupplier.get(), context);
         } catch (IOException e) {
-            throw new XContentParseException(parser.getTokenLocation(), "[" + name  + "] failed to parse object", e);
+            throw new XContentParseException(parser.getTokenLocation(), "[" + name + "] failed to parse object", e);
         }
     }
 
     public interface Parser<Value, Context> {
         void parse(XContentParser parser, Value value, Context context) throws IOException;
     }
+
     public void declareField(Parser<Value, Context> p, ParseField parseField, ValueType type) {
         if (parseField == null) {
             throw new IllegalArgumentException("[parseField] is required");
@@ -293,7 +294,7 @@ public final class ObjectParser<Value, Context> extends AbstractObjectParser<Val
             fieldParser.parser.parse(parser, value, context);
         } catch (Exception ex) {
             throw new XContentParseException(parser.getTokenLocation(),
-                "[" + name  + "] failed to parse field [" + currentFieldName + "]", ex);
+                "[" + name + "] failed to parse field [" + currentFieldName + "]", ex);
         }
     }
 
@@ -317,6 +318,10 @@ public final class ObjectParser<Value, Context> extends AbstractObjectParser<Val
             case VALUE_EMBEDDED_OBJECT:
             case VALUE_NULL:
                 parseValue(parser, fieldParser, currentFieldName, value, context);
+                break;
+
+            default:
+                throw new IllegalArgumentException("Unexpected token: " + token);
         }
     }
 
@@ -345,7 +350,7 @@ public final class ObjectParser<Value, Context> extends AbstractObjectParser<Val
         void assertSupports(String parserName, XContentParser parser, String currentFieldName) {
             if (parseField.match(currentFieldName, parser.getDeprecationHandler()) == false) {
                 throw new XContentParseException(parser.getTokenLocation(),
-                        "[" + parserName  + "] parsefield doesn't accept: " + currentFieldName);
+                        "[" + parserName + "] parsefield doesn't accept: " + currentFieldName);
             }
             if (supportedTokens.contains(parser.currentToken()) == false) {
                 throw new XContentParseException(parser.getTokenLocation(),
@@ -359,7 +364,7 @@ public final class ObjectParser<Value, Context> extends AbstractObjectParser<Val
             String allReplacedWith = parseField.getAllReplacedWith();
             String deprecated = "";
             if (deprecatedNames != null && deprecatedNames.length > 0) {
-                deprecated = ", deprecated_names="  + Arrays.toString(deprecatedNames);
+                deprecated = ", deprecated_names=" + Arrays.toString(deprecatedNames);
             }
             return "FieldParser{" +
                     "preferred_name=" + parseField.getPreferredName() +

@@ -188,8 +188,9 @@ public class JsonXContentParser extends AbstractXContentParser {
                 return NumberType.FLOAT;
             case DOUBLE:
                 return NumberType.DOUBLE;
+            default:
+                throw new IllegalStateException("No matching token for number_type [" + numberType + "]");
         }
-        throw new IllegalStateException("No matching token for number_type [" + numberType + "]");
     }
 
     private Token convertToken(JsonToken token) {
@@ -219,8 +220,9 @@ public class JsonXContentParser extends AbstractXContentParser {
                 return Token.END_ARRAY;
             case VALUE_EMBEDDED_OBJECT:
                 return Token.VALUE_EMBEDDED_OBJECT;
+            default:
+                throw new IllegalStateException("No matching token for json_token [" + token + "]");
         }
-        throw new IllegalStateException("No matching token for json_token [" + token + "]");
     }
 
     @Override

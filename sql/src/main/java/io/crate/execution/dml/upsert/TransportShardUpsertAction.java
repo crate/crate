@@ -339,7 +339,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             // This optimizes for the case where the insert value is already string-based, so only parse the source
             // when return values are requested
             if (source == null) {
-                source = JsonXContent.jsonXContent.createParser(
+                source = JsonXContent.JSON_XCONTENT.createParser(
                     NamedXContentRegistry.EMPTY,
                     DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                     BytesReference.toBytes(rawSource)).map();

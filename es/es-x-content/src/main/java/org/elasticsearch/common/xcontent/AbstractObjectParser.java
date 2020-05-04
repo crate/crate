@@ -157,7 +157,7 @@ public abstract class AbstractObjectParser<Value, Context>
     }
 
     public void declareInt(BiConsumer<Value, Integer> consumer, ParseField field) {
-     // Using a method reference here angers some compilers
+        // Using a method reference here angers some compilers
         declareField(consumer, p -> p.intValue(), field, ValueType.INT);
     }
 

@@ -1496,7 +1496,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                                                     "Galactic Sector QQ7 Active J Gamma| Galaxy| 3\n");
 
         execute("select _raw, id from locations where id in (2,3) order by id");
-        Map<String, Object> firstRaw = JsonXContent.jsonXContent.createParser(
+        Map<String, Object> firstRaw = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY,
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             (String) response.rows()[0][0]).map();
@@ -1507,7 +1507,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(firstRaw.get("date"), is(308534400000L));
         assertThat(firstRaw.get("kind"), is("Galaxy"));
 
-        Map<String, Object> secondRaw = JsonXContent.jsonXContent.createParser(
+        Map<String, Object> secondRaw = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY,
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             (String) response.rows()[1][0]).map();

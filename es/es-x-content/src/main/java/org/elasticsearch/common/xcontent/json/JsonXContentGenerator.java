@@ -465,7 +465,7 @@ public class JsonXContentGenerator implements XContentGenerator {
             return;
         }
         JsonStreamContext context = generator.getOutputContext();
-        if ((context != null) && (context.inRoot() ==  false)) {
+        if ((context != null) && (context.inRoot() == false)) {
             throw new IOException("Unclosed object or array found");
         }
         if (writeLineFeedAtEnd) {
