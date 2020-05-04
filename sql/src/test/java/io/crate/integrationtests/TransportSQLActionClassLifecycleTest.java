@@ -127,7 +127,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     public void testSelectRaw() throws Exception {
         SQLResponse response = execute("select _raw from characters order by name desc limit 1");
         Object raw = response.rows()[0][0];
-        Map<String, Object> rawMap = JsonXContent.jsonXContent.createParser(
+        Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
 
         assertThat(rawMap.get("race"), is("Human"));
@@ -142,7 +142,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
                                        "group by _raw, name order by name desc limit 1");
 
         Object raw = response.rows()[0][1];
-        Map<String, Object> rawMap = JsonXContent.jsonXContent.createParser(
+        Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
 
         assertThat(rawMap.get("race"), is("Human"));

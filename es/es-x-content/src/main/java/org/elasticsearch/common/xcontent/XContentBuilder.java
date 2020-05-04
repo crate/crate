@@ -35,7 +35,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -82,6 +81,7 @@ public final class XContentBuilder implements Closeable, Flushable {
     private static final Map<Class<?>, Writer> WRITERS;
     private static final Map<Class<?>, HumanReadableTransformer> HUMAN_READABLE_TRANSFORMERS;
     private static final Map<Class<?>, Function<Object, Object>> DATE_TRANSFORMERS;
+
     static {
         Map<Class<?>, Writer> writers = new HashMap<>();
         writers.put(Boolean.class, (b, v) -> b.value((Boolean) v));
@@ -124,7 +124,7 @@ public final class XContentBuilder implements Closeable, Flushable {
                 "invalid null xcontent writer for class " + key));
             addlTransformers.forEach((key, value) -> Objects.requireNonNull(value,
                 "invalid null xcontent transformer for human readable class " + key));
-            dateTransformers.forEach((key, value) -> Objects.requireNonNull(value,
+            addlDateTransformers.forEach((key, value) -> Objects.requireNonNull(value,
                 "invalid null xcontent date transformer for class " + key));
 
             writers.putAll(addlWriters);

@@ -160,7 +160,7 @@ public final class ConstructingObjectParser<Value, Context> extends AbstractObje
         try {
             return parse(parser, context);
         } catch (IOException e) {
-            throw new XContentParseException(parser.getTokenLocation(), "[" + objectParser.getName()  + "] failed to parse object", e);
+            throw new XContentParseException(parser.getTokenLocation(), "[" + objectParser.getName() + "] failed to parse object", e);
         }
     }
 
@@ -411,7 +411,7 @@ public final class ConstructingObjectParser<Value, Context> extends AbstractObje
          * should have just applied the consumer immediately.
          */
         private void queue(Consumer<Value> queueMe) {
-            assert targetObject == null: "Don't queue after the targetObject has been built! Just apply the consumer directly.";
+            assert targetObject == null : "Don't queue after the targetObject has been built! Just apply the consumer directly.";
             if (queuedFields == null) {
                 @SuppressWarnings({"unchecked", "rawtypes"})
                 Consumer<Value>[] queuedFields = new Consumer[numberOfFields];

@@ -141,7 +141,7 @@ public class GeoJSONUtils {
 
     private static Shape geoJSONString2Shape(String geoJSON) {
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(
+            XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, geoJSON);
             parser.nextToken();
             return ShapeParser.parse(parser).build();

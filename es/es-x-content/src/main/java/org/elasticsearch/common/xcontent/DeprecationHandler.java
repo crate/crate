@@ -31,11 +31,13 @@ public interface DeprecationHandler {
      * to fail fast when parsing deprecated fields.
      */
     DeprecationHandler THROW_UNSUPPORTED_OPERATION = new DeprecationHandler() {
+
         @Override
         public void usedDeprecatedField(String usedName, String replacedWith) {
             throw new UnsupportedOperationException("deprecated fields not supported here but got ["
                 + usedName + "] which is a deprecated name for [" + replacedWith + "]");
         }
+
         @Override
         public void usedDeprecatedName(String usedName, String modernName) {
             throw new UnsupportedOperationException("deprecated fields not supported here but got ["

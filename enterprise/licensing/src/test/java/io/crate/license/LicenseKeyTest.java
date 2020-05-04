@@ -78,7 +78,7 @@ public class LicenseKeyTest extends CrateUnitTest {
         licenseKey.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(),
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(xContentRegistry(),
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object
@@ -99,7 +99,7 @@ public class LicenseKeyTest extends CrateUnitTest {
             .endObject();
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(),
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(xContentRegistry(),
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object

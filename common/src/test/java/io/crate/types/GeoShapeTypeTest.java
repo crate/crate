@@ -60,7 +60,7 @@ public class GeoShapeTypeTest extends CrateUnitTest {
 
     private static Map<String, Object> parse(String json) {
         try {
-            return JsonXContent.jsonXContent.createParser(
+            return JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY,
                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                 json

@@ -153,6 +153,9 @@ public interface XContentGenerator extends Closeable, Flushable {
                     case DOUBLE:
                         writeNumber(parser.doubleValue());
                         break;
+
+                    default:
+                        throw new IllegalArgumentException("Invalid numberType: " + parser.numberType());
                 }
                 break;
             case VALUE_BOOLEAN:
@@ -163,6 +166,10 @@ public interface XContentGenerator extends Closeable, Flushable {
                 break;
             case VALUE_EMBEDDED_OBJECT:
                 writeBinary(parser.binaryValue());
+                break;
+
+            default:
+                throw new IllegalArgumentException("Unexpected token: " + parser.currentToken());
         }
     }
 

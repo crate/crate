@@ -501,7 +501,7 @@ public class SQLTransportExecutor {
         try {
             if (json != null) {
                 byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-                XContentParser parser = JsonXContent.jsonXContent.createParser(
+                XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                     NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
                 if (bytes.length >= 1 && bytes[0] == '[') {
                     parser.nextToken();

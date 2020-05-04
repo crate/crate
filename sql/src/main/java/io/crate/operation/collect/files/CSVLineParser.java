@@ -55,7 +55,7 @@ public class CSVLineParser {
     public byte[] parse(String row) throws IOException {
         MappingIterator<Object> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
         out.reset();
-        XContentBuilder jsonBuilder = new XContentBuilder(JsonXContent.jsonXContent, out).startObject();
+        XContentBuilder jsonBuilder = new XContentBuilder(JsonXContent.JSON_XCONTENT, out).startObject();
         int i = 0;
         while (iterator.hasNext()) {
             if (i >= keyList.size()) {

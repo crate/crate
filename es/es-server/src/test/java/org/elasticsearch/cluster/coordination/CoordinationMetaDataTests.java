@@ -111,7 +111,7 @@ public class CoordinationMetaDataTests extends ESTestCase {
         final XContentBuilder builder = JsonXContent.contentBuilder();
         originalTombstone.toXContent(builder, ToXContent.EMPTY_PARAMS);
 
-        try (XContentParser parser = createParser(JsonXContent.jsonXContent, BytesReference.bytes(builder))) {
+        try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
             final VotingConfigExclusion fromXContentTombstone = VotingConfigExclusion.fromXContent(parser);
             assertThat(originalTombstone, equalTo(fromXContentTombstone));
         }
@@ -190,7 +190,7 @@ public class CoordinationMetaDataTests extends ESTestCase {
         originalMeta.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        try (XContentParser parser = createParser(JsonXContent.jsonXContent, BytesReference.bytes(builder))) {
+        try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
             final CoordinationMetaData fromXContentMeta = CoordinationMetaData.fromXContent(parser);
             assertThat(originalMeta, equalTo(fromXContentMeta));
         }

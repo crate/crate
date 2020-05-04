@@ -22,7 +22,6 @@
 
 package org.elasticsearch.common.xcontent;
 
-import com.fasterxml.jackson.dataformat.cbor.CBORConstants;
 import com.fasterxml.jackson.dataformat.smile.SmileConstants;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.common.xcontent.smile.SmileXContent;
@@ -50,21 +49,21 @@ public class XContentFactory {
      * Constructs a new json builder that will output the result into the provided output stream.
      */
     public static XContentBuilder jsonBuilder(OutputStream os) throws IOException {
-        return new XContentBuilder(JsonXContent.jsonXContent, os);
+        return new XContentBuilder(JsonXContent.JSON_XCONTENT, os);
     }
 
     /**
      * Constructs a new json builder that will output the result into the provided output stream.
      */
     public static XContentBuilder smileBuilder(OutputStream os) throws IOException {
-        return new XContentBuilder(SmileXContent.smileXContent, os);
+        return new XContentBuilder(SmileXContent.SMILE_XCONTENT, os);
     }
 
     /**
      * Constructs a new yaml builder that will output the result into the provided output stream.
      */
     public static XContentBuilder yamlBuilder(OutputStream os) throws IOException {
-        return new XContentBuilder(YamlXContent.yamlXContent, os);
+        return new XContentBuilder(YamlXContent.YAML_XCONTENT, os);
     }
 
     /**

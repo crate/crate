@@ -43,16 +43,16 @@ import java.util.Set;
 public class YamlXContent implements XContent {
 
     public static XContentBuilder contentBuilder() throws IOException {
-        return XContentBuilder.builder(yamlXContent);
+        return XContentBuilder.builder(YAML_XCONTENT);
     }
 
-    static final YAMLFactory yamlFactory;
-    public static final YamlXContent yamlXContent;
+    static final YAMLFactory YAML_FACTORY;
+    public static final YamlXContent YAML_XCONTENT;
 
     static {
-        yamlFactory = new YAMLFactory();
-        yamlFactory.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled());
-        yamlXContent = new YamlXContent();
+        YAML_FACTORY = new YAMLFactory();
+        YAML_FACTORY.configure(JsonParser.Feature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled());
+        YAML_XCONTENT = new YamlXContent();
     }
 
     private YamlXContent() {
@@ -70,36 +70,36 @@ public class YamlXContent implements XContent {
 
     @Override
     public XContentGenerator createGenerator(OutputStream os, Set<String> includes, Set<String> excludes) throws IOException {
-        return new YamlXContentGenerator(yamlFactory.createGenerator(os, JsonEncoding.UTF8), os, includes, excludes);
+        return new YamlXContentGenerator(YAML_FACTORY.createGenerator(os, JsonEncoding.UTF8), os, includes, excludes);
     }
 
     @Override
     public XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, String content) throws IOException {
-        return new YamlXContentParser(xContentRegistry, deprecationHandler, yamlFactory.createParser(new StringReader(content)));
+        return new YamlXContentParser(xContentRegistry, deprecationHandler, YAML_FACTORY.createParser(new StringReader(content)));
     }
 
     @Override
     public XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, InputStream is) throws IOException {
-        return new YamlXContentParser(xContentRegistry, deprecationHandler, yamlFactory.createParser(is));
+        return new YamlXContentParser(xContentRegistry, deprecationHandler, YAML_FACTORY.createParser(is));
     }
 
     @Override
     public XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, byte[] data) throws IOException {
-        return new YamlXContentParser(xContentRegistry, deprecationHandler, yamlFactory.createParser(data));
+        return new YamlXContentParser(xContentRegistry, deprecationHandler, YAML_FACTORY.createParser(data));
     }
 
     @Override
     public XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, byte[] data, int offset, int length) throws IOException {
-        return new YamlXContentParser(xContentRegistry, deprecationHandler, yamlFactory.createParser(data, offset, length));
+        return new YamlXContentParser(xContentRegistry, deprecationHandler, YAML_FACTORY.createParser(data, offset, length));
     }
 
     @Override
     public XContentParser createParser(NamedXContentRegistry xContentRegistry,
             DeprecationHandler deprecationHandler, Reader reader) throws IOException {
-        return new YamlXContentParser(xContentRegistry, deprecationHandler, yamlFactory.createParser(reader));
+        return new YamlXContentParser(xContentRegistry, deprecationHandler, YAML_FACTORY.createParser(reader));
     }
 }

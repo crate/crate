@@ -93,7 +93,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         DUMMY_UDF_META_DATA.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object
         UserDefinedFunctionsMetaData functions = UserDefinedFunctionsMetaData.fromXContent(parser);
@@ -110,7 +110,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         functions.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // enter START_OBJECT
         UserDefinedFunctionsMetaData functions2 = UserDefinedFunctionsMetaData.fromXContent(parser);
@@ -123,7 +123,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
         var type = new ArrayType<>(new ArrayType<>(DataTypes.STRING));
         UserDefinedFunctionMetaData.DataTypeXContent.toXContent(type, builder, ToXContent.EMPTY_PARAMS);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken();  // enter START_OBJECT
         ArrayType type2 = (ArrayType) UserDefinedFunctionMetaData.DataTypeXContent.fromXContent(parser);

@@ -74,7 +74,7 @@ public class CustomMetaDataTest {
 
         String xContent = xContentFromMetaData(metaData);
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             getNamedXContentRegistry(),
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             xContent

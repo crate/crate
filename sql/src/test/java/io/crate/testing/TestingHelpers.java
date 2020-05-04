@@ -396,7 +396,7 @@ public class TestingHelpers {
 
     public static Map<String, Object> jsonMap(String json) {
         try {
-            return JsonXContent.jsonXContent.createParser(
+            return JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, json).map();
         } catch (IOException e) {
             throw new RuntimeException(e);

@@ -238,7 +238,7 @@ public class GeoUtils {
             content.endObject();
 
             try (InputStream stream = BytesReference.bytes(content).streamInput();
-                 XContentParser parser = JsonXContent.jsonXContent.createParser(
+                 XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                      NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, stream)) {
                 parser.nextToken(); // start object
                 parser.nextToken(); // field name

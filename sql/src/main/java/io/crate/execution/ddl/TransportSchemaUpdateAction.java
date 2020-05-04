@@ -152,7 +152,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         String templateName = PartitionName.templateName(indexName);
         Map<String, Object> newMapping;
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(
+            XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource);
             newMapping = parser.map();
             if (newMappingAlreadyApplied(templates.get(templateName), newMapping)) {
