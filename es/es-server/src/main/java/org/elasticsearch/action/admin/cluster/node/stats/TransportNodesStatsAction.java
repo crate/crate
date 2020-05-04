@@ -28,7 +28,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.node.NodeService;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -87,7 +86,7 @@ public class TransportNodesStatsAction extends TransportNodesAction<NodesStatsRe
             this.request = new NodesStatsRequest(in);
         }
 
-        public NodeStatsRequest(String nodeId, NodesStatsRequest request){
+        public NodeStatsRequest(String nodeId, NodesStatsRequest request) {
             super(nodeId);
             this.request = request;
         }

@@ -64,7 +64,7 @@ public class URIPattern {
     }
 
     private boolean matchNormalized(URI uri) {
-        if(uriPattern.isOpaque()) {
+        if (uriPattern.isOpaque()) {
             // This url only has scheme, scheme-specific part and fragment
             return uri.isOpaque() &&
                     match(uriPattern.getScheme(), uri.getScheme()) &&

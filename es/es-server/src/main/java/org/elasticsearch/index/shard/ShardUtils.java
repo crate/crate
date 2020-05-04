@@ -27,7 +27,8 @@ import org.elasticsearch.common.lucene.index.ElasticsearchLeafReader;
 
 public final class ShardUtils {
 
-    private ShardUtils() {}
+    private ShardUtils() {
+    }
 
     /**
      * Tries to extract the shard id from a reader if possible, when its not possible,

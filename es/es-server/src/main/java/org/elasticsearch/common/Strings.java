@@ -93,6 +93,9 @@ public class Strings {
                         case 'f':
                             ch = '\f';
                             break;
+
+                        default:
+                            break;
                     }
                 }
             }

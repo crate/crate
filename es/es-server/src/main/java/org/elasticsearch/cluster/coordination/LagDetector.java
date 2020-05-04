@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.coordination;
 
 import org.apache.logging.log4j.LogManager;
@@ -46,7 +47,7 @@ import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.new
  */
 public class LagDetector {
 
-    private static final Logger logger = LogManager.getLogger(LagDetector.class);
+    private static final Logger LOGGER = LogManager.getLogger(LagDetector.class);
 
     // the timeout for each node to apply a cluster state update after the leader has applied it, before being removed from the cluster
     public static final Setting<TimeValue> CLUSTER_FOLLOWER_LAG_TIMEOUT_SETTING =
@@ -83,7 +84,7 @@ public class LagDetector {
         final NodeAppliedStateTracker nodeAppliedStateTracker = appliedStateTrackersByNode.get(discoveryNode);
         if (nodeAppliedStateTracker == null) {
             // Received an ack from a node that a later publication has removed (or we are no longer master). No big deal.
-            logger.trace("node {} applied version {} but this node's version is not being tracked", discoveryNode, appliedVersion);
+            LOGGER.trace("node {} applied version {} but this node's version is not being tracked", discoveryNode, appliedVersion);
         } else {
             nodeAppliedStateTracker.increaseAppliedVersion(appliedVersion);
         }
@@ -94,9 +95,9 @@ public class LagDetector {
             = appliedStateTrackersByNode.values().stream().filter(t -> t.appliedVersionLessThan(version)).collect(Collectors.toList());
 
         if (laggingTrackers.isEmpty()) {
-            logger.trace("lag detection for version {} is unnecessary: {}", version, appliedStateTrackersByNode.values());
+            LOGGER.trace("lag detection for version {} is unnecessary: {}", version, appliedStateTrackersByNode.values());
         } else {
-            logger.debug("starting lag detector for version {}: {}", version, laggingTrackers);
+            LOGGER.debug("starting lag detector for version {}: {}", version, laggingTrackers);
 
             threadPool.scheduleUnlessShuttingDown(clusterStateApplicationTimeout, Names.GENERIC, new Runnable() {
                 @Override
@@ -135,7 +136,7 @@ public class LagDetector {
 
         void increaseAppliedVersion(long appliedVersion) {
             long maxAppliedVersion = this.appliedVersion.updateAndGet(v -> Math.max(v, appliedVersion));
-            logger.trace("{} applied version {}, max now {}", this, appliedVersion, maxAppliedVersion);
+            LOGGER.trace("{} applied version {}, max now {}", this, appliedVersion, maxAppliedVersion);
         }
 
         boolean appliedVersionLessThan(final long version) {
@@ -152,17 +153,17 @@ public class LagDetector {
 
         void checkForLag(final long version) {
             if (appliedStateTrackersByNode.get(discoveryNode) != this) {
-                logger.trace("{} no longer active when checking version {}", this, version);
+                LOGGER.trace("{} no longer active when checking version {}", this, version);
                 return;
             }
 
             long appliedVersion = this.appliedVersion.get();
             if (version <= appliedVersion) {
-                logger.trace("{} satisfied when checking version {}, node applied version {}", this, version, appliedVersion);
+                LOGGER.trace("{} satisfied when checking version {}, node applied version {}", this, version, appliedVersion);
                 return;
             }
 
-            logger.debug("{}, detected lag at version {}, node has only applied version {}", this, version, appliedVersion);
+            LOGGER.debug("{}, detected lag at version {}, node has only applied version {}", this, version, appliedVersion);
             onLagDetected.accept(discoveryNode);
         }
     }

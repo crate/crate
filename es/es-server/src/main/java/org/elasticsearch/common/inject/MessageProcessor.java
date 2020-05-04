@@ -35,14 +35,6 @@ class MessageProcessor extends AbstractProcessor {
 
     @Override
     public Boolean visit(Message message) {
-        // ES_GUICE: don't log failures using jdk logging
-//        if (message.getCause() != null) {
-//            String rootMessage = getRootMessage(message.getCause());
-//            logger.log(Level.INFO,
-//                    "An exception was caught and reported. Message: " + rootMessage,
-//                    message.getCause());
-//        }
-
         errors.addMessage(message);
         return true;
     }

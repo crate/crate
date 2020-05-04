@@ -92,8 +92,8 @@ public class CoordinatesBuilder {
      */
     public CoordinatesBuilder close() {
         Coordinate start = points.get(0);
-        Coordinate end = points.get(points.size()-1);
-        if(start.x != end.x || start.y != end.y) {
+        Coordinate end = points.get(points.size() - 1);
+        if (start.x != end.x || start.y != end.y) {
             points.add(start);
         }
         return this;

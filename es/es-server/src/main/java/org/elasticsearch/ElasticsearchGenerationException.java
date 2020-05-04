@@ -38,7 +38,7 @@ public class ElasticsearchGenerationException extends ElasticsearchException {
         super(msg, cause);
     }
 
-    public ElasticsearchGenerationException(StreamInput in) throws IOException{
+    public ElasticsearchGenerationException(StreamInput in) throws IOException {
         super(in);
     }
 }

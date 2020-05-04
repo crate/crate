@@ -139,7 +139,7 @@ public abstract class MappedFieldType extends FieldType {
     public void checkCompatibility(MappedFieldType other, List<String> conflicts, boolean strict) {
         checkTypeName(other);
 
-        boolean indexed =  indexOptions() != IndexOptions.NONE;
+        boolean indexed = indexOptions() != IndexOptions.NONE;
         boolean mergeWithIndexed = other.indexOptions() != IndexOptions.NONE;
         // TODO: should be validating if index options go "up" (but "down" is ok)
         if (indexed != mergeWithIndexed) {

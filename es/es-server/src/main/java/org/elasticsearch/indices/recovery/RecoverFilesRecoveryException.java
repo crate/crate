@@ -36,7 +36,7 @@ public class RecoverFilesRecoveryException extends ElasticsearchException implem
         setShard(shardId);
     }
 
-    public RecoverFilesRecoveryException(StreamInput in) throws IOException{
+    public RecoverFilesRecoveryException(StreamInput in) throws IOException {
         super(in);
     }
 }

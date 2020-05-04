@@ -53,7 +53,7 @@ import java.util.Collection;
 
 public class LocalAllocateDangledIndices {
 
-    private static final Logger logger = LogManager.getLogger(LocalAllocateDangledIndices.class);
+    private static final Logger LOGGER = LogManager.getLogger(LocalAllocateDangledIndices.class);
 
     public static final String ACTION_NAME = "internal:gateway/local/allocate_dangled";
 
@@ -139,7 +139,7 @@ public class LocalAllocateDangledIndices {
                     StringBuilder sb = new StringBuilder();
                     for (IndexMetaData indexMetaData : request.indices) {
                         if (indexMetaData.getCreationVersion().before(minIndexCompatibilityVersion)) {
-                            logger.warn("ignoring dangled index [{}] on node [{}]" +
+                            LOGGER.warn("ignoring dangled index [{}] on node [{}]" +
                                 " since it's created version [{}] is not supported by at least one node in the cluster minVersion [{}]",
                                 indexMetaData.getIndex(), request.fromNode, indexMetaData.getCreationVersion(),
                                 minIndexCompatibilityVersion);
@@ -149,7 +149,7 @@ public class LocalAllocateDangledIndices {
                             continue;
                         }
                         if (currentState.metaData().hasAlias(indexMetaData.getIndex().getName())) {
-                            logger.warn("ignoring dangled index [{}] on node [{}] due to an existing alias with the same name",
+                            LOGGER.warn("ignoring dangled index [{}] on node [{}] due to an existing alias with the same name",
                                     indexMetaData.getIndex(), request.fromNode);
                             continue;
                         }
@@ -163,7 +163,7 @@ public class LocalAllocateDangledIndices {
                                 minIndexCompatibilityVersion);
                         } catch (Exception ex) {
                             // upgrade failed - adding index as closed
-                            logger.warn(() -> new ParameterizedMessage("found dangled index [{}] on node [{}]. This index cannot be " +
+                            LOGGER.warn(() -> new ParameterizedMessage("found dangled index [{}] on node [{}]. This index cannot be " +
                                 "upgraded to the latest version, adding as closed", indexMetaData.getIndex(), request.fromNode), ex);
                             upgradedIndexMetaData = IndexMetaData.builder(indexMetaData).state(IndexMetaData.State.CLOSE)
                                 .version(indexMetaData.getVersion() + 1).build();
@@ -179,7 +179,7 @@ public class LocalAllocateDangledIndices {
                     if (!importNeeded) {
                         return currentState;
                     }
-                    logger.info("auto importing dangled indices {} from [{}]", sb.toString(), request.fromNode);
+                    LOGGER.info("auto importing dangled indices {} from [{}]", sb.toString(), request.fromNode);
 
                     RoutingTable routingTable = routingTableBuilder.build();
                     ClusterState updatedState = ClusterState.builder(currentState).metaData(metaData).blocks(blocks)
@@ -192,12 +192,12 @@ public class LocalAllocateDangledIndices {
 
                 @Override
                 public void onFailure(String source, Exception e) {
-                    logger.error(() -> new ParameterizedMessage("unexpected failure during [{}]", source), e);
+                    LOGGER.error(() -> new ParameterizedMessage("unexpected failure during [{}]", source), e);
                     try {
                         channel.sendResponse(e);
                     } catch (Exception inner) {
                         inner.addSuppressed(e);
-                        logger.warn("failed send response for allocating dangled", inner);
+                        LOGGER.warn("failed send response for allocating dangled", inner);
                     }
                 }
 
@@ -206,7 +206,7 @@ public class LocalAllocateDangledIndices {
                     try {
                         channel.sendResponse(new AllocateDangledResponse(true));
                     } catch (IOException e) {
-                        logger.warn("failed send response for allocating dangled", e);
+                        LOGGER.warn("failed send response for allocating dangled", e);
                     }
                 }
             });

@@ -188,7 +188,7 @@ public class CollectionUtils {
         return list;
     }
 
-    public static<E> ArrayList<E> asArrayList(E first, E second, E... other) {
+    public static <E> ArrayList<E> asArrayList(E first, E second, E... other) {
         if (other == null) {
             throw new NullPointerException("other");
         }

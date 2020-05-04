@@ -39,9 +39,13 @@ final class ProfileScorer extends Scorer {
     private final Scorer scorer;
     private ProfileWeight profileWeight;
 
-    private final Timer scoreTimer, nextDocTimer, advanceTimer, matchTimer, shallowAdvanceTimer, computeMaxScoreTimer;
+    private final Timer scoreTimer;
+    private final Timer nextDocTimer;
+    private final Timer advanceTimer;
+    private final Timer matchTimer;
+    private final Timer shallowAdvanceTimer;
+    private final Timer computeMaxScoreTimer;
     private final boolean isConstantScoreQuery;
-
 
     ProfileScorer(ProfileWeight w, Scorer scorer, QueryProfileBreakdown profile) throws IOException {
         super(w);

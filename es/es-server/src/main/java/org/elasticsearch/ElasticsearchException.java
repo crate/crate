@@ -25,7 +25,6 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.common.CheckedFunction;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.ParseField;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -624,12 +623,14 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
                 }
             }
         }
-        return new ElasticsearchException[]{new ElasticsearchException(t.getMessage(), t) {
-            @Override
-            protected String getExceptionName() {
-                return getExceptionName(getCause());
+        return new ElasticsearchException[] {
+            new ElasticsearchException(t.getMessage(), t) {
+                @Override
+                protected String getExceptionName() {
+                    return getExceptionName(getCause());
+                }
             }
-        }};
+        };
     }
 
     protected String getExceptionName() {

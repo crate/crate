@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.discovery;
 
 import org.apache.logging.log4j.Logger;
@@ -32,7 +33,7 @@ import java.util.Set;
  */
 public class AckClusterStatePublishResponseHandler extends BlockingClusterStatePublishResponseHandler {
 
-    private static final Logger logger = LogManager.getLogger(AckClusterStatePublishResponseHandler.class);
+    private static final Logger LOGGER = LogManager.getLogger(AckClusterStatePublishResponseHandler.class);
 
     private final Discovery.AckListener ackListener;
 
@@ -69,7 +70,7 @@ public class AckClusterStatePublishResponseHandler extends BlockingClusterStateP
             ackListener.onNodeAck(node, e);
         } catch (Exception inner) {
             inner.addSuppressed(e);
-            logger.debug(() -> new ParameterizedMessage("error while processing ack for node [{}]", node), inner);
+            LOGGER.debug(() -> new ParameterizedMessage("error while processing ack for node [{}]", node), inner);
         }
     }
 }

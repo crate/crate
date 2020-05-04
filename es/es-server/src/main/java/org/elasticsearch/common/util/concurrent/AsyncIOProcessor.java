@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.util.concurrent;
 
 import org.apache.logging.log4j.Logger;
@@ -37,6 +38,7 @@ import java.util.function.Consumer;
  * might be blocked until other items are processed
  */
 public abstract class AsyncIOProcessor<Item> {
+
     private final Logger logger;
     private final ArrayBlockingQueue<Tuple<Item, Consumer<Exception>>> queue;
     private final Semaphore promiseSemaphore = new Semaphore(1);

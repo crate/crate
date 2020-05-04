@@ -166,7 +166,7 @@ public abstract class Engine implements Closeable {
         // when indexing but not refreshing in general. Yet, if a refresh happens the internal reader is refresh as well so we are
         // safe here.
         try (Engine.Searcher searcher = acquireSearcher("docStats", Engine.SearcherScope.INTERNAL)) {
-           return docsStats(searcher.reader());
+            return docsStats(searcher.reader());
         }
     }
 
@@ -514,8 +514,8 @@ public abstract class Engine implements Closeable {
                 );
             }
             if (get.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-                get.getIfSeqNo() != docIdAndVersion.seqNo || get.getIfPrimaryTerm() != docIdAndVersion.primaryTerm
-            )) {
+                get.getIfSeqNo() != docIdAndVersion.seqNo || get.getIfPrimaryTerm() != docIdAndVersion.primaryTerm)) {
+
                 Releasables.close(searcher);
                 throw new VersionConflictEngineException(
                     shardId,
@@ -578,19 +578,24 @@ public abstract class Engine implements Closeable {
             AtomicBoolean released = new AtomicBoolean(false);
             Searcher engineSearcher = new Searcher(source, acquire,
                 () -> {
-                if (released.compareAndSet(false, true)) {
-                    try {
-                        referenceManager.release(acquire);
-                    } finally {
-                        store.decRef();
+                    if (released.compareAndSet(false, true)) {
+                        try {
+                            referenceManager.release(acquire);
+                        } finally {
+                            store.decRef();
+                        }
+                    } else {
+                        /*
+                            * In general, searchers should never be released twice or this would break
+                            * reference counting. There is one rare case when it might happen though: when
+                            * the request and the Reaper thread would both try to release it in a very
+                            * short amount of time, this is why we only log a warning instead of throwing
+                            * an exception.
+                            */
+                        logger.warn("Searcher was released twice", new IllegalStateException("Double release"));
                     }
-                } else {
-                    /* In general, searchers should never be released twice or this would break reference counting. There is one rare case
-                     * when it might happen though: when the request and the Reaper thread would both try to release it in a very short
-                     * amount of time, this is why we only log a warning instead of throwing an exception. */
-                    logger.warn("Searcher was released twice", new IllegalStateException("Double release"));
                 }
-              });
+            );
             releasable = null; // success - hand over the reference to the engine searcher
             return engineSearcher;
         } catch (AlreadyClosedException ex) {
@@ -711,13 +716,13 @@ public abstract class Engine implements Closeable {
         ensureOpen();
         Map<String, Segment> segments = new HashMap<>();
         // first, go over and compute the search ones...
-        try (Searcher searcher = acquireSearcher("segments", SearcherScope.EXTERNAL)){
+        try (Searcher searcher = acquireSearcher("segments", SearcherScope.EXTERNAL)) {
             for (LeafReaderContext ctx : searcher.reader().getContext().leaves()) {
                 fillSegmentInfo(Lucene.segmentReader(ctx.reader()), verbose, true, segments);
             }
         }
 
-        try (Searcher searcher = acquireSearcher("segments", SearcherScope.INTERNAL)){
+        try (Searcher searcher = acquireSearcher("segments", SearcherScope.INTERNAL)) {
             for (LeafReaderContext ctx : searcher.reader().getContext().leaves()) {
                 SegmentReader segmentReader = Lucene.segmentReader(ctx.reader());
                 if (segments.containsKey(segmentReader.getSegmentName()) == false) {

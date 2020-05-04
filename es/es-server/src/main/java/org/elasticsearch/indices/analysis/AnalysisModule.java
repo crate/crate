@@ -126,8 +126,17 @@ public final class AnalysisModule {
             };
         });
         tokenFilters.register("shingle", ShingleTokenFilterFactory::new);
-        tokenFilters.register("hunspell", requiresAnalysisSettings((indexSettings, env, name, settings) -> new HunspellTokenFilterFactory
-            (indexSettings, name, settings, hunspellService)));
+        tokenFilters.register(
+            "hunspell",
+            requiresAnalysisSettings((indexSettings, env, name, settings) ->
+                new HunspellTokenFilterFactory(
+                    indexSettings,
+                    name,
+                    settings,
+                    hunspellService
+                )
+            )
+        );
 
         tokenFilters.extractAndRegister(plugins, AnalysisPlugin::getTokenFilters);
         return tokenFilters;
@@ -161,7 +170,8 @@ public final class AnalysisModule {
 
         // Add filters available in lucene-core
         preConfiguredTokenFilters.register("lowercase", PreConfiguredTokenFilter.singleton("lowercase", true, LowerCaseFilter::new));
-        preConfiguredTokenFilters.register( "standard",
+        preConfiguredTokenFilters.register(
+            "standard",
             PreConfiguredTokenFilter.singletonWithVersion("standard", false, (reader, version) -> {
                 DEPRECATION_LOGGER.deprecatedAndMaybeLog("standard_deprecation",
                     "The [standard] token filter is deprecated and will be removed in a future version.");
@@ -188,12 +198,15 @@ public final class AnalysisModule {
             String name = tokenizer.name().toLowerCase(Locale.ROOT);
             PreConfiguredTokenizer preConfigured;
             switch (tokenizer.getCachingStrategy()) {
-            case ONE:
-                preConfigured = PreConfiguredTokenizer.singleton(name,
-                        () -> tokenizer.create(Version.CURRENT), null);
-                break;
-            default:
-                throw new UnsupportedOperationException(
+                case ONE:
+                    preConfigured = PreConfiguredTokenizer.singleton(
+                        name,
+                        () -> tokenizer.create(Version.CURRENT),
+                        null
+                    );
+                    break;
+                default:
+                    throw new UnsupportedOperationException(
                         "Caching strategy unsupported by temporary shim [" + tokenizer + "]");
             }
             preConfiguredTokenizers.register(name, preConfigured);
@@ -229,6 +242,7 @@ public final class AnalysisModule {
     private NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> setupNormalizers() {
         return new NamedRegistry<>("normalizer");
     }
+
     /**
      * The basic factory interface for analysis components.
      */

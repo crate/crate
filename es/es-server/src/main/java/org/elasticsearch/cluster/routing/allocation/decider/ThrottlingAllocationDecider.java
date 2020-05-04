@@ -54,7 +54,7 @@ import static org.elasticsearch.cluster.routing.allocation.decider.Decision.YES;
  */
 public class ThrottlingAllocationDecider extends AllocationDecider {
 
-    private static final Logger logger = LogManager.getLogger(ThrottlingAllocationDecider.class);
+    private static final Logger LOGGER = LogManager.getLogger(ThrottlingAllocationDecider.class);
 
     public static final int DEFAULT_CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES = 2;
     public static final int DEFAULT_CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES = 4;
@@ -96,7 +96,7 @@ public class ThrottlingAllocationDecider extends AllocationDecider {
         clusterSettings.addSettingsUpdateConsumer(CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_OUTGOING_RECOVERIES_SETTING,
                 this::setConcurrentOutgoingRecoverries);
 
-        logger.debug("using node_concurrent_outgoing_recoveries [{}], node_concurrent_incoming_recoveries [{}], " +
+        LOGGER.debug("using node_concurrent_outgoing_recoveries [{}], node_concurrent_incoming_recoveries [{}], " +
                         "node_initial_primaries_recoveries [{}]",
                 concurrentOutgoingRecoveries, concurrentIncomingRecoveries, primariesInitialRecoveries);
     }
@@ -104,6 +104,7 @@ public class ThrottlingAllocationDecider extends AllocationDecider {
     private void setConcurrentIncomingRecoverries(int concurrentIncomingRecoveries) {
         this.concurrentIncomingRecoveries = concurrentIncomingRecoveries;
     }
+
     private void setConcurrentOutgoingRecoverries(int concurrentOutgoingRecoveries) {
         this.concurrentOutgoingRecoveries = concurrentOutgoingRecoveries;
     }

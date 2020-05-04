@@ -34,7 +34,8 @@ import java.util.stream.StreamSupport;
  */
 public final class FileSystemUtils {
 
-    private FileSystemUtils() {} // only static methods
+    private FileSystemUtils() { // only static methods
+    }
 
     /**
      * Returns <code>true</code> iff one of the files exists otherwise <code>false</code>

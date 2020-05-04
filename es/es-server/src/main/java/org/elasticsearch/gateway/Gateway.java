@@ -37,7 +37,7 @@ import java.util.function.Function;
 
 public class Gateway {
 
-    private static final Logger logger = LogManager.getLogger(Gateway.class);
+    private static final Logger LOGGER = LogManager.getLogger(Gateway.class);
 
     private final ClusterService clusterService;
 
@@ -55,14 +55,14 @@ public class Gateway {
 
     public void performStateRecovery(final GatewayStateRecoveredListener listener) throws GatewayException {
         DiscoveryNode[] discoveryNodes = clusterService.state().nodes().getMasterNodes().values().toArray(DiscoveryNode.class);
-        logger.trace("performing state recovery from {}", discoveryNodes);
+        LOGGER.trace("performing state recovery from {}", discoveryNodes);
         final TransportNodesListGatewayMetaState.NodesGatewayMetaState nodesState = listGatewayMetaState.list(discoveryNodes, null).actionGet();
 
         final int requiredAllocation = 1;
 
         if (nodesState.hasFailures()) {
             for (final FailedNodeException failedNodeException : nodesState.failures()) {
-                logger.warn("failed to fetch state from node", failedNodeException);
+                LOGGER.warn("failed to fetch state from node", failedNodeException);
             }
         }
 
@@ -114,7 +114,7 @@ public class Gateway {
                 }
                 if (electedIndexMetaData != null) {
                     if (indexMetaDataCount < requiredAllocation) {
-                        logger.debug("[{}] found [{}], required [{}], not adding", index, indexMetaDataCount, requiredAllocation);
+                        LOGGER.debug("[{}] found [{}], required [{}], not adding", index, indexMetaDataCount, requiredAllocation);
                     } // TODO if this logging statement is correct then we are missing an else here
 
                     metaDataBuilder.put(electedIndexMetaData, false);

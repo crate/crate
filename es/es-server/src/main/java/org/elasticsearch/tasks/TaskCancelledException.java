@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.tasks;
 
 import org.elasticsearch.ElasticsearchException;
@@ -26,13 +27,13 @@ import java.io.IOException;
 /**
  * A generic exception that can be thrown by a task when it's cancelled by the task manager API
  */
-public class TaskCancelledException  extends ElasticsearchException {
+public class TaskCancelledException extends ElasticsearchException {
 
     public TaskCancelledException(String msg) {
         super(msg);
     }
 
-    public TaskCancelledException(StreamInput in) throws IOException{
+    public TaskCancelledException(StreamInput in) throws IOException {
         super(in);
     }
 }

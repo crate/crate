@@ -110,7 +110,9 @@ public class DiscoverySettings {
         this.commitTimeout = commitTimeout;
     }
 
-    public boolean getPublishDiff() { return publishDiff;}
+    public boolean getPublishDiff() {
+        return publishDiff;
+    }
 
     private static ClusterBlock parseNoMasterBlock(String value) {
         switch (value) {

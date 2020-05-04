@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class RoutingService extends AbstractLifecycleComponent {
 
-    private static final Logger logger = LogManager.getLogger(RoutingService.class);
+    private static final Logger LOGGER = LogManager.getLogger(RoutingService.class);
 
     private static final String CLUSTER_UPDATE_TASK_SOURCE = "cluster_reroute";
 
@@ -88,10 +88,10 @@ public class RoutingService extends AbstractLifecycleComponent {
                 return;
             }
             if (rerouting.compareAndSet(false, true) == false) {
-                logger.trace("already has pending reroute, ignoring {}", reason);
+                LOGGER.trace("already has pending reroute, ignoring {}", reason);
                 return;
             }
-            logger.trace("rerouting {}", reason);
+            LOGGER.trace("rerouting {}", reason);
             clusterService.submitStateUpdateTask(CLUSTER_UPDATE_TASK_SOURCE + "(" + reason + ")", new ClusterStateUpdateTask(Priority.HIGH) {
                 @Override
                 public ClusterState execute(ClusterState currentState) {
@@ -109,17 +109,17 @@ public class RoutingService extends AbstractLifecycleComponent {
                 public void onFailure(String source, Exception e) {
                     rerouting.set(false);
                     ClusterState state = clusterService.state();
-                    if (logger.isTraceEnabled()) {
-                        logger.error(() -> new ParameterizedMessage("unexpected failure during [{}], current state:\n{}", source, state), e);
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.error(() -> new ParameterizedMessage("unexpected failure during [{}], current state:\n{}", source, state), e);
                     } else {
-                        logger.error(() -> new ParameterizedMessage("unexpected failure during [{}], current state version [{}]", source, state.version()), e);
+                        LOGGER.error(() -> new ParameterizedMessage("unexpected failure during [{}], current state version [{}]", source, state.version()), e);
                     }
                 }
             });
         } catch (Exception e) {
             rerouting.set(false);
             ClusterState state = clusterService.state();
-            logger.warn(() -> new ParameterizedMessage("failed to reroute routing table, current state:\n{}", state), e);
+            LOGGER.warn(() -> new ParameterizedMessage("failed to reroute routing table, current state:\n{}", state), e);
         }
     }
 }

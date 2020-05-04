@@ -315,14 +315,12 @@ public class MatchQuery {
                     return blendPhraseQuery((PhraseQuery) query, mapper);
                 }
                 return query;
-            }
-            catch (IllegalStateException e) {
+            } catch (IllegalStateException e) {
                 if (lenient) {
                     return newLenientFieldQuery(field, e);
                 }
                 throw e;
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 if (lenient == false) {
                     DEPRECATION_LOGGER.deprecated(e.getMessage());
                 }
@@ -335,14 +333,12 @@ public class MatchQuery {
             try {
                 checkForPositions(field);
                 return mapper.multiPhraseQuery(field, stream, slop, enablePositionIncrements);
-            }
-            catch (IllegalStateException e) {
+            } catch (IllegalStateException e) {
                 if (lenient) {
                     return newLenientFieldQuery(field, e);
                 }
                 throw e;
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 if (lenient == false) {
                     DEPRECATION_LOGGER.deprecated(e.getMessage());
                 }

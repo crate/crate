@@ -46,7 +46,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class HierarchyCircuitBreakerService extends CircuitBreakerService {
 
-    private static final Logger logger = LogManager.getLogger(HierarchyCircuitBreakerService.class);
+    private static final Logger LOGGER = LogManager.getLogger(HierarchyCircuitBreakerService.class);
 
     private static final String CHILD_LOGGER_PREFIX = "org.elasticsearch.indices.breaker.";
 
@@ -124,8 +124,8 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                 TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING.get(settings).getBytes(), 1.0,
                 CircuitBreaker.Type.PARENT);
 
-        if (logger.isTraceEnabled()) {
-            logger.trace("parent circuit breaker with settings {}", this.parentSettings);
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("parent circuit breaker with settings {}", this.parentSettings);
         }
 
         registerBreaker(this.requestSettings);
@@ -145,7 +145,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                 HierarchyCircuitBreakerService.this.requestSettings.getType());
         registerBreaker(newRequestSettings);
         HierarchyCircuitBreakerService.this.requestSettings = newRequestSettings;
-        logger.info("Updated breaker settings request: {}", newRequestSettings);
+        LOGGER.info("Updated breaker settings request: {}", newRequestSettings);
     }
 
     private void setInFlightRequestsBreakerLimit(ByteSizeValue newInFlightRequestsMax, Double newInFlightRequestsOverhead) {
@@ -153,7 +153,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             newInFlightRequestsOverhead, HierarchyCircuitBreakerService.this.inFlightRequestsSettings.getType());
         registerBreaker(newInFlightRequestsSettings);
         HierarchyCircuitBreakerService.this.inFlightRequestsSettings = newInFlightRequestsSettings;
-        logger.info("Updated breaker settings for in-flight requests: {}", newInFlightRequestsSettings);
+        LOGGER.info("Updated breaker settings for in-flight requests: {}", newInFlightRequestsSettings);
     }
 
     private void setFieldDataBreakerLimit(ByteSizeValue newFielddataMax, Double newFielddataOverhead) {
@@ -163,7 +163,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                 HierarchyCircuitBreakerService.this.fielddataSettings.getType());
         registerBreaker(newFielddataSettings);
         HierarchyCircuitBreakerService.this.fielddataSettings = newFielddataSettings;
-        logger.info("Updated breaker settings field data: {}", newFielddataSettings);
+        LOGGER.info("Updated breaker settings field data: {}", newFielddataSettings);
     }
 
     private void setAccountingBreakerLimit(ByteSizeValue newAccountingMax, Double newAccountingOverhead) {
@@ -171,7 +171,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             newAccountingOverhead, HierarchyCircuitBreakerService.this.inFlightRequestsSettings.getType());
         registerBreaker(newAccountingSettings);
         HierarchyCircuitBreakerService.this.accountingSettings = newAccountingSettings;
-        logger.info("Updated breaker settings for accounting requests: {}", newAccountingSettings);
+        LOGGER.info("Updated breaker settings for accounting requests: {}", newAccountingSettings);
     }
 
     private boolean validateTotalCircuitBreakerLimit(ByteSizeValue byteSizeValue) {
@@ -238,7 +238,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             // to fail requests because of this and thus return zero memory usage in this case. While we could also return the most
             // recently determined memory usage, we would overestimate memory usage immediately after a garbage collection event.
             assert ex.getMessage().matches("committed = \\d+ should be < max = \\d+");
-            logger.info("Cannot determine current memory usage due to JDK-8207200.", ex);
+            LOGGER.info("Cannot determine current memory usage due to JDK-8207200.", ex);
             return 0;
         }
     }
@@ -259,17 +259,18 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                 return;
             }
             this.parentTripCount.incrementAndGet();
-            final StringBuilder message = new StringBuilder("[parent] Data too large, data for [" + label + "]" +
-                    " would be [" + totalUsed + "/" + new ByteSizeValue(totalUsed) + "]" +
-                    ", which is larger than the limit of [" +
-                    parentLimit + "/" + new ByteSizeValue(parentLimit) + "]");
-                message.append(", usages [");
-                message.append(this.breakers.entrySet().stream().map(e -> {
-                    final CircuitBreaker breaker = e.getValue();
-                    final long breakerUsed = (long)(breaker.getUsed() * breaker.getOverhead());
-                    return e.getKey() + "=" + breakerUsed + "/" + new ByteSizeValue(breakerUsed);
-                }).collect(Collectors.joining(", ")));
-                message.append("]");
+            final StringBuilder message = new StringBuilder(
+                "[parent] Data too large, data for [" + label + "]" +
+                " would be [" + totalUsed + "/" + new ByteSizeValue(totalUsed) + "]" +
+                ", which is larger than the limit of [" +
+                parentLimit + "/" + new ByteSizeValue(parentLimit) + "]");
+            message.append(", usages [");
+            message.append(this.breakers.entrySet().stream().map(e -> {
+                final CircuitBreaker breaker = e.getValue();
+                final long breakerUsed = (long)(breaker.getUsed() * breaker.getOverhead());
+                return e.getKey() + "=" + breakerUsed + "/" + new ByteSizeValue(breakerUsed);
+            }).collect(Collectors.joining(", ")));
+            message.append("]");
             throw new CircuitBreakingException(message.toString(), totalUsed, parentLimit);
         }
     }

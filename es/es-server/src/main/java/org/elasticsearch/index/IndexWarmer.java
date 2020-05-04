@@ -42,7 +42,7 @@ import java.util.concurrent.Executor;
 
 public final class IndexWarmer {
 
-    private final static Logger LOGGER = LogManager.getLogger(IndexWarmer.class);
+    private static final Logger LOGGER = LogManager.getLogger(IndexWarmer.class);
     private final List<Listener> listeners;
 
     IndexWarmer(ThreadPool threadPool, IndexFieldDataService indexFieldDataService, Listener... listeners) {
@@ -90,6 +90,7 @@ public final class IndexWarmer {
         /** Wait until execution of the warm-up action completes. */
         void awaitTermination() throws InterruptedException;
     }
+
     public interface Listener {
         /** Queue tasks to warm-up the given segments and return handles that allow to wait for termination of the
          *  execution of those tasks. */

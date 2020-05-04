@@ -334,7 +334,7 @@ public class InternalEngine extends Engine {
             IndexSearcher acquire = internalSearcherManager.acquire();
             try {
                 IndexReader indexReader = acquire.getIndexReader();
-                assert indexReader instanceof ElasticsearchDirectoryReader:
+                assert indexReader instanceof ElasticsearchDirectoryReader :
                     "searcher's IndexReader should be an ElasticsearchDirectoryReader, but got " + indexReader;
                 indexReader.incRef(); // steal the reader - getSearcher will decrement if it fails
                 current = SearcherManager.getSearcher(searcherFactory, indexReader, null);
@@ -354,7 +354,7 @@ public class InternalEngine extends Engine {
             IndexSearcher acquire = internalSearcherManager.acquire();
             try {
                 final IndexReader previousReader = referenceToRefresh.getIndexReader();
-                assert previousReader instanceof ElasticsearchDirectoryReader:
+                assert previousReader instanceof ElasticsearchDirectoryReader :
                     "searcher's IndexReader should be an ElasticsearchDirectoryReader, but got " + previousReader;
 
                 final IndexReader newReader = acquire.getIndexReader();
@@ -381,7 +381,9 @@ public class InternalEngine extends Engine {
         }
 
         @Override
-        protected void decRef(IndexSearcher reference) throws IOException { reference.getIndexReader().decRef(); }
+        protected void decRef(IndexSearcher reference) throws IOException {
+            reference.getIndexReader().decRef();
+        }
     }
 
     @Override
@@ -402,10 +404,10 @@ public class InternalEngine extends Engine {
             final long localCheckpoint = localCheckpointTracker.getProcessedCheckpoint();
             final long maxSeqNo = localCheckpointTracker.getMaxSeqNo();
             int numNoOpsAdded = 0;
-            for (
-                    long seqNo = localCheckpoint + 1;
-                    seqNo <= maxSeqNo;
-                    seqNo = localCheckpointTracker.getProcessedCheckpoint() + 1 /* leap-frog the local checkpoint */) {
+            for (long seqNo = localCheckpoint + 1;
+                seqNo <= maxSeqNo;
+                seqNo = localCheckpointTracker.getProcessedCheckpoint() + 1 /* leap-frog the local checkpoint */) {
+
                 innerNoOp(new NoOp(seqNo, primaryTerm, Operation.Origin.PRIMARY, System.nanoTime(), "filling gaps"));
                 numNoOpsAdded++;
                 assert seqNo <= localCheckpointTracker.getProcessedCheckpoint() :
@@ -654,8 +656,8 @@ public class InternalEngine extends Engine {
                 );
             }
             if (get.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-                get.getIfSeqNo() != versionValue.seqNo || get.getIfPrimaryTerm() != versionValue.term
-            )) {
+                get.getIfSeqNo() != versionValue.seqNo || get.getIfPrimaryTerm() != versionValue.term)) {
+
                 throw new VersionConflictEngineException(
                     shardId,
                     get.id(),
@@ -1016,7 +1018,7 @@ public class InternalEngine extends Engine {
             // unlike the primary, replicas don't really care to about creation status of documents
             // this allows to ignore the case where a document was found in the live version maps in
             // a delete state and return false for the created flag in favor of code simplicity
-            if (index.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && index.seqNo() <= localCheckpointTracker.getProcessedCheckpoint()){
+            if (index.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && index.seqNo() <= localCheckpointTracker.getProcessedCheckpoint()) {
                 // the operation seq# is lower then the current local checkpoint and thus was already put into lucene
                 // this can happen during recovery where older operations are sent from the translog that are already
                 // part of the lucene commit (either from a peer recovery or a local translog)
@@ -1082,9 +1084,10 @@ public class InternalEngine extends Engine {
                     0
                 );
                 plan = IndexingStrategy.skipDueToVersionConflict(e, currentNotFoundOrDeleted, currentVersion, getPrimaryTerm());
-            } else if (versionValue != null && index.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-                versionValue.seqNo != index.getIfSeqNo() || versionValue.term != index.getIfPrimaryTerm()
-            )) {
+            } else if (versionValue != null
+                && index.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO
+                && (versionValue.seqNo != index.getIfSeqNo() || versionValue.term != index.getIfPrimaryTerm())) {
+
                 final VersionConflictEngineException e = new VersionConflictEngineException(
                     shardId,
                     index.id(),
@@ -1444,9 +1447,10 @@ public class InternalEngine extends Engine {
                 0
             );
             plan = DeletionStrategy.skipDueToVersionConflict(e, currentVersion, getPrimaryTerm(), currentlyDeleted);
-        } else if (versionValue != null &&  delete.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-            versionValue.seqNo != delete.getIfSeqNo() || versionValue.term != delete.getIfPrimaryTerm()
-        )) {
+        } else if (versionValue != null
+            && delete.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO
+            && (versionValue.seqNo != delete.getIfSeqNo() || versionValue.term != delete.getIfPrimaryTerm())) {
+
             final VersionConflictEngineException e = new VersionConflictEngineException(
                 shardId,
                 delete.id(),
@@ -1861,12 +1865,12 @@ public class InternalEngine extends Engine {
     }
 
     private void refreshLastCommittedSegmentInfos() {
-    /*
-     * we have to inc-ref the store here since if the engine is closed by a tragic event
-     * we don't acquire the write lock and wait until we have exclusive access. This might also
-     * dec the store reference which can essentially close the store and unless we can inc the reference
-     * we can't use it.
-     */
+        /*
+        * we have to inc-ref the store here since if the engine is closed by a tragic event
+        * we don't acquire the write lock and wait until we have exclusive access. This might also
+        * dec the store reference which can essentially close the store and unless we can inc the reference
+        * we can't use it.
+        */
         store.incRef();
         try {
             // reread the last committed segment infos
@@ -2264,6 +2268,7 @@ public class InternalEngine extends Engine {
         try {
             verbose = Boolean.parseBoolean(System.getProperty("tests.verbose"));
         } catch (Exception ignore) {
+            // ignored
         }
         iwc.setInfoStream(verbose ? InfoStream.getDefault() : new LoggerInfoStream(logger));
         iwc.setMergeScheduler(mergeScheduler);
@@ -2716,29 +2721,35 @@ public class InternalEngine extends Engine {
     }
 
     private final class AssertingIndexWriter extends IndexWriter {
+
         AssertingIndexWriter(Directory d, IndexWriterConfig conf) throws IOException {
             super(d, conf);
         }
+
         @Override
         public long updateDocument(Term term, Iterable<? extends IndexableField> doc) throws IOException {
             assert softDeleteEnabled == false : "Call #updateDocument but soft-deletes is enabled";
             return super.updateDocument(term, doc);
         }
+
         @Override
         public long updateDocuments(Term delTerm, Iterable<? extends Iterable<? extends IndexableField>> docs) throws IOException {
             assert softDeleteEnabled == false : "Call #updateDocuments but soft-deletes is enabled";
             return super.updateDocuments(delTerm, docs);
         }
+
         @Override
         public long deleteDocuments(Term... terms) throws IOException {
             assert softDeleteEnabled == false : "Call #deleteDocuments but soft-deletes is enabled";
             return super.deleteDocuments(terms);
         }
+
         @Override
         public long softUpdateDocument(Term term, Iterable<? extends IndexableField> doc, Field... softDeletes) throws IOException {
             assert softDeleteEnabled : "Call #softUpdateDocument but soft-deletes is disabled";
             return super.softUpdateDocument(term, doc, softDeletes);
         }
+
         @Override
         public long softUpdateDocuments(Term term, Iterable<? extends Iterable<? extends IndexableField>> docs, Field... softDeletes) throws IOException {
             assert softDeleteEnabled : "Call #softUpdateDocuments but soft-deletes is disabled";

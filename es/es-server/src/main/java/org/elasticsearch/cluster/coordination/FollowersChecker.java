@@ -62,7 +62,7 @@ import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.new
  */
 public class FollowersChecker {
 
-    private static final Logger logger = LogManager.getLogger(FollowersChecker.class);
+    private static final Logger LOGGER = LogManager.getLogger(FollowersChecker.class);
 
     public static final String FOLLOWER_CHECK_ACTION_NAME = "internal:coordination/fault_detection/follower_check";
 
@@ -163,7 +163,7 @@ public class FollowersChecker {
 
         if (responder.mode == Mode.FOLLOWER && responder.term == request.term) {
             // TODO trigger a term bump if we voted for a different leader in this term
-            logger.trace("responding to {} on fast path", request);
+            LOGGER.trace("responding to {} on fast path", request);
             transportChannel.sendResponse(Empty.INSTANCE);
             return;
         }
@@ -175,7 +175,7 @@ public class FollowersChecker {
         transportService.getThreadPool().generic().execute(new AbstractRunnable() {
             @Override
             protected void doRun() throws IOException {
-                logger.trace("responding to {} on slow path", request);
+                LOGGER.trace("responding to {} on slow path", request);
                 try {
                     handleRequestAndUpdateState.accept(request);
                 } catch (Exception e) {
@@ -187,7 +187,7 @@ public class FollowersChecker {
 
             @Override
             public void onFailure(Exception e) {
-                logger.debug(new ParameterizedMessage("exception while responding to {}", request), e);
+                LOGGER.debug(new ParameterizedMessage("exception while responding to {}", request), e);
             }
 
             @Override
@@ -290,12 +290,12 @@ public class FollowersChecker {
 
         private void handleWakeUp() {
             if (running() == false) {
-                logger.trace("handleWakeUp: not running");
+                LOGGER.trace("handleWakeUp: not running");
                 return;
             }
 
             final FollowerCheckRequest request = new FollowerCheckRequest(fastResponseState.term, transportService.getLocalNode());
-            logger.trace("handleWakeUp: checking {} with {}", discoveryNode, request);
+            LOGGER.trace("handleWakeUp: checking {} with {}", discoveryNode, request);
 
             transportService.sendRequest(discoveryNode, FOLLOWER_CHECK_ACTION_NAME, request,
                 TransportRequestOptions.builder().withTimeout(followerCheckTimeout).withType(Type.PING).build(),
@@ -308,19 +308,19 @@ public class FollowersChecker {
                     @Override
                     public void handleResponse(Empty response) {
                         if (running() == false) {
-                            logger.trace("{} no longer running", FollowerChecker.this);
+                            LOGGER.trace("{} no longer running", FollowerChecker.this);
                             return;
                         }
 
                         failureCountSinceLastSuccess = 0;
-                        logger.trace("{} check successful", FollowerChecker.this);
+                        LOGGER.trace("{} check successful", FollowerChecker.this);
                         scheduleNextWakeUp();
                     }
 
                     @Override
                     public void handleException(TransportException exp) {
                         if (running() == false) {
-                            logger.debug(new ParameterizedMessage("{} no longer running", FollowerChecker.this), exp);
+                            LOGGER.debug(new ParameterizedMessage("{} no longer running", FollowerChecker.this), exp);
                             return;
                         }
 
@@ -328,14 +328,14 @@ public class FollowersChecker {
 
                         final String reason;
                         if (failureCountSinceLastSuccess >= followerCheckRetryCount) {
-                            logger.debug(() -> new ParameterizedMessage("{} failed too many times", FollowerChecker.this), exp);
+                            LOGGER.debug(() -> new ParameterizedMessage("{} failed too many times", FollowerChecker.this), exp);
                             reason = "followers check retry count exceeded";
                         } else if (exp instanceof ConnectTransportException
                             || exp.getCause() instanceof ConnectTransportException) {
-                            logger.debug(() -> new ParameterizedMessage("{} disconnected", FollowerChecker.this), exp);
+                            LOGGER.debug(() -> new ParameterizedMessage("{} disconnected", FollowerChecker.this), exp);
                             reason = "disconnected";
                         } else {
-                            logger.debug(() -> new ParameterizedMessage("{} failed, retrying", FollowerChecker.this), exp);
+                            LOGGER.debug(() -> new ParameterizedMessage("{} failed, retrying", FollowerChecker.this), exp);
                             scheduleNextWakeUp();
                             return;
                         }
@@ -357,10 +357,10 @@ public class FollowersChecker {
                 public void run() {
                     synchronized (mutex) {
                         if (running() == false) {
-                            logger.trace("{} no longer running, not marking faulty", FollowerChecker.this);
+                            LOGGER.trace("{} no longer running, not marking faulty", FollowerChecker.this);
                             return;
                         }
-                        logger.debug("{} marking node as faulty", FollowerChecker.this);
+                        LOGGER.debug("{} marking node as faulty", FollowerChecker.this);
                         faultyNodes.add(discoveryNode);
                         followerCheckers.remove(discoveryNode);
                     }

@@ -65,7 +65,7 @@ public class UpgradeSettingsRequest extends AcknowledgedRequest<UpgradeSettingsR
         super(in);
         int size = in.readVInt();
         versions = new HashMap<>();
-        for (int i=0; i<size; i++) {
+        for (int i = 0; i < size; i++) {
             String index = in.readString();
             Version upgradeVersion = Version.readVersion(in);
             String oldestLuceneSegment = in.readString();
@@ -77,7 +77,7 @@ public class UpgradeSettingsRequest extends AcknowledgedRequest<UpgradeSettingsR
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeVInt(versions.size());
-        for(Map.Entry<String, Tuple<Version, String>> entry : versions.entrySet()) {
+        for (Map.Entry<String, Tuple<Version, String>> entry : versions.entrySet()) {
             out.writeString(entry.getKey());
             Version.writeVersion(entry.getValue().v1(), out);
             out.writeString(entry.getValue().v2());

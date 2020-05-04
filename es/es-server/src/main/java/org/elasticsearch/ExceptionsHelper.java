@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 
 public final class ExceptionsHelper {
 
-    private static final Logger logger = LogManager.getLogger(ExceptionsHelper.class);
+    private static final Logger LOGGER = LogManager.getLogger(ExceptionsHelper.class);
 
     public static RuntimeException convertToRuntime(Exception e) {
         if (e instanceof RuntimeException) {
@@ -82,7 +82,7 @@ public final class ExceptionsHelper {
             }
             if (counter++ > 10) {
                 // dear god, if we got more than 10 levels down, WTF? just bail
-                logger.warn("Exception cause unwrapping ran for 10 levels...", t);
+                LOGGER.warn("Exception cause unwrapping ran for 10 levels...", t);
                 return result;
             }
             result = result.getCause();
@@ -241,7 +241,7 @@ public final class ExceptionsHelper {
      * See {@link #maybeError(Throwable, Logger)}. Uses the class-local logger.
      */
     public static Optional<Error> maybeError(final Throwable cause) {
-        return maybeError(cause, logger);
+        return maybeError(cause, LOGGER);
     }
 
     /**
@@ -252,7 +252,7 @@ public final class ExceptionsHelper {
      * @param throwable the throwable to possibly throw on another thread
      */
     public static void maybeDieOnAnotherThread(final Throwable throwable) {
-        ExceptionsHelper.maybeError(throwable, logger).ifPresent(error -> {
+        ExceptionsHelper.maybeError(throwable, LOGGER).ifPresent(error -> {
             /*
              * Here be dragons. We want to rethrow this so that it bubbles up to the uncaught exception handler. Yet, sometimes the stack
              * contains statements that catch any throwable (e.g., Netty, and the JDK futures framework). This means that a rethrow here
@@ -263,13 +263,11 @@ public final class ExceptionsHelper {
             try {
                 // try to log the current stack trace
                 final String formatted = ExceptionsHelper.formatStackTrace(Thread.currentThread().getStackTrace());
-                logger.error("fatal error\n{}", formatted);
+                LOGGER.error("fatal error\n{}", formatted);
             } finally {
-                new Thread(
-                        () -> {
-                            throw error;
-                        })
-                        .start();
+                new Thread(() -> {
+                    throw error;
+                }).start();
             }
         });
     }

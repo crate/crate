@@ -40,7 +40,7 @@ public class IndexShardSnapshotFailedException extends IndexShardSnapshotExcepti
         super(shardId, msg, cause);
     }
 
-    public IndexShardSnapshotFailedException(StreamInput in) throws IOException{
+    public IndexShardSnapshotFailedException(StreamInput in) throws IOException {
         super(in);
     }
 }

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.engine;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -259,7 +260,9 @@ public final class EngineConfig {
     /**
      * Returns the engines shard ID
      */
-    public ShardId getShardId() { return shardId; }
+    public ShardId getShardId() {
+        return shardId;
+    }
 
     /**
      * Returns the allocation ID for the shard.
@@ -303,7 +306,9 @@ public final class EngineConfig {
      * should be automatically flushed. This is used to free up transient disk usage of potentially large segments that
      * are written after the engine became inactive from an indexing perspective.
      */
-    public TimeValue getFlushMergesAfter() { return flushMergesAfter; }
+    public TimeValue getFlushMergesAfter() {
+        return flushMergesAfter;
+    }
 
     /**
      * The refresh listeners to add to Lucene for externally visible refreshes
@@ -315,7 +320,9 @@ public final class EngineConfig {
     /**
      * The refresh listeners to add to Lucene for internally visible refreshes. These listeners will also be invoked on external refreshes
      */
-    public List<ReferenceManager.RefreshListener> getInternalRefreshListener() { return internalRefreshListener;}
+    public List<ReferenceManager.RefreshListener> getInternalRefreshListener() {
+        return internalRefreshListener;
+    }
 
 
     /**

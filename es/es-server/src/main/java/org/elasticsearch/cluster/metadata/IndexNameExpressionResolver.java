@@ -155,7 +155,7 @@ public class IndexNameExpressionResolver {
         final Set<Index> concreteIndices = new HashSet<>(expressions.size());
         for (String expression : expressions) {
             AliasOrIndex aliasOrIndex = metaData.getAliasAndIndexLookup().get(expression);
-            if (aliasOrIndex == null ) {
+            if (aliasOrIndex == null) {
                 if (failNoIndices) {
                     IndexNotFoundException infe = new IndexNotFoundException(expression);
                     infe.setResources("index_expression", expression);
@@ -430,7 +430,7 @@ public class IndexNameExpressionResolver {
         }
 
         Context(ClusterState state, IndicesOptions options, long startTime) {
-           this(state, options, startTime, false, false);
+            this(state, options, startTime, false, false);
         }
 
         Context(ClusterState state, IndicesOptions options, long startTime, boolean preserveAliases, boolean resolveToWriteIndex) {
@@ -637,9 +637,9 @@ public class IndexNameExpressionResolver {
             String toPrefix = new String(toPrefixCharArr);
             SortedMap<String,AliasOrIndex> subMap = metaData.getAliasAndIndexLookup().subMap(fromPrefix, toPrefix);
             if (context.getOptions().ignoreAliases()) {
-                 return subMap.entrySet().stream()
-                        .filter(entry -> entry.getValue().isAlias() == false)
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                return subMap.entrySet().stream()
+                    .filter(entry -> entry.getValue().isAlias() == false)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             }
             return subMap;
         }

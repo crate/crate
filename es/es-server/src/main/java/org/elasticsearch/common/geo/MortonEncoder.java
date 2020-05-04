@@ -39,7 +39,8 @@ import static org.apache.lucene.geo.GeoUtils.checkLongitude;
  */
 public class MortonEncoder {
 
-    private MortonEncoder() {} // no instance
+    private MortonEncoder() { // no instance
+    }
 
     /**
      * Main encoding method to quantize lat/lon points and bit interleave them into a binary morton code

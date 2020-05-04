@@ -40,8 +40,8 @@ import java.nio.file.Path;
 final class TranslogHeader {
     public static final String TRANSLOG_CODEC = "translog";
 
-    public static final int VERSION_CHECKSUMS    = 1; // pre-2.0 - unsupported
-    public static final int VERSION_CHECKPOINTS  = 2; // added checkpoints
+    public static final int VERSION_CHECKSUMS = 1; // pre-2.0 - unsupported
+    public static final int VERSION_CHECKPOINTS = 2; // added checkpoints
     public static final int VERSION_PRIMARY_TERM = 3; // added primary term
     public static final int CURRENT_VERSION = VERSION_PRIMARY_TERM;
 
@@ -172,8 +172,7 @@ final class TranslogHeader {
         final byte b1 = Channels.readFromFileChannel(channel, 0, 1)[0];
         if (b1 == 0x3f) { // LUCENE_CODEC_HEADER_BYTE
             throw new TranslogCorruptedException(
-                    path.toString(),
-                    "translog looks like version 1 or later, but has corrupted header" );
+                path.toString(), "translog looks like version 1 or later, but has corrupted header");
         } else if (b1 == 0x00) { // UNVERSIONED_TRANSLOG_HEADER_BYTE
             throw new IllegalStateException("pre-1.4 translog found [" + path + "]");
         }

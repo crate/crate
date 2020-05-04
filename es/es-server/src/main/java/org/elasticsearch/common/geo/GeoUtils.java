@@ -54,7 +54,7 @@ public class GeoUtils {
     public static final double EARTH_AXIS_RATIO = EARTH_SEMI_MINOR_AXIS / EARTH_SEMI_MAJOR_AXIS;
 
     /** Earth ellipsoid equator length in meters */
-    public static final double EARTH_EQUATOR = 2*Math.PI * EARTH_SEMI_MAJOR_AXIS;
+    public static final double EARTH_EQUATOR = 2 * Math.PI * EARTH_SEMI_MAJOR_AXIS;
 
     /** Earth ellipsoid polar distance in meters */
     public static final double EARTH_POLAR_DISTANCE = Math.PI * EARTH_SEMI_MINOR_AXIS;
@@ -70,14 +70,14 @@ public class GeoUtils {
      */
     public static int quadTreeLevelsForPrecision(double meters) {
         assert meters >= 0;
-        if(meters == 0) {
+        if (meters == 0) {
             return QuadPrefixTree.MAX_LEVELS_POSSIBLE;
         } else {
-            final double ratio = 1+(EARTH_POLAR_DISTANCE / EARTH_EQUATOR); // cell ratio
-            final double width = Math.sqrt((meters*meters)/(ratio*ratio)); // convert to cell width
+            final double ratio = 1 + (EARTH_POLAR_DISTANCE / EARTH_EQUATOR); // cell ratio
+            final double width = Math.sqrt((meters * meters) / (ratio * ratio)); // convert to cell width
             final long part = Math.round(Math.ceil(EARTH_EQUATOR / width));
             final int level = Long.SIZE - Long.numberOfLeadingZeros(part) - 1; // (log_2)
-            return (part<=(1L<<level)) ?level :(level+1); // adjust level
+            return (part <= (1L << level)) ? level : (level + 1); // adjust level
         }
     }
 
@@ -100,20 +100,20 @@ public class GeoUtils {
     public static int geoHashLevelsForPrecision(double meters) {
         assert meters >= 0;
 
-        if(meters == 0) {
+        if (meters == 0) {
             return GeohashPrefixTree.getMaxLevelsPossible();
         } else {
-            final double ratio = 1+(EARTH_POLAR_DISTANCE / EARTH_EQUATOR); // cell ratio
-            final double width = Math.sqrt((meters*meters)/(ratio*ratio)); // convert to cell width
+            final double ratio = 1 + (EARTH_POLAR_DISTANCE / EARTH_EQUATOR); // cell ratio
+            final double width = Math.sqrt((meters * meters) / (ratio * ratio)); // convert to cell width
             final double part = Math.ceil(EARTH_EQUATOR / width);
-            if(part == 1)
+            if (part == 1)
                 return 1;
-            final int bits = (int)Math.round(Math.ceil(Math.log(part) / Math.log(2)));
-            final int full = bits / 5;                // number of 5 bit subdivisions
-            final int left = bits - full*5;           // bit representing the last level
-            final int even = full + (left>0?1:0);     // number of even levels
-            final int odd = full + (left>3?1:0);      // number of odd levels
-            return even+odd;
+            final int bits = (int) Math.round(Math.ceil(Math.log(part) / Math.log(2)));
+            final int full = bits / 5; // number of 5 bit subdivisions
+            final int left = bits - full * 5; // bit representing the last level
+            final int even = full + (left > 0 ? 1 : 0); // number of even levels
+            final int odd = full + (left > 3 ? 1 : 0); // number of odd levels
+            return even + odd;
         }
     }
 
@@ -272,11 +272,11 @@ public class GeoUtils {
         String geohash = null;
         NumberFormatException numberFormatException = null;
 
-        if(parser.currentToken() == Token.START_OBJECT) {
-            while(parser.nextToken() != Token.END_OBJECT) {
-                if(parser.currentToken() == Token.FIELD_NAME) {
+        if (parser.currentToken() == Token.START_OBJECT) {
+            while (parser.nextToken() != Token.END_OBJECT) {
+                if (parser.currentToken() == Token.FIELD_NAME) {
                     String field = parser.currentName();
-                    if(LATITUDE.equals(field)) {
+                    if (LATITUDE.equals(field)) {
                         parser.nextToken();
                         switch (parser.currentToken()) {
                             case VALUE_NUMBER:
@@ -305,7 +305,7 @@ public class GeoUtils {
                                 throw new ElasticsearchParseException("longitude must be a number");
                         }
                     } else if (GEOHASH.equals(field)) {
-                        if(parser.nextToken() == Token.VALUE_STRING) {
+                        if (parser.nextToken() == Token.VALUE_STRING) {
                             geohash = parser.text();
                         } else {
                             throw new ElasticsearchParseException("geohash must be a string");
@@ -319,7 +319,7 @@ public class GeoUtils {
             }
 
             if (geohash != null) {
-                if(!Double.isNaN(lat) || !Double.isNaN(lon)) {
+                if (!Double.isNaN(lat) || !Double.isNaN(lon)) {
                     throw new ElasticsearchParseException("field must be either lat/lon or geohash");
                 } else {
                     return point.resetFromGeoHash(geohash);
@@ -335,14 +335,14 @@ public class GeoUtils {
                 return point.reset(lat, lon);
             }
 
-        } else if(parser.currentToken() == Token.START_ARRAY) {
+        } else if (parser.currentToken() == Token.START_ARRAY) {
             int element = 0;
-            while(parser.nextToken() != Token.END_ARRAY) {
-                if(parser.currentToken() == Token.VALUE_NUMBER) {
+            while (parser.nextToken() != Token.END_ARRAY) {
+                if (parser.currentToken() == Token.VALUE_NUMBER) {
                     element++;
-                    if(element == 1) {
+                    if (element == 1) {
                         lon = parser.doubleValue();
-                    } else if(element == 2) {
+                    } else if (element == 2) {
                         lat = parser.doubleValue();
                     } else {
                         GeoPoint.assertZValue(ignoreZValue, parser.doubleValue());
@@ -352,7 +352,7 @@ public class GeoUtils {
                 }
             }
             return point.reset(lat, lon);
-        } else if(parser.currentToken() == Token.VALUE_STRING) {
+        } else if (parser.currentToken() == Token.VALUE_STRING) {
             return point.resetFromString(parser.text(), ignoreZValue);
         } else {
             throw new ElasticsearchParseException("geo_point expected");

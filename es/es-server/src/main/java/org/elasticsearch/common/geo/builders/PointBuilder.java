@@ -59,11 +59,11 @@ public class PointBuilder extends ShapeBuilder<Point, PointBuilder> {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-       builder.startObject();
-       builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-       builder.field(ShapeParser.FIELD_COORDINATES.getPreferredName());
-       toXContent(builder, coordinates.get(0));
-       return builder.endObject();
+        builder.startObject();
+        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
+        builder.field(ShapeParser.FIELD_COORDINATES.getPreferredName());
+        toXContent(builder, coordinates.get(0));
+        return builder.endObject();
     }
 
     @Override

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.indices.analysis;
 
 import org.elasticsearch.ElasticsearchException;
@@ -35,7 +36,11 @@ public class PreBuiltCacheFactory {
      * LUCENE            Exactly one version for each lucene version is stored. Useful to prevent different analyzers with the same version
      * ELASTICSEARCH     Exactly one version per elasticsearch version is stored. Useful if you change an analyzer between elasticsearch releases, when the lucene version does not change
      */
-    public enum CachingStrategy { ONE, LUCENE, ELASTICSEARCH };
+    public enum CachingStrategy {
+        ONE,
+        LUCENE,
+        ELASTICSEARCH
+    }
 
     public interface PreBuiltCache<T> {
 
@@ -46,7 +51,8 @@ public class PreBuiltCacheFactory {
         Collection<T> values();
     }
 
-    private PreBuiltCacheFactory() {}
+    private PreBuiltCacheFactory() {
+    }
 
     public static <T> PreBuiltCache<T> getCache(CachingStrategy cachingStrategy) {
         switch (cachingStrategy) {

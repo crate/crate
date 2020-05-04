@@ -36,7 +36,7 @@ public class IndexClosedException extends ElasticsearchException {
         setIndex(index);
     }
 
-    public IndexClosedException(StreamInput in) throws IOException{
+    public IndexClosedException(StreamInput in) throws IOException {
         super(in);
     }
 

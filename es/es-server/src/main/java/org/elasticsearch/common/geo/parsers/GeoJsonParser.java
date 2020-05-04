@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.geo.parsers;
 
 import org.locationtech.jts.geom.Coordinate;
@@ -49,8 +50,8 @@ abstract class GeoJsonParser {
 
         ShapeBuilder.Orientation requestedOrientation =
             (shapeMapper == null) ? ShapeBuilder.Orientation.RIGHT : shapeMapper.fieldType().orientation();
-        Explicit<Boolean> coerce = (shapeMapper == null) ? GeoShapeFieldMapper.Defaults.COERCE : shapeMapper.coerce();
-        Explicit<Boolean> ignoreZValue = (shapeMapper == null) ? GeoShapeFieldMapper.Defaults.IGNORE_Z_VALUE : shapeMapper.ignoreZValue();
+        final Explicit<Boolean> coerce = (shapeMapper == null) ? GeoShapeFieldMapper.Defaults.COERCE : shapeMapper.coerce();
+        final Explicit<Boolean> ignoreZValue = (shapeMapper == null) ? GeoShapeFieldMapper.Defaults.IGNORE_Z_VALUE : shapeMapper.ignoreZValue();
 
         String malformedException = null;
 
@@ -182,11 +183,11 @@ abstract class GeoJsonParser {
         if (parser.currentToken() != XContentParser.Token.VALUE_NUMBER) {
             throw new ElasticsearchParseException("geo coordinates must be numbers");
         }
-        double lon = parser.doubleValue();
+        final double lon = parser.doubleValue();
         if (parser.nextToken() != XContentParser.Token.VALUE_NUMBER) {
             throw new ElasticsearchParseException("geo coordinates must be numbers");
         }
-        double lat = parser.doubleValue();
+        final double lat = parser.doubleValue();
         XContentParser.Token token = parser.nextToken();
         // alt (for storing purposes only - future use includes 3d shapes)
         double alt = Double.NaN;

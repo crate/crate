@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.translog;
 
 public class TranslogStats {
@@ -23,7 +24,7 @@ public class TranslogStats {
     private final long translogSizeInBytes;
     private final int numberOfOperations;
     private final long uncommittedSizeInBytes;
-    private final int  uncommittedOperations;
+    private final int uncommittedOperations;
 
     public TranslogStats(int numberOfOperations,
                          long translogSizeInBytes,

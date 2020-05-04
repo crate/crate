@@ -98,8 +98,8 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
  */
 public class MetaDataCreateIndexService {
 
-    private static final Logger logger = LogManager.getLogger(MetaDataCreateIndexService.class);
-    private static final DeprecationLogger deprecationLogger = new DeprecationLogger(LogManager.getLogger(MetaDataCreateIndexService.class));
+    private static final Logger LOGGER = LogManager.getLogger(MetaDataCreateIndexService.class);
+    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(MetaDataCreateIndexService.class));
 
     public static final int MAX_INDEX_NAME_BYTES = 255;
 
@@ -167,7 +167,7 @@ public class MetaDataCreateIndexService {
             throw exceptionCtor.apply(index, "must not contain '#'");
         }
         if (index.contains(":")) {
-            deprecationLogger.deprecated("index or alias name [" + index +
+            DEPRECATION_LOGGER.deprecated("index or alias name [" + index +
                             "] containing ':' is deprecated. CrateDB 4.x will read, " +
                             "but not allow creation of new indices containing ':'");
         }
@@ -210,7 +210,7 @@ public class MetaDataCreateIndexService {
                 activeShardsObserver.waitForActiveShards(new String[]{request.index()}, request.waitForActiveShards(), request.ackTimeout(),
                     shardsAcknowledged -> {
                         if (shardsAcknowledged == false) {
-                            logger.debug("[{}] index created, but the operation timed out while waiting for " +
+                            LOGGER.debug("[{}] index created, but the operation timed out while waiting for " +
                                              "enough shards to be started.", request.index());
                         }
                         listener.onResponse(new CreateIndexClusterStateUpdateResponse(response.isAcknowledged(), shardsAcknowledged));
@@ -230,7 +230,7 @@ public class MetaDataCreateIndexService {
         clusterService.submitStateUpdateTask(
                 "create-index [" + request.index() + "], cause [" + request.cause() + "]",
                 new IndexCreationTask(
-                        logger,
+                        LOGGER,
                         allocationService,
                         request,
                         listener,
@@ -489,7 +489,7 @@ public class MetaDataCreateIndexService {
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(indexMetaData.getIndex(),
                     indexMetaData.getSettings());
 
-                MetaData newMetaData = MetaData.builder(currentState.metaData())
+                final MetaData newMetaData = MetaData.builder(currentState.metaData())
                     .put(indexMetaData, false)
                     .build();
 
@@ -698,9 +698,9 @@ public class MetaDataCreateIndexService {
             }
         } else {
             final Predicate<String> sourceSettingsPredicate =
-                    (s) -> (s.startsWith("index.similarity.") || s.startsWith("index.analysis.") || s.startsWith("index.sort.") ||
-                            s.equals("index.mapping.single_type") || s.equals("index.soft_deletes.enabled"))
-                            && indexSettingsBuilder.keys().contains(s) == false;
+                (s) -> (s.startsWith("index.similarity.") || s.startsWith("index.analysis.") || s.startsWith("index.sort.") ||
+                        s.equals("index.mapping.single_type") || s.equals("index.soft_deletes.enabled"))
+                        && indexSettingsBuilder.keys().contains(s) == false;
             builder.put(sourceMetaData.getSettings().filter(sourceSettingsPredicate));
         }
 

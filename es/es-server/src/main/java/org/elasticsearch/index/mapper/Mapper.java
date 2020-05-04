@@ -124,14 +124,20 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
                 return queryShardContextSupplier;
             }
 
-            public boolean isWithinMultiField() { return false; }
+            public boolean isWithinMultiField() {
+                return false;
+            }
 
-            protected Function<String, TypeParser> typeParsers() { return typeParsers; }
+            protected Function<String, TypeParser> typeParsers() {
+                return typeParsers;
+            }
 
             public ParserContext createMultiFieldContext(ParserContext in) {
                 return new MultiFieldParserContext(in) {
                     @Override
-                    public boolean isWithinMultiField() { return true; }
+                    public boolean isWithinMultiField() {
+                        return true;
+                    }
                 };
             }
 

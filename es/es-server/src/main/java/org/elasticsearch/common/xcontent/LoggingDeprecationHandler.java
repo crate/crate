@@ -33,7 +33,9 @@ import org.elasticsearch.common.logging.DeprecationLogger;
  * though the user sent them.
  */
 public class LoggingDeprecationHandler implements DeprecationHandler {
-    public final static LoggingDeprecationHandler INSTANCE = new LoggingDeprecationHandler();
+
+    public static final LoggingDeprecationHandler INSTANCE = new LoggingDeprecationHandler();
+
     /**
      * The logger to which to send deprecation messages.
      *

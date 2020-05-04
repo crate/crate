@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.analysis;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -124,12 +125,12 @@ public final class AnalysisRegistry implements Closeable {
         if (analyzerProvider == null) {
             AnalysisModule.AnalysisProvider<AnalyzerProvider<?>> provider = analyzers.get(analyzer);
             return provider == null ? null : cachedAnalyzer.computeIfAbsent(analyzer, (key) -> {
-                        try {
-                            return provider.get(environment, key).get();
-                        } catch (IOException ex) {
-                            throw new ElasticsearchException("failed to load analyzer for name " + key, ex);
-                        }}
-            );
+                try {
+                    return provider.get(environment, key).get();
+                } catch (IOException ex) {
+                    throw new ElasticsearchException("failed to load analyzer for name " + key, ex);
+                }
+            });
         }
         return analyzerProvider.get(environment, analyzer).get();
     }
@@ -275,10 +276,12 @@ public final class AnalysisRegistry implements Closeable {
 
     private static <T> AnalysisModule.AnalysisProvider<T> requiresAnalysisSettings(AnalysisModule.AnalysisProvider<T> provider) {
         return new AnalysisModule.AnalysisProvider<T>() {
+
             @Override
             public T get(IndexSettings indexSettings, Environment environment, String name, Settings settings) throws IOException {
                 return provider.get(indexSettings, environment, name, settings);
             }
+
             @Override
             public boolean requiresAnalysisSettings() {
                 return true;

@@ -51,5 +51,6 @@ abstract class AtomicLongFieldData implements AtomicNumericFieldData {
     }
 
     @Override
-    public void close() {}
+    public void close() {
+    }
 }

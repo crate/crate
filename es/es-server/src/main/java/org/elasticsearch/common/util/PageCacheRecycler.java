@@ -43,16 +43,16 @@ public class PageCacheRecycler implements Releasable {
 
     public static final Setting<Type> TYPE_SETTING =
         new Setting<>("cache.recycler.page.type", Type.CONCURRENT.name(), Type::parse, Property.NodeScope);
-    public static final Setting<ByteSizeValue> LIMIT_HEAP_SETTING  =
+    public static final Setting<ByteSizeValue> LIMIT_HEAP_SETTING =
         Setting.memorySizeSetting("cache.recycler.page.limit.heap", "10%", Property.NodeScope);
-    public static final Setting<Double> WEIGHT_BYTES_SETTING  =
+    public static final Setting<Double> WEIGHT_BYTES_SETTING =
         Setting.doubleSetting("cache.recycler.page.weight.bytes", 1d, 0d, Property.NodeScope);
-    public static final Setting<Double> WEIGHT_LONG_SETTING  =
+    public static final Setting<Double> WEIGHT_LONG_SETTING =
         Setting.doubleSetting("cache.recycler.page.weight.longs", 1d, 0d, Property.NodeScope);
-    public static final Setting<Double> WEIGHT_INT_SETTING  =
+    public static final Setting<Double> WEIGHT_INT_SETTING =
         Setting.doubleSetting("cache.recycler.page.weight.ints", 1d, 0d, Property.NodeScope);
     // object pages are less useful to us so we give them a lower weight by default
-    public static final Setting<Double> WEIGHT_OBJECTS_SETTING  =
+    public static final Setting<Double> WEIGHT_OBJECTS_SETTING =
         Setting.doubleSetting("cache.recycler.page.weight.objects", 0.1d, 0d, Property.NodeScope);
 
     /** Page size in bytes: 16KB */
@@ -106,10 +106,12 @@ public class PageCacheRecycler implements Releasable {
 
         final int maxBytePageCount = (int) (bytesWeight * maxPageCount / totalWeight);
         bytePage = build(type, maxBytePageCount, availableProcessors, new AbstractRecyclerC<byte[]>() {
+
             @Override
             public byte[] newInstance() {
                 return new byte[BYTE_PAGE_SIZE];
             }
+
             @Override
             public void recycle(byte[] value) {
                 // nothing to do
@@ -118,10 +120,12 @@ public class PageCacheRecycler implements Releasable {
 
         final int maxIntPageCount = (int) (intsWeight * maxPageCount / totalWeight);
         intPage = build(type, maxIntPageCount, availableProcessors, new AbstractRecyclerC<int[]>() {
+
             @Override
             public int[] newInstance() {
                 return new int[INT_PAGE_SIZE];
             }
+
             @Override
             public void recycle(int[] value) {
                 // nothing to do
@@ -130,10 +134,12 @@ public class PageCacheRecycler implements Releasable {
 
         final int maxLongPageCount = (int) (longsWeight * maxPageCount / totalWeight);
         longPage = build(type, maxLongPageCount, availableProcessors, new AbstractRecyclerC<long[]>() {
+
             @Override
             public long[] newInstance() {
                 return new long[LONG_PAGE_SIZE];
             }
+
             @Override
             public void recycle(long[] value) {
                 // nothing to do
@@ -142,10 +148,12 @@ public class PageCacheRecycler implements Releasable {
 
         final int maxObjectPageCount = (int) (objectsWeight * maxPageCount / totalWeight);
         objectPage = build(type, maxObjectPageCount, availableProcessors, new AbstractRecyclerC<Object[]>() {
+
             @Override
             public Object[] newInstance() {
                 return new Object[OBJECT_PAGE_SIZE];
             }
+
             @Override
             public void recycle(Object[] value) {
                 Arrays.fill(value, null); // we need to remove the strong refs on the objects stored in the array

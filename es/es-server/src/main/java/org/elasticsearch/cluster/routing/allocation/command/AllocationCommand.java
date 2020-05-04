@@ -19,15 +19,13 @@
 
 package org.elasticsearch.cluster.routing.allocation.command;
 
+import java.util.Optional;
+
 import org.elasticsearch.cluster.routing.allocation.RerouteExplanation;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.io.stream.NamedWriteable;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentParser;
-
-import java.io.IOException;
-import java.util.Optional;
 
 /**
  * A command to move shards in some way.

@@ -186,13 +186,14 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     private final IndexShardOperationPermits indexShardOperationPermits;
 
-    private static final EnumSet<IndexShardState> readAllowedStates = EnumSet.of(IndexShardState.STARTED, IndexShardState.POST_RECOVERY);
+    private static final EnumSet<IndexShardState> READ_ALLOWED_STATES = EnumSet.of(IndexShardState.STARTED, IndexShardState.POST_RECOVERY);
+
     // for primaries, we only allow to write when actually started (so the cluster has decided we started)
     // in case we have a relocation of a primary, we also allow to write after phase 2 completed, where the shard may be
     // in state RECOVERING or POST_RECOVERY.
     // for replicas, replication is also allowed while recovering, since we index also during recovery to replicas and rely on version checks to make sure its consistent
     // a relocated shard can also be target of a replication if the relocation target has not been marked as active yet and is syncing it's changes back to the relocation source
-    private static final EnumSet<IndexShardState> writeAllowedStates = EnumSet.of(IndexShardState.RECOVERING, IndexShardState.POST_RECOVERY, IndexShardState.STARTED);
+    private static final EnumSet<IndexShardState> WRITE_ALLOWED_STATES = EnumSet.of(IndexShardState.RECOVERING, IndexShardState.POST_RECOVERY, IndexShardState.STARTED);
 
     private final IndexSearcherWrapper searcherWrapper;
 
@@ -256,10 +257,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         // to be computed on a per-shard basis
         if (IndexModule.INDEX_QUERY_CACHE_EVERYTHING_SETTING.get(settings)) {
             cachingPolicy = new QueryCachingPolicy() {
+
                 @Override
                 public void onUse(Query query) {
 
                 }
+
                 @Override
                 public boolean shouldCache(Query query) {
                     return true;
@@ -1084,6 +1087,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         // fail the engine. This will cause this shard to also be removed from the node's index service.
         getEngine().failEngine(reason, e);
     }
+
     public Engine.Searcher acquireSearcher(String source) {
         return acquireSearcher(source, Engine.SearcherScope.EXTERNAL);
     }
@@ -1415,14 +1419,14 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public void readAllowed() throws IllegalIndexShardStateException {
         IndexShardState state = this.state; // one time volatile read
-        if (readAllowedStates.contains(state) == false) {
-            throw new IllegalIndexShardStateException(shardId, state, "operations only allowed when shard state is one of " + readAllowedStates.toString());
+        if (READ_ALLOWED_STATES.contains(state) == false) {
+            throw new IllegalIndexShardStateException(shardId, state, "operations only allowed when shard state is one of " + READ_ALLOWED_STATES.toString());
         }
     }
 
     /** returns true if the {@link IndexShardState} allows reading */
     public boolean isReadAllowed() {
-        return readAllowedStates.contains(state);
+        return READ_ALLOWED_STATES.contains(state);
     }
 
     private void ensureWriteAllowed(Engine.Operation.Origin origin) throws IllegalIndexShardStateException {
@@ -1441,8 +1445,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 assert origin == Engine.Operation.Origin.LOCAL_RESET;
                 assert getActiveOperationsCount() == 0 : "Ongoing writes [" + getActiveOperations() + "]";
             }
-            if (writeAllowedStates.contains(state) == false) {
-                throw new IllegalIndexShardStateException(shardId, state, "operation only allowed when shard state is one of " + writeAllowedStates + ", origin [" + origin + "]");
+            if (WRITE_ALLOWED_STATES.contains(state) == false) {
+                throw new IllegalIndexShardStateException(shardId, state, "operation only allowed when shard state is one of " + WRITE_ALLOWED_STATES + ", origin [" + origin + "]");
             }
         }
     }
@@ -1945,7 +1949,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     private void doCheckIndex() throws IOException {
-        long timeNS = System.nanoTime();
+        final long timeNS = System.nanoTime();
         if (!Lucene.indexExists(store.directory())) {
             return;
         }
@@ -2236,7 +2240,10 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert newPrimaryTerm > pendingPrimaryTerm;
         assert operationPrimaryTerm <= pendingPrimaryTerm;
         final CountDownLatch termUpdated = new CountDownLatch(1);
-        indexShardOperationPermits.asyncBlockOperations(30, TimeUnit.MINUTES, () -> {
+        indexShardOperationPermits.asyncBlockOperations(
+            30,
+            TimeUnit.MINUTES,
+            () -> {
                 assert operationPrimaryTerm <= pendingPrimaryTerm;
                 termUpdated.await();
                 // indexShardOperationPermits doesn't guarantee that async submissions are executed
@@ -2252,7 +2259,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 } catch (AlreadyClosedException ace) {
                     // ignore, shard is already closed
                 }
-            });
+            }
+        );
         pendingPrimaryTerm = newPrimaryTerm;
         termUpdated.countDown();
     }
@@ -2296,16 +2304,16 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
                     if (opPrimaryTerm > pendingPrimaryTerm) {
                         bumpPrimaryTerm(opPrimaryTerm, () -> {
-                                updateGlobalCheckpointOnReplica(globalCheckpoint, "primary term transition");
-                                final long currentGlobalCheckpoint = getLastKnownGlobalCheckpoint();
-                                final long maxSeqNo = seqNoStats().getMaxSeqNo();
-                                logger.info("detected new primary with primary term [{}], global checkpoint [{}], max_seq_no [{}]",
-                                             opPrimaryTerm, currentGlobalCheckpoint, maxSeqNo);
-                                if (currentGlobalCheckpoint < maxSeqNo) {
-                                    resetEngineToGlobalCheckpoint();
-                                } else {
-                                    getEngine().rollTranslogGeneration();
-                                }
+                            updateGlobalCheckpointOnReplica(globalCheckpoint, "primary term transition");
+                            final long currentGlobalCheckpoint = getLastKnownGlobalCheckpoint();
+                            final long maxSeqNo = seqNoStats().getMaxSeqNo();
+                            logger.info("detected new primary with primary term [{}], global checkpoint [{}], max_seq_no [{}]",
+                                opPrimaryTerm, currentGlobalCheckpoint, maxSeqNo);
+                            if (currentGlobalCheckpoint < maxSeqNo) {
+                                resetEngineToGlobalCheckpoint();
+                            } else {
+                                getEngine().rollTranslogGeneration();
+                            }
                         });
                     }
                 }
@@ -2592,10 +2600,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         final RootObjectMapper.Builder noopRootMapper = new RootObjectMapper.Builder("__noop");
         final DocumentMapper noopDocumentMapper = new DocumentMapper.Builder(noopRootMapper, mapperService).build(mapperService);
         return new EngineConfig.TombstoneDocSupplier() {
+
             @Override
             public ParsedDocument newDeleteTombstoneDoc(String id) {
                 return defaultDocMapper().createDeleteTombstoneDoc(shardId.getIndexName(), id);
             }
+
             @Override
             public ParsedDocument newNoopTombstoneDoc(String reason) {
                 return noopDocumentMapper.createNoopTombstoneDoc(shardId.getIndexName(), reason);

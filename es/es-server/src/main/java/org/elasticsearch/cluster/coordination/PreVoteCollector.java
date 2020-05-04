@@ -44,7 +44,7 @@ import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.new
 
 public class PreVoteCollector {
 
-    private static final Logger logger = LogManager.getLogger(PreVoteCollector.class);
+    private static final Logger LOGGER = LogManager.getLogger(PreVoteCollector.class);
 
     public static final String REQUEST_PRE_VOTE_ACTION_NAME = "internal:cluster/request_pre_vote";
 
@@ -91,7 +91,7 @@ public class PreVoteCollector {
     }
 
     public void update(final PreVoteResponse preVoteResponse, @Nullable final DiscoveryNode leader) {
-        logger.trace("updating with preVoteResponse={}, leader={}", preVoteResponse, leader);
+        LOGGER.trace("updating with preVoteResponse={}, leader={}", preVoteResponse, leader);
         state = new Tuple<>(leader, preVoteResponse);
     }
 
@@ -140,7 +140,7 @@ public class PreVoteCollector {
         }
 
         void start(final Iterable<DiscoveryNode> broadcastNodes) {
-            logger.debug("{} requesting pre-votes from {}", this, broadcastNodes);
+            LOGGER.debug("{} requesting pre-votes from {}", this, broadcastNodes);
             broadcastNodes.forEach(n -> transportService.sendRequest(n, REQUEST_PRE_VOTE_ACTION_NAME, preVoteRequest,
                 new TransportResponseHandler<PreVoteResponse>() {
                     @Override
@@ -155,7 +155,7 @@ public class PreVoteCollector {
 
                     @Override
                     public void handleException(TransportException exp) {
-                        logger.debug(new ParameterizedMessage("{} failed", this), exp);
+                        LOGGER.debug(new ParameterizedMessage("{} failed", this), exp);
                     }
 
                     @Override
@@ -172,7 +172,7 @@ public class PreVoteCollector {
 
         private void handlePreVoteResponse(final PreVoteResponse response, final DiscoveryNode sender) {
             if (isClosed.get()) {
-                logger.debug("{} is closed, ignoring {} from {}", this, response, sender);
+                LOGGER.debug("{} is closed, ignoring {} from {}", this, response, sender);
                 return;
             }
 
@@ -181,7 +181,7 @@ public class PreVoteCollector {
             if (response.getLastAcceptedTerm() > clusterState.term()
                 || (response.getLastAcceptedTerm() == clusterState.term()
                 && response.getLastAcceptedVersion() > clusterState.version())) {
-                logger.debug("{} ignoring {} from {} as it is fresher", this, response, sender);
+                LOGGER.debug("{} ignoring {} from {} as it is fresher", this, response, sender);
                 return;
             }
 
@@ -190,16 +190,16 @@ public class PreVoteCollector {
             preVotesReceived.forEach(voteCollection::addVote);
 
             if (isElectionQuorum(voteCollection, clusterState) == false) {
-                logger.debug("{} added {} from {}, no quorum yet", this, response, sender);
+                LOGGER.debug("{} added {} from {}, no quorum yet", this, response, sender);
                 return;
             }
 
             if (electionStarted.compareAndSet(false, true) == false) {
-                logger.debug("{} added {} from {} but election has already started", this, response, sender);
+                LOGGER.debug("{} added {} from {} but election has already started", this, response, sender);
                 return;
             }
 
-            logger.debug("{} added {} from {}, starting election", this, response, sender);
+            LOGGER.debug("{} added {} from {}, starting election", this, response, sender);
             startElection.run();
         }
 

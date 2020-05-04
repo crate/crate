@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.gateway;
 
 import org.apache.logging.log4j.LogManager;
@@ -73,7 +74,7 @@ public abstract class MetaDataStateFormat<T> {
     private final String prefix;
     private final Pattern stateFilePattern;
 
-    private static final Logger logger = LogManager.getLogger(MetaDataStateFormat.class);
+    private static final Logger LOGGER = LogManager.getLogger(MetaDataStateFormat.class);
 
     /**
      * Creates a new {@link MetaDataStateFormat} instance
@@ -89,14 +90,14 @@ public abstract class MetaDataStateFormat<T> {
         } catch (FileNotFoundException | NoSuchFileException ignored) {
 
         }
-        logger.trace("cleaned up {}", stateLocation.resolve(fileName));
+        LOGGER.trace("cleaned up {}", stateLocation.resolve(fileName));
     }
 
     private static void deleteFileIgnoreExceptions(Path stateLocation, Directory directory, String fileName) {
         try {
             deleteFileIfExists(stateLocation, directory, fileName);
         } catch (IOException e) {
-            logger.trace("clean up failed {}", stateLocation.resolve(fileName));
+            LOGGER.trace("clean up failed {}", stateLocation.resolve(fileName));
         }
     }
 
@@ -263,7 +264,7 @@ public abstract class MetaDataStateFormat<T> {
         return newGenerationId;
     }
 
-    protected XContentBuilder newXContentBuilder(XContentType type, OutputStream stream ) throws IOException {
+    protected XContentBuilder newXContentBuilder(XContentType type, OutputStream stream) throws IOException {
         return XContentFactory.contentBuilder(type, stream);
     }
 
@@ -304,7 +305,7 @@ public abstract class MetaDataStateFormat<T> {
                         }
                     }
                 }
-            } catch(CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
+            } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
                 // we trick this into a dedicated exception with the original stacktrace
                 throw new CorruptStateException(ex);
             }
@@ -325,7 +326,7 @@ public abstract class MetaDataStateFormat<T> {
     public void cleanupOldFiles(final long currentGeneration, Path[] locations) {
         final String fileNameToKeep = getStateFileName(currentGeneration);
         for (Path location : locations) {
-            logger.trace("cleanupOldFiles: cleaning up {}", location);
+            LOGGER.trace("cleanupOldFiles: cleaning up {}", location);
             Path stateLocation = location.resolve(STATE_DIR_NAME);
             try (Directory stateDir = newDirectory(stateLocation)) {
                 for (String file : stateDir.listAll()) {
@@ -334,7 +335,7 @@ public abstract class MetaDataStateFormat<T> {
                     }
                 }
             } catch (Exception e) {
-                logger.trace("clean up failed for state location {}", stateLocation);
+                LOGGER.trace("clean up failed for state location {}", stateLocation);
             }
         }
     }
@@ -376,7 +377,7 @@ public abstract class MetaDataStateFormat<T> {
         for (Path dataLocation : locations) {
             final Path stateFilePath = dataLocation.resolve(STATE_DIR_NAME).resolve(fileName);
             if (Files.exists(stateFilePath)) {
-                logger.trace("found state file: {}", stateFilePath);
+                LOGGER.trace("found state file: {}", stateFilePath);
                 files.add(stateFilePath);
             }
         }
@@ -435,11 +436,13 @@ public abstract class MetaDataStateFormat<T> {
         T state = loadGeneration(logger, namedXContentRegistry, generation, dataLocations);
 
         if (generation > -1 && state == null) {
-            throw new IllegalStateException("unable to find state files with generation id " + generation +
-                    " returned by findMaxGenerationId function, in data folders [" +
-                    Arrays.stream(dataLocations).map(Path::toAbsolutePath).
-                            map(Object::toString).collect(Collectors.joining(", ")) +
-                    "], concurrent writes?");
+            throw new IllegalStateException(
+                "unable to find state files with generation id " + generation +
+                " returned by findMaxGenerationId function, in data folders [" +
+                Arrays.stream(dataLocations)
+                    .map(Path::toAbsolutePath)
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", ")) + "], concurrent writes?");
         }
         return Tuple.tuple(state, generation);
     }

@@ -44,7 +44,7 @@ import static java.util.Collections.emptySet;
 
 public class HandshakingTransportAddressConnector implements TransportAddressConnector {
 
-    private static final Logger logger = LogManager.getLogger(HandshakingTransportAddressConnector.class);
+    private static final Logger LOGGER = LogManager.getLogger(HandshakingTransportAddressConnector.class);
 
     // connection timeout for probes
     public static final Setting<TimeValue> PROBE_CONNECT_TIMEOUT_SETTING =
@@ -78,19 +78,19 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                     transportAddress.address().getHostString(), transportAddress.getAddress(), transportAddress, emptyMap(),
                     emptySet(), Version.CURRENT.minimumCompatibilityVersion());
 
-                logger.trace("[{}] opening probe connection", this);
+                LOGGER.trace("[{}] opening probe connection", this);
                 final Connection connection = transportService.openConnection(targetNode,
                     ConnectionProfile.buildSingleChannelProfile(Type.REG, probeConnectTimeout, probeHandshakeTimeout,
                         TimeValue.MINUS_ONE, null));
-                logger.trace("[{}] opened probe connection", this);
+                LOGGER.trace("[{}] opened probe connection", this);
 
                 DiscoveryNode remoteNode = null;
                 try {
                     remoteNode = transportService.handshake(connection, probeHandshakeTimeout.millis());
                     // success means (amongst other things) that the cluster names match
-                    logger.trace("[{}] handshake successful: {}", this, remoteNode);
+                    LOGGER.trace("[{}] handshake successful: {}", this, remoteNode);
                 } catch (Exception e) {
-                    logger.error("["+this+"] error on handshake", e);
+                    LOGGER.error("[" + this + "] error on handshake", e);
                 } finally {
                     IOUtils.closeWhileHandlingException(connection);
                 }
@@ -103,7 +103,7 @@ public class HandshakingTransportAddressConnector implements TransportAddressCon
                     listener.onFailure(new ConnectTransportException(remoteNode, "non-master-eligible node found"));
                 } else {
                     transportService.connectToNode(remoteNode);
-                    logger.trace("[{}] full connection successful: {}", this, remoteNode);
+                    LOGGER.trace("[{}] full connection successful: {}", this, remoteNode);
                     listener.onResponse(remoteNode);
                 }
             }

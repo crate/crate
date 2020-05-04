@@ -187,7 +187,6 @@ public abstract class AbstractScopedSettings {
         } catch (Exception ex) {
             logger.warn("failed to apply settings", ex);
             throw ex;
-        } finally {
         }
         return lastSettingsApplied = newSettings;
     }
@@ -211,7 +210,8 @@ public abstract class AbstractScopedSettings {
      * Adds a settings consumer for affix settings. Affix settings have a namespace associated to it that needs to be available to the
      * consumer in order to be processed correctly.
      */
-    public synchronized <T> void addAffixUpdateConsumer(Setting.AffixSetting<T> setting,  BiConsumer<String, T> consumer,
+    public synchronized <T> void addAffixUpdateConsumer(Setting.AffixSetting<T> setting,
+                                                        BiConsumer<String, T> consumer,
                                                         BiConsumer<String, T> validator) {
         ensureSettingIsRegistered(setting);
         addSettingsUpdater(setting.newAffixUpdater(consumer, logger, validator));
@@ -247,7 +247,7 @@ public abstract class AbstractScopedSettings {
      * See {@link #addSettingsUpdateConsumer(Setting, Setting, BiConsumer, BiConsumer)} for details.
      */
     public synchronized <A, B> void addSettingsUpdateConsumer(Setting<A> a, Setting<B> b, BiConsumer<A, B> consumer) {
-        addSettingsUpdateConsumer(a, b, consumer, (i, j) -> {} );
+        addSettingsUpdateConsumer(a, b, consumer, (i, j) -> {});
     }
 
     /**
@@ -277,7 +277,7 @@ public abstract class AbstractScopedSettings {
      * </p>
      */
     public synchronized <T> void addSettingsUpdateConsumer(Setting<T> setting, Consumer<T> consumer) {
-       addSettingsUpdateConsumer(setting, consumer, (s) -> {});
+        addSettingsUpdateConsumer(setting, consumer, (s) -> {});
     }
 
     /**
@@ -391,13 +391,13 @@ public abstract class AbstractScopedSettings {
             String msg = "unknown setting [" + key + "]";
             List<String> keys = scoredKeys.stream().map((a) -> a.v2()).collect(Collectors.toList());
             if (keys.isEmpty() == false) {
-                msg += " did you mean " + (keys.size() == 1 ? "[" + keys.get(0) + "]": "any of " + keys.toString()) + "?";
+                msg += " did you mean " + (keys.size() == 1 ? "[" + keys.get(0) + "]" : "any of " + keys.toString()) + "?";
             } else {
                 msg += " please check that any required plugins are installed," +
                     " or check the breaking changes documentation for removed settings";
             }
             throw new IllegalArgumentException(msg);
-        } else  {
+        } else {
             Set<Setting<?>> settingsDependencies = setting.getSettingsDependencies(key);
             if (setting.hasComplexMatcher()) {
                 setting = setting.getConcreteSetting(key);
@@ -475,7 +475,9 @@ public abstract class AbstractScopedSettings {
         default Runnable updater(Settings current, Settings previous) {
             if (hasChanged(current, previous)) {
                 T value = getValue(current, previous);
-                return () -> { apply(value, current, previous);};
+                return () -> {
+                    apply(value, current, previous);
+                };
             }
             return () -> {};
         }
@@ -488,7 +490,8 @@ public abstract class AbstractScopedSettings {
         Setting<?> raw = getRaw(key);
         if (raw == null) {
             return null;
-        } if (raw.hasComplexMatcher()) {
+        }
+        if (raw.hasComplexMatcher()) {
             return raw.getConcreteSetting(key);
         } else {
             return raw;
@@ -517,8 +520,8 @@ public abstract class AbstractScopedSettings {
                 list.add(entry.getValue().getConcreteSetting(key));
             }
         }
-        assert list.size() == numComplexMatchers : "Expected " + numComplexMatchers + " complex matchers to match key [" +
-            key + "] but got: "  + list.toString();
+        assert list.size() == numComplexMatchers
+            : "Expected " + numComplexMatchers + " complex matchers to match key [" + key + "] but got: " + list.toString();
         return true;
     }
 

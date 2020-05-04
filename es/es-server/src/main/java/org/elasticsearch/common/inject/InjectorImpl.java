@@ -643,7 +643,7 @@ class InjectorImpl implements Injector, Lookups {
 
 
         @SuppressWarnings("unchecked")
-            // safe because we only put matching entries into the map
+        // safe because we only put matching entries into the map
         <T> List<Binding<T>> getAll(TypeLiteral<T> type) {
             List<Binding<?>> bindings = multimap.get(type);
             return bindings != null

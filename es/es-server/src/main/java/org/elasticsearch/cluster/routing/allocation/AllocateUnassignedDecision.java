@@ -48,6 +48,7 @@ public class AllocateUnassignedDecision extends AbstractAllocationDecision {
      * this helps prevent unnecessary object allocations for the non-explain API case
      */
     private static final Map<AllocationStatus, AllocateUnassignedDecision> CACHED_DECISIONS;
+
     static {
         Map<AllocationStatus, AllocateUnassignedDecision> cachedDecisions = new EnumMap<>(AllocationStatus.class);
         cachedDecisions.put(AllocationStatus.FETCHING_SHARD_DATA,

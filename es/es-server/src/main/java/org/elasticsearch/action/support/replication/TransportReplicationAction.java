@@ -79,7 +79,6 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -440,7 +439,7 @@ public abstract class TransportReplicationAction<
         public PrimaryResult(ReplicaRequest replicaRequest, Response finalResponseIfSuccessful, Exception finalFailure) {
             assert finalFailure != null ^ finalResponseIfSuccessful != null
                     : "either a response or a failure has to be not null, " +
-                    "found [" + finalFailure + "] failure and ["+ finalResponseIfSuccessful + "] response";
+                    "found [" + finalFailure + "] failure and [" + finalResponseIfSuccessful + "] response";
             this.replicaRequest = replicaRequest;
             this.finalResponseIfSuccessful = finalResponseIfSuccessful;
             this.finalFailure = finalFailure;
@@ -578,11 +577,13 @@ public abstract class TransportReplicationAction<
         public void onFailure(Exception e) {
             if (e instanceof RetryOnReplicaException) {
                 logger.trace(
-                        () -> new ParameterizedMessage(
-                            "Retrying operation on replica, action [{}], request [{}]",
-                            transportReplicaAction,
-                            request),
-                    e);
+                    () -> new ParameterizedMessage(
+                        "Retrying operation on replica, action [{}], request [{}]",
+                        transportReplicaAction,
+                        request
+                    ),
+                    e
+                );
                 request.onRetry();
                 observer.waitForNextChange(new ClusterStateObserver.Listener() {
                     @Override

@@ -130,7 +130,7 @@ public enum DistanceUnit {
     public static DistanceUnit fromString(String unit) {
         for (DistanceUnit dunit : values()) {
             for (String name : dunit.names) {
-                if(name.equals(unit)) {
+                if (name.equals(unit)) {
                     return dunit;
                 }
             }
@@ -153,7 +153,7 @@ public enum DistanceUnit {
 
         @Override
         public boolean equals(Object obj) {
-            if(obj == null) {
+            if (obj == null) {
                 return false;
             } else if (obj instanceof Distance) {
                 Distance other = (Distance) obj;
@@ -200,7 +200,7 @@ public enum DistanceUnit {
         private static Distance parseDistance(String distance, DistanceUnit defaultUnit) {
             for (DistanceUnit unit : values()) {
                 for (String name : unit.names) {
-                    if(distance.endsWith(name)) {
+                    if (distance.endsWith(name)) {
                         return new Distance(Double.parseDouble(distance.substring(0, distance.length() - name.length())), unit);
                     }
                 }

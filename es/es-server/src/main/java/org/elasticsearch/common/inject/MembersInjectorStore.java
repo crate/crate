@@ -37,11 +37,10 @@ class MembersInjectorStore {
     private final InjectorImpl injector;
     private final List<TypeListenerBinding> typeListenerBindings;
 
-    private final FailableCache<TypeLiteral<?>, MembersInjectorImpl<?>> cache
-            = new FailableCache<TypeLiteral<?>, MembersInjectorImpl<?>>() {
+    private final FailableCache<TypeLiteral<?>, MembersInjectorImpl<?>> cache = new FailableCache<TypeLiteral<?>, MembersInjectorImpl<?>>() {
+
         @Override
-        protected MembersInjectorImpl<?> create(TypeLiteral<?> type, Errors errors)
-                throws ErrorsException {
+        protected MembersInjectorImpl<?> create(TypeLiteral<?> type, Errors errors) throws ErrorsException {
             return createWithListeners(type, errors);
         }
     };
@@ -82,7 +81,7 @@ class MembersInjectorStore {
             errors.merge(e.getErrorMessages());
             injectionPoints = e.getPartialValue();
         }
-        List<SingleMemberInjector> injectors = getInjectors(injectionPoints, errors);
+        final List<SingleMemberInjector> injectors = getInjectors(injectionPoints, errors);
         errors.throwIfNewErrors(numErrorsBefore);
 
         EncounterImpl<T> encounter = new EncounterImpl<>(errors, injector.lookups);

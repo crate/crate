@@ -30,7 +30,8 @@ import java.io.IOException;
  */
 @Deprecated
 public class DeleteFailedEngineException extends EngineException {
-    public DeleteFailedEngineException(StreamInput in) throws IOException{
+
+    public DeleteFailedEngineException(StreamInput in) throws IOException {
         super(in);
     }
 }

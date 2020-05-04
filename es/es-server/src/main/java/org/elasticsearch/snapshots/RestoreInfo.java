@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.snapshots;
 
 import org.elasticsearch.common.ParseField;
@@ -90,7 +91,7 @@ public class RestoreInfo implements ToXContentObject, Writeable {
      * @return number of failed shards
      */
     public int failedShards() {
-        return totalShards -  successfulShards;
+        return totalShards - successfulShards;
     }
 
     /**

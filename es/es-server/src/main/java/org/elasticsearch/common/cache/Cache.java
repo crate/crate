@@ -642,6 +642,8 @@ public class Cache<K, V> {
                 case NEW:
                     linkAtHead(entry);
                     break;
+                default:
+                    throw new IllegalArgumentException("Unexpected state: " + entry.state);
             }
             if (promoted) {
                 evict(now);
@@ -734,7 +736,7 @@ public class Cache<K, V> {
     private void linkAtHead(Entry<K, V> entry) {
         assert lruLock.isHeldByCurrentThread();
 
-        Entry<K, V> h = head;
+        final Entry<K, V> h = head;
         entry.before = null;
         entry.after = head;
         head = entry;

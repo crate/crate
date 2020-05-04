@@ -50,9 +50,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.ToLongBiFunction;
 
-public class IndicesFieldDataCache implements RemovalListener<IndicesFieldDataCache.Key, Accountable>, Releasable{
+public class IndicesFieldDataCache implements RemovalListener<IndicesFieldDataCache.Key, Accountable>, Releasable {
 
-    private static final Logger logger = LogManager.getLogger(IndicesFieldDataCache.class);
+    private static final Logger LOGGER = LogManager.getLogger(IndicesFieldDataCache.class);
 
     public static final Setting<ByteSizeValue> INDICES_FIELDDATA_CACHE_SIZE_KEY =
         Setting.memorySizeSetting("indices.fielddata.cache.size", new ByteSizeValue(-1), Property.NodeScope);
@@ -76,7 +76,7 @@ public class IndicesFieldDataCache implements RemovalListener<IndicesFieldDataCa
     }
 
     public IndexFieldDataCache buildIndexFieldDataCache(IndexFieldDataCache.Listener listener, Index index, String fieldName) {
-        return new IndexFieldCache(logger, cache, index, fieldName, indicesFieldDataCacheListener, listener);
+        return new IndexFieldCache(LOGGER, cache, index, fieldName, indicesFieldDataCacheListener, listener);
     }
 
     public Cache<Key, Accountable> getCache() {
@@ -94,7 +94,7 @@ public class IndicesFieldDataCache implements RemovalListener<IndicesFieldDataCa
                 listener.onRemoval(key.shardId, indexCache.fieldName, notification.getRemovalReason() == RemovalNotification.RemovalReason.EVICTED, value.ramBytesUsed());
             } catch (Exception e) {
                 // load anyway since listeners should not throw exceptions
-                logger.error("Failed to call listener on field data cache unloading", e);
+                LOGGER.error("Failed to call listener on field data cache unloading", e);
             }
         }
     }

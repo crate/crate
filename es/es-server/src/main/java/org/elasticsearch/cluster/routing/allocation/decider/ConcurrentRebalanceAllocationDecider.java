@@ -42,7 +42,7 @@ import org.elasticsearch.common.settings.Settings;
  */
 public class ConcurrentRebalanceAllocationDecider extends AllocationDecider {
 
-    private static final Logger logger = LogManager.getLogger(ConcurrentRebalanceAllocationDecider.class);
+    private static final Logger LOGGER = LogManager.getLogger(ConcurrentRebalanceAllocationDecider.class);
 
     public static final String NAME = "concurrent_rebalance";
 
@@ -53,7 +53,7 @@ public class ConcurrentRebalanceAllocationDecider extends AllocationDecider {
 
     public ConcurrentRebalanceAllocationDecider(Settings settings, ClusterSettings clusterSettings) {
         this.clusterConcurrentRebalance = CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE_SETTING.get(settings);
-        logger.debug("using [cluster_concurrent_rebalance] with [{}]", clusterConcurrentRebalance);
+        LOGGER.debug("using [cluster_concurrent_rebalance] with [{}]", clusterConcurrentRebalance);
         clusterSettings.addSettingsUpdateConsumer(CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE_SETTING,
                 this::setClusterConcurrentRebalance);
     }
@@ -66,7 +66,7 @@ public class ConcurrentRebalanceAllocationDecider extends AllocationDecider {
     public Decision canRebalance(ShardRouting shardRouting, RoutingAllocation allocation) {
         return canRebalance(allocation);
     }
-    
+
     @Override
     public Decision canRebalance(RoutingAllocation allocation) {
         if (clusterConcurrentRebalance == -1) {

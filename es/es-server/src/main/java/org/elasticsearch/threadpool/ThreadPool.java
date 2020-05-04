@@ -58,7 +58,7 @@ import static java.util.Collections.unmodifiableMap;
 
 public class ThreadPool implements Scheduler, Closeable {
 
-    private static final Logger logger = LogManager.getLogger(ThreadPool.class);
+    private static final Logger LOGGER = LogManager.getLogger(ThreadPool.class);
 
     public static class Names {
         public static final String SAME = "same";
@@ -197,7 +197,7 @@ public class ThreadPool implements Scheduler, Closeable {
             if (executors.containsKey(executorHolder.info.getName())) {
                 throw new IllegalStateException("duplicate executors with name [" + executorHolder.info.getName() + "] registered");
             }
-            logger.debug("created thread pool: {}", entry.getValue().formatInfo(executorHolder.info));
+            LOGGER.debug("created thread pool: {}", entry.getValue().formatInfo(executorHolder.info));
             executors.put(entry.getKey(), executorHolder);
         }
 
@@ -321,7 +321,7 @@ public class ThreadPool implements Scheduler, Closeable {
             schedule(command, delay, executor);
         } catch (EsRejectedExecutionException e) {
             if (e.isExecutorShutdown()) {
-                logger.debug(new ParameterizedMessage("could not schedule execution of [{}] after [{}] on [{}] as executor is shut down",
+                LOGGER.debug(new ParameterizedMessage("could not schedule execution of [{}] after [{}] on [{}] as executor is shut down",
                     command, delay, executor), e);
             } else {
                 throw e;
@@ -331,15 +331,13 @@ public class ThreadPool implements Scheduler, Closeable {
 
     @Override
     public Cancellable scheduleWithFixedDelay(Runnable command, TimeValue interval, String executor) {
-        return new ReschedulingRunnable(command, interval, executor, this,
-                (e) -> {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug(() -> new ParameterizedMessage("scheduled task [{}] was rejected on thread pool [{}]",
-                                command, executor), e);
-                    }
-                },
-                (e) -> logger.warn(() -> new ParameterizedMessage("failed to run scheduled task [{}] on thread pool [{}]",
-                        command, executor), e));
+        return new ReschedulingRunnable(command, interval, executor, this, (e) -> {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(() -> new ParameterizedMessage("scheduled task [{}] was rejected on thread pool [{}]",
+                        command, executor), e);
+            }
+        }, (e) -> LOGGER.warn(() -> new ParameterizedMessage("failed to run scheduled task [{}] on thread pool [{}]",
+                command, executor), e));
     }
 
     @Override
@@ -437,7 +435,7 @@ public class ThreadPool implements Scheduler, Closeable {
                 executor.execute(runnable);
             } catch (EsRejectedExecutionException e) {
                 if (e.isExecutorShutdown()) {
-                    logger.debug(new ParameterizedMessage("could not schedule execution of [{}] on [{}] as executor is shut down",
+                    LOGGER.debug(new ParameterizedMessage("could not schedule execution of [{}] on [{}] as executor is shut down",
                         runnable, executor), e);
                 } else {
                     throw e;

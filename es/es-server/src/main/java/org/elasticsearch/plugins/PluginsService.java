@@ -71,7 +71,7 @@ import static org.elasticsearch.plugins.PluginInfo.ES_PLUGIN_PROPERTIES;
 
 public class PluginsService {
 
-    private static final Logger logger = LogManager.getLogger(PluginsService.class);
+    private static final Logger LOGGER = LogManager.getLogger(PluginsService.class);
 
     private final Settings settings;
     private final Path configPath;
@@ -107,8 +107,8 @@ public class PluginsService {
             Plugin plugin = loadPlugin(pluginClass, settings, configPath);
             PluginInfo pluginInfo = new PluginInfo(pluginClass.getName(), "classpath plugin", "NA", Version.CURRENT, "1.8",
                                                    pluginClass.getName(), Collections.emptyList(), false);
-            if (logger.isTraceEnabled()) {
-                logger.trace("plugin loaded from classpath [{}]", pluginInfo);
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("plugin loaded from classpath [{}]", pluginInfo);
             }
             pluginsLoaded.add(new Tuple<>(pluginInfo, plugin));
             pluginsList.add(pluginInfo);
@@ -134,7 +134,7 @@ public class PluginsService {
         if (pluginsDirectory != null) {
             try {
                 // TODO: remove this leniency, but tests bogusly rely on it
-                if (isAccessibleDirectory(pluginsDirectory, logger)) {
+                if (isAccessibleDirectory(pluginsDirectory, LOGGER)) {
                     checkForFailedPluginRemovals(pluginsDirectory);
                     Set<Bundle> plugins = getPluginBundles(pluginsDirectory);
                     for (final Bundle bundle : plugins) {
@@ -174,8 +174,8 @@ public class PluginsService {
 
         // we don't log jars in lib/ we really shouldn't log modules,
         // but for now: just be transparent so we can debug any potential issues
-        logPluginInfo(modulesList, "module", logger);
-        logPluginInfo(pluginsList, "plugin", logger);
+        logPluginInfo(modulesList, "module", LOGGER);
+        logPluginInfo(pluginsList, "plugin", LOGGER);
     }
 
     private static void logPluginInfo(final List<PluginInfo> pluginInfos, final String type, final Logger logger) {

@@ -53,7 +53,7 @@ import static java.util.Collections.unmodifiableMap;
  */
 public class DanglingIndicesState implements ClusterStateListener {
 
-    private static final Logger logger = LogManager.getLogger(DanglingIndicesState.class);
+    private static final Logger LOGGER = LogManager.getLogger(DanglingIndicesState.class);
 
     private final NodeEnvironment nodeEnv;
     private final MetaStateService metaStateService;
@@ -99,10 +99,10 @@ public class DanglingIndicesState implements ClusterStateListener {
             final IndexMetaData indexMetaData = metaData.index(index);
             if (indexMetaData != null && indexMetaData.getIndex().getName().equals(index.getName())) {
                 if (indexMetaData.getIndex().getUUID().equals(index.getUUID()) == false) {
-                    logger.warn("[{}] can not be imported as a dangling index, as there is already another index " +
+                    LOGGER.warn("[{}] can not be imported as a dangling index, as there is already another index " +
                         "with the same name but a different uuid. local index will be ignored (but not deleted)", index);
                 } else {
-                    logger.debug("[{}] no longer dangling (created), removing from dangling list", index);
+                    LOGGER.debug("[{}] no longer dangling (created), removing from dangling list", index);
                 }
                 danglingIndices.remove(index);
             }
@@ -134,21 +134,21 @@ public class DanglingIndicesState implements ClusterStateListener {
             final IndexGraveyard graveyard = metaData.indexGraveyard();
             for (IndexMetaData indexMetaData : indexMetaDataList) {
                 if (metaData.hasIndex(indexMetaData.getIndex().getName())) {
-                    logger.warn("[{}] can not be imported as a dangling index, as index with same name already exists in cluster metadata",
+                    LOGGER.warn("[{}] can not be imported as a dangling index, as index with same name already exists in cluster metadata",
                         indexMetaData.getIndex());
                 } else if (graveyard.containsIndex(indexMetaData.getIndex())) {
-                    logger.warn("[{}] can not be imported as a dangling index, as an index with the same name and UUID exist in the " +
+                    LOGGER.warn("[{}] can not be imported as a dangling index, as an index with the same name and UUID exist in the " +
                                 "index tombstones.  This situation is likely caused by copying over the data directory for an index " +
                                 "that was previously deleted.", indexMetaData.getIndex());
                 } else {
-                    logger.info("[{}] dangling index exists on local file system, but not in cluster metadata, " +
+                    LOGGER.info("[{}] dangling index exists on local file system, but not in cluster metadata, " +
                                 "auto import to cluster state", indexMetaData.getIndex());
                     newIndices.put(indexMetaData.getIndex(), indexMetaData);
                 }
             }
             return newIndices;
         } catch (IOException e) {
-            logger.warn("failed to list dangling indices", e);
+            LOGGER.warn("failed to list dangling indices", e);
             return emptyMap();
         }
     }
@@ -166,17 +166,17 @@ public class DanglingIndicesState implements ClusterStateListener {
                 new LocalAllocateDangledIndices.Listener() {
                     @Override
                     public void onResponse(LocalAllocateDangledIndices.AllocateDangledResponse response) {
-                        logger.trace("allocated dangled");
+                        LOGGER.trace("allocated dangled");
                     }
 
                     @Override
                     public void onFailure(Throwable e) {
-                        logger.info("failed to send allocated dangled", e);
+                        LOGGER.info("failed to send allocated dangled", e);
                     }
                 }
             );
         } catch (Exception e) {
-            logger.warn("failed to send allocate dangled", e);
+            LOGGER.warn("failed to send allocate dangled", e);
         }
     }
 

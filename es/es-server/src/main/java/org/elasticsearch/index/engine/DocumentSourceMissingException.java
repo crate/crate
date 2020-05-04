@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.engine;
 
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -30,7 +31,7 @@ public class DocumentSourceMissingException extends EngineException {
         super(shardId, "[" + type + "][" + id + "]: document source missing");
     }
 
-    public DocumentSourceMissingException(StreamInput in) throws IOException{
+    public DocumentSourceMissingException(StreamInput in) throws IOException {
         super(in);
     }
 

@@ -41,7 +41,8 @@ import java.util.function.Predicate;
  * Handles writing and loading {@link Manifest}, {@link MetaData} and {@link IndexMetaData}
  */
 public class MetaStateService {
-    private static final Logger logger = LogManager.getLogger(MetaStateService.class);
+
+    private static final Logger LOGGER = LogManager.getLogger(MetaStateService.class);
 
     private final NodeEnvironment nodeEnv;
     private final NamedXContentRegistry namedXContentRegistry;
@@ -68,7 +69,7 @@ public class MetaStateService {
      * @throws IOException if some IOException when loading files occurs or there is no metadata referenced by manifest file.
      */
     Tuple<Manifest, MetaData> loadFullState() throws IOException {
-        final Manifest manifest = MANIFEST_FORMAT.loadLatestState(logger, namedXContentRegistry, nodeEnv.nodeDataPaths());
+        final Manifest manifest = MANIFEST_FORMAT.loadLatestState(LOGGER, namedXContentRegistry, nodeEnv.nodeDataPaths());
         if (manifest == null) {
             return loadFullStateBWC();
         }
@@ -77,7 +78,7 @@ public class MetaStateService {
         if (manifest.isGlobalGenerationMissing()) {
             metaDataBuilder = MetaData.builder();
         } else {
-            final MetaData globalMetaData = META_DATA_FORMAT.loadGeneration(logger, namedXContentRegistry, manifest.getGlobalGeneration(),
+            final MetaData globalMetaData = META_DATA_FORMAT.loadGeneration(LOGGER, namedXContentRegistry, manifest.getGlobalGeneration(),
                     nodeEnv.nodeDataPaths());
             if (globalMetaData != null) {
                 metaDataBuilder = MetaData.builder(globalMetaData);
@@ -90,7 +91,7 @@ public class MetaStateService {
             final Index index = entry.getKey();
             final long generation = entry.getValue();
             final String indexFolderName = index.getUUID();
-            final IndexMetaData indexMetaData = INDEX_META_DATA_FORMAT.loadGeneration(logger, namedXContentRegistry, generation,
+            final IndexMetaData indexMetaData = INDEX_META_DATA_FORMAT.loadGeneration(LOGGER, namedXContentRegistry, generation,
                     nodeEnv.resolveIndexFolder(indexFolderName));
             if (indexMetaData != null) {
                 metaDataBuilder.put(indexMetaData, false);
@@ -111,7 +112,7 @@ public class MetaStateService {
         MetaData.Builder metaDataBuilder;
 
         Tuple<MetaData, Long> metaDataAndGeneration =
-                META_DATA_FORMAT.loadLatestStateWithGeneration(logger, namedXContentRegistry, nodeEnv.nodeDataPaths());
+                META_DATA_FORMAT.loadLatestStateWithGeneration(LOGGER, namedXContentRegistry, nodeEnv.nodeDataPaths());
         MetaData globalMetaData = metaDataAndGeneration.v1();
         long globalStateGeneration = metaDataAndGeneration.v2();
 
@@ -125,7 +126,7 @@ public class MetaStateService {
 
         for (String indexFolderName : nodeEnv.availableIndexFolders()) {
             Tuple<IndexMetaData, Long> indexMetaDataAndGeneration =
-                    INDEX_META_DATA_FORMAT.loadLatestStateWithGeneration(logger, namedXContentRegistry,
+                    INDEX_META_DATA_FORMAT.loadLatestStateWithGeneration(LOGGER, namedXContentRegistry,
                             nodeEnv.resolveIndexFolder(indexFolderName));
             // TODO https://github.com/elastic/elasticsearch/issues/38556
             // assert Version.CURRENT.major < 8 : "failed to find manifest file, which is mandatory staring with Elasticsearch version 8.0";
@@ -135,7 +136,7 @@ public class MetaStateService {
                 indices.put(indexMetaData.getIndex(), generation);
                 metaDataBuilder.put(indexMetaData, false);
             } else {
-                logger.debug("[{}] failed to find metadata for existing index location", indexFolderName);
+                LOGGER.debug("[{}] failed to find metadata for existing index location", indexFolderName);
             }
         }
 
@@ -148,7 +149,7 @@ public class MetaStateService {
      */
     @Nullable
     public IndexMetaData loadIndexState(Index index) throws IOException {
-        return INDEX_META_DATA_FORMAT.loadLatestState(logger, namedXContentRegistry, nodeEnv.indexPaths(index));
+        return INDEX_META_DATA_FORMAT.loadLatestState(LOGGER, namedXContentRegistry, nodeEnv.indexPaths(index));
     }
 
     /**
@@ -159,7 +160,7 @@ public class MetaStateService {
         for (String indexFolderName : nodeEnv.availableIndexFolders(excludeIndexPathIdsPredicate)) {
             assert excludeIndexPathIdsPredicate.test(indexFolderName) == false :
                     "unexpected folder " + indexFolderName + " which should have been excluded";
-            IndexMetaData indexMetaData = INDEX_META_DATA_FORMAT.loadLatestState(logger, namedXContentRegistry,
+            IndexMetaData indexMetaData = INDEX_META_DATA_FORMAT.loadLatestState(LOGGER, namedXContentRegistry,
                     nodeEnv.resolveIndexFolder(indexFolderName));
             if (indexMetaData != null) {
                 final String indexPathId = indexMetaData.getIndex().getUUID();
@@ -169,7 +170,7 @@ public class MetaStateService {
                     throw new IllegalStateException("[" + indexFolderName + "] invalid index folder name, rename to [" + indexPathId + "]");
                 }
             } else {
-                logger.debug("[{}] failed to find metadata for existing index location", indexFolderName);
+                LOGGER.debug("[{}] failed to find metadata for existing index location", indexFolderName);
             }
         }
         return indexMetaDataList;
@@ -179,7 +180,7 @@ public class MetaStateService {
      * Loads Manifest file from disk, returns <code>Manifest.empty()</code> if there is no manifest file.
      */
     public Manifest loadManifestOrEmpty() throws IOException {
-        Manifest manifest = MANIFEST_FORMAT.loadLatestState(logger, namedXContentRegistry, nodeEnv.nodeDataPaths());
+        Manifest manifest = MANIFEST_FORMAT.loadLatestState(LOGGER, namedXContentRegistry, nodeEnv.nodeDataPaths());
         if (manifest == null) {
             manifest = Manifest.empty();
         }
@@ -190,7 +191,7 @@ public class MetaStateService {
      * Loads the global state, *without* index state, see {@link #loadFullState()} for that.
      */
     MetaData loadGlobalState() throws IOException {
-        return META_DATA_FORMAT.loadLatestState(logger, namedXContentRegistry, nodeEnv.nodeDataPaths());
+        return META_DATA_FORMAT.loadLatestState(LOGGER, namedXContentRegistry, nodeEnv.nodeDataPaths());
     }
 
     /**
@@ -200,10 +201,10 @@ public class MetaStateService {
      * @throws WriteStateException if exception when writing state occurs. See also {@link WriteStateException#isDirty()}
      */
     public long writeManifestAndCleanup(String reason, Manifest manifest) throws WriteStateException {
-        logger.trace("[_meta] writing state, reason [{}]", reason);
+        LOGGER.trace("[_meta] writing state, reason [{}]", reason);
         try {
             long generation = MANIFEST_FORMAT.writeAndCleanup(manifest, nodeEnv.nodeDataPaths());
-            logger.trace("[_meta] state written (generation: {})", generation);
+            LOGGER.trace("[_meta] state written (generation: {})", generation);
             return generation;
         } catch (WriteStateException ex) {
             throw new WriteStateException(ex.isDirty(), "[_meta]: failed to write meta state", ex);
@@ -220,11 +221,11 @@ public class MetaStateService {
      */
     public long writeIndex(String reason, IndexMetaData indexMetaData) throws WriteStateException {
         final Index index = indexMetaData.getIndex();
-        logger.trace("[{}] writing state, reason [{}]", index, reason);
+        LOGGER.trace("[{}] writing state, reason [{}]", index, reason);
         try {
             long generation = INDEX_META_DATA_FORMAT.write(indexMetaData,
                     nodeEnv.indexPaths(indexMetaData.getIndex()));
-            logger.trace("[{}] state written", index);
+            LOGGER.trace("[{}] state written", index);
             return generation;
         } catch (WriteStateException ex) {
             throw new WriteStateException(false, "[" + index + "]: failed to write index state", ex);
@@ -238,10 +239,10 @@ public class MetaStateService {
      *                             false, because new global state file is not yet referenced by manifest file.
      */
     long writeGlobalState(String reason, MetaData metaData) throws WriteStateException {
-        logger.trace("[_global] writing state, reason [{}]", reason);
+        LOGGER.trace("[_global] writing state, reason [{}]", reason);
         try {
             long generation = META_DATA_FORMAT.write(metaData, nodeEnv.nodeDataPaths());
-            logger.trace("[_global] state written");
+            LOGGER.trace("[_global] state written");
             return generation;
         } catch (WriteStateException ex) {
             throw new WriteStateException(false, "[_global]: failed to write global state", ex);

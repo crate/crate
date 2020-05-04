@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.coordination;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -79,9 +80,15 @@ public class CoordinationMetaData implements Writeable, ToXContentFragment {
     }
 
     private static final ConstructingObjectParser<CoordinationMetaData, Void> PARSER = new ConstructingObjectParser<>(
-            "coordination_metadata",
-            fields -> new CoordinationMetaData(term(fields), lastCommittedConfig(fields),
-                    lastAcceptedConfig(fields), votingConfigExclusions(fields)));
+        "coordination_metadata",
+        fields -> new CoordinationMetaData(
+            term(fields),
+            lastCommittedConfig(fields),
+            lastAcceptedConfig(fields),
+            votingConfigExclusions(fields)
+        )
+    );
+
     static {
         PARSER.declareLong(ConstructingObjectParser.constructorArg(), TERM_PARSE_FIELD);
         PARSER.declareStringArray(ConstructingObjectParser.constructorArg(), LAST_COMMITTED_CONFIGURATION_FIELD);
@@ -190,7 +197,7 @@ public class CoordinationMetaData implements Writeable, ToXContentFragment {
         public Builder() {
 
         }
-        
+
         public Builder(CoordinationMetaData state) {
             this.term = state.term;
             this.lastCommittedConfiguration = state.lastCommittedConfiguration;
@@ -272,8 +279,8 @@ public class CoordinationMetaData implements Writeable, ToXContentFragment {
         }
 
         private static final ConstructingObjectParser<VotingConfigExclusion, Void> PARSER = new ConstructingObjectParser<>(
-                "voting_config_exclusion",
-                nodeIdAndName -> new VotingConfigExclusion(nodeId(nodeIdAndName), nodeName(nodeIdAndName))
+            "voting_config_exclusion",
+            nodeIdAndName -> new VotingConfigExclusion(nodeId(nodeIdAndName), nodeName(nodeIdAndName))
         );
 
         static {

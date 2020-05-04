@@ -48,7 +48,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class GatewayService extends AbstractLifecycleComponent implements ClusterStateListener {
-    private static final Logger logger = LogManager.getLogger(GatewayService.class);
+
+    private static final Logger LOGGER = LogManager.getLogger(GatewayService.class);
 
     public static final Setting<Integer> EXPECTED_NODES_SETTING =
         Setting.intSetting("gateway.expected_nodes", -1, -1, Property.NodeScope);
@@ -174,15 +175,15 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
 
         final DiscoveryNodes nodes = state.nodes();
         if (state.nodes().getMasterNodeId() == null) {
-            logger.debug("not recovering from gateway, no master elected yet");
+            LOGGER.debug("not recovering from gateway, no master elected yet");
         } else if (recoverAfterNodes != -1 && (nodes.getMasterAndDataNodes().size()) < recoverAfterNodes) {
-            logger.debug("not recovering from gateway, nodes_size (data+master) [{}] < recover_after_nodes [{}]",
+            LOGGER.debug("not recovering from gateway, nodes_size (data+master) [{}] < recover_after_nodes [{}]",
                 nodes.getMasterAndDataNodes().size(), recoverAfterNodes);
         } else if (recoverAfterDataNodes != -1 && nodes.getDataNodes().size() < recoverAfterDataNodes) {
-            logger.debug("not recovering from gateway, nodes_size (data) [{}] < recover_after_data_nodes [{}]",
+            LOGGER.debug("not recovering from gateway, nodes_size (data) [{}] < recover_after_data_nodes [{}]",
                 nodes.getDataNodes().size(), recoverAfterDataNodes);
         } else if (recoverAfterMasterNodes != -1 && nodes.getMasterNodes().size() < recoverAfterMasterNodes) {
-            logger.debug("not recovering from gateway, nodes_size (master) [{}] < recover_after_master_nodes [{}]",
+            LOGGER.debug("not recovering from gateway, nodes_size (master) [{}] < recover_after_master_nodes [{}]",
                 nodes.getMasterNodes().size(), recoverAfterMasterNodes);
         } else {
             boolean enforceRecoverAfterTime;
@@ -214,18 +215,18 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
     private void performStateRecovery(final boolean enforceRecoverAfterTime, final String reason) {
         if (enforceRecoverAfterTime && recoverAfterTime != null) {
             if (scheduledRecovery.compareAndSet(false, true)) {
-                logger.info("delaying initial state recovery for [{}]. {}", recoverAfterTime, reason);
+                LOGGER.info("delaying initial state recovery for [{}]. {}", recoverAfterTime, reason);
                 threadPool.schedule(new AbstractRunnable() {
                     @Override
                     public void onFailure(Exception e) {
-                        logger.warn("delayed state recovery failed", e);
+                        LOGGER.warn("delayed state recovery failed", e);
                         resetRecoveredFlags();
                     }
 
                     @Override
                     protected void doRun() {
                         if (recovered.compareAndSet(false, true)) {
-                            logger.info("recover_after_time [{}] elapsed. performing state recovery...", recoverAfterTime);
+                            LOGGER.info("recover_after_time [{}] elapsed. performing state recovery...", recoverAfterTime);
                             recoveryRunnable.run();
                         }
                     }
@@ -236,7 +237,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
                 threadPool.generic().execute(new AbstractRunnable() {
                     @Override
                     public void onFailure(final Exception e) {
-                        logger.warn("state recovery failed", e);
+                        LOGGER.warn("state recovery failed", e);
                         resetRecoveredFlags();
                     }
 
@@ -268,18 +269,18 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
 
         @Override
         public void clusterStateProcessed(final String source, final ClusterState oldState, final ClusterState newState) {
-            logger.info("recovered [{}] indices into cluster_state", newState.metaData().indices().size());
+            LOGGER.info("recovered [{}] indices into cluster_state", newState.metaData().indices().size());
         }
 
         @Override
         public void onNoLongerMaster(String source) {
-            logger.debug("stepped down as master before recovering state [{}]", source);
+            LOGGER.debug("stepped down as master before recovering state [{}]", source);
             resetRecoveredFlags();
         }
 
         @Override
         public void onFailure(final String source, final Exception e) {
-            logger.info(() -> new ParameterizedMessage("unexpected failure during [{}]", source), e);
+            LOGGER.info(() -> new ParameterizedMessage("unexpected failure during [{}]", source), e);
             resetRecoveredFlags();
         }
     }
@@ -288,7 +289,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
 
         @Override
         public void onSuccess(final ClusterState recoveredState) {
-            logger.trace("successful state recovery, importing cluster state...");
+            LOGGER.trace("successful state recovery, importing cluster state...");
             clusterService.submitStateUpdateTask("local-gateway-elected-state", new RecoverStateUpdateTask() {
                 @Override
                 public ClusterState execute(final ClusterState currentState) {
@@ -300,7 +301,7 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
 
         @Override
         public void onFailure(final String msg) {
-            logger.info("state recovery failed: {}", msg);
+            LOGGER.info("state recovery failed: {}", msg);
             resetRecoveredFlags();
         }
 

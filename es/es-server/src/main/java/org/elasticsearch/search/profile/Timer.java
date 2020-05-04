@@ -36,7 +36,10 @@ package org.elasticsearch.search.profile;
 public class Timer {
 
     private boolean doTiming;
-    private long timing, count, lastCount, start;
+    private long timing;
+    private long count;
+    private long lastCount;
+    private long start;
 
     /** pkg-private for testing */
     long nanoTime() {

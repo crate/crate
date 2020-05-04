@@ -572,26 +572,26 @@ final class DocumentParser {
             builder = context.root().findTemplateBuilder(context, currentFieldName, "keyword", XContentFieldType.STRING);
         } else {
             switch (fieldType.typeName()) {
-            case DateFieldMapper.CONTENT_TYPE:
-                builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.DATE);
-                break;
-            case "long":
-                builder = context.root().findTemplateBuilder(context, currentFieldName, "long", XContentFieldType.LONG);
-                break;
-            case "double":
-                builder = context.root().findTemplateBuilder(context, currentFieldName, "double", XContentFieldType.DOUBLE);
-                break;
-            case "integer":
-                builder = context.root().findTemplateBuilder(context, currentFieldName, "integer", XContentFieldType.LONG);
-                break;
-            case "float":
-                builder = context.root().findTemplateBuilder(context, currentFieldName, "float", XContentFieldType.DOUBLE);
-                break;
-            case BooleanFieldMapper.CONTENT_TYPE:
-                builder = context.root().findTemplateBuilder(context, currentFieldName, "boolean", XContentFieldType.BOOLEAN);
-                break;
-            default:
-                break;
+                case DateFieldMapper.CONTENT_TYPE:
+                    builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.DATE);
+                    break;
+                case "long":
+                    builder = context.root().findTemplateBuilder(context, currentFieldName, "long", XContentFieldType.LONG);
+                    break;
+                case "double":
+                    builder = context.root().findTemplateBuilder(context, currentFieldName, "double", XContentFieldType.DOUBLE);
+                    break;
+                case "integer":
+                    builder = context.root().findTemplateBuilder(context, currentFieldName, "integer", XContentFieldType.LONG);
+                    break;
+                case "float":
+                    builder = context.root().findTemplateBuilder(context, currentFieldName, "float", XContentFieldType.DOUBLE);
+                    break;
+                case BooleanFieldMapper.CONTENT_TYPE:
+                    builder = context.root().findTemplateBuilder(context, currentFieldName, "boolean", XContentFieldType.BOOLEAN);
+                    break;
+                default:
+                    break;
             }
         }
         if (builder == null) {
@@ -815,7 +815,7 @@ final class DocumentParser {
             context = context.overridePath(new ContentPath(0));
 
             final String[] paths = splitAndValidatePath(field);
-            final String fieldName = paths[paths.length-1];
+            final String fieldName = paths[paths.length - 1];
             Tuple<Integer, ObjectMapper> parentMapperTuple = getDynamicParentMapper(context, paths, null);
             ObjectMapper objectMapper = parentMapperTuple.v2();
             parseDynamicValue(context, objectMapper, fieldName, context.parser().currentToken());
@@ -830,19 +830,22 @@ final class DocumentParser {
         ObjectMapper mapper = currentParent == null ? context.root() : currentParent;
         int pathsAdded = 0;
         ObjectMapper parent = mapper;
-        for (int i = 0; i < paths.length-1; i++) {
-        String currentPath = context.path().pathAsText(paths[i]);
-        Mapper existingFieldMapper = context.docMapper().mappers().getMapper(currentPath);
-        if (existingFieldMapper != null) {
-            throw new MapperParsingException(
+        for (int i = 0; i < paths.length - 1; i++) {
+            String currentPath = context.path().pathAsText(paths[i]);
+            Mapper existingFieldMapper = context.docMapper().mappers().getMapper(currentPath);
+            if (existingFieldMapper != null) {
+                throw new MapperParsingException(
                     "Could not dynamically add mapping for field [{}]. Existing mapping for [{}] must be of type object but found [{}].",
-                    null, String.join(".", paths), currentPath, existingFieldMapper.typeName());
-        }
-        mapper = context.docMapper().objectMappers().get(currentPath);
+                    null,
+                    String.join(".", paths),
+                    currentPath,
+                    existingFieldMapper.typeName()
+                );
+            }
+            mapper = context.docMapper().objectMappers().get(currentPath);
             if (mapper == null) {
                 // One mapping is missing, check if we are allowed to create a dynamic one.
                 ObjectMapper.Dynamic dynamic = dynamicOrDefault(parent, context);
-
                 switch (dynamic) {
                     case STRICT:
                         throw new StrictDynamicMappingException(parent.fullPath(), paths[i]);
@@ -857,9 +860,11 @@ final class DocumentParser {
                         context.addDynamicMapper(mapper);
                         break;
                     case FALSE:
-                       // Should not dynamically create any more mappers so return the last mapper
-                    return new Tuple<>(pathsAdded, parent);
+                        // Should not dynamically create any more mappers so return the last mapper
+                        return new Tuple<>(pathsAdded, parent);
 
+                    default:
+                        throw new IllegalArgumentException("Unexpected dynamic value: " + dynamic);
                 }
             }
             context.path().add(paths[i]);

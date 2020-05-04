@@ -339,6 +339,7 @@ final class StoreRecovery {
             }
             throw e;
         } catch (IndexShardClosedException | IndexShardNotStartedException e) {
+            // ignored
         } catch (Exception e) {
             if (indexShard.state() == IndexShardState.CLOSED) {
                 // got closed on us, just ignore this recovery

@@ -36,7 +36,7 @@ public class ResourceAlreadyExistsException extends ElasticsearchException {
         super(msg, args);
     }
 
-    public ResourceAlreadyExistsException(StreamInput in) throws IOException{
+    public ResourceAlreadyExistsException(StreamInput in) throws IOException {
         super(in);
     }
 

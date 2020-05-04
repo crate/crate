@@ -686,7 +686,7 @@ public class Setting<T> implements ToXContentObject {
 
                 @Override
                 public boolean hasChanged(Settings current, Settings previous) {
-                    return  Stream.concat(matchStream(current), matchStream(previous)).findAny().isPresent();
+                    return Stream.concat(matchStream(current), matchStream(previous)).findAny().isPresent();
                 }
 
                 @Override
@@ -942,8 +942,8 @@ public class Setting<T> implements ToXContentObject {
                     try {
                         validator.accept(currentSettings);
                     } catch (Exception | AssertionError e) {
-                        throw new IllegalArgumentException("illegal value can't update [" + key + "] from ["
-                                + previousSettings + "] to [" + currentSettings+ "]", e);
+                        throw new IllegalArgumentException(
+                            "illegal value can't update [" + key + "] from [" + previousSettings + "] to [" + currentSettings + "]", e);
                     }
                     return currentSettings;
                 }
@@ -1319,12 +1319,13 @@ public class Setting<T> implements ToXContentObject {
                 final Function<String, List<T>> parser,
                 final Property... properties) {
             super(
-                    new ListKey(key),
-                    fallbackSetting,
-                    s -> Setting.arrayToParsableString(defaultStringValue.apply(s)),
-                    parser,
-                    v -> {},
-                    properties);
+                new ListKey(key),
+                fallbackSetting,
+                s -> Setting.arrayToParsableString(defaultStringValue.apply(s)),
+                parser,
+                v -> {},
+                properties
+            );
             this.defaultStringValue = defaultStringValue;
         }
 
@@ -1377,12 +1378,12 @@ public class Setting<T> implements ToXContentObject {
             final Property... properties) {
         final SimpleKey simpleKey = new SimpleKey(key);
         return new Setting<>(
-                simpleKey,
-                fallbackSetting,
-                fallbackSetting::getRaw,
-                minTimeValueParser(key, minValue),
-                v -> {},
-                properties);
+            simpleKey,
+            fallbackSetting,
+            fallbackSetting::getRaw,
+            minTimeValueParser(key, minValue),
+            v -> {},
+            properties);
     }
 
     public static Setting<TimeValue> timeSetting(
@@ -1586,7 +1587,7 @@ public class Setting<T> implements ToXContentObject {
         }
 
         AffixKey(String prefix, String suffix) {
-            assert prefix != null || suffix != null: "Either prefix or suffix must be non-null";
+            assert prefix != null || suffix != null : "Either prefix or suffix must be non-null";
 
             this.prefix = prefix;
             if (prefix.endsWith(".") == false) {

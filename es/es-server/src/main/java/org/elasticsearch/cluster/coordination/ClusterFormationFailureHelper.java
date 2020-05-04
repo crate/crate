@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.coordination;
 
 import org.apache.logging.log4j.LogManager;
@@ -45,7 +46,8 @@ import java.util.stream.StreamSupport;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
 
 public class ClusterFormationFailureHelper {
-    private static final Logger logger = LogManager.getLogger(ClusterFormationFailureHelper.class);
+
+    private static final Logger LOGGER = LogManager.getLogger(ClusterFormationFailureHelper.class);
 
     public static final Setting<TimeValue> DISCOVERY_CLUSTER_FORMATION_WARNING_TIMEOUT_SETTING =
         Setting.timeSetting("discovery.cluster_formation_warning_timeout",
@@ -90,14 +92,14 @@ public class ClusterFormationFailureHelper {
             threadPool.scheduleUnlessShuttingDown(clusterFormationWarningTimeout, Names.GENERIC, new AbstractRunnable() {
                 @Override
                 public void onFailure(Exception e) {
-                    logger.debug("unexpected exception scheduling cluster formation warning", e);
+                    LOGGER.debug("unexpected exception scheduling cluster formation warning", e);
                 }
 
                 @Override
                 protected void doRun() {
                     if (isActive()) {
                         logLastFailedJoinAttempt.run();
-                        logger.warn(clusterFormationStateSupplier.get().getDescription());
+                        LOGGER.warn(clusterFormationStateSupplier.get().getDescription());
                     }
                 }
 

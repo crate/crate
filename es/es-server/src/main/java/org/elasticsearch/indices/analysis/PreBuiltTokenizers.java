@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.indices.analysis;
 
 import org.apache.lucene.analysis.Tokenizer;
@@ -27,15 +28,14 @@ import org.elasticsearch.indices.analysis.PreBuiltCacheFactory.CachingStrategy;
 public enum PreBuiltTokenizers {
 
     STANDARD(CachingStrategy.ONE) {
+
         @Override
         protected Tokenizer create(Version version) {
             return new StandardTokenizer();
         }
-    }
+    };
 
-    ;
-
-    protected abstract  Tokenizer create(Version version);
+    protected abstract Tokenizer create(Version version);
 
     protected TokenFilterFactory getMultiTermComponent(Version version) {
         return null;

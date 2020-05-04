@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class ElectionSchedulerFactory {
 
-    private static final Logger logger = LogManager.getLogger(ElectionSchedulerFactory.class);
+    private static final Logger LOGGER = LogManager.getLogger(ElectionSchedulerFactory.class);
 
     private static final String ELECTION_INITIAL_TIMEOUT_SETTING_KEY = "cluster.election.initial_timeout";
     private static final String ELECTION_BACK_OFF_TIME_SETTING_KEY = "cluster.election.back_off_time";
@@ -144,7 +144,7 @@ public class ElectionSchedulerFactory {
 
         void scheduleNextElection(final TimeValue gracePeriod, final Runnable scheduledRunnable) {
             if (isClosed.get()) {
-                logger.debug("{} not scheduling election", this);
+                LOGGER.debug("{} not scheduling election", this);
                 return;
             }
 
@@ -155,16 +155,16 @@ public class ElectionSchedulerFactory {
             final Runnable runnable = new AbstractRunnable() {
                 @Override
                 public void onFailure(Exception e) {
-                    logger.debug(new ParameterizedMessage("unexpected exception in wakeup of {}", this), e);
+                    LOGGER.debug(new ParameterizedMessage("unexpected exception in wakeup of {}", this), e);
                     assert false : e;
                 }
 
                 @Override
                 protected void doRun() {
                     if (isClosed.get()) {
-                        logger.debug("{} not starting election", this);
+                        LOGGER.debug("{} not starting election", this);
                     } else {
-                        logger.debug("{} starting election", this);
+                        LOGGER.debug("{} starting election", this);
                         scheduleNextElection(duration, scheduledRunnable);
                         scheduledRunnable.run();
                     }
@@ -180,7 +180,7 @@ public class ElectionSchedulerFactory {
                 }
             };
 
-            logger.debug("scheduling {}", runnable);
+            LOGGER.debug("scheduling {}", runnable);
             threadPool.scheduleUnlessShuttingDown(TimeValue.timeValueMillis(delayMillis), Names.GENERIC, runnable);
         }
 

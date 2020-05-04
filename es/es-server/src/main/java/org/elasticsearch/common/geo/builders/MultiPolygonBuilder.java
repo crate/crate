@@ -116,7 +116,7 @@ public class MultiPolygonBuilder extends ShapeBuilder {
         builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
         builder.field(ShapeParser.FIELD_ORIENTATION.getPreferredName(), orientation.name().toLowerCase(Locale.ROOT));
         builder.startArray(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        for(PolygonBuilder polygon : polygons) {
+        for (PolygonBuilder polygon : polygons) {
             builder.startArray();
             polygon.coordinatesArray(builder, params);
             builder.endArray();
@@ -144,9 +144,9 @@ public class MultiPolygonBuilder extends ShapeBuilder {
 
         List<Shape> shapes = new ArrayList<>(this.polygons.size());
 
-        if(wrapdateline) {
+        if (wrapdateline) {
             for (PolygonBuilder polygon : this.polygons) {
-                for(Coordinate[][] part : polygon.coordinates()) {
+                for (Coordinate[][] part : polygon.coordinates()) {
                     shapes.add(jtsGeometry(PolygonBuilder.polygon(FACTORY, part)));
                 }
             }

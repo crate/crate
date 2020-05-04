@@ -227,7 +227,7 @@ final class CompositeIndexEventListener implements IndexEventListener {
 
     @Override
     public void beforeIndexAddedToCluster(Index index, Settings indexSettings) {
-        for (IndexEventListener listener  : listeners) {
+        for (IndexEventListener listener : listeners) {
             try {
                 listener.beforeIndexAddedToCluster(index, indexSettings);
             } catch (Exception e) {
@@ -239,7 +239,7 @@ final class CompositeIndexEventListener implements IndexEventListener {
 
     @Override
     public void onStoreClosed(ShardId shardId) {
-        for (IndexEventListener listener  : listeners) {
+        for (IndexEventListener listener : listeners) {
             try {
                 listener.onStoreClosed(shardId);
             } catch (Exception e) {

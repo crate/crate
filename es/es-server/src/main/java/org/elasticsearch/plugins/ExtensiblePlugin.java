@@ -30,5 +30,6 @@ public interface ExtensiblePlugin {
     /**
      * Reload any SPI implementations from the given classloader.
      */
-    default void reloadSPI(ClassLoader loader) {}
+    default void reloadSPI(ClassLoader loader) {
+    }
 }

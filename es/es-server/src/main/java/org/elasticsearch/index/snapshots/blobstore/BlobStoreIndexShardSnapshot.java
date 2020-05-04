@@ -160,7 +160,7 @@ public class BlobStoreIndexShardSnapshot implements ToXContentFragment {
                 return partBytes;
             }
             // Last part size is deducted from the length and the number of parts
-            return length() - (partBytes * (numberOfParts-1));
+            return length() - (partBytes * (numberOfParts - 1));
         }
 
         /**

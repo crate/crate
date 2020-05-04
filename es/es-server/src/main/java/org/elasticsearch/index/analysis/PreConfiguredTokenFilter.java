@@ -37,8 +37,12 @@ public final class PreConfiguredTokenFilter extends PreConfiguredAnalysisCompone
      */
     public static PreConfiguredTokenFilter singleton(String name, boolean useFilterForMultitermQueries,
             Function<TokenStream, TokenStream> create) {
-        return new PreConfiguredTokenFilter(name, useFilterForMultitermQueries, CachingStrategy.ONE,
-                (tokenStream, version) -> create.apply(tokenStream));
+        return new PreConfiguredTokenFilter(
+            name,
+            useFilterForMultitermQueries,
+            CachingStrategy.ONE,
+            (tokenStream, version) -> create.apply(tokenStream)
+        );
     }
 
     /**
@@ -46,8 +50,12 @@ public final class PreConfiguredTokenFilter extends PreConfiguredAnalysisCompone
      */
     public static PreConfiguredTokenFilter singletonWithVersion(String name, boolean useFilterForMultitermQueries,
             BiFunction<TokenStream, Version, TokenStream> create) {
-        return new PreConfiguredTokenFilter(name, useFilterForMultitermQueries, CachingStrategy.ONE,
-                (tokenStream, version) -> create.apply(tokenStream, version));
+        return new PreConfiguredTokenFilter(
+            name,
+            useFilterForMultitermQueries,
+            CachingStrategy.ONE,
+            (tokenStream, version) -> create.apply(tokenStream, version)
+        );
     }
 
     /**
@@ -55,8 +63,12 @@ public final class PreConfiguredTokenFilter extends PreConfiguredAnalysisCompone
      */
     public static PreConfiguredTokenFilter luceneVersion(String name, boolean useFilterForMultitermQueries,
             BiFunction<TokenStream, org.apache.lucene.util.Version, TokenStream> create) {
-        return new PreConfiguredTokenFilter(name, useFilterForMultitermQueries, CachingStrategy.LUCENE,
-                (tokenStream, version) -> create.apply(tokenStream, version.luceneVersion));
+        return new PreConfiguredTokenFilter(
+            name,
+            useFilterForMultitermQueries,
+            CachingStrategy.LUCENE,
+            (tokenStream, version) -> create.apply(tokenStream, version.luceneVersion)
+        );
     }
 
     /**

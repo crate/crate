@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.lucene.index;
 
 import org.apache.lucene.index.DirectoryReader;
@@ -74,10 +75,13 @@ public final class ElasticsearchDirectoryReader extends FilterDirectoryReader {
     }
 
     private static final class SubReaderWrapper extends FilterDirectoryReader.SubReaderWrapper {
+
         private final ShardId shardId;
+
         SubReaderWrapper(ShardId shardId) {
             this.shardId = shardId;
         }
+
         @Override
         public LeafReader wrap(LeafReader reader) {
             return new ElasticsearchLeafReader(reader, shardId);

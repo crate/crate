@@ -367,10 +367,10 @@ public abstract class StreamInput extends InputStream {
     private static final int SMALL_STRING_LIMIT = 1024;
 
     // Reusable bytes for deserializing strings
-    private static final ThreadLocal<byte[]> stringReadBuffer = ThreadLocal.withInitial(() -> new byte[1024]);
+    private static final ThreadLocal<byte[]> STRING_READ_BUFFER = ThreadLocal.withInitial(() -> new byte[1024]);
 
     // Thread-local buffer for smaller strings
-    private static final ThreadLocal<CharsRef> smallSpare = ThreadLocal.withInitial(() -> new CharsRef(SMALL_STRING_LIMIT));
+    private static final ThreadLocal<CharsRef> SMALL_SPARE = ThreadLocal.withInitial(() -> new CharsRef(SMALL_STRING_LIMIT));
 
     // Larger buffer used for long strings that can't fit into the thread-local buffer
     // We don't use a CharsRefBuilder since we exactly know the size of the character array up front
@@ -391,7 +391,7 @@ public abstract class StreamInput extends InputStream {
             }
             charsRef = largeSpare;
         } else {
-            charsRef = smallSpare.get();
+            charsRef = SMALL_SPARE.get();
         }
         charsRef.length = charCount;
 
@@ -399,7 +399,7 @@ public abstract class StreamInput extends InputStream {
         int offsetByteArray = 0;
         int sizeByteArray = 0;
         int missingFromPartial = 0;
-        final byte[] byteBuffer = stringReadBuffer.get();
+        final byte[] byteBuffer = STRING_READ_BUFFER.get();
         final char[] charBuffer = charsRef.chars;
         for (; charsOffset < charCount; ) {
             final int charsLeft = charCount - charsOffset;
@@ -428,6 +428,9 @@ public abstract class StreamInput extends InputStream {
                         case 2:
                             byteBuffer[0] = byteBuffer[offsetByteArray];
                             byteBuffer[1] = byteBuffer[offsetByteArray + 1];
+                            break;
+
+                        default:
                             break;
                     }
                     assert sizeByteArray <= 2 : "We never copy more than 2 bytes here since a char is 3 bytes max";
@@ -1021,7 +1024,7 @@ public abstract class StreamInput extends InputStream {
                                                                   IntFunction<C> constructor) throws IOException {
         int count = readArraySize();
         C builder = constructor.apply(count);
-        for (int i=0; i<count; i++) {
+        for (int i = 0; i < count; i++) {
             builder.add(reader.read(this));
         }
         return builder;
@@ -1033,7 +1036,7 @@ public abstract class StreamInput extends InputStream {
     public <T extends NamedWriteable> List<T> readNamedWriteableList(Class<T> categoryClass) throws IOException {
         int count = readArraySize();
         List<T> builder = new ArrayList<>(count);
-        for (int i=0; i<count; i++) {
+        for (int i = 0; i < count; i++) {
             builder.add(readNamedWriteable(categoryClass));
         }
         return builder;
@@ -1057,7 +1060,7 @@ public abstract class StreamInput extends InputStream {
     public <E extends Enum<E>> EnumSet<E> readEnumSet(Class<E> enumClass) throws IOException {
         int size = readVInt();
         if (size == 0) {
-             return EnumSet.noneOf(enumClass);
+            return EnumSet.noneOf(enumClass);
         }
         Set<E> enums = new HashSet<>(size);
         for (int i = 0; i < size; i++) {
@@ -1081,7 +1084,7 @@ public abstract class StreamInput extends InputStream {
     private int readArraySize() throws IOException {
         final int arraySize = readVInt();
         if (arraySize > ArrayUtil.MAX_ARRAY_LENGTH) {
-            throw new IllegalStateException("array length must be <= to " + ArrayUtil.MAX_ARRAY_LENGTH  + " but was: " + arraySize);
+            throw new IllegalStateException("array length must be <= to " + ArrayUtil.MAX_ARRAY_LENGTH + " but was: " + arraySize);
         }
         if (arraySize < 0) {
             throw new NegativeArraySizeException("array size must be positive but was: " + arraySize);

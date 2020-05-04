@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index;
 
 import org.apache.logging.log4j.Logger;
@@ -50,14 +51,17 @@ import java.util.function.Function;
 public final class IndexSettings {
     public static final String DEFAULT_FIELD_SETTING_KEY = "index.query.default_field";
     public static final Setting<List<String>> DEFAULT_FIELD_SETTING;
+
     static {
         Function<Settings, List<String>> defValue = settings -> {
             final String defaultField = "*";
             return Collections.singletonList(defaultField);
         };
+
         DEFAULT_FIELD_SETTING =
-                Setting.listSetting(DEFAULT_FIELD_SETTING_KEY, Function.identity(), defValue, Property.Dynamic, Property.IndexScope);
+            Setting.listSetting(DEFAULT_FIELD_SETTING_KEY, Function.identity(), defValue, Property.Dynamic, Property.IndexScope);
     }
+
     public static final Setting<Boolean> ALLOW_UNMAPPED =
         Setting.boolSetting("index.query.parse.allow_unmapped_fields", true, Property.IndexScope);
     public static final Setting<TimeValue> INDEX_TRANSLOG_SYNC_INTERVAL_SETTING =
@@ -70,7 +74,7 @@ public final class IndexSettings {
         Setting.boolSetting("index.warmer.enabled", true, Property.Dynamic, Property.IndexScope);
 
     public static final Setting<String> INDEX_CHECK_ON_STARTUP = new Setting<>("index.shard.check_on_startup", "false", (s) -> {
-        switch(s) {
+        switch (s) {
             case "false":
             case "true":
             case "fix":
@@ -302,8 +306,8 @@ public final class IndexSettings {
         this.mergePolicyConfig = new MergePolicyConfig(logger, this);
         singleType = INDEX_MAPPING_SINGLE_TYPE_SETTING.get(indexMetaData.getSettings()); // get this from metadata - it's not registered
         if (singleType == false) {
-            throw new AssertionError(index.toString()  + "multiple types are only allowed on pre 6.x indices but version is: ["
-                + version + "]");
+            throw new AssertionError(
+                index.toString() + "multiple types are only allowed on pre 6.x indices but version is: [" + version + "]");
         }
 
         scopedSettings.addSettingsUpdateConsumer(MergePolicyConfig.INDEX_COMPOUND_FORMAT_SETTING, mergePolicyConfig::setNoCFSRatio);
@@ -370,7 +374,9 @@ public final class IndexSettings {
      * Returns the settings for this index. These settings contain the node and index level settings where
      * settings that are specified on both index and node level are overwritten by the index settings.
      */
-    public Settings getSettings() { return settings; }
+    public Settings getSettings() {
+        return settings;
+    }
 
     /**
      * Returns the index this settings object belongs to
@@ -425,12 +431,16 @@ public final class IndexSettings {
     /**
      * Returns the number of shards this index has.
      */
-    public int getNumberOfShards() { return numberOfShards; }
+    public int getNumberOfShards() {
+        return numberOfShards;
+    }
 
     /**
      * Returns the number of replicas this index has.
      */
-    public int getNumberOfReplicas() { return settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, null); }
+    public int getNumberOfReplicas() {
+        return settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, null);
+    }
 
     /**
      * Returns the node settings. The settings returned from {@link #getSettings()} are a merged version of the
@@ -517,7 +527,9 @@ public final class IndexSettings {
     /**
      * Returns the transaction log threshold size when to forcefully flush the index and clear the transaction log.
      */
-    public ByteSizeValue getFlushThresholdSize() { return flushThresholdSize; }
+    public ByteSizeValue getFlushThresholdSize() {
+        return flushThresholdSize;
+    }
 
     /**
      * Returns the merge threshold size when to forcefully flush the index and free resources.
@@ -530,12 +542,16 @@ public final class IndexSettings {
     /**
      * Returns the transaction log retention size which controls how much of the translog is kept around to allow for ops based recoveries
      */
-    public ByteSizeValue getTranslogRetentionSize() { return translogRetentionSize; }
+    public ByteSizeValue getTranslogRetentionSize() {
+        return translogRetentionSize;
+    }
 
     /**
      * Returns the transaction log retention age which controls the maximum age (time from creation) that translog files will be kept around
      */
-    public TimeValue getTranslogRetentionAge() { return translogRetentionAge; }
+    public TimeValue getTranslogRetentionAge() {
+        return translogRetentionAge;
+    }
 
     /**
      * Returns the generation threshold size. As sequence numbers can cause multiple generations to
@@ -553,21 +569,31 @@ public final class IndexSettings {
     /**
      * Returns the {@link MergeSchedulerConfig}
      */
-    public MergeSchedulerConfig getMergeSchedulerConfig() { return mergeSchedulerConfig; }
+    public MergeSchedulerConfig getMergeSchedulerConfig() {
+        return mergeSchedulerConfig;
+    }
 
     /**
      * Returns the maximum allowed difference between max and min length of ngram
      */
-    public int getMaxNgramDiff() { return this.maxNgramDiff; }
+    public int getMaxNgramDiff() {
+        return this.maxNgramDiff;
+    }
 
-    private void setMaxNgramDiff(int maxNgramDiff) { this.maxNgramDiff = maxNgramDiff; }
+    private void setMaxNgramDiff(int maxNgramDiff) {
+        this.maxNgramDiff = maxNgramDiff;
+    }
 
     /**
      * Returns the maximum allowed difference between max and min shingle_size
      */
-    public int getMaxShingleDiff() { return this.maxShingleDiff; }
+    public int getMaxShingleDiff() {
+        return this.maxShingleDiff;
+    }
 
-    private void setMaxShingleDiff(int maxShingleDiff) { this.maxShingleDiff = maxShingleDiff; }
+    private void setMaxShingleDiff(int maxShingleDiff) {
+        this.maxShingleDiff = maxShingleDiff;
+    }
 
     /**
      * Returns the GC deletes cycle in milliseconds.
@@ -598,7 +624,9 @@ public final class IndexSettings {
         this.maxRefreshListeners = maxRefreshListeners;
     }
 
-    public IndexScopedSettings getScopedSettings() { return scopedSettings;}
+    public IndexScopedSettings getScopedSettings() {
+        return scopedSettings;
+    }
 
     /**
      * Returns <code>true</code> if soft-delete is enabled.

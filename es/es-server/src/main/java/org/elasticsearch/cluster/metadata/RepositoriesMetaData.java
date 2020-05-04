@@ -117,7 +117,7 @@ public class RepositoriesMetaData extends AbstractNamedDiffable<Custom> implemen
         this.repositories = Collections.unmodifiableList(Arrays.asList(repository));
     }
 
-    public static NamedDiff<Custom> readDiffFrom(StreamInput in) throws  IOException {
+    public static NamedDiff<Custom> readDiffFrom(StreamInput in) throws IOException {
         return readDiffFrom(Custom.class, TYPE, in);
     }
 

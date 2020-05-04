@@ -202,7 +202,8 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
                             public String executor() {
                                 return ThreadPool.Names.SAME;
                             }
-                    });
+                        }
+                    );
                 } catch (Exception e) {
                     onFailure(idx, nodeId, e);
                 }

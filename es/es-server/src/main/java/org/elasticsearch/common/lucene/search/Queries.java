@@ -19,24 +19,18 @@
 
 package org.elasticsearch.common.lucene.search;
 
-import org.apache.lucene.index.Term;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.queries.ExtendedCommonTermsQuery;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
-import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
-import javax.annotation.Nullable;
-import org.elasticsearch.index.mapper.SeqNoFieldMapper;
-
-import java.util.List;
-import java.util.regex.Pattern;
 
 public class Queries {
 

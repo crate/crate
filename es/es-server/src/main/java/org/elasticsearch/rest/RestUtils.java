@@ -148,9 +148,12 @@ public class RestUtils {
             switch (c) {
                 case '%':
                     i++;  // We can skip at least one char, e.g. `%%'.
-                    // Fall through.
+                    // fall through.
                 case '+':
                     decodingNeeded = true;
+                    break;
+
+                default:
                     break;
             }
         }
@@ -186,7 +189,7 @@ public class RestUtils {
                                 + " of: " + s);
                     }
                     c = (char) (c * 16 + c2);
-                    // Fall through.
+                    // fall through.
                 default:
                     buf[pos++] = (byte) c;
                     break;
@@ -225,10 +228,10 @@ public class RestUtils {
             return null;
         }
         int len = corsSetting.length();
-        boolean isRegex = len > 2 &&  corsSetting.startsWith("/") && corsSetting.endsWith("/");
+        boolean isRegex = len > 2 && corsSetting.startsWith("/") && corsSetting.endsWith("/");
 
         if (isRegex) {
-            return Pattern.compile(corsSetting.substring(1, corsSetting.length()-1));
+            return Pattern.compile(corsSetting.substring(1, corsSetting.length() - 1));
         }
 
         return null;

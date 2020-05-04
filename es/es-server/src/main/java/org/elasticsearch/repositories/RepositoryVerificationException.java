@@ -43,7 +43,7 @@ public class RepositoryVerificationException extends RepositoryException {
         return RestStatus.INTERNAL_SERVER_ERROR;
     }
 
-    public RepositoryVerificationException(StreamInput in) throws IOException{
+    public RepositoryVerificationException(StreamInput in) throws IOException {
         super(in);
     }
 }

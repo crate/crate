@@ -128,8 +128,8 @@ public class ActionModule extends AbstractModule {
                 register(new ActionHandler<>(action, transportAction, supportTransportActions));
             }
         }
-        ActionRegistry actions = new ActionRegistry();
 
+        ActionRegistry actions = new ActionRegistry();
         actions.register(ClusterStateAction.INSTANCE, TransportClusterStateAction.class);
         actions.register(ClusterHealthAction.INSTANCE, TransportClusterHealthAction.class);
         actions.register(ClusterUpdateSettingsAction.INSTANCE, TransportClusterUpdateSettingsAction.class);

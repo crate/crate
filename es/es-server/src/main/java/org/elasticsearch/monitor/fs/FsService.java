@@ -35,7 +35,7 @@ import java.io.IOException;
 
 public class FsService {
 
-    private static final Logger logger = LogManager.getLogger(FsService.class);
+    private static final Logger LOGGER = LogManager.getLogger(FsService.class);
 
     private final FsProbe probe;
     private final TimeValue refreshInterval;
@@ -53,8 +53,8 @@ public class FsService {
         this.probe = new FsProbe(nodeEnvironment);
         this.clusterInfoService = clusterInfoService;
         refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
-        logger.debug("using refresh_interval [{}]", refreshInterval);
-        cache = new FsInfoCache(refreshInterval, stats(probe, null, logger, null));
+        LOGGER.debug("using refresh_interval [{}]", refreshInterval);
+        cache = new FsInfoCache(refreshInterval, stats(probe, null, LOGGER, null));
     }
 
     public FsInfo stats() {
@@ -81,7 +81,7 @@ public class FsService {
 
         @Override
         protected FsInfo refresh() {
-            return stats(probe, initialValue, logger, clusterInfoService.getClusterInfo());
+            return stats(probe, initialValue, LOGGER, clusterInfoService.getClusterInfo());
         }
 
     }

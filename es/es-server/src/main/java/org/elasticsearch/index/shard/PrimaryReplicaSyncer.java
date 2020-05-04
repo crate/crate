@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.shard;
 
 import org.apache.logging.log4j.LogManager;
@@ -40,13 +41,12 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PrimaryReplicaSyncer {
 
-    private static final Logger logger = LogManager.getLogger(PrimaryReplicaSyncer.class);
+    private static final Logger LOGGER = LogManager.getLogger(PrimaryReplicaSyncer.class);
 
     private final TaskManager taskManager;
     private final SyncAction syncAction;
@@ -164,7 +164,7 @@ public class PrimaryReplicaSyncer {
             }
         };
         try {
-            new SnapshotSender(logger, syncAction, resyncTask, shardId, primaryAllocationId, primaryTerm, snapshot, chunkSize.bytesAsInt(),
+            new SnapshotSender(LOGGER, syncAction, resyncTask, shardId, primaryAllocationId, primaryTerm, snapshot, chunkSize.bytesAsInt(),
                 startingSeqNo, maxSeqNo, maxSeenAutoIdTimestamp, wrappedListener).run();
         } catch (Exception e) {
             wrappedListener.onFailure(e);

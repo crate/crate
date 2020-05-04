@@ -173,7 +173,7 @@ public class DiscoveryNode implements Writeable, ToXContentFragment {
         }
         this.attributes = Collections.unmodifiableMap(attributes);
         //verify that no node roles are being provided as attributes
-        Predicate<Map<String, String>> predicate =  (attrs) -> {
+        Predicate<Map<String, String>> predicate = (attrs) -> {
             for (Role role : Role.values()) {
                 assert attrs.containsKey(role.getRoleName()) == false;
             }

@@ -306,7 +306,8 @@ public abstract class MapBinder<K, V> {
             }
         }
 
-        @Override @SuppressWarnings({"rawtypes", "unchecked"}) // code is silly stupid with generics
+        @Override
+        @SuppressWarnings({"rawtypes", "unchecked"}) // code is silly stupid with generics
         public void configure(Binder binder) {
             Multibinder.checkConfiguration(!isInitialized(), "MapBinder was already initialized");
 

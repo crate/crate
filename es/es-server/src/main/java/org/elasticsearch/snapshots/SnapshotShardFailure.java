@@ -138,10 +138,10 @@ public class SnapshotShardFailure extends ShardOperationFailedException {
     private static SnapshotShardFailure constructSnapshotShardFailure(Object[] args) {
         String index = (String) args[0];
         String indexUuid = (String) args[1];
-        String nodeId = (String) args[2];
+        final String nodeId = (String) args[2];
         String reason = (String) args[3];
         Integer intShardId = (Integer) args[4];
-        String status = (String) args[5];
+        final String status = (String) args[5];
 
         if (index == null) {
             throw new ElasticsearchParseException("index name was not set");

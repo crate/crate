@@ -97,7 +97,7 @@ public class DocumentMapperParser {
                 (RootObjectMapper.Builder) rootObjectTypeParser.parse(type, mapping, parserContext), mapperService);
         Iterator<Map.Entry<String, Object>> iterator = mapping.entrySet().iterator();
         // parse DocumentMapper
-        while(iterator.hasNext()) {
+        while (iterator.hasNext()) {
             Map.Entry<String, Object> entry = iterator.next();
             String fieldName = entry.getKey();
             Object fieldNode = entry.getValue();

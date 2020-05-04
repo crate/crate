@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.unit;
 
 import org.elasticsearch.ElasticsearchParseException;
@@ -80,7 +81,7 @@ public final class Fuzziness {
         return new Fuzziness(string);
     }
 
-    private static Fuzziness parseCustomAuto( final String string) {
+    private static Fuzziness parseCustomAuto(final String string) {
         assert string.toUpperCase(Locale.ROOT).startsWith(AUTO.asString() + ":");
         String[] fuzzinessLimit = string.substring(AUTO.asString().length() + 1).split(",");
         if (fuzzinessLimit.length == 2) {

@@ -43,7 +43,7 @@ import java.util.Set;
 
 public class FsProbe {
 
-    private static final Logger logger = LogManager.getLogger(FsProbe.class);
+    private static final Logger LOGGER = LogManager.getLogger(FsProbe.class);
 
     private final NodeEnvironment nodeEnv;
 
@@ -94,7 +94,7 @@ public class FsProbe {
             List<String> lines = readProcDiskStats();
             if (!lines.isEmpty()) {
                 for (String line : lines) {
-                    String fields[] = line.trim().split("\\s+");
+                    String[] fields = line.trim().split("\\s+");
                     final int majorDeviceNumber = Integer.parseInt(fields[0]);
                     final int minorDeviceNumber = Integer.parseInt(fields[1]);
                     if (!devicesNumbers.contains(Tuple.tuple(majorDeviceNumber, minorDeviceNumber))) {
@@ -123,7 +123,7 @@ public class FsProbe {
         } catch (Exception e) {
             // do not fail Elasticsearch if something unexpected
             // happens here
-            logger.debug(() -> new ParameterizedMessage(
+            LOGGER.debug(() -> new ParameterizedMessage(
                     "unexpected exception processing /proc/diskstats for devices {}", devicesNumbers), e);
             return null;
         }

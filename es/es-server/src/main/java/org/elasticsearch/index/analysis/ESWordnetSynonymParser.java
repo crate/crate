@@ -29,7 +29,8 @@ import org.apache.lucene.util.CharsRefBuilder;
 import java.io.IOException;
 
 public class ESWordnetSynonymParser extends WordnetSynonymParser {
-    private static final Logger logger = LogManager.getLogger(ESWordnetSynonymParser.class);
+
+    private static final Logger LOGGER = LogManager.getLogger(ESWordnetSynonymParser.class);
 
     private final boolean lenient;
 
@@ -57,7 +58,7 @@ public class ESWordnetSynonymParser extends WordnetSynonymParser {
             return super.analyze(text, reuse);
         } catch (IllegalArgumentException ex) {
             if (lenient) {
-                logger.info("Synonym rule for [" + text + "] was ignored");
+                LOGGER.info("Synonym rule for [" + text + "] was ignored");
                 return new CharsRef("");
             } else {
                 throw ex;
