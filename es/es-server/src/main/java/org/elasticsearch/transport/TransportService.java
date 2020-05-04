@@ -144,16 +144,30 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      * @param clusterSettings if non null, the {@linkplain TransportService} will register with the {@link ClusterSettings} for settings
  *        updates for {@link TransportSettings#TRACE_LOG_EXCLUDE_SETTING} and {@link TransportSettings#TRACE_LOG_INCLUDE_SETTING}.
      */
-    public TransportService(Settings settings, Transport transport, ThreadPool threadPool, TransportInterceptor transportInterceptor,
-                            Function<BoundTransportAddress, DiscoveryNode> localNodeFactory, @Nullable ClusterSettings clusterSettings,
-                            Set<String> taskHeaders) {
-        this(settings, transport, threadPool, transportInterceptor, localNodeFactory, clusterSettings, taskHeaders,
-            new ConnectionManager(settings, transport, threadPool));
+    public TransportService(Settings settings,
+                            Transport transport,
+                            ThreadPool threadPool,
+                            TransportInterceptor transportInterceptor,
+                            Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
+                            @Nullable ClusterSettings clusterSettings) {
+        this(
+            settings,
+            transport,
+            threadPool,
+            transportInterceptor,
+            localNodeFactory,
+            clusterSettings,
+            new ConnectionManager(settings, transport, threadPool)
+        );
     }
 
-    public TransportService(Settings settings, Transport transport, ThreadPool threadPool, TransportInterceptor transportInterceptor,
-                            Function<BoundTransportAddress, DiscoveryNode> localNodeFactory, @Nullable ClusterSettings clusterSettings,
-                            Set<String> taskHeaders, ConnectionManager connectionManager) {
+    public TransportService(Settings settings,
+                            Transport transport,
+                            ThreadPool threadPool,
+                            TransportInterceptor transportInterceptor,
+                            Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
+                            @Nullable ClusterSettings clusterSettings,
+                            ConnectionManager connectionManager) {
         this.transport = transport;
         this.threadPool = threadPool;
         this.localNodeFactory = localNodeFactory;
@@ -162,7 +176,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         setTracerLogInclude(TRACE_LOG_INCLUDE_SETTING.get(settings));
         setTracerLogExclude(TRACE_LOG_EXCLUDE_SETTING.get(settings));
         tracerLog = Loggers.getLogger(logger, ".tracer");
-        taskManager = createTaskManager(settings, threadPool, taskHeaders);
+        taskManager = createTaskManager(settings, threadPool);
         this.interceptor = transportInterceptor;
         this.asyncSender = interceptor.interceptSender(this::sendRequestInternal);
         responseHandlers = transport.getResponseHandlers();
@@ -187,8 +201,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         return taskManager;
     }
 
-    protected TaskManager createTaskManager(Settings settings, ThreadPool threadPool, Set<String> taskHeaders) {
-        return new TaskManager(settings, threadPool, taskHeaders);
+    protected TaskManager createTaskManager(Settings settings, ThreadPool threadPool) {
+        return new TaskManager(settings, threadPool);
     }
 
     /**

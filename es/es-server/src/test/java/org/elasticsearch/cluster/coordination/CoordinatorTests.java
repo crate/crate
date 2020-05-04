@@ -1869,8 +1869,12 @@ public class CoordinatorTests extends ESTestCase {
                     .putList(ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING.getKey(),
                         ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING.get(Settings.EMPTY)).build(); // suppress auto-bootstrap
                 transportService = mockTransport.createTransportService(
-                    settings, deterministicTaskQueue.getThreadPool(this::onNode), NOOP_TRANSPORT_INTERCEPTOR,
-                    a -> localNode, null, emptySet());
+                    settings,
+                    deterministicTaskQueue.getThreadPool(this::onNode),
+                    NOOP_TRANSPORT_INTERCEPTOR,
+                    a -> localNode,
+                    null
+                );
                 masterService = new AckedFakeThreadPoolMasterService(localNode.getId(), "test",
                     runnable -> deterministicTaskQueue.scheduleNow(onNode(runnable)));
                 final ClusterSettings clusterSettings = new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);

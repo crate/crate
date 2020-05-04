@@ -1198,8 +1198,8 @@ public abstract class TransportReplicationAction<
         }
 
         @Override
-        public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
-            return request.createTask(id, type, action, parentTaskId, headers);
+        public Task createTask(long id, String type, String action, TaskId parentTaskId) {
+            return request.createTask(id, type, action, parentTaskId);
         }
 
         @Override

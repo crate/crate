@@ -47,11 +47,13 @@ public class PublicationTransportHandlerTests extends ESTestCase {
             new DeterministicTaskQueue(Settings.builder().put(Node.NODE_NAME_SETTING.getKey(), "test").build(), random());
         final ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         final DiscoveryNode localNode = new DiscoveryNode("localNode", buildNewFakeTransportAddress(), Version.CURRENT);
-        final TransportService transportService = new CapturingTransport().createTransportService(Settings.EMPTY,
+        final TransportService transportService = new CapturingTransport().createTransportService(
+            Settings.EMPTY,
             deterministicTaskQueue.getThreadPool(),
             TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             x -> localNode,
-            clusterSettings, Collections.emptySet());
+            clusterSettings
+        );
         final PublicationTransportHandler handler = new PublicationTransportHandler(transportService,
             writableRegistry(), pu -> null, (pu, l) -> {});
         transportService.start();

@@ -83,8 +83,13 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
             }
         };
 
-        transportService = transport.createTransportService(Settings.EMPTY, deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR, boundTransportAddress -> localNode, null, emptySet());
+        transportService = transport.createTransportService(
+            Settings.EMPTY,
+            deterministicTaskQueue.getThreadPool(),
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            boundTransportAddress -> localNode,
+            null
+        );
     }
 
     private DiscoveryNode newDiscoveryNode(String nodeName) {

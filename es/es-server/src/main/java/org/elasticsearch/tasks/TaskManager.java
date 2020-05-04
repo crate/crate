@@ -57,8 +57,6 @@ public class TaskManager implements ClusterStateApplier {
 
     private static final TimeValue WAIT_FOR_COMPLETION_POLL = timeValueMillis(100);
 
-    /** Rest headers that are copied to the task */
-    private final List<String> taskHeaders;
     private final ThreadPool threadPool;
 
     private final ConcurrentMapLong<Task> tasks = ConcurrentCollections.newConcurrentMapLongWithAggressiveConcurrency();
@@ -74,9 +72,8 @@ public class TaskManager implements ClusterStateApplier {
 
     private final ByteSizeValue maxHeaderSize;
 
-    public TaskManager(Settings settings, ThreadPool threadPool, Set<String> taskHeaders) {
+    public TaskManager(Settings settings, ThreadPool threadPool) {
         this.threadPool = threadPool;
-        this.taskHeaders = new ArrayList<>(taskHeaders);
         this.maxHeaderSize = SETTING_HTTP_MAX_HEADER_SIZE.get(settings);
     }
 
@@ -84,21 +81,7 @@ public class TaskManager implements ClusterStateApplier {
      * Registers a task without parent task
      */
     public Task register(String type, String action, TaskAwareRequest request) {
-        Map<String, String> headers = new HashMap<>();
-        long headerSize = 0;
-        long maxSize = maxHeaderSize.getBytes();
-        ThreadContext threadContext = threadPool.getThreadContext();
-        for (String key : taskHeaders) {
-            String httpHeader = threadContext.getHeader(key);
-            if (httpHeader != null) {
-                headerSize += key.length() * 2 + httpHeader.length() * 2;
-                if (headerSize > maxSize) {
-                    throw new IllegalArgumentException("Request exceeded the maximum size of task headers " + maxHeaderSize);
-                }
-                headers.put(key, httpHeader);
-            }
-        }
-        Task task = request.createTask(taskIdGenerator.incrementAndGet(), type, action, request.getParentTask(), headers);
+        Task task = request.createTask(taskIdGenerator.incrementAndGet(), type, action, request.getParentTask());
         Objects.requireNonNull(task);
         assert task.getParentTaskId().equals(request.getParentTask()) : "Request [ " + request + "] didn't preserve it parentTaskId";
         if (logger.isTraceEnabled()) {

@@ -45,9 +45,13 @@ public class JoinHelperTests extends ESTestCase {
             Settings.builder().put(NODE_NAME_SETTING.getKey(), "node0").build(), random());
         CapturingTransport capturingTransport = new CapturingTransport();
         DiscoveryNode localNode = new DiscoveryNode("node0", buildNewFakeTransportAddress(), Version.CURRENT);
-        TransportService transportService = capturingTransport.createTransportService(Settings.EMPTY,
-            deterministicTaskQueue.getThreadPool(), TransportService.NOOP_TRANSPORT_INTERCEPTOR,
-            x -> localNode, null, Collections.emptySet());
+        TransportService transportService = capturingTransport.createTransportService(
+            Settings.EMPTY,
+            deterministicTaskQueue.getThreadPool(),
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            x -> localNode,
+            null
+        );
         JoinHelper joinHelper = new JoinHelper(Settings.EMPTY, null, null, transportService, () -> 0L, () -> null,
             (joinRequest, joinCallback) -> { throw new AssertionError(); }, startJoinRequest -> { throw new AssertionError(); },
             Collections.emptyList());
