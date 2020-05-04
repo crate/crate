@@ -21,7 +21,6 @@ package org.elasticsearch.analysis.common;
 
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.ngram.EdgeNGramTokenFilter;
-import org.apache.lucene.analysis.ngram.NGramTokenFilter;
 import org.apache.lucene.analysis.reverse.ReverseStringFilter;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -47,10 +46,13 @@ public class EdgeNGramTokenFilterFactory extends AbstractTokenFilterFactory {
     }
 
     static int parseSide(String side) {
-        switch(side) {
-            case "front": return SIDE_FRONT;
-            case "back": return SIDE_BACK;
-            default: throw new IllegalArgumentException("invalid side: " + side);
+        switch (side) {
+            case "front":
+                return SIDE_FRONT;
+            case "back":
+                return SIDE_BACK;
+            default:
+                throw new IllegalArgumentException("invalid side: " + side);
         }
     }
 

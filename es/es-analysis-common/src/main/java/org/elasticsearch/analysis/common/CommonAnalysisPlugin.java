@@ -359,8 +359,10 @@ public class CommonAnalysisPlugin extends Plugin implements AnalysisPlugin {
         filters.add(PreConfiguredTokenFilter.singleton("cjk_bigram", false, CJKBigramFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("cjk_width", true, CJKWidthFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("classic", false, ClassicFilter::new));
-        filters.add(PreConfiguredTokenFilter.singleton("common_grams", false,
-                input -> new CommonGramsFilter(input, CharArraySet.EMPTY_SET)));
+        filters.add(PreConfiguredTokenFilter.singleton(
+            "common_grams",
+            false,
+            input -> new CommonGramsFilter(input, CharArraySet.EMPTY_SET)));
         filters.add(PreConfiguredTokenFilter.singleton("czech_stem", false, CzechStemFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("decimal_digit", true, DecimalDigitFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("delimited_payload_filter", false, input ->
@@ -372,10 +374,15 @@ public class CommonAnalysisPlugin extends Plugin implements AnalysisPlugin {
                         DelimitedPayloadTokenFilterFactory.DEFAULT_DELIMITER,
                         DelimitedPayloadTokenFilterFactory.DEFAULT_ENCODER)));
         filters.add(PreConfiguredTokenFilter.singleton("dutch_stem", false, input -> new SnowballFilter(input, new DutchStemmer())));
-        filters.add(PreConfiguredTokenFilter.singleton("edge_ngram", false, input ->
-                new EdgeNGramTokenFilter(input,EdgeNGramTokenFilterFactory.SIDE_FRONT, EdgeNGramTokenFilterFactory.SIDE_BACK, EdgeNGramTokenFilter.DEFAULT_PRESERVE_ORIGINAL)));
-        filters.add(PreConfiguredTokenFilter.singleton("elision", true,
-                input -> new ElisionFilter(input, FrenchAnalyzer.DEFAULT_ARTICLES)));
+        filters.add(PreConfiguredTokenFilter.singleton(
+            "edge_ngram",
+            false,
+            input -> new EdgeNGramTokenFilter(input, EdgeNGramTokenFilterFactory.SIDE_FRONT, EdgeNGramTokenFilterFactory.SIDE_BACK, EdgeNGramTokenFilter.DEFAULT_PRESERVE_ORIGINAL)));
+        filters.add(PreConfiguredTokenFilter.singleton(
+            "elision",
+            true,
+            input -> new ElisionFilter(input, FrenchAnalyzer.DEFAULT_ARTICLES))
+        );
         filters.add(PreConfiguredTokenFilter.singleton("french_stem", false, input -> new SnowballFilter(input, new FrenchStemmer())));
         filters.add(PreConfiguredTokenFilter.singleton("german_normalization", true, GermanNormalizationFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("german_stem", false, GermanStemFilter::new));
@@ -384,12 +391,17 @@ public class CommonAnalysisPlugin extends Plugin implements AnalysisPlugin {
         filters.add(PreConfiguredTokenFilter.singleton("keyword_repeat", false, KeywordRepeatFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("kstem", false, KStemFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("length", false, input ->
-                new LengthFilter(input, 0, Integer.MAX_VALUE)));  // TODO this one seems useless
-        filters.add(PreConfiguredTokenFilter.singleton("limit", false, input ->
-                new LimitTokenCountFilter(input,
-                        LimitTokenCountFilterFactory.DEFAULT_MAX_TOKEN_COUNT,
-                        LimitTokenCountFilterFactory.DEFAULT_CONSUME_ALL_TOKENS)));
-        filters.add(PreConfiguredTokenFilter.singleton("ngram", false, reader ->  new NGramTokenFilter(reader, 1, 2, false)));
+            new LengthFilter(input, 0, Integer.MAX_VALUE)));  // TODO this one seems useless
+        filters.add(PreConfiguredTokenFilter.singleton(
+            "limit",
+            false,
+            input -> new LimitTokenCountFilter(
+                input,
+                LimitTokenCountFilterFactory.DEFAULT_MAX_TOKEN_COUNT,
+                LimitTokenCountFilterFactory.DEFAULT_CONSUME_ALL_TOKENS)
+            )
+        );
+        filters.add(PreConfiguredTokenFilter.singleton("ngram", false, reader -> new NGramTokenFilter(reader, 1, 2, false)));
         filters.add(PreConfiguredTokenFilter.singleton("persian_normalization", true, PersianNormalizationFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("porter_stem", false, PorterStemFilter::new));
         filters.add(PreConfiguredTokenFilter.singleton("reverse", false, ReverseStringFilter::new));

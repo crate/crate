@@ -1,5 +1,3 @@
-package org.elasticsearch.analysis.common;
-
 /*
  * Licensed to Elasticsearch under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -18,6 +16,8 @@ package org.elasticsearch.analysis.common;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+package org.elasticsearch.analysis.common;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
@@ -42,38 +42,40 @@ import org.apache.lucene.analysis.tr.TurkishLowerCaseFilter;
  */
 @Deprecated
 public final class SnowballAnalyzer extends Analyzer {
-  private String name;
-  private CharArraySet stopSet;
+    private String name;
+    private CharArraySet stopSet;
 
-  /** Builds the named analyzer with no stop words. */
-  SnowballAnalyzer(String name) {
-    this.name = name;
-  }
+    /** Builds the named analyzer with no stop words. */
+    SnowballAnalyzer(String name) {
+        this.name = name;
+    }
 
-  /** Builds the named analyzer with the given stop words. */
-  SnowballAnalyzer(String name, CharArraySet stopWords) {
-    this(name);
-    stopSet = CharArraySet.unmodifiableSet(CharArraySet.copy(stopWords));
-  }
+    /** Builds the named analyzer with the given stop words. */
+    SnowballAnalyzer(String name, CharArraySet stopWords) {
+        this(name);
+        stopSet = CharArraySet.unmodifiableSet(CharArraySet.copy(stopWords));
+    }
 
-  /** Constructs a {@link StandardTokenizer} filtered by a {@link
-      StandardFilter}, a {@link LowerCaseFilter}, a {@link StopFilter},
-      and a {@link SnowballFilter} */
-  @Override
-  public TokenStreamComponents createComponents(String fieldName) {
-    final Tokenizer tokenizer = new StandardTokenizer();
-    TokenStream result = tokenizer;
-    // remove the possessive 's for english stemmers
-    if (name.equals("English") || name.equals("Porter") || name.equals("Lovins"))
-      result = new EnglishPossessiveFilter(result);
-    // Use a special lowercase filter for turkish, the stemmer expects it.
-    if (name.equals("Turkish"))
-      result = new TurkishLowerCaseFilter(result);
-    else
-      result = new LowerCaseFilter(result);
-    if (stopSet != null)
-      result = new StopFilter(result, stopSet);
-    result = new SnowballFilter(result, name);
-    return new TokenStreamComponents(tokenizer, result);
-  }
+    /** Constructs a {@link StandardTokenizer} filtered by a {@link
+        StandardFilter}, a {@link LowerCaseFilter}, a {@link StopFilter},
+        and a {@link SnowballFilter} */
+    @Override
+    public TokenStreamComponents createComponents(String fieldName) {
+        final Tokenizer tokenizer = new StandardTokenizer();
+        TokenStream result = tokenizer;
+        // remove the possessive 's for english stemmers
+        if (name.equals("English") || name.equals("Porter") || name.equals("Lovins"))
+            result = new EnglishPossessiveFilter(result);
+        // Use a special lowercase filter for turkish, the stemmer expects it.
+        if (name.equals("Turkish")) {
+            result = new TurkishLowerCaseFilter(result);
+        } else {
+            result = new LowerCaseFilter(result);
+        }
+        if (stopSet != null) {
+            result = new StopFilter(result, stopSet);
+        }
+        result = new SnowballFilter(result, name);
+        return new TokenStreamComponents(tokenizer, result);
+    }
 }

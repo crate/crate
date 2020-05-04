@@ -30,7 +30,10 @@ import java.io.IOException;
 @Deprecated
 class XLowerCaseTokenizer extends Tokenizer {
 
-    private int offset = 0, bufferIndex = 0, dataLen = 0, finalOffset = 0;
+    private int offset = 0;
+    private int bufferIndex = 0;
+    private int dataLen = 0;
+    private int finalOffset = 0;
 
     private static final int IO_BUFFER_SIZE = 4096;
 
@@ -72,8 +75,8 @@ class XLowerCaseTokenizer extends Tokenizer {
                     assert start == -1;
                     start = offset + bufferIndex - charCount;
                     end = start;
-                } else if (length >= buffer.length-1) { // check if a supplementary could run out of bounds
-                    buffer = termAtt.resizeBuffer(2+length); // make sure a supplementary fits in the buffer
+                } else if (length >= buffer.length - 1) { // check if a supplementary could run out of bounds
+                    buffer = termAtt.resizeBuffer(2 + length); // make sure a supplementary fits in the buffer
                 }
                 end += charCount;
                 length += Character.toChars(Character.toLowerCase(c), buffer, length); // buffer it, normalized

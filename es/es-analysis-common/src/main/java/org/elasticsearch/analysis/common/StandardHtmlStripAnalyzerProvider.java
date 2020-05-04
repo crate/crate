@@ -30,7 +30,7 @@ public class StandardHtmlStripAnalyzerProvider extends AbstractIndexAnalyzerProv
 
     private final StandardHtmlStripAnalyzer analyzer;
 
-    StandardHtmlStripAnalyzerProvider(IndexSettings indexSettings, Environment env,  String name, Settings settings) {
+    StandardHtmlStripAnalyzerProvider(IndexSettings indexSettings, Environment env, String name, Settings settings) {
         super(indexSettings, name, settings);
         final CharArraySet defaultStopwords = CharArraySet.EMPTY_SET;
         CharArraySet stopWords = Analysis.parseStopWords(env, settings, defaultStopwords);

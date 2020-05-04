@@ -29,7 +29,7 @@ import org.elasticsearch.index.analysis.AbstractTokenizerFactory;
 import java.util.HashSet;
 import java.util.Set;
 
-public class CharGroupTokenizerFactory extends AbstractTokenizerFactory{
+public class CharGroupTokenizerFactory extends AbstractTokenizerFactory {
 
     private final Set<Integer> tokenizeOnChars = new HashSet<>();
     private boolean tokenizeOnSpace = false;
@@ -48,8 +48,7 @@ public class CharGroupTokenizerFactory extends AbstractTokenizerFactory{
 
             if (c.length() == 1) {
                 tokenizeOnChars.add((int) c.charAt(0));
-            }
-            else if (c.charAt(0) == '\\') {
+            } else if (c.charAt(0) == '\\') {
                 tokenizeOnChars.add((int) parseEscapedChar(c));
             } else {
                 switch (c) {
