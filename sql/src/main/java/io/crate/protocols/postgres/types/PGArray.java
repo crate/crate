@@ -30,7 +30,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
-class PGArray extends PGType<List<Object>> {
+public class PGArray extends PGType<List<Object>> {
 
     private final PGType<?> innerType;
 
@@ -48,12 +48,26 @@ class PGArray extends PGType<List<Object>> {
     static final PGArray POINT_ARRAY = new PGArray(1017, PointType.INSTANCE);
     static final PGArray INTERVAL_ARRAY = new PGArray(1187, IntervalType.INSTANCE);
     static final PGArray EMPTY_RECORD_ARRAY = new PGArray(2287, RecordType.EMPTY_RECORD);
+    public static final PGArray ANY_ARRAY = new PGArray(
+        2277,
+        AnyType.INSTANCE.typName() + "array",
+        AnyType.INSTANCE) {
+
+        @Override
+        public String typeCategory() {
+            return TypeCategory.PSEUDO.code();
+        }
+    };
 
     private static final byte[] NULL_BYTES = new byte[]{'N', 'U', 'L', 'L'};
 
-    PGArray(int oid, PGType<?> innerType) {
-        super(oid, -1, -1, "_" + innerType.typName());
+    PGArray(int oid, String name, PGType<?> innerType) {
+        super(oid, -1, -1, name);
         this.innerType = innerType;
+    }
+
+    PGArray(int oid, PGType<?> innerType) {
+        this(oid, "_" + innerType.typName(), innerType);
     }
 
     @Override
@@ -81,7 +95,7 @@ class PGArray extends PGType<List<Object>> {
         int dimensions = getDimensions(value);
 
         List<Integer> dimensionsList = new ArrayList<>();
-        buildDimensions((List<Object>) value, dimensionsList, dimensions, 1);
+        buildDimensions(value, dimensionsList, dimensions, 1);
 
         int bytesWritten = 4 + 4 + 4;
         final int lenIndex = buffer.writerIndex();
@@ -95,7 +109,7 @@ class PGArray extends PGType<List<Object>> {
             buffer.writeInt(dim); // lower bound
             bytesWritten += 8;
         }
-        int len = bytesWritten + writeArrayAsBinary(buffer, (List<Object>) value, dimensionsList, 1);
+        int len = bytesWritten + writeArrayAsBinary(buffer, value, dimensionsList, 1);
         buffer.setInt(lenIndex, len);
         return INT32_BYTE_SIZE + len; // add also the size of the length itself
     }
@@ -142,11 +156,10 @@ class PGArray extends PGType<List<Object>> {
     @Override
     byte[] encodeAsUTF8Text(@Nonnull List<Object> array) {
         boolean isJson = JsonType.OID == innerType.oid();
-        List<Object> values = (List<Object>) array;
         List<Byte> encodedValues = new ArrayList<>();
         encodedValues.add((byte) '{');
-        for (int i = 0; i < values.size(); i++) {
-            Object o = values.get(i);
+        for (int i = 0; i < array.size(); i++) {
+            Object o = array.get(i);
             if (o instanceof List) { // Nested Array -> recursive call
                 byte[] bytes = encodeAsUTF8Text((List) o);
                 for (byte b : bytes) {
