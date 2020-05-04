@@ -130,6 +130,11 @@ Administration
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
 
+- Added scalar function :ref:`CURRENT_TIME <current_time>`, that returns
+  the system's time as microseconds since midnight UTC, at the time the SQL
+  statement is handled. The actual return type is the new data type
+  :ref:`timetz <time-data-type>`.
+
 - Added new type :ref:`time with time zone <time-data-type>`, a.k.a `timetz`,
   which is to be used as return type for time related functions such as the
   future `current_time`.

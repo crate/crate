@@ -22,40 +22,28 @@
 
 package io.crate.metadata;
 
-import io.crate.metadata.settings.SessionSettings;
-
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.concurrent.atomic.AtomicReference;
 
-public interface TransactionContext {
+public final class SystemClock {
 
-    static TransactionContext of(SessionSettings sessionSettings) {
-        return new StaticTransactionContext(sessionSettings);
+    private static final AtomicReference<Clock> CURRENT_CLOCK = new AtomicReference<>(Clock.systemUTC());
+
+    public static void setClock(Clock newClock) {
+        CURRENT_CLOCK.set(newClock);
     }
 
-    Instant currentInstant();
+    public static void setCurrentMillisFixedUTC(long millis) {
+        setClock(Clock.fixed(Instant.ofEpochMilli(millis), ZoneOffset.UTC));
+    }
 
-    SessionSettings sessionSettings();
+    public static void setCurrentMillisSystemUTC() {
+        setClock(Clock.systemUTC());
+    }
 
-    class StaticTransactionContext implements TransactionContext {
-
-        private final SessionSettings sessionSettings;
-        private Instant currentInstant;
-
-        StaticTransactionContext(SessionSettings sessionSettings) {
-            this.sessionSettings = sessionSettings;
-        }
-
-        @Override
-        public Instant currentInstant() {
-            if (currentInstant == null) {
-                currentInstant = SystemClock.currentInstant();
-            }
-            return currentInstant;
-        }
-
-        @Override
-        public SessionSettings sessionSettings() {
-            return sessionSettings;
-        }
+    public static Instant currentInstant() {
+        return CURRENT_CLOCK.get().instant();
     }
 }

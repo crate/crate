@@ -61,6 +61,7 @@ import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.conditional.IfFunction;
+import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -459,13 +460,23 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitCurrentTime(CurrentTime node, ExpressionAnalysisContext context) {
-            if (!node.getType().equals(CurrentTime.Type.TIMESTAMP)) {
-                visitExpression(node, context);
+            String funcName = CurrentTimestampFunction.NAME;
+            switch (node.getType()) {
+                case TIMESTAMP:
+                    break;
+
+                case TIME:
+                    funcName = CurrentTimeFunction.NAME;
+                    break;
+
+                default:
+                    visitExpression(node, context);
             }
-            List<Symbol> args = List.of(
-                Literal.of(node.getPrecision().orElse(CurrentTimestampFunction.DEFAULT_PRECISION))
-            );
-            return allocateFunction(CurrentTimestampFunction.NAME, args, context);
+            Optional p = node.getPrecision();
+            return allocateFunction(
+                funcName,
+                p.isPresent() ? List.of(Literal.ofUnchecked(DataTypes.INTEGER, p.get())) : List.of(),
+                context);
         }
 
         @Override

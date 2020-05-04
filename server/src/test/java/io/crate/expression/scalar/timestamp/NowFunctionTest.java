@@ -23,7 +23,7 @@
 package io.crate.expression.scalar.timestamp;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import org.joda.time.DateTimeUtils;
+import io.crate.metadata.SystemClock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,12 +34,12 @@ public class NowFunctionTest extends AbstractScalarFunctionsTest {
 
     @Before
     public void prepare() {
-        DateTimeUtils.setCurrentMillisFixed(EXPECTED_TIMESTAMP);
+        SystemClock.setCurrentMillisFixedUTC(EXPECTED_TIMESTAMP);
     }
 
     @After
     public void cleanUp() {
-        DateTimeUtils.setCurrentMillisSystem();
+        SystemClock.setCurrentMillisSystemUTC();
     }
 
     @Test

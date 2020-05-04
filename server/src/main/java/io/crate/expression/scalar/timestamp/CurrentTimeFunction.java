@@ -21,82 +21,71 @@
 
 package io.crate.expression.scalar.timestamp;
 
-import com.google.common.math.LongMath;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
+import io.crate.types.TimeTZ;
 
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
-public class CurrentTimestampFunction extends Scalar<Long, Integer> {
+public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
 
-    public static final String NAME = "current_timestamp";
-    public static final int DEFAULT_PRECISION = 3;
+    public static final String NAME = "current_time";
+    private static final int MICRO_PRECISION = 6; // microseconds
 
     public static void register(ScalarFunctionModule module) {
         module.register(
             Signature.scalar(
                 NAME,
-                DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(NO_FEATURES),
-            CurrentTimestampFunction::new
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.TIMETZ.getTypeSignature()
+            ),
+            CurrentTimeFunction::new
         );
         module.register(
             Signature.scalar(
                 NAME,
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(NO_FEATURES),
-            CurrentTimestampFunction::new
+                DataTypes.TIMETZ.getTypeSignature()
+            ),
+            CurrentTimeFunction::new
         );
     }
 
     private final Signature signature;
     private final Signature boundSignature;
 
-    public CurrentTimestampFunction(Signature signature, Signature boundSignature) {
+    private CurrentTimeFunction(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
 
     @Override
     @SafeVarargs
-    public final Long evaluate(TransactionContext txnCtx, Input<Integer>... args) {
-        Integer precision = DEFAULT_PRECISION;
+    public final TimeTZ evaluate(TransactionContext txnCtx, Input<Integer>... args) {
+        Integer precision = MICRO_PRECISION;
         if (args.length == 1) {
             precision = args[0].value();
             if (precision == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "NULL precision not supported for %s", NAME));
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "NULL precision not supported for %s",
+                    signature.getName().name()));
+            }
+            if (precision < 0 || precision > MICRO_PRECISION) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH, "precision must be between [0..%d]", MICRO_PRECISION));
             }
         }
-        return applyPrecision(ChronoUnit.MILLIS.between(Instant.EPOCH, txnCtx.currentInstant()), precision);
-    }
 
-    private static long applyPrecision(long millis, int precision) {
-        int factor;
-        switch (precision) {
-            case 0:
-                factor = 1000;
-                break;
-            case 1:
-                factor = 100;
-                break;
-            case 2:
-                factor = 10;
-                break;
-            case 3:
-                return millis;
-            default:
-                throw new IllegalArgumentException("Precision must be between 0 and 3");
-        }
-        return LongMath.divide(millis, factor, RoundingMode.DOWN) * factor;
+        Instant currentInstant = txnCtx.currentInstant();
+        long microsSinceMidnight = ChronoUnit.MICROS.between(currentInstant.truncatedTo(ChronoUnit.DAYS), currentInstant);
+        long factor = (long) Math.pow(10, MICRO_PRECISION - precision);
+        return new TimeTZ((microsSinceMidnight / factor) * factor, 0);
     }
 
     @Override

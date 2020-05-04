@@ -29,6 +29,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 
+import java.util.Arrays;
+import java.util.List;
+
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
@@ -166,13 +169,21 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
     @Test
     public void test_pg_proc_select_variadic_and_non_variadic_functions() {
         execute(
-            "SELECT oid, proname, pronamespace, prorows, provariadic, proisagg," +
-            "       proiswindow, proretset,prorettype, proargtypes, proargmodes, prosrc " +
+            "SELECT oid, proname, pronamespace, " +
+            "            prorows, provariadic, proisagg, " +
+            "            proiswindow, proretset, prorettype, " +
+            "            proargtypes, proargmodes, prosrc " +
             "FROM pg_proc " +
-            "WHERE proname = ANY(['least', 'current_timestamp', 'format', 'array_difference']) " +
-            "ORDER BY proname");
+            "WHERE proname = ANY(['least', 'current_timestamp', 'format', 'array_difference'])");
+
+        // sort by name signature args length
+        Arrays.sort(response.rows(), (o1, o2) -> {
+            int cmp = ((String) o1[1]).compareTo((String) o2[1]);
+            return cmp == 0 ? ((List<?>) o1[9]).size() - ((List<?>) o2[9]).size() : cmp;
+        });
         assertThat(printedTable(response.rows()), is(
             "-395638146| array_difference| -1861355723| 1000.0| 0| false| false| true| 2277| [2277, 2277]| NULL| array_difference\n" +
+            "726540318| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| []| NULL| current_timestamp\n" +
             "726540318| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| [23]| NULL| current_timestamp\n" +
             "-1602853722| format| -1861355723| 0.0| 2276| false| false| false| 1043| [1043, 2276]| [i, v]| format\n" +
             "-852341072| least| -1861355723| 0.0| 2276| false| false| false| 2276| [2276]| [v]| least\n"));

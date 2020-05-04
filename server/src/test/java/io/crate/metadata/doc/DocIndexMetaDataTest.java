@@ -1472,7 +1472,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                                                                " ts timestamp with time zone default current_timestamp)");
         Reference reference = md.references().get(new ColumnIdent("ts"));
         assertThat(reference.valueType(), is(DataTypes.TIMESTAMPZ));
-        assertThat(reference.defaultExpression(), isFunction("current_timestamp", List.of(DataTypes.INTEGER)));
+        assertThat(reference.defaultExpression(), isFunction("current_timestamp"));
     }
 
     @Test

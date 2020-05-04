@@ -1563,12 +1563,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void selectCurrentTimeStamp() {
+    public void selectCurrentTimestamp() {
         AnalyzedRelation relation = analyze("select CURRENT_TIMESTAMP from sys.cluster");
         assertThat(
             relation.outputs(),
             contains(
-                isFunction("current_timestamp", isLiteral(3))
+                isFunction("current_timestamp")
             )
         );
     }

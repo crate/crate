@@ -24,8 +24,8 @@ package io.crate.metadata;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.settings.SessionSettings;
-import org.joda.time.DateTimeUtils;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -37,7 +37,7 @@ import java.util.Objects;
 public final class CoordinatorTxnCtx implements TransactionContext {
 
     private final SessionContext sessionContext;
-    private Long currentTimeMillis = null;
+    private Instant currentInstant;
 
     public static CoordinatorTxnCtx systemTransactionContext() {
         return new CoordinatorTxnCtx(SessionContext.systemSessionContext());
@@ -48,15 +48,15 @@ public final class CoordinatorTxnCtx implements TransactionContext {
     }
 
     /**
-     * @return current timestamp in ms. Subsequent calls will always return the same value. (Not thread-safe)
+     * @return current Instant. Subsequent calls will always return the same value. (Not thread-safe)
      */
     @Override
-    public long currentTimeMillis() {
-        if (currentTimeMillis == null) {
-            // no synchronization because StmtCtx is mostly used during single-threaded analysis phase
-            currentTimeMillis = DateTimeUtils.currentTimeMillis();
+    public Instant currentInstant() {
+        // no synchronization because StmtCtx is mostly used during single-threaded analysis phase
+        if (currentInstant == null) {
+            currentInstant = SystemClock.currentInstant();
         }
-        return currentTimeMillis;
+        return currentInstant;
     }
 
     @Override
