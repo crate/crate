@@ -17,10 +17,12 @@
  * under the License.
  */
 
-dependencies {
-    compile project(':es:es-server')
-    compile "org.apache.lucene:lucene-analyzers-phonetic:${versions.lucene}"
-    compile "commons-codec:commons-codec:${versions.commonscodec}"
+apply from: "$rootDir/gradle/javaModule.gradle"
 
-    testCompile project(':es:es-testing')
+dependencies {
+    implementation project(':es:es-server')
+    implementation "org.apache.lucene:lucene-analyzers-phonetic:${versions.lucene}"
+    implementation "commons-codec:commons-codec:${versions.commonscodec}"
+
+    testImplementation project(':es:es-testing')
 }
