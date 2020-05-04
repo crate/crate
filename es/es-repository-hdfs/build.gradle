@@ -20,6 +20,8 @@
  * agreement.
  */
 
+apply from: "$rootDir/gradle/javaModule.gradle"
+
 description = 'The HDFS repository plugin adds support for Hadoop Distributed File-System (HDFS) repositories.'
 def classname = 'org.elasticsearch.repositories.hdfs.HdfsPlugin'
 def plugin_repositoryhdfs_version = '1.0.0'
@@ -30,9 +32,9 @@ configurations {
 }
 
 dependencies {
-    compile project(':es:es-server')
+    implementation project(':es:es-server')
 
-    compile("org.apache.hadoop:hadoop-client:${versions.hadoop2}") {
+    implementation("org.apache.hadoop:hadoop-client:${versions.hadoop2}") {
         exclude module: "commons-cli"
         exclude group: "com.sun.jersey"
         exclude group: "com.sun.jersey.contribs"
@@ -50,7 +52,7 @@ dependencies {
         exclude module: "junit"
         exclude group: "io.netty", module: "netty"
     }
-    compile("org.apache.hadoop:hadoop-hdfs:${versions.hadoop2}") {
+    implementation("org.apache.hadoop:hadoop-hdfs:${versions.hadoop2}") {
         exclude module: "guava"
         exclude module: "log4j"
         exclude module: "junit"

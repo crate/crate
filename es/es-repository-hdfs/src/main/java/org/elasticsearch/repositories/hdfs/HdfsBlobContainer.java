@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.repositories.hdfs;
 
 import org.apache.hadoop.fs.CreateFlag;
@@ -150,11 +151,11 @@ final class HdfsBlobContainer extends AbstractBlobContainer {
             return securityContext.doPrivilegedOrThrow(in::read);
         }
 
-        public int read(byte b[]) throws IOException {
+        public int read(byte[] b) throws IOException {
             return securityContext.doPrivilegedOrThrow(() -> in.read(b));
         }
 
-        public int read(byte b[], int off, int len) throws IOException {
+        public int read(byte[] b, int off, int len) throws IOException {
             return securityContext.doPrivilegedOrThrow(() -> in.read(b, off, len));
         }
 

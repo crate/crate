@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.repositories.hdfs;
 
 import java.io.IOException;
@@ -75,7 +76,9 @@ public final class HdfsPlugin extends Plugin implements RepositoryPlugin {
                 if (hadoopHome != null) {
                     Files.delete(hadoopHome);
                 }
-            } catch (IOException thisIsBestEffort) {}
+            } catch (IOException thisIsBestEffort) {
+                // ignored
+            }
         }
         return null;
     }
@@ -112,10 +115,8 @@ public final class HdfsPlugin extends Plugin implements RepositoryPlugin {
     public Map<String, Repository.Factory> getRepositories(Environment env,
                                                            NamedXContentRegistry namedXContentRegistry,
                                                            ThreadPool threadPool) {
-        return Collections.singletonMap("hdfs",
-                                        (metadata) -> new HdfsRepository(metadata,
-                                                                         env,
-                                                                         namedXContentRegistry,
-                                                                         threadPool));
+        return Collections.singletonMap(
+            "hdfs",
+            (metadata) -> new HdfsRepository(metadata, env, namedXContentRegistry, threadPool));
     }
 }

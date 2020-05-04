@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.repositories.hdfs;
 
 import org.apache.hadoop.conf.Configuration;
@@ -95,7 +96,7 @@ public final class HdfsRepository extends BlobStoreRepository {
         }
     }
 
-    private HdfsBlobStore createBlobstore(URI uri, String path, Settings repositorySettings)  {
+    private HdfsBlobStore createBlobstore(URI uri, String path, Settings repositorySettings) {
         Configuration hadoopConfiguration = new Configuration(repositorySettings.getAsBoolean("load_defaults", true));
         hadoopConfiguration.setClassLoader(HdfsRepository.class.getClassLoader());
         hadoopConfiguration.reloadConfiguration();
@@ -148,7 +149,7 @@ public final class HdfsRepository extends BlobStoreRepository {
         AuthenticationMethod authMethod = SecurityUtil.getAuthenticationMethod(hadoopConfiguration);
         if (authMethod.equals(AuthenticationMethod.SIMPLE) == false
             && authMethod.equals(AuthenticationMethod.KERBEROS) == false) {
-            throw new RuntimeException("Unsupported authorization mode ["+authMethod+"]");
+            throw new RuntimeException("Unsupported authorization mode [" + authMethod + "]");
         }
 
         // Check if the user added a principal to use, and that there is a keytab file provided
