@@ -343,12 +343,17 @@ public final class DataTypes {
         entry("timestamp", TIMESTAMPZ),
         entry("interval", INTERVAL));
 
-    public static DataType ofName(String name) {
-        DataType dataType = TYPES_BY_NAME_OR_ALIAS.get(name);
+    public static DataType<?> ofName(String typeName) {
+        DataType<?> dataType = ofNameOrNull(typeName);
         if (dataType == null) {
-            throw new IllegalArgumentException("Cannot find data type: " + name);
+            throw new IllegalArgumentException("Cannot find data type: " + typeName);
         }
         return dataType;
+    }
+
+    @Nullable
+    public static DataType<?> ofNameOrNull(String typeName) {
+        return TYPES_BY_NAME_OR_ALIAS.get(typeName);
     }
 
     private static final Map<String, DataType> MAPPING_NAMES_TO_TYPES = Map.ofEntries(

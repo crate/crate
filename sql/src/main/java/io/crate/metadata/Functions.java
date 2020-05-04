@@ -80,8 +80,8 @@ public class Functions {
         this(functionImplementations, functionResolvers, Collections.emptyMap());
     }
 
-    public Map<FunctionName, FunctionResolver> functionResolvers() {
-        return functionResolvers;
+    public Map<FunctionName, List<FuncResolver>> functionResolvers() {
+        return functionImplementations;
     }
 
     public Map<FunctionName, List<FuncResolver>> udfFunctionResolvers() {

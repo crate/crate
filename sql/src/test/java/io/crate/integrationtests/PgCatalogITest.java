@@ -139,4 +139,19 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
                 "proconfig", "proacl")
         );
     }
+
+    @Test
+    public void test_pg_proc_select_variadic_and_non_variadic_functions() {
+        execute(
+            "SELECT oid, proname, pronamespace, prorows, provariadic, proisagg," +
+            "       proiswindow, proretset,prorettype, proargtypes, proargmodes, prosrc " +
+            "FROM pg_proc " +
+            "WHERE proname = ANY(['least', 'current_timestamp', 'format', 'array_difference']) " +
+            "ORDER BY proname");
+        assertThat(printedTable(response.rows()), is(
+            "-395638146| array_difference| -1861355723| 1000.0| 0| false| false| true| 2277| [2277, 2277]| NULL| array_difference\n" +
+            "726540318| current_timestamp| -1861355723| 0.0| 0| false| false| false| 1184| [23]| NULL| current_timestamp\n" +
+            "-1602853722| format| -1861355723| 0.0| 2276| false| false| false| 1043| [1043, 2276]| [i, v]| format\n" +
+            "-852341072| least| -1861355723| 0.0| 2276| false| false| false| 2276| [2276]| [v]| least\n"));
+    }
 }

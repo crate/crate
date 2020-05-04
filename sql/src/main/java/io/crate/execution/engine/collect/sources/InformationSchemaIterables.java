@@ -28,7 +28,7 @@ import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.FunctionName;
+import io.crate.metadata.FuncResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionInfo;
@@ -152,7 +152,8 @@ public class InformationSchemaIterables implements ClusterStateListener {
         pgIndices = () -> tablesStream(schemas).filter(this::isPrimaryKey).map(this::pgIndex).iterator();
         pgClasses = () -> concat(sequentialStream(relations).map(this::relationToPgClassEntry),
                                  sequentialStream(primaryKeys).map(this::primaryKeyToPgClassEntry)).iterator();
-        pgBuiltInFunc = () -> sequentialStream(functions.functionResolvers().keySet())
+        pgBuiltInFunc = () -> sequentialStream(functions.functionResolvers().values())
+            .flatMap(List::stream)
             .map(this::pgProc)
             .iterator();
     }
@@ -208,12 +209,8 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return new PgIndexTable.Entry(OidHash.relationOid(tableInfo), OidHash.primaryKeyOid(tableInfo), positions);
     }
 
-    private PgProcTable.Entry pgProc(FunctionName functionName) {
-        return new PgProcTable.Entry(
-            OidHash.functionOid(functionName),
-            functionName,
-            OidHash.schemaOid(functionName.schema())
-        );
+    private PgProcTable.Entry pgProc(FuncResolver resolver) {
+        return PgProcTable.Entry.of(resolver.getSignature());
     }
 
     private static Stream<ViewInfo> viewsStream(Schemas schemas) {
@@ -276,7 +273,9 @@ public class InformationSchemaIterables implements ClusterStateListener {
     public Iterable<PgProcTable.Entry> pgProc() {
         return () -> concat(
             sequentialStream(pgBuiltInFunc),
-            sequentialStream(functions.udfFunctionResolvers().keySet()).map(this::pgProc)
+            sequentialStream(functions.udfFunctionResolvers().values())
+                .flatMap(List::stream)
+                .map(this::pgProc)
         ).iterator();
     }
 
