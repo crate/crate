@@ -2,7 +2,7 @@ package io.crate.expression.scalar.timestamp;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import org.joda.time.DateTimeUtils;
+import io.crate.metadata.SystemClock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,12 +15,12 @@ public class CurrentTimestampFunctionTest extends AbstractScalarFunctionsTest {
 
     @Before
     public void prepare() {
-        DateTimeUtils.setCurrentMillisFixed(EXPECTED_TIMESTAMP);
+        SystemClock.setCurrentMillisFixedUTC(EXPECTED_TIMESTAMP);
     }
 
     @After
     public void cleanUp() {
-        DateTimeUtils.setCurrentMillisSystem();
+        SystemClock.setCurrentMillisSystemUTC();
     }
 
     @Test
@@ -53,6 +53,11 @@ public class CurrentTimestampFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Precision must be between 0 and 3");
         assertEvaluate("current_timestamp(4)", null);
+    }
+
+    @Test
+    public void test_calls_within_statement_are_idempotent() {
+        assertEvaluate("current_timestamp(3) = current_timestamp(3)", true);
     }
 
     @Test

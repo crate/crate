@@ -34,10 +34,8 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
-import org.joda.time.DateTimeUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -52,7 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.allOf;
@@ -71,26 +68,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
-
-    @BeforeClass
-    public static void setTimeForTesting() throws Exception {
-        // A monotonically increasing system clock that prevents from clock adjustments (e.g. via NTP)
-        // and avoids synchronization.
-        DateTimeUtils.setCurrentMillisProvider(new DateTimeUtils.MillisProvider() {
-            private final AtomicLong lastTime = new AtomicLong();
-
-            @Override
-            public long getMillis() {
-                long now = System.currentTimeMillis();
-                long time = lastTime.incrementAndGet();
-                if (now >= time) {
-                    lastTime.compareAndSet(time, now);
-                    return lastTime.getAndIncrement();
-                }
-                return time;
-            }
-        });
-    }
 
     @Before
     public void initTestData() throws Exception {
@@ -578,9 +555,9 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void selectCurrentTimestamp() throws Exception {
-        long before = DateTimeUtils.currentTimeMillis();
-        SQLResponse response = execute("select current_timestamp from sys.cluster");
-        long after = DateTimeUtils.currentTimeMillis();
+        long before = System.currentTimeMillis();
+        SQLResponse response = execute("select current_timestamp(3) from sys.cluster");
+        long after = System.currentTimeMillis();
         assertThat(response.cols(), arrayContaining("current_timestamp(3)"));
         assertThat((long) response.rows()[0][0], allOf(greaterThanOrEqualTo(before), lessThanOrEqualTo(after)));
     }

@@ -1052,13 +1052,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableWithCurrentTimestampAsGeneratedColumnIsntNormalized() {
         BoundCreateTable analysis = analyze(
-            "create table foo (ts timestamp with time zone GENERATED ALWAYS as current_timestamp)");
+            "create table foo (ts timestamp with time zone GENERATED ALWAYS as current_timestamp(3))");
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
         assertThat(generatedColumnsMapping.size(), is(1));
         // current_timestamp used to get evaluated and then this contained the actual timestamp instead of the function name
-        assertThat(generatedColumnsMapping.get("ts"), is("current_timestamp(3)")); // 3 is the default precision
+        assertThat(generatedColumnsMapping.get("ts"), is("current_timestamp(3)"));
     }
 
     @SuppressWarnings("unchecked")

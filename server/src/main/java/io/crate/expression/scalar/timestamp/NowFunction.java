@@ -29,6 +29,9 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
 public final class NowFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "now";
@@ -54,7 +57,7 @@ public final class NowFunction extends Scalar<Long, Object> {
     @Override
     @SafeVarargs
     public final Long evaluate(TransactionContext txnCtx, Input<Object>... args) {
-        return txnCtx.currentTimeMillis();
+        return ChronoUnit.MILLIS.between(Instant.EPOCH, txnCtx.currentInstant());
     }
 
     @Override

@@ -448,7 +448,7 @@ equivalent to the SQL-conforming construct timestamp AT TIME ZONE zone.
 time with time zone
 -------------------
 
-The time type consist of time followed by an optional time zone.
+The time type consists of time followed by an optional time zone.
 
 ``timetz`` is an alias for `time with time zone`.
 
