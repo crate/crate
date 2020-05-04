@@ -63,8 +63,13 @@ interface AwsEc2Service extends Closeable {
      * discovery.ec2.availability_zones: Either a comma separated list or array based list of availability zones. Only instances within
      * the provided availability zones will be used in the cluster discovery.
      */
-    Setting<List<String>> AVAILABILITY_ZONES_SETTING = Setting.listSetting("discovery.ec2.availability_zones", Collections.emptyList(),
-            s -> s.toString(), Property.NodeScope);
+    Setting<List<String>> AVAILABILITY_ZONES_SETTING = Setting.listSetting(
+        "discovery.ec2.availability_zones",
+        Collections.emptyList(),
+        s -> s.toString(),
+        Property.NodeScope
+    );
+
     /**
      * discovery.ec2.node_cache_time: How long the list of hosts is cached to prevent further requests to the AWS API. Defaults to 10s.
      */
@@ -77,8 +82,10 @@ interface AwsEc2Service extends Closeable {
      * instances with a tag key set to stage, and a value of dev. Several tags set will require all of those tags to be set for the
      * instance to be included.
      */
-    Setting.AffixSetting<List<String>> TAG_SETTING = Setting.prefixKeySetting("discovery.ec2.tag.",
-            key -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Property.NodeScope));
+    Setting.AffixSetting<List<String>> TAG_SETTING = Setting.prefixKeySetting(
+        "discovery.ec2.tag.",
+        key -> Setting.listSetting(key, Collections.emptyList(), Function.identity(), Property.NodeScope)
+    );
 
     /**
      * Builds then caches an {@code AmazonEC2} client using the current client
