@@ -54,6 +54,11 @@ abstract class BaseTimestampType extends PGType {
         return TypeCategory.DATETIME.code();
     }
 
+    @Override
+    public String type() {
+        return Type.BASE.code();
+    }
+
     /**
      * Convert a crate timestamp (unix timestamp in ms) into a postgres timestamp
      * (long microseconds since 2000-01-01)

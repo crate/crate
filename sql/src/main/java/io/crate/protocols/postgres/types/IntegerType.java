@@ -52,6 +52,11 @@ class IntegerType extends PGType<Integer> {
     }
 
     @Override
+    public String type() {
+        return Type.BASE.code();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Integer value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeInt(value);

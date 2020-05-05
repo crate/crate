@@ -31,6 +31,26 @@ import java.nio.charset.StandardCharsets;
 
 public abstract class PGType<T> {
 
+    enum Type {
+
+        BASE("b"),
+        COMPOSITE("c"),
+        ENUM("e"),
+        DOMAIN("d"),
+        PSEUDO("p"),
+        RANGE("r");
+
+        private final String code;
+
+        Type(String code) {
+            this.code = code;
+        }
+
+        public String code() {
+            return code;
+        }
+    }
+
     enum TypeCategory {
 
         ARRAY("A"),
@@ -101,6 +121,8 @@ public abstract class PGType<T> {
     }
 
     public abstract String typeCategory();
+
+    public abstract String type();
 
     /**
      * Write the value as text into the buffer.

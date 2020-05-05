@@ -49,6 +49,11 @@ class CharType extends PGType<Byte> {
     }
 
     @Override
+    public String type() {
+        return Type.BASE.code();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Byte value) {
         buffer.writeInt(1);
         buffer.writeByte(value);
