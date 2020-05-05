@@ -26,8 +26,6 @@ import io.crate.action.sql.Session;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.InternalSettingsPreparer;
@@ -61,7 +59,6 @@ public class NodeSettingsTest extends CrateUnitTest {
     public TemporaryFolder tmp = new TemporaryFolder();
 
     private CrateNode node;
-    private boolean loggingConfigured = false;
     private SQLOperations sqlOperations;
 
     private Path createConfigPath() throws IOException {
@@ -83,13 +80,6 @@ public class NodeSettingsTest extends CrateUnitTest {
 
     @Before
     public void doSetup() throws Exception {
-        // mute log4j warning by configuring a dummy logger
-        if (!loggingConfigured) {
-            Logger root = Logger.getRootLogger();
-            root.removeAllAppenders();
-            root.setLevel(Level.OFF);
-            loggingConfigured = true;
-        }
         tmp.create();
         Path configPath = createConfigPath();
         Map<String, String> settings = new HashMap<>();
