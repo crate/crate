@@ -1,5 +1,4 @@
-include 'es',
-        'es:es-core',
+include 'es:es-core',
         'es:es-x-content',
         'es:es-server',
         'es:es-plugin-classloader',

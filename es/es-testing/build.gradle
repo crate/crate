@@ -1,4 +1,9 @@
 apply plugin: 'java-library'
+apply plugin: 'maven'
+
+repositories {
+    mavenCentral()
+}
 
 dependencies {
     implementation project(':es:es-server')
