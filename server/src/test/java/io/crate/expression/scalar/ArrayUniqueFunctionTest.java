@@ -41,7 +41,10 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeWithValueSymbols() throws Exception {
-        assertNormalize("array_unique([10, 20], [10, 30])", isLiteral(Arrays.asList(10L, 20L, 30L)));
+        assertNormalize(
+            "array_unique([10, 20], [10, 30])",
+            isLiteral(List.of((short) 10, (short) 20, (short) 30))
+        );
     }
 
     @Test
@@ -51,7 +54,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullArguments() throws Exception {
-        assertNormalize("array_unique([1], null)", isLiteral(List.of(1L)));
+        assertNormalize("array_unique([1], null)", isLiteral(List.of((short) 1)));
     }
 
     @Test
@@ -64,8 +67,13 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testArrayUniqueOnNestedArrayReturnsUniqueInnerArrays() {
-        assertEvaluate("array_unique([[0, 0], [1, 1]], [[0, 0], [1, 1]])",
-            List.of(List.of(0L, 0L), List.of(1L, 1L)));
+        assertEvaluate(
+            "array_unique([[0, 0], [1, 1]], [[0, 0], [1, 1]])",
+            List.of(
+                List.of((short) 0, (short) 0),
+                List.of((short) 1, (short) 1)
+            )
+        );
     }
 
     @Test
@@ -73,7 +81,9 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate(
             "array_unique([{x=[1, 1]}], [{x=[1, 1]}])",
              Matchers.contains(
-               Matchers.hasEntry(is("x"), Matchers.contains(is(1L), is(1L)))
+               Matchers.hasEntry(is("x"),
+                                 Matchers.contains(is((short) 1), is((short) 1))
+               )
            )
         );
     }
@@ -99,13 +109,16 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testDifferentButConvertableInnerTypes() throws Exception {
-        assertEvaluate("array_unique([10, 20], [10.1, 20.0])", Arrays.asList(10.0, 20.0, 10.1));
+        assertEvaluate(
+            "array_unique([10, 20], [10.1, 20.0])",
+            List.of(10.0f, 20.0f, 10.1f)
+        );
     }
 
     @Test
     public void testConvertNonNumericStringToNumber() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `smallint`");
         assertEvaluate("array_unique([10, 20], ['foo', 'bar'])", null);
     }
 
@@ -118,12 +131,18 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullElements() throws Exception {
-        assertEvaluate("array_unique([1, null, 3], [null, 2, 3])", Arrays.asList(1L, null, 3L, 2L));
+        assertEvaluate(
+            "array_unique([1, null, 3], [null, 2, 3])",
+            Arrays.asList((short) 1, null, (short) 3, (short) 2)
+        );
     }
 
     @Test
-    public void testEmptyArrayAndLongArray() throws Exception {
-        assertEvaluate("array_unique([], [111, 222, 333])", Arrays.asList(111L, 222L, 333L));
+    public void testEmptyArrayAndNumericArray() throws Exception {
+        assertEvaluate(
+            "array_unique([], [111, 222, 333])",
+            List.of((short) 111, (short) 222, (short) 333)
+        );
     }
 
     @Test

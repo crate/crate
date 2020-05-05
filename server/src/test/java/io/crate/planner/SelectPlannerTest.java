@@ -719,14 +719,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "ProjectSet[unnest([1, 2])]\n" +
             "  └ TableFunction[empty_row | [] | true]"));
         Symbol output = plan.outputs().get(0);
-        assertThat(output.valueType(), is(DataTypes.LONG));
+        assertThat(output.valueType(), is(DataTypes.SHORT));
     }
 
     @Test
     public void testScalarCanBeUsedAroundTableGeneratingFunctionInSelectList() {
         LogicalPlan plan = e.logicalPlan("select unnest([1, 2]) + 1");
         assertThat(plan, isPlan(
-            "Eval[(unnest([1, 2]) + 1)]\n" +
+            "Eval[(cast(unnest([1, 2]) AS integer) + 1)]\n" +
             "  └ ProjectSet[unnest([1, 2])]\n" +
             "    └ TableFunction[empty_row | [] | true]"));
     }
@@ -890,9 +890,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "   unnest(ARRAY[2.5, 4, 5, 6, 7.5, 8.5, 10, 12]) as t(col1)";
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
-            "Eval[col1, sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
-            "  └ WindowAgg[col1, power(col1, 2.0), sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
-            "    └ Eval[col1, power(col1, 2.0)]\n" +
+            "Eval[col1, sum(col1) OVER (ORDER BY power(cast(col1 AS double precision), 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
+            "  └ WindowAgg[col1, power(cast(col1 AS double precision), 2.0), sum(col1) OVER (ORDER BY power(cast(col1 AS double precision), 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
+            "    └ Eval[col1, power(cast(col1 AS double precision), 2.0)]\n" +
             "      └ Rename[col1] AS t\n" +
             "        └ TableFunction[unnest | [col1] | true]";
         assertThat(plan, isPlan(expectedPlan));

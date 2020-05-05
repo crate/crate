@@ -86,8 +86,8 @@ public class FrameBound extends Node {
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
                 if (mode == ROWS) {
-                    assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
-                    return Math.max(pStart, currentRowIdx - ((Long) offset).intValue());
+                    assert offset instanceof Number : "In ROWS mode the offset must be a non-null, non-negative number";
+                    return Math.max(pStart, currentRowIdx - ((Number) offset).intValue());
                 } else {
                     int firstGTEProbeValue = findFirstGTEProbeValue(rows, pStart, currentRowIdx, offsetProbeValue, cmp);
                     if (firstGTEProbeValue == -1) {
@@ -199,8 +199,8 @@ public class FrameBound extends Node {
                                   List<T> rows) {
                 // end index is exclusive so we increment it by one when finding the interval end index
                 if (mode == ROWS) {
-                    assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
-                    return Math.min(pEnd, currentRowIdx + ((Long) offset).intValue() + 1);
+                    assert offset instanceof Number : "In ROWS mode the offset must be a non-null, non-negative number";
+                    return Math.min(pEnd, currentRowIdx + ((Number) offset).intValue() + 1);
                 } else {
                     return findFirstLTEProbeValue(rows, pEnd, currentRowIdx, offsetProbeValue, cmp) + 1;
                 }

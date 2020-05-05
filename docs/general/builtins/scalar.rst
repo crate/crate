@@ -1253,7 +1253,7 @@ Returns: Same as input type.
 
 ::
 
-    cr> select exp(1.0) AS exp;
+    cr> select exp(1.0::double precision) AS exp;
     +-------------------+
     |               exp |
     +-------------------+
@@ -2690,11 +2690,11 @@ Example:
 ::
 
     cr> select pg_typeof([1, 2, 3]) as typeof;
-    +--------------+
-    | typeof       |
-    +--------------+
-    | bigint_array |
-    +--------------+
+    +----------------+
+    | typeof         |
+    +----------------+
+    | smallint_array |
+    +----------------+
     SELECT 1 row in set (... sec)
 
 .. _version:

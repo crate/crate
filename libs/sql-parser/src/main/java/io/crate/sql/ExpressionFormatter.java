@@ -40,12 +40,14 @@ import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.BigDecimalLiteral;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
+import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
 import io.crate.sql.tree.IsNullPredicate;
@@ -64,6 +66,7 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.SearchedCaseExpression;
+import io.crate.sql.tree.ShortLiteral;
 import io.crate.sql.tree.SimpleCaseExpression;
 import io.crate.sql.tree.SortItem;
 import io.crate.sql.tree.StringLiteral;
@@ -246,8 +249,26 @@ public final class ExpressionFormatter {
         }
 
         @Override
+        protected String visitIntegerLiteral(IntegerLiteral node,
+                                             List<Expression> context) {
+            return Integer.toString(node.getValue());
+        }
+
+        @Override
+        protected String visitShortLiteral(ShortLiteral node,
+                                           List<Expression> context) {
+            return Short.toString(node.getValue());
+        }
+
+        @Override
         protected String visitDoubleLiteral(DoubleLiteral node, @Nullable List<Expression> parameters) {
             return Double.toString(node.getValue());
+        }
+
+        @Override
+        protected String visitBigDecimalLiteral(BigDecimalLiteral node,
+                                                List<Expression> context) {
+            return node.getValue().toString();
         }
 
         @Override

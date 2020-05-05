@@ -40,7 +40,7 @@ public class TypeInferenceTest extends AbstractScalarFunctionsTest {
         assertEvaluate("'1' = 1", true);
 
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `smallint`");
         assertEvaluate("'foo' = 1", true);
     }
 
@@ -66,7 +66,7 @@ public class TypeInferenceTest extends AbstractScalarFunctionsTest {
         assertEvaluate("case 1 when 1.0 then 'foo' else 'bar' end", "foo");
 
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `smallint`");
         assertEvaluate("case 1 when 'foo' then 'foo' else 'bar' end", "bar");
     }
 
@@ -78,7 +78,7 @@ public class TypeInferenceTest extends AbstractScalarFunctionsTest {
         assertEvaluate("1.2 in (null, 1::integer, 2::long, 3.0)", null);
 
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `real`");
         assertEvaluate("1 in (null, 1::integer, 2::long, 3.0, 'foo')", true);
     }
 
@@ -90,7 +90,7 @@ public class TypeInferenceTest extends AbstractScalarFunctionsTest {
         assertEvaluate("1.2 = ANY ([null, 1::integer, 2::long, 3.0])", null);
 
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `real`");
         assertEvaluate("1 = ANY ([null, 1::integer, 2::long, 3.0, 'foo'])", true);
     }
 
@@ -101,6 +101,6 @@ public class TypeInferenceTest extends AbstractScalarFunctionsTest {
     public void testTimestampOperations() {
         assertEvaluate("3::timestamp with time zone - 1", 2L);
         assertEvaluate("3000::timestamp with time zone / 1000", 3L);
-        assertEvaluate("3000::timestamp with time zone/ 1000.0", 3.0);
+        assertEvaluate("3000::timestamp with time zone/ 1000.0", 3.0f);
     }
 }

@@ -237,8 +237,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtract() {
-        assertPrintIsParseable("extract(century from '1970-01-01')::bigint");
-        assertPrintIsParseable("extract(day_of_week from current_timestamp)::bigint");
+        assertPrintIsParseable("extract(century from '1970-01-01')::smallint");
+        assertPrintIsParseable("extract(day_of_week from current_timestamp)::smallint");
     }
 
     @Test

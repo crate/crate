@@ -119,7 +119,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     public void testDoubleColonOperatorCast() {
         assertEvaluate("10.4::string", "10.4");
         assertEvaluate("[1, 2, 0]::array(boolean)", List.of(true, true, false));
-        assertEvaluate("(1+3)/2::string", 2L);
+        assertEvaluate("(1+3)/2::string", 2);
         assertEvaluate("((1+3)/2)::string", "2");
         assertEvaluate("'10'::long + 5", 15L);
         assertEvaluate("(-4)::string", "-4");

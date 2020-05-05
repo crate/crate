@@ -250,4 +250,9 @@ public class TrigonometricFunctionsTest extends AbstractScalarFunctionsTest {
         assertNormalize("atan2(1, 1::int)", isLiteral(0.7853981633974483));
         assertNormalize("atan2(1, 1::real)", isLiteral(0.7853981633974483));
     }
+
+    @Test
+    public void testExplicitFloatCast() {
+        assertNormalize("asin(cast (0.4321 as float))", isLiteral(0.44682008883801516, DataTypes.DOUBLE));
+    }
 }

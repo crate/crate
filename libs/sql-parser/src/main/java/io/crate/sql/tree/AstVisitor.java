@@ -60,6 +60,10 @@ public abstract class AstVisitor<R, C> {
         return visitLiteral(node, context);
     }
 
+    protected R visitBigDecimalLiteral(BigDecimalLiteral node, C context) {
+        return visitLiteral(node, context);
+    }
+
     protected R visitStatement(Statement node, C context) {
         return visitNode(node, context);
     }
@@ -197,6 +201,14 @@ public abstract class AstVisitor<R, C> {
     }
 
     protected R visitLongLiteral(LongLiteral node, C context) {
+        return visitLiteral(node, context);
+    }
+
+    protected R visitIntegerLiteral(IntegerLiteral node, C context) {
+        return visitLiteral(node, context);
+    }
+
+    protected R visitShortLiteral(ShortLiteral node, C context) {
         return visitLiteral(node, context);
     }
 

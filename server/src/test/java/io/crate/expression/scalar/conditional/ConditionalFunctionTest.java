@@ -32,31 +32,31 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testCoalesce() throws Exception {
         assertEvaluate("coalesce(null)", null);
-        assertEvaluate("coalesce(10, null, 20)", 10L);
+        assertEvaluate("coalesce(10, null, 20)", (short) 10);
         assertEvaluate("coalesce(name, 'foo')", "foo", Literal.NULL);
     }
 
     @Test
     public void testGreatest() throws Exception {
         assertEvaluate("greatest(null, null)", null);
-        assertEvaluate("greatest(10)", 10L);
-        assertEvaluate("greatest(10, 20, null, 30)", 30L);
-        assertEvaluate("greatest(11.1, 22.2, null)", 22.2);
+        assertEvaluate("greatest(10)", (short) 10);
+        assertEvaluate("greatest(10, 20, null, 30)", (short) 30);
+        assertEvaluate("greatest(11.1, 22.2, null)", 22.2f);
         assertEvaluate("greatest('foo', name, 'bar')", "foo", Literal.NULL);
     }
 
     @Test
     public void testLeast() throws Exception {
         assertEvaluate("least(null, null)", null);
-        assertEvaluate("least(10)", 10L);
-        assertEvaluate("least(10, 20, null, 30)", 10L);
-        assertEvaluate("least(11.1, 22.2, null)", 11.1);
+        assertEvaluate("least(10)", (short) 10);
+        assertEvaluate("least(10, 20, null, 30)", (short) 10);
+        assertEvaluate("least(11.1, 22.2, null)", 11.1f);
         assertEvaluate("least('foo', name, 'bar')", "bar", Literal.NULL);
     }
 
     @Test
     public void testNullIf() throws Exception {
-        assertEvaluate("nullif(10, 12)", 10L);
+        assertEvaluate("nullif(10, 12)", (short) 10);
         assertEvaluate("nullif(name, 'foo')", null, Literal.of("foo"));
         assertEvaluate("nullif(null, 'foo')", null);
     }
@@ -64,7 +64,7 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNullIfInvalidArgsLength() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: nullif(bigint, bigint, bigint)");
+        expectedException.expectMessage("unknown function: nullif(smallint, smallint, smallint)");
         assertEvaluate("nullif(1, 2, 3)", null);
     }
 
@@ -105,7 +105,7 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     public void testCaseIncompatibleTypes() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Data types of all result expressions of a CASE statement must be equal, " +
-                                        "found: [text, bigint]");
+                                        "found: [text, smallint]");
         assertEvaluate("case name when 'foo' then 'hello foo' when 'bar' then 1 end",
             "hello foo",
             Literal.of("foo"), Literal.of("foo"));
@@ -129,7 +129,7 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
         // x = long
         // a = integer
         String expression = "case x + 1 when a::long then 111 end";
-        assertEvaluate(expression, 111L,
+        assertEvaluate(expression, (short) 111,
             Literal.of(110L),    // x
             Literal.of(111));    // a
     }
@@ -137,7 +137,7 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testCaseWithNullArgument() throws Exception {
         String expression = "CASE 68 WHEN 38 THEN NULL ELSE 1 END";
-        assertEvaluate(expression, 1L);
+        assertEvaluate(expression, (short) 1);
     }
 
     @Test
@@ -153,27 +153,27 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testCaseWithNullArgumentIfReturnsLong() throws Exception {
+    public void testCaseWithNullArgumentIfReturnsNonNull() throws Exception {
         String expression = "CASE 38 WHEN 38 THEN 1 ELSE NULL END";
-        assertEvaluate(expression, 1L);
+        assertEvaluate(expression, (short) 1);
     }
 
     @Test
-    public void testCaseWithDifferentResultTypesReturnsLong() throws Exception {
+    public void testCaseWithDifferentResultTypesReturnsNonNull() throws Exception {
         String expression1 = "CASE 47 WHEN 38 THEN 1 ELSE 12::integer END";
-        assertEvaluate(expression1, 12L);
+        assertEvaluate(expression1, 12);
         String expression2 = "CASE 34 WHEN 38 THEN 1::integer ELSE 12 END";
-        assertEvaluate(expression2, 12L);
+        assertEvaluate(expression2, 12);
     }
 
     @Test
-    public void testCaseWithStringAndLongResultTypesReturnsLong() throws Exception {
-        assertEvaluate("CASE 38 WHEN 38 THEN '38' ELSE 40 END",38L);
+    public void testCaseWithStringAndNumeric() throws Exception {
+        assertEvaluate("CASE 38 WHEN 38 THEN '38' ELSE 40 END",(short) 38);
     }
 
     @Test
-    public void testCaseWithStringDefaultTypeReturnsLong() throws Exception {
-        assertEvaluate("CASE 45 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",40L);
-        assertEvaluate("CASE 34 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",34L);
+    public void testCaseWithStringDefaultType() throws Exception {
+        assertEvaluate("CASE 45 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",(short) 40);
+        assertEvaluate("CASE 34 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",(short) 34);
     }
 }

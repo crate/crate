@@ -20,38 +20,41 @@
  * agreement.
  */
 
-package io.crate.expression.scalar.arithmetic;
+package io.crate.sql.tree;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import org.junit.Test;
+import java.util.Objects;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+public class IntegerLiteral extends Literal {
 
-public class MapFunctionTest extends AbstractScalarFunctionsTest {
+    private final int value;
 
-    @Test
-    public void testMapWithWrongNumOfArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: _map(text, smallint, text)");
-        assertEvaluate("_map('foo', 1, 'bar')", null);
+    public IntegerLiteral(int value) {
+        this.value = value;
     }
 
-    @Test
-    public void testKeyNotOfTypeString() {
-        assertEvaluate("_map(10, 2)", Collections.singletonMap("10", (short) 2));
+    public int getValue() {
+        return value;
     }
 
-    @Test
-    public void testEvaluation() {
-        Map<String, Object> m = new HashMap<>();
-        m.put("foo", (short) 10);
-        // minimum args
-        assertEvaluate("_map('foo', 10)", m);
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitIntegerLiteral(this, context);
+    }
 
-        // variable args
-        m.put("bar", "some");
-        assertEvaluate("_map('foo', 10, 'bar', 'some')", m);
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        IntegerLiteral that = (IntegerLiteral) o;
+        return value == that.value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
     }
 }

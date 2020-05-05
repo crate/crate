@@ -35,15 +35,19 @@ public abstract class Literal
     }
 
     public static Literal fromObject(Object value) {
-        Literal literal = null;
+        Literal literal;
         if (value == null) {
             literal = NullLiteral.INSTANCE;
-        } else if (value instanceof Number) {
-            if (value instanceof Float || value instanceof Double) {
-                literal = new DoubleLiteral(value.toString());
-            } else if (value instanceof Short || value instanceof Integer || value instanceof Long) {
-                literal = new LongLiteral(value.toString());
-            }
+        } else if (value instanceof Double) {
+            literal = new DoubleLiteral((double) value);
+        } else if (value instanceof Float) {
+            literal = new BigDecimalLiteral((float) value);
+        } else if (value instanceof Short) {
+            literal = new ShortLiteral((short) value);
+        } else if (value instanceof Integer) {
+            literal = new IntegerLiteral((int) value);
+        } else if (value instanceof Long) {
+            literal = new LongLiteral((long) value);
         } else if (value instanceof Boolean) {
             literal = (Boolean) value ? BooleanLiteral.TRUE_LITERAL : BooleanLiteral.FALSE_LITERAL;
         } else if (value instanceof Object[]) {

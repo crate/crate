@@ -49,6 +49,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.GeoPointType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -169,7 +170,7 @@ public class Function extends Symbol implements Cloneable {
 
     @Override
     public Symbol cast(DataType<?> targetType, boolean tryCast, boolean explicitCast) {
-        if (targetType instanceof ArrayType && info.ident().name().equals(ArrayFunction.NAME)) {
+        if (info.ident().name().equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
              * This allows us to do proper type inference for inserts/updates where there are assignments like
              *
@@ -177,10 +178,18 @@ public class Function extends Symbol implements Cloneable {
              * or
              *      some_array = array_cat([?, ?], [1, 2])
              */
-            return castArrayElements(targetType, tryCast, explicitCast);
-        } else {
-            return super.cast(targetType, tryCast, explicitCast);
+            if (targetType instanceof ArrayType) {
+                return castArrayElements(targetType, tryCast, explicitCast);
+            }
+
+            // To prevent floating number rounding issues when using Float.doubleValue(), a float_array will be first
+            // cast to a double_array to execute the special FloatLiteral.cast() logic for double conversion.
+            if (targetType instanceof GeoPointType && info.returnType().equals(DataTypes.FLOAT_ARRAY)) {
+                var doubleArraySymbol = castArrayElements(DataTypes.DOUBLE_ARRAY, tryCast, explicitCast);
+                return doubleArraySymbol.cast(targetType, tryCast, explicitCast);
+            }
         }
+        return super.cast(targetType, tryCast, explicitCast);
     }
 
     private Symbol castArrayElements(DataType<?> newDataType, boolean tryCast, boolean explicitCast) {

@@ -41,7 +41,7 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_subscript_can_retrieve_items_of_objects_within_array() {
-        assertEvaluate("[{x=10}, {x=2}]['x']", List.of(10L, 2L));
+        assertEvaluate("[{x=10}, {x=2}]['x']", List.of((short) 10, (short) 2));
     }
 
     @Test

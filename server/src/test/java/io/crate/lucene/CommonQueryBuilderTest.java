@@ -225,7 +225,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(ltQuery.toString(), is("d_array:[1.5000000000000002 TO Infinity]"));
 
         // d < ANY ([1.2, 3.5])
-        Query ltQuery2 = convert("d < any ([1.2, 3.5])");
+        Query ltQuery2 = convert("d < any ([1.2::double, 3.5::double])");
         assertThat(ltQuery2.toString(), is("(d:[-Infinity TO 1.1999999999999997] d:[-Infinity TO 3.4999999999999996])~1"));
 
         // 1.5d <= ANY (d_array)

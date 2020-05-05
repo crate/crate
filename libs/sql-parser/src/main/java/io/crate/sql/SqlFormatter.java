@@ -65,7 +65,6 @@ import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
 import io.crate.sql.tree.JoinUsing;
-import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.NaturalJoin;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.NotNullColumnConstraint;
@@ -670,12 +669,6 @@ public final class SqlFormatter {
                 }
                 append(indent, ")");
             }
-            return null;
-        }
-
-        @Override
-        protected Void visitLongLiteral(LongLiteral node, Integer indent) {
-            builder.append(String.format(Locale.ENGLISH, "%d", node.getValue()));
             return null;
         }
 

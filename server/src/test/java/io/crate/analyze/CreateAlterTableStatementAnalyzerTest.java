@@ -1297,11 +1297,11 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AnalyzedColumnDefinition<Object> obj = stmt.analyzedTableElements().columns().get(0);
         AnalyzedColumnDefinition c = obj.children().get(0);
 
-        assertThat(c.dataType(), is(DataTypes.LONG));
+        assertThat(c.dataType(), is(DataTypes.INTEGER));
         assertThat(c.formattedGeneratedExpression(), is("2"));
         assertThat(AnalyzedTableElements.toMapping(stmt.analyzedTableElements()).toString(),
                    is("{_meta={generated_columns={obj.c=2}}, " +
-                      "properties={obj={dynamic=true, position=1, type=object, properties={c={type=long}}}}}"));
+                      "properties={obj={dynamic=true, position=1, type=object, properties={c={type=integer}}}}}"));
     }
 
     @Test

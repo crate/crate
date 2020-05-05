@@ -53,7 +53,7 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_error_is_raised_if_the_types_of_the_rows_are_not_compatible() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `smallint`");
         e.analyze("VALUES (1), ('foo')");
     }
 
@@ -69,18 +69,18 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_nulls_in_column_values_must_not_fail_type_validation() {
         AnalyzedRelation relation = e.analyze("VALUES (1), (null), (2), (null)");
-        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.LONG)));
+        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.SHORT)));
     }
 
     @Test
     public void test_implicitly_convertible_column_values_must_not_fail_type_validation() {
         AnalyzedRelation relation = e.analyze("VALUES (1), (1.0)");
-        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.DOUBLE)));
+        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.FLOAT)));
     }
 
     @Test
-    public void test_highest_precedence_type_is_chosen_as_target_column_type() {
+    public void test_lowest_guessed_type_is_chosen_as_target_column_type() {
         AnalyzedRelation relation = e.analyze("VALUES (null), (1.0), (1), ('1')");
-        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.DOUBLE)));
+        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.FLOAT)));
     }
 }

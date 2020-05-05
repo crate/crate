@@ -55,25 +55,25 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     public void testArrayDifferenceRemovesTheNestedArraysInTheFirstArrayThatAreContainedWithinTheSecondArray() {
         assertEvaluate(
             "array_difference([[1, 2], [1, 3]], [[1, 2]])",
-            Matchers.contains(Matchers.contains(1L, 3L)));
+            Matchers.contains(Matchers.contains((short) 1, (short) 3)));
     }
 
     @Test
     public void testArrayDifferenceRemovesTheObjectsInTheFirstArrayThatAreContainedInTheSecond() {
         assertEvaluate(
             "array_difference([{x=[1, 2]}, {x=[1, 3]}], [{x=[1, 3]}])",
-            Matchers.contains(Matchers.hasEntry(is("x"), Matchers.contains(1L, 2L))));
+            Matchers.contains(Matchers.hasEntry(is("x"), Matchers.contains((short) 1, (short) 2))));
     }
 
     @Test
     public void testNormalize() throws Exception {
-        assertNormalize("array_difference([10, 20], [10, 30])", isLiteral(List.of(20L)));
+        assertNormalize("array_difference([10, 20], [10, 30])", isLiteral(List.of((short) 20)));
         assertNormalize("array_difference([], [10, 30])", isLiteral(List.of()));
     }
 
     @Test
     public void testNormalizeNullArguments() throws Exception {
-        assertNormalize("array_difference([1], null)", isLiteral(List.of(1L)));
+        assertNormalize("array_difference([1], null)", isLiteral(List.of((short) 1)));
     }
 
     @Test
@@ -92,7 +92,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_difference(bigint_array)");
+        expectedException.expectMessage("unknown function: array_difference(smallint_array)");
         assertNormalize("array_difference([1])", null);
     }
 

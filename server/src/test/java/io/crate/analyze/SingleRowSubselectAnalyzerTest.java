@@ -98,7 +98,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
             "select * from users where match(shape 1.2, (select shape from users limit 1))");
         assertThat(relation.where(), instanceOf(MatchPredicate.class));
         MatchPredicate match = (MatchPredicate) relation.where();
-        assertThat(match.identBoostMap(), hasEntry(isReference("shape"), isLiteral(1.2)));
+        assertThat(match.identBoostMap(), hasEntry(isReference("shape"), isLiteral(1.2f)));
         assertThat(match.queryTerm(), instanceOf(SelectSymbol.class));
         assertThat(match.matchType(), is("intersects"));
     }

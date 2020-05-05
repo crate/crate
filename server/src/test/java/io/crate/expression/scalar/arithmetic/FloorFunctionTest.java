@@ -32,13 +32,13 @@ public class FloorFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateOnDouble() throws Exception {
-        assertNormalize("floor(29.9)", isLiteral(29L));
+        assertNormalize("floor(29.9::double precision)", isLiteral(29L));
         assertNormalize("floor(cast(null as double))", isLiteral(null, DataTypes.LONG));
     }
 
     @Test
     public void testEvaluateOnFloat() throws Exception {
-        assertNormalize("floor(cast(29.9 as float))", isLiteral(29));
+        assertNormalize("floor(29.9)", isLiteral(29));
         assertNormalize("floor(cast(null as float))", isLiteral(null, DataTypes.INTEGER));
     }
 
@@ -46,9 +46,9 @@ public class FloorFunctionTest extends AbstractScalarFunctionsTest {
     public void testEvaluateOnIntAndLong() throws Exception {
         assertNormalize("floor(cast(20 as integer))", isLiteral(20));
         assertNormalize("floor(cast(null as integer))", isLiteral(null, DataTypes.INTEGER));
-        assertNormalize("floor(42.9)", isLiteral(42L));
+        assertNormalize("floor(42.9)", isLiteral(42));
 
-        assertNormalize("floor(20)", isLiteral(20L));
+        assertNormalize("floor(20::bigint)", isLiteral(20L));
         assertNormalize("floor(cast(null as long))", isLiteral(null, DataTypes.LONG));
     }
 

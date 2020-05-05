@@ -60,6 +60,7 @@ import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
+import io.crate.expression.symbol.FloatLiteral;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -87,6 +88,7 @@ import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.ArraySubQueryExpression;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BetweenPredicate;
+import io.crate.sql.tree.BigDecimalLiteral;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ComparisonExpression;
@@ -100,6 +102,7 @@ import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
+import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
 import io.crate.sql.tree.IsNullPredicate;
@@ -118,6 +121,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.SearchedCaseExpression;
+import io.crate.sql.tree.ShortLiteral;
 import io.crate.sql.tree.SimpleCaseExpression;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubqueryExpression;
@@ -902,6 +906,24 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitLongLiteral(LongLiteral node, ExpressionAnalysisContext context) {
+            return Literal.of(node.getValue());
+        }
+
+        @Override
+        protected Symbol visitBigDecimalLiteral(BigDecimalLiteral node,
+                                                ExpressionAnalysisContext context) {
+            return new FloatLiteral(node.getValue());
+        }
+
+        @Override
+        protected Symbol visitIntegerLiteral(IntegerLiteral node,
+                                             ExpressionAnalysisContext context) {
+            return Literal.of(node.getValue());
+        }
+
+        @Override
+        protected Symbol visitShortLiteral(ShortLiteral node,
+                                           ExpressionAnalysisContext context) {
             return Literal.of(node.getValue());
         }
 

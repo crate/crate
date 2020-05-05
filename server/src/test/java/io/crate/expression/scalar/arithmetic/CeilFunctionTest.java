@@ -32,27 +32,27 @@ public class CeilFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateOnDouble() throws Exception {
-        assertNormalize("ceil(29.9)", isLiteral(30L));
+        assertNormalize("ceil(29.9::double precision)", isLiteral(30L));
         assertNormalize("ceil(null)", isLiteral(null));
     }
 
     @Test
     public void testEvaluateOnFloat() throws Exception {
-        assertNormalize("ceil(cast(29.9 as float))", isLiteral(30));
+        assertNormalize("ceil(29.9)", isLiteral(30));
         assertNormalize("ceil(cast(null as float))", isLiteral(null, DataTypes.INTEGER));
     }
 
     @Test
     public void test_ceiling_works_as_alias_for_ceil() {
-        assertEvaluate("ceiling(-95.3)", -95L);
+        assertEvaluate("ceiling(-95.3)", -95);
     }
 
     @Test
     public void testEvaluateOnIntAndLong() throws Exception {
-        assertNormalize("ceil(cast(20 as integer))", isLiteral(20));
+        assertNormalize("ceil(20)", isLiteral(20));
         assertNormalize("ceil(cast(null as integer))", isLiteral(null, DataTypes.INTEGER));
 
-        assertNormalize("ceil(20)", isLiteral(20L));
+        assertNormalize("ceil(20::bigint)", isLiteral(20L));
         assertNormalize("ceil(cast(null as long))", isLiteral(null, DataTypes.LONG));
     }
 

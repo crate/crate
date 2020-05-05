@@ -35,11 +35,11 @@ public class TruncFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeOnDouble() throws Exception {
-        assertNormalize("trunc(29.1947)", isLiteral(29L));
-        assertNormalize("trunc(-29.1947)", isLiteral(-29L));
-        assertNormalize("trunc(-29.1947, 0)", isLiteral(-29.0));
-        assertNormalize("trunc(29.1947, 0)", isLiteral(29.0));
-        assertNormalize("trunc(29.1947, 1)", isLiteral(29.1d));
+        assertNormalize("trunc(29.1947::double)", isLiteral(29L));
+        assertNormalize("trunc(-29.1947::double)", isLiteral(-29L));
+        assertNormalize("trunc(-29.1947::double, 0)", isLiteral(-29.0));
+        assertNormalize("trunc(29.1947::double, 0)", isLiteral(29.0));
+        assertNormalize("trunc(29.1947::double, 1)", isLiteral(29.1d));
         assertNormalize("trunc(cast(null as double))", isLiteral(null,  DataTypes.LONG));
     }
 

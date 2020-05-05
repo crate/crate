@@ -20,38 +20,50 @@
  * agreement.
  */
 
-package io.crate.expression.scalar.arithmetic;
+package io.crate.sql.tree;
 
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import org.junit.Test;
+import java.math.BigDecimal;
+import java.util.Objects;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+public class BigDecimalLiteral extends Literal {
 
-public class MapFunctionTest extends AbstractScalarFunctionsTest {
+    private final BigDecimal value;
 
-    @Test
-    public void testMapWithWrongNumOfArguments() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: _map(text, smallint, text)");
-        assertEvaluate("_map('foo', 1, 'bar')", null);
+    public BigDecimalLiteral(float value) {
+        this(new BigDecimal(Float.toString(value)));
     }
 
-    @Test
-    public void testKeyNotOfTypeString() {
-        assertEvaluate("_map(10, 2)", Collections.singletonMap("10", (short) 2));
+    public BigDecimalLiteral(String value) {
+        this(new BigDecimal(value));
     }
 
-    @Test
-    public void testEvaluation() {
-        Map<String, Object> m = new HashMap<>();
-        m.put("foo", (short) 10);
-        // minimum args
-        assertEvaluate("_map('foo', 10)", m);
+    public BigDecimalLiteral(BigDecimal bd) {
+        this.value = bd;
+    }
 
-        // variable args
-        m.put("bar", "some");
-        assertEvaluate("_map('foo', 10, 'bar', 'some')", m);
+    public BigDecimal getValue() {
+        return value;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitBigDecimalLiteral(this, context);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        BigDecimalLiteral that = (BigDecimalLiteral) o;
+        return value.equals(that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
     }
 }

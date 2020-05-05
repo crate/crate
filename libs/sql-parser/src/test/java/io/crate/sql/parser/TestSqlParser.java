@@ -135,29 +135,6 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testDouble()
-        throws Exception {
-        assertExpression("123.", new DoubleLiteral("123"));
-        assertExpression("123.0", new DoubleLiteral("123"));
-        assertExpression(".5", new DoubleLiteral(".5"));
-        assertExpression("123.5", new DoubleLiteral("123.5"));
-
-        assertExpression("123E7", new DoubleLiteral("123E7"));
-        assertExpression("123.E7", new DoubleLiteral("123E7"));
-        assertExpression("123.0E7", new DoubleLiteral("123E7"));
-        assertExpression("123E+7", new DoubleLiteral("123E7"));
-        assertExpression("123E-7", new DoubleLiteral("123E-7"));
-
-        assertExpression("123.456E7", new DoubleLiteral("123.456E7"));
-        assertExpression("123.456E+7", new DoubleLiteral("123.456E7"));
-        assertExpression("123.456E-7", new DoubleLiteral("123.456E-7"));
-
-        assertExpression(".4E42", new DoubleLiteral(".4E42"));
-        assertExpression(".4E+42", new DoubleLiteral(".4E42"));
-        assertExpression(".4E-42", new DoubleLiteral(".4E-42"));
-    }
-
-    @Test
     public void testParameter() throws Exception {
         assertExpression("?", new ParameterExpression(1));
         for (int i = 0; i < 1000; i++) {
@@ -167,10 +144,10 @@ public class TestSqlParser {
 
     @Test
     public void testDoubleInQuery() {
-        assertStatement("SELECT 123.456E7 FROM DUAL",
+        assertStatement("SELECT 12345.1234 FROM DUAL",
             new Query(
                 new QuerySpecification(
-                    selectList(new DoubleLiteral("123.456E7")),
+                    selectList(new DoubleLiteral(12345.1234)),
                     table(QualifiedName.of("dual")),
                     Optional.empty(),
                     List.of(),

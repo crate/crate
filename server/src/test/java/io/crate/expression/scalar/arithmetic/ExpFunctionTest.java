@@ -31,9 +31,10 @@ public class ExpFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_exp_scalar() {
-        assertNormalize("exp(1)", isLiteral(2L));
+        assertNormalize("exp(1)", isLiteral((short) 2));
         assertNormalize("exp(1::int)", isLiteral(2));
-        assertNormalize("exp(1.0)", isLiteral(2.718281828459045));
-        assertNormalize("exp(1.0::real)", isLiteral(2.7182817F));
+        assertNormalize("exp(1::bigint)", isLiteral(2L));
+        assertNormalize("exp(1.0::double precision)", isLiteral(2.718281828459045));
+        assertNormalize("exp(1.0)", isLiteral(2.7182817F));
     }
 }

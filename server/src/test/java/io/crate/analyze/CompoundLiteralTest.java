@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -33,14 +31,12 @@ import io.crate.testing.T3;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -64,7 +60,7 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
         Symbol s = expressions.asSymbol("{}");
         assertThat(s, instanceOf(Literal.class));
         Literal l = (Literal) s;
-        assertThat(l.value(), is(new HashMap<String, Object>()));
+        assertThat(l.value(), is(Map.of()));
 
         Literal objectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{ident='value'}"));
         assertThat(objectLiteral.symbolType(), is(SymbolType.LITERAL));
@@ -73,18 +69,18 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
 
         Literal multipleObjectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{\"Ident\"=123.4, a={}, ident='string'}"));
         Map<String, Object> values = (Map<String, Object>) multipleObjectLiteral.value();
-        assertThat(values, is(MapBuilder.<String, Object>newMapBuilder()
-            .put("Ident", 123.4d)
-            .put("a", new HashMap<String, Object>())
-            .put("ident", "string")
-            .map()));
+        assertThat(values, is(Map.of(
+            "Ident", 123.4f,
+            "a", Map.of(),
+            "ident", "string"
+        )));
     }
 
     @Test
     public void testObjectConstructionWithExpressionsAsValues() throws Exception {
         Literal objectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{name = 1 + 2}"));
         assertThat(objectLiteral.symbolType(), is(SymbolType.LITERAL));
-        assertThat(objectLiteral.value(), is(Map.<String, Object>of("name", 3L)));
+        assertThat(objectLiteral.value(), is(Map.of("name", 3)));
 
         Literal nestedObjectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{a = {name = concat('foo', 'bar')}}"));
         @SuppressWarnings("unchecked") Map<String, Object> values = (Map<String, Object>) nestedObjectLiteral.value();
@@ -114,12 +110,12 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
         assertThat(emptyArray.valueType(), is(new ArrayType<>(UndefinedType.INSTANCE)));
 
         Literal singleArray = (Literal) analyzeExpression("[1]");
-        assertThat(singleArray.valueType(), is(new ArrayType<>(LongType.INSTANCE)));
-        assertThat(((List<Long>) singleArray.value()), contains(1L));
+        assertThat(singleArray.valueType(), is(new ArrayType<>(DataTypes.SHORT)));
+        assertThat(((List<Long>) singleArray.value()), contains((short) 1));
 
         Literal multiArray = (Literal) analyzeExpression("[1, 2, 3]");
-        assertThat(multiArray.valueType(), is(new ArrayType<>(LongType.INSTANCE)));
-        assertThat(((List<Long>) multiArray.value()), contains(1L, 2L, 3L));
+        assertThat(multiArray.valueType(), is(new ArrayType<>(DataTypes.SHORT)));
+        assertThat(((List<Long>) multiArray.value()), contains((short) 1, (short) 2, (short) 3));
     }
 
     @Test
@@ -132,18 +128,18 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testArrayDifferentTypes() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'string'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'string'` of type `text` to type `smallint`");
         analyzeExpression("[1, 'string']");
     }
 
     @Test
     public void testNestedArrayLiteral() throws Exception {
-        Map<String, DataType<?>> expected = ImmutableMap.<String, DataType<?>>builder()
-            .put("'string'", DataTypes.STRING)
-            .put("0", DataTypes.LONG)
-            .put("1.8", DataTypes.DOUBLE)
-            .put("TRUE", DataTypes.BOOLEAN)
-            .build();
+        Map<String, DataType<?>> expected = Map.of(
+            "'string'", DataTypes.STRING,
+            "0", DataTypes.SHORT,
+            "1.8", DataTypes.FLOAT,
+            "TRUE", DataTypes.BOOLEAN
+        );
         for (Map.Entry<String, DataType<?>> entry : expected.entrySet()) {
             Symbol nestedArraySymbol = analyzeExpression("[[" + entry.getKey() + "]]");
             assertThat(nestedArraySymbol, Matchers.instanceOf(Literal.class));

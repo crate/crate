@@ -39,7 +39,7 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void test_expressions() {
-        assertEvaluate("pg_typeof(1 + 1::short)", DataTypes.LONG.getName());
+        assertEvaluate("pg_typeof(1 + 1::short)", DataTypes.INTEGER.getName());
     }
 
     @Test
@@ -63,10 +63,10 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("pg_typeof(8765134432441)", "bigint");
         assertEvaluate("pg_typeof(x)", DataTypes.LONG.getName(), Literal.of(8765134432441L));
 
-        assertEvaluate("pg_typeof(42.0::real)", DataTypes.FLOAT.getName());
+        assertEvaluate("pg_typeof(42.0)", DataTypes.FLOAT.getName());
         assertEvaluate("pg_typeof(float_val)", DataTypes.FLOAT.getName(), Literal.of(42.0));
 
-        assertEvaluate("pg_typeof(42.0)", DataTypes.DOUBLE.getName());
+        assertEvaluate("pg_typeof(42.0::double precision)", DataTypes.DOUBLE.getName());
         assertEvaluate("pg_typeof(double_val)", DataTypes.DOUBLE.getName(), Literal.of(42.0));
 
         assertEvaluate("pg_typeof('name')", DataTypes.STRING.getName());
@@ -106,9 +106,10 @@ public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("pg_typeof(obj_ignored)", ObjectType.NAME, Literal.of("{}"));
 
         assertEvaluate("pg_typeof(['Hello', 'World'])", DataTypes.STRING_ARRAY.getName());
-        assertEvaluate("pg_typeof([1::smallint, 2::smallint])", DataTypes.SHORT_ARRAY.getName());
+        assertEvaluate("pg_typeof([1, 2])", DataTypes.SHORT_ARRAY.getName());
         assertEvaluate("pg_typeof([1::integer, 2::integer])", DataTypes.INTEGER_ARRAY.getName());
-        assertEvaluate("pg_typeof([1, 2])", DataTypes.BIGINT_ARRAY.getName());
+        assertEvaluate("pg_typeof([1::bigint, 2::bigint])", DataTypes.BIGINT_ARRAY.getName());
+        assertEvaluate("pg_typeof([1.0, 2.0])", DataTypes.FLOAT_ARRAY.getName());
         assertEvaluate("pg_typeof([1.0::double precision, 2.0::double precision])",
                        DataTypes.DOUBLE_ARRAY.getName());
 

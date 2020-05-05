@@ -76,11 +76,10 @@ import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
-import io.crate.sql.tree.DropCheckConstraint;
-import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
@@ -93,6 +92,7 @@ import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.BigDecimalLiteral;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.sql.tree.FunctionCall;
@@ -106,6 +106,7 @@ import io.crate.sql.tree.InPredicate;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
 import io.crate.sql.tree.Insert;
+import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.Intersect;
 import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
@@ -140,6 +141,7 @@ import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.QueryBody;
 import io.crate.sql.tree.QuerySpecification;
+import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Relation;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
@@ -153,6 +155,7 @@ import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.Select;
 import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SetStatement;
+import io.crate.sql.tree.ShortLiteral;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.ShowSchemas;
@@ -187,6 +190,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import javax.annotation.Nullable;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1691,12 +1695,25 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
-        return new LongLiteral(context.getText());
+        long value = Long.parseLong(context.getText());
+        if (value < Short.MAX_VALUE + 1L) {
+            return new ShortLiteral((short) value);
+        } else if (value < Integer.MAX_VALUE + 1L) {
+            return new IntegerLiteral((int) value);
+        }
+        return new LongLiteral(value);
     }
 
     @Override
     public Node visitDecimalLiteral(SqlBaseParser.DecimalLiteralContext context) {
-        return new DoubleLiteral(context.getText());
+        var bd = new BigDecimal(context.getText());
+        var floatValue = bd.floatValue();
+        if (bd.precision() > 8
+            || floatValue == Float.NEGATIVE_INFINITY
+            || floatValue == Float.POSITIVE_INFINITY) {
+            return new DoubleLiteral(bd.doubleValue());
+        }
+        return new BigDecimalLiteral(bd);
     }
 
     @Override

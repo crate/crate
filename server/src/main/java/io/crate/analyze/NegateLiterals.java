@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.FloatLiteral;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -54,9 +55,12 @@ public final class NegateLiterals extends SymbolVisitor<Void, Symbol> {
             case DoubleType.ID:
                 return Literal.of(valueType, (Double) value * -1);
             case FloatType.ID:
-                return Literal.of(valueType, (Double) value * -1);
+                if (symbol instanceof FloatLiteral) {
+                    return ((FloatLiteral) symbol).negate();
+                }
+                return Literal.of(valueType, (Float) value * -1);
             case ShortType.ID:
-                return Literal.of(valueType, (Short) value * -1);
+                return Literal.of(valueType, ((Integer) ((Short) value * -1)).shortValue());
             case IntegerType.ID:
                 return Literal.of(valueType, (Integer) value * -1);
             case LongType.ID:

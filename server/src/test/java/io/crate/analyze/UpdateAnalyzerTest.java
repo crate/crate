@@ -168,14 +168,14 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNumericTypeOutOfRange() {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for shorts: Cannot cast expression `-100000` of type `bigint` to `smallint`");
+        expectedException.expectMessage("Validation failed for shorts: Cannot cast expression `-100000` of type `integer` to `smallint`");
         analyze("update users set shorts=-100000");
     }
 
     @Test
     public void testNumericOutOfRangeFromFunction() {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for bytes: Cannot cast expression `1234` of type `bigint` to `char`");
+        expectedException.expectMessage("Validation failed for bytes: Cannot cast expression `1234` of type `smallint` to `char`");
         analyze("update users set bytes=abs(-1234)");
     }
 
@@ -201,7 +201,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref, instanceOf(DynamicReference.class));
-        Assert.assertEquals(DataTypes.LONG, ref.valueType());
+        Assert.assertEquals(DataTypes.SHORT, ref.valueType());
         assertThat(ref.column().isTopLevel(), is(false));
         assertThat(ref.column().fqn(), is("details.arms"));
     }
@@ -384,8 +384,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateDynamicNestedArrayParamLiteral() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set new=[[1.9, 4.8], [9.7, 12.7]]");
-        DataType dataType = update.assignmentByTargetCol().values().iterator().next().valueType();
-        assertThat(dataType, is(new ArrayType(new ArrayType(DoubleType.INSTANCE))));
+        DataType<?> dataType = update.assignmentByTargetCol().values().iterator().next().valueType();
+        assertThat(dataType, is(new ArrayType<>(new ArrayType<>(DataTypes.FLOAT))));
     }
 
     @Test

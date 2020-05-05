@@ -302,7 +302,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 assertThat(response.readByte(), is((byte) 't'));
                 assertThat(response.readInt(), is(10));
                 assertThat(response.readShort(), is((short) 1));
-                assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).oid()));
+                assertThat(response.readInt(), is(PGTypes.get(DataTypes.SHORT).oid()));
             } finally {
                 response.release();
             }

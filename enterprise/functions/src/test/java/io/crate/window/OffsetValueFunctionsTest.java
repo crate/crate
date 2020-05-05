@@ -101,7 +101,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLagWithDefaultValueAndEmptyOver() throws Throwable {
         assertEvaluate(
             "lag(x, 1, -1) over()",
-            contains(new Object[]{-1L, 1L, 2L, 3L}),
+            contains(new Object[]{-1, 1, 2, 3}),
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2},
@@ -114,7 +114,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLagWithExpressionAsArgumentAndEmptyOver() throws Throwable {
         assertEvaluate(
             "lag(coalesce(x, 1), 1, -1) over()",
-            contains(new Object[]{-1L, 1L, 1L}),
+            contains(new Object[]{-1, 1, 1}),
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{null},
@@ -204,7 +204,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLeadOverCurrentRowUnboundedFollowingWithDefaultValue() throws Throwable {
         assertEvaluate(
             "lead(x, 2, 42) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
-            contains(new Object[]{2L, 3L, 4L, 42L, 42L}),
+            contains(new Object[]{2, 3, 4, 42, 42}),
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2},

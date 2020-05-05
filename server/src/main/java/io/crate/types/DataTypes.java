@@ -168,8 +168,8 @@ public final class DataTypes {
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
         entry(IP.id(), Set.of(STRING.id())),
-        entry(TIMESTAMPZ.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMP.id())),
-        entry(TIMESTAMP.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id())),
+        entry(TIMESTAMPZ.id(), Set.of(DOUBLE.id(), FLOAT.id(), LONG.id(), STRING.id(), TIMESTAMP.id())),
+        entry(TIMESTAMP.id(), Set.of(DOUBLE.id(), FLOAT.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id())),
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
         entry(GEO_POINT.id(), Set.of()),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),

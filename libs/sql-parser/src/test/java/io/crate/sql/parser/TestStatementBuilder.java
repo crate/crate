@@ -51,7 +51,6 @@ import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.KillStatement;
-import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.MatchPredicate;
 import io.crate.sql.tree.NegativeExpression;
 import io.crate.sql.tree.ObjectLiteral;
@@ -61,6 +60,7 @@ import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RevokePrivilege;
 import io.crate.sql.tree.SetStatement;
+import io.crate.sql.tree.ShortLiteral;
 import io.crate.sql.tree.ShowCreateTable;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
@@ -69,7 +69,6 @@ import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
 import io.crate.sql.tree.Window;
-
 import org.hamcrest.CoreMatchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -1228,8 +1227,8 @@ public class TestStatementBuilder {
         expression = SqlParser.createExpression("[1,2,3][1]");
         assertThat(expression, instanceOf(SubscriptExpression.class));
         subscript = (SubscriptExpression) expression;
-        assertThat(subscript.index(), instanceOf(LongLiteral.class));
-        assertThat(((LongLiteral) subscript.index()).getValue(), is(1L));
+        assertThat(subscript.index(), instanceOf(ShortLiteral.class));
+        assertThat(((ShortLiteral) subscript.index()).getValue(), is((short) 1));
         assertThat(subscript.base(), instanceOf(ArrayLiteral.class));
     }
 
@@ -1268,14 +1267,14 @@ public class TestStatementBuilder {
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
         assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
-        assertThat(arrayComparisonExpression.getLeft(), instanceOf(LongLiteral.class));
+        assertThat(arrayComparisonExpression.getLeft(), instanceOf(ShortLiteral.class));
         assertThat(arrayComparisonExpression.getRight(), instanceOf(QualifiedNameReference.class));
 
         Expression someExpression = SqlParser.createExpression("1 = SOME (arrayColumnRef)");
         assertThat(someExpression, instanceOf(ArrayComparisonExpression.class));
         ArrayComparisonExpression someArrayComparison = (ArrayComparisonExpression) someExpression;
         assertThat(someArrayComparison.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
-        assertThat(someArrayComparison.getLeft(), instanceOf(LongLiteral.class));
+        assertThat(someArrayComparison.getLeft(), instanceOf(ShortLiteral.class));
         assertThat(someArrayComparison.getRight(), instanceOf(QualifiedNameReference.class));
 
         Expression allExpression = SqlParser.createExpression("'StringValue' = ALL (arrayColumnRef)");
@@ -1292,7 +1291,7 @@ public class TestStatementBuilder {
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
         assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
-        assertThat(arrayComparisonExpression.getLeft(), instanceOf(LongLiteral.class));
+        assertThat(arrayComparisonExpression.getLeft(), instanceOf(ShortLiteral.class));
         assertThat(arrayComparisonExpression.getRight(), instanceOf(SubqueryExpression.class));
 
         // It's possible to omit the parenthesis
@@ -1300,7 +1299,7 @@ public class TestStatementBuilder {
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
         arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
         assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
-        assertThat(arrayComparisonExpression.getLeft(), instanceOf(LongLiteral.class));
+        assertThat(arrayComparisonExpression.getLeft(), instanceOf(ShortLiteral.class));
         assertThat(arrayComparisonExpression.getRight(), instanceOf(SubqueryExpression.class));
     }
 
@@ -1358,7 +1357,7 @@ public class TestStatementBuilder {
 
         ObjectLiteral objectLiteral = (ObjectLiteral) SqlParser.createExpression("{a=1, aa=-1, b='str', c=[], d={}}");
         assertThat(objectLiteral.values().size(), is(5));
-        assertThat(objectLiteral.values().get("a"), instanceOf(LongLiteral.class));
+        assertThat(objectLiteral.values().get("a"), instanceOf(ShortLiteral.class));
         assertThat(objectLiteral.values().get("aa"), instanceOf(NegativeExpression.class));
         assertThat(objectLiteral.values().get("b"), instanceOf(StringLiteral.class));
         assertThat(objectLiteral.values().get("c"), instanceOf(ArrayLiteral.class));
@@ -1366,7 +1365,7 @@ public class TestStatementBuilder {
 
         ObjectLiteral quotedObjectLiteral = (ObjectLiteral) SqlParser.createExpression("{\"AbC\"=123}");
         assertThat(quotedObjectLiteral.values().size(), is(1));
-        assertThat(quotedObjectLiteral.values().get("AbC"), instanceOf(LongLiteral.class));
+        assertThat(quotedObjectLiteral.values().get("AbC"), instanceOf(ShortLiteral.class));
         assertThat(quotedObjectLiteral.values().get("abc"), CoreMatchers.nullValue());
         assertThat(quotedObjectLiteral.values().get("ABC"), CoreMatchers.nullValue());
 
@@ -1383,7 +1382,7 @@ public class TestStatementBuilder {
 
         ArrayLiteral singleArrayLiteral = (ArrayLiteral) SqlParser.createExpression("[1]");
         assertThat(singleArrayLiteral.values().size(), is(1));
-        assertThat(singleArrayLiteral.values().get(0), instanceOf(LongLiteral.class));
+        assertThat(singleArrayLiteral.values().get(0), instanceOf(ShortLiteral.class));
 
         ArrayLiteral multipleArrayLiteral = (ArrayLiteral) SqlParser.createExpression(
             "['str', -12.56, {}, ['another', 'array']]");

@@ -456,7 +456,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testWhereInSelectDifferentDataTypeValueIncompatibleDataTypes() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `smallint`");
         analyze("select 'found' from users where 1 in (1, 'foo', 2)");
     }
 
@@ -844,7 +844,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // so its fields are selected as arrays,
         // ergo simple comparison does not work here
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `friends['id']` of type `bigint_array` to type `bigint`");
+        expectedException.expectMessage("Cannot cast `friends['id']` of type `bigint_array` to type `smallint`");
         analyze("select * from users where 5 = friends['id']");
     }
 
@@ -933,15 +933,15 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testPrefixedNumericLiterals() throws Exception {
         AnalyzedRelation relation = analyze("select - - - 10");
         List<Symbol> outputs = relation.outputs();
-        assertThat(outputs.get(0), is(Literal.of(-10L)));
+        assertThat(outputs.get(0), is(Literal.of((short) -10)));
 
         relation = analyze("select - + - 10");
         outputs = relation.outputs();
-        assertThat(outputs.get(0), is(Literal.of(10L)));
+        assertThat(outputs.get(0), is(Literal.of((short) 10)));
 
         relation = analyze("select - (- 10 - + 10) * - (+ 10 + - 10)");
         outputs = relation.outputs();
-        assertThat(outputs.get(0), is(Literal.of(0L)));
+        assertThat(outputs.get(0), is(Literal.of(0)));
     }
 
     @Test
@@ -1093,7 +1093,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testMatchPredicateWithWrongQueryTerm() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast expressions from type `bigint_array` to type `text`");
+        expectedException.expectMessage("Cannot cast expressions from type `smallint_array` to type `text`");
         analyze("select name from users order by match(name, [10, 20])");
     }
 
@@ -1117,7 +1117,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Symbol query = relation.where();
         assertThat(query, instanceOf(MatchPredicate.class));
         MatchPredicate match = (MatchPredicate) query;
-        assertThat(match.identBoostMap(), hasEntry(isReference("name"), isLiteral(1.2)));
+        assertThat(match.identBoostMap(), hasEntry(isReference("name"), isLiteral(1.2f)));
         assertThat(match.identBoostMap(), hasEntry(isReference("text"), isLiteral(null)));
         assertThat(match.queryTerm(), isLiteral("awesome"));
         assertThat(match.matchType(), is("best_fields"));
@@ -1188,17 +1188,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         MatchPredicate match = (MatchPredicate) relation.where();
         assertThat(match.options(), isLiteral(Map.ofEntries(
             Map.entry("analyzer", "german"),
-            Map.entry("boost", 4.6),
-            Map.entry("cutoff_frequency", 5L),
-            Map.entry("fuzziness", 12L),
+            Map.entry("boost", 4.6f),
+            Map.entry("cutoff_frequency", (short) 5),
+            Map.entry("fuzziness", (short) 12),
             Map.entry("fuzzy_rewrite", "top_terms_20"),
-            Map.entry("max_expansions", 3L),
-            Map.entry("minimum_should_match", 4L),
+            Map.entry("max_expansions", (short) 3),
+            Map.entry("minimum_should_match", (short) 4),
             Map.entry("operator", "or"),
-            Map.entry("prefix_length", 4L),
+            Map.entry("prefix_length", (short) 4),
             Map.entry("rewrite", "constant_score_boolean"),
-            Map.entry("slop", 3L),
-            Map.entry("tie_breaker", 0.75),
+            Map.entry("slop", (short) 3),
+            Map.entry("tie_breaker", 0.75f),
             Map.entry("zero_terms_query", "all")
         )));
     }
@@ -1691,7 +1691,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSelectStarFromUnnestWithInvalidArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: unnest(bigint, text)");
+        expectedException.expectMessage("unknown function: unnest(smallint, text)");
         analyze("select * from unnest(1, 'foo')");
     }
 
@@ -1825,7 +1825,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testColumnOutputWithSingleRowSubselect() {
         AnalyzedRelation relation = analyze("select 1 = \n (select \n 2\n)\n");
         assertThat(relation.outputs(), contains(
-            isFunction("op_=", isLiteral(1L), instanceOf(SelectSymbol.class)))
+            isFunction("op_=", isLiteral((short) 1), instanceOf(SelectSymbol.class)))
         );
     }
 
@@ -1966,7 +1966,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation rel = analyze("select ({x=10}).x");
         assertThat(
             rel.outputs(),
-            contains(isLiteral(10L))
+            contains(isLiteral((short) 10))
         );
     }
 

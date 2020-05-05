@@ -66,21 +66,23 @@ public class ArrayLowerFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_lower(bigint_array)");
+        expectedException.expectMessage("unknown function: array_lower(smallint_array)");
         assertEvaluate("array_lower([1])", null);
     }
 
     @Test
     public void testThreeArguments() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_lower(bigint_array, bigint, bigint_array)");
+        expectedException.expectMessage(
+            "unknown function: array_lower(smallint_array, smallint, smallint_array)");
         assertEvaluate("array_lower([1], 2, [3])", null);
     }
 
     @Test
     public void testSecondArgumentNotANumber() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_lower(bigint_array, bigint_array)");
+        expectedException.expectMessage(
+            "unknown function: array_lower(smallint_array, smallint_array)");
         assertEvaluate("array_lower([1], [2])", null);
     }
 

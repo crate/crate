@@ -168,7 +168,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select 58 as fiftyEight from foo.users group by fiftyEight;");
         assertThat(relation.groupBy().isEmpty(), is(false));
         List<Symbol> groupBySymbols = relation.groupBy();
-        assertThat(groupBySymbols.get(0), isAlias("fiftyeight", isLiteral(58L)));
+        assertThat(groupBySymbols.get(0), isAlias("fiftyeight", isLiteral((short) 58)));
     }
 
     @Test

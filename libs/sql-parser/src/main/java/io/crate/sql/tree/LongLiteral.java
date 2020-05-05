@@ -21,14 +21,12 @@
 
 package io.crate.sql.tree;
 
-import static java.util.Objects.requireNonNull;
-
 public class LongLiteral extends Literal {
 
     private final long value;
 
-    public LongLiteral(String value) {
-        this.value = Long.parseLong(requireNonNull(value, "value is null"));
+    public LongLiteral(long value) {
+        this.value = value;
     }
 
     public long getValue() {
