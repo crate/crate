@@ -22,12 +22,11 @@
 
 package io.crate.protocols.postgres.types;
 
+import com.carrotsearch.hppc.ByteArrayList;
 import io.crate.data.Row;
 import io.netty.buffer.ByteBuf;
 
 import java.util.List;
-
-import com.carrotsearch.hppc.ByteArrayList;
 
 public class RecordType extends PGType<Row> {
 
@@ -46,6 +45,16 @@ public class RecordType extends PGType<Row> {
     @Override
     public int typArray() {
         return 2287;
+    }
+
+    @Override
+    public String typeCategory() {
+        return TypeCategory.PSEUDO.code();
+    }
+
+    @Override
+    public String type() {
+        return Type.PSEUDO.code();
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -119,10 +128,5 @@ public class RecordType extends PGType<Row> {
     @Override
     Row decodeUTF8Text(byte[] bytes) {
         throw new UnsupportedOperationException("Input of record type values is not implemented");
-    }
-
-    @Override
-    public String typeCategory() {
-        return TypeCategory.PSEUDO.code();
     }
 }

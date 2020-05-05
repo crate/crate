@@ -51,6 +51,11 @@ class RealType extends PGType<Float> {
     }
 
     @Override
+    public String type() {
+        return Type.BASE.code();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Float value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeFloat(value);

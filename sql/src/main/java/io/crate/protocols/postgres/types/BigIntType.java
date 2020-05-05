@@ -59,6 +59,11 @@ class BigIntType extends PGType<Long> {
     }
 
     @Override
+    public String type() {
+        return Type.BASE.code();
+    }
+
+    @Override
     protected byte[] encodeAsUTF8Text(@Nonnull Long value) {
         return Long.toString(value).getBytes(StandardCharsets.UTF_8);
     }

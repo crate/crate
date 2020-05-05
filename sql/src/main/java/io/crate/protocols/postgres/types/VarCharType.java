@@ -55,6 +55,11 @@ class VarCharType extends PGType<Object> {
     }
 
     @Override
+    public String type() {
+        return Type.BASE.code();
+    }
+
+    @Override
     public String typeCategory() {
         return TypeCategory.STRING.code();
     }

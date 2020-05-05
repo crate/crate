@@ -22,23 +22,21 @@
 
 package io.crate.metadata.pgcatalog;
 
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.protocols.postgres.types.PGType;
+
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.protocols.postgres.types.PGType;
-
 public class PgTypeTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_type");
 
     private static final Integer TYPE_NAMESPACE_OID = schemaOid(PgCatalogSchemaInfo.NAME);
-
-    private static final String TYPTYPE = "b";
 
     @SuppressWarnings("rawtypes")
     public static SystemTable<PGType> create() {
@@ -49,7 +47,7 @@ public class PgTypeTable {
             .add("typelem", INTEGER, PGType::typElem)
             .add("typlen", SHORT, PGType::typeLen)
             .add("typbyval", BOOLEAN, c -> true)
-            .add("typtype", STRING, c -> TYPTYPE)
+            .add("typtype", STRING, PGType::type)
             .add("typcategory", STRING, PGType::typeCategory)
             .add("typowner", INTEGER, c -> null)
             .add("typisdefined", BOOLEAN, c -> true)

@@ -54,6 +54,11 @@ public final class PointType extends PGType<Point> {
     }
 
     @Override
+    public String type() {
+        return Type.BASE.code();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Point point) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeDouble(point.getX());

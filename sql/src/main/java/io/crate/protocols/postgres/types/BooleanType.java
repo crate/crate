@@ -63,6 +63,11 @@ class BooleanType extends PGType<Boolean> {
     }
 
     @Override
+    public String type() {
+        return Type.BASE.code();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Boolean value) {
         byte byteValue = (byte) (value ? 1 : 0);
         buffer.writeInt(TYPE_LEN);

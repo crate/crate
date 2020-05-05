@@ -51,6 +51,11 @@ public class IntervalType extends PGType<Period> {
     }
 
     @Override
+    public String type() {
+        return Type.BASE.code();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Period period) {
         buffer.writeInt(TYPE_LEN);
         // from PostgreSQL code:
