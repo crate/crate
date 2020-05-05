@@ -68,7 +68,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -385,7 +384,7 @@ public final class NodeEnvironment implements Closeable {
 
             // Just log a 1-line summary:
             logger.info("using [{}] data paths, mounts [{}], net usable_space [{}], net total_space [{}], types [{}]",
-                nodePaths.length, allMounts, totFSPath.getAvailable(), totFSPath.getTotal(), toString(allTypes));
+                nodePaths.length, allMounts, totFSPath.getAvailable(), totFSPath.getTotal(), String.join(", ", allTypes));
         }
     }
 
@@ -423,17 +422,6 @@ public final class NodeEnvironment implements Closeable {
         if (ENABLE_LUCENE_SEGMENT_INFOS_TRACE_SETTING.get(settings)) {
             SegmentInfos.setInfoStream(System.out);
         }
-    }
-
-    private static String toString(Collection<String> items) {
-        StringBuilder b = new StringBuilder();
-        for (String item : items) {
-            if (b.length() > 0) {
-                b.append(", ");
-            }
-            b.append(item);
-        }
-        return b.toString();
     }
 
     /**
