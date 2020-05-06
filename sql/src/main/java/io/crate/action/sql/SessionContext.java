@@ -25,6 +25,7 @@ package io.crate.action.sql;
 import io.crate.auth.user.User;
 import io.crate.metadata.SearchPath;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import static io.crate.metadata.SearchPath.createSearchPathFrom;
@@ -38,6 +39,7 @@ public class SessionContext {
 
     private SearchPath searchPath;
     private boolean hashJoinEnabled = true;
+    private Set<String> excludedOptimizerRules;
 
     /**
      * Creates a new SessionContext suitable to use as system SessionContext
@@ -50,6 +52,7 @@ public class SessionContext {
         this.options = options;
         this.user = requireNonNull(user, "User is required");
         this.searchPath = createSearchPathFrom(searchPath);
+        this.excludedOptimizerRules = new HashSet<>();
     }
 
     /**
@@ -81,6 +84,14 @@ public class SessionContext {
 
     public void setHashJoinEnabled(boolean hashJoinEnabled) {
         this.hashJoinEnabled = hashJoinEnabled;
+    }
+
+    public Set<String> excludedOptimizerRules() {
+        return excludedOptimizerRules;
+    }
+
+    public void setExcludedOptimizerRules(Set<String> excludedOptimizerRules) {
+        this.excludedOptimizerRules = excludedOptimizerRules;
     }
 
     public User user() {

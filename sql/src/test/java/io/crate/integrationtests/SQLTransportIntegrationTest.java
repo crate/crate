@@ -148,7 +148,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     protected static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
         "dummyUser",
-        SearchPath.createSearchPathFrom("dummySchema"));
+        SearchPath.createSearchPathFrom("dummySchema"),
+        true,
+        Set.of());
 
     /**
      * Annotation for tests that are slow. Slow tests do not run by default but can be

@@ -23,6 +23,7 @@
 package io.crate.planner.statement;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.CaseFormat;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.InMemoryBatchIterator;
@@ -37,6 +38,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
+import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -49,6 +51,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 public class SetSessionPlan implements Plan {
 
     private static final Logger LOGGER = LogManager.getLogger(SetSessionPlan.class);
+    private static final String OPTIMIZER_PREFIX = "optimizer_";
 
     private final List<Assignment<Symbol>> settings;
 
@@ -78,11 +81,19 @@ public class SetSessionPlan implements Plan {
         Assignment<Symbol> assignment = settings.get(0);
         String settingName = eval.apply(assignment.columnName()).toString();
         validateSetting(settingName);
-        SessionSetting<?> sessionSetting = SessionSettingRegistry.SETTINGS.get(settingName);
-        if (sessionSetting == null) {
-            LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", settingName);
+        if (settingName.startsWith(OPTIMIZER_PREFIX)) {
+            Boolean includeRule = DataTypes.BOOLEAN.value(eval.apply(assignment.expression()));
+            if (includeRule != null) {
+                String ruleName = settingName.replace(OPTIMIZER_PREFIX, "");
+                addOptimizerRuleSetting(sessionContext, ruleName, includeRule);
+            }
         } else {
-            sessionSetting.apply(sessionContext, assignment.expressions(), eval);
+            SessionSetting<?> sessionSetting = SessionSettingRegistry.SETTINGS.get(settingName);
+            if (sessionSetting == null) {
+                LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", settingName);
+            } else {
+                sessionSetting.apply(sessionContext, assignment.expressions(), eval);
+            }
         }
         consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
     }
@@ -94,6 +105,18 @@ public class SetSessionPlan implements Plan {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                              "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL",
                                                              settingName));
+        }
+    }
+
+    @VisibleForTesting
+    static void addOptimizerRuleSetting(SessionContext sessionContext, String rule, boolean includeRule) {
+        // Convert setting name to rule classname e.g. merge_filters -> MergeFilters
+        var ruleName = CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, rule);
+        var rules = sessionContext.excludedOptimizerRules();
+        if (includeRule) {
+            rules.remove(ruleName);
+        } else {
+            rules.add(ruleName);
         }
     }
 }

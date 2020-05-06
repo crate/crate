@@ -202,4 +202,12 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedSetLicenseStatement analysis = analyze("SET LICENSE 'ThisShouldBeAnEncryptedLicenseKey'");
         assertThat(analysis.licenseKey(), isLiteral("ThisShouldBeAnEncryptedLicenseKey"));
     }
+
+    @Test
+    public void test_set_optimizer_rule() throws Exception {
+        AnalyzedSetStatement analysis = analyze("SET SESSION optimizer_merge_filters = FALSE;");
+        assertThat(
+            analysis.settings().get(0),
+            is(new Assignment<>(Literal.of("optimizer_merge_filters"), List.of(Literal.of(false)))));
+    }
 }

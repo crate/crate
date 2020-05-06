@@ -22,11 +22,18 @@
 
 package io.crate.planner.statement;
 
+import io.crate.action.sql.SessionContext;
+import io.crate.auth.user.User;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 
+import java.util.Set;
+
 import static io.crate.planner.statement.SetSessionPlan.validateSetting;
+import static io.crate.planner.statement.SetSessionPlan.addOptimizerRuleSetting;
+import static org.hamcrest.Matchers.hasItems;
 
 public class SetSessionPlanTest extends CrateUnitTest {
 
@@ -36,5 +43,12 @@ public class SetSessionPlanTest extends CrateUnitTest {
         expectedException.expectMessage(
             "GLOBAL Cluster setting 'stats.operations_log_size' cannot be used with SET SESSION / LOCAL");
         validateSetting("stats.operations_log_size");
+    }
+
+    @Test
+    public void test_optimizer_rule_settings() {
+        SessionContext sessionContext = new SessionContext(Set.of(), User.of("user"), "test");
+        addOptimizerRuleSetting(sessionContext, "test_rule", false);
+        assertThat(sessionContext.excludedOptimizerRules(), hasItems("TestRule"));
     }
 }

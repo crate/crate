@@ -24,34 +24,48 @@ package io.crate.metadata.settings;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.SearchPath;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public final class SessionSettings implements Writeable {
 
     private final String userName;
     private final SearchPath searchPath;
     private final boolean hashJoinsEnabled;
+    private Set<String> excludedOptimizerRules;
 
     public SessionSettings(StreamInput in) throws IOException {
         this.userName = in.readString();
         this.searchPath = SearchPath.createSearchPathFrom(in);
         this.hashJoinsEnabled = in.readBoolean();
+        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
+            int ruleSize = in.readVInt();
+            excludedOptimizerRules = new HashSet<>();
+            if (ruleSize > 0) {
+                for (int i = 0; i < ruleSize; i++) {
+                    excludedOptimizerRules.add(in.readString());
+                }
+            }
+        }
     }
 
     @VisibleForTesting
     public SessionSettings(String userName, SearchPath searchPath) {
-        this(userName, searchPath, true);
+        this(userName, searchPath, true, null);
     }
 
-    public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled) {
+    public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled, Set<String> rules) {
         this.userName = userName;
         this.searchPath = searchPath;
         this.hashJoinsEnabled = hashJoinsEnabled;
+        this.excludedOptimizerRules = rules;
     }
 
     public String userName() {
@@ -70,11 +84,25 @@ public final class SessionSettings implements Writeable {
         return hashJoinsEnabled;
     }
 
+    public Set<String> excludedOptimizerRules() {
+        return excludedOptimizerRules;
+    }
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(userName);
         searchPath.writeTo(out);
         out.writeBoolean(hashJoinsEnabled);
+        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
+            if (excludedOptimizerRules != null) {
+                out.writeVInt(excludedOptimizerRules.size());
+                for (String rule : excludedOptimizerRules) {
+                    out.writeString(rule);
+                }
+            } else {
+                out.writeVInt(0);
+            }
+        }
     }
 
     @Override
@@ -88,11 +116,12 @@ public final class SessionSettings implements Writeable {
         SessionSettings that = (SessionSettings) o;
         return Objects.equals(userName, that.userName) &&
                Objects.equals(searchPath, that.searchPath) &&
-               Objects.equals(hashJoinsEnabled, that.hashJoinsEnabled);
+               Objects.equals(hashJoinsEnabled, that.hashJoinsEnabled) &&
+               Objects.equals(excludedOptimizerRules, that.excludedOptimizerRules);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userName, searchPath, hashJoinsEnabled);
+        return Objects.hash(userName, searchPath, hashJoinsEnabled, excludedOptimizerRules);
     }
 }
