@@ -15,7 +15,7 @@ dependencies {
     implementation project(':es:es-transport')
     compile project(':libs:dex')
     compile project(':blob')
-    compile project(':sql-parser')
+    implementation project(':libs:sql-parser')
     implementation project(':libs:pgwire')
     compile project(':udc')
     compile project(':ssl')
