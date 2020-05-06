@@ -1,7 +1,7 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
 dependencies {
-    implementation project(':es:es-core')
+    implementation project(':libs:shared')
 
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     implementation "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"

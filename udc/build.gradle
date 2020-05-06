@@ -2,6 +2,7 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-udc'
 
 dependencies {
+    implementation project(':libs:shared')
     implementation project(':common')
     implementation project(':es:es-server')
     implementation "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"

@@ -20,6 +20,7 @@ task writePropertiesFile {
 jar.dependsOn('writePropertiesFile')
 
 dependencies {
+    implementation project(':libs:shared')
     implementation project(':es:es-server')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compileOnly project(':common')
