@@ -13,7 +13,7 @@ dependencies {
     implementation project(':http')
     implementation project(':es:es-server')
     implementation project(':es:es-transport')
-    compile project(':dex')
+    compile project(':libs:dex')
     compile project(':blob')
     compile project(':sql-parser')
     compile project(':pgwire')
@@ -35,7 +35,7 @@ dependencies {
     compile "javax.xml.bind:jaxb-api:${versions.jaxb_api}"
 
     testCompile project(':integration-testing')
-    testCompile project(path: ':dex', configuration: 'testOutput')
+    testCompile project(path: ':libs:dex', configuration: 'testOutput')
     testCompile 'org.skyscreamer:jsonassert:1.3.0'
     testCompile "org.hamcrest:hamcrest:${versions.hamcrest}"
     testCompile "org.slf4j:slf4j-api:${versions.slf4j}"

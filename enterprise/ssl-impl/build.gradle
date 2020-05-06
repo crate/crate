@@ -15,7 +15,7 @@ dependencies {
     testImplementation project(':sql')
     testImplementation project(':integration-testing')
     testImplementation project(path: ':sql', configuration: 'testOutput')
-    testImplementation project(path: ':dex', configuration: 'testOutput')
+    testImplementation project(path: ':libs:dex', configuration: 'testOutput')
     testImplementation "org.postgresql:postgresql:${versions.jdbc}"
     testCompile project(':http')
 }
