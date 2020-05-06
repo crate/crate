@@ -135,6 +135,8 @@ Functions and operators
   :ref:`user-defined functions <sql_administration_udf>`. This change upgrades
   ``ECMAScript`` support from ``5.1`` to ``10.0``.
 
+- Added the :ref:`chr <scalar_chr>` scalar function.
+
 - Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>`
   scalar functions.
 

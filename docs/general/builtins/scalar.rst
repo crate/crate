@@ -221,6 +221,27 @@ Returns: ``int``
     +----+--------+
     SELECT 1 row in set (... sec)
 
+.. _scalar_chr:
+
+``chr(int)``
+------------
+
+Returns the character with the given code. For UTF-8 the argument is treated as
+a Unicode code point.
+
+Returns: ``string``
+
+::
+
+    cr> SELECT chr(65) AS a;
+    +---+
+    | a |
+    +---+
+    | A |
+    +---+
+    SELECT 1 row in set (... sec)
+
+
 ``lower('string')``
 -------------------
 
