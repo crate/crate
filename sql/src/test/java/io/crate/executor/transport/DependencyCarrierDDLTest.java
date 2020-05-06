@@ -34,7 +34,7 @@ import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.common.collections.MapBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

@@ -38,7 +38,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -1243,10 +1242,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 ") partitioned by(created['date']) clustered by (id) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into quotes (id, quote, created) values(?, ?, ?)",
-            new Object[]{1, "Don't panic", new MapBuilder<String, Object>().put("date", 1395874800000L).put("user_id", "Arthur").map()});
+            new Object[]{1, "Don't panic", Map.of("date", 1395874800000L, "user_id", "Arthur")});
         assertEquals(1L, response.rowCount());
         execute("insert into quotes (id, quote, created) values(?, ?, ?)",
-            new Object[]{2, "Time is an illusion. Lunchtime doubly so", new MapBuilder<String, Object>().put("date", 1395961200000L).put("user_id", "Ford").map()});
+            new Object[]{2, "Time is an illusion. Lunchtime doubly so", Map.of("date", 1395961200000L, "user_id", "Ford")});
         assertEquals(1L, response.rowCount());
         ensureYellow();
         refresh();
@@ -1746,12 +1745,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void testPartitionedTableNestedPk() throws Exception {
         execute("create table t (o object as (i int primary key, name string)) partitioned by (o['i']) with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into t (o) values (?)", new Object[]{new MapBuilder<String, Object>().put("i", 1).put("name", "Zaphod").map()});
-        ensureYellow();
+        execute("insert into t (o) values (?)", new Object[]{Map.of("i", 1, "name", "Zaphod")});
         refresh();
         execute("select o['i'], o['name'] from t");
-        assertThat((Integer) response.rows()[0][0], Matchers.is(1));
+        assertThat(response.rows()[0][0], Matchers.is(1));
         execute("select distinct table_name, partition_ident from sys.shards where table_name = 't'");
         assertEquals("t| 04132\n", printedTable(response.rows()));
     }

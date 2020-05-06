@@ -23,10 +23,9 @@
 package io.crate.metadata.cluster;
 
 import io.crate.Constants;
-import io.crate.test.CauseMatcher;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 

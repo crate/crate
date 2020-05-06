@@ -25,7 +25,7 @@ package io.crate.metadata.table;
 import com.google.common.collect.Sets;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.EnumSet;

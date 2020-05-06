@@ -23,7 +23,7 @@
 package io.crate.types;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.hamcrest.Matchers;

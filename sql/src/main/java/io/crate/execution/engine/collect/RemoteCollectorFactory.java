@@ -23,9 +23,7 @@
 package io.crate.execution.engine.collect;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.Lists;
-import io.crate.common.collections.TreeMapBuilder;
 import io.crate.data.BatchIterator;
 import io.crate.data.Buckets;
 import io.crate.data.CollectingBatchIterator;
@@ -159,9 +157,11 @@ public class RemoteCollectorFactory {
                                                                ShardId shardId,
                                                                String nodeId) {
 
-        Routing routing = new Routing(TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
-            .put(nodeId, TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder()
-                .put(shardId.getIndexName(), IntArrayList.from(shardId.getId())).map()).map());
+        Routing routing = new Routing(
+            Map.of(
+                nodeId, Map.of(shardId.getIndexName(), IntArrayList.from(shardId.getId()))
+            )
+        );
         return new RoutedCollectPhase(
             childJobId,
             SENDER_PHASE_ID,

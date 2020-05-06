@@ -26,7 +26,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -567,8 +566,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureYellow();
 
-        Map<String, Object> obj1 = new MapBuilder<String, Object>().put("name", "foo").put("age", 1).map();
-        Map<String, Object> obj2 = new MapBuilder<String, Object>().put("name", "bar").put("age", 2).map();
+        Map<String, Object> obj1 = Map.of("name", "foo", "age", 1);
+        Map<String, Object> obj2 = Map.of("name", "bar", "age", 2);
 
         Object[] args = new Object[]{1, new Object[]{obj1, obj2}};
         execute("insert into t1 (id, objects) values (?, ?)", args);

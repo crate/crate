@@ -33,7 +33,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimestampType;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.Rounding;
 import org.joda.time.DateTimeZone;
