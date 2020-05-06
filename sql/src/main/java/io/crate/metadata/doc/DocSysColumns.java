@@ -33,7 +33,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 
 import java.util.List;
 import java.util.Map;
@@ -76,7 +75,7 @@ public class DocSysColumns {
     public static final ColumnIdent DOCID = new ColumnIdent(Names.DOCID);
 
     public static final ImmutableMap<ColumnIdent, DataType<?>> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType<?>>builder()
-        .put(DOC, ObjectType.untyped())
+        .put(DOC, DataTypes.UNTYPED_OBJECT)
         .put(FETCHID, DataTypes.LONG)
         .put(ID, DataTypes.STRING)
         .put(RAW, DataTypes.STRING)

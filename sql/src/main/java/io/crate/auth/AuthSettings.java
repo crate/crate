@@ -24,7 +24,6 @@ package io.crate.auth;
 
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
@@ -42,8 +41,7 @@ public final class AuthSettings {
         DataTypes.BOOLEAN);
 
     public static final CrateSetting<Settings> AUTH_HOST_BASED_CONFIG_SETTING = CrateSetting.of(Setting.groupSetting(
-        "auth.host_based.config.", Setting.Property.NodeScope),
-        ObjectType.untyped());
+        "auth.host_based.config.", Setting.Property.NodeScope), DataTypes.UNTYPED_OBJECT);
 
     public static final CrateSetting<String> AUTH_TRUST_HTTP_DEFAULT_HEADER = CrateSetting.of(new Setting<>(
         "auth.trust.http_default_user", "crate", Function.identity(), Setting.Property.NodeScope),

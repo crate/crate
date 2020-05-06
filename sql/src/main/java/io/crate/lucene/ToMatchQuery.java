@@ -32,7 +32,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.match.MatchQueries;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BoostQuery;
@@ -59,7 +58,7 @@ class ToMatchQuery implements FunctionToQuery {
     public Query apply(Function input, LuceneQueryBuilder.Context context) throws IOException {
         List<Symbol> arguments = input.arguments();
         assert arguments.size() == 4 : "invalid number of arguments";
-        assert Symbol.isLiteral(arguments.get(0), ObjectType.untyped()) :
+        assert Symbol.isLiteral(arguments.get(0), DataTypes.UNTYPED_OBJECT) :
             "fields must be literal";
         assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING) :
             "matchType must be literal";

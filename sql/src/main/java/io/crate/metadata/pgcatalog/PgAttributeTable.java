@@ -22,6 +22,13 @@
 
 package io.crate.metadata.pgcatalog;
 
+import io.crate.expression.reference.information.ColumnContext;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+
 import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
@@ -29,13 +36,6 @@ import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.isArray;
-
-import io.crate.expression.reference.information.ColumnContext;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.types.ArrayType;
-import io.crate.types.ObjectType;
 
 public class PgAttributeTable {
 
@@ -62,7 +62,7 @@ public class PgAttributeTable {
             .add("attislocal", BOOLEAN, c -> true)
             .add("attinhcount", INTEGER, c -> 0)
             .add("attcollation", INTEGER, c -> 0)
-            .add("attacl", new ArrayType<>(ObjectType.untyped()), c -> null)
+            .add("attacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
             .add("attoptions", STRING_ARRAY, c -> null)
             .add("attfdwoptions", STRING_ARRAY, c -> null)
             .build();

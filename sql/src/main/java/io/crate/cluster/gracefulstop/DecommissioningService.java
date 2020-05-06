@@ -29,7 +29,6 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -70,7 +69,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
     public static final CrateSetting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = CrateSetting.of(Setting.groupSetting(
-        DECOMMISSION_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic), ObjectType.untyped());
+        DECOMMISSION_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.UNTYPED_OBJECT);
 
     public static final CrateSetting<DataAvailability> GRACEFUL_STOP_MIN_AVAILABILITY_SETTING = CrateSetting.of(new Setting<>(
         "cluster.graceful_stop.min_availability", DataAvailability.PRIMARIES.name(), DataAvailability::of,

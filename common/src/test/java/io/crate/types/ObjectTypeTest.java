@@ -42,7 +42,7 @@ public class ObjectTypeTest extends CrateUnitTest {
 
     @Test
     public void testStreamingWithoutInnerTypes() throws IOException {
-        ObjectType type = ObjectType.untyped();
+        ObjectType type = DataTypes.UNTYPED_OBJECT;
         BytesStreamOutput out = new BytesStreamOutput();
         type.writeTo(out);
 
@@ -83,13 +83,13 @@ public class ObjectTypeTest extends CrateUnitTest {
 
     @Test
     public void testStreamingOfNullValueWithoutInnerTypes() throws IOException {
-        ObjectType type = ObjectType.untyped();
+        ObjectType type = DataTypes.UNTYPED_OBJECT;
         BytesStreamOutput out = new BytesStreamOutput();
 
         type.writeValueTo(out, null);
 
         StreamInput in = out.bytes().streamInput();
-        ObjectType otherType = ObjectType.untyped();
+        ObjectType otherType = DataTypes.UNTYPED_OBJECT;
 
         Object v = otherType.readValueFrom(in);
 
@@ -144,7 +144,7 @@ public class ObjectTypeTest extends CrateUnitTest {
 
     @Test
     public void testStreamingOfValueWithoutInnerTypes() throws IOException {
-        ObjectType type = ObjectType.untyped();
+        ObjectType type = DataTypes.UNTYPED_OBJECT;
         BytesStreamOutput out = new BytesStreamOutput();
 
         List<Map<String, Object>> innerArray = List.of(MapBuilder.<String, Object>newMapBuilder()

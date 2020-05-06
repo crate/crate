@@ -22,15 +22,15 @@
 
 package io.crate.metadata.pgcatalog;
 
-import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
-
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.types.ArrayType;
-import io.crate.types.ObjectType;
+import io.crate.types.DataTypes;
+
+import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
 
 public class PgNamespaceTable {
 
@@ -41,7 +41,7 @@ public class PgNamespaceTable {
             .add("oid", INTEGER, s -> schemaOid(s.name()))
             .add("nspname", STRING, SchemaInfo::name)
             .add("nspowner", INTEGER, c -> 0)
-            .add("nspacl", new ArrayType<>(ObjectType.untyped()), c -> null)
+            .add("nspacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
             .build();
     }
 }

@@ -205,7 +205,7 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
     }
 
     public static Literal<Map<String, Object>> of(Map<String, Object> value) {
-        return new Literal<>(ObjectType.untyped(), value);
+        return new Literal<>(DataTypes.UNTYPED_OBJECT, value);
     }
 
     public static <T> Literal<List<T>> of(List<T> value, DataType<List<T>> dataType) {

@@ -218,10 +218,10 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
             .setInnerType("field", DataTypes.STRING)
             .build();
         var info = CastFunctionResolver.functionInfo(
-            List.of(ObjectType.untyped(), returnType), returnType, false);
+                List.of(DataTypes.UNTYPED_OBJECT, returnType), returnType, false);
         var signature = CastFunctionResolver.createSignature(info);
 
-        var functionImpl = functions.getQualified(signature, List.of(ObjectType.untyped(), returnType));
+        var functionImpl = functions.getQualified(signature, List.of(DataTypes.UNTYPED_OBJECT, returnType));
         assertThat(functionImpl.info().returnType(), is(returnType));
     }
 }

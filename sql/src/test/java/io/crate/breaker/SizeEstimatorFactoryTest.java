@@ -47,7 +47,7 @@ public class SizeEstimatorFactoryTest {
 
     @Test
     public void testSizeEstimationForObjects() throws Exception {
-        SizeEstimator<Object> estimator = SizeEstimatorFactory.create(ObjectType.untyped());
+        SizeEstimator<Object> estimator = SizeEstimatorFactory.create(DataTypes.UNTYPED_OBJECT);
         assertThat(estimator.estimateSize(Collections.emptyMap()), is(24L));
     }
 

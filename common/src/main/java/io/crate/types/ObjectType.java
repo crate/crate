@@ -44,13 +44,9 @@ import static io.crate.types.DataTypes.UNDEFINED;
 
 public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
+    public static final ObjectType UNTYPED = new ObjectType();
     public static final int ID = 12;
-
     public static final String NAME = "object";
-
-    public static ObjectType untyped() {
-        return new ObjectType();
-    }
 
     public static class Builder {
 

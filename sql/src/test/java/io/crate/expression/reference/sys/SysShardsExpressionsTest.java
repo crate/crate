@@ -31,7 +31,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SystemTable;
@@ -41,12 +40,8 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
-import io.crate.types.IntegerType;
-import io.crate.types.ObjectType;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -83,7 +78,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@SuppressWarnings("ConstantConditions")
 public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     private ReferenceResolver<?> resolver;
@@ -312,7 +306,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRecoveryShardField() throws Exception {
-        Reference refInfo = refInfo("sys.shards.recovery", ObjectType.untyped(), RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.recovery", DataTypes.UNTYPED_OBJECT, RowGranularity.SHARD);
         NestableInput<Map<String, Object>> ref = (NestableInput<Map<String,Object>>) resolver.getImplementation(refInfo);
 
         Map<String, Object> recovery = ref.value();

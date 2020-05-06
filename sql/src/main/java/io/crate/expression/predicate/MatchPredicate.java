@@ -27,7 +27,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.index.query.MultiMatchQueryType;
@@ -58,10 +57,10 @@ public class MatchPredicate implements FunctionImplementation {
      */
     public static final Signature SIGNATURE = Signature.scalar(
         NAME,
-        ObjectType.untyped().getTypeSignature(),
+        DataTypes.UNTYPED_OBJECT.getTypeSignature(),
         DataTypes.STRING.getTypeSignature(),
         DataTypes.STRING.getTypeSignature(),
-        ObjectType.untyped().getTypeSignature(),
+        DataTypes.UNTYPED_OBJECT.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()
     );
 
@@ -87,10 +86,10 @@ public class MatchPredicate implements FunctionImplementation {
         new FunctionIdent(
             NAME,
             List.of(
-                ObjectType.untyped(),
+                DataTypes.UNTYPED_OBJECT,
                 DataTypes.STRING,
                 DataTypes.STRING,
-                ObjectType.untyped())),
+                DataTypes.UNTYPED_OBJECT)),
         DataTypes.BOOLEAN);
 
     private final Signature signature;

@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
-import io.crate.types.ObjectType;
+import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.settings.Settings;
@@ -97,7 +97,7 @@ public class SysRepositoriesServiceTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat(response.cols().length, is(3));
         assertThat(response.cols(), is(new String[]{"name", "settings", "type"}));
-        assertThat(response.columnTypes(), is(new DataType[]{StringType.INSTANCE, ObjectType.untyped(), StringType.INSTANCE}));
+        assertThat(response.columnTypes(), is(new DataType[]{StringType.INSTANCE, DataTypes.UNTYPED_OBJECT, StringType.INSTANCE}));
         assertThat((String) response.rows()[0][0], is("test-repo"));
 
         Map<String, Object> settings = (Map<String, Object>) response.rows()[0][1];

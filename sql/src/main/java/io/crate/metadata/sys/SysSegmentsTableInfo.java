@@ -22,21 +22,20 @@
 
 package io.crate.metadata.sys;
 
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.STRING;
-
-import java.util.Map;
-import java.util.function.Supplier;
-
-import org.elasticsearch.cluster.node.DiscoveryNode;
-
 import io.crate.expression.reference.sys.shard.ShardSegment;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.SystemTable;
-import io.crate.types.ObjectType;
+import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+
+import java.util.Map;
+import java.util.function.Supplier;
+
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.STRING;
 
 public class SysSegmentsTableInfo {
 
@@ -64,7 +63,7 @@ public class SysSegmentsTableInfo {
             .add("search", BOOLEAN, r -> r.getSegment().search)
             .add("version", STRING, r -> r.getSegment().getVersion().toString())
             .add("compound", BOOLEAN, r -> r.getSegment().compound)
-            .add("attributes", ObjectType.untyped(), r -> (Map<String, Object>) (Map<?, ?>) r.getSegment().getAttributes())
+            .add("attributes", DataTypes.UNTYPED_OBJECT, r -> (Map<String, Object>) (Map<?, ?>) r.getSegment().getAttributes())
             .withRouting((state, routingProvider, sessionContext) -> Routing.forTableOnAllNodes(IDENT, state.getNodes()))
             .build();
     }

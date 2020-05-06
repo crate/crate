@@ -30,6 +30,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.TypeSignature;
 
@@ -54,7 +55,7 @@ public class CastFunctionResolver {
     static {
         List<DataType> CAST_FUNC_TYPES = Lists2.concat(
             PRIMITIVE_TYPES,
-            List.of(GEO_SHAPE, GEO_POINT, ObjectType.untyped()));
+            List.of(GEO_SHAPE, GEO_POINT, DataTypes.UNTYPED_OBJECT));
 
         CAST_SIGNATURES = new HashMap<>((CAST_FUNC_TYPES.size()) * 2);
         for (var type : CAST_FUNC_TYPES) {
@@ -104,7 +105,7 @@ public class CastFunctionResolver {
         DataType<?> returnType = functionInfo.returnType();
         TypeSignature returnTypeSignature = returnType.getTypeSignature();
         if (returnType.id() == ObjectType.ID) {
-            returnTypeSignature = ObjectType.untyped().getTypeSignature();
+            returnTypeSignature = DataTypes.UNTYPED_OBJECT.getTypeSignature();
         }
         return Signature.scalar(
             functionInfo.ident().fqnName(),

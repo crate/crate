@@ -21,7 +21,9 @@
 
 package io.crate.types;
 
-import static org.hamcrest.core.Is.is;
+import io.crate.common.collections.Lists2;
+import io.crate.test.integration.CrateUnitTest;
+import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -29,10 +31,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.LongAdder;
 
-import org.junit.Test;
-
-import io.crate.common.collections.Lists2;
-import io.crate.test.integration.CrateUnitTest;
+import static org.hamcrest.core.Is.is;
 
 public class TypeConversionTest extends CrateUnitTest {
 
@@ -193,7 +192,7 @@ public class TypeConversionTest extends CrateUnitTest {
     public void selfConversionTest() throws Exception {
         for (DataType<?> type : Lists2.concat(
             DataTypes.PRIMITIVE_TYPES,
-            List.of(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, ObjectType.untyped()))) {
+            List.of(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.UNTYPED_OBJECT))) {
             assertThat(
                 "type '" + type + "' is not self convertible",
                 type.isConvertableTo(type), is(true));
@@ -209,7 +208,7 @@ public class TypeConversionTest extends CrateUnitTest {
     public void testNotSupportedConversion() throws Exception {
         for (DataType<?> type : Lists2.concat(
             DataTypes.PRIMITIVE_TYPES,
-            Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, ObjectType.untyped()))) {
+            Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.UNTYPED_OBJECT))) {
 
             assertFalse(DataTypes.NOT_SUPPORTED.isConvertableTo(type));
         }
@@ -219,7 +218,7 @@ public class TypeConversionTest extends CrateUnitTest {
     public void testToNullConversions() throws Exception {
         for (DataType<?> type : Lists2.concat(
             DataTypes.PRIMITIVE_TYPES,
-            Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, ObjectType.untyped()))) {
+            Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.UNTYPED_OBJECT))) {
             assertThat(type.isConvertableTo(DataTypes.UNDEFINED), is(false));
         }
         assertThat(DataTypes.UNDEFINED.isConvertableTo(DataTypes.UNDEFINED), is(true));
@@ -233,7 +232,7 @@ public class TypeConversionTest extends CrateUnitTest {
 
     @Test
     public void testGeoShapeConversion() throws Exception {
-        DataType objectType = ObjectType.untyped();
+        DataType<?> objectType = DataTypes.UNTYPED_OBJECT;
         assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_SHAPE), is(true));
         assertThat(objectType.isConvertableTo(DataTypes.GEO_SHAPE), is(true));
     }
@@ -250,7 +249,7 @@ public class TypeConversionTest extends CrateUnitTest {
     @Test
     public void test_object_to_object_conversion_when_either_has_no_inner_types() {
         var objectTypeWithInner = ObjectType.builder().setInnerType("field", DataTypes.STRING).build();
-        var objectTypeWithoutInner = ObjectType.untyped();
+        var objectTypeWithoutInner = DataTypes.UNTYPED_OBJECT;
 
         assertThat(objectTypeWithInner.isConvertableTo(objectTypeWithoutInner), is(true));
         assertThat(objectTypeWithoutInner.isConvertableTo(objectTypeWithInner), is(true));

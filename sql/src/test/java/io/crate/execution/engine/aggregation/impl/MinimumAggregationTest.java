@@ -21,14 +21,11 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.junit.Test;
 
 import java.util.List;
@@ -92,6 +89,6 @@ public class MinimumAggregationTest extends AggregationTest {
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        executeAggregation(ObjectType.untyped(), new Object[][]{{new Object()}});
+        executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}});
     }
 }

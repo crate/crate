@@ -35,7 +35,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -146,7 +145,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
         assertThat(analysis.replace(), is(false));
         assertThat(analysis.returnType(), is(new ArrayType(DataTypes.GEO_POINT)));
         assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of(new ArrayType(DataTypes.INTEGER))));
-        assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of(ObjectType.untyped())));
+        assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of(DataTypes.UNTYPED_OBJECT)));
         assertThat(analysis.arguments().get(2), is(FunctionArgumentDefinition.of(DataTypes.IP)));
         assertThat(analysis.arguments().get(3), is(FunctionArgumentDefinition.of(DataTypes.TIMESTAMPZ)));
         assertThat(analysis.language(), is(Literal.of("dummy_lang")));
