@@ -23,7 +23,7 @@ package io.crate.planner.node.dql;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
-import io.crate.common.collections.TreeMapBuilder;
+import io.crate.common.collections.MapBuilder;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Routing;
@@ -44,11 +44,11 @@ public class CountPhaseTest extends CrateUnitTest {
     @Test
     public void testStreaming() throws Exception {
         Routing routing = new Routing(
-            TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
-                .put("n1", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder()
+            MapBuilder.<String, Map<String, IntIndexedContainer>>treeMapBuilder()
+                .put("n1", MapBuilder.<String, IntIndexedContainer>treeMapBuilder()
                     .put("i1", IntArrayList.from(1, 2))
                     .put("i2", IntArrayList.from(1, 2)).map())
-                .put("n2", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder()
+                .put("n2", MapBuilder.<String, IntIndexedContainer>treeMapBuilder()
                     .put("i1", IntArrayList.from(3)).map()).map());
         CountPhase countPhase = new CountPhase(1, routing, Literal.BOOLEAN_TRUE, DistributionInfo.DEFAULT_BROADCAST);
 

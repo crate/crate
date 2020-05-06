@@ -22,10 +22,8 @@
 package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import io.crate.common.collections.TreeMapBuilder;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.ColumnIdent;
@@ -81,11 +79,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSearcherIsAcquiredForShard() throws Exception {
         IntArrayList shards = IntArrayList.from(1, 2);
-        Routing routing = new Routing(
-            TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder().put(
-                "dummy",
-                TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put("i1", shards).map()).map());
-
+        Routing routing = new Routing(Map.of("dummy", Map.of("i1", shards)));
         IndexBaseBuilder ibb = new IndexBaseBuilder();
         ibb.allocate("i1", shards);
 

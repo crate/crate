@@ -23,12 +23,10 @@
 package io.crate.execution.engine.distribution;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccounting;
-import io.crate.common.collections.TreeMapBuilder;
 import io.crate.data.Paging;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -66,9 +64,8 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
     private RowConsumer createDownstream(Set<String> downstreamExecutionNodes) {
         UUID jobId = UUID.randomUUID();
         Routing routing = new Routing(
-            TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
-                .put("n1", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder()
-                    .put("i1", IntArrayList.from(1, 2)).map()).map());
+            Map.of("n1", Map.of("i1", IntArrayList.from(1, 2)))
+        );
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             jobId,
             1,
