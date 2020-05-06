@@ -167,8 +167,6 @@ def jacocoProjects() {
           'es-client',
           'es-transport',
           'es-testing',
-          'es-discovery-ec2',
-          'es-repository-s3',
           'es-repository-azure',
           'es-repository-hdfs',
           'integration-testing',
