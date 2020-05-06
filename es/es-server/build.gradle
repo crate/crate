@@ -3,8 +3,8 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 dependencies {
     implementation project(':libs:shared')
     compile project(':libs:es-x-content')
-    compileOnly project(':es:es-plugin-classloader')
-    testRuntime project(':es:es-plugin-classloader')
+    compileOnly project(':libs:es-plugin-classloader')
+    testRuntime project(':libs:es-plugin-classloader')
 
     // lucene
     compile "org.apache.lucene:lucene-core:${versions.lucene}"
