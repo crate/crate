@@ -310,7 +310,11 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         List<DataType> argumentTypes = Symbols.typeView(arguments);
 
         return new Function(
-            new FunctionInfo(new FunctionIdent(SubscriptObjectFunction.NAME, argumentTypes), returnType),
+            new FunctionInfo(
+                new FunctionIdent(SubscriptObjectFunction.NAME, argumentTypes),
+                returnType
+            ),
+            SubscriptObjectFunction.SIGNATURE,
             arguments
         );
     }

@@ -25,6 +25,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -43,7 +44,14 @@ public final class SubscriptFunctions {
             : "makeObjectSubscript only works on base symbols of type `object`, got `" + base.valueType().getName() + '`';
         List<Symbol> arguments = Lists2.mapTail(base, path, Literal::of);
         DataType<?> returnType = ((ObjectType) base.valueType()).resolveInnerType(path);
-        return Function.of(SubscriptObjectFunction.NAME, arguments, returnType);
+        return new Function(
+            new FunctionInfo(
+                new FunctionIdent(SubscriptObjectFunction.NAME, Symbols.typeView(arguments)),
+                returnType
+            ),
+            SubscriptObjectFunction.SIGNATURE,
+            arguments
+        );
     }
 
     public static Function makeObjectSubscript(Symbol base, ColumnIdent column) {
@@ -59,7 +67,14 @@ public final class SubscriptFunctions {
             case ObjectType.ID: {
                 List<Symbol> arguments = Lists2.mapTail(baseSymbol, path, Literal::of);
                 DataType<?> returnType = ((ObjectType) baseType).resolveInnerType(path);
-                return Function.of(SubscriptObjectFunction.NAME, arguments, returnType);
+                return new Function(
+                    new FunctionInfo(
+                        new FunctionIdent(SubscriptObjectFunction.NAME, Symbols.typeView(arguments)),
+                        returnType
+                    ),
+                    SubscriptObjectFunction.SIGNATURE,
+                    arguments
+                );
             }
 
             case RowType.ID: {
