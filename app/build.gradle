@@ -354,7 +354,7 @@ collectEnterpriseModules.outputs.dir('enterprise')
 
 task downloadPlugins(
     dependsOn: ['downloadAdminUI',
-                ':es:es-repository-hdfs:jar',
+                ':plugins:es-repository-hdfs:jar',
                 ':plugins:azure-discovery:jar',
                 ':enterprise:jmx-monitoring:jar',
                 ':enterprise:lang-js:jar',
@@ -362,11 +362,11 @@ task downloadPlugins(
     doLast {
         // copy es-repository-hdfs plugin
         copy {
-            from(project(':es:es-repository-hdfs').buildDir.path + '/libs')
+            from(project(':plugins:es-repository-hdfs').buildDir.path + '/libs')
             into 'plugins/es-repository-hdfs'
         }
         copy {
-            from(project(':es:es-repository-hdfs').buildDir.path + '/plugin-descriptor.properties')
+            from(project(':plugins:es-repository-hdfs').buildDir.path + '/plugin-descriptor.properties')
             into 'plugins/es-repository-hdfs'
         }
 

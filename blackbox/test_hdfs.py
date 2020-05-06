@@ -47,7 +47,7 @@ NN_PORT = bind_port()
 
 hdfs_repo_libs_path = os.path.join(
     project_root,
-    'es',
+    'plugins',
     'es-repository-hdfs',
     'build',
     'extraLibs')
