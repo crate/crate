@@ -5,7 +5,7 @@ archivesBaseName = 'crate-common'
 
 dependencies {
     implementation project(':libs:shared')
-    implementation project(':pgwire')
+    implementation project(':libs:pgwire')
     implementation project(':es:es-server')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     testImplementation project(':integration-testing')
