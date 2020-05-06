@@ -1,5 +1,4 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
-
 archivesBaseName = 'crate-shared'
 
 dependencies {

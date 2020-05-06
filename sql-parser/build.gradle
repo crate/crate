@@ -16,7 +16,7 @@ dependencies {
     antlr4 "org.antlr:antlr4:${versions.antlr}"
     implementation "org.antlr:antlr4-runtime:${versions.antlr}"
 
-    implementation project(':shared')
+    implementation project(':libs:shared')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
 
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"

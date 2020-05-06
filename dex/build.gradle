@@ -9,7 +9,7 @@ configurations {
 
 dependencies {
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
-    implementation project(':shared')
+    implementation project(':libs:shared')
 
     testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
     testImplementation "junit:junit:${versions.junit}"
