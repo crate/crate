@@ -8,7 +8,7 @@ configurations {
 }
 
 dependencies {
-    compile project(':shared')
+    compile project(':libs:shared')
     compile project(':common')
     implementation project(':http')
     implementation project(':es:es-server')
