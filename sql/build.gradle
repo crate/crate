@@ -48,7 +48,7 @@ dependencies {
     // in :app (=dependencies of :sql won't be included).
     compile project(":plugins:es-repository-url")
     compile project(":plugins:es-repository-s3")
-    compile project(":es:es-repository-azure")
+    compile project(":plugins:es-repository-azure")
     compile project(":es:es-analysis-common")
 }
 //noinspection GroovyAssignabilityCheck
