@@ -29,10 +29,9 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
@@ -43,7 +42,8 @@ public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
     private Boolean anyEq(Object value, Object arrayExpr) {
         AnyOperator anyOperator = new AnyOperator(
             new FunctionInfo(
-                new FunctionIdent("any_=", Arrays.asList(ObjectType.untyped(), new ArrayType(ObjectType.untyped()))),
+                new FunctionIdent("any_=", List.of(
+                    DataTypes.UNTYPED_OBJECT, new ArrayType<>(DataTypes.UNTYPED_OBJECT))),
                 DataTypes.BOOLEAN),
             cmp -> cmp == 0
         );

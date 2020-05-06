@@ -13,7 +13,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
@@ -34,7 +33,7 @@ public class DocTableInfoTest extends CrateUnitTest {
                 new Reference(
                     new ReferenceIdent(relationName, new ColumnIdent("o", ImmutableList.of())),
                     RowGranularity.DOC,
-                    ObjectType.untyped(),
+                    DataTypes.UNTYPED_OBJECT,
                     null,
                     null
                 )
@@ -80,7 +79,7 @@ public class DocTableInfoTest extends CrateUnitTest {
         Reference strictParent = new Reference(
             foobarIdent,
             RowGranularity.DOC,
-            ObjectType.untyped(),
+            DataTypes.UNTYPED_OBJECT,
             ColumnPolicy.STRICT,
             Reference.IndexType.NOT_ANALYZED,
             true,

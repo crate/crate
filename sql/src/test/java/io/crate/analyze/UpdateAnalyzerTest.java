@@ -63,7 +63,6 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isAlias;
-import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -523,10 +522,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement stmt = e.analyze("UPDATE bag SET ob = [?] WHERE id = ?");
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
-            contains(isReference("ob", new ArrayType(ObjectType.untyped()))));
+            contains(isReference("ob", new ArrayType<>(DataTypes.UNTYPED_OBJECT))));
         assertThat(
             stmt.assignmentByTargetCol().values(),
-            contains(isFunction("_array", singletonList(ObjectType.untyped()))));
+            contains(isFunction("_array", singletonList(DataTypes.UNTYPED_OBJECT))));
     }
 
     @Test
@@ -534,11 +533,11 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement stmt = e.analyze("UPDATE bag SET ob = array_cat([?], [{obb=1}]) WHERE id = ?");
         assertThat(
             stmt.assignmentByTargetCol().keySet(),
-            contains(isReference("ob", new ArrayType(ObjectType.untyped()))));
+            contains(isReference("ob", new ArrayType(DataTypes.UNTYPED_OBJECT))));
         assertThat(
             stmt.assignmentByTargetCol().values(),
             contains(isFunction("array_cat",
-                isFunction("_array", singletonList(ObjectType.untyped())),
+                isFunction("_array", singletonList(DataTypes.UNTYPED_OBJECT)),
                 instanceOf(Literal.class)
             )));
     }

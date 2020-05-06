@@ -24,9 +24,8 @@ package io.crate.types;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -70,23 +69,23 @@ public class DataTypesTest extends CrateUnitTest {
         assertEquals("123", DataTypes.STRING.value(longValue));
     }
 
-    private static Map<String, Object> testMap = new HashMap<String, Object>() {{
-        put("int", 1);
-        put("boolean", false);
-        put("double", 2.8d);
-        put("list", Arrays.asList(1, 3, 4));
-    }};
+    private static Map<String, Object> testMap = Map.of(
+        "int", 1,
+        "boolean", false,
+        "double", 2.8d,
+        "list", List.of(1, 3, 4)
+    );
 
-    private static Map<String, Object> testCompareMap = new HashMap<String, Object>() {{
-        put("int", 2);
-        put("boolean", true);
-        put("double", 2.9d);
-        put("list", Arrays.asList(9, 9, 9, 9));
-    }};
+    private static Map<String, Object> testCompareMap = Map.of(
+        "int", 2,
+        "boolean", true,
+        "double", 2.9d,
+        "list", List.of(9, 9, 9, 9)
+    );
 
     @Test
     public void testConvertToObject() {
-        DataType objectType = ObjectType.untyped();
+        DataType<?> objectType = DataTypes.UNTYPED_OBJECT;
         assertThat(objectType.value(testMap), is(testMap));
     }
 
@@ -135,7 +134,7 @@ public class DataTypesTest extends CrateUnitTest {
     public void testCompareTo() {
         Map testMapCopy = Map.copyOf(testMap);
         Map emptyMap = Map.of();
-        DataType objectType = ObjectType.untyped();
+        DataType objectType = DataTypes.UNTYPED_OBJECT;
 
         assertThat(objectType.compare(testMap, testMapCopy), is(0));
         assertThat(objectType.compare(testMapCopy, testMap), is(0));
@@ -303,14 +302,14 @@ public class DataTypesTest extends CrateUnitTest {
 
     @Test
     public void test_compare_by_id_complex_types() {
-        assertThat(compareTypesById(ObjectType.untyped(), DataTypes.BIGINT_ARRAY), is(false));
-        assertThat(compareTypesById(ObjectType.untyped(), DataTypes.GEO_POINT), is(false));
+        assertThat(compareTypesById(DataTypes.UNTYPED_OBJECT, DataTypes.BIGINT_ARRAY), is(false));
+        assertThat(compareTypesById(DataTypes.UNTYPED_OBJECT, DataTypes.GEO_POINT), is(false));
     }
 
     @Test
     public void test_compare_by_id_primitive_and_complex_types() {
         assertThat(compareTypesById(DataTypes.STRING_ARRAY, DataTypes.STRING), is(false));
-        assertThat(compareTypesById(ObjectType.untyped(), DataTypes.DOUBLE), is(false));
+        assertThat(compareTypesById(DataTypes.UNTYPED_OBJECT, DataTypes.DOUBLE), is(false));
     }
 
     @Test

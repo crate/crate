@@ -53,7 +53,7 @@ public class PGTypesTest extends CrateUnitTest {
     @Test
     public void testCrate2PGType() {
         assertThat(PGTypes.get(DataTypes.STRING), instanceOf(VarCharType.class));
-        assertThat(PGTypes.get(ObjectType.untyped()), instanceOf(JsonType.class));
+        assertThat(PGTypes.get(DataTypes.UNTYPED_OBJECT), instanceOf(JsonType.class));
         assertThat(PGTypes.get(DataTypes.BOOLEAN), instanceOf(BooleanType.class));
         assertThat(PGTypes.get(DataTypes.SHORT), instanceOf(SmallIntType.class));
         assertThat(PGTypes.get(DataTypes.INTEGER), instanceOf(IntegerType.class));

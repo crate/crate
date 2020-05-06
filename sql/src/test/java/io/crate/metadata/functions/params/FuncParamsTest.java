@@ -32,7 +32,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -132,7 +131,7 @@ public class FuncParamsTest extends CrateUnitTest {
         List<DataType> foo = numericParams.match(list(Literal.of(1)));
         assertThat(foo, is(list(DataTypes.STRING)));
 
-        FuncParams arrayParams = FuncParams.builder(Param.of(ObjectType.untyped())).build();
+        FuncParams arrayParams = FuncParams.builder(Param.of(DataTypes.UNTYPED_OBJECT)).build();
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `1` of type `integer` to type `object`");
         arrayParams.match(list(Literal.of(1)));

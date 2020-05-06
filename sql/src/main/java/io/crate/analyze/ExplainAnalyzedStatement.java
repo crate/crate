@@ -32,7 +32,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.profile.ProfilingContext;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -50,7 +49,7 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
         ScopedSymbol field = new ScopedSymbol(
             relationName,
             new ColumnIdent(columnName),
-            context == null ? DataTypes.STRING : ObjectType.untyped()
+            context == null ? DataTypes.STRING : DataTypes.UNTYPED_OBJECT
         );
         this.statement = statement;
         this.context = context;

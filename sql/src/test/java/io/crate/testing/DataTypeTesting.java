@@ -63,7 +63,7 @@ public class DataTypeTesting {
         .add(DataTypes.GEO_POINT)
         .add(DataTypes.GEO_SHAPE)
         .add(DataTypes.INTERVAL)
-        .add(ObjectType.untyped())
+        .add(DataTypes.UNTYPED_OBJECT)
         .build();
 
     public static DataType<?> randomType() {

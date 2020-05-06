@@ -31,7 +31,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
-import io.crate.types.ObjectType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -76,7 +76,7 @@ public class MapFunction extends Scalar<Object, Object> {
     }
 
     public static FunctionInfo createInfo(List<DataType> dataTypes) {
-        return new FunctionInfo(new FunctionIdent(NAME, dataTypes), ObjectType.untyped());
+        return new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.UNTYPED_OBJECT);
     }
 
     private final FunctionInfo info;

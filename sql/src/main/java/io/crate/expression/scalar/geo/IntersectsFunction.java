@@ -35,7 +35,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.locationtech.spatial4j.shape.Shape;
 
 import javax.annotation.Nullable;
@@ -59,7 +58,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
 
     private static final List<DataType<?>> SUPPORTED_TYPES = List.of(
         DataTypes.STRING,
-        ObjectType.untyped(),
+        DataTypes.UNTYPED_OBJECT,
         DataTypes.GEO_SHAPE
     );
 

@@ -56,7 +56,7 @@ public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements A
             new ScopedSymbol(tableInfo.ident(), new ColumnIdent("uri"), DataTypes.STRING),
             new ScopedSymbol(tableInfo.ident(), new ColumnIdent("success_count"), DataTypes.LONG),
             new ScopedSymbol(tableInfo.ident(), new ColumnIdent("error_count"), DataTypes.LONG),
-            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("errors"), ObjectType.untyped())
+            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("errors"), DataTypes.UNTYPED_OBJECT)
         );
     }
 
