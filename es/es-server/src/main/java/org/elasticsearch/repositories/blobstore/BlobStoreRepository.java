@@ -49,7 +49,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Numbers;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetaData;
@@ -112,6 +111,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
@@ -667,7 +667,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 return null;
             } else {
                 String seed = UUIDs.randomBase64UUID();
-                byte[] testBytes = Strings.toUTF8Bytes(seed);
+                byte[] testBytes = seed.getBytes(StandardCharsets.UTF_8);
                 BlobContainer testContainer = blobStore().blobContainer(basePath().add(testBlobPrefix(seed)));
                 String blobName = "master.dat";
                 BytesArray bytes = new BytesArray(testBytes);
