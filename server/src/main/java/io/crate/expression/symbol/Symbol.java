@@ -23,7 +23,9 @@ package io.crate.expression.symbol;
 
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.format.Style;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
 import org.elasticsearch.common.io.stream.Writeable;
 
@@ -58,6 +60,9 @@ public abstract class Symbol implements FuncArg, Writeable {
      */
     public Symbol cast(DataType<?> targetType, boolean tryCast) {
         if (targetType.equals(valueType())) {
+            return this;
+        } else if (ArrayType.unnest(targetType).equals(DataTypes.UNTYPED_OBJECT)
+                   && valueType().id() == targetType.id()) {
             return this;
         }
         return CastFunctionResolver.generateCastFunction(this, targetType, tryCast);

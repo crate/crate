@@ -401,7 +401,13 @@ public class ExpressionAnalyzer {
         int size = symbolsToCast.size();
         List<Symbol> castList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            castList.add(symbolsToCast.get(i).cast(targetTypes.get(i), false));
+            var symbolToCast = symbolsToCast.get(i);
+            var targetType = targetTypes.get(i);
+            if (targetType.id() == UndefinedType.ID) {
+                castList.add(symbolToCast);
+            } else {
+                castList.add(symbolToCast.cast(targetType, false));
+            }
         }
         return castList;
     }
