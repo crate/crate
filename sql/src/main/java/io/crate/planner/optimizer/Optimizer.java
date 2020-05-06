@@ -65,13 +65,13 @@ public class Optimizer {
 
     @VisibleForTesting
     static List<Rule<?>> filterRulesFromContext(List<Rule<?>> rules, TransactionContext txnCtx) {
-        var rulesToExlude = txnCtx.sessionSettings().excludedOptimizerRules();
+        var rulesToExclude = txnCtx.sessionSettings().excludedOptimizerRules();
         if (rules.isEmpty()) {
             return rules;
         }
         var filteredRules = new ArrayList<Rule<?>>(rules.size());
-        for (Rule<?> rule : rules) {
-            if (!rulesToExlude.contains(rule.getClass().getSimpleName())) {
+        for (var rule : rules) {
+            if (!rulesToExclude.contains(rule.getClass().getSimpleName())) {
                 filteredRules.add(rule);
             }
         }

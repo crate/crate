@@ -58,7 +58,7 @@ public final class SessionSettings implements Writeable {
 
     @VisibleForTesting
     public SessionSettings(String userName, SearchPath searchPath) {
-        this(userName, searchPath, true, null);
+        this(userName, searchPath, true, Set.of());
     }
 
     public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled, Set<String> rules) {
