@@ -37,7 +37,7 @@ group = 'io.crate'
 description = 'CrateDB License Management'
 
 dependencies {
-    implementation project(':es:es-core')
+    implementation project(':libs:shared')
     implementation project(':common')
     implementation project(':sql')
     testImplementation project(':integration-testing')

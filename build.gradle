@@ -163,9 +163,7 @@ project.gradle.addListener(testLogger);
 
 def jacocoProjects() {
     subprojects.findAll {
-        !['es-core',
-          'es-client',
-          'es-transport',
+        !['es-transport',
           'es-testing',
           'es-repository-hdfs',
           'integration-testing',
