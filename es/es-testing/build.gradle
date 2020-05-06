@@ -25,3 +25,9 @@ dependencies {
         because 'allows JUnit 3 and JUnit 4 tests to run'
     }
 }
+
+test {
+    filter {
+        setFailOnNoMatchingTests(false)
+    }
+}
