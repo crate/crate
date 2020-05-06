@@ -19,7 +19,7 @@
 
 package org.elasticsearch.common.cache;
 
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 import java.util.Objects;
 import java.util.function.ToLongBiFunction;

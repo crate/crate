@@ -27,7 +27,7 @@ import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInf
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;

@@ -50,36 +50,9 @@ public final class MapBuilder<K, V> {
         this.map = map;
     }
 
-    public MapBuilder<K, V> putAll(Map<K, V> map) {
-        this.map.putAll(map);
-        return this;
-    }
-
     public MapBuilder<K, V> put(K key, V value) {
         this.map.put(key, value);
         return this;
-    }
-
-    public MapBuilder<K, V> remove(K key) {
-        this.map.remove(key);
-        return this;
-    }
-
-    public MapBuilder<K, V> clear() {
-        this.map.clear();
-        return this;
-    }
-
-    public V get(K key) {
-        return map.get(key);
-    }
-
-    public boolean containsKey(K key) {
-        return map.containsKey(key);
-    }
-
-    public boolean isEmpty() {
-        return map.isEmpty();
     }
 
     public Map<K, V> map() {

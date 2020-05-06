@@ -19,6 +19,7 @@
 
 package org.elasticsearch.common;
 
+import io.crate.common.SuppressForbidden;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 

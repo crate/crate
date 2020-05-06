@@ -25,7 +25,7 @@ package io.crate.lucene;
 import io.crate.expression.symbol.Function;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.index.mapper.MappedFieldType;

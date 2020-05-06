@@ -39,7 +39,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

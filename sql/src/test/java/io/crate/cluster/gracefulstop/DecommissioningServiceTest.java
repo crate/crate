@@ -31,7 +31,7 @@ import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSet
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.set.Sets;
 import org.junit.Before;
 import org.junit.Test;

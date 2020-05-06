@@ -21,12 +21,13 @@
  */
 package io.crate.integrationtests.disruption.seqno;
 
+import io.crate.common.SuppressForbidden;
+import io.crate.common.unit.TimeValue;
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
 import io.crate.testing.SQLResponse;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.cluster.coordination.LinearizabilityChecker;
-import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
@@ -36,7 +37,6 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.threadpool.Scheduler;

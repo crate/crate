@@ -38,7 +38,7 @@ import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.NamedProperties;
 import io.crate.sql.tree.TokenFilters;
 import io.crate.sql.tree.Tokenizer;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;

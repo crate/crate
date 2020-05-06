@@ -19,7 +19,7 @@
 
 package org.elasticsearch.cluster.ack;
 
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Identifies a cluster state update request with acknowledgement support

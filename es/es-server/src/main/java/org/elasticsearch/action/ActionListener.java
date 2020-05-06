@@ -22,7 +22,7 @@ package org.elasticsearch.action;
 import io.crate.common.CheckedSupplier;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.CheckedConsumer;
-import org.elasticsearch.common.CheckedFunction;
+import io.crate.common.CheckedFunction;
 
 import java.util.ArrayList;
 import java.util.List;

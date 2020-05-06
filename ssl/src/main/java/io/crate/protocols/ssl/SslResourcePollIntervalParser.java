@@ -24,7 +24,7 @@ package io.crate.protocols.ssl;
 
 import com.sun.nio.file.SensitivityWatchEventModifier;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;

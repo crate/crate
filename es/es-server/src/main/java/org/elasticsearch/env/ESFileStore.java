@@ -20,7 +20,7 @@
 package org.elasticsearch.env;
 
 import org.apache.lucene.util.Constants;
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 import org.elasticsearch.common.io.PathUtils;
 
 import java.io.IOException;

@@ -20,7 +20,7 @@
 package org.elasticsearch.cluster.metadata;
 
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.Booleans;
+import io.crate.common.Booleans;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 
