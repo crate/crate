@@ -8,6 +8,7 @@ dependencies {
     implementation project(':sql')
     implementation project(':http')
     implementation project(':es:es-transport')
+    implementation project(':libs:sql-parser')
     implementation "io.netty:netty-codec-http:${versions.netty4}"
     testImplementation project(':integration-testing')
     testImplementation project(':enterprise:ssl-impl')
