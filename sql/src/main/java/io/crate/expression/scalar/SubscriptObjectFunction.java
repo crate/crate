@@ -40,8 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 /**
  * Scalar function to resolve elements inside a map.
  */
@@ -55,8 +53,7 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
             DataTypes.UNTYPED_OBJECT.getTypeSignature(),
             DataTypes.STRING.getTypeSignature(),
             DataTypes.UNDEFINED.getTypeSignature())
-        .withVariableArity()
-        .withTypeVariableConstraints(typeVariable("text"));
+        .withVariableArity();
 
     public static void register(ScalarFunctionModule module) {
         module.register(
