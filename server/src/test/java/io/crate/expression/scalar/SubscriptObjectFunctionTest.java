@@ -22,9 +22,10 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.expression.symbol.Literal;
 import org.junit.Test;
+
+import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
@@ -50,13 +51,13 @@ public class SubscriptObjectFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateOnObjectReference() throws Exception {
-        assertEvaluate("subscript_obj(obj, 'x')", 10L, Literal.of(ImmutableMap.of("x", 10L)));
+        assertEvaluate("subscript_obj(obj, 'x')", 10L, Literal.of(Map.of("x", 10L)));
     }
 
     @Test
     public void testSubscriptOnObjectLiteralWithNonExistingKey() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(ImmutableMap.of("x", 10L)));
+        assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(Map.of("x", 10L)));
     }
 
     @Test
