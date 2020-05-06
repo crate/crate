@@ -12,7 +12,7 @@ test.enabled = false
 dependencies {
     compile project(':sql')
     compile project(path: ':sql', configuration: 'testOutput')
-    compile project(path: ':dex', configuration: 'testOutput')
+    compile project(path: ':libs:dex', configuration: 'testOutput')
     compile project(path: ':enterprise:functions', configuration: 'testOutput')
     compile project(':integration-testing')
 
