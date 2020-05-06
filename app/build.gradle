@@ -44,7 +44,7 @@ dependencies {
     compile project(':plugins:es-repository-azure')
     compile project(':es:es-transport')
     compile project(':plugins:es-analysis-common')
-    compile project(':es:es-analysis-phonetic')
+    compile project(':plugins:es-analysis-phonetic')
     compile('org.apache.xbean:xbean-finder:4.5') {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
@@ -82,7 +82,7 @@ dependencies {
     compileNotTransitive project(':plugins:es-repository-azure')
     compileNotTransitive project(':es:es-transport')
     compileNotTransitive project(':plugins:es-analysis-common')
-    compileNotTransitive project(':es:es-analysis-phonetic')
+    compileNotTransitive project(':plugins:es-analysis-phonetic')
 }
 
 task release(dependsOn: 'distTar') {
