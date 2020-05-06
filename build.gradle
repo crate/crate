@@ -167,7 +167,6 @@ def jacocoProjects() {
           'es-client',
           'es-transport',
           'es-testing',
-          'es-repository-azure',
           'es-repository-hdfs',
           'integration-testing',
           'testing'].contains(it.name)
