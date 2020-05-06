@@ -22,11 +22,11 @@ package org.elasticsearch.action.support.master;
 import org.elasticsearch.cluster.ack.AckedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 import java.io.IOException;
 
-import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
+import static io.crate.common.unit.TimeValue.timeValueSeconds;
 
 /**
  * Abstract class that allows to mark action requests that support acknowledgements.

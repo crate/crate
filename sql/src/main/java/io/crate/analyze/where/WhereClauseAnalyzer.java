@@ -38,7 +38,7 @@ import io.crate.metadata.PartitionReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

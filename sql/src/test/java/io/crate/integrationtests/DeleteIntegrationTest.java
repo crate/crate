@@ -25,7 +25,7 @@ package io.crate.integrationtests;
 import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
 import io.crate.testing.UseJdbc;
 
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;

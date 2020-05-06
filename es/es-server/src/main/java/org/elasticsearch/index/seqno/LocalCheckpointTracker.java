@@ -20,7 +20,7 @@
 package org.elasticsearch.index.seqno;
 
 import com.carrotsearch.hppc.LongObjectHashMap;
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 
 import java.util.concurrent.atomic.AtomicLong;
 

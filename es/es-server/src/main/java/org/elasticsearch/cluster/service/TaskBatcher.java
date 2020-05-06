@@ -22,7 +22,7 @@ package org.elasticsearch.cluster.service;
 import org.apache.logging.log4j.Logger;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
 

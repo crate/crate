@@ -47,9 +47,8 @@ public final class CompletableFutures {
             });
     }
 
-    @SuppressForbidden
-    public static <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier,
-                                                       Executor executor) {
+    @SuppressForbidden(reason = "This is the wrapper for supplyAsync that should be used - it handles exceptions")
+    public static <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier, Executor executor) {
         try {
             return CompletableFuture.supplyAsync(supplier, executor);
         } catch (Exception e) {

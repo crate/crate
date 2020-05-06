@@ -26,7 +26,7 @@ import io.crate.azure.AzureConfiguration;
 import io.crate.azure.discovery.AzureSeedHostsProvider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 import java.util.function.Function;
 

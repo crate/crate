@@ -27,7 +27,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
 import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;

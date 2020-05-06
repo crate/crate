@@ -24,8 +24,8 @@ import org.elasticsearch.common.blobstore.BlobMetaData;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
 import org.elasticsearch.common.blobstore.support.PlainBlobMetaData;
-import org.elasticsearch.core.internal.io.IOUtils;
-import org.elasticsearch.core.internal.io.Streams;
+import io.crate.common.io.IOUtils;
+import io.crate.common.io.Streams;
 
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;

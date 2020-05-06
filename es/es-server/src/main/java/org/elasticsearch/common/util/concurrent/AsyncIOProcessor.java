@@ -20,7 +20,7 @@
 package org.elasticsearch.common.util.concurrent;
 
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 
 import java.io.IOException;
 import java.util.ArrayList;

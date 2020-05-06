@@ -41,7 +41,7 @@ import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.junit.Before;
 import org.junit.Test;
 

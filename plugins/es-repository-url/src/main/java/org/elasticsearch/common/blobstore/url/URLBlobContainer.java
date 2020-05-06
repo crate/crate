@@ -19,7 +19,7 @@
 
 package org.elasticsearch.common.blobstore.url;
 
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 import org.elasticsearch.common.blobstore.BlobMetaData;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
@@ -120,5 +120,4 @@ public class URLBlobContainer extends AbstractBlobContainer {
             throw (IOException) e.getCause();
         }
     }
-
 }

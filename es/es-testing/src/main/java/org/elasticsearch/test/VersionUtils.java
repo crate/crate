@@ -21,7 +21,7 @@ package org.elasticsearch.test;
 
 import org.elasticsearch.Version;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -22,7 +22,7 @@ package org.elasticsearch.transport;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 import java.util.ArrayList;
 import java.util.Arrays;

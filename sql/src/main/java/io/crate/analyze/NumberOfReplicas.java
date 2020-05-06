@@ -25,7 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.Booleans;
+import io.crate.common.Booleans;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.regex.Pattern;

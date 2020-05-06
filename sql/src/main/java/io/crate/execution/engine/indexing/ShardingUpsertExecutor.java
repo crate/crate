@@ -46,7 +46,7 @@ import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;

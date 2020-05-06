@@ -21,7 +21,7 @@ package org.elasticsearch.discovery.ec2;
 
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 import java.io.Closeable;
 import java.util.ArrayList;
