@@ -36,7 +36,7 @@ dependencies {
     compile project(':blob')
     compile project(':http')
     compile project(':udc')
-    compile project(':azure-discovery')
+    compile project(':plugins:azure-discovery')
     compile project(':plugins:dns-discovery')
     compile project(':es:es-discovery-ec2')
     compile project(':es:es-repository-url')
@@ -355,7 +355,7 @@ collectEnterpriseModules.outputs.dir('enterprise')
 task downloadPlugins(
     dependsOn: ['downloadAdminUI',
                 ':es:es-repository-hdfs:jar',
-                ':azure-discovery:jar',
+                ':plugins:azure-discovery:jar',
                 ':enterprise:jmx-monitoring:jar',
                 ':enterprise:lang-js:jar',
                 ':enterprise:functions:jar']) {
@@ -372,9 +372,9 @@ task downloadPlugins(
 
         copy {
             // jar file
-            from(project(':azure-discovery').tasks.jar.archivePath)
+            from(project(':plugins:azure-discovery').tasks.jar.archivePath)
             // generated plugin-descriptor.properties
-            from(project(':azure-discovery').buildDir.path + '/tmp/plugin-descriptor.properties')
+            from(project(':plugins:azure-discovery').buildDir.path + '/tmp/plugin-descriptor.properties')
             into 'plugins/crate-azure-discovery'
         }
 
