@@ -22,8 +22,6 @@
 
 package io.crate.common;
 
-import org.elasticsearch.common.CheckedSupplier;
-
 import java.util.Optional;
 
 public final class Optionals {

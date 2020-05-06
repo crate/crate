@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.RandomAccess;
 
 public final class Maps {
@@ -45,11 +44,6 @@ public final class Maps {
         result.putAll(m1);
         result.putAll(m2);
         return Collections.unmodifiableMap(result);
-    }
-
-    @Nullable
-    public static <K, V> Map<K, V> mapOrNullIfNullValues(Map<K, V> map) {
-        return map.values().stream().anyMatch(Objects::nonNull) ? map : null;
     }
 
     @SuppressWarnings("unchecked")

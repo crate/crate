@@ -19,7 +19,8 @@
 
 package org.elasticsearch.common.util;
 
-import org.elasticsearch.common.CheckedSupplier;
+
+import io.crate.common.CheckedSupplier;
 
 import java.util.Objects;
 import java.util.function.Consumer;

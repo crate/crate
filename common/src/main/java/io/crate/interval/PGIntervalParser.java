@@ -74,7 +74,7 @@ final class PGIntervalParser {
                     // ISO intervals
                     int offset = (token.charAt(0) == '-') ? 1 : 0;
 
-                    hours = nullSafeIntGet(token.substring(offset + 0, endHours));
+                    hours = nullSafeIntGet(token.substring(offset, endHours));
                     minutes = nullSafeIntGet(token.substring(endHours + 1, endHours + 3));
 
                     int endMinutes = token.indexOf(':', endHours + 1);

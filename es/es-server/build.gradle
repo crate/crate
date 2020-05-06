@@ -1,6 +1,7 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
 dependencies {
+    implementation project(':libs:shared')
     compile project(':es:es-core')
     compile project(':es:es-x-content')
     compileOnly project(':es:es-plugin-classloader')

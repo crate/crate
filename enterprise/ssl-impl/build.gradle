@@ -5,6 +5,7 @@ group = 'io.crate'
 description = 'SSL Encryption Implementation for CrateDB'
 
 dependencies {
+    implementation project(':libs:shared')
     implementation project(':common')
     implementation project(':ssl')
     implementation project(':es:es-server')
