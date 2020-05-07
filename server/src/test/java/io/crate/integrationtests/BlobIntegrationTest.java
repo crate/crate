@@ -35,6 +35,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 2)
+@WindowsIncompatible
 public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     private String uploadSmallBlob() throws IOException {

@@ -1,6 +1,6 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
-archivesBaseName = 'crate-sql'
+archivesBaseName = 'crate-server'
 
 configurations {
     // export of test so that other modules can use the utilities there as well.
@@ -9,22 +9,22 @@ configurations {
 
 dependencies {
     compile project(':libs:shared')
-    compile project(':common')
-    implementation project(':http')
     implementation project(':es:es-server')
-    implementation project(':es:es-transport')
     compile project(':libs:dex')
-    compile project(':blob')
     compile project(':libs:sql-parser')
-    implementation project(':libs:pgwire')
-    compile project(':ssl')
+    compile project(':libs:pgwire')
     compile "com.tdunning:t-digest:3.2"
     compile "org.hdrhistogram:HdrHistogram:2.1.9"
-    implementation "io.netty:netty-codec-http:${versions.netty4}"
+
+    compile "io.netty:netty-buffer:${versions.netty4}"
+    compile "io.netty:netty-codec:${versions.netty4}"
+    compile "io.netty:netty-codec-http:${versions.netty4}"
+    compile "io.netty:netty-common:${versions.netty4}"
+    compile "io.netty:netty-handler:${versions.netty4}"
+    compile "io.netty:netty-resolver:${versions.netty4}"
     compile "io.netty:netty-transport:${versions.netty4}"
     compile "io.netty:netty-transport-native-epoll:${versions.netty4}:linux-x86_64"
-    compile "io.netty:netty-codec:${versions.netty4}"
-    compile "io.netty:netty-buffer:${versions.netty4}"
+
     compile "com.google.guava:guava:${versions.guava}"
     compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
     compile "org.apache.commons:commons-math3:${versions.commonsmath}"
@@ -52,7 +52,7 @@ dependencies {
 }
 //noinspection GroovyAssignabilityCheck
 task testOutputJar (type: Jar) {
-    classifier = 'sql-testing'
+    classifier = 'server-testing'
     from sourceSets.test.output
 }
 

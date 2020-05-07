@@ -4,19 +4,19 @@ on: [push]
 
 jobs:
   test:
-    name: Test CrateDB SQL on ${{ matrix.os }} with Java ${{ matrix.bundled-jdk }}
+    name: Test CrateDB SQL on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        bundled-jdk: [14.0.1+7]
     steps:
       - uses: actions/checkout@v2
       - name: Setup Gradle Java
         uses: actions/setup-java@v1
         with:
           java-version: 11
+
       - name: Run tests on ${{ matrix.os }}
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: :server:test -Dbundled_jdk_version=${{ matrix.bundled-jdk }}
+          arguments: :server:test -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}

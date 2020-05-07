@@ -60,6 +60,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 0, numClientNodes = 0)
 @ThreadLeakFilters(filters = {RecoveryTests.RecoveryTestThreadFilter.class})
+@WindowsIncompatible
 public class RecoveryTests extends BlobIntegrationTestBase {
 
     public static class RecoveryTestThreadFilter implements ThreadFilter {
