@@ -32,6 +32,7 @@ import io.crate.types.DataTypes;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -130,7 +131,7 @@ public class SessionSettingRegistry {
                 },
                 s -> String.valueOf(s.excludedOptimizerRules().contains(fullName) == false),
                 () -> String.valueOf(true),
-                String.format("Indicates if the optimizer rule %s is activated.", simpleName),
+                String.format(Locale.ENGLISH, "Indicates if the optimizer rule %s is activated.", simpleName),
                 DataTypes.BOOLEAN.getName()));
         }
         return result;
