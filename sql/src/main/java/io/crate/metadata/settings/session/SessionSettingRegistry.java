@@ -122,8 +122,9 @@ public class SessionSettingRegistry {
             result.put(optimizerRuleName, new SessionSetting<>(
                 objects -> {},
                 objects -> DataTypes.BOOLEAN.value(objects[0]),
-                (sessionContext, includeRule) -> {
-                    if (includeRule) {
+                (sessionContext, activateRule) -> {
+                    if (activateRule) {
+                        // All rules are activated by default
                         sessionContext.excludedOptimizerRules().remove(fullName);
                     } else {
                         sessionContext.excludedOptimizerRules().add(fullName);
