@@ -17,7 +17,6 @@ dependencies {
     compile project(':blob')
     compile project(':libs:sql-parser')
     implementation project(':libs:pgwire')
-    compile project(':udc')
     compile project(':ssl')
     compile "com.tdunning:t-digest:3.2"
     compile "org.hdrhistogram:HdrHistogram:2.1.9"
