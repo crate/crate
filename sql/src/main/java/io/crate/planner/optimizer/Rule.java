@@ -26,8 +26,31 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.rule.DeduplicateOrder;
+import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
+import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
+import io.crate.planner.optimizer.rule.MergeFilters;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathNestedLoop;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathProjectSet;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathRename;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathUnion;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathWindowAgg;
+import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
+import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
+import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
+import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
+import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
+import io.crate.planner.optimizer.rule.RewriteCollectToGet;
+import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
+import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.statistics.TableStats;
 import org.elasticsearch.Version;
+
+import java.util.List;
 
 public interface Rule<T> {
 
@@ -41,4 +64,28 @@ public interface Rule<T> {
     default Version requiredVersion() {
         return Version.V_4_0_0;
     }
+
+    List<Class<?>> IMPLEMENTATIONS = List.of(
+        RemoveRedundantFetchOrEval.class,
+        MergeAggregateAndCollectToCount.class,
+        MergeFilters.class,
+        MoveFilterBeneathRename.class,
+        MoveFilterBeneathFetchOrEval.class,
+        MoveFilterBeneathOrder.class,
+        MoveFilterBeneathProjectSet.class,
+        MoveFilterBeneathHashJoin.class,
+        MoveFilterBeneathNestedLoop.class,
+        MoveFilterBeneathUnion.class,
+        MoveFilterBeneathGroupBy.class,
+        MoveFilterBeneathWindowAgg.class,
+        MergeFilterAndCollect.class,
+        RewriteFilterOnOuterJoinToInnerJoin.class,
+        MoveOrderBeneathUnion.class,
+        MoveOrderBeneathNestedLoop.class,
+        MoveOrderBeneathFetchOrEval.class,
+        MoveOrderBeneathRename.class,
+        DeduplicateOrder.class,
+        RewriteCollectToGet.class,
+        RewriteGroupByKeysLimitToTopNDistinct.class
+    );
 }

@@ -39,7 +39,6 @@ public class SessionSettingsTest {
         SessionSettings s1 = new SessionSettings("user", SearchPath.createSearchPathFrom("crate"), true, Set.of("Rule"));
         BytesStreamOutput out = new BytesStreamOutput();
         s1.writeTo(out);
-
         SessionSettings s2 = new SessionSettings(out.bytes().streamInput());
         assertEquals(s1, s2);
     }

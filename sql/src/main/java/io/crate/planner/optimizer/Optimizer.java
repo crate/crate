@@ -35,6 +35,7 @@ import org.elasticsearch.Version;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public class Optimizer {
@@ -65,13 +66,18 @@ public class Optimizer {
 
     @VisibleForTesting
     static List<Rule<?>> filterRulesFromContext(List<Rule<?>> rules, TransactionContext txnCtx) {
-        var rulesToExclude = txnCtx.sessionSettings().excludedOptimizerRules();
+        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
+        Set<String> rulesToExclude = txnCtx.sessionSettings().excludedOptimizerRules();
         if (rules.isEmpty()) {
             return rules;
         }
         var filteredRules = new ArrayList<Rule<?>>(rules.size());
         for (var rule : rules) {
-            if (!rulesToExclude.contains(rule.getClass().getSimpleName())) {
+            if (rulesToExclude.contains(rule.getClass().getName())) {
+                if (isTraceEnabled) {
+                    LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' excluded from execution");
+                }
+            } else {
                 filteredRules.add(rule);
             }
         }

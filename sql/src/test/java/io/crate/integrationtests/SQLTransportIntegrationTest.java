@@ -132,7 +132,6 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;

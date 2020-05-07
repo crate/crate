@@ -27,7 +27,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
-import io.crate.planner.optimizer.rule.RewriteCollectToGet;
 import org.junit.Test;
 
 import java.util.List;
@@ -44,13 +43,12 @@ public class OptimizerTest {
         SessionSettings sessionSettings = new SessionSettings("User",
                                                               SearchPath.pathWithPGCatalogAndDoc(),
                                                               true,
-                                                              Set.of("MergeFilters"));
+                                                              Set.of(MergeFilters.class.getName()));
+
         List<Rule<?>> rules = Optimizer.filterRulesFromContext(List.of(new MergeFilters()),
                                                                TransactionContext.of(sessionSettings));
         assertThat(rules.isEmpty(), is(true));
-
         rules = Optimizer.filterRulesFromContext(List.of(new MoveFilterBeneathHashJoin()), TransactionContext.of(sessionSettings));
-
         assertThat(rules.size(), is(1));
     }
 }

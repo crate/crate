@@ -22,12 +22,15 @@
 
 package io.crate.metadata.settings.session;
 
+import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.SearchPath;
+import io.crate.planner.optimizer.Rule;
 import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.types.DataTypes;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Function;
@@ -41,6 +44,7 @@ public class SessionSettingRegistry {
     static final String MAX_INDEX_KEYS = "max_index_keys";
     private static final String SERVER_VERSION_NUM = "server_version_num";
     private static final String SERVER_VERSION = "server_version";
+    private static final String OPTIMIZER_RULE = "optimizer_";
 
     public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()
             .put(SEARCH_PATH_KEY,
@@ -104,7 +108,30 @@ public class SessionSettingRegistry {
                     DataTypes.STRING.getName()
                 )
             )
-            .build();
+        .putAll(generateOptimizerRuleEntries())
+        .build();
+
+    private static Map<String, SessionSetting<?>> generateOptimizerRuleEntries() {
+        Map<String, SessionSetting<?>> result = new HashMap<>();
+        for (var rule : Rule.IMPLEMENTATIONS) {
+            String ruleName = OPTIMIZER_RULE + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, rule.getSimpleName());
+            result.put(ruleName, new SessionSetting<>(
+                objects -> {},
+                objects -> DataTypes.BOOLEAN.value(objects[0]),
+                (sessionContext, includeRule) -> {
+                    if (includeRule) {
+                        sessionContext.excludedOptimizerRules().remove(rule.getName());
+                    } else {
+                        sessionContext.excludedOptimizerRules().add(rule.getName());
+                    }
+                },
+                s -> String.valueOf(s.excludedOptimizerRules().contains(rule.getName()) == false),
+                () -> String.valueOf(true),
+                String.format("Indicates if the optimizer rule %s is activated.", rule.getSimpleName()),
+                DataTypes.STRING.getName()));
+        }
+        return result;
+    }
 
     private static String[] objectsToStringArray(Object[] objects) {
         String[] strings = new String[objects.length];
