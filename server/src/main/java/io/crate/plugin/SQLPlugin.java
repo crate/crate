@@ -23,7 +23,6 @@ package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLOperations;
-import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.auth.AuthSettings;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
@@ -197,7 +196,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new BulkModule());
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
-        modules.add(new RepositorySettingsModule());
         if (userExtension != null) {
             modules.addAll(userExtension.getModules(settings));
         } else {

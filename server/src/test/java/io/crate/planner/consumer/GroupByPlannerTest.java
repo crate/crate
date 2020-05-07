@@ -82,7 +82,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e  = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+        e  = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .enableDefaultTables()
             .addPartitionedTable(
                 "create table doc.clustered_parted (" +

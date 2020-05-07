@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -44,7 +45,7 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
     }
 
     private static SQLExecutor buildExecutor(ClusterService clusterService) throws IOException {
-        return SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+        return SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
     }

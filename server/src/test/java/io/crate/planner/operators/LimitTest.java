@@ -39,6 +39,7 @@ import io.crate.testing.ProjectionMatchers;
 import io.crate.testing.SQLExecutor;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
@@ -48,7 +49,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLimitOnLimitOperator() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
         QueriedSelectRelation queriedDocTable = e.analyze("select name from users");

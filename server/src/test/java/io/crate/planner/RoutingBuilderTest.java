@@ -56,7 +56,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, Randomness.get())
+        SQLExecutor e = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
             .addTable("create table custom.t1 (id int)")
             .build();
         tableInfo = e.schemas().getTableInfo(relationName);

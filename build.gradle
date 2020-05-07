@@ -161,23 +161,12 @@ final testLogger = new TestLogger();
 project.gradle.addListener(testLogger);
 
 
-def jacocoProjects() {
-    subprojects.findAll {
-        !['es-transport',
-          'es-testing',
-          'es-repository-hdfs',
-          'integration-testing',
-          'testing'].contains(it.name)
-    }
-}
-
-
 task jacocoReport(type: JacocoReport) {
     // tests must have been executed so that execution data for the sub projects is generated
     // this task doesn't define a hard dependency on the tests to avoid running them twice in travis-ci
     executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
 
-    jacocoProjects().each {
+    subprojects.each {
         evaluationDependsOn(it.path)
         if (it.plugins.withType(JavaPlugin) && it.tasks.withType(Test)) {
             sourceSets it.sourceSets.main

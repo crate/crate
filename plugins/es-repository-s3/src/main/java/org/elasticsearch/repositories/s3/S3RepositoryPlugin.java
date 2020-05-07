@@ -22,13 +22,14 @@ package org.elasticsearch.repositories.s3;
 import com.amazonaws.util.json.Jackson;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.analyze.repositories.TypeSettings;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -65,13 +66,6 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
         this.service = new S3Service();
     }
 
-    private S3Repository createRepository(final RepositoryMetaData metadata,
-                                          final Settings settings,
-                                          final NamedXContentRegistry registry,
-                                          final ThreadPool threadpool) {
-        return new S3Repository(metadata, settings, registry, service, threadpool);
-    }
-
     @Override
     public List<Setting<?>> getSettings() {
         return List.of(ACCESS_KEY_SETTING, SECRET_KEY_SETTING);
@@ -79,7 +73,21 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     @Override
     public Map<String, Repository.Factory> getRepositories(final Environment env, final NamedXContentRegistry registry, ThreadPool threadPool) {
-        return Collections.singletonMap(S3Repository.TYPE, (metadata) -> createRepository(metadata, env.settings(), registry, threadPool));
+        return Collections.singletonMap(
+            S3Repository.TYPE,
+            new Repository.Factory() {
+
+                @Override
+                public TypeSettings settings() {
+                    return new TypeSettings(S3Repository.mandatorySettings(), S3Repository.optionalSettings());
+                }
+
+                @Override
+                public Repository create(RepositoryMetaData metadata) throws Exception {
+                    return new S3Repository(metadata, env.settings(), registry, service, threadPool);
+                }
+            }
+        );
     }
 
     @Override

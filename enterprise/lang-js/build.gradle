@@ -26,10 +26,16 @@ dependencies {
     implementation "org.graalvm.sdk:graal-sdk:${versions.graalvm}"
     implementation "org.graalvm.truffle:truffle-api:${versions.graalvm}"
 
-    testImplementation project(':integration-testing')
     testImplementation project(path: ':server', configuration: 'testOutput')
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
     testImplementation 'org.skyscreamer:jsonassert:1.3.0'
-    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
     testImplementation "org.postgresql:postgresql:${versions.jdbc}"
+    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation "junit:junit:${versions.junit}"
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }

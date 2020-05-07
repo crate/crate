@@ -38,13 +38,15 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
+import java.util.List;
+
 public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION)
             .build();

@@ -51,6 +51,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -80,7 +81,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws IOException {
-        e = SQLExecutor.builder(clusterService, 2, Randomness.get())
+        e = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
             .addTable(USER_TABLE_DEFINITION)
             .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION)
             .addTable(T3.T1_DEFINITION)

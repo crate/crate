@@ -28,7 +28,10 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class TypeSettings {
 
@@ -40,8 +43,14 @@ public class TypeSettings {
     private final Map<String, Setting<?>> required;
     private final Map<String, Setting<?>> all;
 
-    TypeSettings(Map<String, Setting<?>> required,
-                 Map<String, Setting<?>> optional) {
+    public TypeSettings(List<Setting<?>> required, List<Setting<?>> optional) {
+        this(
+            required.stream().collect(Collectors.toMap(Setting::getKey, Function.identity())),
+            optional.stream().collect(Collectors.toMap(Setting::getKey, Function.identity()))
+        );
+    }
+
+    public TypeSettings(Map<String, Setting<?>> required, Map<String, Setting<?>> optional) {
         this.required = required;
         this.all = ImmutableMap.<String, Setting<?>>builder()
             .putAll(required)

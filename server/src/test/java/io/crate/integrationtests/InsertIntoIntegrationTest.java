@@ -597,8 +597,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 " kind string," +
                 " position long," +         // <<-- original type is integer, testing implicit cast
                 " description string," +
-                " race object," +
-                " index name_description_ft using fulltext(name, description) with (analyzer='english')" +
+                " race object" +
                 ") clustered by(id) into 2 shards with(number_of_replicas=0)");
 
         execute("insert into locations2 (select * from locations)");

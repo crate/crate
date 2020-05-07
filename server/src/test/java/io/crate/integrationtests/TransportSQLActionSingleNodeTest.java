@@ -202,25 +202,6 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
     }
 
-    @Test
-    public void testDDLStatementsWithTypes() throws Exception {
-        assertResponseWithTypes("create table bla2 (id integer primary key, name string) " +
-                                "clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        assertResponseWithTypes("alter table bla2 add column blubb string");
-        assertResponseWithTypes("refresh table bla2");
-        assertResponseWithTypes("drop table bla2");
-        assertResponseWithTypes("create blob table blablob2 clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        assertResponseWithTypes("drop blob table blablob2");
-
-        try {
-            assertResponseWithTypes("create ANALYZER \"german_snowball\" extends snowball WITH (language='german')");
-        } finally {
-            execute("drop analyzer german_snowball");
-        }
-    }
-
     private void assertResponseWithTypes(String stmt) {
         SQLResponse sqlResponse = execute(stmt);
         assertThat(sqlResponse.columnTypes(), is(notNullValue()));

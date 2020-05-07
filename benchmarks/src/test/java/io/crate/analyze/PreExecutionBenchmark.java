@@ -50,6 +50,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -73,7 +74,7 @@ public class PreExecutionBenchmark {
         DiscoveryNode localNode = newNode("benchmarkNode", "n1");
         ClusterService clusterService = createClusterService(threadPool, localNode);
         long dummySeed = 10;
-        e = SQLExecutor.builder(clusterService, 1, new Random(dummySeed))
+        e = SQLExecutor.builder(clusterService, 1, new Random(dummySeed), List.of())
             .addTable("create table users (id int primary key, name string, date timestamp, text string index using fulltext)")
             .build();
         selectStatement = SqlParser.createStatement("select name from users");

@@ -19,10 +19,16 @@
 
 package org.elasticsearch.repositories.hdfs;
 
+import io.crate.analyze.repositories.TypeSettings;
 import io.crate.common.SuppressForbidden;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.GenericProperty;
+
 import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolPB;
 import org.apache.hadoop.security.KerberosInfo;
 import org.apache.hadoop.security.SecurityUtil;
+import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.Plugin;
@@ -117,6 +123,44 @@ public final class HdfsPlugin extends Plugin implements RepositoryPlugin {
                                                            ThreadPool threadPool) {
         return Collections.singletonMap(
             "hdfs",
-            (metadata) -> new HdfsRepository(metadata, env, namedXContentRegistry, threadPool));
+            new Repository.Factory() {
+
+                @Override
+                public TypeSettings settings() {
+                    Map<String, Setting<?>> optionalSettings = Map.ofEntries(
+                        Map.entry("uri", Setting.simpleString("uri", Setting.Property.NodeScope)),
+                        Map.entry("security.principal", Setting.simpleString("security.principal", Setting.Property.NodeScope)),
+                        Map.entry("path", Setting.simpleString("path", Setting.Property.NodeScope)),
+                        Map.entry("load_defaults", Setting.boolSetting("load_defaults", true, Setting.Property.NodeScope)),
+                        Map.entry("compress", Setting.boolSetting("compress", true, Setting.Property.NodeScope)),
+                        // We cannot use a ByteSize setting as it doesn't support NULL and it must be NULL as default to indicate to
+                        // not override the default behaviour.
+                        Map.entry("chunk_size", Setting.simpleString("chunk_size"))
+                    );
+                    return new TypeSettings(Map.of(), optionalSettings) {
+
+                        @Override
+                        public GenericProperties<?> dynamicProperties(GenericProperties<?> genericProperties) {
+                            if (genericProperties.isEmpty()) {
+                                return genericProperties;
+                            }
+                            GenericProperties<?> dynamicProperties = new GenericProperties<>();
+                            for (Map.Entry<String, ?> entry : genericProperties.properties().entrySet()) {
+                                String key = entry.getKey();
+                                if (key.startsWith("conf.")) {
+                                    dynamicProperties.add(new GenericProperty(key, entry.getValue()));
+                                }
+                            }
+                            return dynamicProperties;
+                        }
+                    };
+                }
+
+                @Override
+                public Repository create(RepositoryMetaData metadata) throws Exception {
+                    return new HdfsRepository(metadata, env, namedXContentRegistry, threadPool);
+                }
+            }
+        );
     }
 }

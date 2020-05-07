@@ -2,9 +2,17 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 
 dependencies {
     implementation project(':libs:shared')
-    implementation project(':es:es-server')
+    implementation project(':server')
     implementation "com.microsoft.azure:azure-storage:${versions.azure_storage}"
     implementation "com.microsoft.azure:azure-keyvault-core:${versions.azure_keyvault}"
 
-    testImplementation project(':es:es-testing')
+    testImplementation project(path: ':server', configuration: 'testOutput')
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation "junit:junit:${versions.junit}"
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }

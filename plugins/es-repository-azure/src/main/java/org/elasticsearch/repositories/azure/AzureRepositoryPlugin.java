@@ -19,6 +19,7 @@
 
 package org.elasticsearch.repositories.azure;
 
+import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -26,6 +27,8 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.analyze.repositories.TypeSettings;
 
 import java.util.Collections;
 import java.util.List;
@@ -48,12 +51,25 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
                                                            ThreadPool threadPool) {
         return Collections.singletonMap(
             AzureRepository.TYPE,
-            (metadata) -> new AzureRepository(
-                metadata,
-                env,
-                namedXContentRegistry,
-                azureStoreService,
-                threadPool)
+            new Repository.Factory() {
+
+                @Override
+                public TypeSettings settings() {
+                    return new TypeSettings(
+                        AzureRepository.mandatorySettings(), AzureRepository.optionalSettings());
+                }
+
+                @Override
+                public Repository create(RepositoryMetaData metadata) throws Exception {
+                    return new AzureRepository(
+                        metadata,
+                        env,
+                        namedXContentRegistry,
+                        azureStoreService,
+                        threadPool
+                    );
+                }
+            }
         );
     }
 

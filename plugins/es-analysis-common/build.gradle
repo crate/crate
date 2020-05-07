@@ -23,5 +23,18 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
 dependencies {
-    compile project(':es:es-server')
+    implementation project(':server')
+
+    testImplementation project(path: ':server', configuration: 'testOutput')
+    testImplementation project(path: ':libs:dex', configuration: 'testOutput')
+
+    testImplementation "org.postgresql:postgresql:${versions.jdbc}"
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "junit:junit:${versions.junit}"
+    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }

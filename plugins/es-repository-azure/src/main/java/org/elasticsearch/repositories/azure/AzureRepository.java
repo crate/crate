@@ -164,7 +164,8 @@ public class AzureRepository extends BlobStoreRepository {
     private final AzureStorageService storageService;
     private final boolean readonly;
 
-    public AzureRepository(RepositoryMetaData metadata, Environment environment,
+    public AzureRepository(RepositoryMetaData metadata,
+                           Environment environment,
                            NamedXContentRegistry namedXContentRegistry,
                            AzureStorageService storageService,
                            ThreadPool threadPool) {

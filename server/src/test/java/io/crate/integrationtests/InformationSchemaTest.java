@@ -105,39 +105,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromInformationSchema() {
-        execute("create table quotes (" +
-                "id integer primary key, " +
-                "quote string index off, " +
-                "__quote_info int, " +
-                "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
-                ") clustered by (id) into 3 shards with (number_of_replicas=0)");
-
-        execute("select table_name, number_of_shards, number_of_replicas, clustered_by from " +
-                "information_schema.tables " +
-                "where table_name='quotes'");
-        assertEquals(1L, response.rowCount());
-        assertEquals("quotes", response.rows()[0][0]);
-        assertEquals(3, response.rows()[0][1]);
-        assertEquals("0", response.rows()[0][2]);
-        assertEquals("id", response.rows()[0][3]);
-
-        execute("select * from information_schema.columns where table_name='quotes'");
-        assertEquals(3L, response.rowCount());
-
-        execute("select * from information_schema.table_constraints where table_schema = ? and table_name='quotes'",
-            new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1L, response.rowCount());
-
-        execute("select table_name from information_schema.columns where table_schema = ? and table_name='quotes' " +
-                "and column_name='__quote_info'", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1L, response.rowCount());
-
-        execute("select * from information_schema.routines");
-        assertEquals(125L, response.rowCount());
-    }
-
-    @Test
     @UseRandomizedSchema(random = false)
     public void testSelectViewsFromInformationSchema() {
         execute("CREATE TABLE t1 (id INTEGER, name STRING) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas=1)");
@@ -480,56 +447,19 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[2][1], is(sqlExecutor.getCurrentSchema() + "_test2_Col2a_not_null"));
     }
 
-    @Test
-    public void testSelectFromRoutines() {
-        String stmt1 = "CREATE ANALYZER myAnalyzer WITH (" +
-                       "  TOKENIZER whitespace," +
-                       "  TOKEN_FILTERS (" +
-                       "     myTokenFilter WITH (" +
-                       "      type='snowball'," +
-                       "      language='german'" +
-                       "    )," +
-                       "    kstem" +
-                       "  )" +
-                       ")";
-        execute(stmt1);
-        execute("CREATE ANALYZER myOtherAnalyzer extends german (" +
-                "  stopwords=[?, ?, ?]" +
-                ")", new Object[]{"der", "die", "das"});
-        ensureGreen();
-        execute("SELECT routine_name, routine_type, routine_definition from INFORMATION_SCHEMA.routines " +
-                "where routine_name = 'myanalyzer' " +
-                "or routine_name = 'myotheranalyzer' " +
-                "and routine_type = 'ANALYZER' " +
-                "order by routine_name asc");
-        assertEquals(2L, response.rowCount());
-        assertThat(printedTable(response.rows()), is(
-            "myanalyzer| ANALYZER| {\"filter\":[\"myanalyzer_mytokenfilter\",\"kstem\"],\"tokenizer\":\"whitespace\",\"type\":\"custom\"}\n" +
-            "myotheranalyzer| ANALYZER| {\"stopwords\":[\"der\",\"die\",\"das\"],\"type\":\"german\"}\n"));
-
-        assertEquals("myanalyzer", response.rows()[0][0]);
-        assertEquals("ANALYZER", response.rows()[0][1]);
-        assertEquals("myotheranalyzer", response.rows()[1][0]);
-        assertEquals("ANALYZER", response.rows()[1][1]);
-
-        execute("drop analyzer myanalyzer");
-        execute("drop analyzer myotheranalyzer");
-    }
 
     @Test
     public void testSelectAnalyzersFromRoutines() {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='ANALYZER' order by " +
                 "routine_name desc limit 5");
-        assertEquals(5L, response.rowCount());
-        String[] analyzerNames = new String[response.rows().length];
-        for (int i = 0; i < response.rowCount(); i++) {
-            analyzerNames[i] = (String) response.rows()[i][0];
-        }
-        assertEquals(
-            "whitespace, turkish, thai, swedish, stop",
-            Joiner.on(", ").join(analyzerNames)
-        );
+        assertThat(printedTable(response.rows()), is(
+            "whitespace\n" +
+            "stop\n" +
+            "standard\n" +
+            "simple\n" +
+            "keyword\n"
+        ));
     }
 
     @Test
@@ -537,15 +467,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='TOKENIZER' order by " +
                 "routine_name asc limit 5");
-        assertEquals(5L, response.rowCount());
-        String[] tokenizerNames = new String[response.rows().length];
-        for (int i = 0; i < response.rowCount(); i++) {
-            tokenizerNames[i] = (String) response.rows()[i][0];
-        }
-        assertEquals(
-            "PathHierarchy, char_group, classic, edge_ngram, keyword",
-            Joiner.on(", ").join(tokenizerNames)
-        );
+        assertThat(printedTable(response.rows()), is("standard\n"));
     }
 
     @Test
@@ -553,15 +475,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='TOKEN_FILTER' order by " +
                 "routine_name asc limit 5");
-        assertEquals(5L, response.rowCount());
-        String[] tokenFilterNames = new String[response.rows().length];
-        for (int i = 0; i < response.rowCount(); i++) {
-            tokenFilterNames[i] = (String) response.rows()[i][0];
-        }
-        assertEquals(
-            "apostrophe, arabic_normalization, arabic_stem, asciifolding, bengali_normalization",
-            Joiner.on(", ").join(tokenFilterNames)
-        );
+        assertThat(printedTable(response.rows()), is(
+            "cjk_bigram\n" +
+            "cjk_width\n" +
+            "delimited_payload_filter\n" +
+            "dictionary_decompounder\n" +
+            "hunspell\n"
+        ));
     }
 
     @Test
@@ -569,15 +489,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='CHAR_FILTER' order by " +
                 "routine_name asc");
-        assertEquals(3L, response.rowCount());
-        String[] charFilterNames = new String[response.rows().length];
-        for (int i = 0; i < response.rowCount(); i++) {
-            charFilterNames[i] = (String) response.rows()[i][0];
-        }
-        assertEquals(
-            "html_strip, mapping, pattern_replace",
-            Joiner.on(", ").join(charFilterNames)
-        );
+        assertThat(printedTable(response.rows()), is(
+            "mapping\n" +
+            "pattern_replace\n"
+        ));
     }
 
     @Test

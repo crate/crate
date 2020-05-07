@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -30,7 +31,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .enableDefaultTables()
             .build();
     }

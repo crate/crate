@@ -31,6 +31,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -746,10 +747,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table quotes (" +
                 "id integer primary key, " +
                 "quote string index off, " +
-                "o object(ignored), " +
-                "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
+                "o object(ignored) " +
                 ") clustered by (id) into 3 shards with (number_of_replicas = 0)");
-        ensureYellow();
         execute("insert into quotes (id, quote) values (1, '\"Nothing particularly exciting," +
                 "\" it admitted, \"but they are alternatives.\"')");
         execute("insert into quotes (id, quote) values (2, '\"Have another drink," +
@@ -1075,18 +1074,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectFormatFunction() throws Exception {
-        this.setup.setUpLocations();
-        ensureYellow();
-        refresh();
-
-        execute("select format('%s is a %s', name, kind) as sentence from locations order by name");
-        assertThat(response.rowCount(), is(13L));
-        assertArrayEquals(response.cols(), new String[]{"sentence"});
-        assertThat(response.rows()[0].length, is(1));
-        assertThat((String) response.rows()[0][0], is(" is a Planet"));
-        assertThat((String) response.rows()[1][0], is("Aldebaran is a Star System"));
-        assertThat((String) response.rows()[2][0], is("Algol is a Star System"));
-        // ...
+        execute("create table tbl (name text, kind text)");
+        execute("insert into tbl (name, kind) values ('', 'Planet'), ('Aldebaran', 'Star System'), ('Algol', 'Star System')");
+        execute("refresh table tbl");
+        execute("select format('%s is a %s', name, kind) as sentence from tbl order by name");
+        assertThat(response.cols(), Matchers.arrayContaining("sentence"));
+        assertThat(printedTable(response.rows()), is(
+            " is a Planet\n" +
+            "Aldebaran is a Star System\n" +
+            "Algol is a Star System\n"
+        ));
 
     }
 
@@ -1444,21 +1441,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testWhereColumnEqColumnAndFunctionEqFunction() throws Exception {
-        this.setup.setUpLocations();
-        ensureYellow();
-        refresh();
+        execute("create table tbl (name text)");
+        execute("insert into tbl (name) values ('Arthur'), ('Trillian')");
+        execute("refresh table tbl");
 
-        execute("select name from locations where name = name");
-        assertThat(response.rowCount(), is(13L));
+        execute("select name from tbl where name = name");
+        assertThat(response.rowCount(), is(2L));
 
-        execute("select name from locations where substr(name, 1, 1) = substr(name, 1, 1)");
-        assertThat(response.rowCount(), is(13L));
+        execute("select name from tbl where substr(name, 1, 1) = substr(name, 1, 1)");
+        assertThat(response.rowCount(), is(2L));
     }
 
     @Test
     public void testNewColumn() throws Exception {
         execute("create table t (name string) with (number_of_replicas=0, column_policy = 'dynamic')");
-        ensureYellow();
         execute("insert into t (name, score) values ('Ford', 1.2)");
     }
 

@@ -133,10 +133,10 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 " col_a string index off," +
                 " col_b string index using plain," +
                 " col_c string index using fulltext," +
-                " col_d string index using fulltext with (analyzer='english')," +
+                " col_d string index using fulltext with (analyzer='stop')," +
                 " col_e string," +
                 " col_f string," +
-                " index index_ft using fulltext(\"col_e\",\"col_f\") with (analyzer='english')" +
+                " index index_ft using fulltext(\"col_e\",\"col_f\") with (analyzer='stop')" +
                 ") " +
                 "clustered into 2 shards");
         execute("show create table test");
@@ -147,12 +147,12 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                   "      analyzer = 'standard'\n" +
                   "   ),\n" +
                   "   \"col_d\" TEXT INDEX USING FULLTEXT WITH (\n" +
-                  "      analyzer = 'english'\n" +
+                  "      analyzer = 'stop'\n" +
                   "   ),\n" +
                   "   \"col_e\" TEXT,\n" +
                   "   \"col_f\" TEXT,\n" +
                   "   INDEX \"index_ft\" USING FULLTEXT (\"col_e\", \"col_f\") WITH (\n" +
-                  "      analyzer = 'english'\n" +
+                  "      analyzer = 'stop'\n" +
                   "   )\n" +
                   ")\n" +
                   "CLUSTERED INTO 2 SHARDS\n" +
