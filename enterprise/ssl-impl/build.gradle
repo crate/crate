@@ -6,10 +6,8 @@ description = 'SSL Encryption Implementation for CrateDB'
 
 dependencies {
     implementation project(':libs:shared')
-    implementation project(':common')
-    implementation project(':ssl')
+    implementation project(':server')
     implementation project(':es:es-server')
-    implementation project(':es:es-transport')
     implementation "io.netty:netty-handler:${versions.netty4}"
     implementation "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
 
@@ -18,5 +16,4 @@ dependencies {
     testImplementation project(path: ':server', configuration: 'testOutput')
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')
     testImplementation "org.postgresql:postgresql:${versions.jdbc}"
-    testCompile project(':http')
 }

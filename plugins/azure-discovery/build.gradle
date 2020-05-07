@@ -23,7 +23,7 @@ dependencies {
     implementation project(':libs:shared')
     implementation project(':es:es-server')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
-    compileOnly project(':common')
+    compileOnly project(':server')
     compileOnly('com.microsoft.azure:azure-mgmt-utility:0.9.8') {
         exclude group: 'stax', module: 'stax-api'
         exclude group: 'javax.mail', module: 'mail'
@@ -34,7 +34,7 @@ dependencies {
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
     testImplementation project(':integration-testing')
-    testImplementation project(':http')
+    testImplementation project(':server')
     testImplementation('com.microsoft.azure:azure-mgmt-utility:0.9.8') {
         exclude group: 'stax', module: 'stax-api'
         exclude group: 'javax.mail', module: 'mail'

@@ -38,7 +38,6 @@ description = 'CrateDB License Management'
 
 dependencies {
     implementation project(':libs:shared')
-    implementation project(':common')
     implementation project(':server')
     testImplementation project(':integration-testing')
     testImplementation project(path: ':server', configuration: 'testOutput')

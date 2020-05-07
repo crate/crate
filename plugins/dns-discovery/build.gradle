@@ -5,7 +5,7 @@ group = 'io.crate'
 
 dependencies {
     implementation project(':libs:shared')
-    implementation project(':common')
+    implementation project(':server')
     implementation project(':es:es-server')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     implementation "io.netty:netty-resolver-dns:${versions.netty4}"

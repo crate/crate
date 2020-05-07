@@ -6,8 +6,6 @@ description = 'User Management for CrateDB'
 
 dependencies {
     implementation project(':server')
-    implementation project(':http')
-    implementation project(':es:es-transport')
     implementation project(':libs:sql-parser')
     implementation "io.netty:netty-codec-http:${versions.netty4}"
     testImplementation project(':integration-testing')

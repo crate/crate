@@ -28,6 +28,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -120,7 +121,7 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
     private static void assertIsIndexResponse(CloseableHttpResponse response) throws IOException {
         //response body should not be null
         String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertThat(bodyAsString, is("<h1>Crate Admin</h1>\n"));
+        assertThat(bodyAsString, Matchers.startsWith("<h1>Crate Admin</h1>"));
         assertThat(response.getHeaders("Content-Type")[0].getValue(), is("text/html"));
     }
 

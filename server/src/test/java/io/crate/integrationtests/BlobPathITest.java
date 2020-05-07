@@ -47,6 +47,7 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
+@WindowsIncompatible
 public class BlobPathITest extends BlobIntegrationTestBase {
 
     private BlobHttpClient client;
