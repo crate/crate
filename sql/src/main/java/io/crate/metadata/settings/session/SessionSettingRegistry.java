@@ -112,22 +112,25 @@ public class SessionSettingRegistry {
         .build();
 
     private static Map<String, SessionSetting<?>> generateOptimizerRuleEntries() {
-        Map<String, SessionSetting<?>> result = new HashMap<>();
+        var result = new HashMap<String, SessionSetting<?>>();
         for (var rule : Rule.IMPLEMENTATIONS) {
-            String ruleName = OPTIMIZER_RULE + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, rule.getSimpleName());
-            result.put(ruleName, new SessionSetting<>(
+            var fullName = rule.getName();
+            var simpleName = rule.getSimpleName();
+            var optimizerRuleName = OPTIMIZER_RULE + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE,
+                                                                                  simpleName);
+            result.put(optimizerRuleName, new SessionSetting<>(
                 objects -> {},
                 objects -> DataTypes.BOOLEAN.value(objects[0]),
                 (sessionContext, includeRule) -> {
                     if (includeRule) {
-                        sessionContext.excludedOptimizerRules().remove(rule.getName());
+                        sessionContext.excludedOptimizerRules().remove(fullName);
                     } else {
-                        sessionContext.excludedOptimizerRules().add(rule.getName());
+                        sessionContext.excludedOptimizerRules().add(fullName);
                     }
                 },
-                s -> String.valueOf(s.excludedOptimizerRules().contains(rule.getName()) == false),
+                s -> String.valueOf(s.excludedOptimizerRules().contains(fullName) == false),
                 () -> String.valueOf(true),
-                String.format("Indicates if the optimizer rule %s is activated.", rule.getSimpleName()),
+                String.format("Indicates if the optimizer rule %s is activated.", simpleName),
                 DataTypes.BOOLEAN.getName()));
         }
         return result;
