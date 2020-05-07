@@ -104,7 +104,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
             Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
-        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_DEFINITION)
             .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)

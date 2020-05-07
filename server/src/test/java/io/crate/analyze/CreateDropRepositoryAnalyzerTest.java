@@ -21,8 +21,27 @@
 
 package io.crate.analyze;
 
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
+
+import java.util.Collections;
+import java.util.Map;
+
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
+import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.repositories.fs.FsRepository;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.repositories.RepositoryParamValidator;
-import io.crate.analyze.repositories.RepositorySettingsModule;
+import io.crate.analyze.repositories.TypeSettings;
 import io.crate.data.Row;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.RepositoryUnknownException;
@@ -31,23 +50,6 @@ import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
-import org.elasticsearch.cluster.metadata.RepositoryMetaData;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ClusterServiceUtils;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
 
 public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -71,10 +73,9 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
         ClusterServiceUtils.setState(clusterService, clusterState);
         e = SQLExecutor.builder(clusterService).build();
         plannerContext = e.getPlannerContext(clusterService.state());
-        repositoryParamValidator = new ModulesBuilder()
-            .add(new RepositorySettingsModule())
-            .createInjector()
-            .getInstance(RepositoryParamValidator.class);
+        repositoryParamValidator = new RepositoryParamValidator(Map.of(
+            "fs", new TypeSettings(FsRepository.mandatorySettings(), FsRepository.optionalSettings())
+        ));
     }
 
     @SuppressWarnings("unchecked")
@@ -132,116 +133,4 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
         assertThat(statement.name(), is("my_repo"));
     }
 
-    @Test
-    public void testCreateS3RepositoryWithAllSettings() {
-        PutRepositoryRequest request = analyze(
-            e,
-            "CREATE REPOSITORY foo TYPE s3 WITH (" +
-            "   bucket='abc'," +
-            "   endpoint='www.example.com'," +
-            "   protocol='http'," +
-            "   base_path='/holz/'," +
-            "   access_key='0xAFFE'," +
-            "   secret_key='0xCAFEE'," +
-            "   chunk_size='12mb'," +
-            "   compress=true," +
-            "   server_side_encryption=false," +
-            "   buffer_size='5mb'," +
-            "   max_retries=2," +
-            "   use_throttle_retries=false," +
-            "   readonly=false, " +
-            "   canned_acl=false)");
-        assertThat(request.name(), is("foo"));
-        assertThat(request.type(), is("s3"));
-        assertThat(
-            request.settings().getAsStructuredMap(),
-            allOf(
-                hasEntry("access_key", "0xAFFE"),
-                hasEntry("base_path", "/holz/"),
-                hasEntry("bucket", "abc"),
-                hasEntry("buffer_size", "5mb"),
-                hasEntry("canned_acl", "false"),
-                hasEntry("chunk_size", "12mb"),
-                hasEntry("compress", "true"),
-                hasEntry("endpoint", "www.example.com"),
-                hasEntry("max_retries", "2"),
-                hasEntry("use_throttle_retries", "false"),
-                hasEntry("protocol", "http"),
-                hasEntry("secret_key", "0xCAFEE"),
-                hasEntry("server_side_encryption", "false"),
-                hasEntry("readonly", "false")
-            )
-        );
-    }
-
-    @Test
-    public void testCreateS3RepoWithMissingMandatorySettings() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The following required parameters are missing to" +
-                                        " create a repository of type \"s3\": [secret_key]");
-        analyze(e, "CREATE REPOSITORY foo TYPE s3 WITH (access_key='test')");
-    }
-
-    @Test
-    public void testCreateAzureRepositoryWithAllSettings() {
-        PutRepositoryRequest request = analyze(
-            e,
-            "CREATE REPOSITORY foo TYPE azure WITH (" +
-            "   container='test_container'," +
-            "   base_path='test_path'," +
-            "   chunk_size='12mb'," +
-            "   compress=true," +
-            "   readonly=true," +
-            "   location_mode='primary_only'," +
-            "   account='test_account'," +
-            "   key='test_key'," +
-            "   max_retries=3," +
-            "   endpoint_suffix='.com'," +
-            "   timeout='30s'," +
-            "   proxy_port=0," +
-            "   proxy_type='socks'," +
-            "   proxy_host='localhost')");
-        assertThat(request.name(), is("foo"));
-        assertThat(request.type(), is("azure"));
-        assertThat(
-            request.settings().getAsStructuredMap(),
-            allOf(
-                hasEntry("container", "test_container"),
-                hasEntry("base_path", "test_path"),
-                hasEntry("chunk_size", "12mb"),
-                hasEntry("compress", "true"),
-                hasEntry("readonly", "true"),
-                hasEntry("account", "test_account"),
-                hasEntry("key", "test_key"),
-                hasEntry("max_retries", "3"),
-                hasEntry("endpoint_suffix", ".com"),
-                hasEntry("timeout", "30s"),
-                hasEntry("proxy_port", "0"),
-                hasEntry("proxy_type", "socks"),
-                hasEntry("proxy_host", "localhost")
-            )
-        );
-    }
-
-    @Test
-    public void testCreateAzureRepoWithMissingMandatorySettings() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The following required parameters are missing to" +
-                                        " create a repository of type \"azure\": [key]");
-        analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (account='test')");
-    }
-
-    @Test
-    public void testCreateAzureRepoWithWrongSettings() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("setting 'wrong' not supported");
-        analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (wrong=true)");
-    }
-
-    @Test
-    public void testCreateS3RepoWithWrongSettings() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("setting 'wrong' not supported");
-        analyze(e, "CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)");
-    }
 }

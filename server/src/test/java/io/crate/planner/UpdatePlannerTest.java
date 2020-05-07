@@ -54,6 +54,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;
@@ -77,7 +78,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private static SQLExecutor buildExecutor(ClusterService clusterService) throws IOException {
-        return SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
+        return SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .enableDefaultTables()
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,

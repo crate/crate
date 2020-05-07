@@ -46,6 +46,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -67,7 +68,7 @@ public class NodeOperationCtxBenchmark {
         threadPool = new ThreadPool(Settings.builder().put(Node.NODE_NAME_SETTING.getKey(), "benchmarkNode").build());
         DiscoveryNode localNode = DiscoveryNodes.newNode("benchmarkNode", "n1");
         ClusterService clusterService = createClusterService(threadPool, localNode);
-        SQLExecutor e = SQLExecutor.builder(clusterService, 1, new Random()).build();
+        SQLExecutor e = SQLExecutor.builder(clusterService, 1, new Random(), List.of()).build();
         ExecutionPlan executionPlan = e.plan("select name from sys.cluster group by name");
 
         NodeOperationTree nodeOperationTree = NodeOperationTreeGenerator.fromPlan(executionPlan, "n1");

@@ -284,7 +284,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithIndex() throws Exception {
         execute("create table quotes (quote string, " +
-                "index quote_fulltext using fulltext(quote) with (analyzer='english')) with (number_of_replicas = 0)");
+                "index quote_fulltext using fulltext(quote) with (analyzer='stop')) with (number_of_replicas = 0)");
         String quote = "Would it save you a lot of time if I just gave up and went mad now?";
         execute("insert into quotes values (?)", new Object[]{quote});
         execute("refresh table quotes");
@@ -302,7 +302,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithCompositeIndex() throws Exception {
         execute("create table novels (title string, description string, " +
                 "index title_desc_fulltext using fulltext(title, description) " +
-                "with(analyzer='english')) with (number_of_replicas = 0)");
+                "with(analyzer='stop')) with (number_of_replicas = 0)");
 
         String title = "So Long, and Thanks for All the Fish";
         String description = "Many were increasingly of the opinion that they'd all made a big " +

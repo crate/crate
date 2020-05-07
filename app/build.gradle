@@ -20,7 +20,6 @@ configurations {
     }
 }
 
-evaluationDependsOn(':es')
 evaluationDependsOn(':server')
 evaluationDependsOn(':libs:sql-parser')
 evaluationDependsOn(':libs:dex')
@@ -48,13 +47,19 @@ dependencies {
     runtime project(':enterprise:licensing')
     runtime project(':enterprise:lang-js')
 
-    testCompile project(':integration-testing')
     testCompile project(path: ':server', configuration: 'testOutput')
     testCompile("org.postgresql:postgresql:${versions.jdbc}")
+    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
     testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation "junit:junit:${versions.junit}"
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')
 
-    compileNotTransitive project(':es:es-server')
     compileNotTransitive project(':server')
     compileNotTransitive project(':libs:sql-parser')
     compileNotTransitive project(':libs:pgwire')
@@ -73,23 +78,23 @@ dependencies {
 
 task release(dependsOn: 'distTar') {
     doLast {
-        logger.info("released version: " + project(':es:es-server').getVersion.version)
+        logger.info("released version: " + project(':server').getVersion.version)
     }
 }
 
 task releaseZip(dependsOn: 'distZip') {
     doLast {
-        logger.info("released version: " + project(':es:es-server').getVersion.version)
+        logger.info("released version: " + project(':server').getVersion.version)
     }
 }
 
 task nightly(dependsOn: 'distTar') {
     doLast {
-        logger.info("nightly version: " + project(':es:es-server').getVersion.version)
+        logger.info("nightly version: " + project(':server').getVersion.version)
     }
 }
 
-task writeBuildInfo(dependsOn: [':es:es-server:getVersion']) {
+task writeBuildInfo(dependsOn: [':server:getVersion']) {
     doLast {
         def hash = "git rev-parse HEAD".execute().in.text.trim()
 
@@ -105,7 +110,7 @@ task writeBuildInfo(dependsOn: [':es:es-server:getVersion']) {
         copy {
             into('src/main/dist/bin')
             from('src/bin') {
-                filter(ReplaceTokens, tokens: [version: project(':es:es-server').getVersion.version])
+                filter(ReplaceTokens, tokens: [version: project(':server').getVersion.version])
             }
         }
 
@@ -133,9 +138,9 @@ def libs = project.configurations.runtime.filter {
 
 // For releases choose the file under the release_notes structure
 // and for all other builds choose CHANGES.txt which contains the unreleased changes
-task chooseReleaseNotes(dependsOn: [':es:es-server:getVersion']) {
+task chooseReleaseNotes(dependsOn: [':server:getVersion']) {
     doLast {
-        def version = project(':es:es-server').getVersion.version
+        def version = project(':server').getVersion.version
         def releaseNotesDir = "$rootDir/blackbox/docs/appendices/release-notes"
         def releaseNotesFile = version.replaceAll('-.*', '') + '.rst'
         if (new File(releaseNotesDir + "/" + releaseNotesFile).exists()) {
@@ -158,7 +163,7 @@ task chooseReleaseNotes(dependsOn: [':es:es-server:getVersion']) {
 }
 
 tasks.withType(Tar) {
-    dependsOn ':es:es-server:getVersion'
+    dependsOn ':server:getVersion'
     dependsOn 'chooseReleaseNotes'
     dependsOn 'createCrateNodeScripts'
     compression = Compression.GZIP
@@ -166,7 +171,7 @@ tasks.withType(Tar) {
 }
 
 tasks.withType(Zip) {
-    dependsOn ':es:es-server:getVersion'
+    dependsOn ':server:getVersion'
     dependsOn 'chooseReleaseNotes'
     dependsOn 'createCrateNodeScripts'
 }
@@ -290,14 +295,14 @@ distributions {
 }
 
 jar {
-    dependsOn ':es:es-server:getVersion'
+    dependsOn ':server:getVersion'
 
     doFirst {
-        manifest.attributes 'Implementation-Version': project(':es:es-server').getVersion.version
+        manifest.attributes 'Implementation-Version': project(':server').getVersion.version
         // Needed by ES which validates those manifest attributes in Build class
-        manifest.attributes 'Build-Date': project(':es:es-server').getVersion.buildDate
-        manifest.attributes 'Change': project(':es:es-server').getVersion.buildShortHash
-        project.version = project(':es:es-server').getVersion.version
+        manifest.attributes 'Build-Date': project(':server').getVersion.buildDate
+        manifest.attributes 'Change': project(':server').getVersion.buildShortHash
+        project.version = project(':server').getVersion.version
         def serviceDir = file("$buildDir/META-INF/services")
         serviceDir.deleteDir()
         serviceDir.mkdirs()

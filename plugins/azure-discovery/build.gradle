@@ -21,7 +21,7 @@ jar.dependsOn('writePropertiesFile')
 
 dependencies {
     implementation project(':libs:shared')
-    implementation project(':es:es-server')
+    implementation project(':server')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compileOnly project(':server')
     compileOnly('com.microsoft.azure:azure-mgmt-utility:0.9.8') {
@@ -33,8 +33,8 @@ dependencies {
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    testImplementation project(':integration-testing')
     testImplementation project(':server')
+    testImplementation project(path: ':server', configuration: 'testOutput')
     testImplementation('com.microsoft.azure:azure-mgmt-utility:0.9.8') {
         exclude group: 'stax', module: 'stax-api'
         exclude group: 'javax.mail', module: 'mail'
@@ -42,6 +42,14 @@ dependencies {
         exclude group: 'commons-codec', module: 'commons-codec'
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+    }
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation "junit:junit:${versions.junit}"
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
     }
 }
 

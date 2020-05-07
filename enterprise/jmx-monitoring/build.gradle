@@ -8,6 +8,12 @@ dependencies {
     implementation project(':libs:dex')
     implementation project(':server')
 
-    testImplementation project(':integration-testing')
     testImplementation project(path: ':server', configuration: 'testOutput')
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testImplementation "junit:junit:${versions.junit}"
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }

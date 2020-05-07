@@ -97,7 +97,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
-import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.EmptyClusterInfoService;
@@ -126,6 +125,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.indices.analysis.AnalysisModule;
+import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 
@@ -136,6 +136,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
@@ -222,7 +223,10 @@ public class SQLExecutor {
         private boolean hasValidLicense = true;
         private Schemas schemas;
 
-        private Builder(ClusterService clusterService, int numNodes, Random random) {
+        private Builder(ClusterService clusterService,
+                        int numNodes,
+                        Random random,
+                        List<AnalysisPlugin> analysisPlugins) {
             Preconditions.checkArgument(numNodes >= 1, "Must have at least 1 node");
             this.random = random;
             this.clusterService = clusterService;
@@ -261,8 +265,7 @@ public class SQLExecutor {
                 homeDir.toPath().resolve("config")
             );
             try {
-                analysisRegistry = new AnalysisModule(environment, singletonList(new CommonAnalysisPlugin()))
-                    .getAnalysisRegistry();
+                analysisRegistry = new AnalysisModule(environment, analysisPlugins).getAnalysisRegistry();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -606,11 +609,14 @@ public class SQLExecutor {
     }
 
     public static Builder builder(ClusterService clusterService) {
-        return new Builder(clusterService, 1, Randomness.get());
+        return new Builder(clusterService, 1, Randomness.get(), List.of());
     }
 
-    public static Builder builder(ClusterService clusterService, int numNodes, Random random) {
-        return new Builder(clusterService, numNodes, random);
+    public static Builder builder(ClusterService clusterService,
+                                  int numNodes,
+                                  Random random,
+                                  List<AnalysisPlugin> analysisPlugins) {
+        return new Builder(clusterService, numNodes, random, analysisPlugins);
     }
 
     /**

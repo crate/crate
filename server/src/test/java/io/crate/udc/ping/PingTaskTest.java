@@ -29,8 +29,8 @@ import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ExtendedOsInfo;
 import io.crate.monitor.SysInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
+import io.crate.types.DataTypes;
+
 import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -109,18 +109,9 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         assertThat(testServer.responses.size(), is(1));
         task.run();
         assertThat(testServer.responses.size(), is(2));
-        for (long i = 0; i < testServer.responses.size(); i++) {
+        for (int i = 0; i < testServer.responses.size(); i++) {
             String json = testServer.responses.get((int) i);
-            Map<String, String> map = new HashMap<>();
-            ObjectMapper mapper = new ObjectMapper();
-            try {
-                //convert JSON string to Map
-                map = mapper.readValue(json,
-                    new TypeReference<HashMap<String, String>>() {});
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            Map<String, Object> map = DataTypes.UNTYPED_OBJECT.value(json);
 
             assertThat(map, hasKey("kernel"));
             assertThat(map.get("kernel"), is(notNullValue()));
@@ -130,11 +121,10 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("master"), is(notNullValue()));
             assertThat(map, hasKey("ping_count"));
             assertThat(map.get("ping_count"), is(notNullValue()));
-            Map<String, Long> pingCountMap;
-            pingCountMap = mapper.readValue(map.get("ping_count"), new TypeReference<Map<String, Long>>() {});
+            Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.value((String) map.get("ping_count"));
 
             assertThat(pingCountMap.get("success"), is(i));
-            assertThat(pingCountMap.get("failure"), is(0L));
+            assertThat(pingCountMap.get("failure"), is(0));
             if (task.getHardwareAddress() != null) {
                 assertThat(map, hasKey("hardware_address"));
                 assertThat(map.get("hardware_address"), is(notNullValue()));
@@ -147,7 +137,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("license_expiry_date"), is(String.valueOf(LICENSE.expiryDateInMs())));
             assertThat(map, hasKey("license_issued_to"));
             assertThat(map.get("license_issued_to"), is(LICENSE.issuedTo()));
-            assertThat(Integer.parseInt(map.get("num_processors")), greaterThan(0));
+            assertThat(Integer.parseInt((String) map.get("num_processors")), greaterThan(0));
             assertThat(map, hasKey("license_max_nodes"));
             assertThat(map.get("license_max_nodes"), is(String.valueOf(LICENSE.maxNumberOfNodes())));
             assertThat(map, hasKey("enterprise_edition"));
@@ -166,16 +156,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         task.run();
         assertThat(testServer.responses.size(), is(1));
         String json = testServer.responses.get(0);
-        Map<String, String> map = new HashMap<>();
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            //convert JSON string to Map
-            map = mapper.readValue(json,
-                new TypeReference<HashMap<String, String>>() {});
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        Map<String, Object> map = DataTypes.UNTYPED_OBJECT.value(json);
 
         assertThat(map, not(hasKey("license_expiry_date")));
         assertThat(map, not(hasKey("license_issued_to")));
@@ -196,18 +177,9 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         task.run();
         assertThat(testServer.responses.size(), is(2));
 
-        for (long i = 0; i < testServer.responses.size(); i++) {
+        for (int i = 0; i < testServer.responses.size(); i++) {
             String json = testServer.responses.get((int) i);
-            Map<String, String> map = new HashMap<>();
-            ObjectMapper mapper = new ObjectMapper();
-            try {
-                //convert JSON string to Map
-                map = mapper.readValue(json,
-                    new TypeReference<HashMap<String, String>>() {});
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            Map<String, Object> map = DataTypes.UNTYPED_OBJECT.value(json);
 
             assertThat(map, hasKey("kernel"));
             assertThat(map.get("kernel"), is(notNullValue()));
@@ -217,10 +189,9 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("master"), is(notNullValue()));
             assertThat(map, hasKey("ping_count"));
             assertThat(map.get("ping_count"), is(notNullValue()));
-            Map<String, Long> pingCountMap;
-            pingCountMap = mapper.readValue(map.get("ping_count"), new TypeReference<Map<String, Long>>() {});
+            Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.value((String) map.get("ping_count"));
 
-            assertThat(pingCountMap.get("success"), is(0L));
+            assertThat(pingCountMap.get("success"), is(0));
             assertThat(pingCountMap.get("failure"), is(i));
 
             if (task.getHardwareAddress() != null) {

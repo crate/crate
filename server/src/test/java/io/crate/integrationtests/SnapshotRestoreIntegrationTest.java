@@ -93,10 +93,9 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
                 "  id long primary key, " +
                 "  name string, " +
                 "  date timestamp with time zone " + (partitioned ? "primary key," : ",") +
-                "  ft string index using fulltext with (analyzer='german')" +
+                "  ft string index using fulltext with (analyzer='default')" +
                 ") " + (partitioned ? "partitioned by (date) " : "") +
                 "clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
         execute("INSERT INTO " + tableName + " (id, name, date, ft) VALUES (?, ?, ?, ?)", new Object[][]{
             {1L, "foo", "1970-01-01", "The quick brown fox jumps over the lazy dog."},
             {2L, "bar", "2015-10-27T11:29:00+01:00", "Morgenstund hat Gold im Mund."},
@@ -240,21 +239,6 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase");
         execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)");
-    }
-
-    @Test
-    public void testCreateSnapshotInURLRepoFails() throws Exception {
-        // lets be sure the repository location contains some data, empty directories will result in "no data found" error instead
-        execute("CREATE SNAPSHOT my_repo.my_snapshot ALL WITH (wait_for_completion=true)");
-
-        // URL Repositories are always marked as read_only, use the same location that the existing repository to have valid data
-        execute("CREATE REPOSITORY uri_repo TYPE url WITH (url=?)",
-            new Object[]{defaultRepositoryLocation.toURI().toString()});
-        waitNoPendingTasksOnAll();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("[uri_repo] cannot create snapshot in a readonly repository");
-        execute("CREATE SNAPSHOT uri_repo.my_snapshot ALL WITH (wait_for_completion=true)");
     }
 
     @Test

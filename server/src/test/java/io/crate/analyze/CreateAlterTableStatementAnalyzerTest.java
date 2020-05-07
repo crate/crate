@@ -97,7 +97,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .metaData(metaData)
             .build();
         ClusterServiceUtils.setState(clusterService, state);
-        e = SQLExecutor.builder(clusterService, 3, Randomness.get()).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService, 3, Randomness.get(), List.of())
+            .enableDefaultTables()
+            .build();
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
@@ -813,7 +815,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableUsesDefaultSchema() {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService, 1, Randomness.get())
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService, 1, Randomness.get(), List.of())
             .setSearchPath("firstSchema", "secondSchema")
             .build();
 

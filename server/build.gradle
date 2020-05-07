@@ -8,22 +8,51 @@ configurations {
 }
 
 dependencies {
-    compile project(':libs:shared')
-    implementation project(':es:es-server')
     compile project(':libs:dex')
-    compile project(':libs:sql-parser')
+    compile project(':libs:es-x-content')
     compile project(':libs:pgwire')
-    compile "com.tdunning:t-digest:3.2"
-    compile "org.hdrhistogram:HdrHistogram:2.1.9"
+    compile project(':libs:shared')
+    compile project(':libs:sql-parser')
+
+    compileOnly project(':libs:es-plugin-classloader')
+    testRuntime project(':libs:es-plugin-classloader')
 
     compile "io.netty:netty-buffer:${versions.netty4}"
-    compile "io.netty:netty-codec:${versions.netty4}"
     compile "io.netty:netty-codec-http:${versions.netty4}"
+    compile "io.netty:netty-codec:${versions.netty4}"
     compile "io.netty:netty-common:${versions.netty4}"
     compile "io.netty:netty-handler:${versions.netty4}"
     compile "io.netty:netty-resolver:${versions.netty4}"
-    compile "io.netty:netty-transport:${versions.netty4}"
     compile "io.netty:netty-transport-native-epoll:${versions.netty4}:linux-x86_64"
+    compile "io.netty:netty-transport:${versions.netty4}"
+
+    compile "org.apache.lucene:lucene-core:${versions.lucene}"
+    compile "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
+    compile "org.apache.lucene:lucene-backward-codecs:${versions.lucene}"
+    compile "org.apache.lucene:lucene-grouping:${versions.lucene}"
+    compile "org.apache.lucene:lucene-join:${versions.lucene}"
+    compile "org.apache.lucene:lucene-misc:${versions.lucene}"
+    compile "org.apache.lucene:lucene-queries:${versions.lucene}"
+    compile "org.apache.lucene:lucene-sandbox:${versions.lucene}"
+    compile "org.apache.lucene:lucene-spatial-extras:${versions.lucene}"
+    compile "org.apache.lucene:lucene-spatial3d:${versions.lucene}"
+    compile "org.apache.lucene:lucene-suggest:${versions.lucene}"
+    // lucene spatial
+    compile "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
+    compile "org.locationtech.jts:jts-core:${versions.jts}"
+
+    compile "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
+    compile "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
+
+    compile("org.elasticsearch:elasticsearch-cli:${versions.elasticsearch}") {
+        exclude group: 'org.elasticsearch', module: 'elasticsearch-core'
+    }
+
+    compile "net.java.dev.jna:jna:${versions.jna}"
+
+    compile "com.tdunning:t-digest:3.2"
+    compile "org.hdrhistogram:HdrHistogram:2.1.9"
+    compile "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
 
     compile "com.google.guava:guava:${versions.guava}"
     compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
@@ -33,27 +62,62 @@ dependencies {
     // Needed by aws-java-sdk-s3 in Java 9
     compile "javax.xml.bind:jaxb-api:${versions.jaxb_api}"
 
-    testCompile project(':integration-testing')
     testCompile project(path: ':libs:dex', configuration: 'testOutput')
-    testCompile 'org.skyscreamer:jsonassert:1.3.0'
+
+    testCompile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
+    testCompile "org.apache.lucene:lucene-codecs:${versions.lucene}"
+    testCompile "org.apache.lucene:lucene-test-framework:${versions.lucene}"
     testCompile "org.hamcrest:hamcrest:${versions.hamcrest}"
-    testCompile "org.slf4j:slf4j-api:${versions.slf4j}"
+    testCompile "org.mockito:mockito-core:${versions.mockito}"
     testCompile "org.postgresql:postgresql:${versions.jdbc}"
     testCompile 'com.pholser:junit-quickcheck-core:0.9'
     testCompile 'com.pholser:junit-quickcheck-generators:0.9'
-    // These plugins are dynamically loaded and need to be present here.
-    // They are required by 1) tests in :server 2) modules depending on :server.
-    // They also need to be added in :app because :server is declared non-transitive
-    // in :app (=dependencies of :server won't be included).
-    compile project(":plugins:es-repository-url")
-    compile project(":plugins:es-repository-s3")
-    compile project(":plugins:es-repository-azure")
-    compile project(":plugins:es-analysis-common")
+    testCompile 'org.skyscreamer:jsonassert:1.3.0'
+    testCompile "junit:junit:${versions.junit}"
+    testCompile "org.junit.jupiter:junit-jupiter:${versions.junit5}"
+    testCompile ("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }
+
 //noinspection GroovyAssignabilityCheck
 task testOutputJar (type: Jar) {
     classifier = 'server-testing'
     from sourceSets.test.output
+}
+
+task getVersion(dependsOn: 'classes') {
+    doLast {
+        def stdout = new ByteArrayOutputStream()
+        javaexec {
+            if (System.getProperty('useSystemJdk') == null) {
+                executable = rootProject.jdks.runtime.getBinJavaPath()
+            }
+            classpath = sourceSets.main.runtimeClasspath
+            main = 'org.elasticsearch.Version'
+            standardOutput = stdout
+        }
+        ext.version = stdout.toString().trim().split(" ")[1].replace(',', '').trim()
+        ext.gitTag = "git describe".execute().text.trim()
+
+        ext.buildDate = new Date().format('yyyyMMddHHmm')
+        ext.buildShortHash = "git rev-parse --short HEAD".execute().text.trim()
+        if (gradle.taskGraph.hasTask(':app:release')) {
+            assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
+        } else {
+
+            if (gradle.taskGraph.hasTask(':app:nightly')) {
+                ext.version = version.replace('-SNAPSHOT', '') + "-" + ext.buildDate + "-" + ext.buildShortHash
+            } else if (!gradle.taskGraph.hasTask(':app:uploadArchives')) {
+                ext.version = version + "-" + ext.buildShortHash
+            }
+        }
+
+        logger.quiet("gitTag:         " + gitTag)
+        logger.quiet("version:        " + version)
+        logger.quiet("buildDate:      " + buildDate)
+        logger.quiet("buildShortHash: " + buildShortHash)
+    }
 }
 
 artifacts {

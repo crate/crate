@@ -19,6 +19,12 @@
 
 package org.elasticsearch.plugin.repository.url;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -28,10 +34,7 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.url.URLRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import io.crate.analyze.repositories.TypeSettings;
 
 public class URLRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
@@ -49,6 +52,19 @@ public class URLRepositoryPlugin extends Plugin implements RepositoryPlugin {
                                                            NamedXContentRegistry namedXContentRegistry,
                                                            ThreadPool threadPool) {
         return Collections.singletonMap(
-            URLRepository.TYPE, metadata -> new URLRepository(metadata, env, namedXContentRegistry, threadPool));
+            URLRepository.TYPE,
+            new Repository.Factory() {
+
+                @Override
+                public TypeSettings settings() {
+                    return new TypeSettings(URLRepository.mandatorySettings(), List.of());
+                }
+
+                @Override
+                public Repository create(RepositoryMetaData metadata) throws Exception {
+                    return new URLRepository(metadata, env, namedXContentRegistry, threadPool);
+                }
+            }
+        );
     }
 }
