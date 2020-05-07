@@ -22,7 +22,7 @@
 
 package io.crate.protocols.http;
 
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
 

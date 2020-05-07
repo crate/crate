@@ -21,7 +21,7 @@ package org.elasticsearch.index.shard;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.ReferenceManager;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.translog.Translog;
 

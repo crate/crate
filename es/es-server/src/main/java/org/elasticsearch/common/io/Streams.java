@@ -23,7 +23,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStream;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;

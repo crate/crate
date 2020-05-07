@@ -19,7 +19,7 @@
 
 package org.elasticsearch.bootstrap;
 
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 
 import java.util.Dictionary;
 import java.util.Enumeration;

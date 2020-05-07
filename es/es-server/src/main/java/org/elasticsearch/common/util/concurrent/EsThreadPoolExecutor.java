@@ -19,7 +19,8 @@
 
 package org.elasticsearch.common.util.concurrent;
 
-import org.elasticsearch.common.SuppressForbidden;
+
+import io.crate.common.SuppressForbidden;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadFactory;

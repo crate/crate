@@ -39,7 +39,7 @@ import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStoreException;
 import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
 import org.elasticsearch.common.blobstore.support.PlainBlobMetaData;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

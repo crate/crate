@@ -22,8 +22,8 @@ configurations {
 
 evaluationDependsOn(':es')
 evaluationDependsOn(':common')
-evaluationDependsOn(':sql')
-evaluationDependsOn(':sql-parser')
+evaluationDependsOn(':server')
+evaluationDependsOn(':libs:sql-parser')
 evaluationDependsOn(':libs:dex')
 evaluationDependsOn(':libs:shared')
 evaluationDependsOn(':blob')
@@ -32,7 +32,7 @@ evaluationDependsOn(':udc')
 evaluationDependsOn(':plugins:dns-discovery')
 
 dependencies {
-    compile project(':sql')
+    compile project(':server')
     compile project(':blob')
     compile project(':http')
     compile project(':udc')
@@ -43,8 +43,8 @@ dependencies {
     compile project(':plugins:es-repository-s3')
     compile project(':plugins:es-repository-azure')
     compile project(':es:es-transport')
-    compile project(':es:es-analysis-common')
-    compile project(':es:es-analysis-phonetic')
+    compile project(':plugins:es-analysis-common')
+    compile project(':plugins:es-analysis-phonetic')
     compile('org.apache.xbean:xbean-finder:4.5') {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
@@ -58,21 +58,20 @@ dependencies {
 
     testCompile project(':integration-testing')
     testCompile project(':http')
-    testCompile project(path: ':sql', configuration: 'testOutput')
+    testCompile project(path: ':server', configuration: 'testOutput')
     testCompile("org.postgresql:postgresql:${versions.jdbc}")
     testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')
 
     compileNotTransitive project(':common')
-    compileNotTransitive project(':es:es-core')
     compileNotTransitive project(':es:es-server')
-    compileNotTransitive project(':es:es-plugin-classloader')
-    compileNotTransitive project(':es:es-x-content')
-    compileNotTransitive project(':sql')
-    compileNotTransitive project(':sql-parser')
+    compileNotTransitive project(':server')
+    compileNotTransitive project(':libs:sql-parser')
     compileNotTransitive project(':libs:pgwire')
     compileNotTransitive project(':libs:dex')
     compileNotTransitive project(':libs:shared')
+    compileNotTransitive project(':libs:es-x-content')
+    compileNotTransitive project(':libs:es-plugin-classloader')
     compileNotTransitive project(':blob')
     compileNotTransitive project(':http')
     compileNotTransitive project(':udc')
@@ -82,8 +81,8 @@ dependencies {
     compileNotTransitive project(':plugins:es-repository-s3')
     compileNotTransitive project(':plugins:es-repository-azure')
     compileNotTransitive project(':es:es-transport')
-    compileNotTransitive project(':es:es-analysis-common')
-    compileNotTransitive project(':es:es-analysis-phonetic')
+    compileNotTransitive project(':plugins:es-analysis-common')
+    compileNotTransitive project(':plugins:es-analysis-phonetic')
 }
 
 task release(dependsOn: 'distTar') {

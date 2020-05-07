@@ -22,7 +22,7 @@ package org.elasticsearch.index.mapper;
 import org.elasticsearch.Version;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.XContentHelper;

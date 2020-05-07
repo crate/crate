@@ -20,7 +20,7 @@
 package org.elasticsearch.common.util.concurrent;
 
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 import java.util.ArrayList;
 import java.util.List;

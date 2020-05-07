@@ -27,7 +27,7 @@ import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.packed.PackedInts;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;

@@ -22,7 +22,7 @@ package org.elasticsearch.action.admin.indices.upgrade.post;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

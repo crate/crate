@@ -19,7 +19,7 @@
 
 package org.elasticsearch.common.rounding;
 
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.joda.time.DateTimeField;
 import org.joda.time.DateTimeZone;
 import org.joda.time.IllegalInstantException;

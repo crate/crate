@@ -19,7 +19,7 @@
 
 package org.elasticsearch.tasks;
 
-import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
+import static io.crate.common.unit.TimeValue.timeValueMillis;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_MAX_HEADER_SIZE;
 
 import java.util.Collections;
@@ -39,7 +39,7 @@ import org.elasticsearch.cluster.ClusterStateApplier;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
 import org.elasticsearch.threadpool.ThreadPool;

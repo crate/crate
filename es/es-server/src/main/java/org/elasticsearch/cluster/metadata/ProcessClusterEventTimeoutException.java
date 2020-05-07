@@ -21,7 +21,7 @@ package org.elasticsearch.cluster.metadata;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.rest.RestStatus;
 
 import java.io.IOException;

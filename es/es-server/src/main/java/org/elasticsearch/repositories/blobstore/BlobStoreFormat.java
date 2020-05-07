@@ -20,7 +20,7 @@
 package org.elasticsearch.repositories.blobstore;
 
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.CheckedFunction;
+import io.crate.common.CheckedFunction;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;

@@ -23,5 +23,6 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
 dependencies {
+    implementation project(':libs:shared')
     implementation project(':es:es-server')
 }

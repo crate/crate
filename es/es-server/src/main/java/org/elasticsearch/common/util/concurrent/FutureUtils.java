@@ -22,7 +22,7 @@ package org.elasticsearch.common.util.concurrent;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;

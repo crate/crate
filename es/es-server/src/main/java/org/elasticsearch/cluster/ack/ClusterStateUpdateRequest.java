@@ -19,7 +19,7 @@
 
 package org.elasticsearch.cluster.ack;
 
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Base class to be used when needing to update the cluster state

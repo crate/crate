@@ -21,7 +21,7 @@ package org.elasticsearch.action.support.master;
 
 import org.elasticsearch.action.Action;
 import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Base request builder for master node operations that support acknowledgements

@@ -21,7 +21,7 @@ package org.elasticsearch.common.io;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;

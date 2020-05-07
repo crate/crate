@@ -10,11 +10,12 @@ archivesBaseName = 'crate-benchmarks'
 test.enabled = false
 
 dependencies {
-    compile project(':sql')
-    compile project(path: ':sql', configuration: 'testOutput')
+    compile project(':server')
+    compile project(path: ':server', configuration: 'testOutput')
     compile project(path: ':libs:dex', configuration: 'testOutput')
     compile project(path: ':enterprise:functions', configuration: 'testOutput')
     compile project(':integration-testing')
+    implementation project(':libs:sql-parser')
 
     compile 'org.openjdk.jmh:jmh-core:1.21'
     implementation 'org.openjdk.jmh:jmh-generator-annprocess:1.21'
@@ -40,7 +41,7 @@ shadowJar {
     exclude('com/carrotsearch/randomizedtesting/**')
 
     // We keep the benchmarks in the test sources instead of main, because
-    // IntelliJ doesn't pick up the `:sql / testOutput` dependencies otherwise
+    // IntelliJ doesn't pick up the `:server / testOutput` dependencies otherwise
     // So test.output contains the benchmarks which we want to have in the jar
     from sourceSets.test.output
 }

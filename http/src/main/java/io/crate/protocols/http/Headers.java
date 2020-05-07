@@ -28,7 +28,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpVersion;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.SecureString;
 
 import javax.annotation.Nullable;
