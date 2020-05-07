@@ -128,7 +128,7 @@ public class SessionSettingRegistry {
                 s -> String.valueOf(s.excludedOptimizerRules().contains(rule.getName()) == false),
                 () -> String.valueOf(true),
                 String.format("Indicates if the optimizer rule %s is activated.", rule.getSimpleName()),
-                DataTypes.STRING.getName()));
+                DataTypes.BOOLEAN.getName()));
         }
         return result;
     }
