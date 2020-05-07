@@ -40,7 +40,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision.Type;
 import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
@@ -79,7 +79,7 @@ import static org.elasticsearch.cluster.routing.ShardRoutingState.RELOCATING;
  */
 public class BalancedShardsAllocator implements ShardsAllocator {
 
-    private static final Logger logger = LogManager.getLogger(BalancedShardsAllocator.class);
+    private static final Logger LOGGER = LogManager.getLogger(BalancedShardsAllocator.class);
 
     public static final Setting<Float> INDEX_BALANCE_FACTOR_SETTING =
         Setting.floatSetting("cluster.routing.allocation.balance.index", 0.55f, 0.0f, Property.Dynamic, Property.NodeScope);
@@ -118,7 +118,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
             /* with no nodes this is pointless */
             return;
         }
-        final Balancer balancer = new Balancer(logger, allocation, weightFunction, threshold);
+        final Balancer balancer = new Balancer(LOGGER, allocation, weightFunction, threshold);
         balancer.allocateUnassigned();
         balancer.moveShards();
         balancer.balance();
@@ -126,7 +126,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
 
     @Override
     public ShardAllocationDecision decideShardAllocation(final ShardRouting shard, final RoutingAllocation allocation) {
-        Balancer balancer = new Balancer(logger, allocation, weightFunction, threshold);
+        Balancer balancer = new Balancer(LOGGER, allocation, weightFunction, threshold);
         AllocateUnassignedDecision allocateUnassignedDecision = AllocateUnassignedDecision.NOT_TAKEN;
         MoveDecision moveDecision = MoveDecision.NOT_TAKEN;
         if (shard.unassigned()) {
@@ -260,7 +260,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
          * The absolute value difference between two weights.
          */
         private static float absDelta(float lower, float higher) {
-            assert higher >= lower : higher + " lt " + lower +" but was expected to be gte";
+            assert higher >= lower : higher + " lt " + lower + " but was expected to be gte";
             return Math.abs(higher - lower);
         }
 
@@ -316,7 +316,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                 return MoveDecision.NOT_TAKEN;
             }
 
-            Decision canRebalance = allocation.deciders().canRebalance(shard, allocation);
+            final Decision canRebalance = allocation.deciders().canRebalance(shard, allocation);
 
             sorter.reset(shard.getIndexName());
             ModelNode[] modelNodes = sorter.modelNodes;
@@ -467,8 +467,8 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                     if (maxNode.numShards(index) > 0) {
                         final float delta = absDelta(weights[lowIdx], weights[highIdx]);
                         if (lessThan(delta, threshold)) {
-                            if (lowIdx > 0 && highIdx-1 > 0 // is there a chance for a higher delta?
-                                && (absDelta(weights[0], weights[highIdx-1]) > threshold) // check if we need to break at all
+                            if (lowIdx > 0 && highIdx - 1 > 0 // is there a chance for a higher delta?
+                                && (absDelta(weights[0], weights[highIdx - 1]) > threshold) // check if we need to break at all
                                 ) {
                                 /* This is a special case if allocations from the "heaviest" to the "lighter" nodes is not possible
                                  * due to some allocation decider restrictions like zone awareness. if one zone has for instance
@@ -783,7 +783,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                         if (!shard.primary()) {
                             // copy over the same replica shards to the secondary array so they will get allocated
                             // in a subsequent iteration, allowing replicas of other shards to be allocated first
-                            while(i < primaryLength-1 && comparator.compare(primary[i], primary[i+1]) == 0) {
+                            while (i < primaryLength - 1 && comparator.compare(primary[i], primary[i + 1]) == 0) {
                                 secondary[secondaryLength++] = primary[++i];
                             }
                         }
@@ -823,7 +823,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
 
                         unassigned.ignoreShard(shard, allocationDecision.getAllocationStatus(), allocation.changes());
                         if (!shard.primary()) { // we could not allocate it and we are a replica - check if we can ignore the other replicas
-                            while(i < primaryLength-1 && comparator.compare(primary[i], primary[i+1]) == 0) {
+                            while (i < primaryLength - 1 && comparator.compare(primary[i], primary[i + 1]) == 0) {
                                 unassigned.ignoreShard(primary[++i], allocationDecision.getAllocationStatus(), allocation.changes());
                             }
                         }

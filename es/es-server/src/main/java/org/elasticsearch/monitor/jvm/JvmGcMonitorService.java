@@ -26,7 +26,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.monitor.jvm.JvmStats.GarbageCollector;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -43,7 +43,7 @@ import static java.util.Collections.unmodifiableMap;
 
 public class JvmGcMonitorService extends AbstractLifecycleComponent {
 
-    private static final Logger logger = LogManager.getLogger(JvmGcMonitorService.class);
+    private static final Logger LOGGER = LogManager.getLogger(JvmGcMonitorService.class);
 
     private final ThreadPool threadPool;
     private final boolean enabled;
@@ -155,7 +155,7 @@ public class JvmGcMonitorService extends AbstractLifecycleComponent {
             GC_OVERHEAD_INFO_SETTING.get(settings),
             GC_OVERHEAD_DEBUG_SETTING.get(settings));
 
-        logger.debug(
+        LOGGER.debug(
             "enabled [{}], interval [{}], gc_threshold [{}], overhead [{}, {}, {}]",
             this.enabled,
             this.interval,
@@ -188,17 +188,17 @@ public class JvmGcMonitorService extends AbstractLifecycleComponent {
         scheduledFuture = threadPool.scheduleWithFixedDelay(new JvmMonitor(gcThresholds, gcOverheadThreshold) {
             @Override
             void onMonitorFailure(Exception e) {
-                logger.debug("failed to monitor", e);
+                LOGGER.debug("failed to monitor", e);
             }
 
             @Override
             void onSlowGc(final Threshold threshold, final long seq, final SlowGcEvent slowGcEvent) {
-                logSlowGc(logger, threshold, seq, slowGcEvent, JvmGcMonitorService::buildPools);
+                logSlowGc(LOGGER, threshold, seq, slowGcEvent, JvmGcMonitorService::buildPools);
             }
 
             @Override
             void onGcOverhead(final Threshold threshold, final long current, final long elapsed, final long seq) {
-                logGcOverhead(logger, threshold, current, elapsed, seq);
+                logGcOverhead(LOGGER, threshold, current, elapsed, seq);
             }
         }, interval, Names.SAME);
     }
@@ -278,6 +278,9 @@ public class JvmGcMonitorService extends AbstractLifecycleComponent {
                         pools.apply(lastJvmStats, currentJvmStats));
                 }
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -327,6 +330,9 @@ public class JvmGcMonitorService extends AbstractLifecycleComponent {
                 if (logger.isDebugEnabled()) {
                     logger.debug(OVERHEAD_LOG_MESSAGE, seq, TimeValue.timeValueMillis(current), TimeValue.timeValueMillis(elapsed));
                 }
+                break;
+
+            default:
                 break;
         }
     }

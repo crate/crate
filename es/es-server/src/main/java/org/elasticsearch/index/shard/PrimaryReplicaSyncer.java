@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.shard;
 
 import org.apache.logging.log4j.LogManager;
@@ -28,7 +29,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.tasks.Task;
@@ -40,13 +41,12 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PrimaryReplicaSyncer {
 
-    private static final Logger logger = LogManager.getLogger(PrimaryReplicaSyncer.class);
+    private static final Logger LOGGER = LogManager.getLogger(PrimaryReplicaSyncer.class);
 
     private final TaskManager taskManager;
     private final SyncAction syncAction;
@@ -164,7 +164,7 @@ public class PrimaryReplicaSyncer {
             }
         };
         try {
-            new SnapshotSender(logger, syncAction, resyncTask, shardId, primaryAllocationId, primaryTerm, snapshot, chunkSize.bytesAsInt(),
+            new SnapshotSender(LOGGER, syncAction, resyncTask, shardId, primaryAllocationId, primaryTerm, snapshot, chunkSize.bytesAsInt(),
                 startingSeqNo, maxSeqNo, maxSeenAutoIdTimestamp, wrappedListener).run();
         } catch (Exception e) {
             wrappedListener.onFailure(e);
@@ -280,8 +280,8 @@ public class PrimaryReplicaSyncer {
         }
 
         @Override
-        public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
-            return new ResyncTask(id, type, action, getDescription(), parentTaskId, headers);
+        public Task createTask(long id, String type, String action, TaskId parentTaskId) {
+            return new ResyncTask(id, type, action, getDescription(), parentTaskId);
         }
 
         @Override
@@ -300,8 +300,8 @@ public class PrimaryReplicaSyncer {
         private volatile int totalOperations;
         private volatile int resyncedOperations;
 
-        public ResyncTask(long id, String type, String action, String description, TaskId parentTaskId, Map<String, String> headers) {
-            super(id, type, action, description, parentTaskId, headers);
+        public ResyncTask(long id, String type, String action, String description, TaskId parentTaskId) {
+            super(id, type, action, description, parentTaskId);
         }
 
         /**

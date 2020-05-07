@@ -101,7 +101,7 @@ public final class GeoPoint implements ToXContentFragment {
     }
 
     public GeoPoint resetFromGeoHash(long geohashLong) {
-        final int level = (int)(12 - (geohashLong&15));
+        final int level = (int) (12 - (geohashLong & 15));
         return this.resetFromIndexHash(BitUtil.flipFlop((geohashLong >>> 4) << ((level * 5) + 2)));
     }
 

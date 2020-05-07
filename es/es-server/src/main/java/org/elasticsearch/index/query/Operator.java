@@ -16,19 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.query;
 
-import org.apache.lucene.search.BooleanClause;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.util.CollectionUtils;
-
-import java.io.IOException;
 import java.util.Locale;
 
+import org.apache.lucene.search.BooleanClause;
+import org.elasticsearch.common.util.CollectionUtils;
+
 public enum Operator {
-    OR, AND;
+    OR,
+    AND;
 
     public BooleanClause.Occur toBooleanClauseOccur() {
         switch (this) {

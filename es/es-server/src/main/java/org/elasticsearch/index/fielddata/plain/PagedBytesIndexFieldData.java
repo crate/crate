@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.fielddata.plain;
 
 import org.apache.lucene.codecs.blocktree.FieldReader;
@@ -54,7 +55,8 @@ public class PagedBytesIndexFieldData extends AbstractIndexOrdinalsFieldData {
 
     public static class Builder implements IndexFieldData.Builder {
 
-        private final double minFrequency, maxFrequency;
+        private final double minFrequency;
+        private final double maxFrequency;
         private final int minSegmentSize;
 
         public Builder(double minFrequency, double maxFrequency, int minSegmentSize) {

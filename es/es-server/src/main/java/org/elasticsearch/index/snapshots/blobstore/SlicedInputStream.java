@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.snapshots.blobstore;
 
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -47,7 +47,7 @@ import java.util.stream.Stream;
  */
 public class FileBasedSeedHostsProvider implements SeedHostsProvider {
 
-    private static final Logger logger = LogManager.getLogger(FileBasedSeedHostsProvider.class);
+    private static final Logger LOGGER = LogManager.getLogger(FileBasedSeedHostsProvider.class);
 
     public static final String UNICAST_HOSTS_FILE = "unicast_hosts.txt";
 
@@ -63,12 +63,12 @@ public class FileBasedSeedHostsProvider implements SeedHostsProvider {
                 return lines.filter(line -> line.startsWith("#") == false) // lines starting with `#` are comments
                     .collect(Collectors.toList());
             } catch (IOException e) {
-                logger.warn(() -> new ParameterizedMessage("failed to read file [{}]", unicastHostsFilePath), e);
+                LOGGER.warn(() -> new ParameterizedMessage("failed to read file [{}]", unicastHostsFilePath), e);
                 return Collections.emptyList();
             }
         }
 
-        logger.warn("expected, but did not find, a dynamic hosts list at [{}]", unicastHostsFilePath);
+        LOGGER.warn("expected, but did not find, a dynamic hosts list at [{}]", unicastHostsFilePath);
 
         return Collections.emptyList();
     }
@@ -76,7 +76,7 @@ public class FileBasedSeedHostsProvider implements SeedHostsProvider {
     @Override
     public List<TransportAddress> getSeedAddresses(HostsResolver hostsResolver) {
         final List<TransportAddress> transportAddresses = hostsResolver.resolveHosts(getHostsList());
-        logger.debug("seed addresses: {}", transportAddresses);
+        LOGGER.debug("seed addresses: {}", transportAddresses);
         return transportAddresses;
     }
 }

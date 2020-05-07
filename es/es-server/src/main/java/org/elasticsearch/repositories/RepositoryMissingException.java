@@ -39,7 +39,7 @@ public class RepositoryMissingException extends RepositoryException {
         return RestStatus.NOT_FOUND;
     }
 
-    public RepositoryMissingException(StreamInput in) throws IOException{
+    public RepositoryMissingException(StreamInput in) throws IOException {
         super(in);
     }
 }

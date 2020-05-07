@@ -56,13 +56,17 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.store.BaseDirectoryWrapper;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.Lock;
+import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.store.MockDirectoryWrapper;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -76,7 +80,7 @@ import org.elasticsearch.common.TriFunction;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
@@ -84,11 +88,12 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndSeqNo;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
+import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
@@ -107,7 +112,9 @@ import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexSearcherWrapper;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.index.shard.ShardUtils;
+import org.elasticsearch.index.store.FsDirectoryService;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.SnapshotMatchers;
 import org.elasticsearch.index.translog.Translog;
@@ -771,7 +778,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         final AtomicReference<Engine.GetResult> latestGetResult = new AtomicReference<>();
         final BiFunction<String, Engine.SearcherScope, Searcher> searcherFactory = engine::acquireSearcher;
-        latestGetResult.set(engine.get(newGet(true, doc), searcherFactory));
+        latestGetResult.set(engine.get(newGet(doc), searcherFactory));
         final AtomicBoolean flushFinished = new AtomicBoolean(false);
         final CyclicBarrier barrier = new CyclicBarrier(2);
         Thread getThread = new Thread(() -> {
@@ -785,7 +792,7 @@ public class InternalEngineTests extends EngineTestCase {
                 if (previousGetResult != null) {
                     previousGetResult.close();
                 }
-                latestGetResult.set(engine.get(newGet(true, doc), searcherFactory));
+                latestGetResult.set(engine.get(newGet(doc), searcherFactory));
                 if (latestGetResult.get().docIdAndVersion() == null) {
                     break;
                 }
@@ -821,20 +828,11 @@ public class InternalEngineTests extends EngineTestCase {
                                  EngineSearcherTotalHitsMatcher.engineSearcherTotalHits(new TermQuery(new Term("value", "test")), 0));
         searchResult.close();
 
-        // but, not there non realtime
-        try (Engine.GetResult getResult = engine.get(newGet(false, doc), searcherFactory)) {
-            assertThat(getResult.docIdAndVersion(), is(nullValue()));
-        }
-
-        // but, we can still get it (in realtime)
-        try (Engine.GetResult getResult = engine.get(newGet(true, doc), searcherFactory)) {
+        // we can get it in realtime
+        try (Engine.GetResult getResult = engine.get(newGet(doc), searcherFactory)) {
             assertThat(getResult.docIdAndVersion(), is(notNullValue()));
         }
 
-        // but not real time is not yet visible
-        try (Engine.GetResult getResult = engine.get(newGet(false, doc), searcherFactory)) {
-            assertThat(getResult.docIdAndVersion(), is(nullValue()));
-        }
 
         // refresh and it should be there
         engine.refresh("test");
@@ -845,11 +843,6 @@ public class InternalEngineTests extends EngineTestCase {
         MatcherAssert.assertThat(searchResult,
                                  EngineSearcherTotalHitsMatcher.engineSearcherTotalHits(new TermQuery(new Term("value", "test")), 1));
         searchResult.close();
-
-        // also in non realtime
-        try (Engine.GetResult getResult = engine.get(newGet(false, doc), searcherFactory)) {
-            assertThat(getResult.docIdAndVersion(), is(notNullValue()));
-        }
 
         // now do an update
         document = testDocument();
@@ -868,7 +861,7 @@ public class InternalEngineTests extends EngineTestCase {
         searchResult.close();
 
         // but, we can still get it (in realtime)
-        try (Engine.GetResult getResult = engine.get(newGet(true, doc), searcherFactory)) {
+        try (Engine.GetResult getResult = engine.get(newGet(doc), searcherFactory)) {
             assertThat(getResult.docIdAndVersion(), is(notNullValue()));
         }
 
@@ -899,7 +892,7 @@ public class InternalEngineTests extends EngineTestCase {
         searchResult.close();
 
         // but, get should not see it (in realtime)
-        try (Engine.GetResult getResult = engine.get(newGet(true, doc), searcherFactory)) {
+        try (Engine.GetResult getResult = engine.get(newGet(doc), searcherFactory)) {
             assertThat(getResult.docIdAndVersion(), is(nullValue()));
         }
 
@@ -948,7 +941,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine.flush();
 
         // and, verify get (in real time)
-        try (Engine.GetResult getResult = engine.get(newGet(true, doc), searcherFactory)) {
+        try (Engine.GetResult getResult = engine.get(newGet(doc), searcherFactory)) {
             assertThat(getResult.docIdAndVersion(), is(notNullValue()));
         }
 
@@ -1293,8 +1286,7 @@ public class InternalEngineTests extends EngineTestCase {
             Engine.Operation.Origin.PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
         Engine.IndexResult indexResult = engine.index(create);
         assertThat(indexResult.getVersion(), equalTo(1L));
-        try (Engine.GetResult get = engine.get(new Engine.Get(true, false, doc.id(), create.uid()),
-                                               searcherFactory)) {
+        try (Engine.GetResult get = engine.get(new Engine.Get(doc.id(), create.uid()), searcherFactory)) {
             assertEquals(1, get.docIdAndVersion().version);
         }
 
@@ -1305,8 +1297,7 @@ public class InternalEngineTests extends EngineTestCase {
         Engine.IndexResult update_1_result = engine.index(update_1);
         assertThat(update_1_result.getVersion(), equalTo(2L));
 
-        try (Engine.GetResult get = engine.get(new Engine.Get(true, false, doc.id(), create.uid()),
-                                               searcherFactory)) {
+        try (Engine.GetResult get = engine.get(new Engine.Get(doc.id(), create.uid()), searcherFactory)) {
             assertEquals(2, get.docIdAndVersion().version);
         }
 
@@ -1317,8 +1308,7 @@ public class InternalEngineTests extends EngineTestCase {
         Engine.IndexResult update_2_result = engine.index(update_2);
         assertThat(update_2_result.getVersion(), equalTo(3L));
 
-        try (Engine.GetResult get = engine.get(new Engine.Get(true, false, doc.id(), create.uid()),
-                                               searcherFactory)) {
+        try (Engine.GetResult get = engine.get(new Engine.Get(doc.id(), create.uid()), searcherFactory)) {
             assertEquals(3, get.docIdAndVersion().version);
         }
 
@@ -1843,8 +1833,9 @@ public class InternalEngineTests extends EngineTestCase {
         final long finalReplicaSeqNo = lastReplicaOp.seqNo();
         assertOpsOnReplica(replicaOps, replicaEngine, true, logger);
         final int opsOnPrimary = assertOpsOnPrimary(primaryOps, finalReplicaVersion, deletedOnReplica, replicaEngine);
-        final long currentSeqNo = getSequenceID(replicaEngine,
-                                                new Engine.Get(false, false, lastReplicaOp.uid().text(), lastReplicaOp.uid())).v1();
+        final long currentSeqNo = getSequenceID(
+            replicaEngine,
+            new Engine.Get(lastReplicaOp.uid().text(), lastReplicaOp.uid())).v1();
         try (Searcher searcher = engine.acquireSearcher("test")) {
             final TotalHitCountCollector collector = new TotalHitCountCollector();
             searcher.searcher().search(new MatchAllDocsQuery(), collector);
@@ -1912,7 +1903,7 @@ public class InternalEngineTests extends EngineTestCase {
                     throw new AssertionError(e);
                 }
                 for (int op = 0; op < opsPerThread; op++) {
-                    try (Engine.GetResult get = engine.get(new Engine.Get(true, false, doc.id(), uidTerm), searcherFactory)) {
+                    try (Engine.GetResult get = engine.get(new Engine.Get(doc.id(), uidTerm), searcherFactory)) {
                         FieldsVisitor visitor = new FieldsVisitor(true);
                         get.docIdAndVersion().reader.document(get.docIdAndVersion().docId, visitor);
                         List<String> values = new ArrayList<>(Strings.commaDelimitedListToSet(visitor.source().utf8ToString()));
@@ -1954,7 +1945,7 @@ public class InternalEngineTests extends EngineTestCase {
             assertTrue(op.added + " should not exist", exists);
         }
 
-        try (Engine.GetResult get = engine.get(new Engine.Get(true, false, doc.id(), uidTerm), searcherFactory)) {
+        try (Engine.GetResult get = engine.get(new Engine.Get(doc.id(), uidTerm), searcherFactory)) {
             FieldsVisitor visitor = new FieldsVisitor(true);
             get.docIdAndVersion().reader.document(get.docIdAndVersion().docId, visitor);
             List<String> values = Arrays.asList(Strings.commaDelimitedListToStringArray(visitor.source().utf8ToString()));
@@ -2360,7 +2351,7 @@ public class InternalEngineTests extends EngineTestCase {
                                             10, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
 
             // Get should not find the document
-            Engine.GetResult getResult = engine.get(newGet(true, doc), searcherFactory);
+            Engine.GetResult getResult = engine.get(newGet(doc), searcherFactory);
             assertThat(getResult.docIdAndVersion(), is(nullValue()));
 
             // Give the gc pruning logic a chance to kick in
@@ -2375,7 +2366,7 @@ public class InternalEngineTests extends EngineTestCase {
                                             10, VersionType.EXTERNAL, Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
 
             // Get should not find the document (we never indexed uid=2):
-            getResult = engine.get(new Engine.Get(true, false, "2", newUid("2")), searcherFactory);
+            getResult = engine.get(new Engine.Get("2", newUid("2")), searcherFactory);
             assertThat(getResult.docIdAndVersion(), is(nullValue()));
 
             // Try to index uid=1 with a too-old version, should fail:
@@ -2386,7 +2377,7 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(indexResult.getFailure(), instanceOf(VersionConflictEngineException.class));
 
             // Get should still not find the document
-            getResult = engine.get(newGet(true, doc), searcherFactory);
+            getResult = engine.get(newGet(doc), searcherFactory);
             assertThat(getResult.docIdAndVersion(), is(nullValue()));
 
             // Try to index uid=2 with a too-old version, should fail:
@@ -2397,7 +2388,7 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(indexResult.getFailure(), instanceOf(VersionConflictEngineException.class));
 
             // Get should not find the document
-            getResult = engine.get(newGet(true, doc), searcherFactory);
+            getResult = engine.get(newGet(doc), searcherFactory);
             assertThat(getResult.docIdAndVersion(), is(nullValue()));
         }
     }
@@ -3459,8 +3450,7 @@ public class InternalEngineTests extends EngineTestCase {
 
     @Test
     public void testSequenceIDs() throws Exception {
-        Tuple<Long, Long> seqID = getSequenceID(engine, new Engine.Get(false, false,
-                                                                       "type", newUid("1")));
+        Tuple<Long, Long> seqID = getSequenceID(engine, new Engine.Get("type", newUid("1")));
         // Non-existent doc returns no seqnum and no primary term
         assertThat(seqID.v1(), equalTo(UNASSIGNED_SEQ_NO));
         assertThat(seqID.v2(), equalTo(0L));
@@ -3472,7 +3462,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine.index(indexForDoc(doc));
         engine.refresh("test");
 
-        seqID = getSequenceID(engine, newGet(false, doc));
+        seqID = getSequenceID(engine, newGet(doc));
         logger.info("--> got seqID: {}", seqID);
         assertThat(seqID.v1(), equalTo(0L));
         assertThat(seqID.v2(), equalTo(primaryTerm.get()));
@@ -3484,7 +3474,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine.index(indexForDoc(doc));
         engine.refresh("test");
 
-        seqID = getSequenceID(engine, newGet(false, doc));
+        seqID = getSequenceID(engine, newGet(doc));
         logger.info("--> got seqID: {}", seqID);
         assertThat(seqID.v1(), equalTo(1L));
         assertThat(seqID.v2(), equalTo(primaryTerm.get()));
@@ -3498,7 +3488,7 @@ public class InternalEngineTests extends EngineTestCase {
                                       System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0));
         engine.refresh("test");
 
-        seqID = getSequenceID(engine, newGet(false, doc));
+        seqID = getSequenceID(engine, newGet(doc));
         logger.info("--> got seqID: {}", seqID);
         assertThat(seqID.v1(), equalTo(2L));
         assertThat(seqID.v2(), equalTo(3L));
@@ -3759,8 +3749,7 @@ public class InternalEngineTests extends EngineTestCase {
         }
 
         assertThat(engine.getProcessedLocalCheckpoint(), equalTo(expectedLocalCheckpoint));
-        try (Engine.GetResult result = engine.get(new Engine.Get(true, false,
-            "2", uid), searcherFactory)) {
+        try (Engine.GetResult result = engine.get(new Engine.Get("2", uid), searcherFactory)) {
             assertThat(result.docIdAndVersion() != null, equalTo(exists));
         }
     }
@@ -4579,14 +4568,17 @@ public class InternalEngineTests extends EngineTestCase {
                 Thread thread = new Thread(() -> {
                     awaitStarted.countDown();
                     try (Engine.GetResult getResult = engine.get(new Engine.Get(
-                        true, false, doc3.id(), doc3.uid()), engine::acquireSearcher)) {
+                        doc3.id(), doc3.uid()), engine::acquireSearcher)) {
+
                         assertThat(getResult.docIdAndVersion(), is(notNullValue()));
                     }
                 });
                 thread.start();
                 awaitStarted.await();
-                try (Engine.GetResult getResult = engine.get(new Engine.Get(
-                    true, false, doc.id(), doc.uid()), engine::acquireSearcher)) {
+                try (Engine.GetResult getResult = engine.get(
+                    new Engine.Get(doc.id(), doc.uid()),
+                    engine::acquireSearcher)) {
+
                     assertThat(getResult.docIdAndVersion(), is(nullValue()));
                 }
                 thread.join();
@@ -5338,6 +5330,57 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(engine.failedEngine.get(), not(nullValue()));
             assertThat(engine.failedEngine.get(), instanceOf(IllegalArgumentException.class));
             assertThat(engine.failedEngine.get().getMessage(), equalTo("fatal"));
+        }
+    }
+
+    @Test
+    public void testGetReaderAttributes() throws IOException {
+        try (BaseDirectoryWrapper dir = newFSDirectory(createTempDir())) {
+            Directory unwrap = FilterDirectory.unwrap(dir);
+            boolean isMMap = unwrap instanceof MMapDirectory;
+            Map<String, String> readerAttributes = InternalEngine.getReaderAttributes(dir);
+            assertEquals(1, readerAttributes.size());
+            if (isMMap) {
+                assertEquals("OFF_HEAP", readerAttributes.get("blocktree.terms.fst"));
+            } else {
+                assertEquals("ON_HEAP", readerAttributes.get("blocktree.terms.fst"));
+            }
+        }
+
+        try(MMapDirectory dir = new MMapDirectory(createTempDir())) {
+            Map<String, String> readerAttributes =
+                InternalEngine.getReaderAttributes(randomBoolean() ? dir :
+                    new MockDirectoryWrapper(random(), dir));
+            assertEquals(1, readerAttributes.size());
+            assertEquals("OFF_HEAP", readerAttributes.get("blocktree.terms.fst"));
+        }
+
+        Settings.Builder settingsBuilder = Settings.builder()
+            .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT);
+        Settings settings = settingsBuilder.build();
+        IndexSettings indexSettings = IndexSettingsModule.newIndexSettings("foo", settings);
+        Path tempDir = createTempDir().resolve(indexSettings.getUUID()).resolve("0");
+        ShardPath path = new ShardPath(false, tempDir, tempDir, new ShardId(indexSettings.getIndex(), 0));
+        FsDirectoryService service = new FsDirectoryService(indexSettings, path);
+        try (Directory directory = service.newDirectory()) {
+            Map<String, String> readerAttributes =
+                InternalEngine.getReaderAttributes(randomBoolean() ? directory :
+                    new MockDirectoryWrapper(random(), directory));
+            assertEquals(1, readerAttributes.size());
+
+            switch (IndexModule.defaultStoreType(true)) {
+                case HYBRIDFS:
+                case MMAPFS:
+                    assertEquals("OFF_HEAP", readerAttributes.get("blocktree.terms.fst"));
+                    break;
+                case NIOFS:
+                case SIMPLEFS:
+                case FS:
+                    assertEquals("ON_HEAP", readerAttributes.get("blocktree.terms.fst"));
+                    break;
+                    default:
+                        fail("unknownw type");
+            }
         }
     }
 

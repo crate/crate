@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.transport;
 
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 import java.util.Arrays;
 import java.util.List;
@@ -160,7 +161,7 @@ public final class TransportSettings {
     private TransportSettings() {
     }
 
-    private static  <T> Setting<T> fallback(String key, Setting.AffixSetting<T> affixSetting, String regex, String replacement) {
+    private static <T> Setting<T> fallback(String key, Setting.AffixSetting<T> affixSetting, String regex, String replacement) {
         return "_na_".equals(key) ? affixSetting.getConcreteSettingForNamespace(key)
             : affixSetting.getConcreteSetting(key.replaceAll(regex, replacement));
     }

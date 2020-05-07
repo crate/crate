@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.fielddata.plain;
 
 import org.apache.lucene.index.DirectoryReader;
@@ -38,7 +39,8 @@ import java.io.IOException;
 
 public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldData<AtomicOrdinalsFieldData> implements IndexOrdinalsFieldData {
 
-    private final double minFrequency, maxFrequency;
+    private final double minFrequency;
+    private final double maxFrequency;
     private final int minSegmentSize;
     protected final CircuitBreakerService breakerService;
 
@@ -126,8 +128,9 @@ public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldD
 
     private static final class FrequencyFilter extends FilteredTermsEnum {
 
-        private int minFreq;
-        private int maxFreq;
+        private final int minFreq;
+        private final int maxFreq;
+
         FrequencyFilter(TermsEnum delegate, int minFreq, int maxFreq) {
             super(delegate, false);
             this.minFreq = minFreq;

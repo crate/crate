@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster;
 
 import org.elasticsearch.action.ActionListener;
@@ -23,7 +24,7 @@ import org.elasticsearch.cluster.ack.AckedRequest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 /**
  * An extension interface to {@link ClusterStateUpdateTask} that allows to be notified when

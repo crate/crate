@@ -58,11 +58,11 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MapperTestUtils;
@@ -638,8 +638,8 @@ public abstract class EngineTestCase extends ESTestCase {
         return newUid(doc.id());
     }
 
-    protected Engine.Get newGet(boolean realtime, ParsedDocument doc) {
-        return new Engine.Get(realtime, false, doc.id(), newUid(doc));
+    protected Engine.Get newGet(ParsedDocument doc) {
+        return new Engine.Get(doc.id(), newUid(doc));
     }
 
     protected Engine.Index indexForDoc(ParsedDocument doc) {

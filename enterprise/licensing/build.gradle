@@ -37,12 +37,12 @@ group = 'io.crate'
 description = 'CrateDB License Management'
 
 dependencies {
-    implementation project(':es:es-core')
+    implementation project(':libs:shared')
     implementation project(':common')
-    implementation project(':sql')
+    implementation project(':server')
     testImplementation project(':integration-testing')
-    testImplementation project(path: ':sql', configuration: 'testOutput')
-    testImplementation project(path: ':dex', configuration: 'testOutput')
+    testImplementation project(path: ':server', configuration: 'testOutput')
+    testImplementation project(path: ':libs:dex', configuration: 'testOutput')
     testImplementation "junit:junit:${versions.junit}"
     testImplementation "org.postgresql:postgresql:${versions.jdbc}"
 }

@@ -117,7 +117,8 @@ public class BooleanFieldMapper extends FieldMapper {
 
     public static final class BooleanFieldType extends TermBasedFieldType {
 
-        public BooleanFieldType() {}
+        public BooleanFieldType() {
+        }
 
         protected BooleanFieldType(BooleanFieldType ref) {
             super(ref);
@@ -177,13 +178,13 @@ public class BooleanFieldMapper extends FieldMapper {
             if (value == null) {
                 return null;
             }
-            switch(value.toString()) {
-            case "F":
-                return false;
-            case "T":
-                return true;
-            default:
-                throw new IllegalArgumentException("Expected [T] or [F] but got [" + value + "]");
+            switch (value.toString()) {
+                case "F":
+                    return false;
+                case "T":
+                    return true;
+                default:
+                    throw new IllegalArgumentException("Expected [T] or [F] but got [" + value + "]");
             }
         }
 

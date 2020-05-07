@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.coordination;
 
 import org.apache.logging.log4j.LogManager;
@@ -25,7 +26,7 @@ import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -39,7 +40,7 @@ import java.util.Locale;
 
 public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
 
-    private static final Logger logger = LogManager.getLogger(UnsafeBootstrapMasterCommand.class);
+    private static final Logger LOGGER = LogManager.getLogger(UnsafeBootstrapMasterCommand.class);
 
     public static final String CLUSTER_STATE_TERM_VERSION_MSG_FORMAT =
             "Current node cluster state (term, version) pair is (%s, %s)";
@@ -84,7 +85,7 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
 
     protected void processNodePaths(Terminal terminal, Path[] dataPaths, Environment env) throws IOException {
         terminal.println(Terminal.Verbosity.VERBOSE, "Loading node metadata");
-        final NodeMetaData nodeMetaData = NodeMetaData.FORMAT.loadLatestState(logger, namedXContentRegistry, dataPaths);
+        final NodeMetaData nodeMetaData = NodeMetaData.FORMAT.loadLatestState(LOGGER, namedXContentRegistry, dataPaths);
         if (nodeMetaData == null) {
             throw new ElasticsearchException(NO_NODE_METADATA_FOUND_MSG);
         }

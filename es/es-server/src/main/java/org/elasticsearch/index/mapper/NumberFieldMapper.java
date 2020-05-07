@@ -783,20 +783,35 @@ public class NumberFieldMapper extends FieldMapper {
         public final String typeName() {
             return name;
         }
+
         /** Get the associated numeric type */
         final NumericType numericType() {
             return numericType;
         }
+
         public abstract Query termQuery(String field, Object value);
+
         public abstract Query termsQuery(String field, List<Object> values);
-        public abstract Query rangeQuery(String field, Object lowerTerm, Object upperTerm,
-                                  boolean includeLower, boolean includeUpper,
-                                  boolean hasDocValues);
+
+        public abstract Query rangeQuery(String field,
+                                         Object lowerTerm,
+                                         Object upperTerm,
+                                         boolean includeLower,
+                                         boolean includeUpper,
+                                         boolean hasDocValues);
+
         public abstract Number parse(XContentParser parser, boolean coerce) throws IOException;
+
         public abstract Number parse(Object value, boolean coerce);
+
         public abstract Number parsePoint(byte[] value);
-        public abstract List<Field> createFields(String name, Number value, boolean indexed,
-                                                 boolean docValued, boolean stored);
+
+        public abstract List<Field> createFields(String name,
+                                                 Number value,
+                                                 boolean indexed,
+                                                 boolean docValued,
+                                                 boolean stored);
+
         Number valueForSearch(Number value) {
             return value;
         }

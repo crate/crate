@@ -22,7 +22,7 @@ package org.elasticsearch.cli;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import joptsimple.util.KeyValuePair;
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.InternalSettingsPreparer;

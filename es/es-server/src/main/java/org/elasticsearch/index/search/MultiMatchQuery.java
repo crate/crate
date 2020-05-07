@@ -96,13 +96,17 @@ public class MultiMatchQuery extends MatchQuery {
     private QueryBuilder queryBuilder;
 
     public class QueryBuilder {
+
         protected final float tieBreaker;
 
         public QueryBuilder(float tieBreaker) {
             this.tieBreaker = tieBreaker;
         }
 
-        public List<Query> buildGroupedQueries(MultiMatchQueryType type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) throws IOException{
+        public List<Query> buildGroupedQueries(MultiMatchQueryType type,
+                                               Map<String,
+                                               Float> fieldNames,
+                                               Object value, String minimumShouldMatch) throws IOException {
             List<Query> queries = new ArrayList<>();
             for (String fieldName : fieldNames.keySet()) {
                 Float boostValue = fieldNames.get(fieldName);
@@ -167,7 +171,7 @@ public class MultiMatchQuery extends MatchQuery {
                     Analyzer actualAnalyzer = getAnalyzer(fieldType, type == MultiMatchQueryType.PHRASE);
                     name = fieldType.name();
                     if (!groups.containsKey(actualAnalyzer)) {
-                       groups.put(actualAnalyzer, new ArrayList<>());
+                        groups.put(actualAnalyzer, new ArrayList<>());
                     }
                     Float boost = entry.getValue();
                     boost = boost == null ? Float.valueOf(1.0f) : boost;

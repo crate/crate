@@ -38,7 +38,7 @@ public class NoNodeAvailableException extends ElasticsearchException {
         super(message, t);
     }
 
-    public NoNodeAvailableException(StreamInput in) throws IOException{
+    public NoNodeAvailableException(StreamInput in) throws IOException {
         super(in);
     }
 

@@ -16,7 +16,7 @@
 
 package org.elasticsearch.common.network;
 
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -245,7 +245,7 @@ public class InetAddresses {
         byte[] bytes = ip.getAddress();
         int[] hextets = new int[IPV6_PART_COUNT];
         for (int i = 0; i < hextets.length; i++) {
-            hextets[i] =  (bytes[2 * i] & 255) << 8 | bytes[2 * i + 1] & 255;
+            hextets[i] = (bytes[2 * i] & 255) << 8 | bytes[2 * i + 1] & 255;
         }
         compressLongestRunOfZeroes(hextets);
         return hextetsToIPv6String(hextets);
@@ -292,12 +292,12 @@ public class InetAddresses {
      * @param hextets {@code int[]} array of eight 16-bit hextets, or -1s
      */
     private static String hextetsToIPv6String(int[] hextets) {
-    /*
-     * While scanning the array, handle these state transitions:
-     *   start->num => "num"     start->gap => "::"
-     *   num->num   => ":num"    num->gap   => "::"
-     *   gap->num   => "num"     gap->gap   => ""
-     */
+        /*
+        * While scanning the array, handle these state transitions:
+        *   start->num => "num"     start->gap => "::"
+        *   num->num   => ":num"    num->gap   => "::"
+        *   gap->num   => "num"     gap->gap   => ""
+        */
         StringBuilder buf = new StringBuilder(39);
         boolean lastWasNumber = false;
         for (int i = 0; i < hextets.length; i++) {

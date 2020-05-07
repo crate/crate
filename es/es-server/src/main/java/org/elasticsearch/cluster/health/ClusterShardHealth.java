@@ -50,19 +50,29 @@ public final class ClusterShardHealth implements Writeable, ToXContentFragment {
     private static final String PRIMARY_ACTIVE = "primary_active";
 
     public static final ConstructingObjectParser<ClusterShardHealth, Integer> PARSER =
-        new ConstructingObjectParser<>("cluster_shard_health", true,
-                (parsedObjects, shardId) -> {
-                    int i = 0;
-                    boolean primaryActive = (boolean) parsedObjects[i++];
-                    int activeShards = (int) parsedObjects[i++];
-                    int relocatingShards = (int) parsedObjects[i++];
-                    int initializingShards = (int) parsedObjects[i++];
-                    int unassignedShards = (int) parsedObjects[i++];
-                    String statusStr = (String) parsedObjects[i];
-                    ClusterHealthStatus status = ClusterHealthStatus.fromString(statusStr);
-                    return new ClusterShardHealth(shardId, status, activeShards, relocatingShards, initializingShards, unassignedShards,
-                        primaryActive);
-                });
+        new ConstructingObjectParser<>(
+            "cluster_shard_health",
+            true,
+            (parsedObjects, shardId) -> {
+                int i = 0;
+                boolean primaryActive = (boolean) parsedObjects[i++];
+                int activeShards = (int) parsedObjects[i++];
+                int relocatingShards = (int) parsedObjects[i++];
+                int initializingShards = (int) parsedObjects[i++];
+                int unassignedShards = (int) parsedObjects[i++];
+                String statusStr = (String) parsedObjects[i];
+                ClusterHealthStatus status = ClusterHealthStatus.fromString(statusStr);
+                return new ClusterShardHealth(
+                    shardId,
+                    status,
+                    activeShards,
+                    relocatingShards,
+                    initializingShards,
+                    unassignedShards,
+                    primaryActive
+                );
+            }
+    );
 
     static {
         PARSER.declareBoolean(constructorArg(), new ParseField(PRIMARY_ACTIVE));

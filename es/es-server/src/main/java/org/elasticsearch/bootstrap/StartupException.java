@@ -85,7 +85,7 @@ final class StartupException extends RuntimeException {
             }
 
             // print stacktrace of cause
-            StackTraceElement stack[] = cause.getStackTrace();
+            StackTraceElement[] stack = cause.getStackTrace();
             int linesWritten = 0;
             for (int i = 0; i < stack.length; i++) {
                 if (linesWritten == STACKTRACE_LIMIT) {

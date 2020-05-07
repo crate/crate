@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.document.LatLonDocValuesField;
@@ -321,9 +322,9 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                 } else {
                     // its an array of other possible values
                     if (token == XContentParser.Token.VALUE_NUMBER) {
-                        double lon = context.parser().doubleValue();
+                        final double lon = context.parser().doubleValue();
                         token = context.parser().nextToken();
-                        double lat = context.parser().doubleValue();
+                        final double lat = context.parser().doubleValue();
                         token = context.parser().nextToken();
                         Double alt = Double.NaN;
                         if (token == XContentParser.Token.VALUE_NUMBER) {
@@ -350,7 +351,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                     parse(context, (GeoPoint) fieldType.nullValue());
                 }
             } else {
-                 parseGeoPointIgnoringMalformed(context, sparse);
+                parseGeoPointIgnoringMalformed(context, sparse);
             }
         }
 

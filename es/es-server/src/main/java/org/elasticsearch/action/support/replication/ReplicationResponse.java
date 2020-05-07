@@ -174,9 +174,9 @@ public class ReplicationResponse extends TransportResponse {
 
         public static class Failure extends ShardOperationFailedException implements ToXContentObject {
 
-            private static final String _INDEX = "_index";
-            private static final String _SHARD = "_shard";
-            private static final String _NODE = "_node";
+            private static final String INDEX = "_index";
+            private static final String SHARD = "_shard";
+            private static final String NODE = "_node";
             private static final String REASON = "reason";
             private static final String STATUS = "status";
             private static final String PRIMARY = "primary";
@@ -185,7 +185,11 @@ public class ReplicationResponse extends TransportResponse {
             private final String nodeId;
             private final boolean primary;
 
-            public Failure(ShardId  shardId, @Nullable String nodeId, Exception cause, RestStatus status, boolean primary) {
+            public Failure(ShardId shardId,
+                           @Nullable String nodeId,
+                           Exception cause,
+                           RestStatus status,
+                           boolean primary) {
                 super(shardId.getIndexName(), shardId.getId(), ExceptionsHelper.detailedMessage(cause), status, cause);
                 this.shardId = shardId;
                 this.nodeId = nodeId;
@@ -234,9 +238,9 @@ public class ReplicationResponse extends TransportResponse {
             @Override
             public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
                 builder.startObject();
-                builder.field(_INDEX, shardId.getIndexName());
-                builder.field(_SHARD, shardId.id());
-                builder.field(_NODE, nodeId);
+                builder.field(INDEX, shardId.getIndexName());
+                builder.field(SHARD, shardId.id());
+                builder.field(NODE, nodeId);
                 builder.field(REASON);
                 builder.startObject();
                 ElasticsearchException.generateThrowableXContent(builder, params, cause);
@@ -262,11 +266,11 @@ public class ReplicationResponse extends TransportResponse {
                     if (token == XContentParser.Token.FIELD_NAME) {
                         currentFieldName = parser.currentName();
                     } else if (token.isValue()) {
-                        if (_INDEX.equals(currentFieldName)) {
+                        if (INDEX.equals(currentFieldName)) {
                             shardIndex = parser.text();
-                        } else if (_SHARD.equals(currentFieldName)) {
+                        } else if (SHARD.equals(currentFieldName)) {
                             shardId = parser.intValue();
-                        } else if (_NODE.equals(currentFieldName)) {
+                        } else if (NODE.equals(currentFieldName)) {
                             nodeId = parser.text();
                         } else if (STATUS.equals(currentFieldName)) {
                             status = RestStatus.valueOf(parser.text());

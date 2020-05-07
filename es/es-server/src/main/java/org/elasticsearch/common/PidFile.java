@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common;
 
 import org.elasticsearch.ElasticsearchException;
@@ -73,7 +74,7 @@ public final class PidFile {
             throw new IllegalArgumentException(path + " exists but is not a regular file");
         }
 
-        try(OutputStream stream = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+        try (OutputStream stream = Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
             stream.write(Long.toString(pid).getBytes(StandardCharsets.UTF_8));
         }
 

@@ -120,15 +120,15 @@ public final class MergePolicyConfig {
     private final Logger logger;
     private final boolean mergesEnabled;
 
-    public static final double          DEFAULT_EXPUNGE_DELETES_ALLOWED     = 10d;
-    public static final ByteSizeValue   DEFAULT_FLOOR_SEGMENT               = new ByteSizeValue(2, ByteSizeUnit.MB);
-    public static final int             DEFAULT_MAX_MERGE_AT_ONCE           = 10;
-    public static final int             DEFAULT_MAX_MERGE_AT_ONCE_EXPLICIT  = 30;
-    public static final ByteSizeValue   DEFAULT_MAX_MERGED_SEGMENT          = new ByteSizeValue(5, ByteSizeUnit.GB);
-    public static final double          DEFAULT_SEGMENTS_PER_TIER           = 10.0d;
-    public static final double          DEFAULT_RECLAIM_DELETES_WEIGHT      = 2.0d;
-    public static final double          DEFAULT_DELETES_PCT_ALLOWED         = 33.0d;
-    public static final Setting<Double> INDEX_COMPOUND_FORMAT_SETTING       =
+    public static final double DEFAULT_EXPUNGE_DELETES_ALLOWED = 10d;
+    public static final ByteSizeValue DEFAULT_FLOOR_SEGMENT = new ByteSizeValue(2, ByteSizeUnit.MB);
+    public static final int DEFAULT_MAX_MERGE_AT_ONCE = 10;
+    public static final int DEFAULT_MAX_MERGE_AT_ONCE_EXPLICIT = 30;
+    public static final ByteSizeValue DEFAULT_MAX_MERGED_SEGMENT = new ByteSizeValue(5, ByteSizeUnit.GB);
+    public static final double DEFAULT_SEGMENTS_PER_TIER = 10.0d;
+    public static final double DEFAULT_RECLAIM_DELETES_WEIGHT = 2.0d;
+    public static final double DEFAULT_DELETES_PCT_ALLOWED = 33.0d;
+    public static final Setting<Double> INDEX_COMPOUND_FORMAT_SETTING =
         new Setting<>("index.compound_format", Double.toString(TieredMergePolicy.DEFAULT_NO_CFS_RATIO), MergePolicyConfig::parseNoCFSRatio,
             Property.Dynamic, Property.IndexScope);
 
@@ -161,15 +161,15 @@ public final class MergePolicyConfig {
 
     MergePolicyConfig(Logger logger, IndexSettings indexSettings) {
         this.logger = logger;
-        double forceMergeDeletesPctAllowed = indexSettings.getValue(INDEX_MERGE_POLICY_EXPUNGE_DELETES_ALLOWED_SETTING); // percentage
-        ByteSizeValue floorSegment = indexSettings.getValue(INDEX_MERGE_POLICY_FLOOR_SEGMENT_SETTING);
+        final double forceMergeDeletesPctAllowed = indexSettings.getValue(INDEX_MERGE_POLICY_EXPUNGE_DELETES_ALLOWED_SETTING); // percentage
+        final ByteSizeValue floorSegment = indexSettings.getValue(INDEX_MERGE_POLICY_FLOOR_SEGMENT_SETTING);
         int maxMergeAtOnce = indexSettings.getValue(INDEX_MERGE_POLICY_MAX_MERGE_AT_ONCE_SETTING);
-        int maxMergeAtOnceExplicit = indexSettings.getValue(INDEX_MERGE_POLICY_MAX_MERGE_AT_ONCE_EXPLICIT_SETTING);
+        final int maxMergeAtOnceExplicit = indexSettings.getValue(INDEX_MERGE_POLICY_MAX_MERGE_AT_ONCE_EXPLICIT_SETTING);
         // TODO is this really a good default number for max_merge_segment, what happens for large indices, won't they end up with many segments?
-        ByteSizeValue maxMergedSegment = indexSettings.getValue(INDEX_MERGE_POLICY_MAX_MERGED_SEGMENT_SETTING);
+        final ByteSizeValue maxMergedSegment = indexSettings.getValue(INDEX_MERGE_POLICY_MAX_MERGED_SEGMENT_SETTING);
         double segmentsPerTier = indexSettings.getValue(INDEX_MERGE_POLICY_SEGMENTS_PER_TIER_SETTING);
         double reclaimDeletesWeight = indexSettings.getValue(INDEX_MERGE_POLICY_RECLAIM_DELETES_WEIGHT_SETTING);
-        double deletesPctAllowed = indexSettings.getValue(INDEX_MERGE_POLICY_DELETES_PCT_ALLOWED_SETTING);
+        final double deletesPctAllowed = indexSettings.getValue(INDEX_MERGE_POLICY_DELETES_PCT_ALLOWED_SETTING);
         this.mergesEnabled = indexSettings.getSettings().getAsBoolean(INDEX_MERGE_ENABLED, true);
         if (mergesEnabled == false) {
             logger.warn("[{}] is set to false, this should only be used in tests and can cause serious problems in production environments", INDEX_MERGE_ENABLED);

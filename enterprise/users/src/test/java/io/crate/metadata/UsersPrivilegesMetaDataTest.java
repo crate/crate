@@ -118,7 +118,7 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         usersPrivilegesMetaData.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(
+        XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             xContentRegistry(),
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             Strings.toString(builder)

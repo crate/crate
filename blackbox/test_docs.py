@@ -299,7 +299,7 @@ def setUpQuotes(test):
     if not os.path.isdir(import_dir):
         os.mkdir(import_dir)
     shutil.copy(
-        project_path('sql/src/test/resources/essetup/data/copy',
+        project_path('server/src/test/resources/essetup/data/copy',
                      'test_copy_from.json'),
         os.path.join(import_dir, "quotes.json")
     )

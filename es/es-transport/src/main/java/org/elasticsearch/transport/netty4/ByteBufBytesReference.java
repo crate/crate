@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.transport.netty4;
 
 import io.netty.buffer.ByteBuf;
@@ -37,7 +38,7 @@ final class ByteBufBytesReference extends BytesReference {
         this.buffer = buffer;
         this.length = length;
         this.offset = buffer.readerIndex();
-        assert length <= buffer.readableBytes() : "length[" + length +"] > " + buffer.readableBytes();
+        assert length <= buffer.readableBytes() : "length[" + length + "] > " + buffer.readableBytes();
     }
 
     @Override

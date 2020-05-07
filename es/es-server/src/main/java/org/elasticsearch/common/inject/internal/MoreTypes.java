@@ -54,6 +54,7 @@ public class MoreTypes {
     }
 
     private static final Map<TypeLiteral<?>, TypeLiteral<?>> PRIMITIVE_TO_WRAPPER;
+
     static {
         Map<TypeLiteral<?>, TypeLiteral<?>> primitiveToWrapper = new HashMap<>();
         primitiveToWrapper.put(TypeLiteral.get(boolean.class), TypeLiteral.get(Boolean.class));
@@ -152,7 +153,7 @@ public class MoreTypes {
             Type rawType = parameterizedType.getRawType();
             if (!(rawType instanceof Class)) {
                 throw new IllegalArgumentException(
-                        "Expected a Class, but <" + type +"> is of type " + type.getClass().getName()
+                    "Expected a Class, but <" + type + "> is of type " + type.getClass().getName()
                 );
             }
             return (Class<?>) rawType;

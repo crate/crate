@@ -22,6 +22,7 @@ package org.elasticsearch.index.store;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FileSwitchDirectory;
+import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.LockFactory;
@@ -33,7 +34,7 @@ import org.apache.lucene.store.SimpleFSLockFactory;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.ShardPath;
@@ -130,6 +131,11 @@ public class FsDirectoryService extends DirectoryService {
         return directory;
     }
 
+    public static boolean isHybridFs(Directory directory) {
+        Directory unwrap = FilterDirectory.unwrap(directory);
+        return unwrap instanceof HybridDirectory;
+    }
+
     static final class HybridDirectory extends NIOFSDirectory {
 
         private final MMapDirectory delegate;
@@ -158,7 +164,7 @@ public class FsDirectoryService extends DirectoryService {
 
         boolean useDelegate(String name) {
             String extension = FileSwitchDirectory.getExtension(name);
-            switch(extension) {
+            switch (extension) {
                 // Norms, doc values and term dictionaries are typically performance-sensitive and hot in the page
                 // cache, so we use mmap, which provides better performance.
                 case "nvd":

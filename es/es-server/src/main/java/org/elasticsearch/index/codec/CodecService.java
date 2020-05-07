@@ -19,17 +19,16 @@
 
 package org.elasticsearch.index.codec;
 
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.lucene50.Lucene50StoredFieldsFormat.Mode;
-import org.apache.lucene.codecs.lucene70.Lucene70Codec;
-import org.apache.lucene.codecs.lucene80.Lucene80Codec;
 import org.apache.lucene.codecs.lucene84.Lucene84Codec;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.index.mapper.MapperService;
-
-import java.util.Map;
 
 /**
  * Since Lucene 4.0 low level index segments are read and written through a

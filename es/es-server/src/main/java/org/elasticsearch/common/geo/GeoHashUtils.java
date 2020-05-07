@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.geo;
 
 import org.apache.lucene.geo.Rectangle;
@@ -45,9 +46,9 @@ public class GeoHashUtils {
     /** number of bits used for quantizing latitude and longitude values */
     public static final short BITS = 31;
     /** scaling factors to convert lat/lon into unsigned space */
-    private static final double LAT_SCALE = (0x1L<<BITS)/180.0D;
-    private static final double LON_SCALE = (0x1L<<BITS)/360.0D;
-    private static final short MORTON_OFFSET = (BITS<<1) - (PRECISION*5);
+    private static final double LAT_SCALE = (0x1L << BITS) / 180.0D;
+    private static final double LON_SCALE = (0x1L << BITS) / 360.0D;
+    private static final short MORTON_OFFSET = (BITS << 1) - (PRECISION * 5);
     /** Bit encoded representation of the latitude of north pole */
     private static final long MAX_LAT_BITS = (0x1L << (PRECISION * 5 / 2)) - 1;
 
@@ -59,7 +60,7 @@ public class GeoHashUtils {
      * 31 bit encoding utils *
      *************************/
     public static long encodeLatLon(final double lat, final double lon) {
-      return MortonEncoder.encode(lat, lon) >>> 2;
+        return MortonEncoder.encode(lat, lon) >>> 2;
     }
 
     /**
@@ -69,9 +70,9 @@ public class GeoHashUtils {
         int level = length - 1;
         long b;
         long l = 0L;
-        for(char c : hash.toCharArray()) {
+        for (char c : hash.toCharArray()) {
             b = BASE_32_STRING.indexOf(c);
-            l |= (b<<(level--*5));
+            l |= (b << (level-- * 5));
             if (level < 0) {
                 // We cannot handle more than 12 levels
                 break;
@@ -93,13 +94,13 @@ public class GeoHashUtils {
      * Encode to a geohash string from the geohash based long format
      */
     public static String stringEncode(long geoHashLong) {
-        int level = (int)geoHashLong&15;
+        int level = (int) geoHashLong & 15;
         geoHashLong >>>= 4;
         char[] chars = new char[level];
         do {
-            chars[--level] = BASE_32[(int) (geoHashLong&31L)];
-            geoHashLong>>>=5;
-        } while(level > 0);
+            chars[--level] = BASE_32[(int) (geoHashLong & 31L)];
+            geoHashLong >>>= 5;
+        } while (level > 0);
 
         return new String(chars);
     }
@@ -131,12 +132,12 @@ public class GeoHashUtils {
         int level = 11;
         long b;
         long l = 0L;
-        for(char c : hash.toCharArray()) {
-            b = (long)(BASE_32_STRING.indexOf(c));
+        for (char c : hash.toCharArray()) {
+            b = (long) (BASE_32_STRING.indexOf(c));
             if (b < 0) {
                 throw new IllegalArgumentException("unsupported symbol [" + c + "] in geohash [" + hash + "]");
             }
-            l |= (b<<((level--*5) + MORTON_OFFSET));
+            l |= (b << ((level-- * 5) + MORTON_OFFSET));
             if (level < 0) {
                 // We cannot handle more than 12 levels
                 break;
@@ -149,8 +150,8 @@ public class GeoHashUtils {
      * Encode to a morton long value from a given geohash long value
      */
     public static final long mortonEncode(final long geoHashLong) {
-        final int level = (int)(geoHashLong&15);
-        final short odd = (short)(level & 1);
+        final int level = (int) (geoHashLong & 15);
+        final short odd = (short) (level & 1);
 
         return BitUtil.flipFlop(((geoHashLong >>> 4) << odd) << (((12 - level) * 5) + (MORTON_OFFSET - odd)));
     }
@@ -197,7 +198,7 @@ public class GeoHashUtils {
      * @return geohash of the defined cell
      */
     public static final String neighbor(String geohash, int level, int dx, int dy) {
-        int cell = BASE_32_STRING.indexOf(geohash.charAt(level -1));
+        int cell = BASE_32_STRING.indexOf(geohash.charAt(level - 1));
 
         // Decoding the Geohash bit pattern to determine grid coordinates
         int x0 = cell & 1;  // first bit of x
@@ -250,7 +251,6 @@ public class GeoHashUtils {
      * @return the given list
      */
     public static final <E extends Collection<? super String>> E addNeighbors(String geohash, int length, E neighbors) {
-        String south = neighbor(geohash, length, 0, -1);
         String north = neighbor(geohash, length, 0, +1);
         if (north != null) {
             neighbors.add(neighbor(north, length, -1, 0));
@@ -261,6 +261,7 @@ public class GeoHashUtils {
         neighbors.add(neighbor(geohash, length, -1, 0));
         neighbors.add(neighbor(geohash, length, +1, 0));
 
+        String south = neighbor(geohash, length, 0, -1);
         if (south != null) {
             neighbors.add(neighbor(south, length, -1, 0));
             neighbors.add(south);
@@ -272,19 +273,19 @@ public class GeoHashUtils {
 
     /** decode longitude value from morton encoded geo point */
     public static final double decodeLongitude(final long hash) {
-      return unscaleLon(BitUtil.deinterleave(hash));
+        return unscaleLon(BitUtil.deinterleave(hash));
     }
 
     /** decode latitude value from morton encoded geo point */
     public static final double decodeLatitude(final long hash) {
-      return unscaleLat(BitUtil.deinterleave(hash >>> 1));
+        return unscaleLat(BitUtil.deinterleave(hash >>> 1));
     }
 
     private static double unscaleLon(final long val) {
-      return (val / LON_SCALE) - 180;
+        return (val / LON_SCALE) - 180;
     }
 
     private static double unscaleLat(final long val) {
-      return (val / LAT_SCALE) - 90;
+        return (val / LAT_SCALE) - 90;
     }
 }

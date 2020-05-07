@@ -28,7 +28,6 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.Schemas;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.After;
 import org.junit.Before;
@@ -104,7 +103,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     public void testObjectReturnType() throws Exception {
         registerUserDefinedFunction(
             "f",
-            ObjectType.untyped(),
+            DataTypes.UNTYPED_OBJECT,
             List.of(),
             "function f() { return JSON.parse('{\"foo\": \"bar\"}'); }");
         assertEvaluate("f()", Map.of("foo", "bar"));
@@ -273,8 +272,8 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     public void testNormalizeOnObjectInput() throws Exception {
         registerUserDefinedFunction(
             "f",
-            ObjectType.untyped(),
-            List.of(ObjectType.untyped()),
+            DataTypes.UNTYPED_OBJECT,
+            List.of(DataTypes.UNTYPED_OBJECT),
             "function f(x) { return x; }");
         assertNormalize("f({})", isLiteral(Map.of()));
     }

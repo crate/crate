@@ -121,9 +121,9 @@ public final class Uid {
                 // The last 3 symbols (18 bits) are encoding 2 bytes (16 bits)
                 // so the last symbol only actually uses 16-12=4 bits and can only take 16 values
                 last = id.charAt(length - 1);
-                if (last != 'A' && last != 'E' && last != 'I' && last != 'M' && last != 'Q'&& last != 'U'&& last != 'Y'
-                    && last != 'c'&& last != 'g'&& last != 'k' && last != 'o' && last != 's' && last != 'w'
-                    && last != '0' && last != '4' && last != '8') {
+                if (last != 'A' && last != 'E' && last != 'I' && last != 'M' && last != 'Q' && last != 'U'
+                    && last != 'Y' && last != 'c' && last != 'g' && last != 'k' && last != 'o' && last != 's'
+                    && last != 'w' && last != '0' && last != '4' && last != '8') {
                     return false;
                 }
                 break;
@@ -168,7 +168,7 @@ public final class Uid {
             } else {
                 b2 = id.charAt(i + 1) - '0';
             }
-            b[1 + i/2] = (byte) ((b1 << 4) | b2);
+            b[1 + i / 2] = (byte) ((b1 << 4) | b2);
         }
         return new BytesRef(b);
     }

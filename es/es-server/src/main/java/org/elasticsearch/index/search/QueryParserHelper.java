@@ -34,7 +34,9 @@ import java.util.Map;
  * Helpers to extract and expand field names and boosts
  */
 public final class QueryParserHelper {
-    private QueryParserHelper() {}
+
+    private QueryParserHelper() {
+    }
 
     /**
      * Convert a list of field names encoded with optional boosts to a map that associates
@@ -50,7 +52,7 @@ public final class QueryParserHelper {
             float boost = 1.0f;
             if (boostIndex != -1) {
                 fieldName = field.substring(0, boostIndex);
-                boost = Float.parseFloat(field.substring(boostIndex+1, field.length()));
+                boost = Float.parseFloat(field.substring(boostIndex + 1, field.length()));
             } else {
                 fieldName = field;
             }
@@ -125,10 +127,10 @@ public final class QueryParserHelper {
             if (acceptAllTypes == false) {
                 try {
                     fieldType.termQuery("", context);
-                } catch (QueryShardException |UnsupportedOperationException e) {
+                } catch (QueryShardException | UnsupportedOperationException e) {
                     // field type is never searchable with term queries (eg. geo point): ignore
                     continue;
-                } catch (IllegalArgumentException |ElasticsearchParseException e) {
+                } catch (IllegalArgumentException | ElasticsearchParseException e) {
                     // other exceptions are parsing errors or not indexed fields: keep
                 }
             }

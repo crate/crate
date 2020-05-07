@@ -1,0 +1,21 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+dependencies {
+    implementation project(':libs:shared')
+    implementation project(':es:es-server')
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
+    implementation "com.amazonaws:aws-java-sdk-kms:${versions.aws}"
+    implementation "com.amazonaws:aws-java-sdk-core:${versions.aws}"
+    implementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
+    implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
+    implementation "commons-logging:commons-logging:${versions.commonslogging}"
+    implementation "commons-codec:commons-codec:${versions.commonscodec}"
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.6.7.1'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
+    implementation 'javax.xml.bind:jaxb-api:2.2.2'
+
+    testImplementation project(':es:es-testing')
+    testImplementation "junit:junit:${versions.junit}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+}

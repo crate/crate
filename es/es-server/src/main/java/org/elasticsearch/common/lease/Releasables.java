@@ -19,7 +19,7 @@
 
 package org.elasticsearch.common.lease;
 
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

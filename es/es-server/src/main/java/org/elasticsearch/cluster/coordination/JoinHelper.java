@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.coordination;
 
 import org.apache.logging.log4j.Level;
@@ -33,11 +34,11 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.MasterService;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPool.Names;
 import org.elasticsearch.transport.EmptyTransportResponseHandler;
@@ -68,7 +69,7 @@ import java.util.function.Supplier;
 
 public class JoinHelper {
 
-    private static final Logger logger = LogManager.getLogger(JoinHelper.class);
+    private static final Logger LOGGER = LogManager.getLogger(JoinHelper.class);
 
     public static final String JOIN_ACTION_NAME = "internal:cluster/coordination/join";
     public static final String VALIDATE_JOIN_ACTION_NAME = "internal:cluster/coordination/join/validate";
@@ -95,7 +96,7 @@ public class JoinHelper {
         this.masterService = masterService;
         this.transportService = transportService;
         this.joinTimeout = JOIN_TIMEOUT_SETTING.get(settings);
-        this.joinTaskExecutor = new JoinTaskExecutor(allocationService, logger) {
+        this.joinTaskExecutor = new JoinTaskExecutor(allocationService, LOGGER) {
 
             @Override
             public ClusterTasksResult<JoinTaskExecutor.Task> execute(ClusterState currentState, List<JoinTaskExecutor.Task> joiningTasks)
@@ -164,7 +165,7 @@ public class JoinHelper {
                     channel.sendResponse(e);
                 } catch (Exception inner) {
                     inner.addSuppressed(e);
-                    logger.warn("failed to send back failure on join request", inner);
+                    LOGGER.warn("failed to send back failure on join request", inner);
                 }
             }
 
@@ -194,9 +195,11 @@ public class JoinHelper {
         }
 
         void logNow() {
-            logger.log(getLogLevel(exception),
-                    () -> new ParameterizedMessage("failed to join {} with {}", destination, joinRequest),
-                    exception);
+            LOGGER.log(
+                getLogLevel(exception),
+                () -> new ParameterizedMessage("failed to join {} with {}", destination, joinRequest),
+                exception
+            );
         }
 
         static Level getLogLevel(TransportException e) {
@@ -210,7 +213,7 @@ public class JoinHelper {
         }
 
         void logWarnWithTimestamp() {
-            logger.info(() -> new ParameterizedMessage("last failed join attempt was {} ms ago, failed to join {} with {}",
+            LOGGER.info(() -> new ParameterizedMessage("last failed join attempt was {} ms ago, failed to join {} with {}",
                             TimeValue.timeValueMillis(TimeValue.nsecToMSec(System.nanoTime() - timestamp)),
                             destination,
                             joinRequest),
@@ -232,7 +235,7 @@ public class JoinHelper {
         final JoinRequest joinRequest = new JoinRequest(transportService.getLocalNode(), optionalJoin);
         final Tuple<DiscoveryNode, JoinRequest> dedupKey = Tuple.tuple(destination, joinRequest);
         if (pendingOutgoingJoins.add(dedupKey)) {
-            logger.debug("attempting to join {} with {}", destination, joinRequest);
+            LOGGER.debug("attempting to join {} with {}", destination, joinRequest);
             transportService.sendRequest(destination, JOIN_ACTION_NAME, joinRequest,
                 TransportRequestOptions.builder().withTimeout(joinTimeout).build(),
                 new TransportResponseHandler<Empty>() {
@@ -244,7 +247,7 @@ public class JoinHelper {
                     @Override
                     public void handleResponse(Empty response) {
                         pendingOutgoingJoins.remove(dedupKey);
-                        logger.debug("successfully joined {} with {}", destination, joinRequest);
+                        LOGGER.debug("successfully joined {} with {}", destination, joinRequest);
                         lastFailedJoinAttempt.set(null);
                     }
 
@@ -262,7 +265,7 @@ public class JoinHelper {
                     }
                 });
         } else {
-            logger.debug("already attempting to join {} with request {}, not sending request", destination, joinRequest);
+            LOGGER.debug("already attempting to join {} with request {}, not sending request", destination, joinRequest);
         }
     }
 
@@ -278,12 +281,12 @@ public class JoinHelper {
 
                 @Override
                 public void handleResponse(Empty response) {
-                    logger.debug("successful response to {} from {}", startJoinRequest, destination);
+                    LOGGER.debug("successful response to {} from {}", startJoinRequest, destination);
                 }
 
                 @Override
                 public void handleException(TransportException exp) {
-                    logger.debug(new ParameterizedMessage("failure in response to {} from {}", startJoinRequest, destination), exp);
+                    LOGGER.debug(new ParameterizedMessage("failure in response to {} from {}", startJoinRequest, destination), exp);
                 }
 
                 @Override

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.indices;
 
 import org.elasticsearch.ElasticsearchException;
@@ -49,7 +50,7 @@ public class InvalidIndexTemplateException extends ElasticsearchException {
         out.writeOptionalString(name);
     }
 
-    public InvalidIndexTemplateException(StreamInput in) throws IOException{
+    public InvalidIndexTemplateException(StreamInput in) throws IOException {
         super(in);
         name = in.readOptionalString();
     }

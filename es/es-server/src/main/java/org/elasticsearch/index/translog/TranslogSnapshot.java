@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.translog;
 
 import org.elasticsearch.common.io.Channels;
@@ -56,7 +57,7 @@ final class TranslogSnapshot extends BaseTranslogReader {
         return totalOperations;
     }
 
-    int skippedOperations(){
+    int skippedOperations() {
         return skippedOperations;
     }
 

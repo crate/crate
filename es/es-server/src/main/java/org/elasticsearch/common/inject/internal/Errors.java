@@ -570,7 +570,7 @@ public final class Errors {
         abstract String toString(T t);
     }
 
-    private static final Collection<Converter<?>> converters = Arrays.asList(
+    private static final Collection<Converter<?>> CONVERTERS = Arrays.asList(
             new Converter<Class>(Class.class) {
                 @Override
                 public String toString(Class c) {
@@ -597,7 +597,7 @@ public final class Errors {
     );
 
     public static Object convert(Object o) {
-        for (Converter<?> converter : converters) {
+        for (Converter<?> converter : CONVERTERS) {
             if (converter.appliesTo(o)) {
                 return converter.convert(o);
             }

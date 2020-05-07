@@ -70,24 +70,27 @@ public class TransportPutRepositoryAction extends TransportMasterNodeAction<PutR
 
     @Override
     protected void masterOperation(final PutRepositoryRequest request, ClusterState state, final ActionListener<AcknowledgedResponse> listener) {
-
         repositoriesService.registerRepository(
-                new RepositoriesService.RegisterRepositoryRequest("put_repository [" + request.name() + "]",
-                        request.name(), request.type(), request.verify())
-                .settings(request.settings())
-                .masterNodeTimeout(request.masterNodeTimeout())
-                .ackTimeout(request.timeout()), new ActionListener<ClusterStateUpdateResponse>() {
+            new RepositoriesService.RegisterRepositoryRequest(
+                "put_repository [" + request.name() + "]",
+                request.name(),
+                request.type(),
+                request.verify()
+            )
+            .settings(request.settings())
+            .masterNodeTimeout(request.masterNodeTimeout())
+            .ackTimeout(request.timeout()),
+            new ActionListener<ClusterStateUpdateResponse>() {
+                @Override
+                public void onResponse(ClusterStateUpdateResponse response) {
+                    listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
+                }
 
-            @Override
-            public void onResponse(ClusterStateUpdateResponse response) {
-                listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
+                @Override
+                public void onFailure(Exception e) {
+                    listener.onFailure(e);
+                }
             }
-
-            @Override
-            public void onFailure(Exception e) {
-                listener.onFailure(e);
-            }
-        });
+        );
     }
-
 }

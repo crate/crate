@@ -22,14 +22,15 @@ package org.elasticsearch.bootstrap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 
 import java.io.IOError;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 class ElasticsearchUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
-    private static final Logger logger = LogManager.getLogger(ElasticsearchUncaughtExceptionHandler.class);
+
+    private static final Logger LOGGER = LogManager.getLogger(ElasticsearchUncaughtExceptionHandler.class);
 
     @Override
     public void uncaughtException(Thread t, Throwable e) {
@@ -63,11 +64,11 @@ class ElasticsearchUncaughtExceptionHandler implements Thread.UncaughtExceptionH
     }
 
     void onFatalUncaught(final String threadName, final Throwable t) {
-        logger.error(() -> new ParameterizedMessage("fatal error in thread [{}], exiting", threadName), t);
+        LOGGER.error(() -> new ParameterizedMessage("fatal error in thread [{}], exiting", threadName), t);
     }
 
     void onNonFatalUncaught(final String threadName, final Throwable t) {
-        logger.warn(() -> new ParameterizedMessage("uncaught exception in thread [{}]", threadName), t);
+        LOGGER.warn(() -> new ParameterizedMessage("uncaught exception in thread [{}]", threadName), t);
     }
 
     void halt(int status) {

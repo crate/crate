@@ -152,12 +152,15 @@ public abstract class Plugin implements Closeable {
      * Called before a new index is created on a node. The given module can be used to register index-level
      * extensions.
      */
-    public void onIndexModule(IndexModule indexModule) {}
+    public void onIndexModule(IndexModule indexModule) {
+    }
 
     /**
      * Returns a list of additional {@link Setting} definitions for this plugin.
      */
-    public List<Setting<?>> getSettings() { return Collections.emptyList(); }
+    public List<Setting<?>> getSettings() {
+        return Collections.emptyList();
+    }
 
     /**
      * Get the setting upgraders provided by this plugin.
@@ -232,7 +235,9 @@ public abstract class Plugin implements Closeable {
      * to provide a better out of the box experience by pre-configuring otherwise (in production) mandatory settings or to enforce certain
      * configurations like OS settings or 3rd party resources.
      */
-    public List<BootstrapCheck> getBootstrapChecks() { return Collections.emptyList(); }
+    public List<BootstrapCheck> getBootstrapChecks() {
+        return Collections.emptyList();
+    }
 
     /**
      * Close the resources opened by this plugin.
@@ -251,7 +256,8 @@ public abstract class Plugin implements Closeable {
      * @deprecated use #onIndexModule instead
      */
     @Deprecated
-    public final void onModule(IndexModule indexModule) {}
+    public final void onModule(IndexModule indexModule) {
+    }
 
 
     /**
@@ -261,7 +267,8 @@ public abstract class Plugin implements Closeable {
      * @deprecated use #getSettings and #getSettingsFilter instead
      */
     @Deprecated
-    public final void onModule(SettingsModule settingsModule) {}
+    public final void onModule(SettingsModule settingsModule) {
+    }
 
     /**
      * Old-style analysis extension point. {@code @Deprecated} and {@code final} to act as a signpost for plugin authors upgrading
@@ -270,7 +277,8 @@ public abstract class Plugin implements Closeable {
      * @deprecated implement {@link AnalysisPlugin} instead
      */
     @Deprecated
-    public final void onModule(AnalysisModule module) {}
+    public final void onModule(AnalysisModule module) {
+    }
 
     /**
      * Old-style action extension point. {@code @Deprecated} and {@code final} to act as a signpost for plugin authors upgrading
@@ -279,7 +287,8 @@ public abstract class Plugin implements Closeable {
      * @deprecated implement {@link ActionPlugin} instead
      */
     @Deprecated
-    public final void onModule(ActionModule module) {}
+    public final void onModule(ActionModule module) {
+    }
 
     /**
      * Old-style network extension point. {@code @Deprecated} and {@code final} to act as a signpost for plugin authors upgrading
@@ -288,7 +297,8 @@ public abstract class Plugin implements Closeable {
      * @deprecated implement {@link NetworkPlugin} instead
      */
     @Deprecated
-    public final void onModule(NetworkModule module) {}
+    public final void onModule(NetworkModule module) {
+    }
 
     /**
      * Old-style snapshot/restore extension point. {@code @Deprecated} and {@code final} to act as a signpost for plugin authors upgrading
@@ -297,7 +307,8 @@ public abstract class Plugin implements Closeable {
      * @deprecated implement {@link RepositoryPlugin} instead
      */
     @Deprecated
-    public final void onModule(RepositoriesModule module) {}
+    public final void onModule(RepositoriesModule module) {
+    }
 
     /**
      * Old-style cluster extension point. {@code @Deprecated} and {@code final} to act as a signpost for plugin authors upgrading
@@ -306,7 +317,8 @@ public abstract class Plugin implements Closeable {
      * @deprecated implement {@link ClusterPlugin} instead
      */
     @Deprecated
-    public final void onModule(ClusterModule module) {}
+    public final void onModule(ClusterModule module) {
+    }
 
     /**
      * Old-style discovery extension point. {@code @Deprecated} and {@code final} to act as a signpost for plugin authors upgrading
@@ -315,5 +327,6 @@ public abstract class Plugin implements Closeable {
      * @deprecated implement {@link DiscoveryPlugin} instead
      */
     @Deprecated
-    public final void onModule(DiscoveryModule module) {}
+    public final void onModule(DiscoveryModule module) {
+    }
 }

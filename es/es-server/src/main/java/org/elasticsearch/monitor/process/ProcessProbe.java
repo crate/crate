@@ -30,20 +30,20 @@ import static org.elasticsearch.monitor.jvm.JvmInfo.jvmInfo;
 
 public class ProcessProbe {
 
-    private static final OperatingSystemMXBean osMxBean = ManagementFactory.getOperatingSystemMXBean();
+    private static final OperatingSystemMXBean OS_MX_BEAN = ManagementFactory.getOperatingSystemMXBean();
 
-    private static final Method getMaxFileDescriptorCountField;
-    private static final Method getOpenFileDescriptorCountField;
-    private static final Method getProcessCpuLoad;
-    private static final Method getProcessCpuTime;
-    private static final Method getCommittedVirtualMemorySize;
+    private static final Method GET_MAX_FILE_DESCRIPTOR_COUNT_FIELD;
+    private static final Method GET_OPEN_FILE_DESCRIPTOR_COUNT_FIELD;
+    private static final Method GET_PROCESS_CPU_LOAD;
+    private static final Method GET_PROCESS_CPU_TIME;
+    private static final Method GET_COMMITTED_VIRTUAL_MEMORY_SIZE;
 
     static {
-        getMaxFileDescriptorCountField = getUnixMethod("getMaxFileDescriptorCount");
-        getOpenFileDescriptorCountField = getUnixMethod("getOpenFileDescriptorCount");
-        getProcessCpuLoad = getMethod("getProcessCpuLoad");
-        getProcessCpuTime = getMethod("getProcessCpuTime");
-        getCommittedVirtualMemorySize = getMethod("getCommittedVirtualMemorySize");
+        GET_MAX_FILE_DESCRIPTOR_COUNT_FIELD = getUnixMethod("getMaxFileDescriptorCount");
+        GET_OPEN_FILE_DESCRIPTOR_COUNT_FIELD = getUnixMethod("getOpenFileDescriptorCount");
+        GET_PROCESS_CPU_LOAD = getMethod("getProcessCpuLoad");
+        GET_PROCESS_CPU_TIME = getMethod("getProcessCpuTime");
+        GET_COMMITTED_VIRTUAL_MEMORY_SIZE = getMethod("getCommittedVirtualMemorySize");
     }
 
     private static class ProcessProbeHolder {
@@ -61,11 +61,11 @@ public class ProcessProbe {
      * Returns the maximum number of file descriptors allowed on the system, or -1 if not supported.
      */
     public long getMaxFileDescriptorCount() {
-        if (getMaxFileDescriptorCountField == null) {
+        if (GET_MAX_FILE_DESCRIPTOR_COUNT_FIELD == null) {
             return -1;
         }
         try {
-            return (Long) getMaxFileDescriptorCountField.invoke(osMxBean);
+            return (Long) GET_MAX_FILE_DESCRIPTOR_COUNT_FIELD.invoke(OS_MX_BEAN);
         } catch (Exception t) {
             return -1;
         }
@@ -75,11 +75,11 @@ public class ProcessProbe {
      * Returns the number of opened file descriptors associated with the current process, or -1 if not supported.
      */
     public long getOpenFileDescriptorCount() {
-        if (getOpenFileDescriptorCountField == null) {
+        if (GET_OPEN_FILE_DESCRIPTOR_COUNT_FIELD == null) {
             return -1;
         }
         try {
-            return (Long) getOpenFileDescriptorCountField.invoke(osMxBean);
+            return (Long) GET_OPEN_FILE_DESCRIPTOR_COUNT_FIELD.invoke(OS_MX_BEAN);
         } catch (Exception t) {
             return -1;
         }
@@ -89,16 +89,16 @@ public class ProcessProbe {
      * Returns the process CPU usage in percent
      */
     public short getProcessCpuPercent() {
-        return Probes.getLoadAndScaleToPercent(getProcessCpuLoad, osMxBean);
+        return Probes.getLoadAndScaleToPercent(GET_PROCESS_CPU_LOAD, OS_MX_BEAN);
     }
 
     /**
      * Returns the CPU time (in milliseconds) used by the process on which the Java virtual machine is running, or -1 if not supported.
      */
     public long getProcessCpuTotalTime() {
-        if (getProcessCpuTime != null) {
+        if (GET_PROCESS_CPU_TIME != null) {
             try {
-                long time = (long) getProcessCpuTime.invoke(osMxBean);
+                long time = (long) GET_PROCESS_CPU_TIME.invoke(OS_MX_BEAN);
                 if (time >= 0) {
                     return (time / 1_000_000L);
                 }
@@ -113,9 +113,9 @@ public class ProcessProbe {
      * Returns the size (in bytes) of virtual memory that is guaranteed to be available to the running process
      */
     public long getTotalVirtualMemorySize() {
-        if (getCommittedVirtualMemorySize != null) {
+        if (GET_COMMITTED_VIRTUAL_MEMORY_SIZE != null) {
             try {
-                long virtual = (long) getCommittedVirtualMemorySize.invoke(osMxBean);
+                long virtual = (long) GET_COMMITTED_VIRTUAL_MEMORY_SIZE.invoke(OS_MX_BEAN);
                 if (virtual >= 0) {
                     return virtual;
                 }

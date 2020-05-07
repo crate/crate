@@ -22,8 +22,8 @@ package org.elasticsearch.index.shard;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Assertions;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 
 import java.io.Closeable;
@@ -120,31 +120,33 @@ public class GlobalCheckpointListeners implements Closeable {
                 listeners.put(listener, Tuple.tuple(waitingForGlobalCheckpoint, null));
             } else {
                 listeners.put(
-                        listener,
-                        Tuple.tuple(
-                                waitingForGlobalCheckpoint,
-                                scheduler.schedule(
-                                        () -> {
-                                            final boolean removed;
-                                            synchronized (this) {
-                                                /*
-                                                 * We know that this listener has a timeout associated with it (otherwise we would not be
-                                                 * here) so the future component of the return value from remove being null is an indication
-                                                 * that we are not in the map. This can happen if a notification collected us into listeners
-                                                 * to be notified and removed us from the map, and then our scheduled execution occurred
-                                                 * before we could be cancelled by the notification. In this case, our listener here would
-                                                 * not be in the map and we should not fire the timeout logic.
-                                                 */
-                                                removed = listeners.remove(listener).v2() != null;
-                                            }
-                                            if (removed) {
-                                                final TimeoutException e = new TimeoutException(timeout.getStringRep());
-                                                logger.trace("global checkpoint listener timed out", e);
-                                                executor.execute(() -> notifyListener(listener, UNASSIGNED_SEQ_NO, e));
-                                            }
-                                        },
-                                        timeout.nanos(),
-                                        TimeUnit.NANOSECONDS)));
+                    listener,
+                    Tuple.tuple(
+                        waitingForGlobalCheckpoint,
+                        scheduler.schedule(
+                            () -> {
+                                final boolean removed;
+                                synchronized (this) {
+                                    /*
+                                        * We know that this listener has a timeout associated with it (otherwise we would not be
+                                        * here) so the future component of the return value from remove being null is an indication
+                                        * that we are not in the map. This can happen if a notification collected us into listeners
+                                        * to be notified and removed us from the map, and then our scheduled execution occurred
+                                        * before we could be cancelled by the notification. In this case, our listener here would
+                                        * not be in the map and we should not fire the timeout logic.
+                                        */
+                                    removed = listeners.remove(listener).v2() != null;
+                                }
+                                if (removed) {
+                                    final TimeoutException e = new TimeoutException(timeout.getStringRep());
+                                    logger.trace("global checkpoint listener timed out", e);
+                                    executor.execute(() -> notifyListener(listener, UNASSIGNED_SEQ_NO, e));
+                                }
+                            },
+                            timeout.nanos(),
+                            TimeUnit.NANOSECONDS)
+                    )
+                );
             }
         }
     }

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.snapshots;
 
 import com.carrotsearch.hppc.IntHashSet;
@@ -63,7 +64,7 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
@@ -119,7 +120,7 @@ import static org.elasticsearch.snapshots.SnapshotUtils.filterIndices;
  */
 public class RestoreService implements ClusterStateApplier {
 
-    private static final Logger logger = LogManager.getLogger(RestoreService.class);
+    private static final Logger LOGGER = LogManager.getLogger(RestoreService.class);
 
     private static final Set<String> UNMODIFIABLE_SETTINGS = unmodifiableSet(newHashSet(
             SETTING_NUMBER_OF_SHARDS,
@@ -165,7 +166,7 @@ public class RestoreService implements ClusterStateApplier {
         this.metaDataIndexUpgradeService = metaDataIndexUpgradeService;
         clusterService.addStateApplier(this);
         this.clusterSettings = clusterSettings;
-        this.cleanRestoreStateTaskExecutor = new CleanRestoreStateTaskExecutor(logger);
+        this.cleanRestoreStateTaskExecutor = new CleanRestoreStateTaskExecutor(LOGGER);
     }
 
     /**
@@ -503,7 +504,7 @@ public class RestoreService implements ClusterStateApplier {
 
                 @Override
                 public void onFailure(String source, Exception e) {
-                    logger.warn(() -> new ParameterizedMessage("[{}] failed to restore snapshot", snapshotId), e);
+                    LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to restore snapshot", snapshotId), e);
                     listener.onFailure(e);
                 }
 
@@ -520,7 +521,7 @@ public class RestoreService implements ClusterStateApplier {
 
 
         } catch (Exception e) {
-            logger.warn(() -> new ParameterizedMessage("[{}] failed to restore snapshot", request.repositoryName + ":" + request.snapshotName), e);
+            LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to restore snapshot", request.repositoryName + ":" + request.snapshotName), e);
             listener.onFailure(e);
         }
     }
@@ -870,7 +871,7 @@ public class RestoreService implements ClusterStateApplier {
                 cleanupRestoreState(event);
             }
         } catch (Exception t) {
-            logger.warn("Failed to update restore state ", t);
+            LOGGER.warn("Failed to update restore state ", t);
         }
     }
 

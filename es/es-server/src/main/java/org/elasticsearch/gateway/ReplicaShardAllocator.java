@@ -38,9 +38,9 @@ import org.elasticsearch.cluster.routing.allocation.NodeAllocationResult.ShardSt
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.store.StoreFileMetaData;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetaData;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetaData.NodeStoreFilesMetaData;
@@ -113,13 +113,21 @@ public abstract class ReplicaShardAllocator extends BaseGatewayShardAllocator {
                             && matchingNodes.isNodeMatchBySyncID(nodeWithHighestMatch)) {
                         // we found a better match that has a full sync id match, the existing allocation is not fully synced
                         // so we found a better one, cancel this one
-                        logger.debug("cancelling allocation of replica on [{}], sync id match found on node [{}]",
-                                currentNode, nodeWithHighestMatch);
-                        UnassignedInfo unassignedInfo = new UnassignedInfo(UnassignedInfo.Reason.REALLOCATED_REPLICA,
-                            "existing allocation of replica to [" + currentNode + "] cancelled, sync id match found on node ["+
-                                nodeWithHighestMatch + "]",
-                            null, 0, allocation.getCurrentNanoTime(), System.currentTimeMillis(), false,
-                            UnassignedInfo.AllocationStatus.NO_ATTEMPT);
+                        logger.debug(
+                            "cancelling allocation of replica on [{}], sync id match found on node [{}]",
+                            currentNode,
+                            nodeWithHighestMatch
+                        );
+                        UnassignedInfo unassignedInfo = new UnassignedInfo(
+                            UnassignedInfo.Reason.REALLOCATED_REPLICA,
+                            "existing allocation of replica to [" + currentNode + "] cancelled, sync id match found on node [" + nodeWithHighestMatch + "]",
+                            null,
+                            0,
+                            allocation.getCurrentNanoTime(),
+                            System.currentTimeMillis(),
+                            false,
+                            UnassignedInfo.AllocationStatus.NO_ATTEMPT
+                        );
                         // don't cancel shard in the loop as it will cause a ConcurrentModificationException
                         shardCancellationActions.add(() -> routingNodes.failShard(logger, shard, unassignedInfo,
                             metaData.getIndexSafe(shard.index()), allocation.changes()));

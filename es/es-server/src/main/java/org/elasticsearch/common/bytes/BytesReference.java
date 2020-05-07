@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.bytes;
 
+import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.common.io.stream.BytesStream;
@@ -183,7 +185,7 @@ public abstract class BytesReference implements Comparable<BytesReference>, ToXC
         if (bytesRef.offset == 0 && bytesRef.length == bytesRef.bytes.length) {
             return bytesRef.bytes;
         }
-        return BytesRef.deepCopyOf(bytesRef).bytes;
+        return ArrayUtil.copyOfSubArray(bytesRef.bytes, bytesRef.offset, bytesRef.offset + bytesRef.length);
     }
 
     @Override
@@ -242,7 +244,7 @@ public abstract class BytesReference implements Comparable<BytesReference>, ToXC
 
     private static void advance(final BytesRef ref, final int length) {
         assert ref.length >= length : " ref.length: " + ref.length + " length: " + length;
-        assert ref.offset+length < ref.bytes.length || (ref.offset+length == ref.bytes.length && ref.length-length == 0)
+        assert ref.offset + length < ref.bytes.length || (ref.offset + length == ref.bytes.length && ref.length - length == 0)
             : "offset: " + ref.offset + " ref.bytes.length: " + ref.bytes.length + " length: " + length + " ref.length: " + ref.length;
         ref.length -= length;
         ref.offset += length;

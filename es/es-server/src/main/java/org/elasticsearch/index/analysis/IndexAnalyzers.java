@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.analysis;
 
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.IndexSettings;
 
@@ -100,9 +101,8 @@ public final class IndexAnalyzers extends AbstractIndexComponent implements Clos
 
     @Override
     public void close() throws IOException {
-       IOUtils.close(() -> Stream.concat(analyzers.values().stream(), normalizers.values().stream())
-           .filter(a -> a.scope() == AnalyzerScope.INDEX)
-           .iterator());
+        IOUtils.close(() -> Stream.concat(analyzers.values().stream(), normalizers.values().stream())
+            .filter(a -> a.scope() == AnalyzerScope.INDEX).iterator());
     }
 
     /**

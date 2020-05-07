@@ -81,7 +81,9 @@ public class MoveAllocationCommand implements AllocationCommand {
         return NAME;
     }
 
-    public String index() {return index; }
+    public String index() {
+        return index;
+    }
 
     public int shardId() {
         return this.shardId;
@@ -105,13 +107,13 @@ public class MoveAllocationCommand implements AllocationCommand {
         RoutingNode fromRoutingNode = allocation.routingNodes().node(fromDiscoNode.getId());
         if (fromRoutingNode == null && !fromDiscoNode.isDataNode()) {
             throw new IllegalArgumentException("[move_allocation] can't move [" + index + "][" + shardId + "] from "
-                + fromDiscoNode + " to " + toDiscoNode + ": source [" +  fromDiscoNode.getName()
+                + fromDiscoNode + " to " + toDiscoNode + ": source [" + fromDiscoNode.getName()
                 + "] is not a data node.");
         }
         RoutingNode toRoutingNode = allocation.routingNodes().node(toDiscoNode.getId());
         if (toRoutingNode == null && !toDiscoNode.isDataNode()) {
             throw new IllegalArgumentException("[move_allocation] can't move [" + index + "][" + shardId + "] from "
-                + fromDiscoNode + " to " + toDiscoNode + ": source [" +  toDiscoNode.getName()
+                + fromDiscoNode + " to " + toDiscoNode + ": source [" + toDiscoNode.getName()
                 + "] is not a data node.");
         }
 

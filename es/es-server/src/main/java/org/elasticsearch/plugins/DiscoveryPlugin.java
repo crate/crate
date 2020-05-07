@@ -84,5 +84,7 @@ public interface DiscoveryPlugin {
      * join attempt but might be called multiple times during the lifetime of a node. Validators are expected to throw a
      * {@link IllegalStateException} if the node and the cluster-state are incompatible.
      */
-    default BiConsumer<DiscoveryNode,ClusterState> getJoinValidator() { return null; }
+    default BiConsumer<DiscoveryNode, ClusterState> getJoinValidator() {
+        return null;
+    }
 }

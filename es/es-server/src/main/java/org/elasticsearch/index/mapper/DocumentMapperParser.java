@@ -21,7 +21,7 @@ package org.elasticsearch.index.mapper;
 
 import org.elasticsearch.Version;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -97,7 +97,7 @@ public class DocumentMapperParser {
                 (RootObjectMapper.Builder) rootObjectTypeParser.parse(type, mapping, parserContext), mapperService);
         Iterator<Map.Entry<String, Object>> iterator = mapping.entrySet().iterator();
         // parse DocumentMapper
-        while(iterator.hasNext()) {
+        while (iterator.hasNext()) {
             Map.Entry<String, Object> entry = iterator.next();
             String fieldName = entry.getKey();
             Object fieldNode = entry.getValue();

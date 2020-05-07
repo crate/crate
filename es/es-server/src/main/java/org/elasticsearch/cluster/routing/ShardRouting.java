@@ -82,7 +82,7 @@ public final class ShardRouting implements Writeable, ToXContentObject {
         assert !(state == ShardRoutingState.UNASSIGNED && unassignedInfo == null) : "unassigned shard must be created with meta";
         assert (state == ShardRoutingState.UNASSIGNED || state == ShardRoutingState.INITIALIZING) == (recoverySource != null) : "recovery source only available on unassigned or initializing shard but was " + state;
         assert recoverySource == null || recoverySource == PeerRecoverySource.INSTANCE || primary : "replica shards always recover from primary";
-        assert (currentNodeId == null) == (state == ShardRoutingState.UNASSIGNED)  : "unassigned shard must not be assigned to a node " + this;
+        assert (currentNodeId == null) == (state == ShardRoutingState.UNASSIGNED) : "unassigned shard must not be assigned to a node " + this;
     }
 
     @Nullable
@@ -416,7 +416,7 @@ public final class ShardRouting implements Writeable, ToXContentObject {
      * @throws IllegalShardRoutingStateException if shard is already a primary
      */
     public ShardRouting moveActiveReplicaToPrimary() {
-        assert active(): "expected an active shard " + this;
+        assert active() : "expected an active shard " + this;
         if (primary) {
             throw new IllegalShardRoutingStateException(this, "Already primary, can't move to primary");
         }

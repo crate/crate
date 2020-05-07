@@ -1,8 +1,10 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
 dependencies {
-    compile project(':es:es-core')
-    compile project(':es:es-x-content')
-    compileOnly project(':es:es-plugin-classloader')
-    testRuntime project(':es:es-plugin-classloader')
+    implementation project(':libs:shared')
+    compile project(':libs:es-x-content')
+    compileOnly project(':libs:es-plugin-classloader')
+    testRuntime project(':libs:es-plugin-classloader')
 
     // lucene
     compile "org.apache.lucene:lucene-core:${versions.lucene}"
@@ -34,8 +36,6 @@ dependencies {
     // logging
     compile "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
     compile "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
-    // to bridge dependencies that are still on Log4j 1 to Log4j 2
-    compile "org.apache.logging.log4j:log4j-1.2-api:${versions.log4j2}"
 
     compile "net.java.dev.jna:jna:${versions.jna}"
 

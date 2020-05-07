@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.index.IndexOptions;
@@ -279,7 +280,8 @@ public class GeoShapeFieldMapper extends FieldMapper {
         private RecursivePrefixTreeStrategy recursiveStrategy;
         private TermQueryPrefixTreeStrategy termStrategy;
 
-        public GeoShapeFieldType() {}
+        public GeoShapeFieldType() {
+        }
 
         protected GeoShapeFieldType(GeoShapeFieldType ref) {
             super(ref);
@@ -422,6 +424,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
             checkIfFrozen();
             this.pointsOnly = pointsOnly;
         }
+
         public int treeLevels() {
             return treeLevels;
         }
@@ -454,7 +457,9 @@ public class GeoShapeFieldMapper extends FieldMapper {
             this.defaultDistanceErrorPct = defaultDistanceErrorPct;
         }
 
-        public Orientation orientation() { return this.orientation; }
+        public Orientation orientation() {
+            return this.orientation;
+        }
 
         public void setOrientation(Orientation orientation) {
             checkIfFrozen();
@@ -514,6 +519,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
     public GeoShapeFieldType fieldType() {
         return (GeoShapeFieldType) super.fieldType();
     }
+
     @Override
     public void parse(ParseContext context) throws IOException {
         try {
@@ -591,7 +597,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
 
         if (fieldType().treeLevels() != 0) {
             builder.field(Names.TREE_LEVELS, fieldType().treeLevels());
-        } else if(includeDefaults && fieldType().precisionInMeters() == -1) { // defaults only make sense if precision is not specified
+        } else if (includeDefaults && fieldType().precisionInMeters() == -1) { // defaults only make sense if precision is not specified
             if ("geohash".equals(fieldType().tree())) {
                 builder.field(Names.TREE_LEVELS, Defaults.GEOHASH_LEVELS);
             } else if ("legacyquadtree".equals(fieldType().tree())) {

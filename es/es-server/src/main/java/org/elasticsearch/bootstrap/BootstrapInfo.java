@@ -19,7 +19,7 @@
 
 package org.elasticsearch.bootstrap;
 
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 
 import java.util.Dictionary;
 import java.util.Enumeration;
@@ -31,7 +31,8 @@ import java.util.Enumeration;
 public final class BootstrapInfo {
 
     /** no instantiation */
-    private BootstrapInfo() {}
+    private BootstrapInfo() {
+    }
 
     /**
      * Returns true if we were able to lock the process's address space.
@@ -45,6 +46,7 @@ public final class BootstrapInfo {
     // some test methods still change properties, so whitelisted changes must
     // be reflected in this view.
     private static final Dictionary<Object,Object> SYSTEM_PROPERTIES;
+
     static {
         final Dictionary<Object,Object> sysprops = System.getProperties();
         SYSTEM_PROPERTIES = new Dictionary<Object,Object>() {

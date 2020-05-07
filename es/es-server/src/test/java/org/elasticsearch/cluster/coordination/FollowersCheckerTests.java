@@ -100,8 +100,13 @@ public class FollowersCheckerTests extends ESTestCase {
             }
         };
 
-        final TransportService transportService = mockTransport.createTransportService(settings, deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR, boundTransportAddress -> localNode, null, emptySet());
+        final TransportService transportService = mockTransport.createTransportService(
+            settings,
+            deterministicTaskQueue.getThreadPool(),
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            boundTransportAddress -> localNode,
+            null
+        );
         transportService.start();
         transportService.acceptIncomingRequests();
 
@@ -266,8 +271,13 @@ public class FollowersCheckerTests extends ESTestCase {
             }
         };
 
-        final TransportService transportService = mockTransport.createTransportService(settings, deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR, boundTransportAddress -> localNode, null, emptySet());
+        final TransportService transportService = mockTransport.createTransportService(
+            settings,
+            deterministicTaskQueue.getThreadPool(),
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            boundTransportAddress -> localNode,
+            null
+        );
         transportService.start();
         transportService.acceptIncomingRequests();
 
@@ -327,8 +337,13 @@ public class FollowersCheckerTests extends ESTestCase {
             }
         };
 
-        final TransportService transportService = mockTransport.createTransportService(settings, deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR, boundTransportAddress -> localNode, null, emptySet());
+        final TransportService transportService = mockTransport.createTransportService(
+            settings,
+            deterministicTaskQueue.getThreadPool(),
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            boundTransportAddress -> localNode,
+            null
+        );
         transportService.start();
         transportService.acceptIncomingRequests();
 
@@ -414,8 +429,13 @@ public class FollowersCheckerTests extends ESTestCase {
             }
         };
 
-        final TransportService transportService = mockTransport.createTransportService(settings, deterministicTaskQueue.getThreadPool(),
-            TransportService.NOOP_TRANSPORT_INTERCEPTOR, boundTransportAddress -> follower, null, emptySet());
+        final TransportService transportService = mockTransport.createTransportService(
+            settings,
+            deterministicTaskQueue.getThreadPool(),
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            boundTransportAddress -> follower,
+            null
+        );
         transportService.start();
         transportService.acceptIncomingRequests();
 
@@ -554,8 +574,13 @@ public class FollowersCheckerTests extends ESTestCase {
         CapturingTransport capturingTransport = new CapturingTransport();
         final Settings settings = Settings.builder().put(NODE_NAME_SETTING.getKey(), nodes.get(0).getName()).build();
         final DeterministicTaskQueue deterministicTaskQueue = new DeterministicTaskQueue(settings, random());
-        TransportService transportService = capturingTransport.createTransportService(Settings.EMPTY,
-                deterministicTaskQueue.getThreadPool(), TransportService.NOOP_TRANSPORT_INTERCEPTOR, x -> nodes.get(0), null, emptySet());
+        TransportService transportService = capturingTransport.createTransportService(
+            Settings.EMPTY,
+            deterministicTaskQueue.getThreadPool(),
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            x -> nodes.get(0),
+            null
+        );
         final FollowersChecker followersChecker = new FollowersChecker(Settings.EMPTY, transportService, fcr -> {
             assert false : fcr;
         }, (node, reason) -> {

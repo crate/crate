@@ -35,7 +35,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
-import org.elasticsearch.common.CheckedFunction;
+import io.crate.common.CheckedFunction;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -44,7 +44,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MapperTestUtils;
@@ -716,7 +716,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             .build();
         replica.updateShardState(routingEntry, replica.getPendingPrimaryTerm() + 1,
             (is, listener) ->
-                listener.onResponse(new PrimaryReplicaSyncer.ResyncTask(1, "type", "action", "desc", null, Collections.emptyMap())),
+                listener.onResponse(new PrimaryReplicaSyncer.ResyncTask(1, "type", "action", "desc", null)),
             currentClusterStateVersion.incrementAndGet(),
             inSyncIds, newRoutingTable);
     }

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.snapshots.blobstore;
 
 import org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot.FileInfo;
@@ -39,7 +40,7 @@ public class SnapshotFiles {
         return snapshot;
     }
 
-    public SnapshotFiles(String snapshot, List<FileInfo> indexFiles ) {
+    public SnapshotFiles(String snapshot, List<FileInfo> indexFiles) {
         this.snapshot = snapshot;
         this.indexFiles = indexFiles;
     }
@@ -69,7 +70,7 @@ public class SnapshotFiles {
     public FileInfo findPhysicalIndexFile(String physicalName) {
         if (physicalFiles == null) {
             Map<String, FileInfo> files = new HashMap<>();
-            for(FileInfo fileInfo : indexFiles) {
+            for (FileInfo fileInfo : indexFiles) {
                 files.put(fileInfo.physicalName(), fileInfo);
             }
             this.physicalFiles = files;

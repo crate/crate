@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
@@ -36,7 +37,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -64,7 +65,7 @@ import static org.elasticsearch.indices.cluster.IndicesClusterStateService.Alloc
  */
 public class MetaDataIndexTemplateService {
 
-    private static final Logger logger = LogManager.getLogger(MetaDataIndexTemplateService.class);
+    private static final Logger LOGGER = LogManager.getLogger(MetaDataIndexTemplateService.class);
 
     private final ClusterService clusterService;
     private final AliasValidator aliasValidator;
@@ -118,7 +119,7 @@ public class MetaDataIndexTemplateService {
                 }
                 MetaData.Builder metaData = MetaData.builder(currentState.metaData());
                 for (String templateName : templateNames) {
-                    logger.info("removing template [{}]", templateName);
+                    LOGGER.info("removing template [{}]", templateName);
                     metaData.removeTemplate(templateName);
                 }
                 return ClusterState.builder(currentState).metaData(metaData).build();
@@ -154,45 +155,47 @@ public class MetaDataIndexTemplateService {
 
         final IndexTemplateMetaData.Builder templateBuilder = IndexTemplateMetaData.builder(request.name);
 
-        clusterService.submitStateUpdateTask("create-index-template [" + request.name + "], cause [" + request.cause + "]",
-                new ClusterStateUpdateTask(Priority.URGENT) {
+        clusterService.submitStateUpdateTask(
+            "create-index-template [" + request.name + "], cause [" + request.cause + "]",
+            new ClusterStateUpdateTask(Priority.URGENT) {
 
-            @Override
-            public TimeValue timeout() {
-                return request.masterTimeout;
-            }
-
-            @Override
-            public void onFailure(String source, Exception e) {
-                listener.onFailure(e);
-            }
-
-            @Override
-            public ClusterState execute(ClusterState currentState) throws Exception {
-                if (request.create && currentState.metaData().templates().containsKey(request.name)) {
-                    throw new IllegalArgumentException("index_template [" + request.name + "] already exists");
+                @Override
+                public TimeValue timeout() {
+                    return request.masterTimeout;
                 }
 
-                validateAndAddTemplate(request, templateBuilder, indicesService, xContentRegistry);
-
-                for (Alias alias : request.aliases) {
-                    AliasMetaData aliasMetaData = AliasMetaData.builder(alias.name()).filter(alias.filter())
-                        .indexRouting(alias.indexRouting()).searchRouting(alias.searchRouting()).build();
-                    templateBuilder.putAlias(aliasMetaData);
+                @Override
+                public void onFailure(String source, Exception e) {
+                    listener.onFailure(e);
                 }
-                IndexTemplateMetaData template = templateBuilder.build();
 
-                MetaData.Builder builder = MetaData.builder(currentState.metaData()).put(template);
+                @Override
+                public ClusterState execute(ClusterState currentState) throws Exception {
+                    if (request.create && currentState.metaData().templates().containsKey(request.name)) {
+                        throw new IllegalArgumentException("index_template [" + request.name + "] already exists");
+                    }
 
-                logger.info("adding template [{}] for index patterns {}", request.name, request.indexPatterns);
-                return ClusterState.builder(currentState).metaData(builder).build();
+                    validateAndAddTemplate(request, templateBuilder, indicesService, xContentRegistry);
+
+                    for (Alias alias : request.aliases) {
+                        AliasMetaData aliasMetaData = AliasMetaData.builder(alias.name()).filter(alias.filter())
+                            .indexRouting(alias.indexRouting()).searchRouting(alias.searchRouting()).build();
+                        templateBuilder.putAlias(aliasMetaData);
+                    }
+                    IndexTemplateMetaData template = templateBuilder.build();
+
+                    MetaData.Builder builder = MetaData.builder(currentState.metaData()).put(template);
+
+                    LOGGER.info("adding template [{}] for index patterns {}", request.name, request.indexPatterns);
+                    return ClusterState.builder(currentState).metaData(builder).build();
+                }
+
+                @Override
+                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                    listener.onResponse(new PutResponse(true, templateBuilder.build()));
+                }
             }
-
-            @Override
-            public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                listener.onResponse(new PutResponse(true, templateBuilder.build()));
-            }
-        });
+        );
     }
 
     /**
@@ -276,7 +279,7 @@ public class MetaDataIndexTemplateService {
         if (!request.name.toLowerCase(Locale.ROOT).equals(request.name)) {
             validationErrors.add("name must be lower cased");
         }
-        for(String indexPattern : request.indexPatterns) {
+        for (String indexPattern : request.indexPatterns) {
             if (indexPattern.contains(" ")) {
                 validationErrors.add("template must not contain a space");
             }

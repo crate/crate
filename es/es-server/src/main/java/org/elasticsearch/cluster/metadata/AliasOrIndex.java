@@ -22,7 +22,7 @@ package org.elasticsearch.cluster.metadata;
 import org.apache.lucene.util.SetOnce;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 
 import java.util.ArrayList;
 import java.util.Collections;

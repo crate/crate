@@ -1,4 +1,0 @@
-dependencies {
-    compile project(':es:es-server')
-    compile "com.amazonaws:aws-java-sdk-ec2:${versions.aws}"
-}

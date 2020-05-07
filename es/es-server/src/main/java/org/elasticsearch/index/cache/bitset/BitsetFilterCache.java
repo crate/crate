@@ -19,6 +19,14 @@
 
 package org.elasticsearch.index.cache.bitset;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexReaderContext;
@@ -29,11 +37,9 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.search.join.BitSetProducer;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.BitDocIdSet;
 import org.apache.lucene.util.BitSet;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.cache.Cache;
 import org.elasticsearch.common.cache.CacheBuilder;
 import org.elasticsearch.common.cache.RemovalListener;
@@ -49,15 +55,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardUtils;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 
 /**
  * This is a cache for {@link BitDocIdSet} based filters and is unbounded by size or time.
@@ -213,12 +210,14 @@ public final class BitsetFilterCache extends AbstractIndexComponent implements I
      *  A listener interface that is executed for each onCache / onRemoval event
      */
     public interface Listener {
+
         /**
          * Called for each cached bitset on the cache event.
          * @param shardId the shard id the bitset was cached for. This can be <code>null</code>
          * @param accountable the bitsets ram representation
          */
         void onCache(ShardId shardId, Accountable accountable);
+
         /**
          * Called for each cached bitset on the removal event.
          * @param shardId the shard id the bitset was cached for. This can be <code>null</code>

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.engine;
 
 import org.apache.lucene.index.BinaryDocValues;
@@ -67,6 +68,7 @@ final class TranslogLeafReader extends LeafReader {
         this.operation = operation;
         this.indexVersionCreated = indexVersionCreated;
     }
+
     @Override
     public CacheHelper getCoreCacheHelper() {
         throw new UnsupportedOperationException();

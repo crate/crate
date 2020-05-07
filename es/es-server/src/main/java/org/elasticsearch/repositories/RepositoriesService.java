@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
  */
 public class RepositoriesService implements ClusterStateApplier {
 
-    private static final Logger logger = LogManager.getLogger(RepositoriesService.class);
+    private static final Logger LOGGER = LogManager.getLogger(RepositoriesService.class);
 
     private final Map<String, Repository.Factory> typesRegistry;
 
@@ -121,7 +121,7 @@ public class RepositoriesService implements ClusterStateApplier {
                 MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
                 RepositoriesMetaData repositories = metaData.custom(RepositoriesMetaData.TYPE);
                 if (repositories == null) {
-                    logger.info("put repository [{}]", request.name);
+                    LOGGER.info("put repository [{}]", request.name);
                     repositories = new RepositoriesMetaData(
                         Collections.singletonList(new RepositoryMetaData(request.name, request.type, request.settings)));
                 } else {
@@ -137,10 +137,10 @@ public class RepositoriesService implements ClusterStateApplier {
                         }
                     }
                     if (!found) {
-                        logger.info("put repository [{}]", request.name);
+                        LOGGER.info("put repository [{}]", request.name);
                         repositoriesMetaData.add(new RepositoryMetaData(request.name, request.type, request.settings));
                     } else {
-                        logger.info("update repository [{}]", request.name);
+                        LOGGER.info("update repository [{}]", request.name);
                     }
                     repositories = new RepositoriesMetaData(repositoriesMetaData);
                 }
@@ -150,7 +150,7 @@ public class RepositoriesService implements ClusterStateApplier {
 
             @Override
             public void onFailure(String source, Exception e) {
-                logger.warn(() -> new ParameterizedMessage("failed to create repository [{}]", request.name), e);
+                LOGGER.warn(() -> new ParameterizedMessage("failed to create repository [{}]", request.name), e);
                 super.onFailure(source, e);
             }
 
@@ -161,6 +161,7 @@ public class RepositoriesService implements ClusterStateApplier {
             }
         });
     }
+
     /**
      * Unregisters repository in the cluster
      * <p>
@@ -171,6 +172,7 @@ public class RepositoriesService implements ClusterStateApplier {
      */
     public void unregisterRepository(final UnregisterRepositoryRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
         clusterService.submitStateUpdateTask(request.cause, new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
+
             @Override
             protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
                 return new ClusterStateUpdateResponse(acknowledged);
@@ -187,7 +189,7 @@ public class RepositoriesService implements ClusterStateApplier {
                     boolean changed = false;
                     for (RepositoryMetaData repositoryMetaData : repositories.repositories()) {
                         if (Regex.simpleMatch(request.name, repositoryMetaData.name())) {
-                            logger.info("delete repository [{}]", repositoryMetaData.name());
+                            LOGGER.info("delete repository [{}]", repositoryMetaData.name());
                             changed = true;
                         } else {
                             repositoriesMetaData.add(repositoryMetaData);
@@ -228,7 +230,7 @@ public class RepositoriesService implements ClusterStateApplier {
                                         try {
                                             repository.endVerification(verificationToken);
                                         } catch (Exception e) {
-                                            logger.warn(() -> new ParameterizedMessage(
+                                            LOGGER.warn(() -> new ParameterizedMessage(
                                                 "[{}] failed to finish repository verification", repositoryName), e);
                                             listener.onFailure(e);
                                             return;
@@ -248,7 +250,7 @@ public class RepositoriesService implements ClusterStateApplier {
                                     repository.endVerification(verificationToken);
                                 } catch (Exception inner) {
                                     inner.addSuppressed(e);
-                                    logger.warn(() -> new ParameterizedMessage(
+                                    LOGGER.warn(() -> new ParameterizedMessage(
                                         "[{}] failed to finish repository verification", repositoryName), inner);
                                 }
                                 listener.onFailure(e);
@@ -284,13 +286,13 @@ public class RepositoriesService implements ClusterStateApplier {
                 return;
             }
 
-            logger.trace("processing new index repositories for state version [{}]", event.state().version());
+            LOGGER.trace("processing new index repositories for state version [{}]", event.state().version());
 
             Map<String, Repository> survivors = new HashMap<>();
             // First, remove repositories that are no longer there
             for (Map.Entry<String, Repository> entry : repositories.entrySet()) {
                 if (newMetaData == null || newMetaData.repository(entry.getKey()) == null) {
-                    logger.debug("unregistering repository [{}]", entry.getKey());
+                    LOGGER.debug("unregistering repository [{}]", entry.getKey());
                     closeRepository(entry.getValue());
                 } else {
                     survivors.put(entry.getKey(), entry.getValue());
@@ -308,7 +310,7 @@ public class RepositoriesService implements ClusterStateApplier {
                         if (previousMetadata.type().equals(repositoryMetaData.type()) == false
                             || previousMetadata.settings().equals(repositoryMetaData.settings()) == false) {
                             // Previous version is different from the version in settings
-                            logger.debug("updating repository [{}]", repositoryMetaData.name());
+                            LOGGER.debug("updating repository [{}]", repositoryMetaData.name());
                             closeRepository(repository);
                             repository = null;
                             try {
@@ -316,25 +318,25 @@ public class RepositoriesService implements ClusterStateApplier {
                             } catch (RepositoryException ex) {
                                 // TODO: this catch is bogus, it means the old repo is already closed,
                                 // but we have nothing to replace it
-                                logger.warn(() -> new ParameterizedMessage("failed to change repository [{}]", repositoryMetaData.name()), ex);
+                                LOGGER.warn(() -> new ParameterizedMessage("failed to change repository [{}]", repositoryMetaData.name()), ex);
                             }
                         }
                     } else {
                         try {
                             repository = createRepository(repositoryMetaData);
                         } catch (RepositoryException ex) {
-                            logger.warn(() -> new ParameterizedMessage("failed to create repository [{}]", repositoryMetaData.name()), ex);
+                            LOGGER.warn(() -> new ParameterizedMessage("failed to create repository [{}]", repositoryMetaData.name()), ex);
                         }
                     }
                     if (repository != null) {
-                        logger.debug("registering repository [{}]", repositoryMetaData.name());
+                        LOGGER.debug("registering repository [{}]", repositoryMetaData.name());
                         builder.put(repositoryMetaData.name(), repository);
                     }
                 }
             }
             repositories = Collections.unmodifiableMap(builder);
         } catch (Exception ex) {
-            logger.warn("failure updating cluster state ", ex);
+            LOGGER.warn("failure updating cluster state ", ex);
         }
     }
 
@@ -386,7 +388,7 @@ public class RepositoriesService implements ClusterStateApplier {
 
     /** Closes the given repository. */
     private void closeRepository(Repository repository) throws IOException {
-        logger.debug("closing repository [{}][{}]", repository.getMetadata().type(), repository.getMetadata().name());
+        LOGGER.debug("closing repository [{}][{}]", repository.getMetadata().type(), repository.getMetadata().name());
         repository.close();
     }
 
@@ -394,7 +396,7 @@ public class RepositoriesService implements ClusterStateApplier {
      * Creates repository holder
      */
     private Repository createRepository(RepositoryMetaData repositoryMetaData) {
-        logger.debug("creating repository [{}][{}]", repositoryMetaData.type(), repositoryMetaData.name());
+        LOGGER.debug("creating repository [{}][{}]", repositoryMetaData.type(), repositoryMetaData.name());
         Repository.Factory factory = typesRegistry.get(repositoryMetaData.type());
         if (factory == null) {
             throw new RepositoryException(repositoryMetaData.name(),
@@ -405,7 +407,7 @@ public class RepositoriesService implements ClusterStateApplier {
             repository.start();
             return repository;
         } catch (Exception e) {
-            logger.warn(() -> new ParameterizedMessage("failed to create repository [{}][{}]", repositoryMetaData.type(), repositoryMetaData.name()), e);
+            LOGGER.warn(() -> new ParameterizedMessage("failed to create repository [{}][{}]", repositoryMetaData.type(), repositoryMetaData.name()), e);
             throw new RepositoryException(repositoryMetaData.name(), "failed to create repository", e);
         }
     }
@@ -530,9 +532,9 @@ public class RepositoriesService implements ClusterStateApplier {
      */
     public static class VerifyResponse {
 
-        private VerificationFailure[] failures;
+        private final VerificationFailure[] failures;
 
-        private DiscoveryNode[] nodes;
+        private final DiscoveryNode[] nodes;
 
         public VerifyResponse(DiscoveryNode[] nodes, VerificationFailure[] failures) {
             this.nodes = nodes;
@@ -548,14 +550,14 @@ public class RepositoriesService implements ClusterStateApplier {
         }
 
         public boolean failed() {
-            return  failures.length > 0;
+            return failures.length > 0;
         }
 
         public String failureDescription() {
             return Arrays
-                    .stream(failures)
-                    .map(failure -> failure.toString())
-                    .collect(Collectors.joining(", ", "[", "]"));
+                .stream(failures)
+                .map(failure -> failure.toString())
+                .collect(Collectors.joining(", ", "[", "]"));
         }
 
     }

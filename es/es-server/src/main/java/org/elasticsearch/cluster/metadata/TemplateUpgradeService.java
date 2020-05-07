@@ -35,8 +35,8 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -64,7 +64,7 @@ import static java.util.Collections.singletonMap;
  */
 public class TemplateUpgradeService implements ClusterStateListener {
 
-    private static final Logger logger = LogManager.getLogger(TemplateUpgradeService.class);
+    private static final Logger LOGGER = LogManager.getLogger(TemplateUpgradeService.class);
 
     private final UnaryOperator<Map<String, IndexTemplateMetaData>> indexTemplateMetaDataUpgraders;
 
@@ -124,7 +124,7 @@ public class TemplateUpgradeService implements ClusterStateListener {
         Optional<Tuple<Map<String, BytesReference>, Set<String>>> changes = calculateTemplateChanges(templates);
         if (changes.isPresent()) {
             if (upgradesInProgress.compareAndSet(0, changes.get().v1().size() + changes.get().v2().size() + 1)) {
-                logger.info("Starting template upgrade to version {}, {} templates will be updated and {} will be removed",
+                LOGGER.info("Starting template upgrade to version {}, {} templates will be updated and {} will be removed",
                     Version.CURRENT,
                     changes.get().v1().size(),
                     changes.get().v2().size());
@@ -153,7 +153,7 @@ public class TemplateUpgradeService implements ClusterStateListener {
                 public void onResponse(AcknowledgedResponse response) {
                     if (response.isAcknowledged() == false) {
                         anyUpgradeFailed.set(true);
-                        logger.warn("Error updating template [{}], request was not acknowledged", change.getKey());
+                        LOGGER.warn("Error updating template [{}], request was not acknowledged", change.getKey());
                     }
                     tryFinishUpgrade(anyUpgradeFailed);
                 }
@@ -161,7 +161,7 @@ public class TemplateUpgradeService implements ClusterStateListener {
                 @Override
                 public void onFailure(Exception e) {
                     anyUpgradeFailed.set(true);
-                    logger.warn(new ParameterizedMessage("Error updating template [{}]", change.getKey()), e);
+                    LOGGER.warn(new ParameterizedMessage("Error updating template [{}]", change.getKey()), e);
                     tryFinishUpgrade(anyUpgradeFailed);
                 }
             });
@@ -175,7 +175,7 @@ public class TemplateUpgradeService implements ClusterStateListener {
                 public void onResponse(AcknowledgedResponse response) {
                     if (response.isAcknowledged() == false) {
                         anyUpgradeFailed.set(true);
-                        logger.warn("Error deleting template [{}], request was not acknowledged", template);
+                        LOGGER.warn("Error deleting template [{}], request was not acknowledged", template);
                     }
                     tryFinishUpgrade(anyUpgradeFailed);
                 }
@@ -186,7 +186,7 @@ public class TemplateUpgradeService implements ClusterStateListener {
                     if (e instanceof IndexTemplateMissingException == false) {
                         // we might attempt to delete the same template from different nodes - so that's ok if template doesn't exist
                         // otherwise we need to warn
-                        logger.warn(new ParameterizedMessage("Error deleting template [{}]", template), e);
+                        LOGGER.warn(new ParameterizedMessage("Error deleting template [{}]", template), e);
                     }
                     tryFinishUpgrade(anyUpgradeFailed);
                 }
@@ -200,9 +200,9 @@ public class TemplateUpgradeService implements ClusterStateListener {
             try {
                 // this is the last upgrade, the templates should now be in the desired state
                 if (anyUpgradeFailed.get()) {
-                    logger.info("Templates were partially upgraded to version {}", Version.CURRENT);
+                    LOGGER.info("Templates were partially upgraded to version {}", Version.CURRENT);
                 } else {
-                    logger.info("Templates were upgraded successfully to version {}", Version.CURRENT);
+                    LOGGER.info("Templates were upgraded successfully to version {}", Version.CURRENT);
                 }
                 // Check upgraders are satisfied after the update completed. If they still
                 // report that changes are required, this might indicate a bug or that something
@@ -211,7 +211,7 @@ public class TemplateUpgradeService implements ClusterStateListener {
                         clusterService.state().getMetaData().getTemplates();
                 final boolean changesRequired = calculateTemplateChanges(upgradedTemplates).isPresent();
                 if (changesRequired) {
-                    logger.warn("Templates are still reported as out of date after the upgrade. The template upgrade will be retried.");
+                    LOGGER.warn("Templates are still reported as out of date after the upgrade. The template upgrade will be retried.");
                 }
             } finally {
                 final int noMoreUpgrades = upgradesInProgress.decrementAndGet();

@@ -134,8 +134,8 @@ public class PathTrie<T> {
                  */
                 if (index == (path.length - 1)) {
                     if (node.value != null) {
-                        throw new IllegalArgumentException("Path [" + String.join("/", path)+ "] already has a value ["
-                                + node.value + "]");
+                        throw new IllegalArgumentException(
+                            "Path [" + String.join("/", path) + "] already has a value [" + node.value + "]");
                     } else {
                         node.value = value;
                     }

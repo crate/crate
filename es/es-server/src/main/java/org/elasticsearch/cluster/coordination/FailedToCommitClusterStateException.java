@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.coordination;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.cluster.coordination.ClusterStatePublisher;
-import org.elasticsearch.common.io.stream.StreamInput;
-
 import java.io.IOException;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
 
 /**
  * Thrown when failing to publish a cluster state. See {@link ClusterStatePublisher} for more details.

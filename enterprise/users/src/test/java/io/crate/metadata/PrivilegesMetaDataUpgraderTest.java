@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.user.Privilege;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
 import org.junit.Test;

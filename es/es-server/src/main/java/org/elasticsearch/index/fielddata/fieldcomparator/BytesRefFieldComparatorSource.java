@@ -65,7 +65,8 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
         return indexFieldData.load(context).getBytesValues();
     }
 
-    protected void setScorer(Scorable scorer) {}
+    protected void setScorer(Scorable scorer) {
+    }
 
     @Override
     public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) {

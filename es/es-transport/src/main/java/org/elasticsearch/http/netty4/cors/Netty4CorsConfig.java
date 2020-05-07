@@ -222,7 +222,7 @@ public final class Netty4CorsConfig {
 
     @Override
     public String toString() {
-        return  "CorsConfig[enabled=" + enabled +
+        return "CorsConfig[enabled=" + enabled +
             ", origins=" + origins +
             ", anyOrigin=" + anyOrigin +
             ", isCredentialsAllowed=" + allowCredentials +

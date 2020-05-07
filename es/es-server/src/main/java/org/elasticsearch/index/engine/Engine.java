@@ -166,7 +166,7 @@ public abstract class Engine implements Closeable {
         // when indexing but not refreshing in general. Yet, if a refresh happens the internal reader is refresh as well so we are
         // safe here.
         try (Engine.Searcher searcher = acquireSearcher("docStats", Engine.SearcherScope.INTERNAL)) {
-           return docsStats(searcher.reader());
+            return docsStats(searcher.reader());
         }
     }
 
@@ -514,8 +514,8 @@ public abstract class Engine implements Closeable {
                 );
             }
             if (get.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-                get.getIfSeqNo() != docIdAndVersion.seqNo || get.getIfPrimaryTerm() != docIdAndVersion.primaryTerm
-            )) {
+                get.getIfSeqNo() != docIdAndVersion.seqNo || get.getIfPrimaryTerm() != docIdAndVersion.primaryTerm)) {
+
                 Releasables.close(searcher);
                 throw new VersionConflictEngineException(
                     shardId,
@@ -578,19 +578,24 @@ public abstract class Engine implements Closeable {
             AtomicBoolean released = new AtomicBoolean(false);
             Searcher engineSearcher = new Searcher(source, acquire,
                 () -> {
-                if (released.compareAndSet(false, true)) {
-                    try {
-                        referenceManager.release(acquire);
-                    } finally {
-                        store.decRef();
+                    if (released.compareAndSet(false, true)) {
+                        try {
+                            referenceManager.release(acquire);
+                        } finally {
+                            store.decRef();
+                        }
+                    } else {
+                        /*
+                            * In general, searchers should never be released twice or this would break
+                            * reference counting. There is one rare case when it might happen though: when
+                            * the request and the Reaper thread would both try to release it in a very
+                            * short amount of time, this is why we only log a warning instead of throwing
+                            * an exception.
+                            */
+                        logger.warn("Searcher was released twice", new IllegalStateException("Double release"));
                     }
-                } else {
-                    /* In general, searchers should never be released twice or this would break reference counting. There is one rare case
-                     * when it might happen though: when the request and the Reaper thread would both try to release it in a very short
-                     * amount of time, this is why we only log a warning instead of throwing an exception. */
-                    logger.warn("Searcher was released twice", new IllegalStateException("Double release"));
                 }
-              });
+            );
             releasable = null; // success - hand over the reference to the engine searcher
             return engineSearcher;
         } catch (AlreadyClosedException ex) {
@@ -711,13 +716,13 @@ public abstract class Engine implements Closeable {
         ensureOpen();
         Map<String, Segment> segments = new HashMap<>();
         // first, go over and compute the search ones...
-        try (Searcher searcher = acquireSearcher("segments", SearcherScope.EXTERNAL)){
+        try (Searcher searcher = acquireSearcher("segments", SearcherScope.EXTERNAL)) {
             for (LeafReaderContext ctx : searcher.reader().getContext().leaves()) {
                 fillSegmentInfo(Lucene.segmentReader(ctx.reader()), verbose, true, segments);
             }
         }
 
-        try (Searcher searcher = acquireSearcher("segments", SearcherScope.INTERNAL)){
+        try (Searcher searcher = acquireSearcher("segments", SearcherScope.INTERNAL)) {
             for (LeafReaderContext ctx : searcher.reader().getContext().leaves()) {
                 SegmentReader segmentReader = Lucene.segmentReader(ctx.reader());
                 if (segments.containsKey(segmentReader.getSegmentName()) == false) {
@@ -918,7 +923,6 @@ public abstract class Engine implements Closeable {
             maybeDie(reason, failure);
         }
         if (failEngineLock.tryLock()) {
-            store.incRef();
             try {
                 if (failedEngine.get() != null) {
                     logger.warn(() -> new ParameterizedMessage("tried to fail engine but engine is already failed. ignoring. [{}]", reason), failure);
@@ -938,10 +942,19 @@ public abstract class Engine implements Closeable {
                     // on the same node that we don't see the corrupted marker file when
                     // the shard is initializing
                     if (Lucene.isCorruptionException(failure)) {
-                        try {
-                            store.markStoreCorrupted(new IOException("failed engine (reason: [" + reason + "])", ExceptionsHelper.unwrapCorruption(failure)));
-                        } catch (IOException e) {
-                            logger.warn("Couldn't mark store corrupted", e);
+                        if (store.tryIncRef()) {
+                            try {
+                                store.markStoreCorrupted(new IOException("failed engine (reason: [" + reason + "])", ExceptionsHelper.unwrapCorruption(failure)));
+                            } catch (IOException e) {
+                                logger.warn("Couldn't mark store corrupted", e);
+                            } finally {
+                                store.decRef();
+                            }
+                        } else {
+                            logger.warn(() ->
+                                new ParameterizedMessage("tried to mark store as corrupted but store is already closed. [{}]", reason),
+                                failure
+                            );
                         }
                     }
                     eventListener.onFailedEngine(reason, failure);
@@ -950,8 +963,6 @@ public abstract class Engine implements Closeable {
                 if (failure != null) inner.addSuppressed(failure);
                 // don't bubble up these exceptions up
                 logger.warn("failEngine threw exception", inner);
-            } finally {
-                store.decRef();
             }
         } else {
             logger.debug(() -> new ParameterizedMessage("tried to fail engine but could not acquire lock - engine should be failed by now [{}]", reason), failure);
@@ -1291,24 +1302,16 @@ public abstract class Engine implements Closeable {
     }
 
     public static class Get {
-        private final boolean realtime;
         private final Term uid;
         private final String id;
-        private final boolean readFromTranslog;
         private long version = Versions.MATCH_ANY;
         private VersionType versionType = VersionType.INTERNAL;
         private long ifSeqNo = UNASSIGNED_SEQ_NO;
         private long ifPrimaryTerm = UNASSIGNED_PRIMARY_TERM;
 
-        public Get(boolean realtime, boolean readFromTranslog, String id, Term uid) {
-            this.realtime = realtime;
+        public Get(String id, Term uid) {
             this.id = id;
             this.uid = uid;
-            this.readFromTranslog = readFromTranslog;
-        }
-
-        public boolean realtime() {
-            return this.realtime;
         }
 
         public String id() {
@@ -1335,10 +1338,6 @@ public abstract class Engine implements Closeable {
         public Get versionType(VersionType versionType) {
             this.versionType = versionType;
             return this;
-        }
-
-        public boolean isReadFromTranslog() {
-            return readFromTranslog;
         }
 
         public Get setIfSeqNo(long seqNo) {

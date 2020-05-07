@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.coordination;
 
 import org.apache.logging.log4j.LogManager;
@@ -24,11 +25,11 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.coordination.CoordinationMetaData.VotingConfiguration;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool.Names;
@@ -65,7 +66,7 @@ public class ClusterBootstrapService {
 
     static final String BOOTSTRAP_PLACEHOLDER_PREFIX = "{bootstrap-placeholder}-";
 
-    private static final Logger logger = LogManager.getLogger(ClusterBootstrapService.class);
+    private static final Logger LOGGER = LogManager.getLogger(ClusterBootstrapService.class);
     private final Set<String> bootstrapRequirements;
     @Nullable // null if discoveryIsConfigured()
     private final TimeValue unconfiguredBootstrapTimeout;
@@ -86,7 +87,7 @@ public class ClusterBootstrapService {
             }
             if (DiscoveryNode.isMasterNode(settings) == false) {
                 throw new IllegalArgumentException("node with [" + DiscoveryModule.DISCOVERY_TYPE_SETTING.getKey() + "] set to [" +
-                    DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE +  "] must be master-eligible");
+                    DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE + "] must be master-eligible");
             }
             bootstrapRequirements = Collections.singleton(Node.NODE_NAME_SETTING.get(settings));
             unconfiguredBootstrapTimeout = null;
@@ -120,18 +121,18 @@ public class ClusterBootstrapService {
             try {
                 requirementMatchingResult = checkRequirements(nodes);
             } catch (IllegalStateException e) {
-                logger.warn("bootstrapping cancelled", e);
+                LOGGER.warn("bootstrapping cancelled", e);
                 bootstrappingPermitted.set(false);
                 return;
             }
 
             final Set<DiscoveryNode> nodesMatchingRequirements = requirementMatchingResult.v1();
             final List<String> unsatisfiedRequirements = requirementMatchingResult.v2();
-            logger.trace("nodesMatchingRequirements={}, unsatisfiedRequirements={}, bootstrapRequirements={}",
+            LOGGER.trace("nodesMatchingRequirements={}, unsatisfiedRequirements={}, bootstrapRequirements={}",
                 nodesMatchingRequirements, unsatisfiedRequirements, bootstrapRequirements);
 
             if (nodesMatchingRequirements.contains(transportService.getLocalNode()) == false) {
-                logger.info("skipping cluster bootstrapping as local node does not match bootstrap requirements: {}",
+                LOGGER.info("skipping cluster bootstrapping as local node does not match bootstrap requirements: {}",
                     bootstrapRequirements);
                 bootstrappingPermitted.set(false);
                 return;
@@ -152,14 +153,14 @@ public class ClusterBootstrapService {
             return;
         }
 
-        logger.info("no discovery configuration found, will perform best-effort cluster bootstrapping after [{}] " +
+        LOGGER.info("no discovery configuration found, will perform best-effort cluster bootstrapping after [{}] " +
             "unless existing master is discovered", unconfiguredBootstrapTimeout);
 
         transportService.getThreadPool().scheduleUnlessShuttingDown(unconfiguredBootstrapTimeout, Names.GENERIC, new Runnable() {
             @Override
             public void run() {
                 final Set<DiscoveryNode> discoveredNodes = getDiscoveredNodes();
-                logger.debug("performing best-effort cluster bootstrapping with {}", discoveredNodes);
+                LOGGER.debug("performing best-effort cluster bootstrapping with {}", discoveredNodes);
                 startBootstrap(discoveredNodes, emptyList());
             }
 
@@ -195,7 +196,7 @@ public class ClusterBootstrapService {
         try {
             votingConfigurationConsumer.accept(votingConfiguration);
         } catch (Exception e) {
-            logger.warn(new ParameterizedMessage("exception when bootstrapping with {}, rescheduling", votingConfiguration), e);
+            LOGGER.warn(new ParameterizedMessage("exception when bootstrapping with {}, rescheduling", votingConfiguration), e);
             transportService.getThreadPool().scheduleUnlessShuttingDown(TimeValue.timeValueSeconds(10), Names.GENERIC,
                 new Runnable() {
                     @Override

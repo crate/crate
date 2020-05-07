@@ -20,6 +20,8 @@
 package org.elasticsearch.index.engine;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.codecs.blocktree.BlockTreeTermsReader;
+import org.apache.lucene.codecs.blocktree.BlockTreeTermsReader.FSTLoadMode;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -49,13 +51,15 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.LockObtainFailedException;
+import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.InfoStream;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.ExceptionsHelper;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lucene.LoggerInfoStream;
 import org.elasticsearch.common.lucene.Lucene;
@@ -67,7 +71,7 @@ import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.KeyedLock;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
@@ -84,6 +88,7 @@ import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ElasticsearchMergePolicy;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.store.FsDirectoryService;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
@@ -329,7 +334,7 @@ public class InternalEngine extends Engine {
             IndexSearcher acquire = internalSearcherManager.acquire();
             try {
                 IndexReader indexReader = acquire.getIndexReader();
-                assert indexReader instanceof ElasticsearchDirectoryReader:
+                assert indexReader instanceof ElasticsearchDirectoryReader :
                     "searcher's IndexReader should be an ElasticsearchDirectoryReader, but got " + indexReader;
                 indexReader.incRef(); // steal the reader - getSearcher will decrement if it fails
                 current = SearcherManager.getSearcher(searcherFactory, indexReader, null);
@@ -349,7 +354,7 @@ public class InternalEngine extends Engine {
             IndexSearcher acquire = internalSearcherManager.acquire();
             try {
                 final IndexReader previousReader = referenceToRefresh.getIndexReader();
-                assert previousReader instanceof ElasticsearchDirectoryReader:
+                assert previousReader instanceof ElasticsearchDirectoryReader :
                     "searcher's IndexReader should be an ElasticsearchDirectoryReader, but got " + previousReader;
 
                 final IndexReader newReader = acquire.getIndexReader();
@@ -376,7 +381,9 @@ public class InternalEngine extends Engine {
         }
 
         @Override
-        protected void decRef(IndexSearcher reference) throws IOException { reference.getIndexReader().decRef(); }
+        protected void decRef(IndexSearcher reference) throws IOException {
+            reference.getIndexReader().decRef();
+        }
     }
 
     @Override
@@ -397,10 +404,10 @@ public class InternalEngine extends Engine {
             final long localCheckpoint = localCheckpointTracker.getProcessedCheckpoint();
             final long maxSeqNo = localCheckpointTracker.getMaxSeqNo();
             int numNoOpsAdded = 0;
-            for (
-                    long seqNo = localCheckpoint + 1;
-                    seqNo <= maxSeqNo;
-                    seqNo = localCheckpointTracker.getProcessedCheckpoint() + 1 /* leap-frog the local checkpoint */) {
+            for (long seqNo = localCheckpoint + 1;
+                seqNo <= maxSeqNo;
+                seqNo = localCheckpointTracker.getProcessedCheckpoint() + 1 /* leap-frog the local checkpoint */) {
+
                 innerNoOp(new NoOp(seqNo, primaryTerm, Operation.Origin.PRIMARY, System.nanoTime(), "filling gaps"));
                 numNoOpsAdded++;
                 assert seqNo <= localCheckpointTracker.getProcessedCheckpoint() :
@@ -629,75 +636,76 @@ public class InternalEngine extends Engine {
         assert Objects.equals(get.uid().field(), IdFieldMapper.NAME) : get.uid().field();
         try (ReleasableLock ignored = readLock.acquire()) {
             ensureOpen();
-            SearcherScope scope;
-            if (get.realtime()) {
-                VersionValue versionValue = null;
-                try (Releasable ignore = versionMap.acquireLock(get.uid().bytes())) {
-                    // we need to lock here to access the version map to do this truly in RT
-                    versionValue = getVersionFromMap(get.uid().bytes());
-                }
-                if (versionValue != null) {
-                    if (versionValue.isDelete()) {
-                        return GetResult.NOT_EXISTS;
-                    }
-                    if (get.versionType().isVersionConflictForReads(versionValue.version, get.version())) {
-                        throw new VersionConflictEngineException(
-                            shardId,
-                            get.id(),
-                            get.versionType().explainConflictForReads(versionValue.version, get.version())
-                        );
-                    }
-                    if (get.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-                        get.getIfSeqNo() != versionValue.seqNo || get.getIfPrimaryTerm() != versionValue.term
-                    )) {
-                        throw new VersionConflictEngineException(
-                            shardId,
-                            get.id(),
-                            get.getIfSeqNo(),
-                            get.getIfPrimaryTerm(),
-                            versionValue.seqNo,
-                            versionValue.term
-                        );
-                    }
-                    if (get.isReadFromTranslog()) {
-                        // this is only used for updates - API _GET calls will always read form a reader for consistency
-                        // the update call doesn't need the consistency since it's source only + _parent but parent can go away in 7.0
-                        if (versionValue.getLocation() != null) {
-                            try {
-                                Translog.Operation operation = translog.readOperation(versionValue.getLocation());
-                                if (operation != null) {
-                                    // in the case of a already pruned translog generation we might get null here - yet very unlikely
-                                    final Translog.Index index = (Translog.Index) operation;
-                                    TranslogLeafReader reader = new TranslogLeafReader(index, engineConfig
-                                        .getIndexSettings().getIndexVersionCreated());
-                                    return new GetResult(new VersionsAndSeqNoResolver.DocIdAndVersion(0,
-                                                                                                      index.version(),
-                                                                                                      index.seqNo(),
-                                                                                                      index.primaryTerm(),
-                                                                                                      reader,
-                                                                                                      0),
-                                                         new Searcher("realtime_get",
-                                                                      new IndexSearcher(reader),
-                                                                      reader::close));
-                                }
-                            } catch (IOException e) {
-                                maybeFailEngine("realtime_get", e); // lets check if the translog has failed with a tragic event
-                                throw new EngineException(shardId, "failed to read operation from translog", e);
-                            }
-                        } else {
-                            trackTranslogLocation.set(true);
-                        }
-                    }
-                    refresh("realtime_get", SearcherScope.INTERNAL);
-                }
-                scope = SearcherScope.INTERNAL;
-            } else {
-                // we expose what has been externally expose in a point in time snapshot via an explicit refresh
-                scope = SearcherScope.EXTERNAL;
+            VersionValue versionValue = null;
+            try (Releasable ignore = versionMap.acquireLock(get.uid().bytes())) {
+                // we need to lock here to access the version map to do this truly in RT
+                versionValue = getVersionFromMap(get.uid().bytes());
             }
+            if (versionValue == null) {
+                // no version, get the version from the index, we know that we refresh on flush
+                return getFromSearcher(get, searcherFactory, SearcherScope.INTERNAL);
+            }
+            if (versionValue.isDelete()) {
+                return GetResult.NOT_EXISTS;
+            }
+            if (get.versionType().isVersionConflictForReads(versionValue.version, get.version())) {
+                throw new VersionConflictEngineException(
+                    shardId,
+                    get.id(),
+                    get.versionType().explainConflictForReads(versionValue.version, get.version())
+                );
+            }
+            if (get.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
+                get.getIfSeqNo() != versionValue.seqNo || get.getIfPrimaryTerm() != versionValue.term)) {
 
+                throw new VersionConflictEngineException(
+                    shardId,
+                    get.id(),
+                    get.getIfSeqNo(),
+                    get.getIfPrimaryTerm(),
+                    versionValue.seqNo,
+                    versionValue.term
+                );
+            }
+            if (versionValue.getLocation() != null) {
+                try {
+                    Translog.Operation operation = translog.readOperation(versionValue.getLocation());
+                    // in the case of a already pruned translog generation we might get null here - yet very unlikely
+                    if (operation == null) {
+                        refresh("realtime_get", SearcherScope.INTERNAL);
+                        return getFromSearcher(get, searcherFactory, SearcherScope.INTERNAL);
+                    }
+
+                    final Translog.Index index = (Translog.Index) operation;
+                    TranslogLeafReader reader = new TranslogLeafReader(
+                        index,
+                        engineConfig.getIndexSettings().getIndexVersionCreated()
+                    );
+                    return new GetResult(
+                        new VersionsAndSeqNoResolver.DocIdAndVersion(
+                            0,
+                            index.version(),
+                            index.seqNo(),
+                            index.primaryTerm(),
+                            reader,
+                            0
+                        ),
+                        new Searcher(
+                            "realtime_get",
+                            new IndexSearcher(reader),
+                            reader::close
+                        )
+                    );
+                } catch (IOException e) {
+                    maybeFailEngine("realtime_get", e); // lets check if the translog has failed with a tragic event
+                    throw new EngineException(shardId, "failed to read operation from translog", e);
+                }
+            } else {
+                trackTranslogLocation.set(true);
+            }
+            refresh("realtime_get", SearcherScope.INTERNAL);
             // no version, get the version from the index, we know that we refresh on flush
-            return getFromSearcher(get, searcherFactory, scope);
+            return getFromSearcher(get, searcherFactory, SearcherScope.INTERNAL);
         }
     }
 
@@ -1010,7 +1018,7 @@ public class InternalEngine extends Engine {
             // unlike the primary, replicas don't really care to about creation status of documents
             // this allows to ignore the case where a document was found in the live version maps in
             // a delete state and return false for the created flag in favor of code simplicity
-            if (index.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && index.seqNo() <= localCheckpointTracker.getProcessedCheckpoint()){
+            if (index.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && index.seqNo() <= localCheckpointTracker.getProcessedCheckpoint()) {
                 // the operation seq# is lower then the current local checkpoint and thus was already put into lucene
                 // this can happen during recovery where older operations are sent from the translog that are already
                 // part of the lucene commit (either from a peer recovery or a local translog)
@@ -1076,9 +1084,10 @@ public class InternalEngine extends Engine {
                     0
                 );
                 plan = IndexingStrategy.skipDueToVersionConflict(e, currentNotFoundOrDeleted, currentVersion, getPrimaryTerm());
-            } else if (versionValue != null && index.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-                versionValue.seqNo != index.getIfSeqNo() || versionValue.term != index.getIfPrimaryTerm()
-            )) {
+            } else if (versionValue != null
+                && index.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO
+                && (versionValue.seqNo != index.getIfSeqNo() || versionValue.term != index.getIfPrimaryTerm())) {
+
                 final VersionConflictEngineException e = new VersionConflictEngineException(
                     shardId,
                     index.id(),
@@ -1438,9 +1447,10 @@ public class InternalEngine extends Engine {
                 0
             );
             plan = DeletionStrategy.skipDueToVersionConflict(e, currentVersion, getPrimaryTerm(), currentlyDeleted);
-        } else if (versionValue != null &&  delete.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-            versionValue.seqNo != delete.getIfSeqNo() || versionValue.term != delete.getIfPrimaryTerm()
-        )) {
+        } else if (versionValue != null
+            && delete.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO
+            && (versionValue.seqNo != delete.getIfSeqNo() || versionValue.term != delete.getIfPrimaryTerm())) {
+
             final VersionConflictEngineException e = new VersionConflictEngineException(
                 shardId,
                 delete.id(),
@@ -1855,12 +1865,12 @@ public class InternalEngine extends Engine {
     }
 
     private void refreshLastCommittedSegmentInfos() {
-    /*
-     * we have to inc-ref the store here since if the engine is closed by a tragic event
-     * we don't acquire the write lock and wait until we have exclusive access. This might also
-     * dec the store reference which can essentially close the store and unless we can inc the reference
-     * we can't use it.
-     */
+        /*
+        * we have to inc-ref the store here since if the engine is closed by a tragic event
+        * we don't acquire the write lock and wait until we have exclusive access. This might also
+        * dec the store reference which can essentially close the store and unless we can inc the reference
+        * we can't use it.
+        */
         store.incRef();
         try {
             // reread the last committed segment infos
@@ -2236,16 +2246,29 @@ public class InternalEngine extends Engine {
         }
     }
 
+    static Map<String, String> getReaderAttributes(Directory directory) {
+        Directory unwrap = FilterDirectory.unwrap(directory);
+        boolean defaultOffHeap = FsDirectoryService.isHybridFs(unwrap) || unwrap instanceof MMapDirectory;
+        return Map.of(
+            // if we are using MMAP for term dics we force all off heap
+            BlockTreeTermsReader.FST_MODE_KEY,
+            defaultOffHeap ? FSTLoadMode.OFF_HEAP.name() : FSTLoadMode.ON_HEAP.name()
+        );
+    }
+
+
     private IndexWriterConfig getIndexWriterConfig() {
         final IndexWriterConfig iwc = new IndexWriterConfig(engineConfig.getAnalyzer());
         iwc.setCommitOnClose(false); // we by default don't commit on close
         iwc.setOpenMode(IndexWriterConfig.OpenMode.APPEND);
+        iwc.setReaderAttributes(getReaderAttributes(store.directory()));
         iwc.setIndexDeletionPolicy(combinedDeletionPolicy);
         // with tests.verbose, lucene sets this up: plumb to align with filesystem stream
         boolean verbose = false;
         try {
             verbose = Boolean.parseBoolean(System.getProperty("tests.verbose"));
         } catch (Exception ignore) {
+            // ignored
         }
         iwc.setInfoStream(verbose ? InfoStream.getDefault() : new LoggerInfoStream(logger));
         iwc.setMergeScheduler(mergeScheduler);
@@ -2698,29 +2721,35 @@ public class InternalEngine extends Engine {
     }
 
     private final class AssertingIndexWriter extends IndexWriter {
+
         AssertingIndexWriter(Directory d, IndexWriterConfig conf) throws IOException {
             super(d, conf);
         }
+
         @Override
         public long updateDocument(Term term, Iterable<? extends IndexableField> doc) throws IOException {
             assert softDeleteEnabled == false : "Call #updateDocument but soft-deletes is enabled";
             return super.updateDocument(term, doc);
         }
+
         @Override
         public long updateDocuments(Term delTerm, Iterable<? extends Iterable<? extends IndexableField>> docs) throws IOException {
             assert softDeleteEnabled == false : "Call #updateDocuments but soft-deletes is enabled";
             return super.updateDocuments(delTerm, docs);
         }
+
         @Override
         public long deleteDocuments(Term... terms) throws IOException {
             assert softDeleteEnabled == false : "Call #deleteDocuments but soft-deletes is enabled";
             return super.deleteDocuments(terms);
         }
+
         @Override
         public long softUpdateDocument(Term term, Iterable<? extends IndexableField> doc, Field... softDeletes) throws IOException {
             assert softDeleteEnabled : "Call #softUpdateDocument but soft-deletes is disabled";
             return super.softUpdateDocument(term, doc, softDeletes);
         }
+
         @Override
         public long softUpdateDocuments(Term term, Iterable<? extends Iterable<? extends IndexableField>> docs, Field... softDeletes) throws IOException {
             assert softDeleteEnabled : "Call #softUpdateDocuments but soft-deletes is disabled";

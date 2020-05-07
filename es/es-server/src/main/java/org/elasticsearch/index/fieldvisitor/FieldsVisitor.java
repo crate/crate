@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.fieldvisitor;
 
 import org.apache.lucene.index.FieldInfo;
@@ -53,7 +54,8 @@ public class FieldsVisitor extends StoredFieldVisitor {
     private final String sourceFieldName;
     private final Set<String> requiredFields;
     protected BytesReference source;
-    protected String type, id;
+    protected String type;
+    protected String id;
     protected Map<String, List<Object>> fieldsValues;
 
     public FieldsVisitor(boolean loadSource) {

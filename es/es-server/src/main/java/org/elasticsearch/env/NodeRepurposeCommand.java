@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.env;
 
 import joptsimple.OptionSet;
@@ -28,7 +29,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.gateway.WriteStateException;
 
 import java.io.IOException;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
 
 public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
 
-    private static final Logger logger = LogManager.getLogger(NodeRepurposeCommand.class);
+    private static final Logger LOGGER = LogManager.getLogger(NodeRepurposeCommand.class);
 
     static final String ABORTED_BY_USER_MSG = ElasticsearchNodeCommand.ABORTED_BY_USER_MSG;
     static final String FAILED_TO_OBTAIN_NODE_LOCK_MSG = ElasticsearchNodeCommand.FAILED_TO_OBTAIN_NODE_LOCK_MSG;
@@ -158,13 +159,14 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
             terminal.println("Use -v to see list of paths and indices affected");
         }
     }
+
     private String toIndexName(NodeEnvironment.NodePath[] nodePaths, String uuid) {
         Path[] indexPaths = new Path[nodePaths.length];
         for (int i = 0; i < nodePaths.length; i++) {
             indexPaths[i] = nodePaths[i].resolve(uuid);
         }
         try {
-            IndexMetaData metaData = IndexMetaData.FORMAT.loadLatestState(logger, namedXContentRegistry, indexPaths);
+            IndexMetaData metaData = IndexMetaData.FORMAT.loadLatestState(LOGGER, namedXContentRegistry, indexPaths);
             return metaData.getIndex().getName();
         } catch (Exception e) {
             return "no name for uuid: " + uuid + ": " + e;
@@ -193,7 +195,7 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
 
     private Manifest loadManifest(Terminal terminal, Path[] dataPaths) throws IOException {
         terminal.println(Terminal.Verbosity.VERBOSE, "Loading manifest");
-        final Manifest manifest = Manifest.FORMAT.loadLatestState(logger, namedXContentRegistry, dataPaths);
+        final Manifest manifest = Manifest.FORMAT.loadLatestState(LOGGER, namedXContentRegistry, dataPaths);
 
         if (manifest == null) {
             terminal.println(Terminal.Verbosity.SILENT, PRE_V4_MESSAGE);

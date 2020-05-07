@@ -76,11 +76,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.env.Environment;
@@ -123,7 +123,6 @@ import org.elasticsearch.repositories.RepositoriesModule;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.snapshots.SnapshotsService;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
@@ -180,22 +179,27 @@ public class Node implements Closeable {
     */
     public static final Setting<Boolean> NODE_LOCAL_STORAGE_SETTING = Setting.boolSetting("node.local_storage", true, Property.NodeScope);
     public static final Setting<String> NODE_NAME_SETTING = Setting.simpleString("node.name", Property.NodeScope);
-    public static final Setting.AffixSetting<String> NODE_ATTRIBUTES = Setting.prefixKeySetting("node.attr.", (key) ->
-        new Setting<>(key, "", (value) -> {
-            if (value.length() > 0
-                && (Character.isWhitespace(value.charAt(0)) || Character.isWhitespace(value.charAt(value.length() - 1)))) {
-                throw new IllegalArgumentException(key + " cannot have leading or trailing whitespace " +
-                    "[" + value + "]");
-            }
-            if (value.length() > 0 && "node.attr.server_name".equals(key)) {
-                try {
-                    new SNIHostName(value);
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalArgumentException("invalid node.attr.server_name [" + value + "]", e );
+    public static final Setting.AffixSetting<String> NODE_ATTRIBUTES = Setting.prefixKeySetting(
+        "node.attr.",
+        (key) -> new Setting<>(
+            key,
+            "",
+            (value) -> {
+                if (value.length() > 0 && (Character.isWhitespace(value.charAt(0)) || Character.isWhitespace(value.charAt(value.length() - 1)))) {
+                    throw new IllegalArgumentException(key + " cannot have leading or trailing whitespace " + "[" + value + "]");
                 }
-            }
-            return value;
-        }, Property.NodeScope));
+                if (value.length() > 0 && "node.attr.server_name".equals(key)) {
+                    try {
+                        new SNIHostName(value);
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalArgumentException("invalid node.attr.server_name [" + value + "]", e);
+                    }
+                }
+                return value;
+            },
+            Property.NodeScope
+        )
+    );
 
     private final Lifecycle lifecycle = new Lifecycle();
 
@@ -275,8 +279,10 @@ public class Node implements Closeable {
                 additionalSettings.addAll(builder.getRegisteredSettings());
             }
             client = new NodeClient(settings, threadPool);
-            AnalysisModule analysisModule = new AnalysisModule(this.environment,
-                                                               pluginsService.filterPlugins(AnalysisPlugin.class));
+            final AnalysisModule analysisModule = new AnalysisModule(
+                this.environment,
+                pluginsService.filterPlugins(AnalysisPlugin.class)
+            );
             // this is as early as we can validate settings at this point. we already pass them to ScriptModule as well as ThreadPool
             // so we might be late here already
 
@@ -290,10 +296,12 @@ public class Node implements Closeable {
             final NetworkService networkService = new NetworkService(
                 getCustomNameResolvers(pluginsService.filterPlugins(DiscoveryPlugin.class)));
 
-            List<ClusterPlugin> clusterPlugins = pluginsService.filterPlugins(ClusterPlugin.class);
-            final ClusterService clusterService = new ClusterService(settings,
-                                                                     settingsModule.getClusterSettings(),
-                                                                     threadPool);
+            final List<ClusterPlugin> clusterPlugins = pluginsService.filterPlugins(ClusterPlugin.class);
+            final ClusterService clusterService = new ClusterService(
+                settings,
+                settingsModule.getClusterSettings(),
+                threadPool
+            );
             resourcesToClose.add(clusterService);
 
             final DiskThresholdMonitor diskThresholdMonitor = new DiskThresholdMonitor(
@@ -399,7 +407,7 @@ public class Node implements Closeable {
                 xContentRegistry,
                 forbidPrivateIndexSettings);
 
-            Collection<Object> pluginComponents = pluginsService.filterPlugins(Plugin.class).stream()
+            final Collection<Object> pluginComponents = pluginsService.filterPlugins(Plugin.class).stream()
                 .flatMap(p -> p.createComponents(client, clusterService, threadPool,
                                                  xContentRegistry, environment, nodeEnvironment,
                                                  namedWriteableRegistry).stream())
@@ -441,17 +449,12 @@ public class Node implements Closeable {
                                                                                                             indexMetaDataUpgraders);
             new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetaDataUpgraders);
             final Transport transport = networkModule.getTransportSupplier().get();
-            Set<String> taskHeaders = Stream.concat(
-                pluginsService.filterPlugins(ActionPlugin.class).stream().flatMap(p -> p.getTaskHeaders().stream()),
-                Stream.of(Task.X_OPAQUE_ID)
-            ).collect(Collectors.toSet());
             final TransportService transportService = newTransportService(settings,
                                                                           transport,
                                                                           threadPool,
                                                                           networkModule.getTransportInterceptor(),
                                                                           localNodeFactory,
-                                                                          settingsModule.getClusterSettings(),
-                                                                          taskHeaders);
+                                                                          settingsModule.getClusterSettings());
             final GatewayMetaState gatewayMetaState = new GatewayMetaState(settings,
                                                                            nodeEnvironment,
                                                                            metaStateService,
@@ -576,11 +579,13 @@ public class Node implements Closeable {
         }
     }
 
-    protected TransportService newTransportService(Settings settings, Transport transport, ThreadPool threadPool,
+    protected TransportService newTransportService(Settings settings,
+                                                   Transport transport,
+                                                   ThreadPool threadPool,
                                                    TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
-                                                   ClusterSettings clusterSettings, Set<String> taskHeaders) {
-        return new TransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings, taskHeaders);
+                                                   ClusterSettings clusterSettings) {
+        return new TransportService(settings, transport, threadPool, interceptor, localNodeFactory, clusterSettings);
     }
 
     protected void processRecoverySettings(ClusterSettings clusterSettings, RecoverySettings recoverySettings) {
@@ -690,23 +695,29 @@ public class Node implements Closeable {
             if (clusterState.nodes().getMasterNodeId() == null) {
                 logger.debug("waiting to join the cluster. timeout [{}]", initialStateTimeout);
                 final CountDownLatch latch = new CountDownLatch(1);
-                observer.waitForNextChange(new ClusterStateObserver.Listener() {
-                    @Override
-                    public void onNewClusterState(ClusterState state) { latch.countDown(); }
+                observer.waitForNextChange(
+                    new ClusterStateObserver.Listener() {
 
-                    @Override
-                    public void onClusterServiceClose() {
-                        latch.countDown();
-                    }
+                        @Override
+                        public void onNewClusterState(ClusterState state) {
+                            latch.countDown();
+                        }
 
-                    @Override
-                    public void onTimeout(TimeValue timeout) {
-                        logger.warn("timed out while waiting for initial discovery state - timeout: {}",
-                            initialStateTimeout);
-                        latch.countDown();
-                    }
-                }, state -> state.nodes().getMasterNodeId() != null, initialStateTimeout);
+                        @Override
+                        public void onClusterServiceClose() {
+                            latch.countDown();
+                        }
 
+                        @Override
+                        public void onTimeout(TimeValue timeout) {
+                            logger.warn("timed out while waiting for initial discovery state - timeout: {}",
+                                initialStateTimeout);
+                            latch.countDown();
+                        }
+                    },
+                    state -> state.nodes().getMasterNodeId() != null,
+                    initialStateTimeout
+                );
                 try {
                     latch.await();
                 } catch (InterruptedException e) {

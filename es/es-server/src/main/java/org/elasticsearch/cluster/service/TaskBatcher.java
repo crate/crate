@@ -22,7 +22,7 @@ package org.elasticsearch.cluster.service;
 import org.apache.logging.log4j.Logger;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
 
@@ -64,8 +64,11 @@ public abstract class TaskBatcher {
         final Map<Object, BatchedTask> tasksIdentity = tasks.stream().collect(Collectors.toMap(
             BatchedTask::getTask,
             Function.identity(),
-            (a, b) -> { throw new IllegalStateException("cannot add duplicate task: " + a); },
-            IdentityHashMap::new));
+            (a, b) -> {
+                throw new IllegalStateException("cannot add duplicate task: " + a);
+            },
+            IdentityHashMap::new)
+        );
 
         synchronized (tasksPerBatchingKey) {
             LinkedHashSet<BatchedTask> existingTasks = tasksPerBatchingKey.computeIfAbsent(firstTask.batchingKey,

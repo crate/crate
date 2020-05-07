@@ -25,7 +25,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.core.internal.io.Streams;
+import io.crate.common.io.Streams;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -36,22 +36,24 @@ public class CompressorFactory {
 
     @Nullable
     public static Compressor compressor(BytesReference bytes) {
-            if (COMPRESSOR.isCompressed(bytes)) {
-                // bytes should be either detected as compressed or as xcontent,
-                // if we have bytes that can be either detected as compressed or
-                // as a xcontent, we have a problem
-                assert XContentHelper.xContentType(bytes) == null;
-                return COMPRESSOR;
-            }
-
+        if (COMPRESSOR.isCompressed(bytes)) {
+            // bytes should be either detected as compressed or as xcontent,
+            // if we have bytes that can be either detected as compressed or
+            // as a xcontent, we have a problem
+            assert XContentHelper.xContentType(bytes) == null;
+            return COMPRESSOR;
+        }
         XContentType contentType = XContentHelper.xContentType(bytes);
         if (contentType == null) {
             if (isAncient(bytes)) {
-                throw new IllegalStateException("unsupported compression: index was created before v2.0.0.beta1 and wasn't upgraded?");
+                throw new IllegalStateException(
+                    "unsupported compression: index was created before v2.0.0.beta1 and wasn't upgraded?"
+                );
             }
-            throw new NotXContentException("Compressor detection can only be called on some xcontent bytes or compressed xcontent bytes");
+            throw new NotXContentException(
+                "Compressor detection can only be called on some xcontent bytes or compressed xcontent bytes"
+            );
         }
-
         return null;
     }
 

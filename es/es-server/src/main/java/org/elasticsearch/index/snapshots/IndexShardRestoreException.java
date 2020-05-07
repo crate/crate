@@ -38,7 +38,7 @@ public class IndexShardRestoreException extends ElasticsearchException {
         setShard(shardId);
     }
 
-    public IndexShardRestoreException(StreamInput in) throws IOException{
+    public IndexShardRestoreException(StreamInput in) throws IOException {
         super(in);
     }
 }

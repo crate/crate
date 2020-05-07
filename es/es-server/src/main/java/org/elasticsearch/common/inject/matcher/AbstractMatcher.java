@@ -34,7 +34,8 @@ public abstract class AbstractMatcher<T> implements Matcher<T> {
     }
 
     private static class AndMatcher<T> extends AbstractMatcher<T> {
-        private final Matcher<? super T> a, b;
+        private final Matcher<? super T> a;
+        private final Matcher<? super T> b;
 
         AndMatcher(Matcher<? super T> a, Matcher<? super T> b) {
             this.a = a;
@@ -65,7 +66,9 @@ public abstract class AbstractMatcher<T> implements Matcher<T> {
     }
 
     private static class OrMatcher<T> extends AbstractMatcher<T> {
-        private final Matcher<? super T> a, b;
+
+        private final Matcher<? super T> a;
+        private final Matcher<? super T> b;
 
         OrMatcher(Matcher<? super T> a, Matcher<? super T> b) {
             this.a = a;

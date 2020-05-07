@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.common.geo;
 
 import org.elasticsearch.ElasticsearchParseException;
@@ -291,11 +292,14 @@ public enum GeoShapeType {
         if (shapeTypeMap.containsKey(typename)) {
             return shapeTypeMap.get(typename);
         }
-        throw new IllegalArgumentException("unknown geo_shape ["+geoshapename+"]");
+        throw new IllegalArgumentException("unknown geo_shape [" + geoshapename + "]");
     }
 
-    public abstract ShapeBuilder getBuilder(CoordinateNode coordinates, DistanceUnit.Distance radius,
-                                            ShapeBuilder.Orientation orientation, boolean coerce);
+    public abstract ShapeBuilder getBuilder(CoordinateNode coordinates,
+                                            DistanceUnit.Distance radius,
+                                            ShapeBuilder.Orientation orientation,
+                                            boolean coerce);
+
     abstract CoordinateNode validate(CoordinateNode coordinates, boolean coerce);
 
     /** wkt shape name */

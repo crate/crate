@@ -19,6 +19,7 @@
 
 package org.elasticsearch.common;
 
+import io.crate.common.SuppressForbidden;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
@@ -45,8 +46,9 @@ import java.util.concurrent.ThreadLocalRandom;
  * NodeEnvironment#NODE_ID_SEED_SETTING)).
  */
 public final class Randomness {
-    private static final Method currentMethod;
-    private static final Method getRandomMethod;
+
+    private static final Method CURRENT_METHOD;
+    private static final Method GET_RANDOM_METHOD;
 
     static {
         Method maybeCurrentMethod;
@@ -59,11 +61,12 @@ public final class Randomness {
             maybeCurrentMethod = null;
             maybeGetRandomMethod = null;
         }
-        currentMethod = maybeCurrentMethod;
-        getRandomMethod = maybeGetRandomMethod;
+        CURRENT_METHOD = maybeCurrentMethod;
+        GET_RANDOM_METHOD = maybeGetRandomMethod;
     }
 
-    private Randomness() {}
+    private Randomness() {
+    }
 
     /**
      * Provides a reproducible source of randomness seeded by a long
@@ -97,10 +100,10 @@ public final class Randomness {
      *                               running but tests.seed is not set
      */
     public static Random get() {
-        if (currentMethod != null && getRandomMethod != null) {
+        if (CURRENT_METHOD != null && GET_RANDOM_METHOD != null) {
             try {
-                Object randomizedContext = currentMethod.invoke(null);
-                return (Random) getRandomMethod.invoke(randomizedContext);
+                Object randomizedContext = CURRENT_METHOD.invoke(null);
+                return (Random) GET_RANDOM_METHOD.invoke(randomizedContext);
             } catch (ReflectiveOperationException e) {
                 // unexpected, bail
                 throw new IllegalStateException("running tests but failed to invoke RandomizedContext#getRandom", e);
@@ -116,7 +119,7 @@ public final class Randomness {
      * This acts exactly similar to {@link #get()}, but returning a new {@link SecureRandom}.
      */
     public static SecureRandom createSecure() {
-        if (currentMethod != null && getRandomMethod != null) {
+        if (CURRENT_METHOD != null && GET_RANDOM_METHOD != null) {
             // tests, so just use a seed from the non secure random
             byte[] seed = new byte[16];
             get().nextBytes(seed);
@@ -128,7 +131,7 @@ public final class Randomness {
 
     @SuppressForbidden(reason = "ThreadLocalRandom is okay when not running tests")
     private static Random getWithoutSeed() {
-        assert currentMethod == null && getRandomMethod == null : "running under tests but tried to create non-reproducible random";
+        assert CURRENT_METHOD == null && GET_RANDOM_METHOD == null : "running under tests but tried to create non-reproducible random";
         return ThreadLocalRandom.current();
     }
 

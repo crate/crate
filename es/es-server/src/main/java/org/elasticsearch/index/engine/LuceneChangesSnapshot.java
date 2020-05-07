@@ -33,7 +33,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.ArrayUtil;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
@@ -55,7 +55,8 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
     static final int DEFAULT_BATCH_SIZE = 1024;
 
     private final int searchBatchSize;
-    private final long fromSeqNo, toSeqNo;
+    private final long fromSeqNo;
+    private final long toSeqNo;
     private long lastSeenSeqNo;
     private int skippedOperations;
     private final boolean requiredFullRange;

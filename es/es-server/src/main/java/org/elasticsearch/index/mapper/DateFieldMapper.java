@@ -123,8 +123,12 @@ public class DateFieldMapper extends FieldMapper {
             super.setupFieldType(context);
             FormatDateTimeFormatter dateTimeFormatter = fieldType().dateTimeFormatter;
             if (!locale.equals(dateTimeFormatter.locale())) {
-                fieldType().setDateTimeFormatter( new FormatDateTimeFormatter(dateTimeFormatter.format(),
-                        dateTimeFormatter.parser(), dateTimeFormatter.printer(), locale));
+                fieldType().setDateTimeFormatter(new FormatDateTimeFormatter(
+                    dateTimeFormatter.format(),
+                    dateTimeFormatter.parser(),
+                    dateTimeFormatter.printer(),
+                    locale
+                ));
             }
         }
 

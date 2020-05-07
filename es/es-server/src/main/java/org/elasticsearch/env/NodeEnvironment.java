@@ -19,6 +19,10 @@
 
 package org.elasticsearch.env;
 
+import io.crate.common.CheckedFunction;
+import io.crate.common.SuppressForbidden;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -33,9 +37,7 @@ import org.apache.lucene.store.SimpleFSDirectory;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.lease.Releasable;
@@ -43,9 +45,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.gateway.MetaDataStateFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
@@ -68,7 +68,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -90,7 +89,8 @@ import static java.util.Collections.unmodifiableSet;
 /**
  * A component that holds all data paths for a single node.
  */
-public final class NodeEnvironment  implements Closeable {
+public final class NodeEnvironment implements Closeable {
+
     public static class NodePath {
         /* ${data.paths}/nodes/{node.id} */
         public final Path path;
@@ -384,7 +384,7 @@ public final class NodeEnvironment  implements Closeable {
 
             // Just log a 1-line summary:
             logger.info("using [{}] data paths, mounts [{}], net usable_space [{}], net total_space [{}], types [{}]",
-                nodePaths.length, allMounts, totFSPath.getAvailable(), totFSPath.getTotal(), toString(allTypes));
+                nodePaths.length, allMounts, totFSPath.getAvailable(), totFSPath.getTotal(), String.join(", ", allTypes));
         }
     }
 
@@ -422,17 +422,6 @@ public final class NodeEnvironment  implements Closeable {
         if (ENABLE_LUCENE_SEGMENT_INFOS_TRACE_SETTING.get(settings)) {
             SegmentInfos.setInfoStream(System.out);
         }
-    }
-
-    private static String toString(Collection<String> items) {
-        StringBuilder b = new StringBuilder();
-        for(String item : items) {
-            if (b.length() > 0) {
-                b.append(", ");
-            }
-            b.append(item);
-        }
-        return b.toString();
     }
 
     /**
@@ -767,7 +756,7 @@ public final class NodeEnvironment  implements Closeable {
     public Path[] nodeDataPaths() {
         assertEnvIsLocked();
         Path[] paths = new Path[nodePaths.length];
-        for(int i=0;i<paths.length;i++) {
+        for (int i = 0; i < paths.length; i++) {
             paths[i] = nodePaths[i].path;
         }
         return paths;
@@ -1183,8 +1172,8 @@ public final class NodeEnvironment  implements Closeable {
         int count = shardPath.getNameCount();
 
         // Sanity check:
-        assert Integer.parseInt(shardPath.getName(count-1).toString()) >= 0;
-        assert "indices".equals(shardPath.getName(count-3).toString());
+        assert Integer.parseInt(shardPath.getName(count - 1).toString()) >= 0;
+        assert "indices".equals(shardPath.getName(count - 3).toString());
 
         return shardPath.getParent().getParent().getParent();
     }

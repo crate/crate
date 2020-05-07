@@ -49,7 +49,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Numbers;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobMetaData;
@@ -58,7 +57,7 @@ import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.blobstore.fs.FsBlobContainer;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.compress.NotXContentException;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -81,7 +80,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.core.internal.io.Streams;
+import io.crate.common.io.Streams;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.snapshots.IndexShardRestoreFailedException;
@@ -112,6 +111,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
@@ -287,7 +287,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    protected void doStop() {}
+    protected void doStop() {
+    }
 
     @Override
     protected void doClose() {
@@ -318,13 +319,13 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
         BlobContainer blobContainer = this.blobContainer.get();
         if (blobContainer == null) {
-           synchronized (lock) {
-               blobContainer = this.blobContainer.get();
-               if (blobContainer == null) {
-                   blobContainer = blobStore().blobContainer(basePath());
-                   this.blobContainer.set(blobContainer);
-               }
-           }
+            synchronized (lock) {
+                blobContainer = this.blobContainer.get();
+                if (blobContainer == null) {
+                    blobContainer = blobStore().blobContainer(basePath());
+                    this.blobContainer.set(blobContainer);
+                }
+            }
         }
 
         return blobContainer;
@@ -666,7 +667,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 return null;
             } else {
                 String seed = UUIDs.randomBase64UUID();
-                byte[] testBytes = Strings.toUTF8Bytes(seed);
+                byte[] testBytes = seed.getBytes(StandardCharsets.UTF_8);
                 BlobContainer testContainer = blobStore().blobContainer(basePath().add(testBlobPrefix(seed)));
                 String blobName = "master.dat";
                 BytesArray bytes = new BytesArray(testBytes);
@@ -920,7 +921,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         assertSnapshotOrGenericThread();
         BlobContainer testBlobContainer = blobStore().blobContainer(basePath().add(testBlobPrefix(seed)));
         if (testBlobContainer.blobExists("master.dat")) {
-            try  {
+            try {
                 BytesArray bytes = new BytesArray(seed);
                 try (InputStream stream = bytes.streamInput()) {
                     testBlobContainer.writeBlob("data-" + localNode.getId() + ".dat", stream, bytes.length(), true);
@@ -1220,7 +1221,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             long generation = findLatestFileNameGeneration(blobs);
             Tuple<BlobStoreIndexShardSnapshots, Integer> tuple = buildBlobStoreIndexShardSnapshots(blobs);
             BlobStoreIndexShardSnapshots snapshots = tuple.v1();
-            int fileListGeneration = tuple.v2();
+            final int fileListGeneration = tuple.v2();
 
             if (snapshots.snapshots().stream().anyMatch(sf -> sf.snapshot().equals(snapshotId.getName()))) {
                 throw new IndexShardSnapshotFailedException(shardId,

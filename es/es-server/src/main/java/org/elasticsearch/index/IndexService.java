@@ -33,10 +33,10 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.env.ShardLockObtainFailedException;
@@ -85,7 +85,7 @@ import java.util.function.Consumer;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
-import static org.elasticsearch.common.collect.MapBuilder.newMapBuilder;
+import static io.crate.common.collections.MapBuilder.newMapBuilder;
 
 public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
 
@@ -335,7 +335,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             logger.debug("creating shard_id {}", shardId);
             // if we are on a shared FS we only own the shard (ie. we can safely delete it) if we are the primary.
             final Engine.Warmer engineWarmer = (searcher) -> {
-                IndexShard shard =  getShardOrNull(shardId.getId());
+                IndexShard shard = getShardOrNull(shardId.getId());
                 if (shard != null) {
                     warmer.warm(searcher, shard, IndexService.this.indexSettings);
                 }
@@ -675,22 +675,25 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                     case STARTED:
                         try {
                             shard.acquirePrimaryOperationPermit(
-                                    ActionListener.wrap(
-                                            releasable -> {
-                                                try (Releasable ignored = releasable) {
-                                                        shard.maybeSyncGlobalCheckpoint("background");
-                                                }
-                                            },
-                                            e -> {
-                                                if (!(e instanceof AlreadyClosedException || e instanceof IndexShardClosedException)) {
-                                                    logger.info(
-                                                            new ParameterizedMessage(
-                                                                    "{} failed to execute background global checkpoint sync",
-                                                                    shard.shardId()),
-                                                            e);
-                                                }
-                                            }),
-                                    ThreadPool.Names.SAME, "background global checkpoint sync");
+                                ActionListener.wrap(
+                                    releasable -> {
+                                        try (Releasable ignored = releasable) {
+                                            shard.maybeSyncGlobalCheckpoint("background");
+                                        }
+                                    },
+                                    e -> {
+                                        if (!(e instanceof AlreadyClosedException || e instanceof IndexShardClosedException)) {
+                                            logger.info(
+                                                    new ParameterizedMessage(
+                                                        "{} failed to execute background global checkpoint sync",
+                                                        shard.shardId()),
+                                                    e);
+                                        }
+                                    }
+                                ),
+                                ThreadPool.Names.SAME,
+                                "background global checkpoint sync"
+                            );
                         } catch (final AlreadyClosedException | IndexShardClosedException e) {
                             // the shard was closed concurrently, continue
                         }
@@ -936,7 +939,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             }
         }
         if (clearedAtLeastOne == false) {
-            if (fields.length ==  0) {
+            if (fields.length == 0) {
                 indexCache.clear("api");
                 indexFieldData.clear();
             } else {

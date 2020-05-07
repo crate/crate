@@ -25,7 +25,7 @@ import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -144,15 +144,15 @@ final class SettingsUpdater {
         final Settings settingsExcludingExistingArchivedSettings =
                 settings.filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX) == false);
         final Settings settingsWithUnknownOrInvalidArchived = clusterSettings.archiveUnknownOrInvalidSettings(
-                settingsExcludingExistingArchivedSettings,
-                e -> logUnknownSetting(settingsType, e, logger),
-                (e, ex) -> logInvalidSetting(settingsType, e, ex, logger));
+            settingsExcludingExistingArchivedSettings,
+            e -> logUnknownSetting(settingsType, e, logger),
+            (e, ex) -> logInvalidSetting(settingsType, e, ex, logger));
         return Tuple.tuple(
-                Settings.builder()
-                        .put(settingsWithUnknownOrInvalidArchived.filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX) == false))
-                        .put(existingArchivedSettings)
-                        .build(),
-                settingsWithUnknownOrInvalidArchived.filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX)));
+            Settings.builder()
+                .put(settingsWithUnknownOrInvalidArchived.filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX) == false))
+                .put(existingArchivedSettings)
+                .build(),
+            settingsWithUnknownOrInvalidArchived.filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX)));
     }
 
     private void logUnknownSetting(final String settingType, final Map.Entry<String, String> e, final Logger logger) {
@@ -162,12 +162,13 @@ final class SettingsUpdater {
     private void logInvalidSetting(
             final String settingType, final Map.Entry<String, String> e, final IllegalArgumentException ex, final Logger logger) {
         logger.warn(
-                (Supplier<?>)
-                        () -> new ParameterizedMessage("ignoring existing invalid {} setting: [{}] with value [{}]; archiving",
-                                settingType,
-                                e.getKey(),
-                                e.getValue()),
-                ex);
+            (Supplier<?>) () -> new ParameterizedMessage(
+                "ignoring existing invalid {} setting: [{}] with value [{}]; archiving",
+                settingType,
+                e.getKey(),
+                e.getValue()),
+            ex
+        );
     }
 
 }

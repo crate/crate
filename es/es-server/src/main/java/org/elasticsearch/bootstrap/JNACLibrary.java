@@ -34,7 +34,7 @@ import java.util.List;
  */
 final class JNACLibrary {
 
-    private static final Logger logger = LogManager.getLogger(JNACLibrary.class);
+    private static final Logger LOGGER = LogManager.getLogger(JNACLibrary.class);
 
     public static final int MCL_CURRENT = 1;
     public static final int ENOMEM = 12;
@@ -47,7 +47,7 @@ final class JNACLibrary {
         try {
             Native.register("c");
         } catch (UnsatisfiedLinkError e) {
-            logger.warn("unable to link C library. native methods (mlockall) will be disabled.", e);
+            LOGGER.warn("unable to link C library. native methods (mlockall) will be disabled.", e);
         }
     }
 
@@ -67,6 +67,7 @@ final class JNACLibrary {
     }
 
     static native int getrlimit(int resource, Rlimit rlimit);
+
     static native int setrlimit(int resource, Rlimit rlimit);
 
     static native String strerror(int errno);

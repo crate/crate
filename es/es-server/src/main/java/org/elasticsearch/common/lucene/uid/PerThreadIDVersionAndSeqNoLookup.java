@@ -1,5 +1,3 @@
-package org.elasticsearch.common.lucene.uid;
-
 /*
  * Licensed to Elasticsearch under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -18,6 +16,8 @@ package org.elasticsearch.common.lucene.uid;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+package org.elasticsearch.common.lucene.uid;
 
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
@@ -115,7 +115,7 @@ final class PerThreadIDVersionAndSeqNoLookup {
                 if (seqNos.advanceExact(docID)) {
                     seqNo = seqNos.longValue();
                 } else {
-                    seqNo =  SequenceNumbers.UNASSIGNED_SEQ_NO;
+                    seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
                 }
                 NumericDocValues terms = context.reader().getNumericDocValues(SeqNoFieldMapper.PRIMARY_TERM_NAME);
                 if (terms != null && terms.advanceExact(docID)) {

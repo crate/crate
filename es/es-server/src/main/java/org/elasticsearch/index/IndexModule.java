@@ -22,7 +22,7 @@ package org.elasticsearch.index;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.common.Booleans;
+import io.crate.common.Booleans;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -401,11 +401,16 @@ public final class IndexModule {
      * creates a new mapper service to do administrative work like mapping updates. This *should not* be used for document parsing.
      * doing so will result in an exception.
      */
-    public MapperService newIndexMapperService(NamedXContentRegistry xContentRegistry, MapperRegistry mapperRegistry)
-        throws IOException {
-        return new MapperService(indexSettings, analysisRegistry.build(indexSettings), xContentRegistry,
+    public MapperService newIndexMapperService(NamedXContentRegistry xContentRegistry, MapperRegistry mapperRegistry) throws IOException {
+        return new MapperService(
+            indexSettings,
+            analysisRegistry.build(indexSettings),
+            xContentRegistry,
             mapperRegistry,
-            () -> { throw new UnsupportedOperationException("no index query shard context available"); });
+            () -> {
+                throw new UnsupportedOperationException("no index query shard context available");
+            }
+        );
     }
 
     /**

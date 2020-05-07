@@ -19,6 +19,7 @@
 
 package org.elasticsearch.indices.recovery;
 
+import io.crate.common.CheckedSupplier;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CorruptIndexException;
@@ -35,18 +36,17 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.CheckedSupplier;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.CancellableThreads;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.RecoveryEngineException;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
@@ -308,7 +308,7 @@ public class RecoverySourceHandler {
 
     private boolean isTargetSameHistory() {
         final String targetHistoryUUID = request.metadataSnapshot().getHistoryUUID();
-        assert targetHistoryUUID != null: "incoming target history N/A";
+        assert targetHistoryUUID != null : "incoming target history N/A";
         return targetHistoryUUID.equals(shard.getHistoryUUID());
     }
 
@@ -404,7 +404,7 @@ public class RecoverySourceHandler {
         final Store store = shard.store();
         store.incRef();
         try {
-            StopWatch stopWatch = new StopWatch().start();
+            final StopWatch stopWatch = new StopWatch().start();
             final Store.MetadataSnapshot recoverySourceMetadata;
             try {
                 recoverySourceMetadata = store.getMetadata(snapshot);
@@ -590,15 +590,15 @@ public class RecoverySourceHandler {
                 long maxSeenAutoIdTimestamp,
                 long maxSeqNoOfUpdatesOrDeletes,
                 ActionListener<SendSnapshotResult> listener) throws IOException {
-        assert requiredSeqNoRangeStart <= endingSeqNo + 1:
-            "requiredSeqNoRangeStart " + requiredSeqNoRangeStart + " is larger than endingSeqNo " + endingSeqNo;
-        assert startingSeqNo <= requiredSeqNoRangeStart :
-            "startingSeqNo " + startingSeqNo + " is larger than requiredSeqNoRangeStart " + requiredSeqNoRangeStart;
+        assert requiredSeqNoRangeStart <= endingSeqNo + 1
+            : "requiredSeqNoRangeStart " + requiredSeqNoRangeStart + " is larger than endingSeqNo " + endingSeqNo;
+        assert startingSeqNo <= requiredSeqNoRangeStart
+            : "startingSeqNo " + startingSeqNo + " is larger than requiredSeqNoRangeStart " + requiredSeqNoRangeStart;
         if (shard.state() == IndexShardState.CLOSED) {
             throw new IndexShardClosedException(request.shardId());
         }
-        logger.trace("recovery [phase2]: sending transaction log operations (seq# from [" +  startingSeqNo  + "], " +
-                     "required [" + requiredSeqNoRangeStart + ":" + endingSeqNo + "]");
+        logger.trace("recovery [phase2]: sending transaction log operations (seq# from [" + startingSeqNo + "], "
+            + "required [" + requiredSeqNoRangeStart + ":" + endingSeqNo + "]");
 
         final AtomicInteger skippedOps = new AtomicInteger();
         final AtomicInteger totalSentOps = new AtomicInteger();
@@ -697,7 +697,7 @@ public class RecoverySourceHandler {
             throw new IndexShardClosedException(request.shardId());
         }
         cancellableThreads.checkForCancel();
-        StopWatch stopWatch = new StopWatch().start();
+        final StopWatch stopWatch = new StopWatch().start();
         logger.trace("finalizing recovery");
         /*
          * Before marking the shard as in-sync we acquire an operation permit. We do this so that there is a barrier between marking a
@@ -741,6 +741,7 @@ public class RecoverySourceHandler {
             this.tookTime = tookTime;
         }
     }
+
     /**
      * Cancels the recovery and interrupts all eligible threads.
      */

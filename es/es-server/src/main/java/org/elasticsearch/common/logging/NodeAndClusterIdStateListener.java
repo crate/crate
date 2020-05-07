@@ -24,7 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 
 /**
@@ -33,9 +33,11 @@ import org.elasticsearch.common.util.concurrent.ThreadContext;
  * Once the first update is received, it will automatically be de-registered from subsequent updates.
  */
 public class NodeAndClusterIdStateListener implements ClusterStateObserver.Listener {
-    private static final Logger logger = LogManager.getLogger(NodeAndClusterIdStateListener.class);
 
-    private NodeAndClusterIdStateListener() {}
+    private static final Logger LOGGER = LogManager.getLogger(NodeAndClusterIdStateListener.class);
+
+    private NodeAndClusterIdStateListener() {
+    }
 
     /**
      * Subscribes for the first cluster state update where nodeId and clusterId is present
@@ -43,7 +45,7 @@ public class NodeAndClusterIdStateListener implements ClusterStateObserver.Liste
      */
     public static void getAndSetNodeIdAndClusterId(ClusterService clusterService, ThreadContext threadContext) {
         ClusterState clusterState = clusterService.state();
-        ClusterStateObserver observer = new ClusterStateObserver(clusterState, clusterService, null, logger, threadContext);
+        ClusterStateObserver observer = new ClusterStateObserver(clusterState, clusterService, null, LOGGER, threadContext);
 
         observer.waitForNextChange(new NodeAndClusterIdStateListener(), NodeAndClusterIdStateListener::isNodeAndClusterIdPresent);
     }
@@ -65,13 +67,15 @@ public class NodeAndClusterIdStateListener implements ClusterStateObserver.Liste
         String nodeId = getNodeId(state);
         String clusterUUID = getClusterUUID(state);
 
-        logger.debug("Received cluster state update. Setting nodeId=[{}] and clusterUuid=[{}]", nodeId, clusterUUID);
+        LOGGER.debug("Received cluster state update. Setting nodeId=[{}] and clusterUuid=[{}]", nodeId, clusterUUID);
         NodeAndClusterIdConverter.setNodeIdAndClusterId(nodeId, clusterUUID);
     }
 
     @Override
-    public void onClusterServiceClose() {}
+    public void onClusterServiceClose() {
+    }
 
     @Override
-    public void onTimeout(TimeValue timeout) {}
+    public void onTimeout(TimeValue timeout) {
+    }
 }

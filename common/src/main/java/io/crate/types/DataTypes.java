@@ -84,6 +84,8 @@ public final class DataTypes {
 
     public static final IntervalType INTERVAL = IntervalType.INSTANCE;
 
+    public static final ObjectType UNTYPED_OBJECT = ObjectType.UNTYPED;
+
     public static Set<String> PRIMITIVE_TYPE_NAMES_WITH_SPACES = Set.of(
         TIMESTAMPZ.getName(),
         TIMESTAMP.getName(),
@@ -223,7 +225,7 @@ public final class DataTypes {
         entry(Short.class, SHORT),
         entry(Byte.class, BYTE),
         entry(Boolean.class, BOOLEAN),
-        entry(Map.class, ObjectType.untyped()),
+        entry(Map.class, UNTYPED_OBJECT),
         entry(String.class, STRING),
         entry(BytesRef.class, STRING),
         entry(PointImpl.class, GEO_POINT),
@@ -234,7 +236,7 @@ public final class DataTypes {
         if (value == null) {
             return UNDEFINED;
         } else if (value instanceof Map) {
-            return ObjectType.untyped();
+            return UNTYPED_OBJECT;
         } else if (value instanceof List) {
             return valueFromList((List) value);
         } else if (value.getClass().isArray()) {
@@ -315,7 +317,7 @@ public final class DataTypes {
         entry(RowType.EMPTY.getName(), RowType.EMPTY),
         entry(TIMESTAMPZ.getName(), TIMESTAMPZ),
         entry(TIMESTAMP.getName(), TIMESTAMP),
-        entry(ObjectType.NAME, ObjectType.untyped()),
+        entry(ObjectType.NAME, UNTYPED_OBJECT),
         entry(GEO_POINT.getName(), GEO_POINT),
         entry(GEO_SHAPE.getName(), GEO_SHAPE),
         entry("int2", SHORT),
@@ -343,12 +345,17 @@ public final class DataTypes {
         entry("timestamp", TIMESTAMPZ),
         entry("interval", INTERVAL));
 
-    public static DataType ofName(String name) {
-        DataType dataType = TYPES_BY_NAME_OR_ALIAS.get(name);
+    public static DataType<?> ofName(String typeName) {
+        DataType<?> dataType = ofNameOrNull(typeName);
         if (dataType == null) {
-            throw new IllegalArgumentException("Cannot find data type: " + name);
+            throw new IllegalArgumentException("Cannot find data type: " + typeName);
         }
         return dataType;
+    }
+
+    @Nullable
+    public static DataType<?> ofNameOrNull(String typeName) {
+        return TYPES_BY_NAME_OR_ALIAS.get(typeName);
     }
 
     private static final Map<String, DataType> MAPPING_NAMES_TO_TYPES = Map.ofEntries(
@@ -366,8 +373,8 @@ public final class DataTypes {
         entry("ip", DataTypes.IP),
         entry("geo_point", DataTypes.GEO_POINT),
         entry("geo_shape", DataTypes.GEO_SHAPE),
-        entry("object", ObjectType.untyped()),
-        entry("nested", ObjectType.untyped()),
+        entry("object", UNTYPED_OBJECT),
+        entry("nested", UNTYPED_OBJECT),
         entry("interval", DataTypes.INTERVAL)
     );
 

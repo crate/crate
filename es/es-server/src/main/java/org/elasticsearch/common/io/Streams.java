@@ -23,7 +23,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStream;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +44,22 @@ import java.util.Objects;
 public abstract class Streams {
 
     public static final int BUFFER_SIZE = 1024 * 8;
+
+    /**
+     * OutputStream that just throws all the bytes away
+     */
+    public static final OutputStream NULL_OUTPUT_STREAM = new OutputStream() {
+
+        @Override
+        public void write(int b) throws IOException {
+            // no-op
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            // no-op
+        }
+    };
 
 
     //---------------------------------------------------------------------

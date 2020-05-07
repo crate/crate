@@ -36,16 +36,16 @@ import java.util.Locale;
  */
 public final class IfConfig {
 
-    private static final Logger logger = LogManager.getLogger(IfConfig.class);
+    private static final Logger LOGGER = LogManager.getLogger(IfConfig.class);
     private static final String INDENT = "        ";
 
     /** log interface configuration at debug level, if its enabled */
     public static void logIfNecessary() {
-        if (logger.isDebugEnabled()) {
+        if (LOGGER.isDebugEnabled()) {
             try {
                 doLogging();
             } catch (IOException e) {
-                logger.warn("unable to gather network information", e);
+                LOGGER.warn("unable to gather network information", e);
             }
         }
     }
@@ -86,7 +86,7 @@ public final class IfConfig {
             }
 
             // hardware address
-            byte hardware[] = nic.getHardwareAddress();
+            byte[] hardware = nic.getHardwareAddress();
             if (hardware != null) {
                 msg.append(INDENT);
                 msg.append("hardware ");
@@ -104,7 +104,7 @@ public final class IfConfig {
             msg.append(formatFlags(nic));
             msg.append(System.lineSeparator());
         }
-        logger.debug("configuration:{}{}", System.lineSeparator(), msg);
+        LOGGER.debug("configuration:{}{}", System.lineSeparator(), msg);
     }
 
     /** format internet address: java's default doesn't include everything useful */

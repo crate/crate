@@ -338,6 +338,7 @@ public final class InjectionPoint {
                     return;
                 }
             } catch (NoSuchFieldException ignore) {
+                // ignored
             }
         }
 

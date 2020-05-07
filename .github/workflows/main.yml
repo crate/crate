@@ -19,4 +19,4 @@ jobs:
       - name: Run tests on ${{ matrix.os }}
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: :sql:test -Dbundled_jdk_version=${{ matrix.bundled-jdk }}
+          arguments: :server:test -Dbundled_jdk_version=${{ matrix.bundled-jdk }}

@@ -19,11 +19,11 @@
 
 package org.elasticsearch.monitor.os;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.apache.lucene.util.Constants;
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 import org.elasticsearch.common.io.PathUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.Constants;
 import org.elasticsearch.monitor.Probes;
 
 import java.io.IOException;
@@ -39,33 +39,33 @@ import java.util.Map;
 
 public class OsProbe {
 
-    private static final OperatingSystemMXBean osMxBean = ManagementFactory.getOperatingSystemMXBean();
+    private static final OperatingSystemMXBean OS_MXBEAN = ManagementFactory.getOperatingSystemMXBean();
 
-    private static final Method getFreePhysicalMemorySize;
-    private static final Method getTotalPhysicalMemorySize;
-    private static final Method getFreeSwapSpaceSize;
-    private static final Method getTotalSwapSpaceSize;
-    private static final Method getSystemLoadAverage;
-    private static final Method getSystemCpuLoad;
+    private static final Method GET_FREE_PHYSICAL_MEMORY_SIZE;
+    private static final Method GET_TOTAL_PHYSICAL_MEMORY_SIZE;
+    private static final Method GET_FREE_SWAP_SPACE_SIZE;
+    private static final Method GET_TOTAL_SWAP_SPACE_SIZE;
+    private static final Method GET_SYSTEM_LOAD_AVERAGE;
+    private static final Method GET_SYSTEM_CPU_LOAD;
 
     static {
-        getFreePhysicalMemorySize = getMethod("getFreePhysicalMemorySize");
-        getTotalPhysicalMemorySize = getMethod("getTotalPhysicalMemorySize");
-        getFreeSwapSpaceSize = getMethod("getFreeSwapSpaceSize");
-        getTotalSwapSpaceSize = getMethod("getTotalSwapSpaceSize");
-        getSystemLoadAverage = getMethod("getSystemLoadAverage");
-        getSystemCpuLoad = getMethod("getSystemCpuLoad");
+        GET_FREE_PHYSICAL_MEMORY_SIZE = getMethod("getFreePhysicalMemorySize");
+        GET_TOTAL_PHYSICAL_MEMORY_SIZE = getMethod("getTotalPhysicalMemorySize");
+        GET_FREE_SWAP_SPACE_SIZE = getMethod("getFreeSwapSpaceSize");
+        GET_TOTAL_SWAP_SPACE_SIZE = getMethod("getTotalSwapSpaceSize");
+        GET_SYSTEM_LOAD_AVERAGE = getMethod("getSystemLoadAverage");
+        GET_SYSTEM_CPU_LOAD = getMethod("getSystemCpuLoad");
     }
 
     /**
      * Returns the amount of free physical memory in bytes.
      */
     public long getFreePhysicalMemorySize() {
-        if (getFreePhysicalMemorySize == null) {
+        if (GET_FREE_PHYSICAL_MEMORY_SIZE == null) {
             return -1;
         }
         try {
-            return (long) getFreePhysicalMemorySize.invoke(osMxBean);
+            return (long) GET_FREE_PHYSICAL_MEMORY_SIZE.invoke(OS_MXBEAN);
         } catch (Exception e) {
             return -1;
         }
@@ -75,11 +75,11 @@ public class OsProbe {
      * Returns the total amount of physical memory in bytes.
      */
     public long getTotalPhysicalMemorySize() {
-        if (getTotalPhysicalMemorySize == null) {
+        if (GET_TOTAL_PHYSICAL_MEMORY_SIZE == null) {
             return -1;
         }
         try {
-            return (long) getTotalPhysicalMemorySize.invoke(osMxBean);
+            return (long) GET_TOTAL_PHYSICAL_MEMORY_SIZE.invoke(OS_MXBEAN);
         } catch (Exception e) {
             return -1;
         }
@@ -89,11 +89,11 @@ public class OsProbe {
      * Returns the amount of free swap space in bytes.
      */
     public long getFreeSwapSpaceSize() {
-        if (getFreeSwapSpaceSize == null) {
+        if (GET_FREE_SWAP_SPACE_SIZE == null) {
             return -1;
         }
         try {
-            return (long) getFreeSwapSpaceSize.invoke(osMxBean);
+            return (long) GET_FREE_SWAP_SPACE_SIZE.invoke(OS_MXBEAN);
         } catch (Exception e) {
             return -1;
         }
@@ -103,11 +103,11 @@ public class OsProbe {
      * Returns the total amount of swap space in bytes.
      */
     public long getTotalSwapSpaceSize() {
-        if (getTotalSwapSpaceSize == null) {
+        if (GET_TOTAL_SWAP_SPACE_SIZE == null) {
             return -1;
         }
         try {
-            return (long) getTotalSwapSpaceSize.invoke(osMxBean);
+            return (long) GET_TOTAL_SWAP_SPACE_SIZE.invoke(OS_MXBEAN);
         } catch (Exception e) {
             return -1;
         }
@@ -141,11 +141,11 @@ public class OsProbe {
             }
         } else {
             assert Constants.MAC_OS_X;
-            if (getSystemLoadAverage == null) {
+            if (GET_SYSTEM_LOAD_AVERAGE == null) {
                 return null;
             }
             try {
-                final double oneMinuteLoadAverage = (double) getSystemLoadAverage.invoke(osMxBean);
+                final double oneMinuteLoadAverage = (double) GET_SYSTEM_LOAD_AVERAGE.invoke(OS_MXBEAN);
                 return new double[]{oneMinuteLoadAverage >= 0 ? oneMinuteLoadAverage : -1, -1, -1};
             } catch (IllegalAccessException | InvocationTargetException e) {
                 if (logger.isDebugEnabled()) {
@@ -169,7 +169,7 @@ public class OsProbe {
     }
 
     public short getSystemCpuPercent() {
-        return Probes.getLoadAndScaleToPercent(getSystemCpuLoad, osMxBean);
+        return Probes.getLoadAndScaleToPercent(GET_SYSTEM_CPU_LOAD, OS_MXBEAN);
     }
 
     /**
@@ -347,6 +347,8 @@ public class OsProbe {
                     break;
                 case "throttled_time":
                     timeThrottledNanos = Long.parseLong(fields[1]);
+                    break;
+                default:
                     break;
             }
         }

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster;
 
 import org.apache.logging.log4j.Level;
@@ -35,7 +36,7 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -69,7 +70,8 @@ import static org.elasticsearch.common.settings.Setting.positiveTimeSetting;
  * attempt to complete first.
  */
 public class NodeConnectionsService extends AbstractLifecycleComponent {
-    private static final Logger logger = LogManager.getLogger(NodeConnectionsService.class);
+
+    private static final Logger LOGGER = LogManager.getLogger(NodeConnectionsService.class);
 
     public static final Setting<TimeValue> CLUSTER_NODE_RECONNECT_INTERVAL_SETTING =
         positiveTimeSetting("cluster.nodes.reconnect_interval", TimeValue.timeValueSeconds(10), Property.NodeScope);
@@ -194,7 +196,7 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
             if (connectionTargets.isEmpty()) {
                 runnables.add(onCompletion);
             } else {
-                logger.trace("connectDisconnectedTargets: {}", targetsByNode);
+                LOGGER.trace("connectDisconnectedTargets: {}", targetsByNode);
                 final GroupedActionListener<Void> listener = new GroupedActionListener<>(
                     ActionListener.wrap(onCompletion), connectionTargets.size());
                 for (final ConnectionTarget connectionTarget : connectionTargets) {
@@ -220,7 +222,7 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
 
         @Override
         public void onFailure(Exception e) {
-            logger.warn("unexpected error while checking for node reconnects", e);
+            LOGGER.warn("unexpected error while checking for node reconnects", e);
             scheduleNextCheck();
         }
 
@@ -303,7 +305,7 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
                 assert Thread.holdsLock(mutex) == false : "mutex unexpectedly held";
                 transportService.connectToNode(discoveryNode);
                 consecutiveFailureCount.set(0);
-                logger.debug("connected to {}", discoveryNode);
+                LOGGER.debug("connected to {}", discoveryNode);
                 onCompletion(ActivityType.CONNECTING, null, disconnectActivity);
             }
 
@@ -313,7 +315,7 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
                 final int currentFailureCount = consecutiveFailureCount.incrementAndGet();
                 // only warn every 6th failure
                 final Level level = currentFailureCount % 6 == 1 ? Level.WARN : Level.DEBUG;
-                logger.log(level, new ParameterizedMessage("failed to connect to {} (tried [{}] times)",
+                LOGGER.log(level, new ParameterizedMessage("failed to connect to {} (tried [{}] times)",
                     discoveryNode, currentFailureCount), e);
                 onCompletion(ActivityType.CONNECTING, e, disconnectActivity);
             }
@@ -330,7 +332,7 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
                 assert Thread.holdsLock(mutex) == false : "mutex unexpectedly held";
                 transportService.disconnectFromNode(discoveryNode);
                 consecutiveFailureCount.set(0);
-                logger.debug("disconnected from {}", discoveryNode);
+                LOGGER.debug("disconnected from {}", discoveryNode);
                 onCompletion(ActivityType.DISCONNECTING, null, connectActivity);
             }
 
@@ -339,7 +341,7 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
                 assert Thread.holdsLock(mutex) == false : "mutex unexpectedly held";
                 consecutiveFailureCount.incrementAndGet();
                 // we may not have disconnected, but will not retry, so this connection might have leaked
-                logger.warn(new ParameterizedMessage("failed to disconnect from {}, possible connection leak", discoveryNode), e);
+                LOGGER.warn(new ParameterizedMessage("failed to disconnect from {}, possible connection leak", discoveryNode), e);
                 assert false : "failed to disconnect from " + discoveryNode + ", possible connection leak\n" + e;
                 onCompletion(ActivityType.DISCONNECTING, e, connectActivity);
             }

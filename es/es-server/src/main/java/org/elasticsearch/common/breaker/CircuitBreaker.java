@@ -70,7 +70,7 @@ public interface CircuitBreaker {
         NOOP;
 
         public static Type parseValue(String value) {
-            switch(value.toLowerCase(Locale.ROOT)) {
+            switch (value.toLowerCase(Locale.ROOT)) {
                 case "noop":
                     return Type.NOOP;
                 case "parent":

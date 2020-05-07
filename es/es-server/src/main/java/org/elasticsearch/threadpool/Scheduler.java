@@ -19,12 +19,10 @@
 
 package org.elasticsearch.threadpool;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import io.crate.common.SuppressForbidden;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsAbortPolicy;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
@@ -233,7 +231,6 @@ public interface Scheduler {
      * tasks to the uncaught exception handler
      */
     class SafeScheduledThreadPoolExecutor extends ScheduledThreadPoolExecutor {
-        private static final Logger logger = LogManager.getLogger(SafeScheduledThreadPoolExecutor.class);
 
         @SuppressForbidden(reason = "properly rethrowing errors, see EsExecutors.rethrowErrors")
         public SafeScheduledThreadPoolExecutor(int corePoolSize, ThreadFactory threadFactory, RejectedExecutionHandler handler) {

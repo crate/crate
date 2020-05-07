@@ -100,7 +100,7 @@ public final class RecoveryFileChunkRequest extends TransportRequest {
         super(in);
         recoveryId = in.readLong();
         shardId = new ShardId(in);
-        String name = in.readString();
+        final String name = in.readString();
         position = in.readVLong();
         long length = in.readVLong();
         String checksum = in.readString();

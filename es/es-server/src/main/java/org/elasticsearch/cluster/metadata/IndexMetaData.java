@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -225,9 +225,10 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
     public static final Setting.AffixSetting<String> INDEX_ROUTING_EXCLUDE_GROUP_SETTING =
         Setting.prefixKeySetting(INDEX_ROUTING_EXCLUDE_GROUP_PREFIX + ".", key ->
             Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope));
+
+    // this is only setable internally not a registered setting!!
     public static final Setting.AffixSetting<String> INDEX_ROUTING_INITIAL_RECOVERY_GROUP_SETTING =
         Setting.prefixKeySetting("index.routing.allocation.initial_recovery.", key -> Setting.simpleString(key));
-        // this is only setable internally not a registered setting!!
 
     /**
      * The number of active shard copies to check for before proceeding with a write operation.
@@ -332,7 +333,7 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
         this.routingFactor = routingNumShards / numberOfShards;
         this.routingPartitionSize = routingPartitionSize;
         this.waitForActiveShards = waitForActiveShards;
-        assert numberOfShards * routingFactor == routingNumShards :  routingNumShards + " must be a multiple of " + numberOfShards;
+        assert numberOfShards * routingFactor == routingNumShards : routingNumShards + " must be a multiple of " + numberOfShards;
     }
 
     public Index getIndex() {
@@ -1002,8 +1003,8 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
 
 
         public IndexMetaData build() {
-            ImmutableOpenMap.Builder<String, AliasMetaData> tmpAliases = aliases;
-            Settings tmpSettings = settings;
+            final ImmutableOpenMap.Builder<String, AliasMetaData> tmpAliases = aliases;
+            final Settings tmpSettings = settings;
 
             // update default mapping on the MappingMetaData
             if (mappings.containsKey(MapperService.DEFAULT_MAPPING)) {
@@ -1092,9 +1093,30 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
 
             final String uuid = settings.get(SETTING_INDEX_UUID, INDEX_UUID_NA_VALUE);
 
-            return new IndexMetaData(new Index(index, uuid), version, mappingVersion, settingsVersion, primaryTerms, state, numberOfShards, numberOfReplicas, tmpSettings, mappings.build(),
-                tmpAliases.build(), customMetaData.build(), filledInSyncAllocationIds.build(), requireFilters, initialRecoveryFilters, includeFilters, excludeFilters,
-                indexCreatedVersion, indexUpgradedVersion, getRoutingNumShards(), routingPartitionSize, waitForActiveShards);
+            return new IndexMetaData(
+                new Index(index, uuid),
+                version,
+                mappingVersion,
+                settingsVersion,
+                primaryTerms,
+                state,
+                numberOfShards,
+                numberOfReplicas,
+                tmpSettings,
+                mappings.build(),
+                tmpAliases.build(),
+                customMetaData.build(),
+                filledInSyncAllocationIds.build(),
+                requireFilters,
+                initialRecoveryFilters,
+                includeFilters,
+                excludeFilters,
+                indexCreatedVersion,
+                indexUpgradedVersion,
+                getRoutingNumShards(),
+                routingPartitionSize,
+                waitForActiveShards
+            );
         }
 
         public static void toXContent(IndexMetaData indexMetaData, XContentBuilder builder, ToXContent.Params params) throws IOException {
@@ -1364,7 +1386,7 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
         }
         // this is just an additional assertion that ensures we are a factor of the routing num shards.
         assert getRoutingFactor(numTargetShards, sourceIndexMetadata.getRoutingNumShards()) >= 0;
-        return new ShardId(sourceIndexMetadata.getIndex(), shardId/routingFactor);
+        return new ShardId(sourceIndexMetadata.getIndex(), shardId / routingFactor);
     }
 
     /**
@@ -1396,11 +1418,11 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
         }
         if (sourceIndexMetadata.getNumberOfShards() < numTargetShards) {
             throw new IllegalArgumentException("the number of target shards [" + numTargetShards
-                +"] must be less that the number of source shards [" + sourceIndexMetadata.getNumberOfShards() + "]");
+                + "] must be less that the number of source shards [" + sourceIndexMetadata.getNumberOfShards() + "]");
         }
         int routingFactor = getRoutingFactor(sourceIndexMetadata.getNumberOfShards(), numTargetShards);
         Set<ShardId> shards = new HashSet<>(routingFactor);
-        for (int i = shardId * routingFactor; i < routingFactor*shardId + routingFactor; i++) {
+        for (int i = shardId * routingFactor; i < routingFactor * shardId + routingFactor; i++) {
             shards.add(new ShardId(sourceIndexMetadata.getIndex(), i));
         }
         return shards;

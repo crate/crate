@@ -22,7 +22,7 @@ package org.elasticsearch.common.network;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -91,10 +91,10 @@ public final class NetworkService {
      *
      * @return unique set of internet addresses
      */
-    public InetAddress[] resolveBindHostAddresses(String bindHosts[]) throws IOException {
+    public InetAddress[] resolveBindHostAddresses(String[] bindHosts) throws IOException {
         if (bindHosts == null || bindHosts.length == 0) {
             for (CustomNameResolver customNameResolver : customNameResolvers) {
-                InetAddress addresses[] = customNameResolver.resolveDefault();
+                InetAddress[] addresses = customNameResolver.resolveDefault();
                 if (addresses != null) {
                     return addresses;
                 }
@@ -103,7 +103,7 @@ public final class NetworkService {
             bindHosts = new String[] {"_local_"};
         }
 
-        InetAddress addresses[] = resolveInetAddresses(bindHosts);
+        InetAddress[] addresses = resolveInetAddresses(bindHosts);
 
         // try to deal with some (mis)configuration
         for (InetAddress address : addresses) {
@@ -130,10 +130,10 @@ public final class NetworkService {
      * @return single internet address
      */
     // TODO: needs to be InetAddress[]
-    public InetAddress resolvePublishHostAddresses(String publishHosts[]) throws IOException {
+    public InetAddress resolvePublishHostAddresses(String[] publishHosts) throws IOException {
         if (publishHosts == null || publishHosts.length == 0) {
             for (CustomNameResolver customNameResolver : customNameResolvers) {
-                InetAddress addresses[] = customNameResolver.resolveDefault();
+                InetAddress[] addresses = customNameResolver.resolveDefault();
                 if (addresses != null) {
                     return addresses[0];
                 }
@@ -142,7 +142,7 @@ public final class NetworkService {
             publishHosts = new String[] {DEFAULT_NETWORK_HOST};
         }
 
-        InetAddress addresses[] = resolveInetAddresses(publishHosts);
+        InetAddress[] addresses = resolveInetAddresses(publishHosts);
         // TODO: allow publishing multiple addresses
         // for now... the hack begins
 
@@ -176,7 +176,7 @@ public final class NetworkService {
     }
 
     /** resolves (and deduplicates) host specification */
-    private InetAddress[] resolveInetAddresses(String hosts[]) throws IOException {
+    private InetAddress[] resolveInetAddresses(String[] hosts) throws IOException {
         if (hosts.length == 0) {
             throw new IllegalArgumentException("empty host specification");
         }
@@ -196,7 +196,7 @@ public final class NetworkService {
             // next check any registered custom resolvers if any
             if (customNameResolvers != null) {
                 for (CustomNameResolver customNameResolver : customNameResolvers) {
-                    InetAddress addresses[] = customNameResolver.resolveIfPossible(host);
+                    InetAddress[] addresses = customNameResolver.resolveIfPossible(host);
                     if (addresses != null) {
                         return addresses;
                     }

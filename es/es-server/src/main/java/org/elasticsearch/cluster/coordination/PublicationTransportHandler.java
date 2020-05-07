@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.coordination;
 
 import org.apache.logging.log4j.LogManager;
@@ -39,7 +40,7 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BytesTransportRequest;
 import org.elasticsearch.transport.TransportChannel;
@@ -60,7 +61,7 @@ import java.util.function.Function;
 
 public class PublicationTransportHandler {
 
-    private static final Logger logger = LogManager.getLogger(PublicationTransportHandler.class);
+    private static final Logger LOGGER = LogManager.getLogger(PublicationTransportHandler.class);
 
     public static final String PUBLISH_STATE_ACTION_NAME = "internal:cluster/coordination/publish_state";
     public static final String COMMIT_STATE_ACTION_NAME = "internal:cluster/coordination/commit_state";
@@ -113,7 +114,7 @@ public class PublicationTransportHandler {
                 try {
                     channel.sendResponse(TransportResponse.Empty.INSTANCE);
                 } catch (IOException e) {
-                    logger.debug("failed to send response on commit", e);
+                    LOGGER.debug("failed to send response on commit", e);
                 }
             }
 
@@ -123,7 +124,7 @@ public class PublicationTransportHandler {
                     channel.sendResponse(e);
                 } catch (IOException ie) {
                     e.addSuppressed(ie);
-                    logger.debug("failed to send response on commit", e);
+                    LOGGER.debug("failed to send response on commit", e);
                 }
             }
         };
@@ -190,10 +191,10 @@ public class PublicationTransportHandler {
                         }
                     });
                 } else if (sendFullVersion || !previousState.nodes().nodeExists(destination)) {
-                    logger.trace("sending full cluster state version {} to {}", newState.version(), destination);
+                    LOGGER.trace("sending full cluster state version {} to {}", newState.version(), destination);
                     PublicationTransportHandler.this.sendFullClusterState(newState, serializedStates, destination, responseActionListener);
                 } else {
-                    logger.trace("sending cluster state diff for version {} to {}", newState.version(), destination);
+                    LOGGER.trace("sending cluster state diff for version {} to {}", newState.version(), destination);
                     PublicationTransportHandler.this.sendClusterStateDiff(newState, serializedDiffs, serializedStates, destination,
                         responseActionListener);
                 }
@@ -236,10 +237,10 @@ public class PublicationTransportHandler {
             final BytesTransportRequest request = new BytesTransportRequest(bytes, node.getVersion());
             final Consumer<TransportException> transportExceptionHandler = exp -> {
                 if (sendDiffs && exp.unwrapCause() instanceof IncompatibleClusterStateVersionException) {
-                    logger.debug("resending full cluster state to node {} reason {}", node, exp.getDetailedMessage());
+                    LOGGER.debug("resending full cluster state to node {} reason {}", node, exp.getDetailedMessage());
                     sendFullClusterState(clusterState, serializedStates, node, responseActionListener);
                 } else {
-                    logger.debug(() -> new ParameterizedMessage("failed to send cluster state to {}", node), exp);
+                    LOGGER.debug(() -> new ParameterizedMessage("failed to send cluster state to {}", node), exp);
                     responseActionListener.onFailure(exp);
                 }
             };
@@ -268,7 +269,7 @@ public class PublicationTransportHandler {
                 };
             transportService.sendRequest(node, PUBLISH_STATE_ACTION_NAME, request, stateRequestOptions, publishWithJoinResponseHandler);
         } catch (Exception e) {
-            logger.warn(() -> new ParameterizedMessage("error sending cluster state to {}", node), e);
+            LOGGER.warn(() -> new ParameterizedMessage("error sending cluster state to {}", node), e);
             responseActionListener.onFailure(e);
         }
     }
@@ -310,7 +311,7 @@ public class PublicationTransportHandler {
                 bytes = serializeFullClusterState(clusterState, node.getVersion());
                 serializedStates.put(node.getVersion(), bytes);
             } catch (Exception e) {
-                logger.warn(() -> new ParameterizedMessage("failed to serialize cluster state before publishing it to node {}", node), e);
+                LOGGER.warn(() -> new ParameterizedMessage("failed to serialize cluster state before publishing it to node {}", node), e);
                 responseActionListener.onFailure(e);
                 return;
             }
@@ -360,12 +361,12 @@ public class PublicationTransportHandler {
                 final ClusterState incomingState;
                 try {
                     incomingState = ClusterState.readFrom(in, transportService.getLocalNode());
-                } catch (Exception e){
-                    logger.warn("unexpected error while deserializing an incoming cluster state", e);
+                } catch (Exception e) {
+                    LOGGER.warn("unexpected error while deserializing an incoming cluster state", e);
                     throw e;
                 }
                 fullClusterStateReceivedCount.incrementAndGet();
-                logger.debug("received full cluster state version [{}] with size [{}]", incomingState.version(),
+                LOGGER.debug("received full cluster state version [{}] with size [{}]", incomingState.version(),
                     request.bytes().length());
                 final PublishWithJoinResponse response = handlePublishRequest.apply(new PublishRequest(incomingState));
                 lastSeenClusterState.set(incomingState);
@@ -373,7 +374,7 @@ public class PublicationTransportHandler {
             } else {
                 final ClusterState lastSeen = lastSeenClusterState.get();
                 if (lastSeen == null) {
-                    logger.debug("received diff for but don't have any local cluster state - requesting full state");
+                    LOGGER.debug("received diff for but don't have any local cluster state - requesting full state");
                     incompatibleClusterStateDiffReceivedCount.incrementAndGet();
                     throw new IncompatibleClusterStateVersionException("have no local cluster state");
                 } else {
@@ -384,12 +385,12 @@ public class PublicationTransportHandler {
                     } catch (IncompatibleClusterStateVersionException e) {
                         incompatibleClusterStateDiffReceivedCount.incrementAndGet();
                         throw e;
-                    } catch (Exception e){
-                        logger.warn("unexpected error while deserializing an incoming cluster state", e);
+                    } catch (Exception e) {
+                        LOGGER.warn("unexpected error while deserializing an incoming cluster state", e);
                         throw e;
                     }
                     compatibleClusterStateDiffReceivedCount.incrementAndGet();
-                    logger.debug("received diff cluster state version [{}] with uuid [{}], diff size [{}]",
+                    LOGGER.debug("received diff cluster state version [{}] with uuid [{}], diff size [{}]",
                         incomingState.version(), incomingState.stateUUID(), request.bytes().length());
                     final PublishWithJoinResponse response = handlePublishRequest.apply(new PublishRequest(incomingState));
                     lastSeenClusterState.compareAndSet(lastSeen, incomingState);

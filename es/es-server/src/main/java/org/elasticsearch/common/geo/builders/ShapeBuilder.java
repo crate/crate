@@ -56,6 +56,7 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
     protected static final Logger LOGGER = LogManager.getLogger(ShapeBuilder.class);
 
     private static final boolean DEBUG;
+
     static {
         // if asserts are enabled we run the debug statements even if they are not logged
         // to prevent exceptions only present if debug enabled
@@ -103,7 +104,7 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
     protected ShapeBuilder(StreamInput in) throws IOException {
         int size = in.readVInt();
         coordinates = new ArrayList<>(size);
-        for (int i=0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
             coordinates.add(readFromStream(in));
         }
     }
@@ -174,9 +175,9 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
      * @return Array of coordinates
      */
     protected Coordinate[] coordinates(boolean closed) {
-        Coordinate[] result = coordinates.toArray(new Coordinate[coordinates.size() + (closed?1:0)]);
-        if(closed) {
-            result[result.length-1] = result[0];
+        Coordinate[] result = coordinates.toArray(new Coordinate[coordinates.size() + (closed ? 1 : 0)]);
+        if (closed) {
+            result[result.length - 1] = result[0];
         }
         return result;
     }
@@ -184,10 +185,12 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
     protected JtsGeometry jtsGeometry(Geometry geom) {
         //dateline180Check is false because ElasticSearch does it's own dateline wrapping
         JtsGeometry jtsGeometry = new JtsGeometry(geom, SPATIAL_CONTEXT, false, MULTI_POLYGON_MAY_OVERLAP);
-        if (AUTO_VALIDATE_JTS_GEOMETRY)
+        if (AUTO_VALIDATE_JTS_GEOMETRY) {
             jtsGeometry.validate();
-        if (AUTO_INDEX_JTS_GEOMETRY)
+        }
+        if (AUTO_INDEX_JTS_GEOMETRY) {
             jtsGeometry.index();
+        }
         return jtsGeometry;
     }
 
@@ -398,11 +401,11 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
         public static final Orientation CW = Orientation.LEFT;
         public static final Orientation CCW = Orientation.RIGHT;
 
-        public void writeTo (StreamOutput out) throws IOException {
+        public void writeTo(StreamOutput out) throws IOException {
             out.writeBoolean(this == Orientation.RIGHT);
         }
 
-        public static Orientation readFrom (StreamInput in) throws IOException {
+        public static Orientation readFrom(StreamInput in) throws IOException {
             return in.readBoolean() ? Orientation.RIGHT : Orientation.LEFT;
         }
 
@@ -450,13 +453,13 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
      */
     protected XContentBuilder coordinatesToXcontent(XContentBuilder builder, boolean closed) throws IOException {
         builder.startArray();
-        for(Coordinate coord : coordinates) {
+        for (Coordinate coord : coordinates) {
             toXContent(builder, coord);
         }
-        if(closed) {
+        if (closed) {
             Coordinate start = coordinates.get(0);
-            Coordinate end = coordinates.get(coordinates.size()-1);
-            if(start.x != end.x || start.y != end.y) {
+            Coordinate end = coordinates.get(coordinates.size() - 1);
+            if (start.x != end.x || start.y != end.y) {
                 toXContent(builder, coordinates.get(0));
             }
         }

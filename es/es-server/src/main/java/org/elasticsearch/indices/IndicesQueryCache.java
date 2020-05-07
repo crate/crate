@@ -51,7 +51,7 @@ import java.util.function.Predicate;
 
 public class IndicesQueryCache implements QueryCache, Closeable {
 
-    private static final Logger logger = LogManager.getLogger(IndicesQueryCache.class);
+    private static final Logger LOGGER = LogManager.getLogger(IndicesQueryCache.class);
 
     public static final Setting<ByteSizeValue> INDICES_CACHE_QUERY_SIZE_SETTING =
             Setting.memorySizeSetting("indices.queries.cache.size", "10%", Property.NodeScope);
@@ -76,7 +76,7 @@ public class IndicesQueryCache implements QueryCache, Closeable {
     public IndicesQueryCache(Settings settings) {
         final ByteSizeValue size = INDICES_CACHE_QUERY_SIZE_SETTING.get(settings);
         final int count = INDICES_CACHE_QUERY_COUNT_SETTING.get(settings);
-        logger.debug("using [node] query cache with size [{}] max filter count [{}]",
+        LOGGER.debug("using [node] query cache with size [{}] max filter count [{}]",
                 size, count);
         if (INDICES_QUERIES_CACHE_ALL_SEGMENTS_SETTING.get(settings)) {
             cache = new ElasticsearchLRUQueryCache(count, size.getBytes(), context -> true, 1f);

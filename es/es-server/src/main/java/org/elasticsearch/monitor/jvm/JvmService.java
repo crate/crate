@@ -24,11 +24,11 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 public class JvmService {
 
-    private static final Logger logger = LogManager.getLogger(JvmService.class);
+    private static final Logger LOGGER = LogManager.getLogger(JvmService.class);
 
     private final JvmInfo jvmInfo;
 
@@ -46,7 +46,7 @@ public class JvmService {
 
         this.refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
 
-        logger.debug("using refresh_interval [{}]", refreshInterval);
+        LOGGER.debug("using refresh_interval [{}]", refreshInterval);
     }
 
     public JvmInfo info() {

@@ -73,5 +73,7 @@ public interface ClusterPlugin {
      *
      * TODO: Remove this whole concept of InitialClusterStateCustomSupplier, it's not used anymore
      */
-    default Map<String, Supplier<ClusterState.Custom>> getInitialClusterStateCustomSupplier() { return Collections.emptyMap(); }
+    default Map<String, Supplier<ClusterState.Custom>> getInitialClusterStateCustomSupplier() {
+        return Collections.emptyMap();
+    }
 }

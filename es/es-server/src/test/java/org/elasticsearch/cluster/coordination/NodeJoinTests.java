@@ -167,10 +167,13 @@ public class NodeJoinTests extends ESTestCase {
             }
         };
         final ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
-        TransportService transportService = capturingTransport.createTransportService(Settings.EMPTY, threadPool,
+        TransportService transportService = capturingTransport.createTransportService(
+            Settings.EMPTY,
+            threadPool,
             TransportService.NOOP_TRANSPORT_INTERCEPTOR,
             x -> initialState.nodes().getLocalNode(),
-            clusterSettings, Collections.emptySet());
+            clusterSettings
+        );
         coordinator = new Coordinator("test_node", Settings.EMPTY, clusterSettings,
             transportService, writableRegistry(),
             ESAllocationTestCase.createAllocationService(Settings.EMPTY),

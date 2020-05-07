@@ -64,7 +64,9 @@ public class OsStats implements Writeable {
         return timestamp;
     }
 
-    public Cpu getCpu() { return cpu; }
+    public Cpu getCpu() {
+        return cpu;
+    }
 
     public Mem getMem() {
         return mem;

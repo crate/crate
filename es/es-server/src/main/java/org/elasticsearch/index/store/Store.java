@@ -64,11 +64,11 @@ import org.elasticsearch.common.lucene.store.ByteArrayIndexInput;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
 import org.elasticsearch.common.util.concurrent.RefCounted;
 import org.elasticsearch.common.util.iterable.Iterables;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.env.ShardLockObtainFailedException;
@@ -128,7 +128,7 @@ import static java.util.Collections.unmodifiableMap;
  */
 public class Store extends AbstractIndexShardComponent implements Closeable, RefCounted {
     static final String CODEC = "store";
-    static final int VERSION_WRITE_THROWABLE= 2; // we write throwable since 2.0
+    static final int VERSION_WRITE_THROWABLE = 2; // we write throwable since 2.0
     static final int VERSION_STACK_TRACE = 1; // we write the stack trace too since 1.4.0
     static final int VERSION_START = 0;
     static final int VERSION = VERSION_WRITE_THROWABLE;
@@ -283,7 +283,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
         // on this store at the same time.
         java.util.concurrent.locks.Lock lock = lockDirectory ? metadataLock.writeLock() : metadataLock.readLock();
         lock.lock();
-        try (Closeable ignored = lockDirectory ? directory.obtainLock(IndexWriter.WRITE_LOCK_NAME) : () -> {} ) {
+        try (Closeable ignored = lockDirectory ? directory.obtainLock(IndexWriter.WRITE_LOCK_NAME) : () -> {}) {
             return new MetadataSnapshot(commit, directory, logger);
         } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
             markStoreCorrupted(ex);
@@ -327,6 +327,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
                 try {
                     directory.deleteFile(origFile);
                 } catch (FileNotFoundException | NoSuchFileException e) {
+                    // ignored
                 } catch (Exception ex) {
                     logger.debug(() -> new ParameterizedMessage("failed to delete file [{}]", origFile), ex);
                 }
@@ -1183,9 +1184,16 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
                     return;
                 }
             }
-            throw new CorruptIndexException("verification failed (hardware problem?) : expected=" + metadata.checksum() +
-                    " actual=" + actualChecksum + " footer=" + footerDigest +" writtenLength=" + writtenBytes + " expectedLength=" + metadata.length() +
-                    " (resource=" + metadata.toString() + ")", "VerifyingIndexOutput(" + metadata.name() + ")");
+            throw new CorruptIndexException(
+                "verification failed (hardware problem?) : "
+                + "expected=" + metadata.checksum()
+                + " actual=" + actualChecksum
+                + " footer=" + footerDigest
+                + " writtenLength=" + writtenBytes
+                + " expectedLength=" + metadata.length()
+                + " (resource=" + metadata.toString() + ")",
+                "VerifyingIndexOutput(" + metadata.name() + ")"
+            );
         }
 
         @Override
@@ -1198,7 +1206,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
                 final int index = Math.toIntExact(writtenBytes - checksumPosition);
                 if (index < footerChecksum.length) {
                     footerChecksum[index] = b;
-                    if (index == footerChecksum.length-1) {
+                    if (index == footerChecksum.length - 1) {
                         verify(); // we have recorded the entire checksum
                     }
                 } else {
@@ -1222,7 +1230,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
         public void writeBytes(byte[] b, int offset, int length) throws IOException {
             if (writtenBytes + length > checksumPosition) {
                 for (int i = 0; i < length; i++) { // don't optimze writing the last block of bytes
-                    writeByte(b[offset+i]);
+                    writeByte(b[offset + i]);
                 }
             } else {
                 out.writeBytes(b, offset, length);
@@ -1360,7 +1368,6 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
             throw new CorruptIndexException("verification failed : calculated=" + Store.digestToString(getChecksum()) +
                     " stored=" + Store.digestToString(storedChecksum), this);
         }
-
     }
 
     public void deleteQuiet(String... files) {
@@ -1368,7 +1375,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
         StoreDirectory directory = this.directory;
         for (String file : files) {
             try {
-               directory.deleteFile("Store.deleteQuiet", file);
+                directory.deleteFile("Store.deleteQuiet", file);
             } catch (Exception ex) {
                 // ignore :(
             }

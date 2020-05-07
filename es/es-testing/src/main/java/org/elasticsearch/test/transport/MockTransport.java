@@ -21,10 +21,8 @@ package org.elasticsearch.test.transport;
 
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.component.Lifecycle;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.component.LifecycleListener;
@@ -53,11 +51,12 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportStats;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -75,15 +74,24 @@ public class MockTransport implements Transport, LifecycleComponent {
     private TransportMessageListener listener;
     private ConcurrentMap<Long, Tuple<DiscoveryNode, String>> requests = new ConcurrentHashMap<>();
 
-    public TransportService createTransportService(Settings settings, ThreadPool threadPool, TransportInterceptor interceptor,
+    public TransportService createTransportService(Settings settings,
+                                                   ThreadPool threadPool,
+                                                   TransportInterceptor interceptor,
                                                    Function<BoundTransportAddress, DiscoveryNode> localNodeFactory,
-                                                   @Nullable ClusterSettings clusterSettings, Set<String> taskHeaders) {
+                                                   @Nullable ClusterSettings clusterSettings) {
         StubbableConnectionManager connectionManager = new StubbableConnectionManager(new ConnectionManager(settings, this, threadPool),
             settings, this, threadPool);
         connectionManager.setDefaultNodeConnectedBehavior((cm, discoveryNode) -> nodeConnected(discoveryNode));
         connectionManager.setDefaultGetConnectionBehavior((cm, discoveryNode) -> openConnection(discoveryNode, null));
-        return new TransportService(settings, this, threadPool, interceptor, localNodeFactory, clusterSettings, taskHeaders,
-            connectionManager);
+        return new TransportService(
+            settings,
+            this,
+            threadPool,
+            interceptor,
+            localNodeFactory,
+            clusterSettings,
+            connectionManager
+        );
     }
 
     /**
@@ -246,7 +254,9 @@ public class MockTransport implements Transport, LifecycleComponent {
             if (requestHandlers.containsKey(reg.getAction())) {
                 throw new IllegalArgumentException("transport handlers for action " + reg.getAction() + " is already registered");
             }
-            requestHandlers = MapBuilder.newMapBuilder(requestHandlers).put(reg.getAction(), reg).immutableMap();
+            HashMap<String, RequestHandlerRegistry> copy = new HashMap<>(requestHandlers);
+            copy.put(reg.getAction(), reg);
+            requestHandlers = Map.copyOf(copy);
         }
     }
 

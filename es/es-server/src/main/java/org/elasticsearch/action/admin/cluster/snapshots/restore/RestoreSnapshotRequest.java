@@ -498,13 +498,13 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
                 }
                 indexSettings((Map<String, Object>) entry.getValue());
             } else if (name.equals("ignore_index_settings")) {
-                    if (entry.getValue() instanceof String) {
-                        ignoreIndexSettings(Strings.splitStringByCommaToArray((String) entry.getValue()));
-                    } else if (entry.getValue() instanceof List) {
-                        ignoreIndexSettings((List<String>) entry.getValue());
-                    } else {
-                        throw new IllegalArgumentException("malformed ignore_index_settings section, should be an array of strings");
-                    }
+                if (entry.getValue() instanceof String) {
+                    ignoreIndexSettings(Strings.splitStringByCommaToArray((String) entry.getValue()));
+                } else if (entry.getValue() instanceof List) {
+                    ignoreIndexSettings((List<String>) entry.getValue());
+                } else {
+                    throw new IllegalArgumentException("malformed ignore_index_settings section, should be an array of strings");
+                }
             } else {
                 if (IndicesOptions.isIndicesOptions(name) == false) {
                     throw new IllegalArgumentException("Unknown parameter " + name);

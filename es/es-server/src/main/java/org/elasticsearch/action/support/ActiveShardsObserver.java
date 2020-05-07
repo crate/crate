@@ -25,7 +25,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -39,7 +39,7 @@ import java.util.function.Predicate;
  */
 public class ActiveShardsObserver {
 
-    private static final Logger logger = LogManager.getLogger(ActiveShardsObserver.class);
+    private static final Logger LOGGER = LogManager.getLogger(ActiveShardsObserver.class);
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
@@ -72,7 +72,7 @@ public class ActiveShardsObserver {
         }
 
         final ClusterState state = clusterService.state();
-        final ClusterStateObserver observer = new ClusterStateObserver(state, clusterService, null, logger, threadPool.getThreadContext());
+        final ClusterStateObserver observer = new ClusterStateObserver(state, clusterService, null, LOGGER, threadPool.getThreadContext());
         if (activeShardCount.enoughShardsActive(state, indexNames)) {
             onResult.accept(true);
         } else {
@@ -86,7 +86,7 @@ public class ActiveShardsObserver {
 
                 @Override
                 public void onClusterServiceClose() {
-                    logger.debug("[{}] cluster service closed while waiting for enough shards to be started.", Arrays.toString(indexNames));
+                    LOGGER.debug("[{}] cluster service closed while waiting for enough shards to be started.", Arrays.toString(indexNames));
                     onFailure.accept(new NodeClosedException(clusterService.localNode()));
                 }
 

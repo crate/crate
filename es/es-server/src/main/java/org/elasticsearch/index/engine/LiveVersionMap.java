@@ -353,7 +353,7 @@ final class LiveVersionMap implements ReferenceManager.RefreshListener, Accounta
         }
         if (accountRam != 0) {
             long v = ramBytesUsedTombstones.addAndGet(accountRam);
-            assert v >= 0: "bytes=" + v;
+            assert v >= 0 : "bytes=" + v;
         }
     }
 

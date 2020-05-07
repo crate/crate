@@ -29,11 +29,11 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 
 public class RecoverySettings {
 
-    private static final Logger logger = LogManager.getLogger(RecoverySettings.class);
+    private static final Logger LOGGER = LogManager.getLogger(RecoverySettings.class);
 
     public static final Setting<ByteSizeValue> INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING =
         Setting.byteSizeSetting("indices.recovery.max_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB),
@@ -68,9 +68,13 @@ public class RecoverySettings {
      * defaults to twice `indices.recovery.internal_action_timeout`.
      */
     public static final Setting<TimeValue> INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT_SETTING =
-        Setting.timeSetting("indices.recovery.internal_action_long_timeout",
+        Setting.timeSetting(
+            "indices.recovery.internal_action_long_timeout",
             (s) -> TimeValue.timeValueMillis(INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING.get(s).millis() * 2),
-            TimeValue.timeValueSeconds(0), Property.Dynamic,  Property.NodeScope);
+            TimeValue.timeValueSeconds(0),
+            Property.Dynamic,
+            Property.NodeScope
+        );
 
     /**
      * recoveries that don't show any activity for more then this interval will be failed.
@@ -114,7 +118,7 @@ public class RecoverySettings {
         }
 
 
-        logger.debug("using max_bytes_per_sec[{}]", maxBytesPerSec);
+        LOGGER.debug("using max_bytes_per_sec[{}]", maxBytesPerSec);
 
         clusterSettings.addSettingsUpdateConsumer(INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING, this::setMaxBytesPerSec);
         clusterSettings.addSettingsUpdateConsumer(INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING, this::setMaxConcurrentFileChunks);
@@ -149,7 +153,9 @@ public class RecoverySettings {
         return internalActionLongTimeout;
     }
 
-    public ByteSizeValue getChunkSize() { return chunkSize; }
+    public ByteSizeValue getChunkSize() {
+        return chunkSize;
+    }
 
     public void setChunkSize(ByteSizeValue chunkSize) { // only settable for tests
         if (chunkSize.bytesAsInt() <= 0) {

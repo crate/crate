@@ -19,6 +19,17 @@
 
 package org.elasticsearch.tasks;
 
+import static io.crate.common.unit.TimeValue.timeValueMillis;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_MAX_HEADER_SIZE;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -28,37 +39,20 @@ import org.elasticsearch.cluster.ClusterStateApplier;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_MAX_HEADER_SIZE;
 
 /**
  * Task Manager service for keeping track of currently running tasks on the nodes
  */
 public class TaskManager implements ClusterStateApplier {
 
-    private static final Logger logger = LogManager.getLogger(TaskManager.class);
+    private static final Logger LOGGER = LogManager.getLogger(TaskManager.class);
 
     private static final TimeValue WAIT_FOR_COMPLETION_POLL = timeValueMillis(100);
 
-    /** Rest headers that are copied to the task */
-    private final List<String> taskHeaders;
     private final ThreadPool threadPool;
 
     private final ConcurrentMapLong<Task> tasks = ConcurrentCollections.newConcurrentMapLongWithAggressiveConcurrency();
@@ -74,9 +68,8 @@ public class TaskManager implements ClusterStateApplier {
 
     private final ByteSizeValue maxHeaderSize;
 
-    public TaskManager(Settings settings, ThreadPool threadPool, Set<String> taskHeaders) {
+    public TaskManager(Settings settings, ThreadPool threadPool) {
         this.threadPool = threadPool;
-        this.taskHeaders = new ArrayList<>(taskHeaders);
         this.maxHeaderSize = SETTING_HTTP_MAX_HEADER_SIZE.get(settings);
     }
 
@@ -84,25 +77,11 @@ public class TaskManager implements ClusterStateApplier {
      * Registers a task without parent task
      */
     public Task register(String type, String action, TaskAwareRequest request) {
-        Map<String, String> headers = new HashMap<>();
-        long headerSize = 0;
-        long maxSize = maxHeaderSize.getBytes();
-        ThreadContext threadContext = threadPool.getThreadContext();
-        for (String key : taskHeaders) {
-            String httpHeader = threadContext.getHeader(key);
-            if (httpHeader != null) {
-                headerSize += key.length() * 2 + httpHeader.length() * 2;
-                if (headerSize > maxSize) {
-                    throw new IllegalArgumentException("Request exceeded the maximum size of task headers " + maxHeaderSize);
-                }
-                headers.put(key, httpHeader);
-            }
-        }
-        Task task = request.createTask(taskIdGenerator.incrementAndGet(), type, action, request.getParentTask(), headers);
+        Task task = request.createTask(taskIdGenerator.incrementAndGet(), type, action, request.getParentTask());
         Objects.requireNonNull(task);
         assert task.getParentTaskId().equals(request.getParentTask()) : "Request [ " + request + "] didn't preserve it parentTaskId";
-        if (logger.isTraceEnabled()) {
-            logger.trace("register {} [{}] [{}] [{}]", task.getId(), type, action, task.getDescription());
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("register {} [{}] [{}] [{}]", task.getId(), type, action, task.getDescription());
         }
 
         if (task instanceof CancellableTask) {
@@ -145,7 +124,7 @@ public class TaskManager implements ClusterStateApplier {
     public boolean cancel(CancellableTask task, String reason, Runnable listener) {
         CancellableTaskHolder holder = cancellableTasks.get(task.getId());
         if (holder != null) {
-            logger.trace("cancelling task with id {}", task.getId());
+            LOGGER.trace("cancelling task with id {}", task.getId());
             return holder.cancel(reason, listener);
         }
         return false;
@@ -155,7 +134,7 @@ public class TaskManager implements ClusterStateApplier {
      * Unregister the task
      */
     public Task unregister(Task task) {
-        logger.trace("unregister task for id: {}", task.getId());
+        LOGGER.trace("unregister task for id: {}", task.getId());
         if (task instanceof CancellableTask) {
             CancellableTaskHolder holder = cancellableTasks.remove(task.getId());
             if (holder != null) {
@@ -231,7 +210,7 @@ public class TaskManager implements ClusterStateApplier {
      * This method is called when a parent task that has children is cancelled.
      */
     public void setBan(TaskId parentTaskId, String reason) {
-        logger.trace("setting ban for the parent task {} {}", parentTaskId, reason);
+        LOGGER.trace("setting ban for the parent task {} {}", parentTaskId, reason);
 
         // Set the ban first, so the newly created tasks cannot be registered
         synchronized (banedParents) {
@@ -256,7 +235,7 @@ public class TaskManager implements ClusterStateApplier {
      * This method is called when a previously banned task finally cancelled
      */
     public void removeBan(TaskId parentTaskId) {
-        logger.trace("removing ban for the parent task {}", parentTaskId);
+        LOGGER.trace("removing ban for the parent task {}", parentTaskId);
         banedParents.remove(parentTaskId);
     }
 
@@ -271,7 +250,7 @@ public class TaskManager implements ClusterStateApplier {
                 while (banIterator.hasNext()) {
                     TaskId taskId = banIterator.next();
                     if (lastDiscoveryNodes.nodeExists(taskId.getNodeId()) == false) {
-                        logger.debug("Removing ban for the parent [{}] on the node [{}], reason: the parent node is gone", taskId,
+                        LOGGER.debug("Removing ban for the parent [{}] on the node [{}], reason: the parent node is gone", taskId,
                             event.state().getNodes().getLocalNode());
                         banIterator.remove();
                     }

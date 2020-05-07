@@ -46,7 +46,8 @@ import java.util.List;
  * can be implemented. */
 public abstract class StringFieldType extends TermBasedFieldType {
 
-    public StringFieldType() {}
+    public StringFieldType() {
+    }
 
     protected StringFieldType(MappedFieldType ref) {
         super(ref);
@@ -103,8 +104,7 @@ public abstract class StringFieldType extends TermBasedFieldType {
         while (stream.incrementToken()) {
             if (enablePosIncrements) {
                 position += posIncrAtt.getPositionIncrement();
-            }
-            else {
+            } else {
                 position += 1;
             }
             builder.add(new Term(field, termAtt.getBytesRef()), position);

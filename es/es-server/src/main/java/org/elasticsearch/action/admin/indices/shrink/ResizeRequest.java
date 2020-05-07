@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.action.admin.indices.shrink;
 
 import org.elasticsearch.action.IndicesRequest;
@@ -39,6 +40,7 @@ import java.util.Objects;
 public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements IndicesRequest {
 
     public static final ObjectParser<ResizeRequest, Void> PARSER = new ObjectParser<>("resize_request", null);
+
     static {
         PARSER.declareField((parser, request, context) -> request.getTargetIndexRequest().settings(parser.map()),
             new ParseField("settings"), ObjectParser.ValueType.OBJECT);
@@ -51,7 +53,8 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements
     private ResizeType type = ResizeType.SHRINK;
     private Boolean copySettings;
 
-    ResizeRequest() {}
+    ResizeRequest() {
+    }
 
     public ResizeRequest(String targetIndex, String sourceIndex) {
         this.targetIndexRequest = new CreateIndexRequest(targetIndex);

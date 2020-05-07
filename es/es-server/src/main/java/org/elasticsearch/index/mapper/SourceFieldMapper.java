@@ -27,7 +27,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
@@ -149,7 +149,8 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     static final class SourceFieldType extends MappedFieldType {
 
-        SourceFieldType() {}
+        SourceFieldType() {
+        }
 
         protected SourceFieldType(SourceFieldType ref) {
             super(ref);
@@ -237,12 +238,13 @@ public class SourceFieldMapper extends MetadataFieldMapper {
         }
 
         if (originalSource != null && source != originalSource && context.indexSettings().isSoftDeleteEnabled()) {
-            // if we omitted source or modified it we add the _recovery_source to ensure we have it for ops based recovery
+            // if we omitted source or modified it we add the _recovery_source to ensure we
+            // have it for ops based recovery
             BytesRef ref = originalSource.toBytesRef();
             fields.add(new StoredField(RECOVERY_SOURCE_NAME, ref.bytes, ref.offset, ref.length));
             fields.add(new NumericDocValuesField(RECOVERY_SOURCE_NAME, 1));
         }
-     }
+    }
 
     @Override
     protected String contentType() {

@@ -40,7 +40,7 @@ class PrefixLogger extends ExtendedLoggerWrapper {
      * can not tie into the lifecycle of these components, we have to use a mechanism that enables garbage collection of such markers when
      * they are no longer in use.
      */
-    private static final WeakHashMap<String, Marker> markers = new WeakHashMap<>();
+    private static final WeakHashMap<String, Marker> MARKERS = new WeakHashMap<>();
 
     /**
      * Return the size of the cached markers. This size can vary as markers are cached but collected during GC activity when a given prefix
@@ -49,7 +49,7 @@ class PrefixLogger extends ExtendedLoggerWrapper {
      * @return the size of the cached markers
      */
     static int markersSize() {
-        return markers.size();
+        return MARKERS.size();
     }
 
     /**
@@ -79,8 +79,8 @@ class PrefixLogger extends ExtendedLoggerWrapper {
         final String actualPrefix = (prefix == null ? "" : prefix);
         final Marker actualMarker;
         // markers is not thread-safe, so we synchronize access
-        synchronized (markers) {
-            final Marker maybeMarker = markers.get(actualPrefix);
+        synchronized (MARKERS) {
+            final Marker maybeMarker = MARKERS.get(actualPrefix);
             if (maybeMarker == null) {
                 actualMarker = new MarkerManager.Log4jMarker(actualPrefix);
                 /*
@@ -89,7 +89,7 @@ class PrefixLogger extends ExtendedLoggerWrapper {
                  * collected. This also guarantees that no other strong reference can be held to the prefix anywhere.
                  */
                 // noinspection RedundantStringConstructorCall
-                markers.put(new String(actualPrefix), actualMarker);
+                MARKERS.put(new String(actualPrefix), actualMarker);
             } else {
                 actualMarker = maybeMarker;
             }

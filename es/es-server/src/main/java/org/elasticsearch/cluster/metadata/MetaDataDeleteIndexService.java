@@ -50,7 +50,7 @@ import static java.util.stream.Collectors.toSet;
  */
 public class MetaDataDeleteIndexService {
 
-    private static final Logger logger = LogManager.getLogger(MetaDataDeleteIndexService.class);
+    private static final Logger LOGGER = LogManager.getLogger(MetaDataDeleteIndexService.class);
 
     private final Settings settings;
     private final ClusterService clusterService;
@@ -71,19 +71,21 @@ public class MetaDataDeleteIndexService {
             throw new IllegalArgumentException("Index name is required");
         }
 
-        clusterService.submitStateUpdateTask("delete-index " + Arrays.toString(request.indices()),
+        clusterService.submitStateUpdateTask(
+            "delete-index " + Arrays.toString(request.indices()),
             new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(Priority.URGENT, request, listener) {
 
-            @Override
-            protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
-                return new ClusterStateUpdateResponse(acknowledged);
-            }
+                @Override
+                protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+                    return new ClusterStateUpdateResponse(acknowledged);
+                }
 
-            @Override
-            public ClusterState execute(final ClusterState currentState) {
-                return deleteIndices(currentState, Sets.newHashSet(request.indices()));
+                @Override
+                public ClusterState execute(final ClusterState currentState) {
+                    return deleteIndices(currentState, Sets.newHashSet(request.indices()));
+                }
             }
-        });
+        );
     }
 
     /**
@@ -102,7 +104,7 @@ public class MetaDataDeleteIndexService {
         final int previousGraveyardSize = graveyardBuilder.tombstones().size();
         for (final Index index : indices) {
             String indexName = index.getName();
-            logger.info("{} deleting index", index);
+            LOGGER.info("{} deleting index", index);
             routingTableBuilder.remove(indexName);
             clusterBlocksBuilder.removeIndexBlocks(indexName);
             metaDataBuilder.remove(indexName);
@@ -110,7 +112,7 @@ public class MetaDataDeleteIndexService {
         // add tombstones to the cluster state for each deleted index
         final IndexGraveyard currentGraveyard = graveyardBuilder.addTombstones(indices).build(settings);
         metaDataBuilder.indexGraveyard(currentGraveyard); // the new graveyard set on the metadata
-        logger.trace("{} tombstones purged from the cluster state. Previous tombstone size: {}. Current tombstone size: {}.",
+        LOGGER.trace("{} tombstones purged from the cluster state. Previous tombstone size: {}. Current tombstone size: {}.",
             graveyardBuilder.getNumPurged(), previousGraveyardSize, currentGraveyard.getTombstones().size());
 
         MetaData newMetaData = metaDataBuilder.build();

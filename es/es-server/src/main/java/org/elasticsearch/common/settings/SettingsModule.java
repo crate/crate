@@ -86,7 +86,7 @@ public class SettingsModule implements Module {
         }
         // by now we are fully configured, lets check node level settings for unregistered index settings
         clusterSettings.validate(settings, true);
-     }
+    }
 
     @Override
     public void configure(Binder binder) {

@@ -24,7 +24,7 @@ import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
 import org.elasticsearch.common.lucene.store.FilterIndexOutput;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
 
 import java.io.FileNotFoundException;
@@ -79,7 +79,7 @@ final class ByteSizeCachingDirectory extends FilterDirectory {
                 // numOpenOutputs BEFORE computing the size of the directory.
                 final long modCount;
                 final boolean pendingWrite;
-                synchronized(ByteSizeCachingDirectory.this) {
+                synchronized (ByteSizeCachingDirectory.this) {
                     modCount = ByteSizeCachingDirectory.this.modCount;
                     pendingWrite = ByteSizeCachingDirectory.this.numOpenOutputs != 0;
                 }
@@ -105,7 +105,7 @@ final class ByteSizeCachingDirectory extends FilterDirectory {
                     // writes, so the size might be stale: recompute.
                     return true;
                 }
-                synchronized(ByteSizeCachingDirectory.this) {
+                synchronized (ByteSizeCachingDirectory.this) {
                     // If there are pending writes or if new files have been
                     // written/deleted since last time: recompute
                     return numOpenOutputs != 0 || cached.modCount != modCount;

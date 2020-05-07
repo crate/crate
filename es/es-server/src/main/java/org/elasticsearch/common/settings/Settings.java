@@ -24,7 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.Booleans;
+import io.crate.common.Booleans;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,7 +35,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.MemorySizeValue;
 import org.elasticsearch.common.unit.RatioValue;
 import org.elasticsearch.common.unit.SizeValue;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -45,7 +45,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParserUtils;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,7 +73,7 @@ import java.util.stream.Collectors;
 
 import static org.elasticsearch.common.unit.ByteSizeValue.parseBytesSizeValue;
 import static org.elasticsearch.common.unit.SizeValue.parseSizeValue;
-import static org.elasticsearch.common.unit.TimeValue.parseTimeValue;
+import static io.crate.common.unit.TimeValue.parseTimeValue;
 
 /**
  * An immutable settings implementation.
@@ -494,6 +494,7 @@ public final class Settings implements ToXContentFragment {
 
         return Collections.unmodifiableMap(groups);
     }
+
     /**
      * Returns group settings for the given setting prefix.
      */
@@ -1064,7 +1065,7 @@ public final class Settings implements ToXContentFragment {
          * Loads settings from the actual string content that represents them using {@link #fromXContent(XContentParser)}
          */
         public Builder loadFromSource(String source, XContentType xContentType) {
-            try (XContentParser parser =  XContentFactory.xContent(xContentType)
+            try (XContentParser parser = XContentFactory.xContent(xContentType)
                     .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, source)) {
                 this.put(fromXContent(parser, true, true));
             } catch (Exception e) {
@@ -1095,7 +1096,7 @@ public final class Settings implements ToXContentFragment {
                 throw new IllegalArgumentException("unable to detect content type from resource name [" + resourceName + "]");
             }
             // fromXContent doesn't use named xcontent or deprecation.
-            try (XContentParser parser =  XContentFactory.xContent(xContentType)
+            try (XContentParser parser = XContentFactory.xContent(xContentType)
                     .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, is)) {
                 if (parser.currentToken() == null) {
                     if (parser.nextToken() == null) {
@@ -1197,7 +1198,7 @@ public final class Settings implements ToXContentFragment {
         public Builder normalizePrefix(String prefix) {
             Map<String, Object> replacements = new HashMap<>();
             Iterator<Map.Entry<String, Object>> iterator = map.entrySet().iterator();
-            while(iterator.hasNext()) {
+            while (iterator.hasNext()) {
                 Map.Entry<String, Object> entry = iterator.next();
                 String key = entry.getKey();
                 if (key.startsWith(prefix) == false && key.endsWith("*") == false) {
@@ -1227,6 +1228,7 @@ public final class Settings implements ToXContentFragment {
         // we cache that size since we have to iterate the entire set
         // this is safe to do since this map is only used with unmodifiable maps
         private int size = -1;
+
         @Override
         public Set<Entry<String, Object>> entrySet() {
             Set<Entry<String, Object>> delegateSet = delegate.entrySet();

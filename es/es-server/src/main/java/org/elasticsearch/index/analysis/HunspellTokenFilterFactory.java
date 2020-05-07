@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.index.analysis;
 
 import org.apache.lucene.analysis.TokenStream;

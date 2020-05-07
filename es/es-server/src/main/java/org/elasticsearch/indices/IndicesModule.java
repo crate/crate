@@ -121,7 +121,7 @@ public class IndicesModule extends AbstractModule {
         return Collections.unmodifiableMap(mappers);
     }
 
-    private static final Map<String, MetadataFieldMapper.TypeParser> builtInMetadataMappers = initBuiltInMetadataMappers();
+    private static final Map<String, MetadataFieldMapper.TypeParser> BUILT_IN_METADATA_MAPPERS = initBuiltInMetadataMappers();
 
     private static Map<String, MetadataFieldMapper.TypeParser> initBuiltInMetadataMappers() {
         Map<String, MetadataFieldMapper.TypeParser> builtInMetadataMappers;
@@ -145,8 +145,8 @@ public class IndicesModule extends AbstractModule {
         Map<String, MetadataFieldMapper.TypeParser> metadataMappers = new LinkedHashMap<>();
         int i = 0;
         Map.Entry<String, MetadataFieldMapper.TypeParser> fieldNamesEntry = null;
-        for (Map.Entry<String, MetadataFieldMapper.TypeParser> entry : builtInMetadataMappers.entrySet()) {
-            if (i < builtInMetadataMappers.size() - 1) {
+        for (Map.Entry<String, MetadataFieldMapper.TypeParser> entry : BUILT_IN_METADATA_MAPPERS.entrySet()) {
+            if (i < BUILT_IN_METADATA_MAPPERS.size() - 1) {
                 metadataMappers.put(entry.getKey(), entry.getValue());
             } else {
                 assert entry.getKey().equals(FieldNamesFieldMapper.NAME) : "_field_names must be the last registered mapper, order counts";

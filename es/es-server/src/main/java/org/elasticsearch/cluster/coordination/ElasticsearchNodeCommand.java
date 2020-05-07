@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.cluster.coordination;
 
 import joptsimple.OptionParser;
@@ -30,7 +31,7 @@ import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
@@ -42,7 +43,8 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
-    private static final Logger logger = LogManager.getLogger(ElasticsearchNodeCommand.class);
+
+    private static final Logger LOGGER = LogManager.getLogger(ElasticsearchNodeCommand.class);
     protected final NamedXContentRegistry namedXContentRegistry;
     static final String DELIMITER = "------------------------------------------------------------------------\n";
 
@@ -74,7 +76,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
         if (nodeOrdinal == null) {
             nodeOrdinal = 0;
         }
-        try (NodeEnvironment.NodeLock lock = new NodeEnvironment.NodeLock(nodeOrdinal, logger, env, Files::exists)) {
+        try (NodeEnvironment.NodeLock lock = new NodeEnvironment.NodeLock(nodeOrdinal, LOGGER, env, Files::exists)) {
             final Path[] dataPaths =
                     Arrays.stream(lock.getNodePaths()).filter(Objects::nonNull).map(p -> p.path).toArray(Path[]::new);
             if (dataPaths.length == 0) {
@@ -89,7 +91,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
 
     protected Tuple<Manifest, MetaData> loadMetaData(Terminal terminal, Path[] dataPaths) throws IOException {
         terminal.println(Terminal.Verbosity.VERBOSE, "Loading manifest file");
-        final Manifest manifest = Manifest.FORMAT.loadLatestState(logger, namedXContentRegistry, dataPaths);
+        final Manifest manifest = Manifest.FORMAT.loadLatestState(LOGGER, namedXContentRegistry, dataPaths);
 
         if (manifest == null) {
             throw new ElasticsearchException(NO_MANIFEST_FILE_FOUND_MSG);
@@ -98,7 +100,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
             throw new ElasticsearchException(GLOBAL_GENERATION_MISSING_MSG);
         }
         terminal.println(Terminal.Verbosity.VERBOSE, "Loading global metadata file");
-        final MetaData metaData = MetaData.FORMAT.loadGeneration(logger, namedXContentRegistry, manifest.getGlobalGeneration(),
+        final MetaData metaData = MetaData.FORMAT.loadGeneration(LOGGER, namedXContentRegistry, manifest.getGlobalGeneration(),
                 dataPaths);
         if (metaData == null) {
             throw new ElasticsearchException(NO_GLOBAL_METADATA_MSG + " [generation = " + manifest.getGlobalGeneration() + "]");

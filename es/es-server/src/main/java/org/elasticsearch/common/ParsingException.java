@@ -66,7 +66,7 @@ public class ParsingException extends ElasticsearchException {
         this.columnNumber = col;
     }
 
-    public ParsingException(StreamInput in) throws IOException{
+    public ParsingException(StreamInput in) throws IOException {
         super(in);
         lineNumber = in.readInt();
         columnNumber = in.readInt();

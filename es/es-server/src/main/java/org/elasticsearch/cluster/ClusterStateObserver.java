@@ -24,7 +24,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.ClusterService;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 
 import java.util.Objects;
@@ -68,12 +68,16 @@ public class ClusterStateObserver {
     public ClusterStateObserver(ClusterService clusterService, @Nullable TimeValue timeout, Logger logger, ThreadContext contextHolder) {
         this(clusterService.state(), clusterService, timeout, logger, contextHolder);
     }
+
     /**
      * @param timeout        a global timeout for this observer. After it has expired the observer
      *                       will fail any existing or new #waitForNextChange calls. Set to null
      *                       to wait indefinitely
      */
-    public ClusterStateObserver(ClusterState initialState, ClusterService clusterService, @Nullable TimeValue timeout, Logger logger,
+    public ClusterStateObserver(ClusterState initialState,
+                                ClusterService clusterService,
+                                @Nullable TimeValue timeout,
+                                Logger logger,
                                 ThreadContext contextHolder) {
         this(initialState, clusterService.getClusterApplierService(), timeout, logger, contextHolder);
     }
@@ -288,9 +292,9 @@ public class ClusterStateObserver {
     }
 
     private static final class ContextPreservingListener implements Listener {
+
         private final Listener delegate;
         private final Supplier<ThreadContext.StoredContext> contextSupplier;
-
 
         private ContextPreservingListener(Listener delegate, Supplier<ThreadContext.StoredContext> contextSupplier) {
             this.contextSupplier = contextSupplier;
@@ -299,21 +303,21 @@ public class ClusterStateObserver {
 
         @Override
         public void onNewClusterState(ClusterState state) {
-            try (ThreadContext.StoredContext context  = contextSupplier.get()) {
+            try (ThreadContext.StoredContext context = contextSupplier.get()) {
                 delegate.onNewClusterState(state);
             }
         }
 
         @Override
         public void onClusterServiceClose() {
-            try (ThreadContext.StoredContext context  = contextSupplier.get()) {
+            try (ThreadContext.StoredContext context = contextSupplier.get()) {
                 delegate.onClusterServiceClose();
             }
         }
 
         @Override
         public void onTimeout(TimeValue timeout) {
-            try (ThreadContext.StoredContext context  = contextSupplier.get()) {
+            try (ThreadContext.StoredContext context = contextSupplier.get()) {
                 delegate.onTimeout(timeout);
             }
         }

@@ -46,8 +46,8 @@ public class JvmInfo implements Writeable {
 
         long heapInit = memoryMXBean.getHeapMemoryUsage().getInit() < 0 ? 0 : memoryMXBean.getHeapMemoryUsage().getInit();
         long heapMax = memoryMXBean.getHeapMemoryUsage().getMax() < 0 ? 0 : memoryMXBean.getHeapMemoryUsage().getMax();
-        String[] inputArguments = runtimeMXBean.getInputArguments().toArray(new String[runtimeMXBean.getInputArguments().size()]);
-        Mem mem = new Mem(heapInit, heapMax);
+        final String[] inputArguments = runtimeMXBean.getInputArguments().toArray(new String[runtimeMXBean.getInputArguments().size()]);
+        final Mem mem = new Mem(heapInit, heapMax);
 
         String bootClassPath;
         try {
@@ -60,8 +60,8 @@ public class JvmInfo implements Writeable {
                 bootClassPath = "<unknown>";
             }
         }
-        String classPath = runtimeMXBean.getClassPath();
-        Map<String, String> systemProperties = Collections.unmodifiableMap(runtimeMXBean.getSystemProperties());
+        final String classPath = runtimeMXBean.getClassPath();
+        final Map<String, String> systemProperties = Collections.unmodifiableMap(runtimeMXBean.getSystemProperties());
 
         List<GarbageCollectorMXBean> gcMxBeans = ManagementFactory.getGarbageCollectorMXBeans();
         String[] gcCollectors = new String[gcMxBeans.size()];
@@ -138,10 +138,28 @@ public class JvmInfo implements Writeable {
 
         }
 
-        INSTANCE = new JvmInfo(JvmPid.getPid(), System.getProperty("java.version"), runtimeMXBean.getVmName(), runtimeMXBean.getVmVersion(),
-                runtimeMXBean.getVmVendor(), runtimeMXBean.getStartTime(), configuredInitialHeapSize, configuredMaxHeapSize,
-                mem, inputArguments, bootClassPath, classPath, systemProperties, gcCollectors, memoryPools, onError, onOutOfMemoryError,
-                useCompressedOops, useG1GC, useSerialGC);
+        INSTANCE = new JvmInfo(
+            JvmPid.getPid(),
+            System.getProperty("java.version"),
+            runtimeMXBean.getVmName(),
+            runtimeMXBean.getVmVersion(),
+            runtimeMXBean.getVmVendor(),
+            runtimeMXBean.getStartTime(),
+            configuredInitialHeapSize,
+            configuredMaxHeapSize,
+            mem,
+            inputArguments,
+            bootClassPath,
+            classPath,
+            systemProperties,
+            gcCollectors,
+            memoryPools,
+            onError,
+            onOutOfMemoryError,
+            useCompressedOops,
+            useG1GC,
+            useSerialGC
+        );
     }
 
     public static JvmInfo jvmInfo() {

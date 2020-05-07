@@ -34,12 +34,12 @@ import java.util.concurrent.ConcurrentMap;
 /** Utility class to resolve the Lucene doc ID, version, seqNo and primaryTerms for a given uid. */
 public final class VersionsAndSeqNoResolver {
 
-    static final ConcurrentMap<IndexReader.CacheKey, CloseableThreadLocal<PerThreadIDVersionAndSeqNoLookup[]>> lookupStates =
+    static final ConcurrentMap<IndexReader.CacheKey, CloseableThreadLocal<PerThreadIDVersionAndSeqNoLookup[]>> LOOKUP_STATES =
         ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
     // Evict this reader from lookupStates once it's closed:
-    private static final IndexReader.ClosedListener removeLookupState = key -> {
-        CloseableThreadLocal<PerThreadIDVersionAndSeqNoLookup[]> ctl = lookupStates.remove(key);
+    private static final IndexReader.ClosedListener REMOVE_LOOKUP_STATE = key -> {
+        CloseableThreadLocal<PerThreadIDVersionAndSeqNoLookup[]> ctl = LOOKUP_STATES.remove(key);
         if (ctl != null) {
             ctl.close();
         }
@@ -52,14 +52,14 @@ public final class VersionsAndSeqNoResolver {
         // proved to be cheaper than having to perform a CHM and a TL get for every segment.
         // See https://github.com/elastic/elasticsearch/pull/19856.
         IndexReader.CacheHelper cacheHelper = reader.getReaderCacheHelper();
-        CloseableThreadLocal<PerThreadIDVersionAndSeqNoLookup[]> ctl = lookupStates.get(cacheHelper.getKey());
+        CloseableThreadLocal<PerThreadIDVersionAndSeqNoLookup[]> ctl = LOOKUP_STATES.get(cacheHelper.getKey());
         if (ctl == null) {
             // First time we are seeing this reader's core; make a new CTL:
             ctl = new CloseableThreadLocal<>();
-            CloseableThreadLocal<PerThreadIDVersionAndSeqNoLookup[]> other = lookupStates.putIfAbsent(cacheHelper.getKey(), ctl);
+            CloseableThreadLocal<PerThreadIDVersionAndSeqNoLookup[]> other = LOOKUP_STATES.putIfAbsent(cacheHelper.getKey(), ctl);
             if (other == null) {
                 // Our CTL won, we must remove it when the reader is closed:
-                cacheHelper.addClosedListener(removeLookupState);
+                cacheHelper.addClosedListener(REMOVE_LOOKUP_STATE);
             } else {
                 // Another thread beat us to it: just use their CTL:
                 ctl = other;

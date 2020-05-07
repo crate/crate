@@ -94,7 +94,7 @@ public class MultiLineStringBuilder extends ShapeBuilder<JtsGeometry, MultiLineS
         builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
         builder.field(ShapeParser.FIELD_COORDINATES.getPreferredName());
         builder.startArray();
-        for(LineStringBuilder line : lines) {
+        for (LineStringBuilder line : lines) {
             line.coordinatesToXcontent(builder, false);
         }
         builder.endArray();
@@ -105,12 +105,12 @@ public class MultiLineStringBuilder extends ShapeBuilder<JtsGeometry, MultiLineS
     @Override
     public JtsGeometry build() {
         final Geometry geometry;
-        if(wrapdateline) {
+        if (wrapdateline) {
             ArrayList<LineString> parts = new ArrayList<>();
             for (LineStringBuilder line : lines) {
                 LineStringBuilder.decompose(FACTORY, line.coordinates(false), parts);
             }
-            if(parts.size() == 1) {
+            if (parts.size() == 1) {
                 geometry = parts.get(0);
             } else {
                 LineString[] lineStrings = parts.toArray(new LineString[parts.size()]);

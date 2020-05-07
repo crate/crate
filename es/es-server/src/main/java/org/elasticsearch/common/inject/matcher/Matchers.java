@@ -16,7 +16,7 @@
 
 package org.elasticsearch.common.inject.matcher;
 
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
@@ -346,7 +346,7 @@ public class Matchers {
         return new InSubpackage(targetPackageName);
     }
 
-    private static class InSubpackage extends AbstractMatcher<Class>  {
+    private static class InSubpackage extends AbstractMatcher<Class> {
         private final String targetPackageName;
 
         InSubpackage(String targetPackageName) {

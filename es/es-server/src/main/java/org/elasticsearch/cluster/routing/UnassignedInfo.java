@@ -32,7 +32,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.time.DateFormatter;
 import org.elasticsearch.common.time.DateFormatters;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -410,7 +410,7 @@ public final class UnassignedInfo implements ToXContentFragment, Writeable {
         StringBuilder sb = new StringBuilder();
         sb.append("[reason=").append(reason).append("]");
         sb.append(", at[").append(DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(unassignedTimeMillis))).append("]");
-        if (failedAllocations >  0) {
+        if (failedAllocations > 0) {
             sb.append(", failed_attempts[").append(failedAllocations).append("]");
         }
         sb.append(", delayed=").append(delayed);
@@ -433,7 +433,7 @@ public final class UnassignedInfo implements ToXContentFragment, Writeable {
         builder.startObject("unassigned_info");
         builder.field("reason", reason);
         builder.field("at", DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(unassignedTimeMillis)));
-        if (failedAllocations >  0) {
+        if (failedAllocations > 0) {
             builder.field("failed_attempts", failedAllocations);
         }
         builder.field("delayed", delayed);

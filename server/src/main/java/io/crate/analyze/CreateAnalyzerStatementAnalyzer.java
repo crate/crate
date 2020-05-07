@@ -1,0 +1,190 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
+package io.crate.analyze;
+
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.Functions;
+import io.crate.sql.tree.AnalyzerElement;
+import io.crate.sql.tree.CharFilters;
+import io.crate.sql.tree.CreateAnalyzer;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.GenericProperty;
+import io.crate.sql.tree.NamedProperties;
+import io.crate.sql.tree.TokenFilters;
+import io.crate.sql.tree.Tokenizer;
+import io.crate.common.collections.Tuple;
+
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
+class CreateAnalyzerStatementAnalyzer {
+
+    private final FulltextAnalyzerResolver ftResolver;
+    private final Functions functions;
+
+    CreateAnalyzerStatementAnalyzer(FulltextAnalyzerResolver ftResolver,
+                                    Functions functions) {
+        this.ftResolver = ftResolver;
+        this.functions = functions;
+    }
+
+    private static class Context {
+
+        @Nullable
+        private Tuple<String, GenericProperties<Symbol>> tokenizer;
+        private final GenericProperties<Symbol> genericAnalyzerProperties;
+        private final Map<String, GenericProperties<Symbol>> charFilters;
+        private final Map<String, GenericProperties<Symbol>> tokenFilters;
+
+        private final ExpressionAnalyzer exprAnalyzerWithFieldsAsString;
+        private final ExpressionAnalysisContext exprContext;
+
+        Context(Functions functions,
+                CoordinatorTxnCtx transactionContext,
+                ParamTypeHints paramTypeHints) {
+            this.genericAnalyzerProperties = new GenericProperties<>();
+            this.charFilters = new HashMap<>();
+            this.tokenFilters = new HashMap<>();
+
+            this.exprContext = new ExpressionAnalysisContext();
+            this.exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+                functions,
+                transactionContext,
+                paramTypeHints,
+                FieldProvider.FIELDS_AS_LITERAL,
+                null);
+        }
+    }
+
+    public AnalyzedStatement analyze(CreateAnalyzer<Expression> createAnalyzer,
+                                     ParamTypeHints paramTypeHints,
+                                     CoordinatorTxnCtx transactionContext) {
+        String analyzerIdent = createAnalyzer.ident();
+        if (analyzerIdent.equalsIgnoreCase("default")) {
+            throw new IllegalArgumentException("Overriding the default analyzer is forbidden");
+        }
+        if (ftResolver.hasBuiltInAnalyzer(analyzerIdent)) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH, "Cannot override builtin analyzer '%s'", analyzerIdent));
+        }
+
+        String extendedAnalyzerName;
+        if (createAnalyzer.isExtending()) {
+            extendedAnalyzerName = createAnalyzer.extendedAnalyzer();
+            if (!ftResolver.hasAnalyzer(extendedAnalyzerName)) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH, "Extended Analyzer '%s' does not exist", extendedAnalyzerName));
+            }
+        } else {
+            extendedAnalyzerName = null;
+        }
+
+        var context = new Context(
+            functions,
+            transactionContext,
+            paramTypeHints
+        );
+
+        for (AnalyzerElement<Expression> element : createAnalyzer.elements()) {
+            AnalyzerElementsAnalysisVisitor.analyze(element, context);
+        }
+
+        return new AnalyzedCreateAnalyzer(
+            analyzerIdent,
+            extendedAnalyzerName,
+            context.tokenizer,
+            context.genericAnalyzerProperties,
+            context.tokenFilters,
+            context.charFilters);
+    }
+
+    private static class AnalyzerElementsAnalysisVisitor
+        extends DefaultTraversalVisitor<Void, CreateAnalyzerStatementAnalyzer.Context> {
+
+        static final AnalyzerElementsAnalysisVisitor INSTANCE = new AnalyzerElementsAnalysisVisitor();
+
+        static Void analyze(AnalyzerElement<Expression> node, Context context) {
+            node.accept(INSTANCE, context);
+            return null;
+        }
+
+        @Override
+        public Void visitTokenizer(Tokenizer<?> node, Context context) {
+            var tokenizer = (Tokenizer<Expression>) node;
+
+            GenericProperties<Symbol> properties = tokenizer.properties()
+                .map(p -> context.exprAnalyzerWithFieldsAsString.convert(p, context.exprContext));
+
+            context.tokenizer = new Tuple<>(tokenizer.ident(), properties);
+            return null;
+        }
+
+        @Override
+        public Void visitGenericProperty(GenericProperty<?> node, Context context) {
+            var property = (GenericProperty<Expression>) node;
+
+            context.genericAnalyzerProperties.add(
+                new GenericProperty<>(
+                    property.key(),
+                    context.exprAnalyzerWithFieldsAsString.convert(
+                        property.value(),
+                        context.exprContext))
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitTokenFilters(TokenFilters<?> node, Context context) {
+            var tokenFilters = (TokenFilters<Expression>) node;
+
+            for (NamedProperties<Expression> tokenFilter : tokenFilters.tokenFilters()) {
+                GenericProperties<Symbol> properties = tokenFilter.properties()
+                    .map(p -> context.exprAnalyzerWithFieldsAsString.convert(p, context.exprContext));
+
+                context.tokenFilters.put(tokenFilter.ident(), properties);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitCharFilters(CharFilters<?> node, Context context) {
+            var charFilters = (CharFilters<Expression>) node;
+
+            for (NamedProperties<Expression> charFilter : charFilters.charFilters()) {
+                GenericProperties<Symbol> properties = charFilter.properties()
+                    .map(p -> context.exprAnalyzerWithFieldsAsString.convert(p, context.exprContext));
+
+                context.charFilters.put(charFilter.ident(), properties);
+            }
+            return null;
+        }
+    }
+}

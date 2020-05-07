@@ -22,7 +22,7 @@ package org.elasticsearch.common.util.concurrent;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -72,7 +72,7 @@ public class FutureUtils {
      * @param <T> the type returned
      * @return the value of the future
      */
-    public static  <T> T get(Future<T> future, long timeout, TimeUnit unit) {
+    public static <T> T get(Future<T> future, long timeout, TimeUnit unit) {
         try {
             return future.get(timeout, unit);
         } catch (TimeoutException e) {

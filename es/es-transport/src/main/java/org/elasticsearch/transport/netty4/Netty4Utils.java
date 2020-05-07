@@ -29,7 +29,7 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Log4J2LoggerFactory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
-import org.elasticsearch.common.Booleans;
+import io.crate.common.Booleans;
 import org.elasticsearch.common.bytes.BytesReference;
 
 import java.io.IOException;

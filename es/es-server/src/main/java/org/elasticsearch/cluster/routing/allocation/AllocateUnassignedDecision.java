@@ -26,7 +26,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision.Type;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
@@ -48,6 +48,7 @@ public class AllocateUnassignedDecision extends AbstractAllocationDecision {
      * this helps prevent unnecessary object allocations for the non-explain API case
      */
     private static final Map<AllocationStatus, AllocateUnassignedDecision> CACHED_DECISIONS;
+
     static {
         Map<AllocationStatus, AllocateUnassignedDecision> cachedDecisions = new EnumMap<>(AllocationStatus.class);
         cachedDecisions.put(AllocationStatus.FETCHING_SHARD_DATA,

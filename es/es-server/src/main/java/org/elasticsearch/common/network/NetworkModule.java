@@ -26,7 +26,7 @@ import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimary
 import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
-import org.elasticsearch.common.CheckedFunction;
+import io.crate.common.CheckedFunction;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -73,8 +73,8 @@ public final class NetworkModule {
 
     private final Settings settings;
 
-    private static final List<NamedWriteableRegistry.Entry> namedWriteables = new ArrayList<>();
-    private static final List<NamedXContentRegistry.Entry> namedXContents = new ArrayList<>();
+    private static final List<NamedWriteableRegistry.Entry> NAMED_WRITEABLES = new ArrayList<>();
+    private static final List<NamedXContentRegistry.Entry> NAMED_XCONTENTS = new ArrayList<>();
 
     static {
         registerAllocationCommand(CancelAllocationCommand::new, CancelAllocationCommand::fromXContent,
@@ -162,16 +162,16 @@ public final class NetworkModule {
      */
     private static <T extends AllocationCommand> void registerAllocationCommand(Writeable.Reader<T> reader,
             CheckedFunction<XContentParser, T, IOException> parser, ParseField commandName) {
-        namedXContents.add(new NamedXContentRegistry.Entry(AllocationCommand.class, commandName, parser));
-        namedWriteables.add(new NamedWriteableRegistry.Entry(AllocationCommand.class, commandName.getPreferredName(), reader));
+        NAMED_XCONTENTS.add(new NamedXContentRegistry.Entry(AllocationCommand.class, commandName, parser));
+        NAMED_WRITEABLES.add(new NamedWriteableRegistry.Entry(AllocationCommand.class, commandName.getPreferredName(), reader));
     }
 
     public static List<NamedWriteableRegistry.Entry> getNamedWriteables() {
-        return Collections.unmodifiableList(namedWriteables);
+        return Collections.unmodifiableList(NAMED_WRITEABLES);
     }
 
     public static List<NamedXContentRegistry.Entry> getNamedXContents() {
-        return Collections.unmodifiableList(namedXContents);
+        return Collections.unmodifiableList(NAMED_XCONTENTS);
     }
 
     public Supplier<HttpServerTransport> getHttpServerTransportSupplier() {

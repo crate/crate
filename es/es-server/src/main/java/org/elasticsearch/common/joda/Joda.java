@@ -229,26 +229,26 @@ public class Joda {
         } else if ("strictYearMonthDay".equals(input) || "strict_year_month_day".equals(input)) {
             formatter = StrictISODateTimeFormat.yearMonthDay();
         } else if (Strings.hasLength(input) && input.contains("||")) {
-                String[] formats = Strings.delimitedListToStringArray(input, "||");
-                DateTimeParser[] parsers = new DateTimeParser[formats.length];
+            String[] formats = Strings.delimitedListToStringArray(input, "||");
+            DateTimeParser[] parsers = new DateTimeParser[formats.length];
 
-                if (formats.length == 1) {
-                    formatter = forPattern(input, locale).parser();
-                } else {
-                    DateTimeFormatter dateTimeFormatter = null;
-                    for (int i = 0; i < formats.length; i++) {
-                        FormatDateTimeFormatter currentFormatter = forPattern(formats[i], locale);
-                        DateTimeFormatter currentParser = currentFormatter.parser();
-                        if (dateTimeFormatter == null) {
-                            dateTimeFormatter = currentFormatter.printer();
-                        }
-                        parsers[i] = currentParser.getParser();
+            if (formats.length == 1) {
+                formatter = forPattern(input, locale).parser();
+            } else {
+                DateTimeFormatter dateTimeFormatter = null;
+                for (int i = 0; i < formats.length; i++) {
+                    FormatDateTimeFormatter currentFormatter = forPattern(formats[i], locale);
+                    DateTimeFormatter currentParser = currentFormatter.parser();
+                    if (dateTimeFormatter == null) {
+                        dateTimeFormatter = currentFormatter.printer();
                     }
-
-                    assert dateTimeFormatter != null;
-                    DateTimeFormatterBuilder builder = new DateTimeFormatterBuilder().append(dateTimeFormatter.withZone(DateTimeZone.UTC).getPrinter(), parsers);
-                    formatter = builder.toFormatter();
+                    parsers[i] = currentParser.getParser();
                 }
+
+                assert dateTimeFormatter != null;
+                DateTimeFormatterBuilder builder = new DateTimeFormatterBuilder().append(dateTimeFormatter.withZone(DateTimeZone.UTC).getPrinter(), parsers);
+                formatter = builder.toFormatter();
+            }
         } else {
             try {
                 formatter = DateTimeFormat.forPattern(input);
@@ -293,17 +293,17 @@ public class Joda {
     }
 
 
-    public static final DurationFieldType Quarters = new DurationFieldType("quarters") {
+    public static final DurationFieldType QUARTERS = new DurationFieldType("quarters") {
         @Override
         public DurationField getField(Chronology chronology) {
-            return new ScaledDurationField(chronology.months(), Quarters, 3);
+            return new ScaledDurationField(chronology.months(), QUARTERS, 3);
         }
     };
 
-    public static final DateTimeFieldType QuarterOfYear = new DateTimeFieldType("quarterOfYear") {
+    public static final DateTimeFieldType QUARTER_OF_YEAR = new DateTimeFieldType("quarterOfYear") {
         @Override
         public DurationFieldType getDurationType() {
-            return Quarters;
+            return QUARTERS;
         }
 
         @Override
@@ -313,7 +313,7 @@ public class Joda {
 
         @Override
         public DateTimeField getField(Chronology chronology) {
-            return new OffsetDateTimeField(new DividedDateTimeField(new OffsetDateTimeField(chronology.monthOfYear(), -1), QuarterOfYear, 3), 1);
+            return new OffsetDateTimeField(new DividedDateTimeField(new OffsetDateTimeField(chronology.monthOfYear(), -1), QUARTER_OF_YEAR, 3), 1);
         }
     };
 
@@ -385,7 +385,7 @@ public class Joda {
             if (hasMilliSecondPrecision) {
                 buf.append(instant - displayOffset);
             } else {
-                buf.append((instant  - displayOffset) / 1000);
+                buf.append((instant - displayOffset) / 1000);
             }
         }
 

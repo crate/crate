@@ -61,7 +61,7 @@ import org.apache.lucene.util.Version;
 import org.elasticsearch.ExceptionsHelper;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.common.SuppressForbidden;
 import org.elasticsearch.common.util.iterable.Iterables;
 import org.elasticsearch.index.analysis.AnalyzerScope;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
@@ -212,8 +212,7 @@ public class Lucene {
                 .setSoftDeletesField(Lucene.SOFT_DELETES_FIELD)
                 .setMergePolicy(NoMergePolicy.INSTANCE) // no merges
                 .setCommitOnClose(false) // no commits
-                .setOpenMode(IndexWriterConfig.OpenMode.CREATE))) // force creation - don't append...
-        {
+                .setOpenMode(IndexWriterConfig.OpenMode.CREATE))) { // force creation - don't append...
             // do nothing and close this will kick of IndexFileDeleter which will remove all pending files
         }
     }
@@ -451,26 +450,32 @@ public class Lucene {
     }
 
     private static final class DirectoryReaderWithAllLiveDocs extends FilterDirectoryReader {
+
         static final class LeafReaderWithLiveDocs extends FilterLeafReader {
             final Bits liveDocs;
             final int numDocs;
-            LeafReaderWithLiveDocs(LeafReader in, Bits liveDocs, int  numDocs) {
+
+            LeafReaderWithLiveDocs(LeafReader in, Bits liveDocs, int numDocs) {
                 super(in);
                 this.liveDocs = liveDocs;
                 this.numDocs = numDocs;
             }
+
             @Override
             public Bits getLiveDocs() {
                 return liveDocs;
             }
+
             @Override
             public int numDocs() {
                 return numDocs;
             }
+
             @Override
             public CacheHelper getCoreCacheHelper() {
                 return in.getCoreCacheHelper();
             }
+
             @Override
             public CacheHelper getReaderCacheHelper() {
                 return null; // Modifying liveDocs
