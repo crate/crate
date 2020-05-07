@@ -43,9 +43,9 @@ dependencies {
     testCompile 'com.pholser:junit-quickcheck-core:0.9'
     testCompile 'com.pholser:junit-quickcheck-generators:0.9'
     // These plugins are dynamically loaded and need to be present here.
-    // They are required by 1) tests in :sql 2) modules depending on :sql.
-    // They also need to be added in :app because :sql is declared non-transitive
-    // in :app (=dependencies of :sql won't be included).
+    // They are required by 1) tests in :server 2) modules depending on :server.
+    // They also need to be added in :app because :server is declared non-transitive
+    // in :app (=dependencies of :server won't be included).
     compile project(":plugins:es-repository-url")
     compile project(":plugins:es-repository-s3")
     compile project(":plugins:es-repository-azure")

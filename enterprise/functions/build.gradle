@@ -10,9 +10,9 @@ configurations {
 }
 
 dependencies {
-    implementation project(':sql')
+    implementation project(':server')
 
-    testImplementation project(path: ':sql', configuration: 'testOutput')
+    testImplementation project(path: ':server', configuration: 'testOutput')
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')
     testImplementation project(':integration-testing')
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"

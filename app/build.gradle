@@ -22,7 +22,7 @@ configurations {
 
 evaluationDependsOn(':es')
 evaluationDependsOn(':common')
-evaluationDependsOn(':sql')
+evaluationDependsOn(':server')
 evaluationDependsOn(':libs:sql-parser')
 evaluationDependsOn(':libs:dex')
 evaluationDependsOn(':libs:shared')
@@ -32,7 +32,7 @@ evaluationDependsOn(':udc')
 evaluationDependsOn(':plugins:dns-discovery')
 
 dependencies {
-    compile project(':sql')
+    compile project(':server')
     compile project(':blob')
     compile project(':http')
     compile project(':udc')
@@ -58,14 +58,14 @@ dependencies {
 
     testCompile project(':integration-testing')
     testCompile project(':http')
-    testCompile project(path: ':sql', configuration: 'testOutput')
+    testCompile project(path: ':server', configuration: 'testOutput')
     testCompile("org.postgresql:postgresql:${versions.jdbc}")
     testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')
 
     compileNotTransitive project(':common')
     compileNotTransitive project(':es:es-server')
-    compileNotTransitive project(':sql')
+    compileNotTransitive project(':server')
     compileNotTransitive project(':libs:sql-parser')
     compileNotTransitive project(':libs:pgwire')
     compileNotTransitive project(':libs:dex')
