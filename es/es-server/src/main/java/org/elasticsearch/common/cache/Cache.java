@@ -19,7 +19,7 @@
 
 package org.elasticsearch.common.cache;
 
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 
 import java.util.Arrays;

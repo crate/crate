@@ -1,0 +1,13 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+archivesBaseName = 'crate-dns-discovery'
+group = 'io.crate'
+
+dependencies {
+    implementation project(':libs:shared')
+    implementation project(':common')
+    implementation project(':es:es-server')
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "io.netty:netty-resolver-dns:${versions.netty4}"
+    testImplementation project(':integration-testing')
+}

@@ -1,6 +1,0 @@
-apply from: "$rootDir/gradle/javaModule.gradle"
-
-dependencies {
-    implementation project(':es:es-server')
-    implementation "com.amazonaws:aws-java-sdk-ec2:${versions.aws}"
-}

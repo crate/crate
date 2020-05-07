@@ -4,8 +4,8 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-common'
 
 dependencies {
-    implementation project(':shared')
-    implementation project(':pgwire')
+    implementation project(':libs:shared')
+    implementation project(':libs:pgwire')
     implementation project(':es:es-server')
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
     testImplementation project(':integration-testing')

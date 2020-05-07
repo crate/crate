@@ -24,7 +24,7 @@ package io.crate.execution.support;
 
 import io.crate.exceptions.SQLExceptions;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import java.util.Iterator;

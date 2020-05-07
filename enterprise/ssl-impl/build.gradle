@@ -5,6 +5,7 @@ group = 'io.crate'
 description = 'SSL Encryption Implementation for CrateDB'
 
 dependencies {
+    implementation project(':libs:shared')
     implementation project(':common')
     implementation project(':ssl')
     implementation project(':es:es-server')
@@ -15,7 +16,7 @@ dependencies {
     testImplementation project(':sql')
     testImplementation project(':integration-testing')
     testImplementation project(path: ':sql', configuration: 'testOutput')
-    testImplementation project(path: ':dex', configuration: 'testOutput')
+    testImplementation project(path: ':libs:dex', configuration: 'testOutput')
     testImplementation "org.postgresql:postgresql:${versions.jdbc}"
     testCompile project(':http')
 }

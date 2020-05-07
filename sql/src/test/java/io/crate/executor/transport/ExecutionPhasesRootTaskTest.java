@@ -26,7 +26,6 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
-import io.crate.common.collections.TreeMapBuilder;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NodeOperation;
@@ -40,6 +39,7 @@ import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
@@ -50,10 +50,10 @@ public class ExecutionPhasesRootTaskTest {
 
     @Test
     public void testGroupByServer() throws Exception {
-        Routing twoNodeRouting = new Routing(TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
-            .put("node1", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put("t1", IntArrayList.from(1, 2)).map())
-            .put("node2", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put("t1", IntArrayList.from(3, 4)).map())
-            .map());
+        var routingMap = new TreeMap<String, Map<String, IntIndexedContainer>>();
+        routingMap.put("node1", Map.of("t1", IntArrayList.from(1, 2)));
+        routingMap.put("node2", Map.of("t1", IntArrayList.from(3, 4)));
+        Routing twoNodeRouting = new Routing(routingMap);
 
         UUID jobId = UUID.randomUUID();
         RoutedCollectPhase c1 = new RoutedCollectPhase(

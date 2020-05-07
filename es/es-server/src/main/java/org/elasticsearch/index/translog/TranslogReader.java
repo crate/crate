@@ -21,7 +21,7 @@ package org.elasticsearch.index.translog;
 
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.common.io.Channels;
-import org.elasticsearch.core.internal.io.IOUtils;
+import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 
 import java.io.Closeable;

@@ -22,7 +22,7 @@
 package io.crate.metadata.table;
 
 import io.crate.sql.tree.ColumnPolicy;
-import org.elasticsearch.common.Booleans;
+import io.crate.common.Booleans;
 
 import static io.crate.sql.tree.ColumnPolicy.DYNAMIC;
 import static io.crate.sql.tree.ColumnPolicy.IGNORED;

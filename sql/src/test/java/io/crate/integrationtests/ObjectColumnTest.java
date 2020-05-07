@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -289,7 +288,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         execute("create table test (a object as (nested integer)) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into test (a) values (?)", new Object[]{
-            new MapBuilder<String, Object>().put("nested", 2).map()
+            Map.of("nested", 2)
         });
         refresh();
 

@@ -6,6 +6,7 @@ repositories {
 }
 
 dependencies {
+    implementation project(':libs:shared')
     implementation project(':es:es-server')
 
     api "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
@@ -23,5 +24,11 @@ dependencies {
     implementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
     runtimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
+}
+
+test {
+    filter {
+        setFailOnNoMatchingTests(false)
     }
 }

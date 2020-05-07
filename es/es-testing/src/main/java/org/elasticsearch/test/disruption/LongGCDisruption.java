@@ -20,8 +20,9 @@
 package org.elasticsearch.test.disruption;
 
 import javax.annotation.Nullable;
-import org.elasticsearch.common.SuppressForbidden;
-import org.elasticsearch.common.unit.TimeValue;
+
+import io.crate.common.SuppressForbidden;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.test.InternalTestCluster;
 

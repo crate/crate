@@ -51,7 +51,7 @@ import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
 import io.crate.types.DataTypes;
 
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.common.collections.MapBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

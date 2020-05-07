@@ -22,8 +22,8 @@ package org.elasticsearch.index.shard;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Assertions;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 
 import java.io.Closeable;

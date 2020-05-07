@@ -30,7 +30,6 @@ import io.crate.metadata.RelationName;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -1075,8 +1074,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into my_table (id, metadata) values (?, ?), (?, ?)",
             new Object[]{
-                1, new MapBuilder<String, Object>().put("date", "1970-01-01").map(),
-                2, new MapBuilder<String, Object>().put("date", "2014-05-28").map()
+                1, Map.of("date", "1970-01-01"),
+                2, Map.of("date", "2014-05-28")
             });
         refresh();
 

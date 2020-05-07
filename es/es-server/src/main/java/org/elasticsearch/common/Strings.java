@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common;
 
-import org.apache.lucene.util.BytesRefBuilder;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -28,6 +27,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -636,16 +636,6 @@ public class Strings {
 
     private Strings() {
     }
-
-    public static byte[] toUTF8Bytes(CharSequence charSequence) {
-        return toUTF8Bytes(charSequence, new BytesRefBuilder());
-    }
-
-    public static byte[] toUTF8Bytes(CharSequence charSequence, BytesRefBuilder spare) {
-        spare.copyChars(charSequence);
-        return Arrays.copyOf(spare.bytes(), spare.length());
-    }
-
 
 
     /**

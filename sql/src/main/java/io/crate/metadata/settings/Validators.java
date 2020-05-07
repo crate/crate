@@ -22,7 +22,7 @@
 
 package io.crate.metadata.settings;
 
-import org.elasticsearch.common.Booleans;
+import io.crate.common.Booleans;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.util.set.Sets;
 

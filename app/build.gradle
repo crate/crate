@@ -23,28 +23,28 @@ configurations {
 evaluationDependsOn(':es')
 evaluationDependsOn(':common')
 evaluationDependsOn(':sql')
-evaluationDependsOn(':sql-parser')
-evaluationDependsOn(':dex')
-evaluationDependsOn(':shared')
+evaluationDependsOn(':libs:sql-parser')
+evaluationDependsOn(':libs:dex')
+evaluationDependsOn(':libs:shared')
 evaluationDependsOn(':blob')
 evaluationDependsOn(':http')
 evaluationDependsOn(':udc')
-evaluationDependsOn(':dns-discovery')
+evaluationDependsOn(':plugins:dns-discovery')
 
 dependencies {
     compile project(':sql')
     compile project(':blob')
     compile project(':http')
     compile project(':udc')
-    compile project(':azure-discovery')
-    compile project(':dns-discovery')
-    compile project(':es:es-discovery-ec2')
-    compile project(':es:es-repository-url')
-    compile project(':es:es-repository-s3')
-    compile project(':es:es-repository-azure')
+    compile project(':plugins:azure-discovery')
+    compile project(':plugins:dns-discovery')
+    compile project(':plugins:es-discovery-ec2')
+    compile project(':plugins:es-repository-url')
+    compile project(':plugins:es-repository-s3')
+    compile project(':plugins:es-repository-azure')
     compile project(':es:es-transport')
-    compile project(':es:es-analysis-common')
-    compile project(':es:es-analysis-phonetic')
+    compile project(':plugins:es-analysis-common')
+    compile project(':plugins:es-analysis-phonetic')
     compile('org.apache.xbean:xbean-finder:4.5') {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
@@ -61,29 +61,28 @@ dependencies {
     testCompile project(path: ':sql', configuration: 'testOutput')
     testCompile("org.postgresql:postgresql:${versions.jdbc}")
     testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
-    testImplementation project(path: ':dex', configuration: 'testOutput')
+    testImplementation project(path: ':libs:dex', configuration: 'testOutput')
 
     compileNotTransitive project(':common')
-    compileNotTransitive project(':es:es-core')
     compileNotTransitive project(':es:es-server')
-    compileNotTransitive project(':es:es-plugin-classloader')
-    compileNotTransitive project(':es:es-x-content')
     compileNotTransitive project(':sql')
-    compileNotTransitive project(':sql-parser')
-    compileNotTransitive project(':pgwire')
-    compileNotTransitive project(':dex')
-    compileNotTransitive project(':shared')
+    compileNotTransitive project(':libs:sql-parser')
+    compileNotTransitive project(':libs:pgwire')
+    compileNotTransitive project(':libs:dex')
+    compileNotTransitive project(':libs:shared')
+    compileNotTransitive project(':libs:es-x-content')
+    compileNotTransitive project(':libs:es-plugin-classloader')
     compileNotTransitive project(':blob')
     compileNotTransitive project(':http')
     compileNotTransitive project(':udc')
-    compileNotTransitive project(':dns-discovery')
-    compileNotTransitive project(':es:es-discovery-ec2')
-    compileNotTransitive project(':es:es-repository-url')
-    compileNotTransitive project(':es:es-repository-s3')
-    compileNotTransitive project(':es:es-repository-azure')
+    compileNotTransitive project(':plugins:dns-discovery')
+    compileNotTransitive project(':plugins:es-discovery-ec2')
+    compileNotTransitive project(':plugins:es-repository-url')
+    compileNotTransitive project(':plugins:es-repository-s3')
+    compileNotTransitive project(':plugins:es-repository-azure')
     compileNotTransitive project(':es:es-transport')
-    compileNotTransitive project(':es:es-analysis-common')
-    compileNotTransitive project(':es:es-analysis-phonetic')
+    compileNotTransitive project(':plugins:es-analysis-common')
+    compileNotTransitive project(':plugins:es-analysis-phonetic')
 }
 
 task release(dependsOn: 'distTar') {
@@ -354,27 +353,27 @@ collectEnterpriseModules.outputs.dir('enterprise')
 
 task downloadPlugins(
     dependsOn: ['downloadAdminUI',
-                ':es:es-repository-hdfs:jar',
-                ':azure-discovery:jar',
+                ':plugins:es-repository-hdfs:jar',
+                ':plugins:azure-discovery:jar',
                 ':enterprise:jmx-monitoring:jar',
                 ':enterprise:lang-js:jar',
                 ':enterprise:functions:jar']) {
     doLast {
         // copy es-repository-hdfs plugin
         copy {
-            from(project(':es:es-repository-hdfs').buildDir.path + '/libs')
+            from(project(':plugins:es-repository-hdfs').buildDir.path + '/libs')
             into 'plugins/es-repository-hdfs'
         }
         copy {
-            from(project(':es:es-repository-hdfs').buildDir.path + '/plugin-descriptor.properties')
+            from(project(':plugins:es-repository-hdfs').buildDir.path + '/plugin-descriptor.properties')
             into 'plugins/es-repository-hdfs'
         }
 
         copy {
             // jar file
-            from(project(':azure-discovery').tasks.jar.archivePath)
+            from(project(':plugins:azure-discovery').tasks.jar.archivePath)
             // generated plugin-descriptor.properties
-            from(project(':azure-discovery').buildDir.path + '/tmp/plugin-descriptor.properties')
+            from(project(':plugins:azure-discovery').buildDir.path + '/tmp/plugin-descriptor.properties')
             into 'plugins/crate-azure-discovery'
         }
 

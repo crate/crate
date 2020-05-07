@@ -19,7 +19,7 @@
 
 package org.elasticsearch.test.disruption;
 
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.test.InternalTestCluster;
 
 public class NoOpDisruptionScheme implements ServiceDisruptionScheme {

@@ -20,7 +20,7 @@
 package org.elasticsearch.transport;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.concurrent.CompletableContext;
+import io.crate.concurrent.CompletableContext;
 
 
 /**

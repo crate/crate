@@ -23,7 +23,7 @@ import org.elasticsearch.action.Action;
 import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.common.unit.TimeValue;
 import org.elasticsearch.transport.TransportResponse;
 
 public abstract class ReplicationRequestBuilder<Request extends ReplicationRequest<Request>, Response extends TransportResponse, RequestBuilder extends ReplicationRequestBuilder<Request, Response, RequestBuilder>>

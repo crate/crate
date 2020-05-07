@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.common.collections.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.Map;

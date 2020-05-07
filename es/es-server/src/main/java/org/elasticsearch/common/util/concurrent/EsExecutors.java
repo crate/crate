@@ -19,8 +19,8 @@
 
 package org.elasticsearch.common.util.concurrent;
 
+import io.crate.common.SuppressForbidden;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
