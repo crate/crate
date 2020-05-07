@@ -52,7 +52,7 @@ public class Optimizer {
 
     public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
         // Rules can be excluded by session setting, therefore rules need to be filtered before application
-        // e.g. 'SET SESSION optimizer_merge_filters = true' means to exclude the 'MergeFilter' rule
+        // e.g. 'SET SESSION optimizer_merge_filters = false' means to exclude the 'MergeFilter' rule
         // from the optimizer
         var filteredRules = filterRulesFromContext(rules, txnCtx);
         LogicalPlan optimizedRoot = tryApplyRules(filteredRules, plan, tableStats, txnCtx);
@@ -68,7 +68,7 @@ public class Optimizer {
     static List<Rule<?>> filterRulesFromContext(List<Rule<?>> rules, TransactionContext txnCtx) {
         final boolean isTraceEnabled = LOGGER.isTraceEnabled();
         Set<String> rulesToExclude = txnCtx.sessionSettings().excludedOptimizerRules();
-        if (rules.isEmpty()) {
+        if (rulesToExclude.isEmpty()) {
             return rules;
         }
         var filteredRules = new ArrayList<Rule<?>>(rules.size());
