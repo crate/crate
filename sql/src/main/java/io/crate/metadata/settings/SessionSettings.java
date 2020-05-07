@@ -39,7 +39,7 @@ public final class SessionSettings implements Writeable {
     private final String userName;
     private final SearchPath searchPath;
     private final boolean hashJoinsEnabled;
-    private Set<String> excludedOptimizerRules;
+    private final Set<String> excludedOptimizerRules;
 
     public SessionSettings(StreamInput in) throws IOException {
         this.userName = in.readString();
@@ -47,12 +47,14 @@ public final class SessionSettings implements Writeable {
         this.hashJoinsEnabled = in.readBoolean();
         if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             int ruleSize = in.readVInt();
-            excludedOptimizerRules = new HashSet<>();
+            excludedOptimizerRules = new HashSet<>(ruleSize);
             if (ruleSize > 0) {
                 for (int i = 0; i < ruleSize; i++) {
                     excludedOptimizerRules.add(in.readString());
                 }
             }
+        } else {
+            excludedOptimizerRules = Set.of();
         }
     }
 
@@ -94,13 +96,9 @@ public final class SessionSettings implements Writeable {
         searchPath.writeTo(out);
         out.writeBoolean(hashJoinsEnabled);
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            if (excludedOptimizerRules != null) {
-                out.writeVInt(excludedOptimizerRules.size());
-                for (String rule : excludedOptimizerRules) {
-                    out.writeString(rule);
-                }
-            } else {
-                out.writeVInt(0);
+            out.writeVInt(excludedOptimizerRules.size());
+            for (String rule : excludedOptimizerRules) {
+                out.writeString(rule);
             }
         }
     }
