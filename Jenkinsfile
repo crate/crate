@@ -21,7 +21,7 @@ pipeline {
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
           }
         }
-        stage('SQL tests') {
+        stage('Java tests') {
           agent { label 'large' }
           environment {
             CODECOV_TOKEN = credentials('cratedb-codecov-token')

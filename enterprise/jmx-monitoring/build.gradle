@@ -6,8 +6,8 @@ description = 'CrateDB JMX monitoring plugin'
 
 dependencies {
     implementation project(':libs:dex')
-    implementation project(':sql')
+    implementation project(':server')
 
     testImplementation project(':integration-testing')
-    testImplementation project(path: ':sql', configuration: 'testOutput')
+    testImplementation project(path: ':server', configuration: 'testOutput')
 }

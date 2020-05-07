@@ -5,14 +5,14 @@ group = 'io.crate'
 description = 'User Management for CrateDB'
 
 dependencies {
-    implementation project(':sql')
+    implementation project(':server')
     implementation project(':http')
     implementation project(':es:es-transport')
     implementation project(':libs:sql-parser')
     implementation "io.netty:netty-codec-http:${versions.netty4}"
     testImplementation project(':integration-testing')
     testImplementation project(':enterprise:ssl-impl')
-    testImplementation project(path: ':sql', configuration: 'testOutput')
+    testImplementation project(path: ':server', configuration: 'testOutput')
     testImplementation project(path: ':libs:dex', configuration: 'testOutput')
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
     testImplementation "org.postgresql:postgresql:${versions.jdbc}"
