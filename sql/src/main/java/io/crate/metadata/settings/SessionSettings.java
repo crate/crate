@@ -45,17 +45,7 @@ public final class SessionSettings implements Writeable {
         this.userName = in.readString();
         this.searchPath = SearchPath.createSearchPathFrom(in);
         this.hashJoinsEnabled = in.readBoolean();
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            int ruleSize = in.readVInt();
-            excludedOptimizerRules = new HashSet<>(ruleSize);
-            if (ruleSize > 0) {
-                for (int i = 0; i < ruleSize; i++) {
-                    excludedOptimizerRules.add(in.readString());
-                }
-            }
-        } else {
-            excludedOptimizerRules = Set.of();
-        }
+        this.excludedOptimizerRules = Set.of();
     }
 
     @VisibleForTesting
@@ -95,12 +85,6 @@ public final class SessionSettings implements Writeable {
         out.writeString(userName);
         searchPath.writeTo(out);
         out.writeBoolean(hashJoinsEnabled);
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.writeVInt(excludedOptimizerRules.size());
-            for (String rule : excludedOptimizerRules) {
-                out.writeString(rule);
-            }
-        }
     }
 
     @Override

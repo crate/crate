@@ -22,7 +22,9 @@
 
 package io.crate.metadata.settings.session;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Ordering;
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.SearchPath;
 import io.crate.protocols.postgres.PostgresWireProtocol;
@@ -44,7 +46,7 @@ public class SessionSettingRegistry {
     private static final String SERVER_VERSION_NUM = "server_version_num";
     private static final String SERVER_VERSION = "server_version";
 
-    public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableSortedMap.<String, SessionSetting<?>>builder()
+    public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()
             .put(SEARCH_PATH_KEY,
                 new SessionSetting<>(
                     SEARCH_PATH_KEY,
