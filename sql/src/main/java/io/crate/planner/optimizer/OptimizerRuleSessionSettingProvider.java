@@ -20,12 +20,13 @@
  * agreement.
  */
 
-package io.crate.metadata.settings.session;
+package io.crate.planner.optimizer;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CaseFormat;
 import io.crate.common.collections.Lists2;
-import io.crate.planner.optimizer.Rule;
+import io.crate.metadata.settings.session.SessionSetting;
+import io.crate.metadata.settings.session.SessionSettingProvider;
 import io.crate.types.DataTypes;
 
 import java.util.List;

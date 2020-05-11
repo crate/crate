@@ -1,1 +1,1 @@
-io.crate.metadata.settings.session.OptimizerRuleSessionSettingProvider
+io.crate.planner.optimizer.OptimizerRuleSessionSettingProvider

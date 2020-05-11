@@ -44,7 +44,7 @@ public class SessionSetting<T> {
     private final String description;
     private final String type;
 
-    SessionSetting(String name,
+    public SessionSetting(String name,
                    Consumer<Object[]> validator,
                    Function<Object[], T> converter,
                    BiConsumer<SessionContext, T> setter,

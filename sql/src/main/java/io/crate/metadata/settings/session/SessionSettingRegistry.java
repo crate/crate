@@ -28,12 +28,10 @@ import io.crate.metadata.SearchPath;
 import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.types.DataTypes;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
-import java.util.SortedMap;
 import java.util.function.Function;
 
 import static io.crate.metadata.SearchPath.createSearchPathFrom;
