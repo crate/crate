@@ -22,7 +22,7 @@
 
 package io.crate.metadata.settings.session;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.SearchPath;
 import io.crate.protocols.postgres.PostgresWireProtocol;
@@ -30,8 +30,10 @@ import io.crate.types.DataTypes;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.SortedMap;
 import java.util.function.Function;
 
 import static io.crate.metadata.SearchPath.createSearchPathFrom;
@@ -44,7 +46,7 @@ public class SessionSettingRegistry {
     private static final String SERVER_VERSION_NUM = "server_version_num";
     private static final String SERVER_VERSION = "server_version";
 
-    public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()
+    public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableSortedMap.<String, SessionSetting<?>>builder()
             .put(SEARCH_PATH_KEY,
                 new SessionSetting<>(
                     SEARCH_PATH_KEY,
@@ -115,9 +117,8 @@ public class SessionSettingRegistry {
         .build();
 
     private static Map<String, SessionSetting<?>> getSessionSettings() {
-        var result = new HashMap<String, SessionSetting<?>>();
-        ServiceLoader<SessionSettingProvider> load = ServiceLoader.load(SessionSettingProvider.class);
-        for (var sessionSettingProvider : load) {
+        var result = new LinkedHashMap<String, SessionSetting<?>>();
+        for (var sessionSettingProvider : ServiceLoader.load(SessionSettingProvider.class)) {
             for (var sessionSetting : sessionSettingProvider.sessionSettings()) {
                 result.put(sessionSetting.name(), sessionSetting);
             }

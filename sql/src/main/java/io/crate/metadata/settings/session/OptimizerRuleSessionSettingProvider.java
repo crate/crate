@@ -22,14 +22,14 @@
 
 package io.crate.metadata.settings.session;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CaseFormat;
+import io.crate.common.collections.Lists2;
 import io.crate.planner.optimizer.Rule;
 import io.crate.types.DataTypes;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
 
 public class OptimizerRuleSessionSettingProvider implements SessionSettingProvider {
 
@@ -37,30 +37,31 @@ public class OptimizerRuleSessionSettingProvider implements SessionSettingProvid
 
     @Override
     public List<SessionSetting<?>> sessionSettings() {
-        var result = new ArrayList<SessionSetting<?>>();
-        for (var rule : Rule.IMPLEMENTATIONS) {
-            var fullName = rule.getName();
-            var simpleName = rule.getSimpleName();
-            var optimizerRuleName = OPTIMIZER_RULE + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE,
-                                                                               simpleName);
-            result.add(new SessionSetting<>(
-                optimizerRuleName,
-                objects -> {},
-                objects -> DataTypes.BOOLEAN.value(objects[0]),
-                (sessionContext, activateRule) -> {
-                    if (activateRule) {
-                        // All rules are activated by default
-                        sessionContext.excludedOptimizerRules().remove(fullName);
-                    } else {
-                        sessionContext.excludedOptimizerRules().add(fullName);
-                    }
-                },
-                s -> String.valueOf(s.excludedOptimizerRules().contains(fullName) == false),
-                () -> String.valueOf(true),
-                String.format(Locale.ENGLISH, "Indicates if the optimizer rule %s is activated.", simpleName),
-                DataTypes.BOOLEAN.getName()));
-        }
-        return result;
+       return Lists2.map(Rule.IMPLEMENTATIONS, OptimizerRuleSessionSettingProvider::buildRuleSessionSetting);
     }
 
+    @VisibleForTesting
+    static SessionSetting<?> buildRuleSessionSetting(Class<?> rule) {
+        var fullName = rule.getName();
+        var simpleName = rule.getSimpleName();
+        var optimizerRuleName = OPTIMIZER_RULE + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, simpleName);
+        return new SessionSetting<>(
+            optimizerRuleName,
+            objects -> {
+            },
+            objects -> DataTypes.BOOLEAN.value(objects[0]),
+            (sessionContext, activateRule) -> {
+                if (activateRule) {
+                    // All rules are activated by default
+                    sessionContext.excludedOptimizerRules().remove(fullName);
+                } else {
+                    sessionContext.excludedOptimizerRules().add(fullName);
+                }
+            },
+            s -> String.valueOf(s.excludedOptimizerRules().contains(fullName) == false),
+            () -> String.valueOf(true),
+            String.format(Locale.ENGLISH, "Indicates if the optimizer rule %s is activated.", simpleName),
+            DataTypes.BOOLEAN.getName()
+        );
+    }
 }
