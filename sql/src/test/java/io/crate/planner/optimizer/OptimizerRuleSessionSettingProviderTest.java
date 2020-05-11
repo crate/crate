@@ -34,10 +34,8 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.planner.optimizer.rule.MergeFilters;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
 import org.junit.Test;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -58,26 +56,28 @@ public class OptimizerRuleSessionSettingProviderTest {
     );
 
     @Test
-    public void test_rule_session_settings() {
-
+    public void test_optimizer_rule_session_settings() {
         var settingsProvider = new OptimizerRuleSessionSettingProvider();
-        SessionSetting<?> sessionSetting = settingsProvider.buildRuleSessionSetting(MergeFilters.class);
+        var sessionSetting = settingsProvider.buildRuleSessionSetting(MergeFilters.class);
+
         assertThat(sessionSetting.name(), is("optimizer_merge_filters"));
         assertThat(sessionSetting.description(), is("Indicates if the optimizer rule MergeFilters is activated."));
         assertThat(sessionSetting.defaultValue(), is("true"));
 
-        var mergefilterSettings = new SessionSettings("userr",
+        var mergefilterSettings = new SessionSettings("user",
                                                   SearchPath.createSearchPathFrom("dummySchema"),
                                                   true,
                                                   Set.of(MergeFilters.class));
 
-        assertThat("Rule MergeFilters has to excluded", sessionSetting.getValue(mergefilterSettings), is("false"));
-        // Make sure MergeFilters is disabled
+        assertThat(sessionSetting.getValue(mergefilterSettings), is("false"));
+
         var sessionContext = new SessionContext(Option.NONE, User.of("user"));
+
+        // Disable MergeFilters 'SET SESSION optimizer_merge_filters = false'
         sessionSetting.apply(sessionContext, List.of(Literal.of(false)), eval);
         assertThat(sessionContext.excludedOptimizerRules(), containsInAnyOrder(MergeFilters.class));
 
-        // Enable it MergeFilters again
+        // Enable MergeFilters 'SET SESSION optimizer_merge_filters = true'
         sessionSetting.apply(sessionContext, List.of(Literal.of(true)), eval);
         assertThat(sessionContext.excludedOptimizerRules().isEmpty(), is(true));
     }
