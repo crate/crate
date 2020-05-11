@@ -44,6 +44,9 @@ public final class SessionSettings implements Writeable {
         this.userName = in.readString();
         this.searchPath = SearchPath.createSearchPathFrom(in);
         this.hashJoinsEnabled = in.readBoolean();
+        // excludedOptimizerRules are only needed on the coordinator node
+        // and never have to be streamed to any other node and therefore
+        // are excluded from serialization on purpose
         this.excludedOptimizerRules = Set.of();
     }
 
