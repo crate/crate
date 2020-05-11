@@ -103,12 +103,11 @@ public final class SessionSettings implements Writeable {
         SessionSettings that = (SessionSettings) o;
         return Objects.equals(userName, that.userName) &&
                Objects.equals(searchPath, that.searchPath) &&
-               Objects.equals(hashJoinsEnabled, that.hashJoinsEnabled) &&
-               Objects.equals(excludedOptimizerRules, that.excludedOptimizerRules);
+               Objects.equals(hashJoinsEnabled, that.hashJoinsEnabled);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userName, searchPath, hashJoinsEnabled, excludedOptimizerRules);
+        return Objects.hash(userName, searchPath, hashJoinsEnabled);
     }
 }
