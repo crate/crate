@@ -56,7 +56,7 @@ public final class SessionSettings implements Writeable {
     }
 
     public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled, Set<Class<? extends Rule<?>>> rules) {
-        this.userName = userName;
+        this.userName = userName;   
         this.searchPath = searchPath;
         this.hashJoinsEnabled = hashJoinsEnabled;
         this.excludedOptimizerRules = rules;
