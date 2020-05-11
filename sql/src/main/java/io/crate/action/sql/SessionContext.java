@@ -49,7 +49,7 @@ public class SessionContext {
         return new SessionContext(Option.NONE, User.CRATE_USER);
     }
 
-    public SessionContext(Set<Option> options, User user, String ... searchPath) {
+    public SessionContext(Set<Option> options, User user, String... searchPath) {
         this.options = options;
         this.user = requireNonNull(user, "User is required");
         this.searchPath = createSearchPathFrom(searchPath);

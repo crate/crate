@@ -139,7 +139,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
-import java.util.Set;
 import java.util.UUID;
 
 import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_DEFINITION;

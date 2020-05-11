@@ -85,8 +85,8 @@ public final class SessionSettings implements Writeable {
         searchPath.writeTo(out);
         out.writeBoolean(hashJoinsEnabled);
         // excludedOptimizerRules are only needed on the coordinator node
-        // and never have to be streamed to any node and therefore
-        // are excluded on purpose
+        // and never have to be streamed to any other node and therefore
+        // are excluded from serialization on purpose
     }
 
     @Override
