@@ -29,10 +29,8 @@ import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingProvider;
 import io.crate.types.DataTypes;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 public class OptimizerRuleSessionSettingProvider implements SessionSettingProvider {
 
@@ -40,7 +38,7 @@ public class OptimizerRuleSessionSettingProvider implements SessionSettingProvid
 
     @Override
     public List<SessionSetting<?>> sessionSettings() {
-       return Lists2.map(Rule.IMPLEMENTATIONS, this::buildRuleSessionSetting);
+        return Lists2.map(Rule.IMPLEMENTATIONS, this::buildRuleSessionSetting);
     }
 
     @VisibleForTesting
@@ -49,8 +47,7 @@ public class OptimizerRuleSessionSettingProvider implements SessionSettingProvid
         var optimizerRuleName = OPTIMIZER_RULE + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, simpleName);
         return new SessionSetting<>(
             optimizerRuleName,
-            objects -> {
-            },
+            objects -> {},
             objects -> DataTypes.BOOLEAN.value(objects[0]),
             (sessionContext, activateRule) -> {
                 if (activateRule) {

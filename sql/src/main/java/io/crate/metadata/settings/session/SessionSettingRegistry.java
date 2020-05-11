@@ -23,8 +23,6 @@
 package io.crate.metadata.settings.session;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Ordering;
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.SearchPath;
 import io.crate.protocols.postgres.PostgresWireProtocol;
