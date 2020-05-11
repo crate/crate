@@ -52,9 +52,9 @@ public class OptimizerRuleSessionSettingProvider implements SessionSettingProvid
             (sessionContext, activateRule) -> {
                 if (activateRule) {
                     // All rules are activated by default
-                    sessionContext.removeOptimizerRule(rule);
+                    sessionContext.excludedOptimizerRules().remove(rule);
                 } else {
-                    sessionContext.addOptimizerRule(rule);
+                    sessionContext.excludedOptimizerRules().add(rule);
                 }
             },
             s -> String.valueOf(s.excludedOptimizerRules().contains(rule) == false),

@@ -45,7 +45,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 import static io.crate.auth.user.User.CRATE_USER;
 import static java.util.Collections.singletonList;
@@ -124,7 +123,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     private void analyze(String stmt, User user) {
         e.analyzer.analyze(
             SqlParser.createStatement(stmt),
-            new SessionContext(Option.NONE, user, Set.of()),
+            new SessionContext(Option.NONE, user),
             ParamTypeHints.EMPTY);
     }
 

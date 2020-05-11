@@ -57,7 +57,7 @@ public class AccessControlMaySeeTest extends CrateUnitTest {
                 return true;
             }
         };
-        accessControl = new AccessControlImpl(userName -> user, new SessionContext(Set.of(), user, Set.of()));
+        accessControl = new AccessControlImpl(userName -> user, new SessionContext(Set.of(), user));
     }
 
     @SuppressWarnings("unchecked")

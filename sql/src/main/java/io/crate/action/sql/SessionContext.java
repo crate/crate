@@ -91,14 +91,6 @@ public class SessionContext {
         return excludedOptimizerRules;
     }
 
-    public void addOptimizerRule(Class<? extends Rule<?>> rule) {
-        excludedOptimizerRules.add(rule);
-    }
-
-    public void removeOptimizerRule(Class<? extends Rule<?>> rule) {
-        excludedOptimizerRules.remove(rule);
-    }
-
     public User user() {
         return user;
     }
