@@ -56,6 +56,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Map;
+import java.util.Set;
 
 import static org.mockito.Mockito.mock;
 

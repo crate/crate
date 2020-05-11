@@ -24,13 +24,12 @@ package io.crate.metadata.settings;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.SearchPath;
-import org.elasticsearch.Version;
+import io.crate.planner.optimizer.Rule;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -39,7 +38,7 @@ public final class SessionSettings implements Writeable {
     private final String userName;
     private final SearchPath searchPath;
     private final boolean hashJoinsEnabled;
-    private final Set<String> excludedOptimizerRules;
+    private final Set<Class<? extends Rule<?>>> excludedOptimizerRules;
 
     public SessionSettings(StreamInput in) throws IOException {
         this.userName = in.readString();
@@ -53,7 +52,7 @@ public final class SessionSettings implements Writeable {
         this(userName, searchPath, true, Set.of());
     }
 
-    public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled, Set<String> rules) {
+    public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled, Set<Class<? extends Rule<?>>> rules) {
         this.userName = userName;
         this.searchPath = searchPath;
         this.hashJoinsEnabled = hashJoinsEnabled;
@@ -76,7 +75,7 @@ public final class SessionSettings implements Writeable {
         return hashJoinsEnabled;
     }
 
-    public Set<String> excludedOptimizerRules() {
+    public Set<Class<? extends Rule<?>>> excludedOptimizerRules() {
         return excludedOptimizerRules;
     }
 
@@ -85,6 +84,9 @@ public final class SessionSettings implements Writeable {
         out.writeString(userName);
         searchPath.writeTo(out);
         out.writeBoolean(hashJoinsEnabled);
+        // excludedOptimizerRules are only needed on the coordinator node
+        // and never have to be streamed to any node and therefore
+        // are excluded on purpose
     }
 
     @Override

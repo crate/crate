@@ -65,7 +65,7 @@ public interface Rule<T> {
         return Version.V_4_0_0;
     }
 
-    List<Class<?>> IMPLEMENTATIONS = List.of(
+    List<Class<? extends Rule<?>>> IMPLEMENTATIONS = List.of(
         RemoveRedundantFetchOrEval.class,
         MergeAggregateAndCollectToCount.class,
         MergeFilters.class,

@@ -29,8 +29,10 @@ import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingProvider;
 import io.crate.types.DataTypes;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class OptimizerRuleSessionSettingProvider implements SessionSettingProvider {
 
@@ -38,12 +40,11 @@ public class OptimizerRuleSessionSettingProvider implements SessionSettingProvid
 
     @Override
     public List<SessionSetting<?>> sessionSettings() {
-       return Lists2.map(Rule.IMPLEMENTATIONS, OptimizerRuleSessionSettingProvider::buildRuleSessionSetting);
+       return Lists2.map(Rule.IMPLEMENTATIONS, this::buildRuleSessionSetting);
     }
 
     @VisibleForTesting
-    static SessionSetting<?> buildRuleSessionSetting(Class<?> rule) {
-        var fullName = rule.getName();
+    SessionSetting<?> buildRuleSessionSetting(Class<? extends Rule<?>> rule) {
         var simpleName = rule.getSimpleName();
         var optimizerRuleName = OPTIMIZER_RULE + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, simpleName);
         return new SessionSetting<>(
@@ -54,12 +55,12 @@ public class OptimizerRuleSessionSettingProvider implements SessionSettingProvid
             (sessionContext, activateRule) -> {
                 if (activateRule) {
                     // All rules are activated by default
-                    sessionContext.excludedOptimizerRules().remove(fullName);
+                    sessionContext.removeOptimizerRule(rule);
                 } else {
-                    sessionContext.excludedOptimizerRules().add(fullName);
+                    sessionContext.addOptimizerRule(rule);
                 }
             },
-            s -> String.valueOf(s.excludedOptimizerRules().contains(fullName) == false),
+            s -> String.valueOf(s.excludedOptimizerRules().contains(rule) == false),
             () -> String.valueOf(true),
             String.format(Locale.ENGLISH, "Indicates if the optimizer rule %s is activated.", simpleName),
             DataTypes.BOOLEAN.getName()

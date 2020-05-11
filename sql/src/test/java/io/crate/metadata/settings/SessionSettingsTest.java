@@ -24,6 +24,7 @@ package io.crate.metadata.settings;
 
 
 import io.crate.metadata.SearchPath;
+import io.crate.planner.optimizer.rule.MergeFilters;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -36,7 +37,8 @@ public class SessionSettingsTest {
 
     @Test
     public void testSessionSettingsStreaming() throws IOException {
-        SessionSettings s1 = new SessionSettings("user", SearchPath.createSearchPathFrom("crate"), true, Set.of("Rule"));
+        SessionSettings s1 = new SessionSettings("user", SearchPath.createSearchPathFrom("crate"), true, Set.of(
+            MergeFilters.class));
         BytesStreamOutput out = new BytesStreamOutput();
         s1.writeTo(out);
         SessionSettings s2 = new SessionSettings(out.bytes().streamInput());

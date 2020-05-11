@@ -24,6 +24,7 @@ package io.crate.action.sql;
 
 import io.crate.auth.user.User;
 import io.crate.metadata.SearchPath;
+import io.crate.planner.optimizer.Rule;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -39,7 +40,7 @@ public class SessionContext {
 
     private SearchPath searchPath;
     private boolean hashJoinEnabled = true;
-    private Set<String> excludedOptimizerRules;
+    private Set<Class<? extends Rule<?>>> excludedOptimizerRules;
 
     /**
      * Creates a new SessionContext suitable to use as system SessionContext
@@ -48,7 +49,7 @@ public class SessionContext {
         return new SessionContext(Option.NONE, User.CRATE_USER);
     }
 
-    public SessionContext(Set<Option> options, User user, String... searchPath) {
+    public SessionContext(Set<Option> options, User user, String ... searchPath) {
         this.options = options;
         this.user = requireNonNull(user, "User is required");
         this.searchPath = createSearchPathFrom(searchPath);
@@ -86,12 +87,16 @@ public class SessionContext {
         this.hashJoinEnabled = hashJoinEnabled;
     }
 
-    public Set<String> excludedOptimizerRules() {
+    public Set<Class<? extends Rule<?>>> excludedOptimizerRules() {
         return excludedOptimizerRules;
     }
 
-    public void setExcludedOptimizerRules(Set<String> excludedOptimizerRules) {
-        this.excludedOptimizerRules = excludedOptimizerRules;
+    public void addOptimizerRule(Class<? extends Rule<?>> rule) {
+        excludedOptimizerRules.add(rule);
+    }
+
+    public void removeOptimizerRule(Class<? extends Rule<?>> rule) {
+        excludedOptimizerRules.remove(rule);
     }
 
     public User user() {
@@ -101,5 +106,6 @@ public class SessionContext {
     public void resetToDefaults() {
         resetSchema();
         hashJoinEnabled = true;
+        excludedOptimizerRules = new HashSet<>();
     }
 }

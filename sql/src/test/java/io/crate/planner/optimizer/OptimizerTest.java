@@ -43,7 +43,7 @@ public class OptimizerTest {
         SessionSettings sessionSettings = new SessionSettings("User",
                                                               SearchPath.pathWithPGCatalogAndDoc(),
                                                               true,
-                                                              Set.of(MergeFilters.class.getName()));
+                                                              Set.of(MergeFilters.class));
 
         List<Rule<?>> rules = Optimizer.filterRulesFromContext(List.of(new MergeFilters()),
                                                                TransactionContext.of(sessionSettings));
