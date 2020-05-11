@@ -108,8 +108,8 @@ public class PgCatalogTableDefinitions {
             false)
         );
         Iterable<NamedSessionSetting> sessionSettings =
-            () -> SessionSettingRegistry.SETTINGS.values().stream()
-                .map(s -> new NamedSessionSetting(s.name(), s))
+            () -> SessionSettingRegistry.SETTINGS.entrySet().stream()
+                .map(s -> new NamedSessionSetting(s.getKey(), s.getValue()))
                 .iterator();
         tableDefinitions.put(PgSettingsTable.IDENT, new StaticTableDefinition<>(
             () -> sessionSettings,
