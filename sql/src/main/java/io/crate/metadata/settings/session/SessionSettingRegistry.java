@@ -22,18 +22,16 @@
 
 package io.crate.metadata.settings.session;
 
-import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.SearchPath;
-import io.crate.planner.optimizer.Rule;
 import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.types.DataTypes;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Locale;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.function.Function;
 
 import static io.crate.metadata.SearchPath.createSearchPathFrom;
@@ -45,11 +43,11 @@ public class SessionSettingRegistry {
     static final String MAX_INDEX_KEYS = "max_index_keys";
     private static final String SERVER_VERSION_NUM = "server_version_num";
     private static final String SERVER_VERSION = "server_version";
-    private static final String OPTIMIZER_RULE = "optimizer_";
 
     public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()
             .put(SEARCH_PATH_KEY,
                 new SessionSetting<>(
+                    SEARCH_PATH_KEY,
                     objects -> {}, // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
                     objects -> createSearchPathFrom(objectsToStringArray(objects)),
                     SessionContext::setSearchPath,
@@ -59,6 +57,7 @@ public class SessionSettingRegistry {
                     DataTypes.STRING.getName()))
             .put(HASH_JOIN_KEY,
                 new SessionSetting<>(
+                    HASH_JOIN_KEY,
                     objects -> {
                         if (objects.length != 1) {
                             throw new IllegalArgumentException(HASH_JOIN_KEY + " should have only one argument.");
@@ -72,6 +71,7 @@ public class SessionSettingRegistry {
                     DataTypes.BOOLEAN.getName()))
             .put(MAX_INDEX_KEYS,
                 new SessionSetting<>(
+                    MAX_INDEX_KEYS,
                     objects -> {},
                     Function.identity(),
                     (s, v) -> {
@@ -84,6 +84,7 @@ public class SessionSettingRegistry {
             .put(
                 SERVER_VERSION_NUM,
                 new SessionSetting<>(
+                    SERVER_VERSION_NUM,
                     objects -> {},
                     Function.identity(),
                     (s, v) -> {
@@ -98,6 +99,7 @@ public class SessionSettingRegistry {
             .put(
                 SERVER_VERSION,
                 new SessionSetting<>(
+                    SERVER_VERSION,
                     objects -> {},
                     Function.identity(),
                     (s, v) -> {
@@ -109,31 +111,16 @@ public class SessionSettingRegistry {
                     DataTypes.STRING.getName()
                 )
             )
-        .putAll(generateOptimizerRuleEntries())
+        .putAll(getSessionSettings())
         .build();
 
-    private static Map<String, SessionSetting<?>> generateOptimizerRuleEntries() {
+    private static Map<String, SessionSetting<?>> getSessionSettings() {
         var result = new HashMap<String, SessionSetting<?>>();
-        for (var rule : Rule.IMPLEMENTATIONS) {
-            var fullName = rule.getName();
-            var simpleName = rule.getSimpleName();
-            var optimizerRuleName = OPTIMIZER_RULE + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE,
-                                                                                  simpleName);
-            result.put(optimizerRuleName, new SessionSetting<>(
-                objects -> {},
-                objects -> DataTypes.BOOLEAN.value(objects[0]),
-                (sessionContext, activateRule) -> {
-                    if (activateRule) {
-                        // All rules are activated by default
-                        sessionContext.excludedOptimizerRules().remove(fullName);
-                    } else {
-                        sessionContext.excludedOptimizerRules().add(fullName);
-                    }
-                },
-                s -> String.valueOf(s.excludedOptimizerRules().contains(fullName) == false),
-                () -> String.valueOf(true),
-                String.format(Locale.ENGLISH, "Indicates if the optimizer rule %s is activated.", simpleName),
-                DataTypes.BOOLEAN.getName()));
+        ServiceLoader<SessionSettingProvider> load = ServiceLoader.load(SessionSettingProvider.class);
+        for (var sessionSettingProvider : load) {
+            for (var sessionSetting : sessionSettingProvider.sessionSettings()) {
+                result.put(sessionSetting.name(), sessionSetting);
+            }
         }
         return result;
     }
