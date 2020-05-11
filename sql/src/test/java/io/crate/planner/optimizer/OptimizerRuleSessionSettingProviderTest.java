@@ -72,14 +72,13 @@ public class OptimizerRuleSessionSettingProviderTest {
                                                   Set.of(MergeFilters.class));
 
         assertThat("Rule MergeFilters has to excluded", sessionSetting.getValue(mergefilterSettings), is("false"));
-
+        // Make sure MergeFilters is disabled
         var sessionContext = new SessionContext(Option.NONE, User.of("user"));
         sessionSetting.apply(sessionContext, List.of(Literal.of(false)), eval);
-
         assertThat(sessionContext.excludedOptimizerRules(), containsInAnyOrder(MergeFilters.class));
 
+        // Enable it MergeFilters again
         sessionSetting.apply(sessionContext, List.of(Literal.of(true)), eval);
         assertThat(sessionContext.excludedOptimizerRules().isEmpty(), is(true));
-
     }
 }
