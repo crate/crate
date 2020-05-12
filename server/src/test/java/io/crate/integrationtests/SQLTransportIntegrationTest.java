@@ -122,7 +122,6 @@ import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.plugin.BlobPlugin;
-import io.crate.plugin.CrateCommonPlugin;
 import io.crate.plugin.HttpTransportPlugin;
 import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -190,7 +189,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return Arrays.asList(
             SQLPlugin.class,
             BlobPlugin.class,
-            CrateCommonPlugin.class,
             HttpTransportPlugin.class
         );
     }
