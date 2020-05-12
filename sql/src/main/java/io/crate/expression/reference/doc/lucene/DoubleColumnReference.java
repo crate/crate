@@ -28,12 +28,13 @@ import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFieldData, Double> {
 
     private final String columnName;
     private SortedNumericDoubleValues values;
-    private Double value;
+    private int docId;
 
     public DoubleColumnReference(String columnName, MappedFieldType mappedFieldType) {
         super(mappedFieldType);
@@ -42,24 +43,26 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
 
     @Override
     public Double value() {
-        return value;
+        try {
+            if (values.advanceExact(docId)) {
+                switch (values.docValueCount()) {
+                    case 1:
+                        return values.nextValue();
+
+                    default:
+                        throw new GroupByOnArrayUnsupportedException(columnName);
+                }
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
-    public void setNextDocId(int docId) throws IOException {
-        super.setNextDocId(docId);
-        if (values.advanceExact(docId)) {
-            switch (values.docValueCount()) {
-                case 1:
-                    value = values.nextValue();
-                    break;
-
-                default:
-                    throw new GroupByOnArrayUnsupportedException(columnName);
-            }
-        } else {
-            value = null;
-        }
+    public void setNextDocId(int docId) {
+        this.docId = docId;
     }
 
     @Override

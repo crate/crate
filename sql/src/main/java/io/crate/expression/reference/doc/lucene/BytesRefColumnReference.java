@@ -29,12 +29,13 @@ import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsFieldData, String> {
 
     private final String columnName;
     private SortedBinaryDocValues values;
-    private String value;
+    private int docId;
 
     public BytesRefColumnReference(String columnName, MappedFieldType mappedFieldType) {
         super(mappedFieldType);
@@ -43,21 +44,24 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
 
     @Override
     public String value() throws ValidationException {
-        return value;
+        try {
+            if (values.advanceExact(docId)) {
+                if (values.docValueCount() == 1) {
+                    return values.nextValue().utf8ToString();
+                } else {
+                    throw new GroupByOnArrayUnsupportedException(columnName);
+                }
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
-    public void setNextDocId(int docId) throws IOException {
-        super.setNextDocId(docId);
-        if (values.advanceExact(docId)) {
-            if (values.docValueCount() == 1) {
-                value = values.nextValue().utf8ToString();
-            } else {
-                throw new GroupByOnArrayUnsupportedException(columnName);
-            }
-        } else {
-            value = null;
-        }
+    public void setNextDocId(int docId) {
+        this.docId = docId;
     }
 
     @Override
