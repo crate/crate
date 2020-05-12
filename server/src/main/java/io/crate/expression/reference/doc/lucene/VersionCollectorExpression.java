@@ -27,11 +27,12 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public class VersionCollectorExpression extends LuceneCollectorExpression<Long> {
 
     private NumericDocValues versions = null;
-    private long value;
+    private int docId;
 
     @Override
     public void setNextReader(LeafReaderContext reader) {
@@ -43,17 +44,19 @@ public class VersionCollectorExpression extends LuceneCollectorExpression<Long> 
     }
 
     @Override
-    public void setNextDocId(int doc) throws IOException {
-        if (versions != null && versions.advanceExact(doc)) {
-            value = versions.longValue();
-        }
+    public void setNextDocId(int doc) {
+        this.docId = doc;
     }
 
     @Override
     public Long value() {
-        if (versions == null) {
-            return null;
+        try {
+            if (versions != null && versions.advanceExact(docId)) {
+                return versions.longValue();
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
-        return value;
+        return null;
     }
 }

@@ -233,7 +233,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             inner.startCollect(context);
         }
 
-        public void setNextDocId(final int doc) throws IOException {
+        public void setNextDocId(final int doc) {
             inner.setNextDocId(doc);
         }
 
