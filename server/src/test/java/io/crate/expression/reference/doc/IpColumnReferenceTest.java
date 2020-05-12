@@ -129,11 +129,12 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
         TopDocs topDocs = searcher.search(new MatchAllDocsQuery(), 10);
 
         ScoreDoc doc = topDocs.scoreDocs[0];
+        columnReference.setNextDocId(doc.doc);
 
         expectedException.expect(GroupByOnArrayUnsupportedException.class);
         expectedException.expectMessage("Column \"ia\" has a value that is an array. Group by doesn't work on Arrays");
 
-        columnReference.setNextDocId(doc.doc);
+        columnReference.value();
     }
 
     @Test

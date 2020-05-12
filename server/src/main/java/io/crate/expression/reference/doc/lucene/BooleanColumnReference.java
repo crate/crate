@@ -29,13 +29,14 @@ import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
 
     private static final BytesRef TRUE_BYTESREF = new BytesRef("1");
     private final String columnName;
     private SortedBinaryDocValues values;
-    private Boolean value;
+    private int docId;
 
     public BooleanColumnReference(String columnName) {
         this.columnName = columnName;
@@ -43,24 +44,26 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
 
     @Override
     public Boolean value() {
-        return value;
+        try {
+            if (values.advanceExact(docId)) {
+                switch (values.docValueCount()) {
+                    case 1:
+                        return values.nextValue().compareTo(TRUE_BYTESREF) == 0;
+
+                    default:
+                        throw new GroupByOnArrayUnsupportedException(columnName);
+                }
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
-    public void setNextDocId(int docId) throws IOException {
-        super.setNextDocId(docId);
-        if (values.advanceExact(docId)) {
-            switch (values.docValueCount()) {
-                case 1:
-                    value = values.nextValue().compareTo(TRUE_BYTESREF) == 0;
-                    break;
-
-                default:
-                    throw new GroupByOnArrayUnsupportedException(columnName);
-            }
-        } else {
-            value = null;
-        }
+    public void setNextDocId(int docId) {
+        this.docId = docId;
     }
 
     @Override

@@ -37,7 +37,7 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public void setNextDocId(int doc) throws IOException {
+    public void setNextDocId(int doc) {
         sourceLookup.setSegmentAndDocument(context, doc);
     }
 
