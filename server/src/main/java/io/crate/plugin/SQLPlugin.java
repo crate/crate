@@ -46,6 +46,7 @@ import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.license.CeLicenseModule;
 import io.crate.license.LicenseExtension;
 import io.crate.lucene.ArrayMapperService;
+import io.crate.metadata.CustomMetaDataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.DefaultTemplateService;
 import io.crate.metadata.MetaDataModule;
@@ -59,6 +60,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetaDataIndexUpgrader;
 import io.crate.metadata.view.ViewsMetaData;
+import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslConfigSettings;
@@ -72,6 +74,7 @@ import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.MetaData.Custom;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -81,6 +84,7 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.ArrayTypeParser;
 import org.elasticsearch.index.mapper.Mapper;
@@ -108,9 +112,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     private final LicenseExtension licenseExtension;
     @Nullable
     private final SslExtension sslExtension;
+    private final IndexEventListenerProxy indexEventListenerProxy;
 
     public SQLPlugin(Settings settings) {
         this.settings = settings;
+        this.indexEventListenerProxy = new IndexEventListenerProxy();
         userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
         licenseExtension = EnterpriseLoader.loadSingle(LicenseExtension.class);
         sslExtension = EnterpriseLoader.loadSingle(SslExtension.class);
@@ -176,6 +182,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         Collection<Module> modules = newArrayList();
         modules.add(new SQLModule());
 
+        modules.add(new CrateCommonModule(indexEventListenerProxy));
         modules.add(new CircuitBreakerModule());
         modules.add(new TransportExecutorModule());
         modules.add(new JobModule());
@@ -285,7 +292,17 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     }
 
     @Override
+    public UnaryOperator<Map<String, Custom>> getCustomMetaDataUpgrader() {
+        return new CustomMetaDataUpgraderLoader(settings);
+    }
+
+    @Override
     public UnaryOperator<Map<String, IndexTemplateMetaData>> getIndexTemplateMetaDataUpgrader() {
         return new IndexTemplateUpgrader();
+    }
+
+    @Override
+    public void onIndexModule(IndexModule indexModule) {
+        indexModule.addIndexEventListener(indexEventListenerProxy);
     }
 }
