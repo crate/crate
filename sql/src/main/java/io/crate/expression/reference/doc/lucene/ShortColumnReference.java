@@ -27,12 +27,13 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public class ShortColumnReference extends LuceneCollectorExpression<Short> {
 
     private final String columnName;
     private SortedNumericDocValues values;
-    private Short value;
+    private int docId;
 
     public ShortColumnReference(String columnName) {
         this.columnName = columnName;
@@ -40,24 +41,26 @@ public class ShortColumnReference extends LuceneCollectorExpression<Short> {
 
     @Override
     public Short value() {
-        return value;
+        try {
+            if (values.advanceExact(docId)) {
+                switch (values.docValueCount()) {
+                    case 1:
+                        return (short) values.nextValue();
+
+                    default:
+                        throw new GroupByOnArrayUnsupportedException(columnName);
+                }
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
-    public void setNextDocId(int docId) throws IOException {
-        super.setNextDocId(docId);
-        if (values.advanceExact(docId)) {
-            switch (values.docValueCount()) {
-                case 1:
-                    value = (short) values.nextValue();
-                    break;
-
-                default:
-                    throw new GroupByOnArrayUnsupportedException(columnName);
-            }
-        } else {
-            value = null;
-        }
+    public void setNextDocId(int docId) {
+        this.docId = docId;
     }
 
     @Override

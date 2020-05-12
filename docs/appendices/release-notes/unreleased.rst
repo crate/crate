@@ -57,4 +57,5 @@ None
 Fixes
 =====
 
-None
+- Fixed a performance issue that can lead to queries like ``SELECT text_column
+  FROM tbl GROUP BY 1`` to run more than 150% faster.

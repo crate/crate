@@ -27,24 +27,31 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
     private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.name());
     private LeafReader reader;
+    private int docId;
 
     public IdCollectorExpression() {
     }
 
     @Override
-    public void setNextDocId(int docId) throws IOException {
-        visitor.setCanStop(false);
-        reader.document(docId, visitor);
+    public void setNextDocId(int docId) {
+        this.docId = docId;
     }
 
     @Override
     public String value() {
-        return visitor.getId();
+        try {
+            visitor.setCanStop(false);
+            reader.document(docId, visitor);
+            return visitor.getId();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override

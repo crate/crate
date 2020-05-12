@@ -39,8 +39,7 @@ public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> 
     }
 
     @Override
-    public void setNextDocId(int doc) throws IOException {
-        super.setNextDocId(doc);
+    public void setNextDocId(int doc) {
         fetchId = FetchId.encode(jobSearchContextId, docBase + doc);
     }
 
