@@ -27,33 +27,36 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public class PrimaryTermCollectorExpression extends LuceneCollectorExpression<Long> {
 
     private NumericDocValues primaryTerms = null;
-    private long value;
+    private int doc;
 
     @Override
     public void setNextReader(LeafReaderContext reader) {
         try {
             primaryTerms = reader.reader().getNumericDocValues(DocSysColumns.PRIMARY_TERM.name());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
     @Override
     public void setNextDocId(int doc) throws IOException {
-        if (primaryTerms != null && primaryTerms.advanceExact(doc)) {
-            value = primaryTerms.longValue();
-        }
+        this.doc = doc;
     }
 
     @Override
     public Long value() {
-        if (primaryTerms == null) {
+        try {
+            if (primaryTerms != null && primaryTerms.advanceExact(doc)) {
+                return primaryTerms.longValue();
+            }
             return null;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
-        return value;
     }
 }

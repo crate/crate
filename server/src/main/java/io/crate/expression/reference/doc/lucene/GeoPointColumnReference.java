@@ -32,12 +32,13 @@ import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointFieldData, Point> {
 
     private final String columnName;
     private MultiGeoPointValues values;
-    private PointImpl value;
+    private int docId;
 
     public GeoPointColumnReference(String columnName, MappedFieldType mappedFieldType) {
         super(mappedFieldType);
@@ -46,25 +47,27 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
 
     @Override
     public Point value() {
-        return value;
+        try {
+            if (values.advanceExact(docId)) {
+                switch (values.docValueCount()) {
+                    case 1:
+                        GeoPoint gp = values.nextValue();
+                        return new PointImpl(gp.lon(), gp.lat(), JtsSpatialContext.GEO);
+
+                    default:
+                        throw new GroupByOnArrayUnsupportedException(columnName);
+                }
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
     public void setNextDocId(int docId) throws IOException {
-        super.setNextDocId(docId);
-        if (values.advanceExact(docId)) {
-            switch (values.docValueCount()) {
-                case 1:
-                    GeoPoint gp = values.nextValue();
-                    value = new PointImpl(gp.lon(), gp.lat(), JtsSpatialContext.GEO);
-                    break;
-
-                default:
-                    throw new GroupByOnArrayUnsupportedException(columnName);
-            }
-        } else {
-            value = null;
-        }
+        this.docId = docId;
     }
 
     @Override

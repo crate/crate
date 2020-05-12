@@ -27,12 +27,13 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public class IntegerColumnReference extends LuceneCollectorExpression<Integer> {
 
     private final String columnName;
     private SortedNumericDocValues values;
-    private Integer value;
+    private int docId;
 
     public IntegerColumnReference(String columnName) {
         this.columnName = columnName;
@@ -40,24 +41,26 @@ public class IntegerColumnReference extends LuceneCollectorExpression<Integer> {
 
     @Override
     public Integer value() {
-        return value;
+        try {
+            if (values.advanceExact(docId)) {
+                switch (values.docValueCount()) {
+                    case 1:
+                        return (int) values.nextValue();
+
+                    default:
+                        throw new GroupByOnArrayUnsupportedException(columnName);
+                }
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
     public void setNextDocId(int docId) throws IOException {
-        super.setNextDocId(docId);
-        if (values.advanceExact(docId)) {
-            switch (values.docValueCount()) {
-                case 1:
-                    value = (int) values.nextValue();
-                    break;
-
-                default:
-                    throw new GroupByOnArrayUnsupportedException(columnName);
-            }
-        } else {
-            value = null;
-        }
+        this.docId = docId;
     }
 
     @Override

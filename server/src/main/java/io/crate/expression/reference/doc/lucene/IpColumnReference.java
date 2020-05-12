@@ -30,12 +30,13 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.search.DocValueFormat;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public class IpColumnReference extends LuceneCollectorExpression<String> {
 
     private final String columnName;
-    private String value;
     private SortedSetDocValues values;
+    private int docId;
 
     public IpColumnReference(String columnName) {
         this.columnName = columnName;
@@ -43,21 +44,25 @@ public class IpColumnReference extends LuceneCollectorExpression<String> {
 
     @Override
     public String value() {
-        return value;
+        try {
+            if (values.advanceExact(docId)) {
+                long ord = values.nextOrd();
+                if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
+                    throw new GroupByOnArrayUnsupportedException(columnName);
+                }
+                BytesRef encoded = values.lookupOrd(ord);
+                return (String) DocValueFormat.IP.format(encoded);
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
     public void setNextDocId(int docId) throws IOException {
-        if (values.advanceExact(docId)) {
-            long ord = values.nextOrd();
-            if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
-                throw new GroupByOnArrayUnsupportedException(columnName);
-            }
-            BytesRef encoded = values.lookupOrd(ord);
-            value = (String) DocValueFormat.IP.format(encoded);
-        } else {
-            value = null;
-        }
+        this.docId = docId;
     }
 
     @Override
