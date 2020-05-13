@@ -160,7 +160,7 @@ privilege on all the other tables of the ``doc`` schema::
 .. NOTE::
 
     In CrateDB, schemas are just namespaces that are created and dropped
-    implicitly. Therefore, when ``GRANT``, ``DENY`` or ```REVOKE`` are invoked
+    implicitly. Therefore, when ``GRANT``, ``DENY`` or ``REVOKE`` are invoked
     on a schema level, CrateDB takes the schema name provided without further
     validation.
 
@@ -250,8 +250,8 @@ wolfgang::
     cr> GRANT ALL PRIVILEGES ON TABLE doc.books TO wolfgang;
     GRANT OK, 4 rows affected (... sec)
 
-Using "ALL PRIVILEGES" is a shortcut to grant all the currently grantable
-privileges to a user, namely ``DQL``, ``DML`` and ``DDL``.
+Using "ALL PRIVILEGES" is a shortcut to grant all the :ref:`currently grantable
+privileges <privilege_types>` to a user.
 
 .. NOTE::
 
