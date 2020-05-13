@@ -376,6 +376,9 @@ final class GroupByOptimizedIterator {
     }
 
     static boolean hasHighCardinalityRatio(Supplier<Engine.Searcher> acquireSearcher, String fieldName) {
+        if (true) {
+            return false;
+        }
         // acquire separate searcher:
         // Can't use sharedShardContexts() yet, if we bail out the "getOrCreateContext" causes issues later on in the fallback logic
         try (Engine.Searcher searcher = acquireSearcher.get()) {
