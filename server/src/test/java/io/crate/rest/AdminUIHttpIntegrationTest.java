@@ -22,7 +22,6 @@
 
 package io.crate.rest;
 
-import io.crate.plugin.HttpTransportPlugin;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -77,7 +76,7 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
     @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(HttpTransportPlugin.class, Netty4Plugin.class);
+        return Arrays.asList(Netty4Plugin.class);
     }
 
     @Before

@@ -77,6 +77,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -122,7 +123,6 @@ import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.plugin.BlobPlugin;
-import io.crate.plugin.HttpTransportPlugin;
 import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.Identifiers;
@@ -189,7 +189,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return Arrays.asList(
             SQLPlugin.class,
             BlobPlugin.class,
-            HttpTransportPlugin.class
+            Netty4Plugin.class
         );
     }
 
