@@ -30,6 +30,7 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -92,8 +93,8 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(settings);
         pipelineRegistry.setSslContextProvider(new SslContextProviderImpl(settings));
 
-        CrateNettyHttpServerTransport transport =
-            new CrateNettyHttpServerTransport(
+        Netty4HttpServerTransport transport =
+            new Netty4HttpServerTransport(
                 settings,
                 networkService,
                 BigArrays.NON_RECYCLING_INSTANCE,
@@ -106,8 +107,8 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
         try {
             transport.start();
 
-            CrateNettyHttpServerTransport.CrateHttpChannelHandler httpChannelHandler =
-                (CrateNettyHttpServerTransport.CrateHttpChannelHandler) transport.configureServerChannelHandler();
+            Netty4HttpServerTransport.HttpChannelHandler httpChannelHandler =
+                (Netty4HttpServerTransport.HttpChannelHandler) transport.configureServerChannelHandler();
 
             httpChannelHandler.initChannel(channel);
 

@@ -26,7 +26,6 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.plugin.BlobPlugin;
-import io.crate.plugin.HttpTransportPlugin;
 import io.crate.plugin.SQLPlugin;
 
 import org.elasticsearch.common.settings.Settings;
@@ -82,7 +81,7 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(Netty4Plugin.class, SQLPlugin.class, BlobPlugin.class, HttpTransportPlugin.class);
+        return Arrays.asList(Netty4Plugin.class, SQLPlugin.class, BlobPlugin.class);
     }
 
     @After

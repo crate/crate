@@ -22,10 +22,10 @@ package io.crate.azure;
 import io.crate.azure.management.AzureComputeService.Discovery;
 import io.crate.azure.management.AzureComputeService.Management;
 import io.crate.azure.plugin.AzureDiscoveryPlugin;
-import io.crate.plugin.HttpTransportPlugin;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -45,7 +45,7 @@ public class AzureSimpleTests extends AbstractAzureComputeServiceTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(AzureDiscoveryPlugin.class, HttpTransportPlugin.class);
+        return Arrays.asList(AzureDiscoveryPlugin.class, Netty4Plugin.class);
     }
 
     @Test

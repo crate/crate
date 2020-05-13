@@ -19,7 +19,9 @@
 
 package org.elasticsearch.transport;
 
+import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
@@ -28,7 +30,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.NetworkPlugin;
@@ -37,7 +42,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
+import io.crate.plugin.PipelineRegistry;
+
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +59,12 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
 
     public static final String NETTY_TRANSPORT_NAME = "netty4";
     public static final String NETTY_HTTP_TRANSPORT_NAME = "netty4";
+
+    private final PipelineRegistry pipelineRegistry;
+
+    public Netty4Plugin(Settings settings) {
+        this.pipelineRegistry = new PipelineRegistry(settings);
+    }
 
     @Override
     public List<Setting<?>> getSettings() {
@@ -67,23 +81,47 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
     }
 
     @Override
-    public Settings additionalSettings() {
-        return Settings.builder()
-                // here we set the netty4 transport and http transport as the default. This is a set once setting
-                // ie. if another plugin does that as well the server will fail - only one default network can exist!
-                .put(NetworkModule.HTTP_DEFAULT_TYPE_SETTING.getKey(), NETTY_HTTP_TRANSPORT_NAME)
-                .put(NetworkModule.TRANSPORT_DEFAULT_TYPE_SETTING.getKey(), NETTY_TRANSPORT_NAME)
-                .build();
+    public Collection<Object> createComponents(Client client,
+                                               ClusterService clusterService,
+                                               ThreadPool threadPool,
+                                               NamedXContentRegistry xContentRegistry,
+                                               Environment environment,
+                                               NodeEnvironment nodeEnvironment,
+                                               NamedWriteableRegistry namedWriteableRegistry) {
+        // pipelineRegistry is returned here so that it's bound in guice and can be injected in other places
+        return Collections.singletonList(pipelineRegistry);
     }
 
     @Override
-    public Map<String, Supplier<Transport>> getTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    public Settings additionalSettings() {
+        return Settings.builder()
+            // here we set the netty4 transport and http transport as the default. This is a set once setting
+            // ie. if another plugin does that as well the server will fail - only one default network can exist!
+            .put(NetworkModule.HTTP_DEFAULT_TYPE_SETTING.getKey(), NETTY_HTTP_TRANSPORT_NAME)
+            .put(NetworkModule.TRANSPORT_DEFAULT_TYPE_SETTING.getKey(), NETTY_TRANSPORT_NAME)
+            .put(HttpTransportSettings.SETTING_HTTP_COMPRESSION.getKey(), false)
+            .build();
+    }
+
+    @Override
+    public Map<String, Supplier<Transport>> getTransports(Settings settings,
+                                                          ThreadPool threadPool,
+                                                          BigArrays bigArrays,
                                                           PageCacheRecycler pageCacheRecycler,
                                                           CircuitBreakerService circuitBreakerService,
                                                           NamedWriteableRegistry namedWriteableRegistry,
                                                           NetworkService networkService) {
-        return Collections.singletonMap(NETTY_TRANSPORT_NAME, () -> new Netty4Transport(settings, threadPool, networkService, bigArrays,
-            namedWriteableRegistry, circuitBreakerService));
+        return Collections.singletonMap(
+            NETTY_TRANSPORT_NAME,
+            () -> new Netty4Transport(
+                settings,
+                threadPool,
+                networkService,
+                bigArrays,
+                namedWriteableRegistry,
+                circuitBreakerService
+            )
+        );
     }
 
     @Override
@@ -93,7 +131,17 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                                                                         NamedXContentRegistry xContentRegistry,
                                                                         NetworkService networkService,
                                                                         NodeClient nodeClient) {
-        return Collections.singletonMap(NETTY_HTTP_TRANSPORT_NAME,
-            () -> new Netty4HttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry));
+        return Collections.singletonMap(
+            NETTY_HTTP_TRANSPORT_NAME,
+            () -> new Netty4HttpServerTransport(
+                settings,
+                networkService,
+                bigArrays,
+                threadPool,
+                xContentRegistry,
+                pipelineRegistry,
+                nodeClient
+            )
+        );
     }
 }
