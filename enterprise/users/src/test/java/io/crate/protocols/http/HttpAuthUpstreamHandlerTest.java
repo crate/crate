@@ -159,7 +159,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         String userName = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, Settings.EMPTY).v1();
 
-        assertThat(userName, is("example.com"));
+        assertThat(userName, is("localhost"));
     }
 
     @Test
