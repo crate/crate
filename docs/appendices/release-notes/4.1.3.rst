@@ -34,7 +34,7 @@ See the :ref:`version_4.1.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue that led to more than one expressions in the form
+- Fixed an issue that led to more than one expression in the form
   ``<literalValue> AS <alias>`` to be interpreted as the same column if all
   ``<literalValue>`` expressions are equal.
 
@@ -45,7 +45,7 @@ Fixes
   ``ON CONFLICT (...) UPDATE SET`` in an ``INSERT`` statement.
 
 - Fixed an issue that could lead to a ``Values less than -1 bytes are not
-  supported`` error, if one or more CrateDB nodes have few disk space
+  supported`` error if one or more CrateDB nodes have insufficient disk space
   available.
 
 - Fixed an issue that would cause ``COPY FROM`` statements that used a HTTPS

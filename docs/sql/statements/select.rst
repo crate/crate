@@ -172,8 +172,8 @@ A ``joined_relation`` is a relation which joins two relations together. See
   have a returning value of type ``boolean``.
 
 :col_names:
-  A comma separated list of column names. The relations joined need to contain
-  the columns specified.
+  A comma-separated list of column names. The joined relations need to contain
+  the specified columns.
 
 Table function
 ''''''''''''''
