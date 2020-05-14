@@ -21,7 +21,27 @@
 
 package io.crate.integrationtests;
 
-import io.crate.breaker.CrateCircuitBreakerService;
+import static io.crate.testing.TestingHelpers.printRows;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.core.Is.is;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
+import org.junit.Test;
+
 import io.crate.data.CollectionBucket;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.join.RamBlockSizeCalculator;
@@ -31,24 +51,6 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.After;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
-import static io.crate.testing.TestingHelpers.printRows;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class JoinIntegrationTest extends SQLTransportIntegrationTest {
@@ -884,7 +886,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         double overhead = 1.0d;
         execute("set global \"indices.breaker.query.limit\" = '" + memoryLimit + "b', " +
                 "\"indices.breaker.query.overhead\" = " + overhead);
-        CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CrateCircuitBreakerService.class).getBreaker(CrateCircuitBreakerService.QUERY);
+        CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CircuitBreakerService.class).getBreaker(HierarchyCircuitBreakerService.QUERY);
         randomiseAndConfigureJoinBlockSize("t1", 5L, queryCircuitBreaker);
         randomiseAndConfigureJoinBlockSize("t2", 5L, queryCircuitBreaker);
 
@@ -966,7 +968,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         double overhead = 1.0d;
         execute("set global \"indices.breaker.query.limit\" = '" + memoryLimit + "b', " +
                 "\"indices.breaker.query.overhead\" = " + overhead);
-        CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CrateCircuitBreakerService.class).getBreaker(CrateCircuitBreakerService.QUERY);
+        CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CircuitBreakerService.class).getBreaker(HierarchyCircuitBreakerService.QUERY);
         randomiseAndConfigureJoinBlockSize("t1", 10L, queryCircuitBreaker);
 
         execute("select x from t1 left_rel JOIN (select x x2, count(x) from t1 group by x2) right_rel " +

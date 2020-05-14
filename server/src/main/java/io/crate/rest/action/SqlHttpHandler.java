@@ -36,7 +36,6 @@ import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
 import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.exceptions.SQLExceptions;
@@ -63,6 +62,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import javax.annotation.Nullable;
@@ -253,7 +253,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (resultFields == null) {
             resultReceiver = new RestRowCountReceiver(JsonXContent.contentBuilder(), startTimeInNs, includeTypes);
         } else {
-            CircuitBreaker breaker = circuitBreakerProvider.apply(CrateCircuitBreakerService.QUERY);
+            CircuitBreaker breaker = circuitBreakerProvider.apply(HierarchyCircuitBreakerService.QUERY);
             RamAccounting ramAccounting = new BlockBasedRamAccounting(
                 b -> breaker.addEstimateBytesAndMaybeBreak(b, "http-result"),
                 MAX_BLOCK_SIZE_IN_BYTES);

@@ -22,9 +22,23 @@
 
 package io.crate.execution.engine.fetch;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
+
 import com.carrotsearch.hppc.IntObjectMap;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
+
 import io.crate.Streamer;
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.StreamBucket;
@@ -32,17 +46,6 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionListenerResponseHandler;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
-
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadPoolExecutor;
 
 @Singleton
 public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, NodeFetchResponse> {
@@ -60,14 +63,14 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                                     ThreadPool threadPool,
                                     JobsLogs jobsLogs,
                                     TasksService tasksService,
-                                    CrateCircuitBreakerService circuitBreakerService) {
+                                    CircuitBreakerService circuitBreakerService) {
         this.transports = transports;
         this.nodeFetchOperation = new NodeFetchOperation(
             (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH),
             EsExecutors.numberOfProcessors(settings),
             jobsLogs,
             tasksService,
-            circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY)
+            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY)
         );
 
         transportService.registerRequestHandler(

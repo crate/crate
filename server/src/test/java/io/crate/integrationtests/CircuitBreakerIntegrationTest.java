@@ -23,7 +23,9 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.breaker.CrateCircuitBreakerService;
+
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -42,12 +44,11 @@ public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testQueryBreakerIsDecrementedWhenQueryCompletes() {
         execute("create table t1 (text string)");
-        ensureYellow();
         execute("insert into t1 values ('this is some text'), ('other text')");
         refresh();
 
-        CrateCircuitBreakerService circuitBreakerService = internalCluster().getInstance(CrateCircuitBreakerService.class);
-        CircuitBreaker queryBreaker = circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+        CircuitBreakerService circuitBreakerService = internalCluster().getInstance(CircuitBreakerService.class);
+        CircuitBreaker queryBreaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
         long breakerBytesUsedBeforeQuery = queryBreaker.getUsed();
 
         execute("select text from t1 group by text");
@@ -58,7 +59,6 @@ public class CircuitBreakerIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testQueryBreakerIsUpdatedWhenSettingIsChanged() {
         execute("create table t1 (text string) clustered into 1 shards");
-        ensureYellow();
         execute("insert into t1 values ('this is some text'), ('other text')");
         refresh();
 

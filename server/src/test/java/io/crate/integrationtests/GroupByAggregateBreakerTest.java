@@ -22,8 +22,8 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.breaker.CrateCircuitBreakerService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.junit.Test;
 
 public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
@@ -32,7 +32,7 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "256b")
+            .put(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "256b")
             .build();
     }
 

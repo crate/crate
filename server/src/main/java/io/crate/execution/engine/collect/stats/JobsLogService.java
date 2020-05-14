@@ -22,17 +22,41 @@
 
 package io.crate.execution.engine.collect.stats;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import com.google.common.annotations.VisibleForTesting;
+
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.JobContextLogSizeEstimator;
 import io.crate.breaker.OperationContextLogSizeEstimator;
 import io.crate.breaker.SizeEstimator;
 import io.crate.common.collections.BlockingEvictingQueue;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.ExpressionsInput;
@@ -51,27 +75,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * The JobsLogService is available on each node and holds the meta data of the cluster, such as active jobs and operations.
@@ -122,7 +125,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     private static final OperationContextLogSizeEstimator OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR = new OperationContextLogSizeEstimator();
 
     private final ScheduledExecutorService scheduler;
-    private final CrateCircuitBreakerService breakerService;
+    private final CircuitBreakerService breakerService;
     private final InputFactory inputFactory;
     private final StaticTableReferenceResolver<JobContextLog> refResolver;
     private final ExpressionAnalyzer expressionAnalyzer;
@@ -145,7 +148,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
                           ClusterService clusterService,
                           ClusterSettings clusterSettings,
                           Functions functions,
-                          CrateCircuitBreakerService breakerService) {
+                          CircuitBreakerService breakerService) {
         this(
             settings,
             clusterService::localNode,
@@ -162,7 +165,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
                    ClusterSettings clusterSettings,
                    Functions functions,
                    ScheduledExecutorService scheduler,
-                   CrateCircuitBreakerService breakerService) {
+                   CircuitBreakerService breakerService) {
         this.scheduler = scheduler;
         this.breakerService = breakerService;
         this.inputFactory = new InputFactory(functions);
@@ -244,7 +247,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     @VisibleForTesting
     void updateJobSink(int size, TimeValue expiration) {
         LogSink<JobContextLog> sink = createSink(
-            size, expiration, JOB_CONTEXT_LOG_ESTIMATOR, CrateCircuitBreakerService.JOBS_LOG);
+            size, expiration, JOB_CONTEXT_LOG_ESTIMATOR, HierarchyCircuitBreakerService.JOBS_LOG);
         LogSink<JobContextLog> newSink = sink.equals(NoopLogSink.instance()) ? sink : new FilteredLogSink<>(
             memoryFilter,
             persistFilter,
@@ -316,8 +319,11 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
 
     @VisibleForTesting
     void updateOperationSink(int size, TimeValue expiration) {
-        LogSink<OperationContextLog> newSink = createSink(size, expiration, OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR,
-            CrateCircuitBreakerService.OPERATIONS_LOG);
+        LogSink<OperationContextLog> newSink = createSink(
+            size,
+            expiration,
+            OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR,
+            HierarchyCircuitBreakerService.OPERATIONS_LOG);
         jobsLogs.updateOperationsLog(newSink);
     }
 
