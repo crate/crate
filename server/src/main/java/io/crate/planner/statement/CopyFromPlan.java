@@ -23,13 +23,13 @@
 package io.crate.planner.statement;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
 import io.crate.analyze.BoundCopyFrom;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

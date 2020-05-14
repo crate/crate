@@ -22,8 +22,8 @@
 
 package io.crate.execution.dml.upsert;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.Constants;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;

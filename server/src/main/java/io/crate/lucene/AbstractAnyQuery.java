@@ -22,7 +22,6 @@
 
 package io.crate.lucene;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.operator.any.AnyOperators;
@@ -53,8 +52,9 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
     public Query apply(Function function, LuceneQueryBuilder.Context context) throws IOException {
         Symbol left = function.arguments().get(0);
         Symbol collectionSymbol = function.arguments().get(1);
-        Preconditions.checkArgument(DataTypes.isArray(collectionSymbol.valueType()),
-                                    "invalid argument for ANY expression");
+        if (!DataTypes.isArray(collectionSymbol.valueType())) {
+            throw new IllegalArgumentException("invalid argument for ANY expression");
+        }
 
         if (DataTypes.isArray(left.valueType())) {
             throw new UnsupportedFeatureException(
@@ -63,13 +63,13 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
         if (left.symbolType().isValueSymbol()) {
             // 1 = any (array_col) - simple eq
             if (collectionSymbol instanceof Reference) {
-                return literalMatchesAnyArrayRef((Literal) left, (Reference) collectionSymbol, context);
+                return literalMatchesAnyArrayRef((Literal<?>) left, (Reference) collectionSymbol, context);
             } else {
                 // no reference found (maybe subscript) in ANY expression -> fallback to slow generic function filter
                 return null;
             }
         } else if (left instanceof Reference && collectionSymbol.symbolType().isValueSymbol()) {
-            return refMatchesAnyArrayLiteral((Reference) left, (Literal) collectionSymbol, context);
+            return refMatchesAnyArrayLiteral((Reference) left, (Literal<?>) collectionSymbol, context);
         } else {
             // might be the case if the left side is a function -> will fallback to (slow) generic function filter
             return null;
@@ -102,7 +102,7 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
      * <p>
      * Where candidate is a literal and array a reference
      */
-    protected abstract Query literalMatchesAnyArrayRef(Literal candidate,
+    protected abstract Query literalMatchesAnyArrayRef(Literal<?> candidate,
                                                        Reference array,
                                                        LuceneQueryBuilder.Context context) throws IOException;
 
@@ -117,6 +117,6 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
      * Where candidate is a reference and array a literal
      */
     protected abstract Query refMatchesAnyArrayLiteral(Reference candidate,
-                                                       Literal array,
+                                                       Literal<?> array,
                                                        LuceneQueryBuilder.Context context) throws IOException;
 }

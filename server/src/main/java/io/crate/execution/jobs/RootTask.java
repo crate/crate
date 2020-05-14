@@ -23,7 +23,7 @@ package io.crate.execution.jobs;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;

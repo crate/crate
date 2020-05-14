@@ -21,7 +21,6 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import com.google.common.base.MoreObjects;
 import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
@@ -52,6 +51,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Objects;
 
 import static io.crate.common.collections.Lists2.mapTail;
 import static io.crate.expression.symbol.Symbols.lookupValueByColumn;
@@ -243,7 +243,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     @Override
     public Symbol visitReference(Reference ref, SourceSymbols sourceSymbols) {
         if (ref instanceof GeneratedReference) {
-            return MoreObjects.firstNonNull(
+            return Objects.requireNonNullElse(
                 sourceSymbols.inputs.get(ref),
                 (((GeneratedReference) ref).generatedExpression().accept(this, sourceSymbols)));
         }

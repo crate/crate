@@ -23,9 +23,9 @@ package io.crate.execution.engine.collect;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

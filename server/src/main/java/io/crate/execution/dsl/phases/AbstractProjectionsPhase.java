@@ -22,9 +22,6 @@
 
 package io.crate.execution.dsl.phases;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -32,13 +29,16 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.util.iterable.Iterables;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public abstract class AbstractProjectionsPhase implements ExecutionPhase {
+
 
     private UUID jobId;
     private int executionPhaseId;
@@ -54,10 +54,10 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     }
 
     protected static List<DataType> extractOutputTypes(List<Symbol> outputs, List<Projection> projections) {
-        Projection lastProjection = Iterables.getLast(projections, null);
-        if (lastProjection == null) {
+        if (projections.isEmpty()) {
             return Symbols.typeView(outputs);
         } else {
+            var lastProjection = Iterables.get(projections, projections.size() - 1);
             return Symbols.typeView(lastProjection.outputs());
         }
     }
@@ -70,6 +70,8 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     public UUID jobId() {
         return jobId;
     }
+
+
 
     @Override
     public int phaseId() {
@@ -93,7 +95,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
 
     public Optional<Projection> finalProjection() {
         if (projections.size() == 0) {
-            return Optional.absent();
+            return Optional.empty();
         } else {
             return Optional.of(projections.get(projections.size() - 1));
         }
@@ -167,10 +169,10 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("projections", projections)
-            .add("outputTypes", outputTypes)
-            .toString();
+        return "AbstractProjectionsPhase{" +
+               "name=" + name +
+               ", projections=" + projections +
+               ", outputTypes=" + outputTypes +
+               '}';
     }
 }

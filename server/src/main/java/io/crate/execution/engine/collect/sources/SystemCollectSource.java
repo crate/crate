@@ -23,7 +23,6 @@ package io.crate.execution.engine.collect.sources;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
@@ -67,7 +66,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class SystemCollectSource implements CollectSource {
 
-    private final ImmutableMap<RelationName, SysRowUpdater<?>> rowUpdaters;
+    private final Map<RelationName, SysRowUpdater<?>> rowUpdaters;
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
 
@@ -91,7 +90,7 @@ public class SystemCollectSource implements CollectSource {
         this.sysTables = sysTableDefinitions;
         this.pgCatalogTables = pgCatalogTables;
 
-        rowUpdaters = ImmutableMap.of(SysNodeChecksTableInfo.IDENT, sysNodeChecks);
+        rowUpdaters = Map.of(SysNodeChecksTableInfo.IDENT, sysNodeChecks);
     }
 
     Function<Iterable, Iterable<? extends Row>> toRowsIterableTransformation(RoutedCollectPhase collectPhase,

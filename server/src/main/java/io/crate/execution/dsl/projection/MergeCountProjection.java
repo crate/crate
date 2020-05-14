@@ -22,7 +22,6 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
@@ -37,7 +36,7 @@ public final class MergeCountProjection extends Projection {
     public static final MergeCountProjection INSTANCE = new MergeCountProjection();
 
     // number of rows
-    public static final List<Symbol> OUTPUTS = ImmutableList.of(new InputColumn(0, DataTypes.LONG));
+    public static final List<Symbol> OUTPUTS = List.of(new InputColumn(0, DataTypes.LONG));
 
     private MergeCountProjection() {
     }

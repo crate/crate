@@ -21,12 +21,8 @@
 
 package io.crate.analyze;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import io.crate.analyze.ddl.GeoSettingsApplier;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -60,13 +56,13 @@ public class AnalyzedColumnDefinition<T> {
     private static final DeprecationLogger DEPRECATION_LOGGER =
         new DeprecationLogger(LogManager.getLogger(AnalyzedColumnDefinition.class));
 
-    private static final Set<Integer> UNSUPPORTED_PK_TYPE_IDS = Sets.newHashSet(
+    private static final Set<Integer> UNSUPPORTED_PK_TYPE_IDS = Set.of(
         ObjectType.ID,
         DataTypes.GEO_POINT.id(),
         DataTypes.GEO_SHAPE.id()
     );
 
-    private static final Set<Integer> UNSUPPORTED_INDEX_TYPE_IDS = Sets.newHashSet(
+    private static final Set<Integer> UNSUPPORTED_INDEX_TYPE_IDS = Set.of(
         ObjectType.ID,
         DataTypes.GEO_POINT.id(),
         DataTypes.GEO_SHAPE.id()
@@ -499,7 +495,7 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     Map<String, Object> toMetaIndicesMapping() {
-        return ImmutableMap.of();
+        return Map.of();
     }
 
     @Override
@@ -519,7 +515,9 @@ public class AnalyzedColumnDefinition<T> {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("ident", ident).toString();
+        return "AnalyzedColumnDefinition{" +
+               "ident=" + ident +
+               '}';
     }
 
     public List<AnalyzedColumnDefinition<T>> children() {
@@ -527,7 +525,7 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     void addCopyTo(Set<String> targets) {
-        this.copyToTargets = Lists.newArrayList(targets);
+        this.copyToTargets = new ArrayList<>(targets);
     }
 
     public void ident(ColumnIdent ident) {

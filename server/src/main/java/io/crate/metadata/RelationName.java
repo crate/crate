@@ -21,8 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
@@ -43,7 +41,7 @@ import java.util.Set;
 
 public final class RelationName implements Writeable {
 
-    private static final Set<String> INVALID_NAME_CHARACTERS = ImmutableSet.of(".");
+    private static final Set<String> INVALID_NAME_CHARACTERS = Set.of(".");
 
     @Nullable
     private final String schema;
@@ -51,8 +49,10 @@ public final class RelationName implements Writeable {
 
     public static RelationName of(QualifiedName name, String defaultSchema) {
         List<String> parts = name.getParts();
-        Preconditions.checkArgument(parts.size() < 3,
-            "Table with more than 2 QualifiedName parts is not supported. Only <schema>.<tableName> works.");
+        if (parts.size() > 2) {
+            throw new IllegalArgumentException(
+                "Table with more than 2 QualifiedName parts is not supported. Only <schema>.<tableName> works.");
+        }
         if (parts.size() == 2) {
             return new RelationName(parts.get(0), parts.get(1));
         }
@@ -61,13 +61,15 @@ public final class RelationName implements Writeable {
 
     public static RelationName fromBlobTable(Table<?> table) {
         List<String> tableNameParts = table.getName().getParts();
-        Preconditions.checkArgument(tableNameParts.size() < 3, "Invalid tableName \"%s\"", table.getName());
 
+        if (tableNameParts.size() > 2) {
+            throw new IllegalArgumentException("Invalid tableName \"" + table.getName() + "\"");
+        }
         if (tableNameParts.size() == 2) {
-            Preconditions.checkArgument(tableNameParts.get(0).equalsIgnoreCase(BlobSchemaInfo.NAME),
-                                        "The Schema \"%s\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause",
-                                        tableNameParts.get(0));
-
+            if (!tableNameParts.get(0).equalsIgnoreCase(BlobSchemaInfo.NAME)) {
+                throw new IllegalArgumentException(
+                    "The Schema \"" + tableNameParts.get(0) + "\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
+            }
             return new RelationName(tableNameParts.get(0), tableNameParts.get(1));
         }
         assert tableNameParts.size() == 1 : "tableNameParts.size() must be 1";

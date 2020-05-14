@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -64,13 +63,17 @@ public class PartitionPropertiesAnalyzer {
 
     public static PartitionName toPartitionName(DocTableInfo tableInfo,
                                                 List<Assignment<Object>> partitionProperties) {
-        Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().fqn());
-        Preconditions.checkArgument(partitionProperties.size() == tableInfo.partitionedBy().size(),
-            "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
-            tableInfo.ident().fqn(),
-            tableInfo.partitionedBy().size(),
-            partitionProperties.size()
-        );
+        if (!tableInfo.isPartitioned()) {
+            throw new IllegalArgumentException("table '" + tableInfo.ident().fqn() + "' is not partitioned");
+        }
+        if (partitionProperties.size() != tableInfo.partitionedBy().size()) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
+                tableInfo.ident().fqn(),
+                tableInfo.partitionedBy().size(),
+                partitionProperties.size()
+            ));
+        }
         Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties);
         String[] values = new String[properties.size()];
 

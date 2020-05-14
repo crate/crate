@@ -59,14 +59,14 @@ public class FulltextAnalyzerResolver {
     // redefined list of extended analyzers not available outside of
     // a concrete index (see AnalyzerModule.ExtendedProcessor)
     // stripped Prebuilt<Thingy> (e.g. PreBuiltTokenFilters)
-    private static final ImmutableSet<String> EXTENDED_BUILTIN_TOKEN_FILTERS = ImmutableSet.of(
+    private static final Set<String> EXTENDED_BUILTIN_TOKEN_FILTERS = Set.of(
         "limit", "delimited_payload_filter", "synonym",
         "keep", "pattern_capture", "pattern_replace",
         "dictionary_decompounder", "hyphenation_decompounder",
         "keyword_marker", "stemmer_override",
         "hunspell", "cjk_bigram", "cjk_width");
-    private static final ImmutableSet<String> EXTENDED_BUILTIN_CHAR_FILTERS = ImmutableSet
-        .of("mapping", "pattern_replace");
+    private static final Set<String> EXTENDED_BUILTIN_CHAR_FILTERS =
+        Set.of("mapping", "pattern_replace");
 
     // used for saving the creation statement
     public static final String SQL_STATEMENT_KEY = "_sql_stmt";

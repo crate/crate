@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.files;
 
-import com.google.common.base.Splitter;
 import org.elasticsearch.ResourceNotFoundException;
 
 import java.io.BufferedReader;
@@ -36,8 +35,9 @@ import java.util.List;
 
 public class SqlFeaturesIterable implements Iterable<SqlFeatureContext> {
 
+    private static final int NUM_COLS = 7;
+
     private final List<SqlFeatureContext> featuresList;
-    private static final Splitter TAB_SPLITTER = Splitter.on("\t");
 
     public SqlFeaturesIterable() throws IOException {
         try (InputStream sqlFeatures = SqlFeaturesIterable.class.getResourceAsStream("/sql_features.tsv")) {
@@ -49,7 +49,7 @@ public class SqlFeaturesIterable implements Iterable<SqlFeatureContext> {
                 SqlFeatureContext ctx;
                 String next;
                 while ((next = reader.readLine()) != null) {
-                    List<String> parts = TAB_SPLITTER.splitToList(next);
+                    List<String> parts = List.of(next.split("\t", NUM_COLS));
                     ctx = new SqlFeatureContext(parts.get(0),
                         parts.get(1),
                         parts.get(2),

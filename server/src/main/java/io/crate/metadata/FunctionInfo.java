@@ -21,12 +21,8 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 import io.crate.common.collections.EnumSets;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -36,15 +32,18 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 
 public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
 
-    public static final Set<Feature> NO_FEATURES = ImmutableSet.of();
-    public static final Set<Feature> DETERMINISTIC_ONLY = Sets.immutableEnumSet(Feature.DETERMINISTIC);
-    public static final Set<Feature> DETERMINISTIC_AND_COMPARISON_REPLACEMENT = Sets.immutableEnumSet(
+    public static final Set<Feature> NO_FEATURES = Set.of();
+    public static final Set<Feature> DETERMINISTIC_ONLY = EnumSet.of(Feature.DETERMINISTIC);
+    public static final Set<Feature> DETERMINISTIC_AND_COMPARISON_REPLACEMENT = EnumSet.of(
         Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT);
 
     private final FunctionIdent ident;
@@ -98,28 +97,32 @@ public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        FunctionInfo that = (FunctionInfo) o;
-        return Objects.equal(ident, that.ident) &&
-               Objects.equal(returnType, that.returnType) &&
-               Objects.equal(type, that.type) &&
-               Objects.equal(features, that.features);
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        FunctionInfo info = (FunctionInfo) o;
+        return Objects.equals(ident, info.ident) &&
+               Objects.equals(returnType, info.returnType) &&
+               type == info.type &&
+               Objects.equals(features, info.features);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(ident, returnType, type, features);
+        return Objects.hash(ident, returnType, type, features);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("type", type)
-            .add("ident", ident)
-            .add("returnType", returnType)
-            .add("features", features)
-            .toString();
+        return "FunctionInfo{" +
+               "type=" + type +
+               ", ident=" + ident +
+               ", returnType=" + returnType +
+               ", features=" + features +
+               '}';
     }
 
     @Override
@@ -139,7 +142,7 @@ public final class FunctionInfo implements Comparable<FunctionInfo>, Writeable {
         type = Type.values()[in.readVInt()];
 
         int enumElements = in.readVInt();
-        this.features = Sets.immutableEnumSet(EnumSets.unpackFromInt(enumElements, Feature.class));
+        this.features = Collections.unmodifiableSet(EnumSets.unpackFromInt(enumElements, Feature.class));
     }
 
     @Override

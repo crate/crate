@@ -22,23 +22,6 @@
 
 package io.crate.execution.jobs;
 
-import static io.crate.execution.dsl.projection.Projections.nodeProjections;
-import static io.crate.execution.dsl.projection.Projections.shardProjections;
-
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.function.Predicate;
-import java.util.stream.Collector;
-
-import javax.annotation.Nullable;
-
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntCollection;
 import com.carrotsearch.hppc.IntContainer;
@@ -51,22 +34,6 @@ import com.carrotsearch.hppc.LongObjectMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
-import com.google.common.base.MoreObjects;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.threadpool.ThreadPool;
-
 import io.crate.Streamer;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.ConcurrentRamAccounting;
@@ -128,6 +95,36 @@ import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.operators.PKAndVersion;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Predicate;
+import java.util.stream.Collector;
+
+import static io.crate.execution.dsl.projection.Projections.nodeProjections;
+import static io.crate.execution.dsl.projection.Projections.shardProjections;
 
 @Singleton
 public class JobSetup {
@@ -749,7 +746,7 @@ public class JobSetup {
             var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
             RowConsumer consumer = context.getRowConsumer(
                 phase,
-                MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE),
+                Objects.requireNonNullElse(phase.nodePageSizeHint(), Paging.PAGE_SIZE),
                 new BlockBasedRamAccounting(ramAccounting::addBytes, ramAccountingBlockSizeInBytes)
             );
             consumer.completionFuture().whenComplete((result, error) -> ramAccounting.close());

@@ -22,9 +22,6 @@
 
 package io.crate.analyze.expressions;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.action.sql.Option;
 import io.crate.analyze.DataTypeAnalyzer;
@@ -165,13 +162,12 @@ import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
  */
 public class ExpressionAnalyzer {
 
-    private static final Map<ComparisonExpression.Type, ComparisonExpression.Type> SWAP_OPERATOR_TABLE =
-        ImmutableMap.<ComparisonExpression.Type, ComparisonExpression.Type>builder()
-            .put(ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN)
-            .put(ComparisonExpression.Type.LESS_THAN, ComparisonExpression.Type.GREATER_THAN)
-            .put(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ComparisonExpression.Type.LESS_THAN_OR_EQUAL)
-            .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
-            .build();
+    private static final Map<ComparisonExpression.Type, ComparisonExpression.Type> SWAP_OPERATOR_TABLE = Map.of(
+        ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN,
+        ComparisonExpression.Type.LESS_THAN, ComparisonExpression.Type.GREATER_THAN,
+        ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, ComparisonExpression.Type.LESS_THAN_OR_EQUAL,
+        ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL
+    );
 
     private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final ParamTypeHints paramTypeHints;
@@ -396,8 +392,9 @@ public class ExpressionAnalyzer {
      * @return A new list with the casted symbols.
      */
     private static List<Symbol> cast(List<Symbol> symbolsToCast, List<DataType> targetTypes) {
-        Preconditions.checkState(symbolsToCast.size() == targetTypes.size(),
-            "Given symbol list has to match the target type list.");
+        if (symbolsToCast.size() != targetTypes.size()) {
+            throw new IllegalStateException("Given symbol list has to match the target type list.");
+        }
         int size = symbolsToCast.size();
         List<Symbol> castList = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -506,7 +503,7 @@ public class ExpressionAnalyzer {
             Symbol caseOperand = convert(node.getOperand(), context);
             for (WhenClause whenClause : whenClauses) {
                 Symbol whenOperand = convert(whenClause.getOperand(), context);
-                operands.add(allocateFunction(EqOperator.NAME, ImmutableList.of(caseOperand, whenOperand), context));
+                operands.add(allocateFunction(EqOperator.NAME, List.of(caseOperand, whenOperand), context));
                 results.add(convert(whenClause.getResult(), context));
             }
             ensureResultTypesMatch(results);
@@ -551,7 +548,9 @@ public class ExpressionAnalyzer {
             for (int i = operands.size() - 1 ; i >= 0; i--) {
                 Symbol operand = operands.get(i);
                 Symbol result = results.get(i);
-                List<Symbol> arguments = Lists.newArrayList(operand, result);
+                List<Symbol> arguments = new ArrayList<>();
+                arguments.add(operand);
+                arguments.add(result);
                 if (lastSymbol != null) {
                     arguments.add(lastSymbol);
                 }
@@ -631,10 +630,10 @@ public class ExpressionAnalyzer {
             Symbol argument = node.getValue().accept(this, context);
             return allocateFunction(
                 NotPredicate.NAME,
-                ImmutableList.of(
+                List.of(
                     allocateFunction(
                         io.crate.expression.predicate.IsNullPredicate.NAME,
-                        ImmutableList.of(argument),
+                        List.of(argument),
                         context)),
                 context);
         }
@@ -705,7 +704,7 @@ public class ExpressionAnalyzer {
                     throw new UnsupportedOperationException(
                         "Unsupported logical binary expression " + node.getType().name());
             }
-            List<Symbol> arguments = ImmutableList.of(
+            List<Symbol> arguments = List.of(
                 node.getLeft().accept(this, context),
                 node.getRight().accept(this, context)
             );
@@ -717,7 +716,7 @@ public class ExpressionAnalyzer {
             Symbol argument = node.getValue().accept(this, context);
             return allocateFunction(
                 NotPredicate.NAME,
-                ImmutableList.of(argument),
+                List.of(argument),
                 context);
         }
 
@@ -753,7 +752,7 @@ public class ExpressionAnalyzer {
             }
             return allocateFunction(
                 operatorName,
-                ImmutableList.of(leftSymbol, arraySymbol),
+                List.of(leftSymbol, arraySymbol),
                 context);
         }
 
@@ -766,7 +765,7 @@ public class ExpressionAnalyzer {
             Symbol leftSymbol = node.getPattern().accept(this, context);
             return allocateFunction(
                 LikeOperators.arrayOperatorName(node.inverse(), node.ignoreCase()),
-                ImmutableList.of(leftSymbol, arraySymbol),
+                List.of(leftSymbol, arraySymbol),
                 context);
         }
 
@@ -779,7 +778,7 @@ public class ExpressionAnalyzer {
             Symbol pattern = node.getPattern().accept(this, context);
             return allocateFunction(
                 LikeOperators.arrayOperatorName(node.ignoreCase()),
-                ImmutableList.of(expression, pattern),
+                List.of(expression, pattern),
                 context);
         }
 
@@ -787,7 +786,7 @@ public class ExpressionAnalyzer {
         protected Symbol visitIsNullPredicate(IsNullPredicate node, ExpressionAnalysisContext context) {
             Symbol value = node.getValue().accept(this, context);
 
-            return allocateFunction(io.crate.expression.predicate.IsNullPredicate.NAME, ImmutableList.of(value), context);
+            return allocateFunction(io.crate.expression.predicate.IsNullPredicate.NAME, List.of(value), context);
         }
 
         @Override
@@ -809,7 +808,7 @@ public class ExpressionAnalyzer {
 
             return allocateFunction(
                 node.getType().name().toLowerCase(Locale.ENGLISH),
-                ImmutableList.of(left, right),
+                List.of(left, right),
                 context);
         }
 
@@ -988,7 +987,7 @@ public class ExpressionAnalyzer {
                 lte.arguments(),
                 context);
 
-            return allocateFunction(AndOperator.NAME, ImmutableList.of(gteFunc, lteFunc), context);
+            return allocateFunction(AndOperator.NAME, List.of(gteFunc, lteFunc), context);
         }
 
         @Override
@@ -1001,9 +1000,9 @@ public class ExpressionAnalyzer {
                 if (columnType == null) {
                     columnType = column.valueType();
                 }
-                Preconditions.checkArgument(
-                    column instanceof ScopedSymbol || column instanceof Reference,
-                    Symbols.format("can only MATCH on columns, not on %s", column));
+                if (!(column instanceof ScopedSymbol || column instanceof Reference)) {
+                    throw new IllegalArgumentException(Symbols.format("can only MATCH on columns, not on %s", column));
+                }
                 Symbol boost = ident.boost().accept(this, context);
                 identBoostMap.put(column, boost);
                 if (column instanceof ScopedSymbol) {
@@ -1148,9 +1147,11 @@ public class ExpressionAnalyzer {
     }
 
     private static void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType<?> columnType) {
-        Preconditions.checkArgument(
-            io.crate.expression.predicate.MatchPredicate.SUPPORTED_TYPES.contains(columnType),
-            String.format(Locale.ENGLISH, "Can only use MATCH on columns of type STRING or GEO_SHAPE, not on '%s'", columnType));
+        if (!io.crate.expression.predicate.MatchPredicate.SUPPORTED_TYPES.contains(columnType)) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Can only use MATCH on columns of type STRING or GEO_SHAPE, not on '%s'", columnType));
+        }
         for (Symbol column : columns) {
             if (!column.valueType().equals(columnType)) {
                 throw new IllegalArgumentException(String.format(
@@ -1268,9 +1269,9 @@ public class ExpressionAnalyzer {
         List<Symbol> arguments() {
             if (right == null) {
                 // this is the case if the comparison has been rewritten to not(eq(exp1, exp2))
-                return ImmutableList.of(left);
+                return List.of(left);
             }
-            return ImmutableList.of(left, right);
+            return List.of(left, right);
         }
     }
 }

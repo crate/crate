@@ -22,9 +22,8 @@
 
 package io.crate.auth.user;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.user.Privilege;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.user.SecureHash;
 
 import javax.annotation.Nullable;
@@ -34,7 +33,7 @@ import java.util.Set;
 
 public class User {
 
-    public static final User CRATE_USER = new User("crate", EnumSet.of(Role.SUPERUSER), ImmutableSet.of(), null);
+    public static final User CRATE_USER = new User("crate", EnumSet.of(Role.SUPERUSER), Set.of(), null);
 
     public enum Role {
         SUPERUSER
@@ -54,16 +53,16 @@ public class User {
     }
 
     public static User of(String name) {
-        return new User(name, ImmutableSet.of(), ImmutableSet.of(), null);
+        return new User(name, Set.of(), Set.of(), null);
     }
 
     public static User of(String name, @Nullable Set<Privilege> privileges, SecureHash password) {
-        return new User(name, ImmutableSet.of(), privileges == null ? ImmutableSet.of() : privileges, password);
+        return new User(name, Set.of(), privileges == null ? Set.of() : privileges, password);
     }
 
     @VisibleForTesting
     public static User of(String name, EnumSet<Role> roles) {
-        return new User(name, roles, ImmutableSet.of(), null);
+        return new User(name, roles, Set.of(), null);
     }
 
     public String name() {

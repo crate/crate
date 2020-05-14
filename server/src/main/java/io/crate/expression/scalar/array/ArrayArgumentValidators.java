@@ -22,7 +22,6 @@
 
 package io.crate.expression.scalar.array;
 
-import com.google.common.base.Preconditions;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -34,25 +33,30 @@ public class ArrayArgumentValidators {
 
     public static void ensureInnerTypeIsNotUndefined(List<DataType> dataTypes, String functionName) {
         DataType<?> innerType = ((ArrayType<?>) dataTypes.get(0)).innerType();
-        Preconditions.checkArgument(
-            !innerType.equals(DataTypes.UNDEFINED),
-            String.format(Locale.ENGLISH,
-                          "The inner type of the array argument `%s` function cannot be undefined", functionName));
+        if (innerType.equals(DataTypes.UNDEFINED)) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "The inner type of the array argument `%s` function cannot be undefined",
+                functionName));
+        }
     }
 
     public static void ensureBothInnerTypesAreNotUndefined(List<DataType> dataTypes, String functionName) {
         DataType<?> innerType0 = ((ArrayType<?>) dataTypes.get(0)).innerType();
         DataType<?> innerType1 = ((ArrayType<?>) dataTypes.get(1)).innerType();
 
-        Preconditions.checkArgument(
-            !innerType0.equals(DataTypes.UNDEFINED) || !innerType1.equals(DataTypes.UNDEFINED),
-            "One of the arguments of the `" + functionName + "` function can be of undefined inner type, but not both");
+        if (innerType0.equals(DataTypes.UNDEFINED) || innerType1.equals(DataTypes.UNDEFINED)) {
+            throw new IllegalArgumentException(
+                "One of the arguments of the `" + functionName +
+                "` function can be of undefined inner type, but not both");
+        }
     }
 
     public static void ensureSingleArgumentArrayInnerTypeIsNotUndefined(List<DataType> dataTypes) {
         DataType<?> innerType = ((ArrayType<?>) dataTypes.get(0)).innerType();
-        Preconditions.checkArgument(
-            !innerType.equals(DataTypes.UNDEFINED),
-            "When used with only one argument, the inner type of the array argument cannot be undefined");
+        if (innerType.equals(DataTypes.UNDEFINED)) {
+            throw new IllegalArgumentException(
+                "When used with only one argument, the inner type of the array argument cannot be undefined");
+        }
     }
 }

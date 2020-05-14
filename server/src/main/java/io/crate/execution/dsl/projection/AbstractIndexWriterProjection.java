@@ -21,9 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -41,7 +39,7 @@ import java.util.List;
 
 public abstract class AbstractIndexWriterProjection extends Projection {
 
-    public static final List<? extends Symbol> OUTPUTS = ImmutableList.of(new InputColumn(0, DataTypes.LONG));  // number of rows imported
+    public static final List<? extends Symbol> OUTPUTS = List.of(new InputColumn(0, DataTypes.LONG));  // number of rows imported
 
     private static final String BULK_SIZE = "bulk_size";
 
@@ -80,7 +78,9 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         this.idSymbols = idSymbols;
 
         this.bulkActions = settings.getAsInt(BULK_SIZE, BULK_SIZE_DEFAULT);
-        Preconditions.checkArgument(bulkActions > 0, "\"bulk_size\" must be greater than 0.");
+        if (bulkActions <= 0) {
+            throw new IllegalArgumentException("\"bulk_size\" must be greater than 0.");
+        }
     }
 
     protected AbstractIndexWriterProjection(StreamInput in) throws IOException {

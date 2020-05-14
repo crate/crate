@@ -43,9 +43,9 @@ package io.crate.planner.node.ddl;
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

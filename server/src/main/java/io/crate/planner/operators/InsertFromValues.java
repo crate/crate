@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.collect.Lists;
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
 import io.crate.analyze.OrderBy;
@@ -217,15 +216,16 @@ public class InsertFromValues implements LogicalPlan {
                 plannerContext,
                 dependencies.clusterService());
 
-        List<Row> rows = Lists.newArrayList(
-            evaluateValueTableFunction(
-                tableFunctionRelation.functionImplementation(),
-                tableFunctionRelation.function().arguments(),
-                writerProjection.allTargetColumns(),
-                tableInfo,
-                params,
-                plannerContext,
-                subQueryResults));
+        ArrayList<Row> rows = new ArrayList<>();
+        evaluateValueTableFunction(
+            tableFunctionRelation.functionImplementation(),
+            tableFunctionRelation.function().arguments(),
+            writerProjection.allTargetColumns(),
+            tableInfo,
+            params,
+            plannerContext,
+            subQueryResults
+        ).forEachRemaining(rows::add);
 
         List<Symbol> returnValues = this.writerProjection.returnValues();
 

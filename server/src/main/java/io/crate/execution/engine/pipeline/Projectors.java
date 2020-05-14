@@ -22,8 +22,8 @@
 
 package io.crate.execution.engine.pipeline;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;

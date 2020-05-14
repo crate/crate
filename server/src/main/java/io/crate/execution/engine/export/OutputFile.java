@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.export;
 
-import com.google.common.base.Preconditions;
 import io.crate.execution.dsl.projection.WriterProjection;
 
 import javax.annotation.Nullable;
@@ -41,7 +40,9 @@ public class OutputFile extends Output {
     private final boolean compression;
 
     public OutputFile(URI uri, @Nullable WriterProjection.CompressionType compressionType) {
-        Preconditions.checkArgument(uri.getHost() == null);
+        if (uri.getHost() != null) {
+            throw new IllegalArgumentException("the URI host must be defined");
+        }
         this.path = uri.getPath();
         compression = compressionType != null;
         this.overwrite = true;

@@ -21,7 +21,6 @@
 
 package io.crate.expression.symbol;
 
-import com.google.common.base.Preconditions;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -36,6 +35,8 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 public class Aggregation extends Symbol {
 
@@ -59,8 +60,8 @@ public class Aggregation extends Symbol {
                        DataType<?> valueType,
                        List<Symbol> inputs,
                        Symbol filter) {
-        Preconditions.checkNotNull(inputs, "inputs must not be null");
-        Preconditions.checkNotNull(filter, "filter must not be null");
+        requireNonNull(inputs, "inputs must not be null");
+        requireNonNull(filter, "filter must not be null");
 
         this.valueType = valueType;
         this.functionInfo = functionInfo;

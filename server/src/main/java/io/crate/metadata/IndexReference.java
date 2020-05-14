@@ -21,9 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
@@ -33,8 +30,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 
 public class IndexReference extends Reference {
@@ -47,7 +46,7 @@ public class IndexReference extends Reference {
         private Integer position = null;
 
         public Builder(ReferenceIdent ident) {
-            Preconditions.checkNotNull(ident, "ident is null");
+            requireNonNull(ident, "ident is null");
             this.ident = ident;
         }
 
@@ -96,7 +95,7 @@ public class IndexReference extends Reference {
                           List<Reference> columns,
                           @Nullable String analyzer) {
         super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, true, position, null);
-        this.columns = MoreObjects.firstNonNull(columns, Collections.<Reference>emptyList());
+        this.columns = columns;
         this.analyzer = analyzer;
     }
 
@@ -116,17 +115,23 @@ public class IndexReference extends Reference {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         IndexReference that = (IndexReference) o;
-        return Objects.equal(analyzer, that.analyzer) &&
-               Objects.equal(columns, that.columns);
+        return Objects.equals(analyzer, that.analyzer) &&
+               Objects.equals(columns, that.columns);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), analyzer, columns);
+        return Objects.hash(super.hashCode(), analyzer, columns);
     }
 
     @Override

@@ -43,8 +43,8 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static io.crate.analyze.SymbolEvaluator.evaluate;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
@@ -57,7 +57,10 @@ public class Limit extends ForwardingLogicalPlan {
         if (limit == null && offset == null) {
             return source;
         } else {
-            return new Limit(source, firstNonNull(limit, Literal.of(-1L)), firstNonNull(offset, Literal.of(0)));
+            return new Limit(
+                source,
+                Objects.requireNonNullElse(limit, Literal.of(-1L)),
+                Objects.requireNonNullElse(offset, Literal.of(0)));
         }
     }
 
@@ -80,7 +83,7 @@ public class Limit extends ForwardingLogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        int limit = firstNonNull(
+        int limit = Objects.requireNonNullElse(
             DataTypes.INTEGER.value(evaluate(
                 plannerContext.transactionContext(),
                 plannerContext.functions(),
@@ -88,7 +91,7 @@ public class Limit extends ForwardingLogicalPlan {
                 params,
                 subQueryResults)),
             NO_LIMIT);
-        int offset = firstNonNull(
+        int offset = Objects.requireNonNullElse(
             DataTypes.INTEGER.value(evaluate(
                 plannerContext.transactionContext(),
                 plannerContext.functions(),

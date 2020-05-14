@@ -24,6 +24,7 @@ package io.crate.execution.dsl.projection;
 
 import io.crate.analyze.WindowDefinition;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -157,9 +158,9 @@ public class WindowAggProjection extends Projection {
 
     @Override
     public Map<String, Object> mapRepresentation() {
-        return Map.of(
-            "type", "WindowAggregation",
-            "windowFunctions", Lists2.joinOn(", ", windowFunctions, Symbol::toString)
-        );
+        return MapBuilder.<String, Object>newMapBuilder()
+            .put("type", "WindowAggregation")
+            .put("windowFunctions", Lists2.joinOn(", ", windowFunctions, Symbol::toString))
+            .map();
     }
 }

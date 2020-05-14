@@ -22,12 +22,13 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.StringType;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
@@ -43,7 +44,7 @@ public class IndexReferenceTest extends CrateUnitTest {
         IndexReference indexReferenceInfo = new IndexReference(
             null,
             indexReferenceIdent,
-            Reference.IndexType.ANALYZED, ImmutableList.of(reference), "my_analyzer");
+            Reference.IndexType.ANALYZED, List.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(indexReferenceInfo, out);

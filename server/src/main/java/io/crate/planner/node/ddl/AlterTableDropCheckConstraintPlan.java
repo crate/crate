@@ -22,10 +22,10 @@
 
 package io.crate.planner.node.ddl;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.analyze.AnalyzedTableElements;
 import io.crate.analyze.BoundAddColumn;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

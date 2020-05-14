@@ -22,7 +22,6 @@
 
 package io.crate.expression.symbol;
 
-import com.google.common.base.Preconditions;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.any.AnyOperator;
@@ -64,6 +63,7 @@ import java.util.Objects;
 import static io.crate.expression.scalar.cast.CastFunction.CAST_SQL_NAME;
 import static io.crate.expression.scalar.cast.CastFunction.TRY_CAST_SQL_NAME;
 import static io.crate.expression.scalar.cast.CastFunctionResolver.TRY_CAST_PREFIX;
+import static java.util.Objects.requireNonNull;
 
 public class Function extends Symbol implements Cloneable {
 
@@ -117,9 +117,11 @@ public class Function extends Symbol implements Cloneable {
     }
 
     public Function(FunctionInfo info, Signature signature, List<Symbol> arguments, Symbol filter) {
-        Preconditions.checkNotNull(info, "function info is null");
-        Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size(),
-            "number of arguments must match the number of argumentTypes of the FunctionIdent");
+        requireNonNull(info, "function info is null");
+        if (arguments.size() != info.ident().argumentTypes().size()) {
+            throw new IllegalArgumentException(
+                "number of arguments must match the number of argumentTypes of the FunctionIdent");
+        }
         this.info = info;
         this.signature = signature;
         this.arguments = List.copyOf(arguments);

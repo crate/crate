@@ -22,7 +22,6 @@
 
 package io.crate.planner;
 
-import com.google.common.base.Preconditions;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.Projection;
@@ -74,8 +73,9 @@ public class UnionExecutionPlan implements ExecutionPlan, ResultDescription {
                               @Nullable PositionalOrderBy orderBy) {
         this.left = left;
         this.right = right;
-        Preconditions.checkArgument(mergePhase.numInputs() == 2,
-            "Number of inputs of MergePhase needs to be two.");
+        if (mergePhase.numInputs() != 2) {
+            throw new IllegalArgumentException("Number of inputs of MergePhase needs to be two.");
+        }
         this.mergePhase = mergePhase;
         this.unfinishedLimit = unfinishedLimit;
         this.unfinishedOffset = unfinishedOffset;

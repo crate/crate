@@ -22,13 +22,13 @@
 
 package io.crate.planner.node.ddl;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.TablePropertiesAnalyzer;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

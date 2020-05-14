@@ -21,8 +21,8 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -108,12 +108,12 @@ public class TopNProjection extends Projection {
 
     @Override
     public Map<String, Object> mapRepresentation() {
-        return ImmutableMap.of(
-            "type", "TopN",
-            "limit", limit,
-            "offset", offset,
-            "outputs", Lists2.joinOn(", ", outputs, Symbol::toString)
-        );
+        return MapBuilder.<String, Object>newMapBuilder()
+            .put("type", "TopN")
+            .put("limit", limit)
+            .put("offset", offset)
+            .put("outputs", Lists2.joinOn(", ", outputs, Symbol::toString))
+            .map();
     }
 
     @Override

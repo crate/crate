@@ -22,14 +22,14 @@
 
 package io.crate.exceptions;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import io.crate.common.SuppressForbidden;
+import io.crate.common.annotations.VisibleForTesting;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.StringJoiner;
 
 /**
@@ -96,6 +96,6 @@ public class MultiException extends RuntimeException {
             errors.add(newError);
             return new MultiException(errors);
         }
-        return new MultiException(ImmutableList.of(prevError, newError));
+        return new MultiException(List.of(prevError, newError));
     }
 }
