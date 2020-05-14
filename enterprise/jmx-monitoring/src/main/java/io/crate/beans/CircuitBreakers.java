@@ -18,10 +18,10 @@
 
 package io.crate.beans;
 
-import io.crate.breaker.CrateCircuitBreakerService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.CircuitBreakerStats;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 public class CircuitBreakers implements CircuitBreakersMXBean {
 
@@ -55,16 +55,16 @@ public class CircuitBreakers implements CircuitBreakersMXBean {
 
     @Override
     public CircuitBreakerStats getQuery() {
-        return circuitBreakerService.stats(CrateCircuitBreakerService.QUERY);
+        return circuitBreakerService.stats(HierarchyCircuitBreakerService.QUERY);
     }
 
     @Override
     public CircuitBreakerStats getJobsLog() {
-        return circuitBreakerService.stats(CrateCircuitBreakerService.JOBS_LOG);
+        return circuitBreakerService.stats(HierarchyCircuitBreakerService.JOBS_LOG);
     }
 
     @Override
     public CircuitBreakerStats getOperationsLog() {
-        return circuitBreakerService.stats(CrateCircuitBreakerService.OPERATIONS_LOG);
+        return circuitBreakerService.stats(HierarchyCircuitBreakerService.OPERATIONS_LOG);
     }
 }

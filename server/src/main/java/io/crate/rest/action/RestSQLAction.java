@@ -22,15 +22,16 @@
 
 package io.crate.rest.action;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.auth.user.UserManager;
-import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.plugin.PipelineRegistry;
-import io.crate.protocols.ssl.SslContextProvider;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.auth.user.UserManager;
+import io.crate.plugin.PipelineRegistry;
+import io.crate.protocols.ssl.SslContextProvider;
 
 @Singleton
 public class RestSQLAction {
@@ -40,7 +41,7 @@ public class RestSQLAction {
                          SQLOperations sqlOperations,
                          PipelineRegistry pipelineRegistry,
                          Provider<UserManager> userManagerProvider,
-                         CrateCircuitBreakerService breakerService,
+                         CircuitBreakerService breakerService,
                          SslContextProvider sslContextProvider) {
         UserManager userManager = userManagerProvider.get();
         pipelineRegistry.addBefore(new PipelineRegistry.ChannelPipelineItem(

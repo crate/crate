@@ -24,7 +24,6 @@ package io.crate.statistics;
 
 import io.crate.Streamer;
 import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
@@ -65,6 +64,7 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -113,7 +113,7 @@ public final class ReservoirSampler {
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         List<Streamer> streamers = Arrays.asList(Symbols.streamerArray(columns));
         List<Engine.Searcher> searchersToRelease = new ArrayList<>();
-        CircuitBreaker breaker = circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+        CircuitBreaker breaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
         RamAccounting ramAccounting = new BlockBasedRamAccounting(
             b -> breaker.addEstimateBytesAndMaybeBreak(b, "Reservoir-sampling"),
             MAX_BLOCK_SIZE_IN_BYTES);

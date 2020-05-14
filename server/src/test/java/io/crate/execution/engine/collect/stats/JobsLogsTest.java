@@ -22,30 +22,11 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import io.crate.auth.user.User;
-import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.common.collections.BlockingEvictingQueue;
-import io.crate.expression.reference.sys.job.JobContext;
-import io.crate.expression.reference.sys.job.JobContextLog;
-import io.crate.expression.reference.sys.operation.OperationContext;
-import io.crate.expression.reference.sys.operation.OperationContextLog;
-import io.crate.metadata.sys.MetricsView;
-import io.crate.planner.operators.StatementClassifier.Classification;
-import io.crate.plugin.SQLPlugin;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.set.Sets;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.planner.Plan.StatementType.SELECT;
+import static io.crate.planner.Plan.StatementType.UNDEFINED;
+import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
@@ -63,23 +44,41 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import static io.crate.planner.Plan.StatementType.SELECT;
-import static io.crate.planner.Plan.StatementType.UNDEFINED;
-import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.auth.user.User;
+import io.crate.common.collections.BlockingEvictingQueue;
+import io.crate.common.unit.TimeValue;
+import io.crate.expression.reference.sys.job.JobContext;
+import io.crate.expression.reference.sys.job.JobContextLog;
+import io.crate.expression.reference.sys.operation.OperationContext;
+import io.crate.expression.reference.sys.operation.OperationContextLog;
+import io.crate.metadata.sys.MetricsView;
+import io.crate.planner.operators.StatementClassifier.Classification;
+import io.crate.plugin.SQLPlugin;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     private ScheduledExecutorService scheduler;
-    private CrateCircuitBreakerService breakerService;
+    private HierarchyCircuitBreakerService breakerService;
     private ClusterSettings clusterSettings;
 
     @Before
     public void createScheduler() {
         clusterSettings = clusterService.getClusterSettings();
-        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, clusterSettings);
-        breakerService = new CrateCircuitBreakerService(Settings.EMPTY, clusterSettings, esBreakerService);
+        breakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, clusterSettings);
         scheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
