@@ -92,8 +92,8 @@ Administration
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
 
-- Added the ``varchar`` and ``character varying`` types. Currently as aliases
-  for ``text``. Length limitations are not supported.
+- Added the :ref:`varchar(n) and character varying(n) <data-type-varchar>`
+  types, where ``n`` is an optional length limit.
 
 - Added the :ref:`server_version_num <conf-session-server_version_num>` and
   :ref:`server_version <conf-session-server_version>` read-only session
