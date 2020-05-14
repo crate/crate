@@ -108,7 +108,11 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
             DataType<?> returnType = objectType.resolveInnerType(path);
             return returnType.equals(DataTypes.UNDEFINED)
                 ? func
-                : new Function(new FunctionInfo(func.info().ident(), returnType), func.arguments());
+                : new Function(
+                    new FunctionInfo(func.info().ident(), returnType),
+                    func.signature(),
+                    func.arguments()
+            );
         }
     }
 

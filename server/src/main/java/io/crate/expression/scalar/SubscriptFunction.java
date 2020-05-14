@@ -22,17 +22,15 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
@@ -40,12 +38,14 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 
 import static io.crate.expression.scalar.SubscriptObjectFunction.tryToInferReturnTypeFromObjectTypeAndArguments;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
-/** Supported subscript expressions:
+/**
+ * Supported subscript expressions:
  * <ul>
  *     <li>obj['x']</li>
  *     <li>arr[1]</li>
@@ -57,14 +57,79 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
 
     public static final String NAME = "subscript";
 
+    private final Signature signature;
     private final FunctionInfo info;
     private final BiFunction<Object, Object, Object> lookup;
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
+        // subscript(array(object)), text) -> array(undefined)
+        module.register(
+            Signature.scalar(
+                NAME,
+                parseTypeSignature("array(object)"),
+                DataTypes.STRING.getTypeSignature(),
+                parseTypeSignature("array(undefined)")),
+            (signature, dataTypes) -> new SubscriptFunction(
+                signature,
+                FunctionInfo.of(NAME, dataTypes, new ArrayType<>(DataTypes.UNDEFINED)),
+                SubscriptFunction::lookupIntoListObjectsByName)
+        );
+        // subscript(array(any)), integer) -> any
+        module.register(
+            Signature
+                .scalar(
+                    NAME,
+                    parseTypeSignature("array(E)"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    parseTypeSignature("E"))
+                .withTypeVariableConstraints(typeVariable("E")),
+            (signature, dataTypes) -> {
+                var returnType = ((ArrayType<?>) dataTypes.get(0)).innerType();
+                return new SubscriptFunction(
+                    signature,
+                    FunctionInfo.of(NAME, dataTypes, returnType),
+                    SubscriptFunction::lookupByNumericIndex);
+            });
+        // subscript(object(text, element), text) -> undefined
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.UNDEFINED.getTypeSignature()),
+            (signature, dataTypes) ->
+                new SubscriptFunction(
+                    signature,
+                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.UNDEFINED),
+                    SubscriptFunction::lookupByName
+                )
+        );
+        // subscript(undefined, text) -> undefined
+        //
+        // This signature is required for the cases when the look up
+        // path is longer than 1, e.g. {\"x\" = { \"y\" = 'test'}}['x']['y'].
+        // The first subscript function cannot infer the return type and always
+        // returns the undefined type. Therefore, the second subscript function
+        // must be resolved for the `subscript(undefined, text)` signature.
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.UNDEFINED.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.UNDEFINED.getTypeSignature()),
+            (signature, dataTypes) ->
+                new SubscriptFunction(
+                    signature,
+                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.UNDEFINED),
+                    SubscriptFunction::lookupByName
+                )
+        );
     }
 
-    private SubscriptFunction(FunctionInfo info, BiFunction<Object, Object, Object> lookup) {
+    private SubscriptFunction(Signature signature,
+                              FunctionInfo info,
+                              BiFunction<Object, Object, Object> lookup) {
+        this.signature = signature;
         this.info = info;
         this.lookup = lookup;
     }
@@ -72,6 +137,12 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    @Override
+    public Signature signature() {
+        return signature;
     }
 
     @Override
@@ -97,56 +168,6 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         return lookup.apply(element, index);
     }
 
-    private static class Resolver implements FunctionResolver {
-
-        private static final Set<DataType<?>> NUMERIC_ARRAY_INDEX_TYPES = Set.of(
-            DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG
-        );
-
-        @Nullable
-        @Override
-        public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
-            // Only size check and normalizing numeric index to integer is done here
-            // The rest of the validation happens in getForTypes.
-            if (funcArgs.size() != 2) {
-                return null;
-            }
-            DataType<?> baseType = funcArgs.get(0).valueType();
-            DataType<?> indexType = funcArgs.get(1).valueType();
-            if (baseType.id() == ArrayType.ID && NUMERIC_ARRAY_INDEX_TYPES.contains(indexType)) {
-                return List.of(baseType, DataTypes.INTEGER);
-            }
-            return List.of(baseType, indexType);
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            assert dataTypes.size() == 2 : "Subscript function must have 2 arguments";
-            DataType<?> baseType = dataTypes.get(0);
-            DataType<?> returnType;
-            BiFunction<Object, Object, Object> lookupElement;
-            if (baseType instanceof ArrayType<?>) {
-                if (dataTypes.get(1).equals(DataTypes.STRING)) {
-                    if (ArrayType.unnest(baseType).id() == ObjectType.ID) {
-                        returnType = new ArrayType<>(DataTypes.UNDEFINED);
-                        lookupElement = SubscriptFunction::lookupIntoListObjectsByName;
-                    } else {
-                        throw new IllegalArgumentException(
-                            "`index` in subscript expression (`base[index]`) must be a numeric type if the base expression is " + baseType);
-                    }
-                } else {
-                    returnType = ((ArrayType<?>) baseType).innerType();
-                    lookupElement = SubscriptFunction::lookupByNumericIndex;
-                }
-            } else {
-                returnType = DataTypes.UNDEFINED;
-                lookupElement = SubscriptFunction::lookupByName;
-            }
-            FunctionInfo info = FunctionInfo.of(NAME, dataTypes, returnType);
-            return new SubscriptFunction(info, lookupElement);
-        }
-    }
-
     static Object lookupIntoListObjectsByName(Object base, Object name) {
         List<?> values = (List<?>) base;
         List<Object> result = new ArrayList<>(values.size());
@@ -168,7 +189,9 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     static Object lookupByName(Object base, Object name) {
-        assert base instanceof Map : "Base argument to subscript must be a Map, not " + base;
+        if (!(base instanceof Map)) {
+            throw new IllegalArgumentException("Base argument to subscript must be an object, not " + base);
+        }
         Map<?, ?> map = (Map<?, ?>) base;
         if (!map.containsKey(name)) {
             throw new IllegalArgumentException("The object `" + base + "` does not contain the key `" + name + "`");

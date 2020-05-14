@@ -69,9 +69,8 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testIndexExpressionIsNotInteger() throws Exception {
-        expectedException.expectMessage(
-            "`index` in subscript expression (`base[index]`) " +
-            "must be a numeric type if the base expression is text_array");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Base argument to subscript must be an object, not [Youri, Ruben]");
         assertNormalize("subscript(['Youri', 'Ruben'], '1')", isLiteral("Ruben"));
     }
 }

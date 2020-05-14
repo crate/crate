@@ -46,10 +46,14 @@ import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_TCP_REUS
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_TCP_SEND_BUFFER_SIZE;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_PIPELINING_MAX_EVENTS;
 import static org.elasticsearch.http.netty4.cors.Netty4CorsHandler.ANY_ORIGIN;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ENABLED;
+import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -65,8 +69,11 @@ import com.carrotsearch.hppc.IntSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.io.PathUtils;
+import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
@@ -95,6 +102,8 @@ import org.elasticsearch.transport.BindTransportException;
 import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
+import io.crate.plugin.PipelineRegistry;
+import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -220,17 +229,25 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     private final Netty4CorsConfig corsConfig;
 
+    private final PipelineRegistry pipelineRegistry;
+
+    private final NodeClient nodeClient;
+
     public Netty4HttpServerTransport(Settings settings,
                                      NetworkService networkService,
                                      BigArrays bigArrays,
                                      ThreadPool threadPool,
-                                     NamedXContentRegistry xContentRegistry) {
+                                     NamedXContentRegistry xContentRegistry,
+                                     PipelineRegistry pipelineRegistry,
+                                     NodeClient nodeClient) {
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
         this.settings = settings;
         this.networkService = networkService;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
         this.xContentRegistry = xContentRegistry;
+        this.pipelineRegistry = pipelineRegistry;
+        this.nodeClient = nodeClient;
 
         this.maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);
         this.maxChunkSize = SETTING_HTTP_MAX_CHUNK_SIZE.get(settings);
@@ -495,19 +512,30 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     }
 
     public ChannelHandler configureServerChannelHandler() {
-        return new HttpChannelHandler(this);
+        return new HttpChannelHandler(this, nodeClient, settings, pipelineRegistry);
     }
 
-    protected static class HttpChannelHandler extends ChannelInitializer<Channel> {
+    public static class HttpChannelHandler extends ChannelInitializer<Channel> {
 
         private final Netty4HttpServerTransport transport;
+        private final NodeClient nodeClient;
+        private final String nodeName;
+        private final Path home;
+        private final PipelineRegistry pipelineRegistry;
 
-        protected HttpChannelHandler(final Netty4HttpServerTransport transport) {
+        protected HttpChannelHandler(Netty4HttpServerTransport transport,
+                                     NodeClient nodeClient,
+                                     Settings settings,
+                                     PipelineRegistry pipelineRegistry) {
             this.transport = transport;
+            this.nodeClient = nodeClient;
+            this.pipelineRegistry = pipelineRegistry;
+            this.nodeName = NODE_NAME_SETTING.get(settings);
+            this.home = PathUtils.get(PATH_HOME_SETTING.get(settings)).normalize();
         }
 
         @Override
-        protected void initChannel(Channel ch) throws Exception {
+        public void initChannel(Channel ch) throws Exception {
             ch.pipeline().addLast("openChannels", transport.serverOpenChannels);
             ch.pipeline().addLast("read_timeout", new ReadTimeoutHandler(transport.readTimeoutMillis, TimeUnit.MILLISECONDS));
             final HttpRequestDecoder decoder = new HttpRequestDecoder(
@@ -524,8 +552,15 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             if (transport.compression) {
                 ch.pipeline().addLast("encoder_compress", new HttpContentCompressor(transport.compressionLevel));
             }
+            ch.pipeline().addLast("handler", new MainAndStaticFileHandler(
+                nodeName,
+                home,
+                nodeClient,
+                transport.getCorsConfig()
+            ));
+            pipelineRegistry.registerItems(ch.pipeline(), transport.getCorsConfig());
             if (SETTING_CORS_ENABLED.get(transport.settings())) {
-                ch.pipeline().addLast("cors", new Netty4CorsHandler(transport.getCorsConfig()));
+                ch.pipeline().addAfter("encoder", "cors", new Netty4CorsHandler(transport.getCorsConfig()));
             }
         }
 
@@ -534,5 +569,17 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             ExceptionsHelper.maybeDieOnAnotherThread(cause);
             super.exceptionCaught(ctx, cause);
         }
+    }
+
+
+    public static InetAddress getRemoteAddress(Channel channel) {
+        if (channel.remoteAddress() instanceof InetSocketAddress) {
+            return ((InetSocketAddress) channel.remoteAddress()).getAddress();
+        }
+        // In certain cases the channel is an EmbeddedChannel (e.g. in tests)
+        // and this type of channel has an EmbeddedSocketAddress instance as remoteAddress
+        // which does not have an address.
+        // An embedded socket address is handled like a local connection via loopback.
+        return InetAddresses.forString("127.0.0.1");
     }
 }

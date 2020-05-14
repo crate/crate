@@ -5,7 +5,7 @@ crash>=0.25.0
 crate
 crate-docs-theme
 asyncpg>=0.20.1
-cr8>=0.15.1
+cr8>=0.19.1
 tqdm==4.24.0
 sphinx-csv-filter>=0.2.0
 pycodestyle==2.4.0

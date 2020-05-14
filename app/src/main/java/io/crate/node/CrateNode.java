@@ -22,9 +22,7 @@
 
 package io.crate.node;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.plugin.BlobPlugin;
-import io.crate.plugin.HttpTransportPlugin;
 import io.crate.plugin.PluginLoaderPlugin;
 import io.crate.plugin.SrvPlugin;
 import io.crate.udc.plugin.UDCPlugin;
@@ -40,12 +38,12 @@ import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
 import java.util.Collection;
+import java.util.List;
 
 public class CrateNode extends Node {
 
-    private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = ImmutableList.of(
+    private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = List.of(
         PluginLoaderPlugin.class,
-        HttpTransportPlugin.class,
         BlobPlugin.class,
         SrvPlugin.class,
         UDCPlugin.class,
