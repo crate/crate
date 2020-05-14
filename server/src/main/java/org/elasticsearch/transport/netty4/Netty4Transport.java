@@ -19,26 +19,19 @@
 
 package org.elasticsearch.transport.netty4;
 
-import io.crate.common.SuppressForbidden;
-import io.crate.common.collections.Tuple;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.AdaptiveRecvByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.FixedRecvByteBufAllocator;
-import io.netty.channel.RecvByteBufAllocator;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
-import io.netty.util.AttributeKey;
-import io.netty.util.concurrent.Future;
+import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
+import static org.elasticsearch.common.settings.Setting.intSetting;
+import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.ElasticsearchException;
@@ -60,18 +53,30 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TcpTransport;
 import org.elasticsearch.transport.TransportSettings;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-
-import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
-import static org.elasticsearch.common.settings.Setting.intSetting;
-import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+import io.crate.common.SuppressForbidden;
+import io.crate.common.collections.Tuple;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.AdaptiveRecvByteBufAllocator;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.FixedRecvByteBufAllocator;
+import io.netty.channel.RecvByteBufAllocator;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
+import io.netty.channel.epoll.EpollSocketChannel;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
+import io.netty.util.AttributeKey;
+import io.netty.util.concurrent.Future;
 
 /**
  * There are 4 types of connections per node, low/med/high/ping. Low if for batch oriented APIs (like recovery or
@@ -146,8 +151,13 @@ public class Netty4Transport extends TcpTransport {
 
     private Bootstrap createClientBootstrap() {
         final Bootstrap bootstrap = new Bootstrap();
-        bootstrap.group(new NioEventLoopGroup(workerCount, daemonThreadFactory(settings, TRANSPORT_CLIENT_BOSS_THREAD_NAME_PREFIX)));
-        bootstrap.channel(NioSocketChannel.class);
+        if (Epoll.isAvailable()) {
+            bootstrap.group(new EpollEventLoopGroup(workerCount, daemonThreadFactory(settings, TRANSPORT_CLIENT_BOSS_THREAD_NAME_PREFIX)));
+            bootstrap.channel(EpollSocketChannel.class);
+        } else {
+            bootstrap.group(new NioEventLoopGroup(workerCount, daemonThreadFactory(settings, TRANSPORT_CLIENT_BOSS_THREAD_NAME_PREFIX)));
+            bootstrap.channel(NioSocketChannel.class);
+        }
 
         bootstrap.option(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings));
         bootstrap.option(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
@@ -181,13 +191,17 @@ public class Netty4Transport extends TcpTransport {
 
 
         final ThreadFactory workerFactory = daemonThreadFactory(this.settings, TRANSPORT_SERVER_WORKER_THREAD_NAME_PREFIX, name);
-
         final ServerBootstrap serverBootstrap = new ServerBootstrap();
 
-        serverBootstrap.group(new NioEventLoopGroup(workerCount, workerFactory));
-        serverBootstrap.channel(NioServerSocketChannel.class);
+        if (Epoll.isAvailable()) {
+            serverBootstrap.group(new EpollEventLoopGroup(workerCount, workerFactory));
+            serverBootstrap.channel(EpollServerSocketChannel.class);
+        } else {
+            serverBootstrap.group(new NioEventLoopGroup(workerCount, workerFactory));
+            serverBootstrap.channel(NioServerSocketChannel.class);
+        }
 
-        serverBootstrap.childHandler(getServerChannelInitializer(name));
+        serverBootstrap.childHandler(new ServerChannelInitializer(name));
 
         serverBootstrap.childOption(ChannelOption.TCP_NODELAY, profileSettings.tcpNoDelay);
         serverBootstrap.childOption(ChannelOption.SO_KEEPALIVE, profileSettings.tcpKeepAlive);
@@ -210,14 +224,6 @@ public class Netty4Transport extends TcpTransport {
         serverBootstraps.put(name, serverBootstrap);
     }
 
-    protected ChannelHandler getServerChannelInitializer(String name) {
-        return new ServerChannelInitializer(name);
-    }
-
-    protected ChannelHandler getClientChannelInitializer() {
-        return new ClientChannelInitializer();
-    }
-
     static final AttributeKey<NettyTcpChannel> CHANNEL_KEY = AttributeKey.newInstance("es-channel");
 
     protected final void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -231,7 +237,7 @@ public class Netty4Transport extends TcpTransport {
     protected NettyTcpChannel initiateChannel(DiscoveryNode node, ActionListener<Void> listener) throws IOException {
         InetSocketAddress address = node.getAddress().address();
         Bootstrap bootstrapWithHandler = clientBootstrap.clone();
-        bootstrapWithHandler.handler(getClientChannelInitializer());
+        bootstrapWithHandler.handler((ChannelHandler) new ClientChannelInitializer());
         bootstrapWithHandler.remoteAddress(address);
         ChannelFuture channelFuture = bootstrapWithHandler.connect();
 
