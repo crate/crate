@@ -18,24 +18,7 @@
 
 package io.crate.plugin;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.beans.CircuitBreakers;
-import io.crate.beans.Connections;
-import io.crate.beans.NodeInfo;
-import io.crate.beans.NodeStatus;
-import io.crate.beans.QueryStats;
-import io.crate.beans.ThreadPools;
-import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.protocols.ConnectionStats;
-import io.crate.protocols.postgres.PostgresNetty;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
+import java.lang.management.ManagementFactory;
 
 import javax.annotation.Nullable;
 import javax.management.InstanceAlreadyExistsException;
@@ -44,7 +27,26 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
-import java.lang.management.ManagementFactory;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.beans.CircuitBreakers;
+import io.crate.beans.Connections;
+import io.crate.beans.NodeInfo;
+import io.crate.beans.NodeStatus;
+import io.crate.beans.QueryStats;
+import io.crate.beans.ThreadPools;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.protocols.ConnectionStats;
+import io.crate.protocols.postgres.PostgresNetty;
 
 public class CrateMonitor {
 
@@ -59,7 +61,7 @@ public class CrateMonitor {
                         SQLOperations sqlOperations,
                         ClusterService clusterService,
                         ThreadPool threadPool,
-                        CrateCircuitBreakerService breakerService) {
+                        CircuitBreakerService breakerService) {
         logger = LogManager.getLogger(CrateMonitor.class);
         registerMBean(QueryStats.NAME, new QueryStats(jobsLogs));
         registerMBean(NodeStatus.NAME, new NodeStatus(sqlOperations::isEnabled));

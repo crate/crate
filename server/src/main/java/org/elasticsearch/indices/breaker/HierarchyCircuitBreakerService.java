@@ -31,11 +31,16 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
+import io.crate.settings.CrateSetting;
+import io.crate.types.DataTypes;
+
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -86,6 +91,32 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     public static final Setting<CircuitBreaker.Type> IN_FLIGHT_REQUESTS_CIRCUIT_BREAKER_TYPE_SETTING =
         new Setting<>("network.breaker.inflight_requests.type", "memory", CircuitBreaker.Type::parseValue, Property.NodeScope);
 
+    public static final String QUERY = "query";
+
+    public static final CrateSetting<ByteSizeValue> QUERY_CIRCUIT_BREAKER_LIMIT_SETTING = CrateSetting.of(Setting.memorySizeSetting(
+        "indices.breaker.query.limit", "60%", Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.STRING);
+    public static final CrateSetting<Double> QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING = CrateSetting.of(Setting.doubleSetting(
+        "indices.breaker.query.overhead", 1.09d, 0.0d, Setting.Property.Dynamic, Setting.Property.NodeScope),DataTypes.DOUBLE);
+
+    public static final String JOBS_LOG = "jobs_log";
+    public static final CrateSetting<ByteSizeValue> JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = CrateSetting.of(Setting.memorySizeSetting(
+        "stats.breaker.log.jobs.limit", "5%", Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.STRING);
+    public static final CrateSetting<Double> JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = CrateSetting.of(Setting.doubleSetting(
+        "stats.breaker.log.jobs.overhead", 1.0d, 0.0d, Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.DOUBLE);
+
+    public static final String OPERATIONS_LOG = "operations_log";
+    public static final CrateSetting<ByteSizeValue> OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = CrateSetting.of(Setting.memorySizeSetting(
+        "stats.breaker.log.operations.limit", "5%", Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.STRING);
+    public static final CrateSetting<Double> OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = CrateSetting.of(Setting.doubleSetting(
+        "stats.breaker.log.operations.overhead", 1.0d, 0.0d, Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.DOUBLE);
+
+    public static final String BREAKING_EXCEPTION_MESSAGE =
+        "[query] Data too large, data for [%s] would be larger than limit of [%d/%s]";
+
+    private volatile BreakerSettings queryBreakerSettings;
+    private volatile BreakerSettings logJobsBreakerSettings;
+    private volatile BreakerSettings logOperationsBreakerSettings;
+
     private volatile BreakerSettings parentSettings;
     private volatile BreakerSettings fielddataSettings;
     private volatile BreakerSettings inFlightRequestsSettings;
@@ -124,6 +155,22 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                 TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING.get(settings).getBytes(), 1.0,
                 CircuitBreaker.Type.PARENT);
 
+        queryBreakerSettings = new BreakerSettings(QUERY,
+            QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.setting().get(settings).getBytes(),
+            QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.setting().get(settings),
+            CircuitBreaker.Type.MEMORY
+        );
+
+        logJobsBreakerSettings = new BreakerSettings(JOBS_LOG,
+            JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting().get(settings).getBytes(),
+            JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING.setting().get(settings),
+            CircuitBreaker.Type.MEMORY);
+
+        logOperationsBreakerSettings = new BreakerSettings(OPERATIONS_LOG,
+            OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting().get(settings).getBytes(),
+            OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING.setting().get(settings),
+            CircuitBreaker.Type.MEMORY);
+
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("parent circuit breaker with settings {}", this.parentSettings);
         }
@@ -132,12 +179,34 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
         registerBreaker(this.fielddataSettings);
         registerBreaker(this.inFlightRequestsSettings);
         registerBreaker(this.accountingSettings);
+        registerBreaker(this.queryBreakerSettings);
+        registerBreaker(this.logJobsBreakerSettings);
+        registerBreaker(this.logOperationsBreakerSettings);
 
         clusterSettings.addSettingsUpdateConsumer(TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING, this::setTotalCircuitBreakerLimit, this::validateTotalCircuitBreakerLimit);
         clusterSettings.addSettingsUpdateConsumer(FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING, FIELDDATA_CIRCUIT_BREAKER_OVERHEAD_SETTING, this::setFieldDataBreakerLimit);
         clusterSettings.addSettingsUpdateConsumer(IN_FLIGHT_REQUESTS_CIRCUIT_BREAKER_LIMIT_SETTING, IN_FLIGHT_REQUESTS_CIRCUIT_BREAKER_OVERHEAD_SETTING, this::setInFlightRequestsBreakerLimit);
         clusterSettings.addSettingsUpdateConsumer(REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING, REQUEST_CIRCUIT_BREAKER_OVERHEAD_SETTING, this::setRequestBreakerLimit);
         clusterSettings.addSettingsUpdateConsumer(ACCOUNTING_CIRCUIT_BREAKER_LIMIT_SETTING, ACCOUNTING_CIRCUIT_BREAKER_OVERHEAD_SETTING, this::setAccountingBreakerLimit);
+        clusterSettings.addSettingsUpdateConsumer(QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.setting(), QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.setting(),
+            (newLimit, newOverhead) ->
+                setBreakerLimit(queryBreakerSettings, QUERY, s -> this.queryBreakerSettings = s, newLimit, newOverhead));
+        clusterSettings.addSettingsUpdateConsumer(JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting(),
+            (newLimit) ->
+                setBreakerLimit(logJobsBreakerSettings, JOBS_LOG, s -> this.logJobsBreakerSettings = s, newLimit, null));
+        clusterSettings.addSettingsUpdateConsumer(OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting(),
+            (newLimit) ->
+                setBreakerLimit(logOperationsBreakerSettings, OPERATIONS_LOG, s -> this.logOperationsBreakerSettings = s, newLimit, null));
+    }
+
+    public static String breakingExceptionMessage(String label, long limit) {
+        return String.format(
+            Locale.ENGLISH,
+            BREAKING_EXCEPTION_MESSAGE,
+            label,
+            limit,
+            new ByteSizeValue(limit)
+        );
     }
 
     private void setRequestBreakerLimit(ByteSizeValue newRequestMax, Double newRequestOverhead) {
@@ -199,6 +268,18 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                 throw new IllegalStateException("Child breaker overhead " + childSettings + " must be non-negative");
             }
         }
+    }
+
+    private void setBreakerLimit(BreakerSettings oldSettings,
+                                 String breakerName,
+                                 Consumer<BreakerSettings> settingsConsumer,
+                                 ByteSizeValue newLimit, Double newOverhead) {
+        long newLimitBytes = newLimit == null ? oldSettings.getLimit() : newLimit.getBytes();
+        newOverhead = newOverhead == null ? oldSettings.getOverhead() : newOverhead;
+        BreakerSettings newSettings = new BreakerSettings(breakerName, newLimitBytes, newOverhead, oldSettings.getType());
+        registerBreaker(newSettings);
+        settingsConsumer.accept(newSettings);
+        LOGGER.info("[{}] Updated breaker settings: {}", breakerName, newSettings);
     }
 
     @Override

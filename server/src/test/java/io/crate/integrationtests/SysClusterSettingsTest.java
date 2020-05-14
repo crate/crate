@@ -21,25 +21,27 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.base.Splitter;
-import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.settings.CrateSetting;
-import io.crate.udc.service.UDCService;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.MemorySizeValue;
-import org.elasticsearch.gateway.GatewayService;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.After;
-import org.junit.Test;
+import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
+import static org.hamcrest.Matchers.is;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
-import static org.hamcrest.Matchers.is;
+import com.google.common.base.Splitter;
+
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.MemorySizeValue;
+import org.elasticsearch.gateway.GatewayService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
+import org.junit.Test;
+
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.settings.CrateSetting;
+import io.crate.udc.service.UDCService;
 
 @ESIntegTestCase.ClusterScope
 public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
@@ -83,7 +85,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
         execute("set global transient \"indices.breaker.query.limit\" = '2mb'");
         execute("select settings from sys.cluster");
-        assertSettingsValue(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "2mb");
+        assertSettingsValue(HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "2mb");
     }
 
     @Test
@@ -167,10 +169,10 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     public void testStatsCircuitBreakerLogsDefaultSettings() {
         execute("select settings from sys.cluster");
         assertSettingsValue(
-            CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(),
+            HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(),
             MemorySizeValue.parseBytesSizeValueOrHeapRatio(
-                CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting().getDefaultRaw(Settings.EMPTY),
-                CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey()).toString());
+                HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting().getDefaultRaw(Settings.EMPTY),
+                HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey()).toString());
     }
 
     @Test

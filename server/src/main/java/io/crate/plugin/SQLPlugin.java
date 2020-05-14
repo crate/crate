@@ -24,7 +24,6 @@ package io.crate.plugin;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AuthSettings;
-import io.crate.breaker.CircuitBreakerModule;
 import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.TransportExecutorModule;
@@ -183,7 +182,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new SQLModule());
 
         modules.add(new CrateCommonModule(indexEventListenerProxy));
-        modules.add(new CircuitBreakerModule());
         modules.add(new TransportExecutorModule());
         modules.add(new JobModule());
         modules.add(new CollectOperationModule());

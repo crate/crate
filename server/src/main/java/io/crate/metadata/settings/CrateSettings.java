@@ -54,7 +54,6 @@ import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
@@ -77,14 +76,6 @@ public final class CrateSettings implements ClusterStateListener {
         JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING,
         JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING,
         TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,
-        CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
-        CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
-        CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
-        CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
-
-        // INDICES
-        CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-        CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
 
         // BULK
         ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING,
@@ -115,6 +106,12 @@ public final class CrateSettings implements ClusterStateListener {
         CrateSetting.of(ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING, DataTypes.INTEGER),
         CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING, DataTypes.INTEGER),
         CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES_SETTING, DataTypes.INTEGER),
+        HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+        HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+        HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+        HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+        HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
+        HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
         CrateSetting.of(Setting.simpleString(
                 FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_ip",
                 Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING),
