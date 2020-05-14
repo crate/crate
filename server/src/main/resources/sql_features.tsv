@@ -40,7 +40,7 @@ E011	Numeric data types	5	Numeric comparison	YES
 E011	Numeric data types	6	Implicit casting among the numeric data types	YES		
 E021	Character data types			NO		Type 'string'
 E021	Character string types	1	CHARACTER data type	NO		
-E021	Character string types	2	CHARACTER VARYING data type	NO		
+E021	Character string types	2	CHARACTER VARYING data type	YES		
 E021	Character string types	3	Character literals	YES		Only simple ' quoting
 E021	Character string types	4	CHARACTER_LENGTH function	YES		char_length only
 E021	Character string types	5	OCTET_LENGTH function	YES		
