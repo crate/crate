@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import com.google.common.base.Preconditions;
 import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.DataTypes;
@@ -44,7 +43,9 @@ public final class SquareRootFunction {
     }
 
     private static double sqrt(double value) {
-        Preconditions.checkArgument(value >= 0, "cannot take square root of a negative number");
+        if (value < 0) {
+            throw new IllegalArgumentException("cannot take square root of a negative number");
+        }
         return Math.sqrt(value);
     }
 }

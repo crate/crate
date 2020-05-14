@@ -22,7 +22,6 @@
 
 package io.crate.execution.dsl.phases;
 
-import com.google.common.base.MoreObjects;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.distribution.DistributionInfo;
@@ -136,15 +135,15 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name())
-            .add("targetUri", targetUri)
-            .add("projections", projections)
-            .add("outputTypes", outputTypes)
-            .add("compression", compression)
-            .add("sharedStorageDefault", sharedStorage)
-            .add("inputFormat", inputFormat)
-            .toString();
+        return "FileUriCollectPhase{" +
+               "name=" + name() +
+               ", targetUri=" + targetUri +
+               ", projections=" + projections +
+               ", outputTypes=" + outputTypes +
+               ", compression=" + compression +
+               ", sharedStorageDefault=" + sharedStorage +
+               ", inputFormat=" + inputFormat +
+               '}';
     }
 
     @Nullable

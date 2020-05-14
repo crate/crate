@@ -22,7 +22,6 @@
 
 package io.crate.expression.symbol;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
@@ -47,7 +46,7 @@ public enum AggregateMode {
     ITER_FINAL,
     PARTIAL_FINAL;
 
-    private static final List<AggregateMode> VALUES = ImmutableList.copyOf(values());
+    private static final List<AggregateMode> VALUES = List.of(values());
 
     public DataType returnType(AggregationFunction<?, ?> function) {
         return function.info().returnType();

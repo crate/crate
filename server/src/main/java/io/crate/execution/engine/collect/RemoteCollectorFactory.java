@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.collect.Lists;
+import io.crate.common.collections.LazyMapList;
 import io.crate.data.BatchIterator;
 import io.crate.data.Buckets;
 import io.crate.data.CollectingBatchIterator;
@@ -149,7 +149,9 @@ public class RemoteCollectorFactory {
             );
             remoteCollector.doCollect();
         }
-        return consumer.completionFuture().thenApply(rows -> Lists.transform(rows, Buckets.arrayToSharedRow()::apply));
+        return consumer
+            .completionFuture()
+            .thenApply(rows -> LazyMapList.of(rows, Buckets.arrayToSharedRow()));
     }
 
     private static RoutedCollectPhase createRemoteCollectPhase(UUID childJobId,

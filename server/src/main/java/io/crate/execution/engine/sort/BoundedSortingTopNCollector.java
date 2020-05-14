@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.base.Preconditions;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
@@ -75,8 +74,12 @@ public class BoundedSortingTopNCollector implements Collector<Row, RowPriorityQu
                                        Comparator<Object[]> comparator,
                                        int limit,
                                        int offset) {
-        Preconditions.checkArgument(limit > 0, "Invalid LIMIT: value must be > 0; got: " + limit);
-        Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Invalid LIMIT: value must be > 0; got: " + limit);
+        }
+        if (offset < 0) {
+            throw new IllegalArgumentException("Invalid OFFSET: value must be >= 0; got: " + offset);
+        }
 
         this.rowAccounting = rowAccounting;
         this.inputs = inputs;

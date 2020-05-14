@@ -23,10 +23,11 @@
 package io.crate.statistics;
 
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
@@ -39,7 +40,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 

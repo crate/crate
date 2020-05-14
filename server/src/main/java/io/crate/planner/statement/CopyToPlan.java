@@ -22,13 +22,13 @@
 
 package io.crate.planner.statement;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.BoundCopyTo;
 import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.pipeline;
 
-import com.google.common.base.Preconditions;
 import io.crate.data.BatchIterator;
 import io.crate.data.LimitingBatchIterator;
 import io.crate.data.Projector;
@@ -35,9 +34,12 @@ public class SimpleTopNProjector implements Projector {
     private final int limit;
 
     public SimpleTopNProjector(int limit, int offset) {
-        Preconditions.checkArgument(limit >= 0, "Invalid LIMIT: value must be >= 0; got: " + limit);
-        Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
-
+        if (limit < 0) {
+            throw new IllegalArgumentException("Invalid LIMIT: value must be >= 0; got: " + limit);
+        }
+        if (offset < 0) {
+            throw new IllegalArgumentException("Invalid OFFSET: value must be >= 0; got: " + offset);
+        }
         this.limit = limit;
         this.offset = offset;
     }

@@ -21,17 +21,9 @@
 
 package io.crate.execution.engine.join;
 
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.IntSupplier;
-import java.util.function.Predicate;
-
-import com.google.common.annotations.VisibleForTesting;
-
-import org.elasticsearch.common.breaker.CircuitBreaker;
-
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.CapturingRowConsumer;
@@ -43,6 +35,12 @@ import io.crate.data.join.CombinedRow;
 import io.crate.data.join.JoinBatchIterators;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.types.DataType;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.IntSupplier;
+import java.util.function.Predicate;
 
 
 public class NestedLoopOperation implements CompletionListenable {

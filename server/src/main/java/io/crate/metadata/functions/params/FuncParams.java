@@ -22,7 +22,6 @@
 
 package io.crate.metadata.functions.params;
 
-import com.google.common.base.Preconditions;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.types.DataType;
 
@@ -140,8 +139,9 @@ public class FuncParams {
          * @return FuncParams
          */
         public Builder limitVarArgOccurrences(int maxVarArgOccurrences) {
-            Preconditions.checkArgument(maxVarArgOccurrences > 0,
-                "The minimum limit for the number of occurrences is 1");
+            if (maxVarArgOccurrences < 1) {
+                throw new IllegalArgumentException("The minimum limit for the number of occurrences is 1");
+            }
             this.maxVarArgOccurrences = maxVarArgOccurrences;
             return this;
         }
@@ -163,8 +163,10 @@ public class FuncParams {
          * @return A new FuncParams with additional types to the {@link Param}s.
          */
         public Builder mergeWithTypes(List<DataType> dataTypes) {
-            Preconditions.checkArgument(dataTypes.size() == this.parameters.length,
-                "The given DataTypes for the merge don't match the existing parameter length.");
+            if (dataTypes.size() != this.parameters.length) {
+                throw new IllegalArgumentException(
+                    "The given DataTypes for the merge don't match the existing parameter length.");
+            }
             List<DataType> tmp = new ArrayList<>();
             for (int i = 0; i < parameters.length; i++) {
                 tmp.addAll(parameters[i].getValidTypes());

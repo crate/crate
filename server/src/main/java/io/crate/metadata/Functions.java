@@ -23,7 +23,6 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.FuncArg;
@@ -70,7 +69,7 @@ public class Functions {
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
                      Map<FunctionName, FunctionResolver> functionResolvers,
                      Map<FunctionName, List<FuncResolver>> functionImplementationsBySignature) {
-        this.functionResolvers = Maps.newHashMap(functionResolvers);
+        this.functionResolvers = new HashMap<>(functionResolvers);
         this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
         this.functionImplementations = functionImplementationsBySignature;
     }

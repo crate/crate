@@ -23,7 +23,6 @@
 package io.crate.execution.dml;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.expression.symbol.Symbol;
@@ -85,11 +84,11 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(this)
-                .add("id", id)
-                .add("message", message)
-                .add("versionConflict", versionConflict)
-                .toString();
+            return "Failure{" +
+                   "id='" + id + '\'' +
+                   ", message='" + message + '\'' +
+                   ", versionConflict=" + versionConflict +
+                   '}';
         }
     }
 

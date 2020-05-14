@@ -22,10 +22,8 @@
 
 package io.crate.metadata;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import io.crate.blob.v2.BlobIndex;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.blob.BlobSchemaInfo;
 
@@ -38,13 +36,11 @@ import java.util.List;
  */
 public class IndexParts {
 
-    // Index names are only allowed to contain '.' as separators
-    private static final Splitter SPLITTER = Splitter.on(".").limit(6);
     private static final String PARTITIONED_KEY_WORD = "partitioned";
     @VisibleForTesting
     static final String PARTITIONED_TABLE_PART = "." + PARTITIONED_KEY_WORD + ".";
 
-    public static final List<String> DANGLING_INDICES_PREFIX_PATTERNS = ImmutableList.of(
+    public static final List<String> DANGLING_INDICES_PREFIX_PATTERNS = List.of(
         AlterTableOperation.RESIZE_PREFIX + "*"
     );
 
@@ -62,7 +58,8 @@ public class IndexParts {
             table = BlobIndex.stripPrefix(indexName);
             partitionIdent = null;
         } else {
-            List<String> parts = SPLITTER.splitToList(indexName);
+            // Index names are only allowed to contain '.' as separators
+            List<String> parts = List.of(indexName.split("\\.", 6));
             switch (parts.size()) {
                 case 1:
                     // "table_name"

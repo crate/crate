@@ -22,7 +22,6 @@
 
 package io.crate.metadata.functions.params;
 
-import com.google.common.base.Preconditions;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.types.ArrayType;
@@ -152,8 +151,9 @@ public final class Param {
         } else {
             boundType = this.boundType.get().valueType();
         }
-        Preconditions.checkState(boundType != null,
-            "Type not bound when it should have been.");
+        if (boundType == null) {
+            throw new IllegalStateException("Type not bound when it should have been.");
+        }
         if (this.innerType != null) {
             if (boundType instanceof ArrayType) {
                 DataType<?> innerType = this.innerType.getBoundType(multiBind);
@@ -200,7 +200,7 @@ public final class Param {
             return convertedType;
         } else if (innerType != null) {
             if (argDataType instanceof ArrayType) {
-                DataType innerType = Preconditions.checkNotNull(((ArrayType) argDataType).innerType(),
+                DataType<?> innerType = Objects.requireNonNull(((ArrayType<?>) argDataType).innerType(),
                     "Inner type expected but no inner type for argument: " + funcArg);
                 this.innerType.bind(new ConvertedArg(innerType, funcArg.canBeCasted(), funcArg.isValueSymbol()), multiBind);
             } else {
@@ -237,8 +237,9 @@ public final class Param {
         private final boolean isValueSymbol;
 
         private ConvertedArg(FuncArg sourceArg, DataType targetDataType) {
-            Preconditions.checkArgument(sourceArg.canBeCasted(),
-                "Converted argument must be castable.");
+            if (!sourceArg.canBeCasted()) {
+                throw new IllegalArgumentException("Converted argument must be castable.");
+            }
             this.dataType = targetDataType;
             this.canBeCasted = true;
             this.isValueSymbol = sourceArg.isValueSymbol();

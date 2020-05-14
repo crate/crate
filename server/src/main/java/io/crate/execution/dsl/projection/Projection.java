@@ -21,7 +21,6 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -82,6 +81,6 @@ public abstract class Projection {
     }
 
     public Map<String, Object> mapRepresentation() {
-        return ImmutableMap.of("type", projectionType().toString());
+        return Map.of("type", projectionType().toString());
     }
 }

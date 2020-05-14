@@ -22,8 +22,6 @@
 
 package io.crate.execution.dml;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterators;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -34,8 +32,10 @@ import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item>
@@ -65,7 +65,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
     @Override
     public Iterator<I> iterator() {
-        return Iterators.unmodifiableIterator(items.iterator());
+        return Collections.unmodifiableCollection(items).iterator();
     }
 
     public UUID jobId() {
@@ -86,16 +86,20 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ShardRequest<?, ?> that = (ShardRequest<?, ?>) o;
-        return Objects.equal(jobId, that.jobId) &&
-               Objects.equal(items, that.items);
+        return Objects.equals(jobId, that.jobId) &&
+               Objects.equals(items, that.items);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(jobId, shardId(), items);
+        return Objects.hash(jobId, items);
     }
 
     /**

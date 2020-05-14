@@ -25,8 +25,6 @@ package io.crate.metadata;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -113,16 +111,15 @@ public class Routing implements Writeable {
 
     @Override
     public String toString() {
-        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this);
-        helper.add("locations", locations);
-        return helper.toString();
-
+        return "Routing{" +
+               "locations=" + locations +
+               '}';
     }
 
     public Routing(StreamInput in) throws IOException {
         int numLocations = in.readVInt();
         if (numLocations == 0) {
-            locations = ImmutableMap.of();
+            locations = Map.of();
         } else {
             locations = new TreeMap<>();
 

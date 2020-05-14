@@ -21,8 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -30,6 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Objects;
 
 public class GeoReference extends Reference {
 
@@ -53,7 +52,7 @@ public class GeoReference extends Reference {
                         @Nullable Integer treeLevels,
                         @Nullable Double distanceErrorPct) {
         super(ident, RowGranularity.DOC, DataTypes.GEO_SHAPE, position, null);
-        this.geoTree = MoreObjects.firstNonNull(tree, DEFAULT_TREE);
+        this.geoTree = Objects.requireNonNullElse(tree, DEFAULT_TREE);
         this.precision = precision;
         this.treeLevels = treeLevels;
         this.distanceErrorPct = distanceErrorPct;
@@ -85,19 +84,25 @@ public class GeoReference extends Reference {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         GeoReference that = (GeoReference) o;
-        return Objects.equal(geoTree, that.geoTree) &&
-               Objects.equal(precision, that.precision) &&
-               Objects.equal(treeLevels, that.treeLevels) &&
-               Objects.equal(distanceErrorPct, that.distanceErrorPct);
+        return java.util.Objects.equals(geoTree, that.geoTree) &&
+               java.util.Objects.equals(precision, that.precision) &&
+               java.util.Objects.equals(treeLevels, that.treeLevels) &&
+               java.util.Objects.equals(distanceErrorPct, that.distanceErrorPct);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), geoTree, precision, treeLevels, distanceErrorPct);
+        return java.util.Objects.hash(super.hashCode(), geoTree, precision, treeLevels, distanceErrorPct);
     }
 
     public GeoReference(StreamInput in) throws IOException {

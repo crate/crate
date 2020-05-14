@@ -46,10 +46,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-
-import static com.google.common.base.MoreObjects.firstNonNull;
 
 /**
  * Used to analyze a query for primaryKey/partition "direct access" possibilities.
@@ -78,7 +77,7 @@ public final class WhereClauseOptimizer {
                       Set<Symbol> clusteredByValues) {
             this.query = query;
             this.docKeys = docKeys;
-            this.partitions = firstNonNull(partitionValues, Collections.emptyList());
+            this.partitions = Objects.requireNonNullElse(partitionValues, Collections.emptyList());
             this.clusteredByValues = clusteredByValues;
         }
 

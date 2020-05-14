@@ -21,7 +21,6 @@
 
 package io.crate.analyze.where;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
@@ -181,7 +180,7 @@ public class EqualityExtractor {
             FunctionInfo eqInfo = new FunctionInfo(
                 new FunctionIdent(
                     EqOperator.NAME,
-                    ImmutableList.of(leftType, rightType)
+                    List.of(leftType, rightType)
                 ),
                 DataTypes.BOOLEAN
             );

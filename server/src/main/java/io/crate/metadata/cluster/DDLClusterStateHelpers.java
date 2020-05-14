@@ -23,8 +23,9 @@
 package io.crate.metadata.cluster;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.Constants;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.ElasticsearchException;
@@ -32,7 +33,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Strings;
-import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;

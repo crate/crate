@@ -21,7 +21,6 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -34,6 +33,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.common.Booleans;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Symbol;
@@ -60,7 +60,6 @@ import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import io.crate.common.Booleans;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.DateFieldMapper;
 
@@ -74,6 +73,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
@@ -86,7 +86,7 @@ public class DocIndexMetaData {
     private final Map<ColumnIdent, IndexReference.Builder> indicesBuilder = new HashMap<>();
 
     private final Comparator<Reference> sortByPositionThenName = Comparator
-        .comparing((Reference r) -> MoreObjects.firstNonNull(r.position(), 0))
+        .comparing((Reference r) -> Objects.requireNonNullElse(r.position(), 0))
         .thenComparing(o -> o.column().fqn());
     private final ImmutableSortedSet.Builder<Reference> columnsBuilder = ImmutableSortedSet.orderedBy(sortByPositionThenName);
 
@@ -298,7 +298,7 @@ public class DocIndexMetaData {
                 }
                 type = builder.build();
             } else {
-                type = MoreObjects.firstNonNull(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
+                type = Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
             }
         } else if (typeName.equalsIgnoreCase("array")) {
 
@@ -315,7 +315,7 @@ public class DocIndexMetaData {
                     return DataTypes.TIMESTAMPZ;
                 }
             }
-            type = MoreObjects.firstNonNull(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
+            type = Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
         }
         return type;
     }

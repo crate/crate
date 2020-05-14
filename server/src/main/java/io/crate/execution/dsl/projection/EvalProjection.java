@@ -22,8 +22,8 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -92,9 +92,9 @@ public class EvalProjection extends Projection {
 
     @Override
     public Map<String, Object> mapRepresentation() {
-        return ImmutableMap.of(
-            "type", "Eval",
-            "outputs", Lists2.joinOn(", ", outputs, Symbol::toString)
-        );
+        return MapBuilder.<String, Object>newMapBuilder()
+            .put("type", "Eval")
+            .put("outputs", Lists2.joinOn(", ", outputs, Symbol::toString))
+            .map();
     }
 }

@@ -22,9 +22,9 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.crate.expression.reference.sys.job.ContextLog;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
+import io.crate.expression.reference.sys.job.ContextLog;
 
 import java.util.Queue;
 import java.util.concurrent.ScheduledExecutorService;

@@ -22,9 +22,10 @@
 
 package io.crate.execution.ddl;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.exceptions.SQLExceptions;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
@@ -38,7 +39,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.repositories.RepositoryException;
 
 import javax.annotation.Nullable;

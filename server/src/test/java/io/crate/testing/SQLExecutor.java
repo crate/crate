@@ -22,8 +22,6 @@
 
 package io.crate.testing;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
@@ -47,6 +45,7 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
+import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -232,7 +231,9 @@ public class SQLExecutor {
                         int numNodes,
                         Random random,
                         List<AnalysisPlugin> analysisPlugins) {
-            Preconditions.checkArgument(numNodes >= 1, "Must have at least 1 node");
+            if (numNodes < 1) {
+                throw new IllegalArgumentException("Must have at least 1 node");
+            }
             this.random = random;
             this.clusterService = clusterService;
             addNodesToClusterState(numNodes);
@@ -704,7 +705,7 @@ public class SQLExecutor {
      * If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addTable(String)}
      */
     public Symbol asSymbol(String expression) {
-        ImmutableMap.Builder<RelationName, AnalyzedRelation> sources = ImmutableMap.builder();
+        MapBuilder<RelationName, AnalyzedRelation> sources = MapBuilder.newMapBuilder();
         for (SchemaInfo schemaInfo : schemas) {
             for (TableInfo tableInfo : schemaInfo.getTables()) {
                 if (tableInfo instanceof DocTableInfo) {
@@ -718,7 +719,11 @@ public class SQLExecutor {
             functions,
             coordinatorTxnCtx,
             ParamTypeHints.EMPTY,
-            new FullQualifiedNameFieldProvider(sources.build(), ParentRelations.NO_PARENTS, sessionContext.searchPath().currentSchema()),
+            new FullQualifiedNameFieldProvider(
+                sources.immutableMap(),
+                ParentRelations.NO_PARENTS,
+                sessionContext.searchPath().currentSchema()
+            ),
             new SubqueryAnalyzer(
                 relAnalyzer,
                 new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, coordinatorTxnCtx)

@@ -21,10 +21,8 @@
 
 package io.crate.analyze;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.TableReferenceResolver;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.RefVisitor;
@@ -196,7 +194,7 @@ public class AnalyzedTableElements<T> {
         if (partitionedBy == null) {
             partitionedBy = new ArrayList<>(partitionedByColumns.size());
             for (AnalyzedColumnDefinition<T> partitionedByColumn : partitionedByColumns) {
-                partitionedBy.add(ImmutableList.of(
+                partitionedBy.add(List.of(
                     partitionedByColumn.ident().fqn(), partitionedByColumn.typeNameForESMapping()));
             }
         }
@@ -389,10 +387,12 @@ public class AnalyzedTableElements<T> {
             } else {
                 columnDataType = definedType;
             }
-            Preconditions.checkArgument(
-                valueType.isConvertableTo(columnDataType),
-                "expression value type '%s' not supported for conversion to '%s'",
-                valueType, columnDataType.getName());
+            if (!valueType.isConvertableTo(columnDataType)) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "expression value type '%s' not supported for conversion to '%s'",
+                    valueType, columnDataType.getName())
+                );
+            }
 
             Symbol castFunction = CastFunctionResolver.generateCastFunction(function, columnDataType, false);
             formattedExpression = castFunction.toString(Style.UNQUALIFIED);
@@ -523,8 +523,9 @@ public class AnalyzedTableElements<T> {
                                                    ColumnIdent partitionedByIdent,
                                                    boolean skipIfNotFound,
                                                    RelationName relationName) {
-        Preconditions.checkArgument(!partitionedByIdent.name().startsWith("_"),
-                                    "Cannot use system columns in PARTITIONED BY clause");
+        if (partitionedByIdent.name().startsWith("_")) {
+            throw new IllegalArgumentException("Cannot use system columns in PARTITIONED BY clause");
+        }
 
         // need to call primaryKeys() before the partition column is removed from the columns list
         if (!primaryKeys(elements).isEmpty() && !primaryKeys(elements).contains(partitionedByIdent.fqn())) {

@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Objects;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -29,6 +28,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class ReferenceIdent {
 
@@ -62,23 +62,21 @@ public class ReferenceIdent {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
-        if ((obj == null) || (getClass() != obj.getClass())) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ReferenceIdent o = (ReferenceIdent) obj;
-        return Objects.equal(columnIdent, o.columnIdent) &&
-               Objects.equal(relationName, o.relationName);
+        ReferenceIdent that = (ReferenceIdent) o;
+        return Objects.equals(relationName, that.relationName) &&
+               Objects.equals(columnIdent, that.columnIdent);
     }
 
     @Override
     public int hashCode() {
-        int result = relationName.hashCode();
-        result = 31 * result + columnIdent.hashCode();
-        return result;
+        return Objects.hash(relationName, columnIdent);
     }
 
     @Override

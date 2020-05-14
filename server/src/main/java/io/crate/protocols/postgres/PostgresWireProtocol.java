@@ -22,7 +22,6 @@
 
 package io.crate.protocols.postgres;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
@@ -33,6 +32,7 @@ import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;

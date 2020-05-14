@@ -22,7 +22,6 @@
 
 package io.crate.execution.dsl.phases;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -83,7 +82,7 @@ public class NodeOperation implements Writeable {
 
     public static NodeOperation withoutDownstream(ExecutionPhase executionPhase) {
         return new NodeOperation(executionPhase,
-            ImmutableList.<String>of(),
+            List.of(),
             ExecutionPhase.NO_EXECUTION_PHASE,
             (byte) 0);
     }

@@ -22,7 +22,6 @@
 
 package io.crate.lucene;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.MatchOptionsAnalysis;
 import io.crate.data.Input;
@@ -64,7 +63,9 @@ class ToMatchQuery implements FunctionToQuery {
             "matchType must be literal";
 
         Symbol queryTerm = arguments.get(1);
-        Preconditions.checkArgument(queryTerm instanceof Input, "queryTerm must be a literal");
+        if (!(queryTerm instanceof Input)) {
+            throw new IllegalArgumentException("queryTerm must be a literal");
+        }
         Object queryTermVal = ((Input) queryTerm).value();
         if (queryTermVal == null) {
             throw new IllegalArgumentException("cannot use NULL as query term in match predicate");

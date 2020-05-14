@@ -22,9 +22,9 @@
 
 package io.crate.metadata.cluster;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.Constants;
 import io.crate.analyze.TableParameters;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;

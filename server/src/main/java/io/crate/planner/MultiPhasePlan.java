@@ -22,7 +22,7 @@
 
 package io.crate.planner;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;

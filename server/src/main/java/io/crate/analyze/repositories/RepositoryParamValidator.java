@@ -22,7 +22,6 @@
 
 package io.crate.analyze.repositories;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.inject.Inject;
@@ -30,6 +29,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +51,7 @@ public class RepositoryParamValidator {
         GenericProperties<?> dynamicProperties = typeSettings.dynamicProperties(genericProperties);
         if (!dynamicProperties.isEmpty()) {
             // allSettings are immutable by default, copy map
-            allSettings = Maps.newHashMap(allSettings);
+            allSettings = new HashMap<>(allSettings);
             for (String key : dynamicProperties.properties().keySet()) {
                 allSettings.put(key, Setting.simpleString(key));
             }

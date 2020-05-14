@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -74,7 +73,7 @@ public class PartitionName {
     @Nullable
     public static List<String> decodeIdent(@Nullable String ident) {
         if (ident == null) {
-            return ImmutableList.of();
+            return List.of();
         }
         byte[] inputBytes = BASE32.decode(ident.toUpperCase(Locale.ROOT));
         try (StreamInput in = StreamInput.wrap(inputBytes)) {
@@ -184,7 +183,7 @@ public class PartitionName {
     public List<String> values() {
         if (values == null) {
             if (ident == null) {
-                return ImmutableList.of();
+                return List.of();
             } else {
                 values = decodeIdent(ident);
             }

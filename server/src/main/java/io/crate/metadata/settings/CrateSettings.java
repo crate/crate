@@ -22,16 +22,15 @@
 
 package io.crate.metadata.settings;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import com.google.common.base.Joiner;
-
+import io.crate.cluster.gracefulstop.DecommissioningService;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.memory.MemoryManagerFactory;
+import io.crate.settings.CrateSetting;
+import io.crate.statistics.TableStatsService;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.udc.service.UDCService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -54,15 +53,13 @@ import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 
-import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.memory.MemoryManagerFactory;
-import io.crate.settings.CrateSetting;
-import io.crate.statistics.TableStatsService;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.udc.service.UDCService;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class CrateSettings implements ClusterStateListener {
 
@@ -182,7 +179,6 @@ public final class CrateSettings implements ClusterStateListener {
     private static final List<String> BUILT_IN_SETTING_NAMES = BUILT_IN_SETTINGS.stream()
         .map(CrateSetting::getKey)
         .collect(Collectors.toList());
-    private static final Joiner DOT_JOINER = Joiner.on(".");
 
     public static boolean isValidSetting(String name) {
         return isLoggingSetting(name) ||
@@ -218,7 +214,11 @@ public final class CrateSettings implements ClusterStateListener {
                                        Object value) {
         if (value instanceof Map) {
             for (Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()) {
-                flattenSettings(settingsBuilder, DOT_JOINER.join(key, setting.getKey()), setting.getValue());
+                flattenSettings(
+                    settingsBuilder,
+                    String.join(".", key, setting.getKey()),
+                    setting.getValue()
+                );
             }
         } else if (value == null) {
             throw new IllegalArgumentException(
