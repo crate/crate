@@ -44,6 +44,7 @@ import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -187,7 +188,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         if (request.headers().contains(AuthSettings.HTTP_HEADER_REAL_IP)) {
             return InetAddresses.forString(request.headers().get(AuthSettings.HTTP_HEADER_REAL_IP));
         } else {
-            return CrateNettyHttpServerTransport.getRemoteAddress(channel);
+            return Netty4HttpServerTransport.getRemoteAddress(channel);
         }
     }
 }

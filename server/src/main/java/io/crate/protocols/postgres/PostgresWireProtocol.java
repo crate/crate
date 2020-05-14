@@ -36,7 +36,6 @@ import io.crate.auth.user.User;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
-import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -50,6 +49,7 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSession;
@@ -402,7 +402,7 @@ public class PostgresWireProtocol {
 
     private void initAuthentication(Channel channel) {
         String userName = properties.getProperty("user");
-        InetAddress address = CrateNettyHttpServerTransport.getRemoteAddress(channel);
+        InetAddress address = Netty4HttpServerTransport.getRemoteAddress(channel);
 
         SSLSession sslSession = getSession(channel);
         ConnectionProperties connProperties = new ConnectionProperties(address, Protocol.POSTGRES, sslSession);
