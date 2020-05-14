@@ -39,15 +39,15 @@ Fixes
 
 - Fixed the following issues in the Admin UI:
 
-  - Fixed an issue that prevents the value for nested partitioned columns showing
-    up in the table partitions overview.
+  - Fixed an issue that prevents the value for nested partitioned columns
+    showing up in the table partitions overview.
 
-  - Fixed capitalization of ``Shards`` tab label
+  - Fixed capitalization of ``Shards`` tab label.
 
   - Updated keywords list so that they are recognised and painted in red.
 
 - Fixed a bug which could lead to stuck queries when an error happens inside
-  distributed execution plans, e.g. a ``CircuitBreakingException`` due to
+  distributed execution plans, e.g., a ``CircuitBreakingException`` due to
   exceeded memory usage.
 
 - Fixed an issue that resulted in the values for nested partitioned columns to
@@ -65,12 +65,13 @@ Fixes
 - Fixed an issue that caused subscript expressions on top of child relations in
   which an object column is selected to fail.
 
-- Fixed an issue in :ref:`ref-values` that would not allow combining expressions
-  that can be explicitly casted or `NULL` literals in the same column.
+- Fixed an issue in :ref:`ref-values` that would not allow combining
+  expressions that can be explicitly casted or ``NULL`` literals in the same
+  column.
 
-- Fixed a `ClassCastException` that occurred when querying certain columns from
-  ``information_schema.tables``, ``sys.jobs_log`` or ``sys.jobs_metrics`` with
-  a client connected via PostgreSQL wire protocol.
+- Fixed a ``ClassCastException`` that occurred when querying certain columns
+  from ``information_schema.tables``, ``sys.jobs_log``, or ``sys.jobs_metrics``
+  with a client connected via the PostgreSQL wire protocol.
 
 - Fixed a regression introduced in ``4.0.11`` which caused a
   ``ClassCastException`` when querying ``sys.allocations``.
