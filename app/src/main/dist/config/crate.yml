@@ -99,9 +99,9 @@ auth:
 
 #///////////////////////// User Defined Functions ////////////////////////////
 
-# To enable Javascript language for user defined functions, you can set it as
-# follows:
-#lang.js.enabled: true
+# To disable Javascript language for user defined functions, you can set it as
+# follows. Default is enabled:
+#lang.js.enabled: false
 
 # The Javascript language is an experimental feature and is not securely
 # sandboxed, so it is disabled by default.

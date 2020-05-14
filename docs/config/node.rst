@@ -658,11 +658,10 @@ Javascript language
 ===================
 
 **lang.js.enabled**
-  | *Default:*  ``false``
+  | *Default:*  ``true``
   | *Runtime:*  ``no``
 
-  Setting to enable the Javascript language. As The Javascript language is an
-  experimental feature and is not securely sandboxed its disabled by default.
+  Setting to enable or disable :ref:`JavaScript UDF support <udf_lang_js>`.
 
   .. NOTE::
 
