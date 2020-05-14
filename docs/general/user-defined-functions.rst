@@ -227,20 +227,13 @@ privileges to allow for the safe execution of less trusted guest language
 code. The guest language application context for each user-defined function
 is created with default access modifiers, so any access to managed resources
 is denied. The only exception is the host language interoperability
-configuration which explicitly allows access to Java lists and arrays. Please
-refer to `GraalVM Security Guide`_ for more detailed information.
-
-**This, however, does not mean that JavaScript is securely sandboxed.**
+configuration which explicitly allows access to Java lists and arrays. **Please
+refer to `GraalVM Security Guide`_ for more detailed information**
 
 Also, even though user-defined functions implemented with ECMA-compliant
 JavaScript, objects that are normally accessible with a web browser
 (e.g. ``window``, ``console``, and so on) are not available.
 
-.. CAUTION::
-
-   The :ref:`udf_lang_js` language is an experimental feature and is disabled
-   by default. You can enable the :ref:`conf-node-lang-js` via the configuration
-   file.
 
 Supported Types
 ...............

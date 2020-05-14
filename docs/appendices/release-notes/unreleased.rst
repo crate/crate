@@ -69,6 +69,9 @@ None
 Changes
 =======
 
+- The JavaScript user defined function language is now enabled by default in
+  the CrateDB enterprise edition.
+
 - Added the ``varchar`` and ``character varying`` types. Currently as aliases
   for ``text``. Length limitations are not supported.
 
