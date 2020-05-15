@@ -25,7 +25,7 @@ import org.elasticsearch.common.settings.Setting;
 public class JavaScriptLanguageModule extends AbstractModule {
 
     public static final Setting<Boolean> LANG_JS_ENABLED =
-        Setting.boolSetting("lang.js.enabled", false, Setting.Property.NodeScope);
+        Setting.boolSetting("lang.js.enabled", true, Setting.Property.NodeScope);
 
     @Override
     protected void configure() {

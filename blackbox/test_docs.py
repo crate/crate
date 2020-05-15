@@ -55,8 +55,6 @@ CRATE_SETTINGS = {
     'node.name': 'crate',
     'cluster.name': 'Testing-CrateDB'
 }
-if not CRATE_CE:
-    CRATE_SETTINGS['lang.js.enabled'] = 'true'
 
 
 class CrateTestShell(CrateShell):

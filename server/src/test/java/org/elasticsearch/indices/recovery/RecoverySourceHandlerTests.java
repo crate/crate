@@ -34,6 +34,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
+import org.elasticsearch.Assertions;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -725,7 +726,8 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs),
             newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs)));
 
-        AssertionError error = expectThrows(AssertionError.class, () -> {
+        Class<? extends Throwable> expectedError = Assertions.ENABLED ? AssertionError.class : IllegalStateException.class;
+        Throwable error = expectThrows(expectedError, () -> {
             long localCheckpointOnTarget = randomValueOtherThan(
                 localCheckpoint,
                 () -> randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE));

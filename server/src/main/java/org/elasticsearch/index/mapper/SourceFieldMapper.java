@@ -19,35 +19,26 @@
 
 package org.elasticsearch.index.mapper;
 
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.QueryShardException;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 
 public class SourceFieldMapper extends MetadataFieldMapper {
 
@@ -55,7 +46,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
     public static final String RECOVERY_SOURCE_NAME = "_recovery_source";
 
     public static final String CONTENT_TYPE = "_source";
-    private final Function<Map<String, ?>, Map<String, Object>> filter;
 
     public static class Defaults {
         public static final String NAME = SourceFieldMapper.NAME;
@@ -79,9 +69,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
         private boolean enabled = Defaults.ENABLED;
 
-        private String[] includes = null;
-        private String[] excludes = null;
-
         public Builder() {
             super(Defaults.NAME, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE);
         }
@@ -91,19 +78,9 @@ public class SourceFieldMapper extends MetadataFieldMapper {
             return this;
         }
 
-        public Builder includes(String[] includes) {
-            this.includes = includes;
-            return this;
-        }
-
-        public Builder excludes(String[] excludes) {
-            this.excludes = excludes;
-            return this;
-        }
-
         @Override
         public SourceFieldMapper build(BuilderContext context) {
-            return new SourceFieldMapper(enabled, includes, excludes, context.indexSettings());
+            return new SourceFieldMapper(enabled, context.indexSettings());
         }
     }
 
@@ -118,22 +95,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
                 Object fieldNode = entry.getValue();
                 if (fieldName.equals("enabled")) {
                     builder.enabled(nodeBooleanValue(fieldNode, name + ".enabled"));
-                    iterator.remove();
-                } else if (fieldName.equals("includes")) {
-                    List<Object> values = (List<Object>) fieldNode;
-                    String[] includes = new String[values.size()];
-                    for (int i = 0; i < includes.length; i++) {
-                        includes[i] = values.get(i).toString();
-                    }
-                    builder.includes(includes);
-                    iterator.remove();
-                } else if (fieldName.equals("excludes")) {
-                    List<Object> values = (List<Object>) fieldNode;
-                    String[] excludes = new String[values.size()];
-                    for (int i = 0; i < excludes.length; i++) {
-                        excludes[i] = values.get(i).toString();
-                    }
-                    builder.excludes(excludes);
                     iterator.remove();
                 }
             }
@@ -179,29 +140,13 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     private final boolean enabled;
 
-    private final String[] includes;
-    private final String[] excludes;
-
     private SourceFieldMapper(Settings indexSettings) {
-        this(Defaults.ENABLED, null, null, indexSettings);
+        this(Defaults.ENABLED, indexSettings);
     }
 
-    private SourceFieldMapper(boolean enabled, String[] includes, String[] excludes, Settings indexSettings) {
+    private SourceFieldMapper(boolean enabled, Settings indexSettings) {
         super(NAME, null, Defaults.FIELD_TYPE.clone(), Defaults.FIELD_TYPE, indexSettings); // Only stored.
         this.enabled = enabled;
-        this.includes = includes;
-        this.excludes = excludes;
-        final boolean filtered = (includes != null && includes.length > 0) || (excludes != null && excludes.length > 0);
-        this.filter = enabled && filtered && fieldType().stored() ? XContentMapValues.filter(includes, excludes) : null;
-    }
-
-    public String[] excludes() {
-        return this.excludes != null ? this.excludes : Strings.EMPTY_ARRAY;
-
-    }
-
-    public String[] includes() {
-        return this.includes != null ? this.includes : Strings.EMPTY_ARRAY;
     }
 
     @Override
@@ -220,17 +165,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
         BytesReference source = originalSource;
         if (enabled && fieldType().stored() && source != null) {
             // Percolate and tv APIs may not set the source and that is ok, because these APIs will not index any data
-            if (filter != null) {
-                // we don't update the context source if we filter, we want to keep it as is...
-                Tuple<XContentType, Map<String, Object>> mapTuple =
-                    XContentHelper.convertToMap(source, true, context.sourceToParse().getXContentType());
-                Map<String, Object> filteredSource = filter.apply(mapTuple.v2());
-                BytesStreamOutput bStream = new BytesStreamOutput();
-                XContentType contentType = mapTuple.v1();
-                XContentBuilder builder = XContentFactory.contentBuilder(contentType, bStream).map(filteredSource);
-                builder.close();
-                source = bStream.bytes();
-            }
             BytesRef ref = source.toBytesRef();
             fields.add(new StoredField(fieldType().name(), ref.bytes, ref.offset, ref.length));
         } else {
@@ -256,24 +190,12 @@ public class SourceFieldMapper extends MetadataFieldMapper {
         boolean includeDefaults = params.paramAsBoolean("include_defaults", false);
 
         // all are defaults, no need to write it at all
-        if (!includeDefaults && enabled == Defaults.ENABLED && includes == null && excludes == null) {
+        if (!includeDefaults && enabled == Defaults.ENABLED) {
             return builder;
         }
         builder.startObject(contentType());
         if (includeDefaults || enabled != Defaults.ENABLED) {
             builder.field("enabled", enabled);
-        }
-
-        if (includes != null) {
-            builder.array("includes", includes);
-        } else if (includeDefaults) {
-            builder.array("includes", Strings.EMPTY_ARRAY);
-        }
-
-        if (excludes != null) {
-            builder.array("excludes", excludes);
-        } else if (includeDefaults) {
-            builder.array("excludes", Strings.EMPTY_ARRAY);
         }
 
         builder.endObject();
@@ -286,12 +208,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
         List<String> conflicts = new ArrayList<>();
         if (this.enabled != sourceMergeWith.enabled) {
             conflicts.add("Cannot update enabled setting for [_source]");
-        }
-        if (Arrays.equals(includes(), sourceMergeWith.includes()) == false) {
-            conflicts.add("Cannot update includes setting for [_source]");
-        }
-        if (Arrays.equals(excludes(), sourceMergeWith.excludes()) == false) {
-            conflicts.add("Cannot update excludes setting for [_source]");
         }
         if (conflicts.isEmpty() == false) {
             throw new IllegalArgumentException("Can't merge because of conflicts: " + conflicts);
