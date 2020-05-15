@@ -71,7 +71,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         when(circuitBreaker.getLimit()).thenReturn(110L);
         when(circuitBreaker.getUsed()).thenReturn(10L);
 
-        RowAccounting<Row> rowAccounting = mock(RowAccounting.class);
+        RowAccounting<Object[]> rowAccounting = mock(RowAccounting.class);
         BatchIterator<Row> it = new HashInnerJoinBatchIterator(
             leftIterator,
             rightIterator,
@@ -86,6 +86,6 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         consumer.accept(it, null);
         consumer.getResult();
         verify(rowAccounting, times(8)).release();
-        verify(rowAccounting, times(12)).accountForAndMaybeBreak(Mockito.any(Row.class));
+        verify(rowAccounting, times(12)).accountForAndMaybeBreak(Mockito.any(Object[].class));
     }
 }

@@ -56,7 +56,6 @@ import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;

@@ -72,7 +72,7 @@ public final class JoinBatchIterators {
                                                       BatchIterator<Row> right,
                                                       ElementCombiner<Row, Row, Row> combiner,
                                                       IntSupplier blockSizeCalculator,
-                                                      RowAccounting<Row> rowAccounting) {
+                                                      RowAccounting<Object[]> rowAccounting) {
         return new CrossJoinBlockNLBatchIterator(left, right, combiner, blockSizeCalculator, rowAccounting);
     }
 

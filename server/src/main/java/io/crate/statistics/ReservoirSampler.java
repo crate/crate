@@ -25,10 +25,9 @@ package io.crate.statistics;
 import io.crate.Streamer;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
-import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.engine.collect.DocInputFactory;
@@ -203,14 +202,14 @@ public final class ReservoirSampler {
                 }
             }
         }
-        var rowAccounting = new RowAccountingWithEstimators(Symbols.typeView(columns), ramAccounting);
+        var rowAccounting = new RowCellsAccountingWithEstimators(Symbols.typeView(columns), ramAccounting, 0);
         return new Samples(
             Lists2.map(fetchIdSamples.samples(), fetchId -> {
                 int readerId = FetchId.decodeReaderId(fetchId);
                 DocIdToRow docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
-                Row row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
+                Object[] row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
                 rowAccounting.accountForAndMaybeBreak(row);
-                return row;
+                return new RowN(row);
             }),
             streamers,
             totalNumDocs,
@@ -218,7 +217,7 @@ public final class ReservoirSampler {
         );
     }
 
-    static class DocIdToRow implements Function<Integer, Row> {
+    static class DocIdToRow implements Function<Integer, Object[]> {
 
         private final Engine.Searcher searcher;
         private final List<Input<?>> inputs;
@@ -233,7 +232,7 @@ public final class ReservoirSampler {
         }
 
         @Override
-        public Row apply(Integer docId) {
+        public Object[] apply(Integer docId) {
             List<LeafReaderContext> leaves = searcher.reader().leaves();
             int readerIndex = ReaderUtil.subIndex(docId, leaves);
             LeafReaderContext leafContext = leaves.get(readerIndex);
@@ -250,8 +249,7 @@ public final class ReservoirSampler {
             for (int i = 0; i < cells.length; i++) {
                 cells[i] = inputs.get(i).value();
             }
-            // no shared rows because we know these are going to be stored.
-            return new RowN(cells);
+            return cells;
         }
     }
 

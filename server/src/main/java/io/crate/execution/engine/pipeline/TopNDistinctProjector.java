@@ -32,9 +32,9 @@ import io.crate.data.TopNDistinctBatchIterator;
 public final class TopNDistinctProjector implements Projector {
 
     private final int limit;
-    private final RowAccounting<Row> rowAccounting;
+    private final RowAccounting<Object[]> rowAccounting;
 
-    TopNDistinctProjector(int limit, RowAccounting<Row> rowAccounting) {
+    TopNDistinctProjector(int limit, RowAccounting<Object[]> rowAccounting) {
         this.limit = limit;
         this.rowAccounting = rowAccounting;
     }
@@ -42,8 +42,9 @@ public final class TopNDistinctProjector implements Projector {
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> source) {
         return new TopNDistinctBatchIterator<>(source, limit, row -> {
-            rowAccounting.accountForAndMaybeBreak(row);
-            return new RowN(row.materialize());
+            var cells = row.materialize();
+            rowAccounting.accountForAndMaybeBreak(cells);
+            return new RowN(cells);
         });
     }
 
