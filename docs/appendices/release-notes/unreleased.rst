@@ -69,50 +69,76 @@ None
 Changes
 =======
 
-- Added the :ref:`optimizer <conf-session-optimizer>` session setting
-  to configure query optimizer rules.
+
+Administration
+--------------
 
 - The JavaScript user defined function language is now enabled by default in
   the CrateDB enterprise edition.
 
-- Added the ``varchar`` and ``character varying`` types. Currently as aliases
-  for ``text``. Length limitations are not supported.
+- Added the :ref:`optimizer <conf-session-optimizer>` session setting
+  to configure query optimizer rules.
 
-- Add the :ref:`CHECK <check_constraint>` constraint syntax, which specifies
-  that the values of certain columns must satisfy a boolean expression on
-  insert and update.
-
-- Optimized `<column> IS NOT NULL` queries.
-
-- Include the bundled version of ``OpenJDK`` (13.0.2+8) into the ``CrateDB``
-  built. It means that ``CrateDB`` doesn't rely the ``JAVA_HOME`` of the host
+- Include the bundled version of ``OpenJDK`` (14.0.1+7) into the ``CrateDB``
+  built. It means that ``CrateDB`` doesn't rely on ``JAVA_HOME`` of the host
   system any longer.
 
-- Removed a node check that checks the JVM version under which CrateDB is
-  running.
 
-- Added the `pg_catalog.pg_proc <postgres_pg_catalog>`_ table.
+SQL Standard and PostgreSQL compatibility improvements
+------------------------------------------------------
 
-- Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>`
-  scalar functions.
+- Added the ``varchar`` and ``character varying`` types. Currently as aliases
+  for ``text``. Length limitations are not supported.
 
 - Added the :ref:`server_version_num <conf-session-server_version_num>` and
   :ref:`server_version <conf-session-server_version>` read-only session
   settings.
 
-- Added the :ref:`array_agg <array_agg>` aggregation function.
+- Added the `pg_catalog.pg_proc <postgres_pg_catalog>`_ table.
+
+- Added :ref:`postgres_pg_type` columns: ``typbyval``, ``typcategory``,
+  ``typowner``, ``typisdefined``, ``typrelid``, ``typndims``,
+  ``typcollation``, ``typinput``, ``typoutput``, and ``typndefault`` for improved
+  PostgreSQL compatibility.
+
+- Added support for ``JOIN USING``, e.g. ``SELECT * FROM t1 JOIN t2 USING
+  (col)``, an alternative to ``JOIN ON``, when the column name(s) are the same
+  in both relations.
 
 - Added entries for primary keys to ``pg_class`` and ``pg_index`` table.
+
+- Added support for :ref:`record subscript <record-subscript>` syntax as
+  alternative to the existing :ref:`object subscript <object-subscript>`
+  syntax.
+
+- Added support for using columns of type ``long`` inside subscript expressions
+  (e.g., ``array_expr[column]``).
+
+- Made :ref:`generate_series <table-functions-generate-series>` addressable by
+  specifying the ``pg_catalog`` schema explicitly. So, for example, both
+  ``generate_series(1, 2)`` and ``pg_catalog.generate_series(1, 2)`` are valid.
+
+- Added support for the PostgreSQL notation to refer to array types. For
+  example, it is now possible to use ``text[]`` instead of ``array(test)``.
 
 - Added support for ``GROUP BY`` operations on analysed columns of type
   ``text``.
 
+Functions and operators
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- Replaced the ``Nashorn`` JavaScript engine with ``GraalVM`` for JavaScript
+  :ref:`user-defined functions <sql_administration_udf>`. This change upgrades
+  ``ECMAScript`` support from ``5.1`` to ``10.0``.
+
+- Added :ref:`length <scalar-length>` and :ref:`repeat <scalar-repeat>`
+  scalar functions.
+
+- Added the :ref:`array_agg <array_agg>` aggregation function.
+
 - Added the :ref:`trunc <scalar-trunc>` scalar function.
 
 - Added the :ref:`now <now>` scalar function.
-
-- Introduced new optional ``RETURNING`` clause for :ref:`Insert <ref-insert>` to
-  return specified values from each row inserted.
 
 - Added a ``mod`` alias for the :ref:`modulus <scalar-modulus>` function for
   improved PostgreSQL compatibility.
@@ -127,23 +153,7 @@ Changes
 - Added support for using :ref:`table functions <ref-table-functions>` with
   more than one column within the select list part of a SELECT statement.
 
-- Added :ref:`postgres_pg_type` columns: ``typbyval``, ``typcategory``,
-  ``typowner``, ``typisdefined``, ``typrelid``, ``typndims``,
-  ``typcollation``, ``typinput``, ``typoutput``, and ``typndefault`` for improved
-  PostgreSQL compatibility.
-
-- Replaced the ``Nashorn`` JavaScript engine with ``GraalVM`` for JavaScript
-  :ref:`user-defined functions <sql_administration_udf>`. This change upgrades
-  ``ECMAScript`` support from ``5.1`` to ``10.0``.
-
-- Added support for ``JOIN USING``, e.g. ``SELECT * FROM t1 JOIN t2 USING (col)``,
-  an alternative to ``JOIN ON``, when the column name(s) are the same in both relations.
-
 - Added the :ref:`cot <scalar-cot>` trigonometric scalar function.
-
-- Added support for :ref:`record subscript <record-subscript>` syntax as
-  alternative to the existing :ref:`object subscript <object-subscript>`
-  syntax.
 
 - Added the :ref:`pi <scalar-pi>` scalar function.
 
@@ -155,26 +165,31 @@ Changes
 
 - Added the :ref:`ascii <scalar_ascii>` scalar function.
 
-- Introduced new optional ``RETURNING`` clause for :ref:`Update <ref-update>` to
-  return specified values from each row updated.
-
 - Added the :ref:`obj_description(integer, text) <obj_description>` scalar
   function for improved PostgreSQL compatibility.
 
 - Added the :ref:`format_type(integer, integer) <format_type>` scalar
   function for improved PostgreSQL compatibility.
 
-- Added support for using columns of type ``long`` inside subscript expressions
-  (e.g., ``array_expr[column]``).
-
-- Made :ref:`generate_series <table-functions-generate-series>` addressable by
-  specifying the ``pg_catalog`` schema explicitly. So, for example, both
-  ``generate_series(1, 2)`` and ``pg_catalog.generate_series(1, 2)`` are valid.
-
 - Added the :ref:`version() <version>` system information function.
 
-- Added support for the PostgreSQL notation to refer to array types. For
-  example, it is now possible to use ``text[]`` instead of ``array(test)``.
+
+New statements and clauses
+--------------------------
+
+- Added the :ref:`CHECK <check_constraint>` constraint syntax, which specifies
+  that the values of certain columns must satisfy a boolean expression on
+  insert and update.
+
+- Introduced new optional ``RETURNING`` clause for :ref:`INSERT <ref-insert>`
+  and :ref:`UPDATE <ref-update>` to return specified values from each row
+  written.
+
+Performance improvements
+------------------------
+
+- Optimized `<column> IS NOT NULL` queries.
+
 
 Fixes
 =====
