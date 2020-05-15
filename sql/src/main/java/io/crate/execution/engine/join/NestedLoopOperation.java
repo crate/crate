@@ -21,9 +21,17 @@
 
 package io.crate.execution.engine.join;
 
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.IntSupplier;
+import java.util.function.Predicate;
+
 import com.google.common.annotations.VisibleForTesting;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.CapturingRowConsumer;
@@ -35,12 +43,6 @@ import io.crate.data.join.CombinedRow;
 import io.crate.data.join.JoinBatchIterators;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.types.DataType;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.IntSupplier;
-import java.util.function.Predicate;
 
 
 public class NestedLoopOperation implements CompletionListenable {
@@ -159,7 +161,7 @@ public class NestedLoopOperation implements CompletionListenable {
         if (blockNestedLoop) {
             IntSupplier blockSizeCalculator = new RamBlockSizeCalculator(
                 Paging.PAGE_SIZE, circuitBreaker, estimatedRowsSizeLeft, estimatedNumberOfRowsLeft);
-            RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(leftSideColumnTypes, ramAccountingContext);
+            var rowAccounting = new RowCellsAccountingWithEstimators(leftSideColumnTypes, ramAccountingContext, 0);
             return JoinBatchIterators.crossJoinBlockNL(left, right, combiner, blockSizeCalculator, rowAccounting);
         } else {
             return JoinBatchIterators.crossJoinNL(left, right, combiner);

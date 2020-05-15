@@ -35,8 +35,9 @@ public class UnsafeArrayRow implements Row {
 
     private Object[] cells;
 
-    public void cells(Object[] cells) {
+    public UnsafeArrayRow cells(Object[] cells) {
         this.cells = cells;
+        return this;
     }
 
     public Object[] cells() {
