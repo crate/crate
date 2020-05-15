@@ -72,6 +72,7 @@ import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.common.collections.Tuple;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -932,7 +933,7 @@ public class JobSetup {
                 //    96 bytes for each ArrayList +
                 //    7 bytes per key for the IntHashObjectHashMap  (should be 4 but the map pre-allocates more)
                 //    7 bytes perv value (pointer from the map to the list) (should be 4 but the map pre-allocates more)
-                new RowAccountingWithEstimators(phase.leftOutputTypes(), ramAccountingOfOperation, 110),
+                new RowCellsAccountingWithEstimators(phase.leftOutputTypes(), ramAccountingOfOperation, 110),
                 context.transactionContext,
                 inputFactory,
                 breaker(),
