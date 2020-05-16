@@ -69,6 +69,7 @@ import io.crate.expression.scalar.string.StringRepeatFunction;
 import io.crate.expression.scalar.string.TrimFunctions;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
+import io.crate.expression.scalar.systeminformation.FormatTypeFunction;
 import io.crate.expression.scalar.systeminformation.ObjDescriptionFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.systeminformation.PgTypeofFunction;
@@ -169,5 +170,6 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         CurrentDatabaseFunction.register(this);
         VersionFunction.register(this);
         ObjDescriptionFunction.register(this);
+        FormatTypeFunction.register(this);
     }
 }
