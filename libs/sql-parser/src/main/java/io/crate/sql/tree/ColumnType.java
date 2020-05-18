@@ -22,18 +22,34 @@
 package io.crate.sql.tree;
 
 
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class ColumnType<T> extends Expression {
 
-    protected final String name;
+    private final String name;
+    private final List<Integer> parameters;
 
     public ColumnType(String name) {
+        this(name, List.of());
+    }
+
+    public ColumnType(String name, List<Integer> parameters) {
         this.name = name;
+        this.parameters = parameters;
     }
 
     public String name() {
         return name;
+    }
+
+    public List<Integer> parameters() {
+        return parameters;
+    }
+
+    public boolean parametrized() {
+        return !parameters.isEmpty();
     }
 
     @Override
@@ -49,19 +65,18 @@ public class ColumnType<T> extends Expression {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
-        ColumnType that = (ColumnType) o;
-
-        return name.equals(that.name);
+        ColumnType<?> that = (ColumnType<?>) o;
+        return Objects.equals(name, that.name) &&
+               Objects.equals(parameters, that.parameters);
     }
 
     @Override
     public int hashCode() {
-        return name.hashCode();
+        return Objects.hash(name, parameters);
     }
 
     public <U> ColumnType<U> map(Function<? super T, ? extends U> mapper) {
-        return new ColumnType<>(name);
+        return new ColumnType<>(name, parameters);
     }
 
     public <U> ColumnType<U> mapExpressions(ColumnType<U> mappedType,
