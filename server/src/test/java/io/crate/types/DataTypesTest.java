@@ -280,6 +280,27 @@ public class DataTypesTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_text_with_length_limit() throws Exception {
+        var stringDataType = StringType.of(10);
+        assertThat(stringDataType.unbound(), is(false));
+        assertThat(stringDataType.lengthLimit(), is(10));
+    }
+
+    @Test
+    public void test_text_with_negative_length_limit() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid text data type length limit: -1");
+        StringType.of(-1);
+    }
+
+    @Test
+    public void test_crate_text_type_with_wrong_number_of_parameters_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The number of parameters for the text data is wrong: 2");
+        StringType.of(List.of(1, 2));
+    }
+
+    @Test
     public void testInt4IsAliasedToInteger() {
         assertThat(DataTypes.ofName("int4"), is(DataTypes.INTEGER));
     }
