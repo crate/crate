@@ -721,6 +721,15 @@ public final class SqlFormatter {
         @Override
         public Void visitColumnType(ColumnType node, Integer indent) {
             builder.append(node.name().toUpperCase(Locale.ENGLISH));
+            if (node.parametrized()) {
+                builder
+                    .append("(")
+                    .append(
+                        node.parameters().stream()
+                            .map(String::valueOf)
+                            .collect(Collectors.joining(", ")))
+                    .append(')');
+            }
             return null;
         }
 

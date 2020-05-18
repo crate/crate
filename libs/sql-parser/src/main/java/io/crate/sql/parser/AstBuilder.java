@@ -76,11 +76,10 @@ import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
-import io.crate.sql.tree.DropCheckConstraint;
-import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
@@ -140,6 +139,7 @@ import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.QueryBody;
 import io.crate.sql.tree.QuerySpecification;
+import io.crate.sql.tree.RecordSubscript;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Relation;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
@@ -1743,11 +1743,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitDataTypeIdent(SqlBaseParser.DataTypeIdentContext context) {
-        return new ColumnType(getIdentText(context.ident()));
-    }
-
-    @Override
     public Node visitArrayDataType(SqlBaseParser.ArrayDataTypeContext ctx) {
         return new CollectionColumnType<>((ColumnType<?>) visit(ctx.dataType()));
     }
@@ -1760,14 +1755,30 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitDefinedDataType(SqlBaseParser.DefinedDataTypeContext context) {
-        String type = context.children.stream()
-            .map(c -> c.getText().toLowerCase(Locale.ENGLISH))
-            .collect(Collectors.joining(" "));
-        return new ColumnType(type);
+    public Node visitMaybeParametrizedDataType(SqlBaseParser.MaybeParametrizedDataTypeContext context) {
+        StringLiteral name = (StringLiteral) visit(context.baseDataType());
+        var parameters = new ArrayList<Integer>(context.integerLiteral().size());
+        for (var param : context.integerLiteral()) {
+            parameters.add(Math.toIntExact(((LongLiteral) visit(param)).getValue()));
+        }
+        return new ColumnType<>(name.getValue(), parameters);
     }
 
-    private String getObjectType(Token type) {
+    @Override
+    public Node visitIdentDataType(SqlBaseParser.IdentDataTypeContext context) {
+        return StringLiteral.fromObject(getIdentText(context.ident()));
+    }
+
+    @Override
+    public Node visitDefinedDataType(SqlBaseParser.DefinedDataTypeContext context) {
+        return StringLiteral.fromObject(
+            context.children.stream()
+                .map(c -> c.getText().toLowerCase(Locale.ENGLISH))
+                .collect(Collectors.joining(" "))
+        );
+    }
+
+    private static String getObjectType(Token type) {
         if (type == null) return null;
         switch (type.getType()) {
             case SqlBaseLexer.DYNAMIC:
