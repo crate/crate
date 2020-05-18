@@ -23,6 +23,7 @@
 package io.crate.planner.optimizer;
 
 import io.crate.common.collections.Lists2;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -41,10 +42,14 @@ public class Optimizer {
 
     private final List<Rule<?>> rules;
     private final Supplier<Version> minNodeVersionInCluster;
+    private final Functions functions;
 
-    public Optimizer(List<Rule<?>> rules, Supplier<Version> minNodeVersionInCluster) {
+    public Optimizer(Functions functions,
+                     Supplier<Version> minNodeVersionInCluster,
+                     List<Rule<?>> rules) {
         this.rules = rules;
         this.minNodeVersionInCluster = minNodeVersionInCluster;
+        this.functions = functions;
     }
 
     public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
@@ -67,6 +72,12 @@ public class Optimizer {
             done = true;
             Version minVersion = minNodeVersionInCluster.get();
             for (Rule rule : rules) {
+                if (!rule.isEnabled()) {
+                    if (isTraceEnabled) {
+                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' excluded from execution");
+                    }
+                    continue;
+                }
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
@@ -76,7 +87,7 @@ public class Optimizer {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
                     }
                     @SuppressWarnings("unchecked")
-                    LogicalPlan transformedPlan = rule.apply(match.value(), match.captures(), tableStats, txnCtx);
+                    LogicalPlan transformedPlan = rule.apply(match.value(), match.captures(), tableStats, txnCtx, functions);
                     if (transformedPlan != null) {
                         if (isTraceEnabled) {
                             LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
@@ -92,4 +103,5 @@ public class Optimizer {
             : "Optimizer reached 10_000 iterations safety guard. This is an indication of a broken rule that matches again and again";
         return node;
     }
+
 }

@@ -31,10 +31,12 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -86,7 +88,10 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
             null,
             sqlExecutor.schemas(),
             new StubUserManager(),
-            () -> true) {
+            () -> true,
+            mock(LoadedRules.class),
+            mock(SessionSettingRegistry.class)
+            ) {
 
             @Override
             public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {

@@ -23,6 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.FieldReplacer;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -42,6 +43,7 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
 
     private final Capture<Rename> renameCapture;
     private final Pattern<Filter> pattern;
+    private volatile boolean enabled = true;
 
     public MoveFilterBeneathRename() {
         this.renameCapture = new Capture<>();
@@ -55,10 +57,21 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public LogicalPlan apply(Filter plan,
                              Captures captures,
                              TableStats tableStats,
-                             TransactionContext txnCtx) {
+                             TransactionContext txnCtx,
+                             Functions functions) {
         Rename rename = captures.get(renameCapture);
         Filter newFilter = new Filter(
             rename.source(),

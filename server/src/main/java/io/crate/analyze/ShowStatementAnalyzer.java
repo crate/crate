@@ -57,9 +57,12 @@ class ShowStatementAnalyzer {
 
     private final Schemas schemas;
 
-    ShowStatementAnalyzer(Analyzer analyzer, Schemas schemas) {
+    private final SessionSettingRegistry sessionSettingRegistry;
+
+    ShowStatementAnalyzer(Analyzer analyzer, Schemas schemas, SessionSettingRegistry sessionSettingRegistry) {
         this.analyzer = analyzer;
         this.schemas = schemas;
+        this.sessionSettingRegistry = sessionSettingRegistry;
     }
 
     Query rewriteShowTransaction() {
@@ -94,7 +97,7 @@ class ShowStatementAnalyzer {
         return new AnalyzedShowCreateTable(tableInfo);
     }
 
-    static Query rewriteShowSessionParameter(ShowSessionParameter node) {
+    Query rewriteShowSessionParameter(ShowSessionParameter node) {
         /*
          * Rewrite
          * <code>
@@ -122,9 +125,9 @@ class ShowStatementAnalyzer {
         return (Query) SqlParser.createStatement(sb.toString());
     }
 
-    static void validateSessionSetting(@Nullable QualifiedName settingParameter) {
+    void validateSessionSetting(@Nullable QualifiedName settingParameter) {
         if (settingParameter != null &&
-            !SessionSettingRegistry.SETTINGS.containsKey(settingParameter.toString())) {
+            !sessionSettingRegistry.settings().containsKey(settingParameter.toString())) {
             throw new IllegalArgumentException(
                 "Unknown session setting name '" + settingParameter + "'.");
         }

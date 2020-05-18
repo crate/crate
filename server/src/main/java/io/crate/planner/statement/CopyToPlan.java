@@ -169,10 +169,14 @@ public final class CopyToPlan implements Plan {
     }
 
     private static LogicalPlan optimizeCollect(PlannerContext context, TableStats tableStats, LogicalPlan collect) {
-        RewriteCollectToGet rewriteCollectToGet = new RewriteCollectToGet(context.functions());
+        RewriteCollectToGet rewriteCollectToGet = new RewriteCollectToGet();
         Match<Collect> match = rewriteCollectToGet.pattern().accept(collect, Captures.empty());
         if (match.isPresent()) {
-            LogicalPlan plan = rewriteCollectToGet.apply(match.value(), match.captures(), tableStats, context.transactionContext());
+            LogicalPlan plan = rewriteCollectToGet.apply(match.value(),
+                                                         match.captures(),
+                                                         tableStats,
+                                                         context.transactionContext(),
+                                                         context.functions());
             return plan == null ? collect : plan;
         }
         return collect;

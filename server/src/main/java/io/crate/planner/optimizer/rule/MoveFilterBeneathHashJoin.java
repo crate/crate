@@ -22,6 +22,7 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
@@ -40,11 +41,22 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
 
     private final Capture<HashJoin> joinCapture;
     private final Pattern<Filter> pattern;
+    private volatile boolean enabled = true;
 
     public MoveFilterBeneathHashJoin() {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(source(), typeOf(HashJoin.class).capturedAs(joinCapture));
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     @Override
@@ -56,7 +68,8 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
     public LogicalPlan apply(Filter filter,
                              Captures captures,
                              TableStats tableStats,
-                             TransactionContext txnCtx) {
+                             TransactionContext txnCtx,
+                             Functions functions) {
         HashJoin hashJoin = captures.get(joinCapture);
         return moveQueryBelowJoin(filter.query(), hashJoin);
     }

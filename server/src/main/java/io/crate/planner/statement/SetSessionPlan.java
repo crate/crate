@@ -52,8 +52,11 @@ public class SetSessionPlan implements Plan {
 
     private final List<Assignment<Symbol>> settings;
 
-    public SetSessionPlan(List<Assignment<Symbol>> settings) {
+    private final SessionSettingRegistry sessionSettingRegistry;
+
+    public SetSessionPlan(List<Assignment<Symbol>> settings, SessionSettingRegistry sessionSettingRegistry) {
         this.settings = settings;
+        this.sessionSettingRegistry = sessionSettingRegistry;
     }
 
     @Override
@@ -78,7 +81,7 @@ public class SetSessionPlan implements Plan {
         Assignment<Symbol> assignment = settings.get(0);
         String settingName = eval.apply(assignment.columnName()).toString();
         validateSetting(settingName);
-        SessionSetting<?> sessionSetting = SessionSettingRegistry.SETTINGS.get(settingName);
+        SessionSetting<?> sessionSetting = sessionSettingRegistry.settings().get(settingName);
         if (sessionSetting == null) {
             LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", settingName);
         } else {

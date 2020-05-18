@@ -23,6 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
@@ -46,6 +47,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 public final class RewriteToQueryThenFetch implements Rule<Limit> {
 
     private final Pattern<Limit> pattern;
+    private volatile boolean enabled = true;
 
     public RewriteToQueryThenFetch() {
         this.pattern = typeOf(Limit.class);
@@ -57,10 +59,21 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
                              TableStats tableStats,
-                             TransactionContext txnCtx) {
+                             TransactionContext txnCtx,
+                             Functions functions) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }

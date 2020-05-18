@@ -27,13 +27,17 @@ import io.crate.action.sql.SessionContext;
 import io.crate.metadata.SearchPath;
 import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import static io.crate.metadata.SearchPath.createSearchPathFrom;
 
+@Singleton
 public class SessionSettingRegistry {
 
     private static final String SEARCH_PATH_KEY = "search_path";
@@ -41,70 +45,86 @@ public class SessionSettingRegistry {
     static final String MAX_INDEX_KEYS = "max_index_keys";
     private static final String SERVER_VERSION_NUM = "server_version_num";
     private static final String SERVER_VERSION = "server_version";
+    private final Map<String, SessionSetting<?>> settings;
 
-    public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()
+    @Inject
+    public SessionSettingRegistry(Set<SessionSettingProvider> sessionSettingProviders) {
+        var builder = ImmutableMap.<String, SessionSetting<?>>builder()
             .put(SEARCH_PATH_KEY,
-                new SessionSetting<>(
-                    objects -> {}, // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
-                    objects -> createSearchPathFrom(objectsToStringArray(objects)),
-                    SessionContext::setSearchPath,
-                    s -> iterableToString(s.searchPath()),
-                    () -> iterableToString(SearchPath.pathWithPGCatalogAndDoc()),
-                    "Sets the schema search order.",
-                    DataTypes.STRING.getName()))
+                 new SessionSetting<>(
+                     SEARCH_PATH_KEY,
+                     objects -> {}, // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
+                     objects -> createSearchPathFrom(objectsToStringArray(objects)),
+                     SessionContext::setSearchPath,
+                     s -> iterableToString(s.searchPath()),
+                     () -> iterableToString(SearchPath.pathWithPGCatalogAndDoc()),
+                     "Sets the schema search order.",
+                     DataTypes.STRING.getName()))
             .put(HASH_JOIN_KEY,
-                new SessionSetting<>(
-                    objects -> {
-                        if (objects.length != 1) {
-                            throw new IllegalArgumentException(HASH_JOIN_KEY + " should have only one argument.");
-                        }
-                    },
-                    objects -> DataTypes.BOOLEAN.value(objects[0]),
-                    SessionContext::setHashJoinEnabled,
-                    s -> Boolean.toString(s.hashJoinsEnabled()),
-                    () -> String.valueOf(true),
-                    "Considers using the Hash Join instead of the Nested Loop Join implementation.",
-                    DataTypes.BOOLEAN.getName()))
+                 new SessionSetting<>(
+                     HASH_JOIN_KEY,
+                     objects -> {
+                         if (objects.length != 1) {
+                             throw new IllegalArgumentException(HASH_JOIN_KEY + " should have only one argument.");
+                         }
+                     },
+                     objects -> DataTypes.BOOLEAN.value(objects[0]),
+                     SessionContext::setHashJoinEnabled,
+                     s -> Boolean.toString(s.hashJoinsEnabled()),
+                     () -> String.valueOf(true),
+                     "Considers using the Hash Join instead of the Nested Loop Join implementation.",
+                     DataTypes.BOOLEAN.getName()))
             .put(MAX_INDEX_KEYS,
-                new SessionSetting<>(
-                    objects -> {},
-                    Function.identity(),
-                    (s, v) -> {
-                        throw new UnsupportedOperationException("\"" + MAX_INDEX_KEYS + "\" cannot be changed.");
-                    },
-                    s -> String.valueOf(32),
-                    () -> String.valueOf(32),
-                    "Shows the maximum number of index keys.",
-                    DataTypes.INTEGER.getName()))
-            .put(
-                SERVER_VERSION_NUM,
-                new SessionSetting<>(
-                    objects -> {},
-                    Function.identity(),
-                    (s, v) -> {
-                        throw new UnsupportedOperationException("\"" + SERVER_VERSION_NUM + "\" cannot be changed.");
-                    },
-                    s -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
-                    () -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
-                    "Reports the emulated PostgreSQL version number",
-                    DataTypes.INTEGER.getName()
-                )
+                 new SessionSetting<>(
+                     MAX_INDEX_KEYS,
+                     objects -> {},
+                     Function.identity(),
+                     (s, v) -> {
+                         throw new UnsupportedOperationException("\"" + MAX_INDEX_KEYS + "\" cannot be changed.");
+                     },
+                     s -> String.valueOf(32),
+                     () -> String.valueOf(32),
+                     "Shows the maximum number of index keys.",
+                     DataTypes.INTEGER.getName()))
+            .put(SERVER_VERSION_NUM,
+                 new SessionSetting<>(
+                     SERVER_VERSION_NUM,
+                     objects -> {},
+                     Function.identity(),
+                     (s, v) -> {
+                         throw new UnsupportedOperationException("\"" + SERVER_VERSION_NUM + "\" cannot be changed.");
+                     },
+                     s -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
+                     () -> String.valueOf(PostgresWireProtocol.SERVER_VERSION_NUM),
+                     "Reports the emulated PostgreSQL version number",
+                     DataTypes.INTEGER.getName()
+                 )
             )
-            .put(
-                SERVER_VERSION,
-                new SessionSetting<>(
-                    objects -> {},
-                    Function.identity(),
-                    (s, v) -> {
-                        throw new UnsupportedOperationException("\"" + SERVER_VERSION + "\" cannot be changed.");
-                    },
-                    s -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
-                    () -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
-                    "Reports the emulated PostgreSQL version number",
-                    DataTypes.STRING.getName()
-                )
-            )
-            .build();
+            .put(SERVER_VERSION,
+                 new SessionSetting<>(
+                     SERVER_VERSION,
+                     objects -> {},
+                     Function.identity(),
+                     (s, v) -> {
+                         throw new UnsupportedOperationException("\"" + SERVER_VERSION + "\" cannot be changed.");
+                     },
+                     s -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
+                     () -> String.valueOf(PostgresWireProtocol.PG_SERVER_VERSION),
+                     "Reports the emulated PostgreSQL version number",
+                     DataTypes.STRING.getName()
+                 )
+            );
+        for (var providers : sessionSettingProviders) {
+            for (var setting : providers.sessionSettings()) {
+                builder.put(setting.name(), setting);
+            }
+        }
+        this.settings = builder.build();
+    }
+
+    public Map<String, SessionSetting<?>> settings() {
+        return settings;
+    }
 
     private static String[] objectsToStringArray(Object[] objects) {
         String[] strings = new String[objects.length];

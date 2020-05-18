@@ -23,6 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
@@ -44,6 +45,7 @@ public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
 
     private final Capture<Eval> fetchCapture;
     private final Pattern<Order> pattern;
+    private volatile boolean enabled = true;
 
     public MoveOrderBeneathFetchOrEval() {
         this.fetchCapture = new Capture<>();
@@ -57,7 +59,21 @@ public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
     }
 
     @Override
-    public LogicalPlan apply(Order plan, Captures captures, TableStats tableStats, TransactionContext txnCtx) {
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
+    public LogicalPlan apply(Order plan,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx,
+                             Functions functions) {
         Eval eval = captures.get(fetchCapture);
         List<Symbol> outputsOfSourceOfFetch = eval.source().outputs();
         List<Symbol> orderBySymbols = plan.orderBy().orderBySymbols();

@@ -27,6 +27,7 @@ import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
@@ -60,6 +61,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
 
     private final Capture<NestedLoopJoin> nlCapture;
     private final Pattern<Order> pattern;
+    private volatile boolean enabled = true;
 
     public MoveOrderBeneathNestedLoop() {
         this.nlCapture = new Capture<>();
@@ -77,10 +79,21 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public LogicalPlan apply(Order order,
                              Captures captures,
                              TableStats tableStats,
-                             TransactionContext txnCtx) {
+                             TransactionContext txnCtx,
+                             Functions functions) {
         NestedLoopJoin nestedLoop = captures.get(nlCapture);
         Set<RelationName> relationsInOrderBy =
             Collections.newSetFromMap(new IdentityHashMap<>());

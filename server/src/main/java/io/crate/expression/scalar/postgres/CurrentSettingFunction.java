@@ -34,6 +34,7 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Provider;
 
 import javax.annotation.Nullable;
 
@@ -44,7 +45,7 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
     private static final String NAME = "current_setting";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(ScalarFunctionModule module, Provider<SessionSettingRegistry> sessionSettingRegistry) {
         module.register(
             scalar(
                 FQN,
@@ -54,7 +55,8 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
             (signature, argumentTypes) ->
                 new CurrentSettingFunction(
                     new FunctionInfo(new FunctionIdent(FQN, argumentTypes), argumentTypes.get(0)),
-                    signature
+                    signature,
+                    sessionSettingRegistry
                 )
         );
 
@@ -68,17 +70,21 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
             (signature, argumentTypes) ->
                 new CurrentSettingFunction(
                     new FunctionInfo(new FunctionIdent(FQN, argumentTypes), argumentTypes.get(0)),
-                    signature
+                    signature,
+                    sessionSettingRegistry
                 )
         );
     }
 
     private final FunctionInfo info;
     private final Signature signature;
+    private final Provider<SessionSettingRegistry> sessionSettingRegistry;
 
-    CurrentSettingFunction(FunctionInfo info, Signature signature) {
+    CurrentSettingFunction(FunctionInfo info, Signature signature, Provider<SessionSettingRegistry> sessionSettingRegistry) {
         this.info = info;
         this.signature = signature;
+        this.sessionSettingRegistry = sessionSettingRegistry;
+
     }
 
     @Override
@@ -108,7 +114,7 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
             return null;
         }
 
-        final SessionSetting<?> sessionSetting = SessionSettingRegistry.SETTINGS.get(settingName);
+        final SessionSetting<?> sessionSetting = sessionSettingRegistry.get().settings().get(settingName);
         if (sessionSetting == null) {
             if (missingOk) {
                 return null;

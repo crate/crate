@@ -41,9 +41,13 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.session.SessionSettingModule;
+import io.crate.metadata.settings.session.SessionSettingProvider;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -169,6 +173,7 @@ public class TestingHelpers {
 
     public static Functions getFunctions() {
         return new ModulesBuilder()
+            .add(new SessionSettingModule())
             .add(new AggregationImplModule())
             .add(new PredicateModule())
             .add(new TableFunctionModule())

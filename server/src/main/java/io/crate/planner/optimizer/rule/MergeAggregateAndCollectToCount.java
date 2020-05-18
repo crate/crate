@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.statistics.TableStats;
@@ -42,6 +43,7 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
 
     private final Capture<Collect> collectCapture;
     private final Pattern<HashAggregate> pattern;
+    private volatile boolean enabled = true;
 
     public MergeAggregateAndCollectToCount() {
         this.collectCapture = new Capture<>();
@@ -59,10 +61,21 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public Count apply(HashAggregate aggregate,
                        Captures captures,
                        TableStats tableStats,
-                       TransactionContext txnCtx) {
+                       TransactionContext txnCtx,
+                       Functions functions) {
         Collect collect = captures.get(collectCapture);
         var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());
         if (countAggregate.filter() != null) {

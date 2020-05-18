@@ -55,6 +55,7 @@ import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.pgcatalog.PgCatalogModule;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetaDataIndexUpgrader;
@@ -201,6 +202,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new BulkModule());
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
+        modules.add(new SessionSettingModule());
         if (userExtension != null) {
             modules.addAll(userExtension.getModules(settings));
         } else {
