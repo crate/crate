@@ -638,7 +638,16 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitColumnType(ColumnType<?> node, @Nullable List<Expression> parameters) {
-            return node.name();
+            var builder = new StringBuilder(node.name());
+            if (node.parametrized()) {
+                builder
+                    .append("(")
+                    .append(node.parameters().stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(", ")))
+                    .append(")");
+            }
+            return builder.toString();
         }
 
         @Override

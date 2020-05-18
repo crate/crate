@@ -1642,6 +1642,12 @@ public class TestStatementBuilder {
             "FROM t");
     }
 
+    @Test
+    public void test_create_table_with_parametrized_varchar_data_type   () {
+        printStatement("create table test(col varchar(1))");
+        printStatement("create table test(col character varying(2))");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
