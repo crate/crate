@@ -537,11 +537,16 @@ rerouteOption
     ;
 
 dataType
-    : definedDataType           #definedDataTypeDefault
-    | ident                     #dataTypeIdent
-    | objectTypeDefinition      #objectDataType
-    | ARRAY '(' dataType ')'    #arrayDataType
-    | dataType '[]'             #arrayDataType
+    : baseDataType
+        ('(' integerLiteral (',' integerLiteral )* ')')?    #maybeParametrizedDataType
+    | objectTypeDefinition                                  #objectDataType
+    | ARRAY '(' dataType ')'                                #arrayDataType
+    | dataType '[]'                                         #arrayDataType
+    ;
+
+baseDataType
+    : definedDataType   #definedDataTypeDefault
+    | ident             #identDataType
     ;
 
 definedDataType
