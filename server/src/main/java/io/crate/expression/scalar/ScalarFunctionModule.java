@@ -77,6 +77,7 @@ import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.scalar.timestamp.TimezoneFunction;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 
 public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImplementation> {
 
@@ -161,7 +162,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         CurrentSchemaFunction.register(this);
         CurrentSchemasFunction.register(this);
         PgGetExpr.register(this);
-        CurrentSettingFunction.register(this);
+        CurrentSettingFunction.register(this, getProvider(SessionSettingRegistry.class));
 
         PgBackendPidFunction.register(this);
         PgGetUserByIdFunction.register(this);

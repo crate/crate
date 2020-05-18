@@ -95,7 +95,6 @@ Supported session settings
 .. _conf-session-server_version_num:
 
 **server_version_num**
-
   | *Default:* ``100500``
   | *Modifiable:* ``no``
 
@@ -105,11 +104,25 @@ Supported session settings
 .. _conf-session-server_version:
 
 **server_version**
-
   | *Default:* ``10.5``
   | *Modifiable:* ``no``
 
   Shows the emulated ``PostgreSQL`` server version.
+
+.. _conf-session-optimizer:
+
+**optimizer**
+  | *Default:* ``true``
+  | *Modifiable:* ``yes``
+
+  This setting indicates whether a query optimizer rule is activated. The name
+  of the query optimizer rule has to be provided as a suffix as part of the
+  setting e.g. ``SET optimizer_rewrite_collect_to_get = false``.
+
+  .. NOTE::
+   The optimizer setting is for advanced use only and can significantly impact
+   the performance behavior of the queries.
+
 
 .. _experimental-warning:
 

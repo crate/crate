@@ -82,6 +82,7 @@ import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.license.LicenseService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
@@ -116,6 +117,7 @@ import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
 import io.crate.planner.statement.DeletePlanner;
@@ -151,6 +153,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final TableCreator tableCreator;
     private final Schemas schemas;
     private final UserManager userManager;
+    private final SessionSettingRegistry sessionSettingRegistry;
 
     private List<String> awarenessAttributes;
 
@@ -163,7 +166,9 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    NumberOfShards numberOfShards,
                    TableCreator tableCreator,
                    Schemas schemas,
-                   UserManager userManager) {
+                   UserManager userManager,
+                   LoadedRules loadedRules,
+                   SessionSettingRegistry sessionSettingRegistry) {
         this(
             settings,
             clusterService,
@@ -173,7 +178,9 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             tableCreator,
             schemas,
             userManager,
-            () -> licenseService.getLicenseState() == LicenseService.LicenseState.VALID
+            () -> licenseService.getLicenseState() == LicenseService.LicenseState.VALID,
+            loadedRules,
+            sessionSettingRegistry
         );
     }
 
@@ -186,16 +193,20 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    TableCreator tableCreator,
                    Schemas schemas,
                    UserManager userManager,
-                   BooleanSupplier hasValidLicense) {
+                   BooleanSupplier hasValidLicense,
+                   LoadedRules loadedRules,
+                   SessionSettingRegistry sessionSettingRegistry
+    ) {
         this.clusterService = clusterService;
         this.functions = functions;
         this.tableStats = tableStats;
-        this.logicalPlanner = new LogicalPlanner(functions, tableStats, () -> clusterService.state().nodes().getMinNodeVersion());
+        this.logicalPlanner = new LogicalPlanner(functions, tableStats, () -> clusterService.state().nodes().getMinNodeVersion(), loadedRules);
         this.isStatementExecutionAllowed = new IsStatementExecutionAllowed(hasValidLicense);
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
         this.schemas = schemas;
         this.userManager = userManager;
+        this.sessionSettingRegistry = sessionSettingRegistry;
         initAwarenessAttributes(settings);
     }
 
@@ -461,7 +472,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                 LOGGER.info("'SET SESSION CHARACTERISTICS AS TRANSACTION' statement will be ignored.");
                 return NoopPlan.INSTANCE;
             case SESSION:
-                return new SetSessionPlan(setStatement.settings());
+                return new SetSessionPlan(setStatement.settings(), sessionSettingRegistry);
             case GLOBAL:
             default:
                 return new UpdateSettingsPlan(setStatement.settings(), setStatement.isPersistent());

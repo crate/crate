@@ -23,6 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.analyze.WindowDefinition;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
@@ -42,6 +43,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
 
     private final Capture<WindowAgg> windowAggCapture;
     private final Pattern<Filter> pattern;
+    private volatile boolean enabled = true;
 
     public MoveFilterBeneathWindowAgg() {
         this.windowAggCapture = new Capture<>();
@@ -55,10 +57,21 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public LogicalPlan apply(Filter plan,
                              Captures captures,
                              TableStats tableStats,
-                             TransactionContext txnCtx) {
+                             TransactionContext txnCtx,
+                             Functions functions) {
         WindowAgg windowAgg = captures.get(windowAggCapture);
         WindowDefinition windowDefinition = windowAgg.windowDefinition();
         if (windowDefinition.partitions().containsAll(extractColumns(plan.query()))) {

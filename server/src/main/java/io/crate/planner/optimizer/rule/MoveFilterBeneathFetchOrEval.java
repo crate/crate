@@ -23,6 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
@@ -44,6 +45,7 @@ public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
 
     private final Capture<Eval> fetchOrEvalCapture;
     private final Pattern<Filter> pattern;
+    private volatile boolean enabled = true;
 
     public MoveFilterBeneathFetchOrEval() {
         this.fetchOrEvalCapture = new Capture<>();
@@ -52,12 +54,22 @@ public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public Pattern<Filter> pattern() {
         return pattern;
     }
 
     @Override
-    public LogicalPlan apply(Filter plan, Captures captures, TableStats tableStats, TransactionContext txnCtx) {
+    public LogicalPlan apply(Filter plan, Captures captures, TableStats tableStats, TransactionContext txnCtx, Functions functions) {
         Eval eval = captures.get(fetchOrEvalCapture);
         List<Symbol> outputsOfFetchSource = eval.source().outputs();
         if (outputsOfFetchSource.containsAll(extractColumns(plan.query()))) {

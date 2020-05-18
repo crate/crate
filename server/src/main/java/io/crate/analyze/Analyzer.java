@@ -29,6 +29,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterTable;
@@ -143,7 +144,9 @@ public class Analyzer {
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
-                    UserManager userManager) {
+                    UserManager userManager,
+                    SessionSettingRegistry sessionSettingRegistry
+    ) {
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropCheckConstraintAnalyzer = new DropCheckConstraintAnalyzer(schemas);
@@ -154,7 +157,7 @@ public class Analyzer {
         this.swapTableAnalyzer = new SwapTableAnalyzer(functions, schemas);
         this.viewAnalyzer = new ViewAnalyzer(relationAnalyzer, schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
-        this.showStatementAnalyzer = new ShowStatementAnalyzer(this, schemas);
+        this.showStatementAnalyzer = new ShowStatementAnalyzer(this, schemas, sessionSettingRegistry);
         this.updateAnalyzer = new UpdateAnalyzer(functions, relationAnalyzer);
         this.deleteAnalyzer = new DeleteAnalyzer(functions, relationAnalyzer);
         this.insertAnalyzer = new InsertAnalyzer(functions, schemas, relationAnalyzer);
@@ -554,8 +557,8 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
-            ShowStatementAnalyzer.validateSessionSetting(node.parameter());
-            Query query = ShowStatementAnalyzer.rewriteShowSessionParameter(node);
+            showStatementAnalyzer.validateSessionSetting(node.parameter());
+            Query query = showStatementAnalyzer.rewriteShowSessionParameter(node);
             return relationAnalyzer.analyze(
                 query,
                 context.transactionContext(),

@@ -48,7 +48,8 @@ public class PgCatalogTableDefinitions {
     @Inject
     public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables,
                                      TableStats tableStats,
-                                     PgCatalogSchemaInfo pgCatalogSchemaInfo) {
+                                     PgCatalogSchemaInfo pgCatalogSchemaInfo,
+                                     SessionSettingRegistry sessionSettingRegistry) {
         tableDefinitions = new HashMap<>(9);
         tableDefinitions.put(
             PgStatsTable.NAME,
@@ -108,7 +109,7 @@ public class PgCatalogTableDefinitions {
             false)
         );
         Iterable<NamedSessionSetting> sessionSettings =
-            () -> SessionSettingRegistry.SETTINGS.entrySet().stream()
+            () -> sessionSettingRegistry.settings().entrySet().stream()
                 .map(s -> new NamedSessionSetting(s.getKey(), s.getValue()))
                 .iterator();
         tableDefinitions.put(PgSettingsTable.IDENT, new StaticTableDefinition<>(

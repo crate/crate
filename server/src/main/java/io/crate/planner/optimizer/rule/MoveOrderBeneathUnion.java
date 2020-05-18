@@ -23,6 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.LogicalPlan;
@@ -42,6 +43,7 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
 
     private final Capture<Union> unionCapture;
     private final Pattern<Order> pattern;
+    private volatile boolean enabled = true;
 
     public MoveOrderBeneathUnion() {
         this.unionCapture = new Capture<>();
@@ -55,10 +57,21 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public LogicalPlan apply(Order order,
                              Captures captures,
                              TableStats tableStats,
-                             TransactionContext txnCtx) {
+                             TransactionContext txnCtx,
+                             Functions functions) {
         Union union = captures.get(unionCapture);
         List<LogicalPlan> unionSources = union.sources();
         assert unionSources.size() == 2 : "A UNION must have exactly 2 unionSources";

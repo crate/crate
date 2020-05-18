@@ -27,6 +27,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
@@ -49,6 +50,7 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
 
     private final Capture<ProjectSet> projectSetCapture;
     private final Pattern<Filter> pattern;
+    private volatile boolean enabled = true;
 
     public MoveFilterBeneathProjectSet() {
         this.projectSetCapture = new Capture<>();
@@ -62,10 +64,21 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
                              TableStats tableStats,
-                             TransactionContext txnCtx) {
+                             TransactionContext txnCtx,
+                             Functions functions) {
         var projectSet = captures.get(projectSetCapture);
 
         var queryParts = AndOperator.split(filter.query());

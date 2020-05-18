@@ -34,6 +34,7 @@ import java.util.function.Supplier;
 
 public class SessionSetting<T> {
 
+    private final String name;
     private final Consumer<Object[]> validator;
     private final Function<Object[], T> converter;
     private final BiConsumer<SessionContext, T> setter;
@@ -43,13 +44,15 @@ public class SessionSetting<T> {
     private final String description;
     private final String type;
 
-    SessionSetting(Consumer<Object[]> validator,
+    public SessionSetting(String name,
+                   Consumer<Object[]> validator,
                    Function<Object[], T> converter,
                    BiConsumer<SessionContext, T> setter,
                    Function<SessionSettings, String> getter,
                    Supplier<String> defaultValue,
                    String description,
                    String type) {
+        this.name = name;
         this.validator = validator;
         this.converter = converter;
         this.setter = setter;
@@ -84,5 +87,9 @@ public class SessionSetting<T> {
 
     public String type() {
         return type;
+    }
+
+    public String name() {
+        return name;
     }
 }

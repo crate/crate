@@ -22,6 +22,7 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Eval;
@@ -38,6 +39,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
 
     private final Pattern<Eval> pattern;
+    private volatile boolean enabled = true;
 
     public RemoveRedundantFetchOrEval() {
         this.pattern = typeOf(Eval.class)
@@ -50,7 +52,21 @@ public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
     }
 
     @Override
-    public LogicalPlan apply(Eval plan, Captures captures, TableStats tableStats, TransactionContext txnCtx) {
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
+    public LogicalPlan apply(Eval plan,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx,
+                             Functions functions) {
         return plan.source();
     }
 }

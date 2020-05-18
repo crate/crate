@@ -72,6 +72,7 @@ import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
@@ -85,6 +86,7 @@ import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateTable;
@@ -140,6 +142,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 
 import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_DEFINITION;
@@ -222,6 +225,8 @@ public class SQLExecutor {
         private TableStats tableStats = new TableStats();
         private boolean hasValidLicense = true;
         private Schemas schemas;
+        private LoadedRules loadedRules = new LoadedRules();
+        private SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of(loadedRules));
 
         private Builder(ClusterService clusterService,
                         int numNodes,
@@ -394,7 +399,8 @@ public class SQLExecutor {
                         mock(TransportDeleteRepositoryAction.class),
                         mock(TransportPutRepositoryAction.class)
                     ),
-                    userManager
+                    userManager,
+                    sessionSettingRegistry
                 ),
                 new Planner(
                     Settings.EMPTY,
@@ -405,7 +411,9 @@ public class SQLExecutor {
                     null,
                     schemas,
                     userManager,
-                    () -> hasValidLicense
+                    () -> hasValidLicense,
+                    loadedRules,
+                    sessionSettingRegistry
                 ),
                 relationAnalyzer,
                 new SessionContext(Option.NONE, user, searchPath),

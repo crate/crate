@@ -22,6 +22,7 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.LogicalPlan;
@@ -51,6 +52,7 @@ public final class DeduplicateOrder implements Rule<Order> {
 
     private final Capture<Order> childOrder;
     private final Pattern<Order> pattern;
+    private volatile boolean enabled = true;
 
     public DeduplicateOrder() {
         this.childOrder = new Capture<>();
@@ -64,10 +66,21 @@ public final class DeduplicateOrder implements Rule<Order> {
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public LogicalPlan apply(Order plan,
                              Captures captures,
                              TableStats tableStats,
-                             TransactionContext txnCtx) {
+                             TransactionContext txnCtx,
+                             Functions functions) {
         Order childOrder = captures.get(this.childOrder);
         return plan.replaceSources(childOrder.sources());
     }

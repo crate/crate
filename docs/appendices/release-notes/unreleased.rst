@@ -69,6 +69,9 @@ None
 Changes
 =======
 
+- Added the :ref:`optimizer <conf-session-optimizer>` session setting
+  to configure query optimizer rules.
+
 - The JavaScript user defined function language is now enabled by default in
   the CrateDB enterprise edition.
 

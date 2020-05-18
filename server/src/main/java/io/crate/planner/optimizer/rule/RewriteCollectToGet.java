@@ -47,10 +47,9 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 public final class RewriteCollectToGet implements Rule<Collect> {
 
     private final Pattern<Collect> pattern;
-    private Functions functions;
+    private volatile boolean enabled = true;
 
-    public RewriteCollectToGet(Functions functions) {
-        this.functions = functions;
+    public RewriteCollectToGet() {
         this.pattern = typeOf(Collect.class)
             .with(collect ->
                       collect.relation() instanceof DocTableRelation
@@ -65,10 +64,21 @@ public final class RewriteCollectToGet implements Rule<Collect> {
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public LogicalPlan apply(Collect collect,
                              Captures captures,
                              TableStats tableStats,
-                             TransactionContext txnCtx) {
+                             TransactionContext txnCtx,
+                             Functions functions) {
         var relation = (DocTableRelation) collect.relation();
         var normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, relation);
         WhereClause where = collect.where();

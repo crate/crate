@@ -48,6 +48,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -82,6 +83,7 @@ public class SqlExpressions {
                           User user,
                           AbstractModule... additionalModules) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
+            .add(new SessionSettingModule())
             .add(new OperatorModule())
             .add(new AggregationImplModule())
             .add(new ScalarFunctionModule())

@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.expression.tablefunctions.ValuesFunction;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
@@ -37,8 +38,9 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
 
     private final Capture<TableFunction> capture;
     private final Pattern<Insert> pattern;
+    private volatile boolean enabled = true;
 
-    RewriteInsertFromSubQueryToInsertFromValues() {
+    public RewriteInsertFromSubQueryToInsertFromValues() {
         this.capture = new Capture<>();
         this.pattern = typeOf(Insert.class)
             .with(source(), typeOf(TableFunction.class).capturedAs(capture));
@@ -50,10 +52,21 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
     }
 
     @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
     public LogicalPlan apply(Insert plan,
                              Captures captures,
                              TableStats tableStats,
-                             TransactionContext txnCtx) {
+                             TransactionContext txnCtx,
+                             Functions functions) {
         TableFunction tableFunction = captures.get(this.capture);
         var relation = tableFunction.relation();
         if (relation.function().info().ident().name().equals(ValuesFunction.NAME)) {
