@@ -81,8 +81,7 @@ public class CompositeBatchIteratorTest {
         expectedResult.add(new Object[] { 4 });
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> CompositeBatchIterator.seqComposite(
-                new CloseAssertingBatchIterator<>(
-                    new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 6, null)),
+                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 6, null),
                 TestingBatchIterators.range(5, 10)
             )
         );

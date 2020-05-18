@@ -101,7 +101,7 @@ public class SingleBucketBuilderTest extends CrateUnitTest {
             iterator.moveNext();
             fail("iterator must be closed");
         } catch (IllegalStateException e) {
-            assertThat(e.getMessage(), is("Iterator is closed"));
+            assertThat(e.getMessage(), is("BatchIterator is closed"));
         }
     }
 }

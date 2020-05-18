@@ -69,7 +69,6 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     private LeafReaderContext currentLeaf;
     private Scorer currentScorer;
     private DocIdSetIterator currentDocIdSetIt;
-    private boolean closed = false;
     private volatile Throwable killed;
 
     public LuceneBatchIterator(IndexSearcher indexSearcher,
@@ -97,13 +96,13 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
 
     @Override
     public void moveToStart() {
-        raiseIfClosedOrKilled();
+        raiseIfKilled();
         leavesIt = leaves.iterator();
     }
 
     @Override
     public boolean moveNext() {
-        raiseIfClosedOrKilled();
+        raiseIfKilled();
         if (weight == null) {
             try {
                 weight = createWeight();
@@ -154,7 +153,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
             currentScorer = scorer;
             currentLeaf = leaf;
             currentDocIdSetIt = scorer.iterator();
-            for (LuceneCollectorExpression expression : expressions) {
+            for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setScorer(currentScorer);
                 expression.setNextReader(currentLeaf);
             }
@@ -171,20 +170,17 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
 
     @Override
     public void close() {
-        closed = true;
         clearState();
+        killed = BatchIterator.CLOSED;
     }
 
     @Override
     public CompletionStage<?> loadNextBatch() throws Exception {
-        if (closed) {
-            throw new IllegalStateException("BatchIterator is closed");
-        }
         throw new IllegalStateException("BatchIterator already fully loaded");
     }
 
     private Weight createWeight() throws IOException {
-        for (LuceneCollectorExpression expression : expressions) {
+        for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }
         ScoreMode scoreMode = doScores ? ScoreMode.COMPLETE : ScoreMode.COMPLETE_NO_SCORES;
@@ -209,17 +205,14 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     }
 
     private void onDoc(int doc) throws IOException {
-        for (LuceneCollectorExpression expression : expressions) {
+        for (LuceneCollectorExpression<?> expression : expressions) {
             expression.setNextDocId(doc);
         }
     }
 
-    private void raiseIfClosedOrKilled() {
+    private void raiseIfKilled() {
         if (killed != null) {
             Exceptions.rethrowUnchecked(killed);
-        }
-        if (closed) {
-            throw new IllegalStateException("BatchIterator is closed");
         }
     }
 

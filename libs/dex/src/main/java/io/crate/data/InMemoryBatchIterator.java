@@ -24,6 +24,9 @@ package io.crate.data;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import io.crate.exceptions.Exceptions;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
@@ -37,6 +40,7 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
     private final T sentinel;
     private final boolean hasLazyResultSet;
 
+    private volatile Throwable killed = null;
     private Iterator<? extends T> it;
     private T current;
 
@@ -54,7 +58,7 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
      * @param hasLazyResultSet See {@link BatchIterator#hasLazyResultSet()}
      */
     public static <T> BatchIterator<T> of(Iterable<? extends T> items, @Nullable T sentinel, boolean hasLazyResultSet) {
-        return new CloseAssertingBatchIterator<>(new InMemoryBatchIterator<>(items, sentinel, hasLazyResultSet));
+        return new InMemoryBatchIterator<>(items, sentinel, hasLazyResultSet);
     }
 
     public InMemoryBatchIterator(Iterable<? extends T> items, T sentinel, boolean hasLazyResultSet) {
@@ -72,12 +76,14 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
 
     @Override
     public void moveToStart() {
+        raiseIfKilled();
         it = items.iterator();
         current = sentinel;
     }
 
     @Override
     public boolean moveNext() {
+        raiseIfKilled();
         if (it.hasNext()) {
             current = it.next();
             return true;
@@ -88,6 +94,7 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
 
     @Override
     public void close() {
+        killed = BatchIterator.CLOSED;
     }
 
     @Override
@@ -102,11 +109,17 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
 
     @Override
     public void kill(@Nonnull Throwable throwable) {
-        // handled by CloseAssertingBatchIterator
+        killed = throwable;
     }
 
     @Override
     public boolean hasLazyResultSet() {
         return hasLazyResultSet;
+    }
+
+    private void raiseIfKilled() {
+        if (killed != null) {
+            Exceptions.rethrowUnchecked(killed);
+        }
     }
 }
