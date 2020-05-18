@@ -47,7 +47,6 @@ import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
-import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -99,15 +98,6 @@ public class RowsBatchIteratorBenchmark {
         BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL, false);
         while (it.moveNext()) {
             blackhole.consume(it.currentElement().get(0));
-        }
-    }
-
-    @Benchmark
-    public void measureConsumeCloseAssertingIterator(Blackhole blackhole) {
-        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL, false);
-        BatchIterator<Row> itCloseAsserting = new CloseAssertingBatchIterator<>(it);
-        while (itCloseAsserting.moveNext()) {
-            blackhole.consume(itCloseAsserting.currentElement().get(0));
         }
     }
 
