@@ -24,22 +24,20 @@ package io.crate.execution.engine.aggregation;
 
 import io.crate.data.Input;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class AggregationContext {
+public final class AggregationContext {
 
     private final AggregationFunction impl;
-    private final List<Input<?>> inputs = new ArrayList<>();
     private final Input<Boolean> filter;
+    private final Input[] inputs;
 
-    public AggregationContext(AggregationFunction aggregationFunction, Input<Boolean> filter) {
+    public AggregationContext(AggregationFunction aggregationFunction,
+                              Input<Boolean> filter,
+                              List<Input<?>> inputs) {
         this.impl = aggregationFunction;
         this.filter = filter;
-    }
-
-    public void addInput(Input<?> input) {
-        inputs.add(input);
+        this.inputs = inputs.toArray(new Input[0]);
     }
 
     public AggregationFunction function() {
@@ -47,7 +45,7 @@ public class AggregationContext {
     }
 
     public Input<?>[] inputs() {
-        return inputs.toArray(new Input[0]);
+        return inputs;
     }
 
     public Input<Boolean> filter() {
