@@ -736,6 +736,10 @@ public class PostgresWireProtocol {
      */
     private class MessageDecoder extends ByteToMessageDecoder {
 
+        {
+            setCumulator(COMPOSITE_CUMULATOR);
+        }
+
         @Override
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
             ByteBuf decode = decode(in, ctx.pipeline());
