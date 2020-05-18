@@ -87,7 +87,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final Authentication authentication;
     private final Logger namedLogger;
     private final Settings settings;
-    private UserManager userManager;
+    private final UserManager userManager;
     @Nullable
     private final SslContextProvider sslContextProvider;
 
