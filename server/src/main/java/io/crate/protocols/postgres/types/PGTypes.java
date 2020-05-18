@@ -37,6 +37,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 public class PGTypes {
 
     private static final Map<DataType<?>, PGType> CRATE_TO_PG_TYPES = ImmutableMap.<DataType<?>, PGType>builder()
@@ -105,6 +107,7 @@ public class PGTypes {
         return TYPES;
     }
 
+    @Nullable
     public static DataType<?> fromOID(int oid) {
         return PG_TYPES_TO_CRATE_TYPE.get(oid);
     }
