@@ -161,6 +161,9 @@ Changes
 - Added the :ref:`obj_description(integer, text) <obj_description>` scalar
   function for improved PostgreSQL compatibility.
 
+- Added the :ref:`format_type(integer, integer) <format_type>` scalar
+  function for improved PostgreSQL compatibility.
+
 - Added support for using columns of type ``long`` inside subscript expressions
   (e.g., ``array_expr[column]``).
 

@@ -49,9 +49,11 @@ public class AsyncCompositeBatchIteratorTest {
 
     @Test
     public void testCompositeBatchIterator() throws Exception {
-        Supplier<BatchIterator<Row>> batchSimulatingItSupplier = () -> new CloseAssertingBatchIterator<>(
-            new BatchSimulatingIterator<>(
-                TestingBatchIterators.range(5, 10), 2, 2, null)
+        Supplier<BatchIterator<Row>> batchSimulatingItSupplier = () -> new BatchSimulatingIterator<>(
+            TestingBatchIterators.range(5, 10),
+            2,
+            2,
+            null
         );
 
         ExecutorService executorService = Executors.newFixedThreadPool(3);
@@ -77,11 +79,12 @@ public class AsyncCompositeBatchIteratorTest {
             TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(1));
 
         try {
-            Supplier<BatchIterator<Row>> batchSimulatingItSupplier = () -> new CloseAssertingBatchIterator<>(
-                new BatchSimulatingIterator<>(
-                    TestingBatchIterators.range(0, 5), 2, 2, null)
+            Supplier<BatchIterator<Row>> batchSimulatingItSupplier = () -> new BatchSimulatingIterator<>(
+                TestingBatchIterators.range(0, 5),
+                2,
+                2,
+                null
             );
-
             BatchIterator<Row> batchIterator = CompositeBatchIterator.asyncComposite(
                 executorService,
                 () -> 3,

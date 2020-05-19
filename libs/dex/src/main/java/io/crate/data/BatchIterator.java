@@ -69,6 +69,10 @@ import java.util.concurrent.CompletionStage;
  */
 public interface BatchIterator<T> extends Killable {
 
+
+    IllegalStateException CLOSED = new IllegalStateException("BatchIterator is closed");
+
+
     /**
      * This method returns the item that is at the current position of the BatchIterator.
      *

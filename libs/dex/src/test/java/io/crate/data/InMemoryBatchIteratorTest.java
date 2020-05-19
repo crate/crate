@@ -47,13 +47,11 @@ public class InMemoryBatchIteratorTest {
     @Test
     public void testCollectRowsWithSimulatedBatches() throws Exception {
         Iterable<Row> rows = RowGenerator.range(0, 50);
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new CloseAssertingBatchIterator<>(
-            new BatchSimulatingIterator<>(
-                InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false),
-                10,
-                5,
-                null
-            )
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new BatchSimulatingIterator<>(
+            InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false),
+            10,
+            5,
+            null
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         List<Object[]> expectedResult = StreamSupport.stream(rows.spliterator(), false)

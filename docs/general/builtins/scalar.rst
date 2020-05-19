@@ -2748,6 +2748,42 @@ Example:
     SELECT 1 row in set (... sec)
 
 
+.. _format_type:
+
+``format_type(integer, integer)``
+---------------------------------
+
+Returns the type name of a type. The first argument is the ``OID`` of the type.
+The second argument is the type modifier. This function exits for PostgreSQL
+compatibility and the type modifier is always ignored.
+
+Returns: ``text``
+
+Example:
+
+::
+
+    cr> SELECT pg_catalog.format_type(25, null) AS name;
+    +------+
+    | name |
+    +------+
+    | text |
+    +------+
+    SELECT 1 row in set (... sec)
+
+
+If the given ``OID`` is not know, ``???`` is returned::
+
+
+    cr> SELECT pg_catalog.format_type(3, null) AS name;
+    +------+
+    | name |
+    +------+
+    |  ??? |
+    +------+
+    SELECT 1 row in set (... sec)
+
+
 Special functions
 =================
 
