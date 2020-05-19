@@ -1344,4 +1344,21 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             mapToSortedString(stmt.mappingProperties()),
             is("name={position=1, type=keyword}"));
     }
+
+    @Test
+    public void test_create_table_with_varchar_column_of_limited_length() {
+        BoundCreateTable stmt = analyze("CREATE TABLE tbl (name character varying(2))");
+        assertThat(
+            mapToSortedString(stmt.mappingProperties()),
+            is("name={length_limit=2, position=1, type=keyword}"));
+    }
+
+    @Test
+    public void test_create_table_with_varchar_column_of_limited_length_with_analyzer_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(
+            "Can't use an Analyzer on column name because analyzers are only allowed on columns " +
+            "of type \"" + DataTypes.STRING.getName() + "\" of the unbound length limit.");
+        analyze("CREATE TABLE tbl (name varchar(2) INDEX using fulltext WITH (analyzer='german'))");
+    }
 }

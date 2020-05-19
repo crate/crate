@@ -365,6 +365,22 @@ public final class DataTypes {
         return dataType;
     }
 
+    public static DataType<?> of(String typeName, List<Integer> parameters) {
+        DataType<?> dataType = ofNameOrNull(typeName);
+        if (dataType == null) {
+            throw new IllegalArgumentException("Cannot find data type: " + typeName);
+        }
+        if (!parameters.isEmpty()) {
+            if (dataType.id() == StringType.ID) {
+                return StringType.of(parameters);
+            }
+            throw new IllegalArgumentException(
+                "The '" + typeName + "' type doesn't support type parameters.");
+        } else {
+            return dataType;
+        }
+    }
+
     @Nullable
     public static DataType<?> ofNameOrNull(String typeName) {
         return TYPES_BY_NAME_OR_ALIAS.get(typeName);
