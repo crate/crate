@@ -152,6 +152,7 @@ import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
+import static java.util.stream.Collectors.toList;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -1172,14 +1173,14 @@ public class ExpressionAnalyzer {
     }
 
     private static void ensureResultTypesMatch(Collection<? extends Symbol> results) {
-        HashSet<DataType> resultTypes = new HashSet<>();
+        HashSet<DataType<?>> resultTypes = new HashSet<>(results.size());
         for (Symbol result : results) {
             resultTypes.add(result.valueType());
         }
         if (resultTypes.size() == 2 && !resultTypes.contains(DataTypes.UNDEFINED) || resultTypes.size() > 2) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Data types of all result expressions of a CASE statement must be equal, found: %s",
-                resultTypes));
+                results.stream().map(Symbol::valueType).collect(toList())));
         }
     }
 

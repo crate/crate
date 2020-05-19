@@ -57,11 +57,13 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.StringType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.DateFieldMapper;
+import org.elasticsearch.index.mapper.KeywordFieldMapper;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -285,8 +287,8 @@ public class DocIndexMetaData {
      * @param columnProperties map of String to Object containing column properties
      * @return dataType of the column with columnProperties
      */
-    static DataType getColumnDataType(Map<String, Object> columnProperties) {
-        DataType type;
+    static DataType<?> getColumnDataType(Map<String, Object> columnProperties) {
+        DataType<?> type;
         String typeName = (String) columnProperties.get("type");
 
         if (typeName == null || ObjectType.NAME.equals(typeName)) {
@@ -301,21 +303,27 @@ public class DocIndexMetaData {
                 type = Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
             }
         } else if (typeName.equalsIgnoreCase("array")) {
-
             Map<String, Object> innerProperties = Maps.get(columnProperties, "inner");
-            DataType innerType = getColumnDataType(innerProperties);
-            type = new ArrayType(innerType);
+            DataType<?> innerType = getColumnDataType(innerProperties);
+            type = new ArrayType<>(innerType);
         } else {
             typeName = typeName.toLowerCase(Locale.ENGLISH);
-            if (DateFieldMapper.CONTENT_TYPE.equals(typeName)) {
-                Boolean ignoreTimezone = (Boolean) columnProperties.get("ignore_timezone");
-                if (ignoreTimezone != null && ignoreTimezone) {
-                    return DataTypes.TIMESTAMP;
-                } else {
-                    return DataTypes.TIMESTAMPZ;
-                }
+            switch (typeName) {
+                case DateFieldMapper.CONTENT_TYPE:
+                    Boolean ignoreTimezone = (Boolean) columnProperties.get("ignore_timezone");
+                    if (ignoreTimezone != null && ignoreTimezone) {
+                        return DataTypes.TIMESTAMP;
+                    } else {
+                        return DataTypes.TIMESTAMPZ;
+                    }
+                case KeywordFieldMapper.CONTENT_TYPE:
+                    Integer lengthLimit = (Integer) columnProperties.get("length_limit");
+                    return lengthLimit != null
+                        ? StringType.of(lengthLimit)
+                        : DataTypes.STRING;
+                default:
+                    type = Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
             }
-            type = Objects.requireNonNullElse(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
         }
         return type;
     }
