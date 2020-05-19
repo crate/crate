@@ -22,7 +22,6 @@
 
 package io.crate.data;
 
-import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
@@ -32,6 +31,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nonnull;
+
+import io.crate.exceptions.Exceptions;
 
 /**
  * A BatchIterator that is initially empty and can be loaded with {@link #loadNextBatch()} via {@code loadItems}
@@ -46,6 +49,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
     private CompletableFuture<? extends Iterable<? extends T>> resultFuture;
     private Iterator<? extends T> it = Collections.emptyIterator();
     private T current;
+    private volatile Throwable killed;
 
     private CollectingBatchIterator(Supplier<CompletableFuture<? extends Iterable<? extends T>>> loadItems,
                                     Runnable onClose,
@@ -100,7 +104,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
                                                    Consumer<? super Throwable> onKill,
                                                    Supplier<CompletableFuture<? extends Iterable<? extends T>>> loadItems,
                                                    boolean involvesIO) {
-        return new CloseAssertingBatchIterator<>(new CollectingBatchIterator<>(loadItems, onClose, onKill, involvesIO));
+        return new CollectingBatchIterator<>(loadItems, onClose, onKill, involvesIO);
     }
 
     @Override
@@ -110,6 +114,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
 
     @Override
     public void moveToStart() {
+        raiseIfKilled();
         if (resultFuture != null) {
             if (resultFuture.isDone() == false) {
                 throw new IllegalStateException("BatchIterator is loading");
@@ -121,6 +126,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
 
     @Override
     public boolean moveNext() {
+        raiseIfKilled();
         if (it.hasNext()) {
             current = it.next();
             return true;
@@ -132,6 +138,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
     @Override
     public void close() {
         onClose.run();
+        killed = BatchIterator.CLOSED;
     }
 
     @Override
@@ -160,11 +167,17 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
     @Override
     public void kill(@Nonnull Throwable throwable) {
         onKill.accept(throwable);
-        // rest is handled by CloseAssertingBatchIterator
+        killed = throwable;
     }
 
     @Override
     public boolean hasLazyResultSet() {
         return involvesIO;
+    }
+
+    private void raiseIfKilled() {
+        if (killed != null) {
+            Exceptions.rethrowUnchecked(killed);
+        }
     }
 }

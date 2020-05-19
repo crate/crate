@@ -224,13 +224,13 @@ public class CrossJoinBlockNLBatchIteratorTest {
         assertThat(expectedResults.toArray(), hasItemInArray(batchIterator.currentElement().materialize()));
     }
 
-    private static class TestingRowAccounting implements RowAccounting<Row> {
+    private static class TestingRowAccounting implements RowAccounting<Object[]> {
 
         int numRows;
         int numReleaseCalled;
 
         @Override
-        public void accountForAndMaybeBreak(Row row) {
+        public void accountForAndMaybeBreak(Object[] row) {
             numRows++;
         }
 

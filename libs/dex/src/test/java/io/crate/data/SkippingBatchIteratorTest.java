@@ -51,7 +51,7 @@ public class SkippingBatchIteratorTest {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> {
                 BatchIterator<Row> source = TestingBatchIterators.range(0, 10);
-                source = new CloseAssertingBatchIterator<>(new BatchSimulatingIterator<>(source, 2, 5, null));
+                source = new BatchSimulatingIterator<>(source, 2, 5, null);
                 return new SkippingBatchIterator<>(source, offset);
             }
         );

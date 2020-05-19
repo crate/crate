@@ -94,7 +94,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             CountAggregation.COUNT_STAR_SIGNATURE,
             Collections.emptyList()
         );
-        aggregationContexts = Collections.singletonList(new AggregationContext(aggregation, () -> true));
+        aggregationContexts = List.of(new AggregationContext(aggregation, () -> true, List.of()));
     }
 
     private Supplier<BatchIterator<Row>> createBatchIterator(Runnable onOrdinalsValues) {

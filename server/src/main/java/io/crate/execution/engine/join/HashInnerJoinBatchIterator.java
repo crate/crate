@@ -79,7 +79,7 @@ import java.util.function.ToIntFunction;
  */
 public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
-    private final RowAccounting<Row> leftRowAccounting;
+    private final RowAccounting<Object[]> leftRowAccounting;
     private final Predicate<Row> joinCondition;
 
     /**
@@ -91,6 +91,8 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     private final IntSupplier calculateBlockSize;
     private final IntObjectHashMap<List<Object[]>> buffer;
 
+    private final UnsafeArrayRow unsafeArrayRow = new UnsafeArrayRow();
+
     private int blockSize;
     private int numberOfRowsInBuffer = 0;
     private boolean leftBatchHasItems = false;
@@ -100,7 +102,7 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
 
     public HashInnerJoinBatchIterator(BatchIterator<Row> left,
                                       BatchIterator<Row> right,
-                                      RowAccounting<Row> leftRowAccounting,
+                                      RowAccounting<Object[]> leftRowAccounting,
                                       CombinedRow combiner,
                                       Predicate<Row> joinCondition,
                                       ToIntFunction<Row> hashBuilderForLeft,
@@ -180,10 +182,10 @@ public class HashInnerJoinBatchIterator extends JoinBatchIterator<Row, Row, Row>
     private boolean buildBufferAndMatchRight() {
         if (activeIt == left) {
             while (leftBatchHasItems = left.moveNext()) {
-                Row leftRow = left.currentElement();
+                Object[] leftRow = left.currentElement().materialize();
                 leftRowAccounting.accountForAndMaybeBreak(leftRow);
-                int hash = hashBuilderForLeft.applyAsInt(leftRow);
-                addToBuffer(leftRow.materialize(), hash);
+                int hash = hashBuilderForLeft.applyAsInt(unsafeArrayRow.cells(leftRow));
+                addToBuffer(leftRow, hash);
                 if (numberOfRowsInBuffer == blockSize) {
                     break;
                 }
