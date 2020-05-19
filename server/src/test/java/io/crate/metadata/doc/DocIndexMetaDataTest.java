@@ -1,8 +1,5 @@
 package io.crate.metadata.doc;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
@@ -11,6 +8,7 @@ import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
@@ -36,6 +34,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.StringType;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
@@ -73,6 +72,7 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 
@@ -304,10 +304,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stringAnalyzedBWC.indexType(), is(Reference.IndexType.ANALYZED));
         assertThat(stringAnalyzedBWC.defaultExpression(), is(nullValue()) );
 
-        ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
-        List<String> fqns = Lists.transform(references, r -> r.column().fqn());
+        List<Reference> references = List.copyOf(md.references().values());
+        List<String> fqns = Lists2.map(references, r -> r.column().fqn());
         assertThat(fqns, Matchers.is(
-            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
+            List.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
                 "_primary_term", "integerIndexed", "integerIndexedBWC", "integerNotIndexed", "integerNotIndexedBWC",
                 "person", "person.birthday", "person.first_name",
                 "stringAnalyzed", "stringAnalyzedBWC", "stringNotAnalyzed", "stringNotAnalyzedBWC",
@@ -386,10 +386,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.ANALYZED));
         assertThat(stringAnalyzed.defaultExpression(), isLiteral("default"));
 
-        ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
-        List<String> fqns = Lists.transform(references, r -> r.column().fqn());
+        List<Reference> references = List.copyOf(md.references().values());
+        List<String> fqns = Lists2.map(references, r -> r.column().fqn());
         assertThat(fqns, Matchers.is(
-            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
+            List.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
                 "_primary_term", "birthday", "integerIndexed", "integerNotIndexed",
                 "stringAnalyzed", "stringNotAnalyzed", "stringNotIndexed")));
     }
@@ -1071,7 +1071,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, functions, udfService, viewInfoFactory, docTableInfoFactory );
         Path homeDir = createTempDir();
         Schemas schemas = new Schemas(
-                ImmutableMap.of("doc", docSchemaInfo),
+                Map.of("doc", docSchemaInfo),
                 clusterService,
                 new DocSchemaInfoFactory(docTableInfoFactory, viewInfoFactory, functions, udfService));
         FulltextAnalyzerResolver fulltextAnalyzerResolver = new FulltextAnalyzerResolver(
@@ -1547,4 +1547,24 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.references(), hasKey(new ColumnIdent("y", "z")));
     }
 
+    @Test
+    public void test_resolve_string_type_with_length_from_mappings_with_text_and_keyword_types() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                    .startObject("properties")
+                        .startObject("col")
+                            .field("type", "keyword")
+                            .field("length_limit", 10)
+                            .field("index", "false")
+                        .endObject()
+                    .endObject()
+                .endObject()
+            .endObject();
+        var docIndexMetaData = newMeta(getIndexMetaData("test", builder), "test");
+
+        var column = docIndexMetaData.references().get(new ColumnIdent("col"));
+        assertThat(column, is(not(nullValue())));
+        assertThat(column.valueType(), is(StringType.of(10)));
+    }
 }

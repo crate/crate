@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -110,7 +109,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     public void testAddColumnWithAnalyzerAndNonStringType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "Can't use an Analyzer on column foobar['age'] because analyzers are only allowed on columns of type \"string\"");
+            "Can't use an Analyzer on column foobar['age'] because analyzers are only allowed " +
+            "on columns of type \"" + DataTypes.STRING.getName() + "\" of the unbound length limit");
         analyze("alter table users add column foobar object as (age int index using fulltext)");
     }
 
@@ -137,7 +137,6 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertNull(primaryKeys); // _id shouldn't be included
     }
 
-    @SuppressWarnings("ConstantConditions")
     @Test
     public void testAddColumnAsPrimaryKey() throws Exception {
         BoundAddColumn analysis = analyze(

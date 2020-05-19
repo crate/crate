@@ -190,7 +190,7 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitColumnType(ColumnType<?> node, ColumnDefinitionContext<T> context) {
-            context.analyzedColumnDefinition.dataType(node.name(), context.logWarnings);
+            context.analyzedColumnDefinition.dataType(node.name(), node.parameters(), context.logWarnings);
             return null;
         }
 
