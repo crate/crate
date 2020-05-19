@@ -348,6 +348,18 @@ public class DataTypesTest extends CrateUnitTest {
             is(false));
     }
 
+    @Test
+    public void test_resolve_text_data_type_with_length_limit() {
+        assertThat(DataTypes.of("varchar", List.of(1)), is(StringType.of(1)));
+    }
+
+    @Test
+    public void test_resolve_data_type_that_does_not_support_parameters_throws_exception() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The 'integer' type doesn't support type parameters.");
+        DataTypes.of("integer", List.of(1));
+    }
+
     private static void assertCompareValueTo(Object val1, Object val2, int expected) {
         DataType type = DataTypes.guessType(Objects.requireNonNullElse(val1, val2));
         assertThat(type, not(instanceOf(DataTypes.UNDEFINED.getClass())));

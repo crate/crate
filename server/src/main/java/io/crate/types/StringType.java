@@ -56,9 +56,9 @@ public class StringType extends DataType<String> implements Streamer<String> {
 
     public static StringType of(int lengthLimit) {
         if (lengthLimit < 0) {
-                throw new IllegalArgumentException(
-                    "Invalid text data type length limit: " + lengthLimit);
-            }
+            throw new IllegalArgumentException(
+                "Invalid text data type length limit: " + lengthLimit);
+        }
         return new StringType(lengthLimit);
     }
 
