@@ -27,33 +27,37 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-final class ParameterTypeSignature extends TypeSignature {
+final class IntegerLiteralTypeSignature extends TypeSignature {
 
-    private final String parameterName;
+    private final int value;
 
-    public ParameterTypeSignature(String parameterName,
-                                  TypeSignature typeSignature) {
-        super(typeSignature.getBaseTypeName(), typeSignature.getParameters());
-        this.parameterName = parameterName;
+    public IntegerLiteralTypeSignature(int value) {
+        super("");
+        this.value = value;
     }
 
-    public ParameterTypeSignature(StreamInput in) throws IOException {
+    public IntegerLiteralTypeSignature(StreamInput in) throws IOException {
         super(in);
-        parameterName = in.readString();
+        value = in.readInt();
     }
 
-    public String parameterName() {
-        return parameterName;
+    public int value() {
+        return value;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(parameterName);
+        out.writeInt(value);
     }
 
     @Override
     public TypeSignatureType type() {
-        return TypeSignatureType.PARAMETER_TYPE_SIGNATURE;
+        return TypeSignatureType.INTEGER_LITERAL_SIGNATURE;
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(value);
     }
 }
