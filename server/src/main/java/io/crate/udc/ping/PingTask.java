@@ -30,7 +30,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
@@ -59,7 +58,6 @@ public class PingTask extends TimerTask {
     private final ClusterService clusterService;
     private final ExtendedNodeInfo extendedNodeInfo;
     private final String pingUrl;
-    private final Settings settings;
     private final LicenseService licenseService;
 
     private final AtomicLong successCounter = new AtomicLong(0);
@@ -68,11 +66,9 @@ public class PingTask extends TimerTask {
     public PingTask(ClusterService clusterService,
                     ExtendedNodeInfo extendedNodeInfo,
                     String pingUrl,
-                    Settings settings,
                     LicenseService licenseService) {
         this.clusterService = clusterService;
         this.pingUrl = pingUrl;
-        this.settings = settings;
         this.extendedNodeInfo = extendedNodeInfo;
         this.licenseService = licenseService;
     }

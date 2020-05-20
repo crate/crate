@@ -85,7 +85,7 @@ public class UDCService extends AbstractLifecycleComponent {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
         }
-        PingTask pingTask = new PingTask(clusterService, extendedNodeInfo, url, settings, licenseService);
+        PingTask pingTask = new PingTask(clusterService, extendedNodeInfo, url, licenseService);
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
     }
 
