@@ -62,18 +62,17 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
     private HttpTestServer testServer;
 
-    private PingTask createPingTask(String pingUrl, Settings settings) {
+    private PingTask createPingTask(String pingUrl) {
         return new PingTask(
             clusterService,
             extendedNodeInfo,
             pingUrl,
-            settings,
             licenseService
         );
     }
 
     private PingTask createPingTask() {
-        return createPingTask("http://dummy", Settings.EMPTY);
+        return createPingTask("http://dummy");
     }
 
     @After
@@ -104,7 +103,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         testServer = new HttpTestServer(18080, false);
         testServer.run();
 
-        PingTask task = createPingTask("http://localhost:18080/", Settings.EMPTY);
+        PingTask task = createPingTask("http://localhost:18080/");
         task.run();
         assertThat(testServer.responses.size(), is(1));
         task.run();
@@ -152,7 +151,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         testServer = new HttpTestServer(18080, false);
         testServer.run();
 
-        PingTask task = createPingTask("http://localhost:18080/", Settings.EMPTY);
+        PingTask task = createPingTask("http://localhost:18080/");
         task.run();
         assertThat(testServer.responses.size(), is(1));
         String json = testServer.responses.get(0);
@@ -171,7 +170,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
         testServer = new HttpTestServer(18081, true);
         testServer.run();
-        PingTask task = createPingTask("http://localhost:18081/", Settings.EMPTY);
+        PingTask task = createPingTask("http://localhost:18081/");
         task.run();
         assertThat(testServer.responses.size(), is(1));
         task.run();
