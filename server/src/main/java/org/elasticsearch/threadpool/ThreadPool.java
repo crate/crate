@@ -155,7 +155,7 @@ public class ThreadPool implements Scheduler, Closeable {
         final int genericThreadPoolMax = boundedBy(4 * availableProcessors, 128, 512);
         builders.put(Names.GENERIC, new ScalingExecutorBuilder(Names.GENERIC, 4, genericThreadPoolMax, TimeValue.timeValueSeconds(30)));
         builders.put(Names.WRITE, new FixedExecutorBuilder(settings, Names.WRITE, availableProcessors, 200));
-        builders.put(Names.GET, new FixedExecutorBuilder(settings, Names.GET, availableProcessors, 1000));
+        builders.put(Names.GET, new FixedExecutorBuilder(settings, Names.GET, halfProcMaxAt10, 100));
         builders.put(Names.SEARCH, new FixedExecutorBuilder(settings, Names.SEARCH, searchThreadPoolSize(availableProcessors), 1000));
         builders.put(Names.MANAGEMENT, new ScalingExecutorBuilder(Names.MANAGEMENT, 1, 5, TimeValue.timeValueMinutes(5)));
         // no queue as this means clients will need to handle rejections on listener queue even if the operation succeeded
@@ -392,10 +392,6 @@ public class ThreadPool implements Scheduler, Closeable {
 
     static int halfNumberOfProcessorsMaxTen(int numberOfProcessors) {
         return boundedBy((numberOfProcessors + 1) / 2, 1, 10);
-    }
-
-    static int twiceNumberOfProcessors(int numberOfProcessors) {
-        return boundedBy(2 * numberOfProcessors, 2, Integer.MAX_VALUE);
     }
 
     public static int searchThreadPoolSize(int availableProcessors) {
