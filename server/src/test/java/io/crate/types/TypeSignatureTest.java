@@ -132,4 +132,35 @@ public class TypeSignatureTest extends CrateUnitTest {
             innerSignature.getParameters(),
             contains(new TypeSignature(DataTypes.TIMESTAMP.getName())));
     }
+
+    @Test
+    public void test_parse_text_type_signature_with_length_limit() {
+        var signature = parseTypeSignature("text(12)");
+        assertThat(signature.getBaseTypeName(), is("text"));
+        assertThat(signature.getParameters(), contains(new IntegerLiteralTypeSignature(12)));
+    }
+
+    @Test
+    public void test_create_type_signature_from_text_type_with_length_limit() {
+        assertThat(StringType.of(11).getTypeSignature().toString(), is("text(11)"));
+    }
+
+    @Test
+    public void test_parse_nested_named_text_type_signature_with_length_limit() {
+        var signature = parseTypeSignature("object(name text(11))");
+        assertThat(signature.getBaseTypeName(), is("object"));
+        assertThat(signature.getParameters().size(), is(1));
+
+        var textTypeSignature = signature.getParameters().get(0);
+        assertThat(textTypeSignature.getBaseTypeName(), is("text"));
+        assertThat(textTypeSignature.getParameters(), contains(new IntegerLiteralTypeSignature(11)));
+    }
+
+    @Test
+    public void test_create_type_signature_from_nested_named_text_type_with_length_limit() {
+        var objectType = ObjectType.builder()
+            .setInnerType("name", StringType.of(1))
+            .build();
+        assertThat(objectType.getTypeSignature().toString(), is("object(text,name text(1))"));
+    }
 }
