@@ -21,26 +21,6 @@
 
 package io.crate.udc.ping;
 
-import io.crate.http.HttpTestServer;
-import io.crate.license.LicenseData;
-import io.crate.license.LicenseService;
-import io.crate.monitor.ExtendedNetworkInfo;
-import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.monitor.ExtendedOsInfo;
-import io.crate.monitor.SysInfo;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.DataTypes;
-
-import org.elasticsearch.common.settings.Settings;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
@@ -48,6 +28,22 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.http.HttpTestServer;
+import io.crate.license.LicenseData;
+import io.crate.license.LicenseService;
+import io.crate.monitor.ExtendedNetworkInfo;
+import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.types.DataTypes;
 
 public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
@@ -86,7 +82,6 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws Exception {
         extendedNodeInfo = mock(ExtendedNodeInfo.class);
         when(extendedNodeInfo.networkInfo()).thenReturn(new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE));
-        when(extendedNodeInfo.osInfo()).thenReturn(new ExtendedOsInfo(SysInfo.gather()));
         licenseService = mock(LicenseService.class);
     }
 
