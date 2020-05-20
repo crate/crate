@@ -74,7 +74,7 @@ public class PingTask extends TimerTask {
     }
 
     private Map<String, String> getKernelData() {
-        return extendedNodeInfo.osInfo().kernelData();
+        return extendedNodeInfo.kernelData();
     }
 
     private String getClusterId() {

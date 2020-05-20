@@ -22,6 +22,8 @@
 
 package io.crate.monitor;
 
+import java.util.Map;
+
 import org.elasticsearch.common.inject.Inject;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
@@ -42,16 +44,29 @@ import org.elasticsearch.monitor.os.OsStats;
 public class ExtendedNodeInfo {
 
     private static final ExtendedNetworkInfo NETWORK_INFO = new ExtendedNetworkInfo(ExtendedNetworkInfo.iface());
-    private static final ExtendedOsInfo OS_INFO = new ExtendedOsInfo(SysInfo.gather());
     private static final double[] NA_LOAD = new double[]{ -1, -1, -1 };
 
     private final ExtendedOsStatsCache osStatsCache;
+    private final Map<String, String> kernelData;
 
     private static final TimeValue PROBE_CACHE_TIME = TimeValue.timeValueMillis(500L);
 
     @Inject
     public ExtendedNodeInfo() {
         this.osStatsCache = new ExtendedOsStatsCache(PROBE_CACHE_TIME, osStatsProbe());
+        var sysInfo = SysInfo.gather();
+        this.kernelData = Map.ofEntries(
+            Map.entry("Arch", sysInfo.arch()),
+            Map.entry("Description", sysInfo.description()),
+            Map.entry("Machine", sysInfo.machine()),
+            Map.entry("Name", sysInfo.name()),
+            Map.entry("PatchLevel", sysInfo.patchLevel()),
+            Map.entry("Vendor", sysInfo.vendor()),
+            Map.entry("VendorCodeName", sysInfo.vendorCodeName()),
+            Map.entry("VendorName", sysInfo.vendorName()),
+            Map.entry("VendorVersion", sysInfo.vendorVersion()),
+            Map.entry("Version", sysInfo.version())
+        );
     }
 
     public ExtendedNetworkInfo networkInfo() {
@@ -74,8 +89,8 @@ public class ExtendedNodeInfo {
             osStats);
     }
 
-    public ExtendedOsInfo osInfo() {
-        return OS_INFO;
+    public Map<String, String> kernelData() {
+        return kernelData;
     }
 
     /**
