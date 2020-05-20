@@ -64,7 +64,6 @@ public class ThreadPool implements Scheduler, Closeable {
         public static final String GENERIC = "generic";
         public static final String LISTENER = "listener";
         public static final String GET = "get";
-        public static final String ANALYZE = "analyze";
         public static final String WRITE = "write";
         public static final String SEARCH = "search";
         public static final String MANAGEMENT = "management";
@@ -116,7 +115,6 @@ public class ThreadPool implements Scheduler, Closeable {
         Map.entry(Names.GENERIC, ThreadPoolType.SCALING),
         Map.entry(Names.LISTENER, ThreadPoolType.FIXED),
         Map.entry(Names.GET, ThreadPoolType.FIXED),
-        Map.entry(Names.ANALYZE, ThreadPoolType.FIXED),
         Map.entry(Names.WRITE, ThreadPoolType.FIXED),
         Map.entry(Names.SEARCH, ThreadPoolType.FIXED),
         Map.entry(Names.MANAGEMENT, ThreadPoolType.SCALING),
@@ -158,7 +156,6 @@ public class ThreadPool implements Scheduler, Closeable {
         builders.put(Names.GENERIC, new ScalingExecutorBuilder(Names.GENERIC, 4, genericThreadPoolMax, TimeValue.timeValueSeconds(30)));
         builders.put(Names.WRITE, new FixedExecutorBuilder(settings, Names.WRITE, availableProcessors, 200));
         builders.put(Names.GET, new FixedExecutorBuilder(settings, Names.GET, availableProcessors, 1000));
-        builders.put(Names.ANALYZE, new FixedExecutorBuilder(settings, Names.ANALYZE, 1, 16));
         builders.put(Names.SEARCH, new FixedExecutorBuilder(settings, Names.SEARCH, searchThreadPoolSize(availableProcessors), 1000));
         builders.put(Names.MANAGEMENT, new ScalingExecutorBuilder(Names.MANAGEMENT, 1, 5, TimeValue.timeValueMinutes(5)));
         // no queue as this means clients will need to handle rejections on listener queue even if the operation succeeded
