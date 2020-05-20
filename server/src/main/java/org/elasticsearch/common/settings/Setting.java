@@ -814,11 +814,17 @@ public class Setting<T> implements ToXContentObject {
          * Returns a map of all namespaces to it's values give the provided settings
          */
         public Map<String, T> getAsMap(Settings settings) {
-            Map<String, T> map = new HashMap<>();
-            matchStream(settings).distinct().forEach(key -> {
-                Setting<T> concreteSetting = getConcreteSetting(key);
-                map.put(getNamespace(concreteSetting), concreteSetting.get(settings));
-            });
+            HashMap<String, T> map = new HashMap<>();
+            Matcher matcher = this.key.pattern.matcher("");
+            for (String key : settings.keySet()) {
+                matcher.reset(key);
+                if (matcher.matches()) {
+                    String concreteKey = matcher.group(1);
+                    String namespace = matcher.group(2);
+                    Setting<T> concreteSetting = delegateFactory.apply(concreteKey);
+                    map.put(namespace, concreteSetting.get(settings));
+                }
+            }
             return Collections.unmodifiableMap(map);
         }
     }
