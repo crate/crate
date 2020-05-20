@@ -96,6 +96,26 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
+    public TypeSignature getTypeSignature() {
+        if (unbound()) {
+            return super.getTypeSignature();
+        } else {
+            return new TypeSignature(
+                getName(),
+                List.of(TypeSignature.of(lengthLimit)));
+        }
+    }
+
+    @Override
+    public List<DataType<?>> getTypeParameters() {
+        if (unbound()) {
+            return List.of();
+        } else {
+            return List.of(DataTypes.INTEGER);
+        }
+    }
+
+    @Override
     public Streamer<String> streamer() {
         return this;
     }
@@ -120,7 +140,8 @@ public class StringType extends DataType<String> implements Streamer<String> {
         }
         if (value instanceof Map) {
             try {
-                return Strings.toString(XContentFactory.jsonBuilder().map((Map) value));
+                //noinspection unchecked
+                return Strings.toString(XContentFactory.jsonBuilder().map((Map<String, ?>) value));
             } catch (IOException e) {
                 throw new IllegalArgumentException("Cannot cast `" + value + "` to type TEXT", e);
             }
