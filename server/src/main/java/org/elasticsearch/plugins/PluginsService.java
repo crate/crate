@@ -39,7 +39,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.transport.TransportSettings;
 
 import java.io.IOException;
@@ -230,14 +229,6 @@ public class PluginsService {
             modules.addAll(plugin.v2().createGuiceModules());
         }
         return modules;
-    }
-
-    public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
-        final ArrayList<ExecutorBuilder<?>> builders = new ArrayList<>();
-        for (final Tuple<PluginInfo, Plugin> plugin : plugins) {
-            builders.addAll(plugin.v2().getExecutorBuilders(settings));
-        }
-        return builders;
     }
 
     /** Returns all classes injected into guice by plugins which extend {@link LifecycleComponent}. */

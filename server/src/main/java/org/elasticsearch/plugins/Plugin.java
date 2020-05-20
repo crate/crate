@@ -47,7 +47,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
 
 /**
@@ -206,17 +205,6 @@ public abstract class Plugin implements Closeable {
      */
     public UnaryOperator<IndexMetaData> getIndexMetaDataUpgrader() {
         return UnaryOperator.identity();
-    }
-
-    /**
-     * Provides the list of this plugin's custom thread pools, empty if
-     * none.
-     *
-     * @param settings the current settings
-     * @return executors builders for this plugin's custom thread pools
-     */
-    public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
-        return Collections.emptyList();
     }
 
     /**
