@@ -145,7 +145,7 @@ public class ThreadPool implements Scheduler, Closeable {
         Setting.timeSetting("thread_pool.estimated_time_interval",
             TimeValue.timeValueMillis(200), TimeValue.ZERO, Setting.Property.NodeScope);
 
-    public ThreadPool(final Settings settings, final ExecutorBuilder<?>... customBuilders) {
+    public ThreadPool(final Settings settings) {
         assert Node.NODE_NAME_SETTING.exists(settings);
 
         final HashMap<String, ExecutorBuilder> builders = new HashMap<>();
@@ -170,12 +170,6 @@ public class ThreadPool implements Scheduler, Closeable {
         builders.put(Names.FORCE_MERGE, new FixedExecutorBuilder(settings, Names.FORCE_MERGE, 1, -1));
         builders.put(Names.FETCH_SHARD_STORE,
                 new ScalingExecutorBuilder(Names.FETCH_SHARD_STORE, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)));
-        for (final ExecutorBuilder<?> builder : customBuilders) {
-            if (builders.containsKey(builder.name())) {
-                throw new IllegalArgumentException("builder with name [" + builder.name() + "] already exists");
-            }
-            builders.put(builder.name(), builder);
-        }
         this.builders = Collections.unmodifiableMap(builders);
 
         threadContext = new ThreadContext(settings);
