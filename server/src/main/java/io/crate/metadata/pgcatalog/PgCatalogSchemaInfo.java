@@ -22,7 +22,8 @@
 
 package io.crate.metadata.pgcatalog;
 
-import com.google.common.collect.ImmutableSortedMap;
+
+import io.crate.common.collections.MapBuilder;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.SystemTable;
@@ -37,12 +38,15 @@ import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.TreeMap;
 
 @Singleton
 public class PgCatalogSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "pg_catalog";
-    private final ImmutableSortedMap<String, TableInfo> tableInfoMap;
+    private final Map<String, TableInfo> tableInfoMap;
     private final UserDefinedFunctionService udfService;
     private final SystemTable<PgClassTable.Entry> pgClassTable;
 
@@ -50,7 +54,7 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
     public PgCatalogSchemaInfo(UserDefinedFunctionService udfService, TableStats tableStats) {
         this.udfService = udfService;
         this.pgClassTable = PgClassTable.create(tableStats);
-        tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
+        tableInfoMap = MapBuilder.<String, TableInfo>newMapBuilder(new TreeMap<>(Comparator.naturalOrder()))
             .put(PgStatsTable.NAME.name(), PgStatsTable.create())
             .put(PgTypeTable.IDENT.name(), PgTypeTable.create())
             .put(PgClassTable.IDENT.name(), pgClassTable)
@@ -63,7 +67,8 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
             .put(PgDescriptionTable.NAME.name(), PgDescriptionTable.create())
             .put(PgSettingsTable.IDENT.name(), PgSettingsTable.create())
             .put(PgProcTable.IDENT.name(), PgProcTable.create())
-            .build();
+            .put(PgRangeTable.IDENT.name(), PgRangeTable.create())
+            .immutableMap();
     }
 
     SystemTable<PgClassTable.Entry> pgClassTable() {
