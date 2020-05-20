@@ -1086,8 +1086,7 @@ a node. There are several pools, but the important ones include:
 
 * ``write``: For index, update and delete operations, defaults to fixed
 * ``search``: For count/search operations, defaults to fixed
-* ``get``: For queries that are optimized to do a direct lookup by primary key,
-  defaults to fixed
+* ``get``: For queries on ``sys.shards`` and ``sys.nodes``, defaults to fixed.
 * ``refresh``: For refresh operations, defaults to cache
 
 **thread_pool.<name>.type**
@@ -1115,7 +1114,7 @@ settings.
 **thread_pool.<name>.queue_size**
   | *Default write:*  ``200``
   | *Default search:* ``1000``
-  | *Default get:* ``1000``
+  | *Default get:* ``100``
   | *Runtime:*  ``no``
 
   Size of the queue for pending requests. A value of ``-1`` sets it to
