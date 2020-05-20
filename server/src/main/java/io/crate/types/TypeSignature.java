@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import static java.lang.Character.isDigit;
 import static java.lang.String.format;
 
 public class TypeSignature implements Writeable {
@@ -56,15 +57,10 @@ public class TypeSignature implements Writeable {
      * <p>
      */
     public static TypeSignature parseTypeSignature(String signature) {
-        if (!signature.contains("(")) {
-            if (isNamedTypeSignature(signature)) {
-                int split = signature.indexOf(" ");
-                return new ParameterTypeSignature(
-                    signature.substring(0, split),
-                    new TypeSignature(signature.substring(split + 1)));
-            } else {
-                return new TypeSignature(signature);
-            }
+        if (isDigit(signature.charAt(0)) && !signature.contains(" ")) {
+            return TypeSignature.of(Integer.parseInt(signature));
+        } else if (!signature.contains("(")) {
+            return TypeSignature.of(signature, List.of());
         }
 
         String baseName = null;
@@ -88,14 +84,7 @@ public class TypeSignature implements Writeable {
                     parameters.add(parseTypeSignatureParameter(signature, parameterStart, i));
                     parameterStart = i + 1;
                     if (i == signature.length() - 1) {
-                        if (isNamedTypeSignature(baseName)) {
-                            int split = baseName.indexOf(" ");
-                            return new ParameterTypeSignature(
-                                baseName.substring(0, split),
-                                new TypeSignature(baseName.substring(split + 1), parameters));
-                        } else {
-                            return new TypeSignature(baseName, parameters);
-                        }
+                        return TypeSignature.of(baseName, parameters);
                     }
                 }
             } else if (c == ',') {
@@ -109,6 +98,22 @@ public class TypeSignature implements Writeable {
 
         throw new IllegalArgumentException(format(Locale.ENGLISH, "Bad type signature: '%s'", signature));
     }
+
+    protected static TypeSignature of(int parseInt) {
+        return new IntegerLiteralTypeSignature(parseInt);
+    }
+
+    private static TypeSignature of(String signature, List<TypeSignature> parameters) {
+        if (isNamedTypeSignature(signature)) {
+            int split = signature.indexOf(" ");
+            return new ParameterTypeSignature(
+                signature.substring(0, split),
+                new TypeSignature(signature.substring(split + 1), parameters));
+        } else {
+            return new TypeSignature(signature, parameters);
+        }
+    }
+
 
     private static boolean isNamedTypeSignature(String signature) {
         return !DataTypes.PRIMITIVE_TYPE_NAMES_WITH_SPACES.contains(signature)
@@ -170,8 +175,7 @@ public class TypeSignature implements Writeable {
             }
             DataType<?> innerType = parameters.get(0).createType();
             return new ArrayType<>(innerType);
-        }
-        if (baseTypeName.equalsIgnoreCase(ObjectType.NAME)) {
+        } else if (baseTypeName.equalsIgnoreCase(ObjectType.NAME)) {
             var builder = ObjectType.builder();
             for (int i = 0; i < parameters.size() - 1;) {
                 var valTypeSignature = parameters.get(i + 1);
@@ -194,8 +198,18 @@ public class TypeSignature implements Writeable {
                 dataTypes.add(parameterTypeSignature.createType());
             }
             return new RowType(dataTypes, fields);
+        } else {
+            var integerLiteralParameters = new ArrayList<Integer>(parameters.size());
+            for (var parameter : parameters) {
+                if (!parameter.type().equals(TypeSignatureType.INTEGER_LITERAL_SIGNATURE)) {
+                    throw new IllegalArgumentException(
+                        "The signature type of the based data type parameters can only be: "
+                        + TypeSignatureType.INTEGER_LITERAL_SIGNATURE.toString());
+                }
+                integerLiteralParameters.add(((IntegerLiteralTypeSignature) parameter).value());
+            }
+            return DataTypes.of(baseTypeName, integerLiteralParameters);
         }
-        return DataTypes.ofName(baseTypeName);
     }
 
     @Override
