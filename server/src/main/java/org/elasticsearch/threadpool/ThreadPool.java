@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -112,33 +111,27 @@ public class ThreadPool implements Scheduler, Closeable {
         }
     }
 
-    public static final Map<String, ThreadPoolType> THREAD_POOL_TYPES;
-
-    static {
-        HashMap<String, ThreadPoolType> map = new HashMap<>();
-        map.put(Names.SAME, ThreadPoolType.DIRECT);
-        map.put(Names.GENERIC, ThreadPoolType.SCALING);
-        map.put(Names.LISTENER, ThreadPoolType.FIXED);
-        map.put(Names.GET, ThreadPoolType.FIXED);
-        map.put(Names.ANALYZE, ThreadPoolType.FIXED);
-        map.put(Names.WRITE, ThreadPoolType.FIXED);
-        map.put(Names.SEARCH, ThreadPoolType.FIXED);
-        map.put(Names.MANAGEMENT, ThreadPoolType.SCALING);
-        map.put(Names.FLUSH, ThreadPoolType.SCALING);
-        map.put(Names.REFRESH, ThreadPoolType.SCALING);
-        map.put(Names.WARMER, ThreadPoolType.SCALING);
-        map.put(Names.SNAPSHOT, ThreadPoolType.SCALING);
-        map.put(Names.FORCE_MERGE, ThreadPoolType.FIXED);
-        map.put(Names.FETCH_SHARD_STARTED, ThreadPoolType.SCALING);
-        map.put(Names.FETCH_SHARD_STORE, ThreadPoolType.SCALING);
-        THREAD_POOL_TYPES = Collections.unmodifiableMap(map);
-    }
+    public static final Map<String, ThreadPoolType> THREAD_POOL_TYPES = Map.ofEntries(
+        Map.entry(Names.SAME, ThreadPoolType.DIRECT),
+        Map.entry(Names.GENERIC, ThreadPoolType.SCALING),
+        Map.entry(Names.LISTENER, ThreadPoolType.FIXED),
+        Map.entry(Names.GET, ThreadPoolType.FIXED),
+        Map.entry(Names.ANALYZE, ThreadPoolType.FIXED),
+        Map.entry(Names.WRITE, ThreadPoolType.FIXED),
+        Map.entry(Names.SEARCH, ThreadPoolType.FIXED),
+        Map.entry(Names.MANAGEMENT, ThreadPoolType.SCALING),
+        Map.entry(Names.FLUSH, ThreadPoolType.SCALING),
+        Map.entry(Names.REFRESH, ThreadPoolType.SCALING),
+        Map.entry(Names.WARMER, ThreadPoolType.SCALING),
+        Map.entry(Names.SNAPSHOT, ThreadPoolType.SCALING),
+        Map.entry(Names.FORCE_MERGE, ThreadPoolType.FIXED),
+        Map.entry(Names.FETCH_SHARD_STARTED, ThreadPoolType.SCALING),
+        Map.entry(Names.FETCH_SHARD_STORE, ThreadPoolType.SCALING)
+    );
 
     private final Map<String, ExecutorHolder> executors;
 
     private final CachedTimeThread cachedTimeThread;
-
-    static final Executor DIRECT_EXECUTOR = EsExecutors.directExecutor();
 
     private final ThreadContext threadContext;
 
@@ -147,7 +140,7 @@ public class ThreadPool implements Scheduler, Closeable {
     private final ScheduledThreadPoolExecutor scheduler;
 
     public Collection<ExecutorBuilder> builders() {
-        return Collections.unmodifiableCollection(builders.values());
+        return builders.values();
     }
 
     public static Setting<TimeValue> ESTIMATED_TIME_INTERVAL_SETTING =
@@ -157,7 +150,7 @@ public class ThreadPool implements Scheduler, Closeable {
     public ThreadPool(final Settings settings, final ExecutorBuilder<?>... customBuilders) {
         assert Node.NODE_NAME_SETTING.exists(settings);
 
-        final Map<String, ExecutorBuilder> builders = new HashMap<>();
+        final HashMap<String, ExecutorBuilder> builders = new HashMap<>();
         final int availableProcessors = EsExecutors.numberOfProcessors(settings);
         final int halfProcMaxAt5 = halfNumberOfProcessorsMaxFive(availableProcessors);
         final int halfProcMaxAt10 = halfNumberOfProcessorsMaxTen(availableProcessors);
@@ -201,7 +194,7 @@ public class ThreadPool implements Scheduler, Closeable {
             executors.put(entry.getKey(), executorHolder);
         }
 
-        executors.put(Names.SAME, new ExecutorHolder(DIRECT_EXECUTOR, new Info(Names.SAME, ThreadPoolType.DIRECT)));
+        executors.put(Names.SAME, new ExecutorHolder(EsExecutors.directExecutor(), new Info(Names.SAME, ThreadPoolType.DIRECT)));
         this.executors = unmodifiableMap(executors);
 
         this.scheduler = Scheduler.initScheduler(settings);
@@ -232,7 +225,7 @@ public class ThreadPool implements Scheduler, Closeable {
     }
 
     public ThreadPoolStats stats() {
-        List<ThreadPoolStats.Stats> stats = new ArrayList<>();
+        ArrayList<ThreadPoolStats.Stats> stats = new ArrayList<>(executors.size() - 1); // "same" is excluded
         for (ExecutorHolder holder : executors.values()) {
             final String name = holder.info.getName();
             // no need to have info on "same" thread pool
@@ -530,7 +523,7 @@ public class ThreadPool implements Scheduler, Closeable {
         public final Info info;
 
         ExecutorHolder(Executor executor, Info info) {
-            assert executor instanceof EsThreadPoolExecutor || executor == DIRECT_EXECUTOR
+            assert executor instanceof EsThreadPoolExecutor || executor == EsExecutors.directExecutor()
                 : "Executor must either be the DIRECT_EXECUTOR or an instance of EsThreadPoolExecutor";
             this.executor = executor;
             this.info = info;
