@@ -75,6 +75,7 @@ public class PgTypeTable {
                     return t.typName() + "_out";
                 }
             })
+            .add("typreceive", STRING, t -> t.typName() + "recv")
             .add("typnotnull", BOOLEAN, c -> false)
             .build();
     }

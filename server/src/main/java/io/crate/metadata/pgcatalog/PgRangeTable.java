@@ -20,47 +20,25 @@
  * agreement.
  */
 
-package io.crate.common.collections;
+package io.crate.metadata.pgcatalog;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
 
-public final class MapBuilder<K, V> {
+public final class PgRangeTable {
 
-    public static <K, V> MapBuilder<K, V> newMapBuilder() {
-        return new MapBuilder<>();
-    }
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_range");
 
-    public static <K, V> MapBuilder<K, V> newMapBuilder(Map<K, V> map) {
-        return new MapBuilder<>(new HashMap<>(map));
-    }
-
-    public static <K extends Comparable<?>, V> MapBuilder<K, V> treeMapBuilder() {
-        return new MapBuilder<>(new TreeMap<>());
-    }
-
-    private final Map<K, V> map;
-
-    private MapBuilder() {
-        this.map = new HashMap<>();
-    }
-
-    private MapBuilder(Map<K, V> map) {
-        this.map = map;
-    }
-
-    public MapBuilder<K, V> put(K key, V value) {
-        this.map.put(key, value);
-        return this;
-    }
-
-    public Map<K, V> map() {
-        return this.map;
-    }
-
-    public Map<K, V> immutableMap() {
-        return Collections.unmodifiableMap(map);
+    public static SystemTable<Void> create() {
+        return SystemTable.<Void>builder(IDENT)
+            .add("rngtypid", INTEGER, ignored -> null)
+            .add("rngsubtype", INTEGER, ignored -> null)
+            .add("rngcollation", INTEGER, ignored -> null)
+            .add("rngsubopc", INTEGER, ignored -> null)
+            .add("rngcanonical", STRING, ignored -> null)
+            .add("rngsubdiff", STRING, ignored -> null)
+            .build();
     }
 }
