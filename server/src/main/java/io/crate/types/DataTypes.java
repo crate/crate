@@ -396,7 +396,8 @@ public final class DataTypes {
     }
 
     private static final Map<String, DataType> MAPPING_NAMES_TO_TYPES = Map.ofEntries(
-        entry("date", DataTypes.TIMESTAMPZ),
+        entry("time", DataTypes.TIME),
+        entry(DataTypes.TIME.getName(), DataTypes.TIME),
         entry("string", DataTypes.STRING),
         entry("keyword", DataTypes.STRING),
         entry("text", DataTypes.STRING),
