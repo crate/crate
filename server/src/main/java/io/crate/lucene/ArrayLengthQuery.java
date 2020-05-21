@@ -247,9 +247,9 @@ public final class ArrayLengthQuery implements InnerFunctionToQuery {
             case ShortType.ID:
             case IntegerType.ID:
             case LongType.ID:
+            case TimeType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-            case TimeType.ID:
             case FloatType.ID:
             case DoubleType.ID:
             case GeoPointType.ID:

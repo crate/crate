@@ -368,9 +368,9 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_time_without_timezone_type_can_be_casted_to_integer() {
-        Symbol symbol = executor.asSymbol("doc.t5.t::integer");
-        assertThat(symbol.valueType(), is(DataTypes.INTEGER));
+    public void test_time_without_timezone_type_can_be_casted_to_long() {
+        Symbol symbol = executor.asSymbol("doc.t5.t::long");
+        assertThat(symbol.valueType(), is(DataTypes.LONG));
     }
 
     @Test

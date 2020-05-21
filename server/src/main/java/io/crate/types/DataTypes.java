@@ -186,7 +186,7 @@ public final class DataTypes {
         entry(IP.id(), Set.of(STRING.id())),
         entry(TIMESTAMPZ.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMP.id())),
         entry(TIMESTAMP.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id())),
-        entry(TIME.id(), Set.of(BOOLEAN.id(), STRING.id(), INTEGER.id())),
+        entry(TIME.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id())),
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
         entry(GEO_POINT.id(), Set.of()),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
@@ -202,8 +202,9 @@ public final class DataTypes {
         BYTE.id(), Set.of(SHORT, INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, TIME, FLOAT, DOUBLE),
         SHORT.id(), Set.of(INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, TIME, FLOAT, DOUBLE),
         INTEGER.id(), Set.of(LONG, TIMESTAMPZ, TIMESTAMP, TIME, FLOAT, DOUBLE),
-        LONG.id(), Set.of(TIMESTAMPZ, TIMESTAMP, DOUBLE),
-        FLOAT.id(), Set.of(TIME, DOUBLE));
+        LONG.id(), Set.of(TIMESTAMPZ, TIMESTAMP, TIME, DOUBLE),
+        DOUBLE.id(), Set.of(TIME),
+        FLOAT.id(), Set.of(DOUBLE));
 
     public static boolean isArray(DataType<?> type) {
         return type.id() == ArrayType.ID;
@@ -415,7 +416,7 @@ public final class DataTypes {
     );
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
-        entry(TIME.id(), "integer"),
+        entry(TIME.id(), "long"),
         entry(TIMESTAMPZ.id(), "date"),
         entry(TIMESTAMP.id(), "date"),
         entry(STRING.id(), "text"),

@@ -54,6 +54,7 @@ class ArithmeticOperatorsFactory {
     static BiFunction getAddFunction(DataType fstArgDataType, DataType sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
+            case TimeType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
@@ -73,7 +74,6 @@ class ArithmeticOperatorsFactory {
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
-            case TimeType.ID:
                 return ADD_INTEGER_FUNCTION;
             default:
                 throw new UnsupportedOperationException(
@@ -84,6 +84,7 @@ class ArithmeticOperatorsFactory {
     static BiFunction getSubtractFunction(DataType fstArgDataType, DataType sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
+            case TimeType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
@@ -103,7 +104,6 @@ class ArithmeticOperatorsFactory {
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
-            case TimeType.ID:
                 return SUB_INTEGER_FUNCTION;
             default:
                 throw new UnsupportedOperationException(

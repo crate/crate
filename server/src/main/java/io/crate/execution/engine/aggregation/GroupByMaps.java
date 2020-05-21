@@ -77,10 +77,10 @@ public final class GroupByMaps {
             case ShortType.ID:
                 return () -> (Map) new PrimitiveMapWithNulls<>(new ShortObjectHashMap<>());
             case IntegerType.ID:
-            case TimeType.ID:
                 return () -> (Map) new PrimitiveMapWithNulls<>(new IntObjectHashMap<>());
 
             case LongType.ID:
+            case TimeType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return () -> (Map) new PrimitiveMapWithNulls<>(new LongObjectHashMap<>());

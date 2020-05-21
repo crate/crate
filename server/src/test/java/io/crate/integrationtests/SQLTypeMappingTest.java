@@ -580,10 +580,9 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void test_insert_time_without_time_zone() {
         execute("create table eons_table (dt time) " +
                 "clustered into 2 shards with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into eons_table (dt) values (?)", new Integer[]{ 45296789 });
+        execute("insert into eons_table (dt) values (?)", new Long[]{ 45296789L });
         refresh();
         SQLResponse response = execute("select dt from eons_table");
-        assertThat(response.rows()[0][0], is(45296789));
+        assertThat(response.rows()[0][0], is(45296789L));
     }
 }

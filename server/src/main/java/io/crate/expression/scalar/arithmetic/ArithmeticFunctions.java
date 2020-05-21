@@ -187,10 +187,10 @@ public class ArithmeticFunctions {
                     case ByteType.ID:
                     case ShortType.ID:
                     case IntegerType.ID:
-                    case TimeType.ID:
                         scalar = new BinaryScalar<>(integerFunction, name, DataTypes.INTEGER, features);
                         break;
                     case LongType.ID:
+                    case TimeType.ID:
                     case TimestampType.ID_WITH_TZ:
                     case TimestampType.ID_WITHOUT_TZ:
                         scalar = new BinaryScalar<>(longFunction, name, DataTypes.LONG, features);
