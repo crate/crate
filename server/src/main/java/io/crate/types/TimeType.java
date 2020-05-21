@@ -41,25 +41,17 @@ public final class TimeType extends DataType<Integer> implements FixedWidthType,
 
     public static final int ID = 19;
     public static final String NAME = "time without time zone";
-    public static final TimeType INSTANCE = new TimeType(ID, NAME);
+    public static final TimeType INSTANCE = new TimeType();
 
-
-    private final int id;
-    private final String name;
-
-    private TimeType(int id, String name) {
-        this.id = id;
-        this.name = name;
-    }
 
     @Override
     public int id() {
-        return id;
+        return ID;
     }
 
     @Override
     public String getName() {
-        return name;
+        return NAME;
     }
 
     @Override
