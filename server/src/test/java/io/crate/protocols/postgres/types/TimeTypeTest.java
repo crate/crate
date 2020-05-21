@@ -31,7 +31,7 @@ import java.time.format.DateTimeParseException;
 
 import static org.hamcrest.Matchers.is;
 
-public class TimeTypeTest extends BasePGTypeTest<Integer> {
+public class TimeTypeTest extends BasePGTypeTest<Long> {
 
     public TimeTypeTest() {
         super(TimeType.INSTANCE);
@@ -41,11 +41,11 @@ public class TimeTypeTest extends BasePGTypeTest<Integer> {
     public void testBinaryRoundTrip() {
         ByteBuf buffer = Unpooled.buffer();
         try {
-            int value = 53005278;
+            long value = 53005278L;
             int written = pgType.writeAsBinary(buffer, value);
             int length = buffer.readInt();
             assertThat(written - 4, is(length));
-            int readValue = (int) pgType.readBinaryValue(buffer, length);
+            long readValue = (long) pgType.readBinaryValue(buffer, length);
             assertThat(readValue, is(value));
         } finally {
             buffer.release();
@@ -54,13 +54,13 @@ public class TimeTypeTest extends BasePGTypeTest<Integer> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(TimeType.INSTANCE.encodeAsUTF8Text(53005278), StandardCharsets.UTF_8),
+        assertThat(new String(TimeType.INSTANCE.encodeAsUTF8Text(53005278L), StandardCharsets.UTF_8),
             is("14:43:25.278"));
     }
 
     @Test
     public void testDecodeAsUTF8Text() {
-        assertThat(TimeType.INSTANCE.decodeUTF8Text("14:43:25.278-02".getBytes()), is(53005278));
+        assertThat(TimeType.INSTANCE.decodeUTF8Text("14:43:25.278-02".getBytes()), is(53005278L));
     }
 
     @Test

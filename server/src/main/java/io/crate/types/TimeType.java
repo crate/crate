@@ -37,7 +37,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.util.Locale;
 
-public final class TimeType extends DataType<Integer> implements FixedWidthType, Streamer<Integer> {
+public final class TimeType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
     public static final int ID = 19;
     public static final String NAME = "time without time zone";
@@ -60,35 +60,35 @@ public final class TimeType extends DataType<Integer> implements FixedWidthType,
     }
 
     @Override
-    public Streamer<Integer> streamer() {
+    public Streamer<Long> streamer() {
         return this;
     }
 
     @Override
-    public int compare(Integer val1, Integer val2) {
-        return Integer.compare(val1, val2);
+    public int compare(Long val1, Long val2) {
+        return Long.compare(val1, val2);
     }
 
     @Override
-    public Integer readValueFrom(StreamInput in) throws IOException {
-        return in.readBoolean() ? null : in.readInt();
+    public Long readValueFrom(StreamInput in) throws IOException {
+        return in.readBoolean() ? null : in.readLong();
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Integer v) throws IOException {
-        out.writeBoolean(v == null);
-        if (v != null) {
-            out.writeInt(v);
+    public void writeValueTo(StreamOutput out, Long val) throws IOException {
+        out.writeBoolean(val == null);
+        if (val != null) {
+            out.writeLong(val);
         }
     }
 
     @Override
     public int fixedSize() {
-        return IntegerType.INTEGER_SIZE;
+        return LongType.LONG_SIZE;
     }
 
     @Override
-    public Integer value(Object value) throws ClassCastException {
+    public Long value(Object value) throws ClassCastException {
         if (value == null) {
             return null;
         }
@@ -109,32 +109,32 @@ public final class TimeType extends DataType<Integer> implements FixedWidthType,
         if (value instanceof Float) {
             return translateFrom((Float) value);
         }
-        return value instanceof Integer ? (Integer) value : ((Number) value).intValue();
+        return value instanceof Long ? (Long) value : ((Number) value).longValue();
     }
 
-    public static int translateFrom(@Nonnull Float number) {
+    public static long translateFrom(@Nonnull Float number) {
         // number is: seconds.milliseconds
-        return (int) (Instant
+        return Instant
             .ofEpochMilli((long) Math.floor(number.floatValue() * 1000))
             .atZone(ZoneOffset.UTC)
             .toInstant()
-            .toEpochMilli() - Instant.EPOCH.toEpochMilli());
+            .toEpochMilli() - Instant.EPOCH.toEpochMilli();
     }
 
-    public static int parseTime(@Nonnull String time) {
+    public static long parseTime(@Nonnull String time) {
         try {
-            return Integer.parseInt(time);
+            return Long.parseLong(time);
         } catch (NumberFormatException e) {
             // the time zone is ignored if present
             LocalTime lt = LocalTime.parse(time, TIME_PARSER);
-            return (int) LocalDateTime
+            return LocalDateTime
                 .of(ZERO_DATE, lt)
                 .toInstant(ZoneOffset.UTC)
                 .toEpochMilli();
         }
     }
 
-    public static String formatTime(@Nonnull Integer time) {
+    public static String formatTime(@Nonnull Long time) {
         return LocalDateTime
             .ofInstant(Instant.ofEpochMilli(time), ZoneOffset.UTC)
             .format(DateTimeFormatter.ISO_LOCAL_TIME);
