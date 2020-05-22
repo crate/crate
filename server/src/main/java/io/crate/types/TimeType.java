@@ -161,34 +161,33 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
     }
 
     private static long toEpochMilli(@Nonnull String time, int millis, Supplier<Long> defaultSupplier) {
-        return switch (time.length()) {
-            case 6 -> {
+        switch (time.length()) {
+            case 6:
                 // hhmmss
                 int hh = Integer.parseInt(time.substring(0, 2));
                 int mm = Integer.parseInt(time.substring(2, 4));
                 int ss = Integer.parseInt(time.substring(4));
-                yield toEpochMilli(time, "hhmmss", hh, mm, ss, millis);
-            }
-            case 4 -> {
+                return toEpochMilli(time, "hhmmss", hh, mm, ss, millis);
+
+            case 4:
                 // hhmm
-                int hh = Integer.parseInt(time.substring(0, 2));
-                int mm = Integer.parseInt(time.substring(2, 4));
-                yield toEpochMilli(time, "hhmm", hh, mm, 00, millis);
-            }
-            case 2 -> {
+                hh = Integer.parseInt(time.substring(0, 2));
+                mm = Integer.parseInt(time.substring(2, 4));
+                return toEpochMilli(time, "hhmm", hh, mm, 00, millis);
+
+            case 2:
                 // hh
-                int hh = Integer.parseInt(time.substring(0, 2));
-                yield toEpochMilli(time, "hh", hh, 00, 00, millis);
-            }
-            default -> {
+                hh = Integer.parseInt(time.substring(0, 2));
+                return toEpochMilli(time, "hh", hh, 00, 00, millis);
+
+            default:
                 long epochMilli = defaultSupplier.get();
                 if (epochMilli < 0 || epochMilli > MAX_MILLIS) {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH, "value [%s] is out of range", time));
                 }
-                yield epochMilli;
-            }
-        };
+                return epochMilli;
+        }
     }
 
     private static long toEpochMilli(String time, String format, int hh, int mm, int ss, int millis) {
