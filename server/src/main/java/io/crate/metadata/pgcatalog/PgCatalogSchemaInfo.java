@@ -68,6 +68,7 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
             .put(PgSettingsTable.IDENT.name(), PgSettingsTable.create())
             .put(PgProcTable.IDENT.name(), PgProcTable.create())
             .put(PgRangeTable.IDENT.name(), PgRangeTable.create())
+            .put(PgEnumTable.IDENT.name(), PgEnumTable.create())
             .immutableMap();
     }
 
