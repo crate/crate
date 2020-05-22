@@ -34,8 +34,10 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.Locale;
+import java.util.function.Supplier;
 
 /**
  * All literal formats are interpreted as UTC, ignoring time zone if present.
@@ -48,6 +50,7 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
     public static final int ID = 19;
     public static final String NAME = "time without time zone";
     public static final TimeType INSTANCE = new TimeType();
+    private static final long MAX_MILLIS = 24 * 60 * 60 * 1000L;
 
 
     @Override
@@ -101,7 +104,7 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
         if (value instanceof Double || value instanceof Float) {
             // we treat float and double values as seconds with milliseconds as fractions
             // 123.456789 -> 123456
-            return (long) Math.floor(((Number) value).doubleValue() * 1000);
+            return (long) Math.floor(((Number) value).doubleValue() * 1000L);
         }
         if (value instanceof Long || value instanceof Number) {
             return ((Number) value).longValue();
@@ -115,21 +118,86 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
             value));
     }
 
+    /**
+     * The more expensive literal representation.
+     * Supported formats:
+     *
+     * <ul>
+     *     <li>'hhmmss'</li>
+     *     <li></li>
+     *     <li></li>
+     *     <li></li>
+     *     <li></li>
+     *     <li></li>
+     *     <li></li>
+     * </ul>
+     *
+     * @param time
+     * @return
+     */
     public static long parseTime(@Nonnull String time) {
         try {
-            return Long.parseLong(time);
+            return toEpochMilli(time, 000, () -> Long.parseLong(time));
         } catch (NumberFormatException e0) {
             try {
-                return (long) Math.floor(Double.parseDouble(time) * 1000);
+                long epochMilli = (long) Math.floor(Double.parseDouble(time) * 1000L);
+                long hhmmss = Math.floorDiv(epochMilli, 1000L);
+                int millis = Math.floorMod(epochMilli, 1000);
+                return toEpochMilli(String.valueOf(hhmmss), millis, () -> epochMilli);
             } catch (NumberFormatException e1) {
-                // the time zone is ignored if present
-                LocalTime lt = LocalTime.parse(time, TIME_PARSER);
-                return LocalDateTime
-                    .of(ZERO_DATE, lt)
-                    .toInstant(ZoneOffset.UTC)
-                    .toEpochMilli();
+                try {
+                    // the time zone is ignored if present
+                    LocalTime lt = LocalTime.parse(time, TIME_PARSER);
+                    return LocalDateTime
+                        .of(ZERO_DATE, lt)
+                        .toInstant(ZoneOffset.UTC)
+                        .toEpochMilli();
+                } catch (DateTimeParseException e2) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH, "value [%s] is not a valid literal for TimeType", time));
+                }
             }
         }
+    }
+
+    private static long toEpochMilli(@Nonnull String time, int millis, Supplier<Long> defaultSupplier) {
+        return switch (time.length()) {
+            case 6 -> {
+                // hhmmss
+                int hh = Integer.parseInt(time.substring(0, 2));
+                int mm = Integer.parseInt(time.substring(2, 4));
+                int ss = Integer.parseInt(time.substring(4));
+                yield toEpochMilli(time, "hhmmss", hh, mm, ss, millis);
+            }
+            case 4 -> {
+                // hhmm
+                int hh = Integer.parseInt(time.substring(0, 2));
+                int mm = Integer.parseInt(time.substring(2, 4));
+                yield toEpochMilli(time, "hhmm", hh, mm, 00, millis);
+            }
+            case 2 -> {
+                // hh
+                int hh = Integer.parseInt(time.substring(0, 2));
+                yield toEpochMilli(time, "hh", hh, 00, 00, millis);
+            }
+            default -> {
+                long epochMilli = defaultSupplier.get();
+                if (epochMilli < 0 || epochMilli > MAX_MILLIS) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH, "value [%s] is out of range", time));
+                }
+                yield epochMilli;
+            }
+        };
+    }
+
+    private static long toEpochMilli(String time, String format, int hh, int mm, int ss, int millis) {
+        long epochMilli = (((hh * 60 + mm) * 60) + ss) * 1000L + millis;
+        if (epochMilli < 0 || epochMilli > MAX_MILLIS) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH, "value [%s] as '%s' is out of range", time, format));
+        }
+        return epochMilli;
     }
 
     public static String formatTime(@Nonnull Long time) {
