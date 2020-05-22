@@ -36,12 +36,6 @@ import static org.hamcrest.core.IsNot.not;
 public class DataTypesTest extends CrateUnitTest {
 
     @Test
-    public void testConvertBooleanToString() {
-        String value = DataTypes.STRING.value(true);
-        assertEquals("t", value);
-    }
-
-    @Test
     public void testConvertStringToBoolean() {
         assertEquals(true, DataTypes.BOOLEAN.value("t"));
         assertEquals(false, DataTypes.BOOLEAN.value("false"));
@@ -65,7 +59,6 @@ public class DataTypesTest extends CrateUnitTest {
         assertEquals((Short) (short) 123, DataTypes.SHORT.value(longValue));
         assertEquals((Byte) (byte) 123, DataTypes.BYTE.value(longValue));
         assertEquals((Long) 123L, DataTypes.TIMESTAMPZ.value(longValue));
-        assertEquals("123", DataTypes.STRING.value(longValue));
     }
 
     private static Map<String, Object> testMap = Map.of(
@@ -157,7 +150,6 @@ public class DataTypesTest extends CrateUnitTest {
         assertEquals((Float) 123.0f, DataTypes.FLOAT.value(value));
         assertEquals((Short) (short) 123, DataTypes.SHORT.value(value));
         assertEquals((Byte) (byte) 123, DataTypes.BYTE.value(value));
-        assertEquals("123", DataTypes.STRING.value(value));
     }
 
     @Test(expected = NumberFormatException.class)
@@ -276,26 +268,6 @@ public class DataTypesTest extends CrateUnitTest {
     @Test
     public void test_varchar_is_aliased_to_string() throws Exception {
         assertThat(DataTypes.ofName("varchar"), is(DataTypes.STRING));
-    }
-
-    public void test_text_with_length_limit() throws Exception {
-        var stringDataType = StringType.of(10);
-        assertThat(stringDataType.unbound(), is(false));
-        assertThat(stringDataType.lengthLimit(), is(10));
-    }
-
-    @Test
-    public void test_text_with_negative_length_limit() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The text type length must be at least 1, received: -1");
-        StringType.of(-1);
-    }
-
-    @Test
-    public void test_crate_text_type_with_wrong_number_of_parameters_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The text type can only have a single parameter value, received: 2");
-        StringType.of(List.of(1, 2));
     }
 
     @Test

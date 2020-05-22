@@ -29,6 +29,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -121,44 +122,62 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
+    public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        }
+        return convert(value);
+    }
+
+    @Override
+    public String explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        if (value == null) {
+            return null;
+        }
+        var string = convert(value);
+        if (unbound() || string.length() <= lengthLimit) {
+            return string;
+        } else {
+            return string.substring(0, lengthLimit);
+        }
+    }
+
+    @Override
     public String value(Object value) {
         if (value == null) {
             return null;
         }
+        return convert(value);
+    }
+
+    @Nonnull
+    private String convert(@Nonnull Object value) throws IllegalArgumentException {
         if (value instanceof String) {
             return (String) value;
-        }
-        if (value instanceof BytesRef) {
+        } else if (value instanceof BytesRef) {
             return ((BytesRef) value).utf8ToString();
-        }
-        if (value instanceof Boolean) {
-            if ((boolean) value) {
-                return T;
-            } else {
-                return F;
-            }
-        }
-        if (value instanceof Map) {
+        } else if (value instanceof Boolean) {
+            return (boolean) value ? T : F;
+        } else if (value instanceof Map) {
             try {
                 //noinspection unchecked
                 return Strings.toString(XContentFactory.jsonBuilder().map((Map<String, ?>) value));
             } catch (IOException e) {
                 throw new IllegalArgumentException("Cannot cast `" + value + "` to type TEXT", e);
             }
-        }
-        if (value instanceof Collection) {
+        } else if (value instanceof Collection) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", value));
-        }
-        if (value.getClass().isArray()) {
+        } else if (value.getClass().isArray()) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", Arrays.toString((Object[]) value)));
-        }
-        if (value instanceof TimeValue) {
+        } else if (value instanceof TimeValue) {
             return ((TimeValue) value).getStringRep();
+        } else {
+            return value.toString();
         }
-        return value.toString();
     }
+
 
     @Override
     public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
