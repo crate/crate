@@ -113,6 +113,11 @@ public class PgCatalogTableDefinitions {
             PgRangeTable.create().expressions(),
             false
         ));
+        tableDefinitions.put(PgEnumTable.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgEnumTable.create().expressions(),
+            false
+        ));
         Iterable<NamedSessionSetting> sessionSettings =
             () -> sessionSettingRegistry.settings().entrySet().stream()
                 .map(s -> new NamedSessionSetting(s.getKey(), s.getValue()))

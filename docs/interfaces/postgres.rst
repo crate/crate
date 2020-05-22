@@ -144,6 +144,7 @@ following tables:
  - `pg_settings <pgsql_pg_settings_>`__
  - `pg_description`_
  - `pg_range`_
+ - `pg_enum`_
 
 
 .. _postgres_pg_type:
@@ -394,3 +395,4 @@ either because of the table is empty or by a not matching where clause.
 .. _pgsql_pg_settings: https://www.postgresql.org/docs/10/view-pg-settings.html
 .. _pg_description: https://www.postgresql.org/docs/10/catalog-pg-description.html
 .. _pg_range: https://www.postgresql.org/docs/10/catalog-pg-range.html
+.. _pg_enum: https://www.postgresql.org/docs/10/catalog-pg-enum.html
