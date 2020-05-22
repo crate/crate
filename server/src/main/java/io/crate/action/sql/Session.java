@@ -31,6 +31,7 @@ import io.crate.analyze.Relations;
 import io.crate.auth.user.AccessControl;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -118,6 +119,7 @@ public class Session implements AutoCloseable {
 
     @VisibleForTesting
     final Map<Statement, List<DeferredExecution>> deferredExecutionsByStmt = new HashMap<>();
+    private final ArrayList<CompletableFuture<?>> activeExecutions = new ArrayList<>();
 
     private final Analyzer analyzer;
     private final Planner planner;
@@ -145,7 +147,7 @@ public class Session implements AutoCloseable {
     /**
      * See {@link #quickExec(String, Function, ResultReceiver, Row)}
      */
-    public void quickExec(String statement, ResultReceiver resultReceiver, Row params) {
+    public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
         quickExec(statement, SqlParser::createStatement, resultReceiver, params);
     }
 
@@ -156,7 +158,7 @@ public class Session implements AutoCloseable {
      * @param parse A function to parse the statement; This can be used to cache the parsed statement.
      *              Use {@link #quickExec(String, ResultReceiver, Row)} to use the regular parser
      */
-    public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver resultReceiver, Row params) {
+    public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver<?> resultReceiver, Row params) {
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionContext);
         Statement parsedStmt = parse.apply(statement);
         AnalyzedStatement analyzedStatement = analyzer.analyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
@@ -349,7 +351,7 @@ public class Session implements AutoCloseable {
         }
     }
 
-    public void execute(String portalName, int maxRows, ResultReceiver resultReceiver) {
+    public void execute(String portalName, int maxRows, ResultReceiver<?> resultReceiver) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
         }
@@ -371,7 +373,7 @@ public class Session implements AutoCloseable {
                 preparedStatements.clear();
             }
             resultReceiver.allFinished(false);
-        } else {
+        } else if (analyzedStmt.isWriteOperation()) {
             /* We defer the execution for any other statements to `sync` messages so that we can efficiently process
              * bulk operations. E.g. If we receive `INSERT INTO (x) VALUES (?)` bindings/execute multiple times
              * We want to create bulk requests internally:                                                          /
@@ -398,10 +400,37 @@ public class Session implements AutoCloseable {
                     }
                 }
             );
+        } else {
+            if (deferredExecutionsByStmt.isEmpty()) {
+                activeExecutions.add(singleExec(portal, resultReceiver, maxRows));
+            } else {
+                activeExecutions.add(
+                    triggerDeferredExecutions().thenCompose(ignored -> singleExec(portal, resultReceiver, maxRows)));
+            }
         }
     }
 
     public CompletableFuture<?> sync() {
+        switch (activeExecutions.size()) {
+            case 0: {
+                return triggerDeferredExecutions();
+            }
+
+            case 1: {
+                var result = activeExecutions.get(0);
+                activeExecutions.clear();
+                return deferredExecutionsByStmt.isEmpty() ? result : result.thenCompose(ignored -> triggerDeferredExecutions());
+            }
+
+            default: {
+                var result = CompletableFutures.allAsList(activeExecutions);
+                activeExecutions.clear();
+                return deferredExecutionsByStmt.isEmpty() ? result : result.thenCompose(ignored -> triggerDeferredExecutions());
+            }
+        }
+    }
+
+    private CompletableFuture<?> triggerDeferredExecutions() {
         switch (deferredExecutionsByStmt.size()) {
             case 0:
                 LOGGER.debug("method=sync deferredExecutions=0");
@@ -414,15 +443,8 @@ public class Session implements AutoCloseable {
             }
 
             default: {
-                Map<Statement, List<DeferredExecution>> deferredExecutions = Map.copyOf(this.deferredExecutionsByStmt);
-                this.deferredExecutionsByStmt.clear();
-                for (var entry : deferredExecutions.entrySet()) {
-                    if (entry.getValue().stream().anyMatch(x -> !x.portal().analyzedStatement().isWriteOperation())) {
-                        throw new UnsupportedOperationException(
-                            "Only write operations are allowed in Batch statements");
-                    }
-                }
-                var futures = Lists2.map(deferredExecutions.entrySet(), x -> exec(x.getKey(), x.getValue()));
+                var futures = Lists2.map(deferredExecutionsByStmt.entrySet(), x -> exec(x.getKey(), x.getValue()));
+                deferredExecutionsByStmt.clear();
                 return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
             }
         }
@@ -494,7 +516,7 @@ public class Session implements AutoCloseable {
                                                        JobsLogs jobsLogs,
                                                        List<DeferredExecution> executions,
                                                        List<CompletableFuture<Long>> completedRowCounts) {
-        Long[] cells = new Long[1];
+        Object[] cells = new Long[1];
         RowN row = new RowN(cells);
         for (int i = 0; i < completedRowCounts.size(); i++) {
             CompletableFuture<Long> completedRowCount = completedRowCounts.get(i);

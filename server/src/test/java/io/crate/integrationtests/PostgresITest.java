@@ -604,8 +604,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             statement.addBatch("refresh table t");
             statement.addBatch("select count(*) from t");
 
-            expectedException.expect(BatchUpdateException.class);
-            expectedException.expectMessage("Only write operations are allowed in Batch statements");
+            expectedException.expect(IllegalStateException.class);
             statement.executeBatch();
         }
     }
