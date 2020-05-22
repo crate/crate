@@ -40,12 +40,6 @@ public class TimeTypeTest {
     }
 
     @Test
-    public void test_translate_time() {
-        assertThat(TimeType.translateFrom(14400.123456789f), is(14400123L));
-        assertThat(TimeType.formatTime(TimeType.translateFrom(14400.123456789f)), is("04:00:00.123"));
-    }
-
-    @Test
     public void test_value() {
         assertNull(TimeType.INSTANCE.value(null));
         assertThat(TimeType.INSTANCE.value("01:00:00Z"), is(3600000L));
@@ -60,12 +54,5 @@ public class TimeTypeTest {
         assertThat(TimeType.INSTANCE.value(14400000), is(14400000L));
         assertThat(TimeType.INSTANCE.value(14400.123456789f), is(14400123L));
         assertThat(TimeType.INSTANCE.value(14400.123456789d), is(14400123L));
-    }
-
-    @Test
-    public void test_should_not_be_able_to_compute_large_double_values() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value too large");
-        TimeType.INSTANCE.value((double)(Float.MAX_VALUE + 1));
     }
 }

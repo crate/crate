@@ -37,6 +37,12 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.util.Locale;
 
+/**
+ * All literal formats are interpreted as UTC, ignoring time zone if present.
+ * Internally stored as a long (milli seconds from epoch, ignoring date).
+ * Precision is milli seconds (10e3 in a second, unlike postgres which is
+ * micro seconds 10e6) see TimestampType.
+ */
 public final class TimeType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
     public static final int ID = 19;
@@ -92,45 +98,37 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
         if (value == null) {
             return null;
         }
+        if (value instanceof Double || value instanceof Float) {
+            // we treat float and double values as seconds with milliseconds as fractions
+            // 123.456789 -> 123456
+            return (long) Math.floor(((Number) value).doubleValue() * 1000);
+        }
+        if (value instanceof Long || value instanceof Number) {
+            return ((Number) value).longValue();
+        }
         if (value instanceof String) {
             return parseTime((String) value);
         }
-        // float values are treated as "seconds.milliseconds"
-        if (value instanceof Double) {
-            Double n = (Double) value;
-            if (n.doubleValue() < Float.MAX_VALUE) {
-                return translateFrom(n.floatValue());
-            }
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,
-                "value too large [%f] if does not fit in a float",
-                value));
-        }
-        if (value instanceof Float) {
-            return translateFrom((Float) value);
-        }
-        return value instanceof Long ? (Long) value : ((Number) value).longValue();
-    }
-
-    public static long translateFrom(@Nonnull Float number) {
-        // number is: seconds.milliseconds
-        return Instant
-            .ofEpochMilli((long) Math.floor(number.floatValue() * 1000))
-            .atZone(ZoneOffset.UTC)
-            .toInstant()
-            .toEpochMilli() - Instant.EPOCH.toEpochMilli();
+        throw new IllegalArgumentException(String.format(
+            Locale.ENGLISH,
+            "unexpected value [%s], does not fit TimeType's literal syntax",
+            value));
     }
 
     public static long parseTime(@Nonnull String time) {
         try {
             return Long.parseLong(time);
-        } catch (NumberFormatException e) {
-            // the time zone is ignored if present
-            LocalTime lt = LocalTime.parse(time, TIME_PARSER);
-            return LocalDateTime
-                .of(ZERO_DATE, lt)
-                .toInstant(ZoneOffset.UTC)
-                .toEpochMilli();
+        } catch (NumberFormatException eLong) {
+            try {
+                return (long) Math.floor(Double.parseDouble(time) * 1000);
+            } catch (NumberFormatException eDouble) {
+                // the time zone is ignored if present
+                LocalTime lt = LocalTime.parse(time, TIME_PARSER);
+                return LocalDateTime
+                    .of(ZERO_DATE, lt)
+                    .toInstant(ZoneOffset.UTC)
+                    .toEpochMilli();
+            }
         }
     }
 
