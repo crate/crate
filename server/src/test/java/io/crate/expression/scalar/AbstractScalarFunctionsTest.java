@@ -221,7 +221,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             argument.calls = 0;
         }
 
-        actualValue = scalar.evaluate(txnCtx, (Input[]) arguments);
+        actualValue = scalar.evaluate(txnCtx, arguments);
         assertThat((T) actualValue, expectedValue);
     }
 
@@ -275,12 +275,10 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
         return true;
     }
 
-    @SuppressWarnings("unchecked")
     protected FunctionImplementation getFunction(String functionName, DataType... argTypes) {
         return getFunction(functionName, Arrays.asList(argTypes));
     }
 
-    @SuppressWarnings("unchecked")
     protected FunctionImplementation getFunction(String functionName, List<DataType> argTypes) {
         return functions.get(
             null, functionName, Lists2.map(argTypes, t -> new InputColumn(0, t)), SearchPath.pathWithPGCatalogAndDoc());
