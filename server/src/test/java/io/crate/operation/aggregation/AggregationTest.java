@@ -24,13 +24,17 @@ package io.crate.operation.aggregation;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.collections.Lists2;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -55,11 +59,16 @@ public abstract class AggregationTest extends CrateUnitTest {
 
     protected Functions functions;
     protected MemoryManager memoryManager;
+    protected EvaluatingNormalizer evaluatingNormalizer;
 
     @Before
     public void prepare() throws Exception {
         functions = getFunctions();
         memoryManager = new OnHeapMemoryManager(RAM_ACCOUNTING::addBytes);
+        evaluatingNormalizer = EvaluatingNormalizer.functionOnlyNormalizer(
+            functions,
+            f -> f.info().isDeterministic()
+        );
     }
 
     public Object executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
@@ -71,26 +80,22 @@ public abstract class AggregationTest extends CrateUnitTest {
     }
 
     public Object executeAggregation(String name, DataType dataType, Object[][] data, List<DataType> argumentTypes) throws Exception {
-        FunctionIdent fi;
         InputCollectExpression[] inputs;
+
         if (dataType != null) {
-            fi = new FunctionIdent(name, argumentTypes);
             inputs = new InputCollectExpression[argumentTypes.size()];
             for (int i = 0; i < argumentTypes.size(); i++) {
                 inputs[i] = new InputCollectExpression(i);
             }
         } else {
-            fi = new FunctionIdent(name, ImmutableList.of());
             inputs = new InputCollectExpression[0];
         }
-        AggregationFunction impl = (AggregationFunction) functions.getQualified(fi);
-        if (impl == null) {
-            impl = (AggregationFunction) functions.resolveBuiltInFunctionBySignature(
-                new FunctionName(null, name),
-                argumentTypes,
-                SearchPath.pathWithPGCatalogAndDoc()
-            );
-        }
+        AggregationFunction impl = (AggregationFunction) functions.get(
+            null,
+            name,
+            Lists2.map(argumentTypes, t -> new InputColumn(0, t)),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
         List<Object> states = new ArrayList<>();
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT

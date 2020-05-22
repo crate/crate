@@ -105,6 +105,19 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
+    public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
+        if (explicitCast) {
+            if (other.id() == ArrayType.ID && ((ArrayType<?>) other).innerType().id() == id()) {
+                return true;
+            }
+            if (other.id() == IntervalType.ID) {
+                return true;
+            }
+        }
+        return super.isConvertableTo(other, explicitCast);
+    }
+
+    @Override
     public int compare(String val1, String val2) {
         return val1.compareTo(val2);
     }

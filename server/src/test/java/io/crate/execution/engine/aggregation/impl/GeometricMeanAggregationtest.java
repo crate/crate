@@ -95,8 +95,10 @@ public class GeometricMeanAggregationtest extends AggregationTest {
         assertEquals(1.0d, result);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testUnsupportedType() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: geometric_mean(boolean)");
         executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}});
     }
 }

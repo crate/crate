@@ -42,6 +42,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.GroupAndAggregateSemantics;
@@ -150,14 +151,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         statementContext.endRelation();
 
         List<Symbol> childRelationFields = childRelation.outputs();
+        var coordinatorTxnCtx = statementContext.transactionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            statementContext.transactionContext(),
+            coordinatorTxnCtx,
             statementContext.paramTyeHints(),
             new FullQualifiedNameFieldProvider(
                 relationAnalysisContext.sources(),
                 relationAnalysisContext.parentSources(),
-                statementContext.transactionContext().sessionContext().searchPath().currentSchema()),
+                coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
             new SubqueryAnalyzer(this, statementContext));
         ExpressionAnalysisContext expressionAnalysisContext = relationAnalysisContext.expressionAnalysisContext();
         SelectAnalysis selectAnalysis = new SelectAnalysis(
@@ -168,6 +170,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (Symbol field : childRelationFields) {
             selectAnalysis.add(Symbols.pathFromSymbol(field), field);
         }
+
+        var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
+            functions,
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.info().isDeterministic()
+        );
+
         return new QueriedSelectRelation(
             false,
             List.of(childRelation),
@@ -184,8 +192,20 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 false,
                 false
             ),
-            longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
-            longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext)
+            longSymbolOrNull(
+                node.getLimit(),
+                expressionAnalyzer,
+                expressionAnalysisContext,
+                normalizer,
+                coordinatorTxnCtx
+            ),
+            longSymbolOrNull(
+                node.getOffset(),
+                expressionAnalyzer,
+                expressionAnalysisContext,
+                normalizer,
+                coordinatorTxnCtx
+            )
         );
     }
 
@@ -332,6 +352,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         boolean isDistinct = node.getSelect().isDistinct();
         Symbol where = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
         WhereClauseValidator.validate(where);
+
+        var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
+            functions,
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.info().isDeterministic()
+        );
+
         QueriedSelectRelation relation = new QueriedSelectRelation(
             isDistinct,
             List.copyOf(context.sources().values()),
@@ -353,8 +379,19 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 expressionAnalysisContext.hasAggregates() || !groupBy.isEmpty(),
                 isDistinct
             ),
-            longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
-            longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext)
+            longSymbolOrNull(
+                node.getLimit(),
+                expressionAnalyzer,
+                expressionAnalysisContext,
+                normalizer,
+                coordinatorTxnCtx),
+            longSymbolOrNull(
+                node.getOffset(),
+                expressionAnalyzer,
+                expressionAnalysisContext,
+                normalizer,
+                coordinatorTxnCtx
+            )
         );
         statementContext.endRelation();
         return relation;
@@ -363,10 +400,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Nullable
     private static Symbol longSymbolOrNull(Optional<Expression> optExpression,
                                            ExpressionAnalyzer expressionAnalyzer,
-                                           ExpressionAnalysisContext expressionAnalysisContext) {
+                                           ExpressionAnalysisContext expressionAnalysisContext,
+                                           EvaluatingNormalizer normalizer,
+                                           CoordinatorTxnCtx coordinatorTxnCtx) {
         if (optExpression.isPresent()) {
             Symbol symbol = expressionAnalyzer.convert(optExpression.get(), expressionAnalysisContext);
-            return symbol.cast(DataTypes.LONG);
+            return normalizer.normalize(symbol.cast(DataTypes.LONG), coordinatorTxnCtx);
         }
         return null;
     }
@@ -491,16 +530,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     private static Symbol getByPosition(List<Symbol> outputSymbols, Literal<?> ordinal, String clause) {
-        Literal<Integer> intOrdinal;
+        Integer ord;
         try {
-            //noinspection unchecked
-            intOrdinal = (Literal<Integer>) ordinal.cast(DataTypes.INTEGER);
+            ord = DataTypes.INTEGER.value(ordinal.value());
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "Cannot use %s in %s clause", ordinal, clause));
         }
-        Integer ord = intOrdinal.value();
         if (ord == null) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
@@ -647,6 +684,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             new SubqueryAnalyzer(this, context)
         );
         var expressionAnalysisContext = new ExpressionAnalysisContext();
+        // prevent normalization of the values array, otherwise the value literals are converted to an array literal
+        // and a special per-value-literal casting logic won't be executed (e.g. FloatLiteral.cast())
+        expressionAnalysisContext.allowEagerNormalize(false);
         java.util.function.Function<Expression, Symbol> expressionToSymbol =
             e -> expressionAnalyzer.convert(e, expressionAnalysisContext);
 
@@ -683,7 +723,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
                 var cellType = cell.valueType();
                 if (r > 0 // skip first cell, we don't have to check for self-conversion
-                    && !cellType.isConvertableTo(targetType)
+                    && !cellType.isConvertableTo(targetType, false)
                     && targetType.id() != DataTypes.UNDEFINED.id()) {
                     throw new IllegalArgumentException(
                         "The types of the columns within VALUES lists must match. " +
@@ -697,11 +737,19 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             columns.add(columnValues);
         }
 
+        var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
+            functions,
+            f -> f.info().isDeterministic()
+        );
+
         ArrayList<Symbol> arrays = new ArrayList<>(columns.size());
         for (int c = 0; c < numColumns; c++) {
             DataType<?> targetType = targetTypes.get(c);
             ArrayType<?> arrayType = new ArrayType<>(targetType);
-            List<Symbol> columnValues = Lists2.map(columns.get(c), s -> s.cast(targetType));
+            List<Symbol> columnValues = Lists2.map(
+                columns.get(c),
+                s -> normalizer.normalize(s.cast(targetType), context.transactionContext())
+            );
             arrays.add(new Function(
                 new FunctionInfo(new FunctionIdent(ArrayFunction.NAME, Symbols.typeView(columnValues)), arrayType),
                 ArrayFunction.SIGNATURE,
@@ -717,6 +765,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             implementation.signature(),
             arrays
         );
+
         TableFunctionImplementation<?> tableFunc = TableFunctionFactory.from(implementation);
         TableFunctionRelation relation = new TableFunctionRelation(tableFunc, function);
         context.startRelation();

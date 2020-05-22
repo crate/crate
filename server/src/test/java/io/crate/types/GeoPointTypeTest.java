@@ -87,7 +87,7 @@ public class GeoPointTypeTest extends CrateUnitTest {
 
     @Test
     public void testConversionFromArrayType() {
-        assertThat(new ArrayType(DataTypes.LONG).isConvertableTo(GeoPointType.INSTANCE), is(true));
+        assertThat(new ArrayType(DataTypes.LONG).isConvertableTo(GeoPointType.INSTANCE, false), is(true));
     }
 
     @Test

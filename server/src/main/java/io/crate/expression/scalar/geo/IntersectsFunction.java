@@ -33,12 +33,10 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.locationtech.spatial4j.shape.Shape;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.metadata.functions.Signature.scalar;
@@ -47,43 +45,27 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
 
     public static final String NAME = "intersects";
 
-    private static FunctionInfo info(DataType<?> type1, DataType<?> type2) {
-        return new FunctionInfo(
-            new FunctionIdent(NAME, List.of(type1, type2)),
-            DataTypes.BOOLEAN
+    private static final FunctionInfo INFO = new FunctionInfo(
+        new FunctionIdent(NAME, List.of(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE)),
+        DataTypes.BOOLEAN
+    );
+
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            scalar(
+                NAME,
+                DataTypes.GEO_SHAPE.getTypeSignature(),
+                DataTypes.GEO_SHAPE.getTypeSignature(),
+                DataTypes.BOOLEAN.getTypeSignature()
+            ),
+            (signature, args) -> new IntersectsFunction(signature)
         );
     }
 
-    private static final FunctionInfo SHAPE_INFO = info(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE);
-
-    private static final List<DataType<?>> SUPPORTED_TYPES = List.of(
-        DataTypes.STRING,
-        DataTypes.UNTYPED_OBJECT,
-        DataTypes.GEO_SHAPE
-    );
-
-    public static void register(ScalarFunctionModule module) {
-        for (DataType<?> type1 : SUPPORTED_TYPES) {
-            for (DataType<?> type2 : SUPPORTED_TYPES) {
-                module.register(
-                    scalar(
-                        NAME,
-                        type1.getTypeSignature(),
-                        type2.getTypeSignature(),
-                        DataTypes.BOOLEAN.getTypeSignature()
-                        ),
-                    (signature, args) ->
-                        new IntersectsFunction(info(type1, type2), signature)
-                );
-            }
-        }
-    }
-
-    private final FunctionInfo info;
     private final Signature signature;
 
-    public IntersectsFunction(FunctionInfo functionInfo, Signature signature) {
-        this.info = functionInfo;
+    public IntersectsFunction(Signature signature) {
         this.signature = signature;
     }
 
@@ -105,7 +87,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
 
     @Override
     public FunctionInfo info() {
-        return info;
+        return INFO;
     }
 
     @Nullable
@@ -119,28 +101,17 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         Symbol left = symbol.arguments().get(0);
         Symbol right = symbol.arguments().get(1);
         int numLiterals = 0;
-        boolean literalConverted = false;
 
         if (left.symbolType().isValueSymbol()) {
             numLiterals++;
-            Symbol converted = left.cast(DataTypes.GEO_SHAPE);
-            literalConverted = converted != right;
-            left = converted;
         }
 
         if (right.symbolType().isValueSymbol()) {
             numLiterals++;
-            Symbol converted = right.cast(DataTypes.GEO_SHAPE);
-            literalConverted = literalConverted || converted != right;
-            right = converted;
         }
 
         if (numLiterals == 2) {
             return Literal.of(evaluate(txnCtx, (Input) left, (Input) right));
-        }
-
-        if (literalConverted) {
-            return new Function(SHAPE_INFO, signature, Arrays.asList(left, right));
         }
 
         return symbol;

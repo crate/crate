@@ -26,7 +26,6 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -46,23 +45,19 @@ import static io.crate.metadata.functions.Signature.scalar;
 public class DistanceFunction extends Scalar<Double, Point> {
 
     public static final String NAME = "distance";
-    private static final List<DataType<?>> SUPPORTED_TYPES = List.of(
-        DataTypes.STRING, DataTypes.GEO_POINT, DataTypes.DOUBLE_ARRAY);
 
     private static final FunctionInfo GEO_POINT_INFO = genInfo(Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT));
 
     public static void register(ScalarFunctionModule module) {
-        for (var inputType : SUPPORTED_TYPES) {
-            module.register(
-                scalar(
-                    NAME,
-                    inputType.getTypeSignature(),
-                    inputType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ),
-                (signature, argumentTypes) -> new DistanceFunction(genInfo(argumentTypes), signature)
-            );
-        }
+        module.register(
+            scalar(
+                NAME,
+                DataTypes.GEO_POINT.getTypeSignature(),
+                DataTypes.GEO_POINT.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            (signature, argumentTypes) -> new DistanceFunction(genInfo(argumentTypes), signature)
+        );
     }
 
     private static FunctionInfo genInfo(List<DataType> argumentTypes) {
@@ -110,32 +105,19 @@ public class DistanceFunction extends Scalar<Double, Point> {
     public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         Symbol arg1 = symbol.arguments().get(0);
         Symbol arg2 = symbol.arguments().get(1);
-        DataType arg1Type = arg1.valueType();
-        DataType arg2Type = arg2.valueType();
+        DataType<?> arg1Type = arg1.valueType();
+        DataType<?> arg2Type = arg2.valueType();
 
         boolean arg1IsReference = true;
-        boolean literalConverted = false;
         short numLiterals = 0;
 
         if (arg1.symbolType().isValueSymbol()) {
             numLiterals++;
             arg1IsReference = false;
-            if (!arg1Type.equals(DataTypes.GEO_POINT)) {
-                literalConverted = true;
-                arg1 = arg1.cast(DataTypes.GEO_POINT);
-            }
-        } else {
-            ensureGeoPoint(arg1, arg1Type);
         }
 
         if (arg2.symbolType().isValueSymbol()) {
             numLiterals++;
-            if (!arg2Type.equals(DataTypes.GEO_POINT)) {
-                literalConverted = true;
-                arg2 = arg2.cast(DataTypes.GEO_POINT);
-            }
-        } else {
-            ensureGeoPoint(arg2, arg2Type);
         }
 
         if (numLiterals == 2) {
@@ -146,16 +128,6 @@ public class DistanceFunction extends Scalar<Double, Point> {
         if (!arg1IsReference) {
             return new Function(GEO_POINT_INFO, signature, Arrays.asList(arg2, arg1));
         }
-        if (literalConverted) {
-            return new Function(GEO_POINT_INFO, signature, Arrays.asList(arg1, arg2));
-        }
         return symbol;
-    }
-
-    private static void ensureGeoPoint(Symbol symbol, DataType dataType) {
-        if (!dataType.equals(DataTypes.GEO_POINT)) {
-            throw new IllegalArgumentException(Symbols.format(
-                "Cannot convert %s to a geo point", symbol));
-        }
     }
 }

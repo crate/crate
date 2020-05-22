@@ -87,8 +87,10 @@ public class MaximumAggregationTest extends AggregationTest {
         assertEquals("Youri", result);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testUnsupportedType() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: max(object)");
         executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}});
     }
 }

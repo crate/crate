@@ -195,12 +195,12 @@ public class TypeConversionTest extends CrateUnitTest {
             List.of(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.UNTYPED_OBJECT))) {
             assertThat(
                 "type '" + type + "' is not self convertible",
-                type.isConvertableTo(type), is(true));
+                type.isConvertableTo(type, false), is(true));
 
             ArrayType<?> arrayType = new ArrayType<>(type);
             assertThat(
                 "type '" +  arrayType + "' is not self convertible",
-                arrayType.isConvertableTo(arrayType), is(true));
+                arrayType.isConvertableTo(arrayType, false), is(true));
         }
     }
 
@@ -210,7 +210,7 @@ public class TypeConversionTest extends CrateUnitTest {
             DataTypes.PRIMITIVE_TYPES,
             Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.UNTYPED_OBJECT))) {
 
-            assertFalse(DataTypes.NOT_SUPPORTED.isConvertableTo(type));
+            assertFalse(DataTypes.NOT_SUPPORTED.isConvertableTo(type, false));
         }
     }
 
@@ -219,29 +219,28 @@ public class TypeConversionTest extends CrateUnitTest {
         for (DataType<?> type : Lists2.concat(
             DataTypes.PRIMITIVE_TYPES,
             Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.UNTYPED_OBJECT))) {
-            assertThat(type.isConvertableTo(DataTypes.UNDEFINED), is(false));
+            assertThat(type.isConvertableTo(DataTypes.UNDEFINED, false), is(false));
         }
-        assertThat(DataTypes.UNDEFINED.isConvertableTo(DataTypes.UNDEFINED), is(true));
+        assertThat(DataTypes.UNDEFINED.isConvertableTo(DataTypes.UNDEFINED, false), is(true));
     }
 
     @Test
     public void testGeoPointConversion() throws Exception {
-        assertThat(DataTypes.GEO_POINT.isConvertableTo(new ArrayType<>(DataTypes.DOUBLE)), is(true));
-        assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_POINT), is(true));
+        assertThat(DataTypes.GEO_POINT.isConvertableTo(new ArrayType<>(DataTypes.DOUBLE), false), is(true));
+        assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_POINT, false), is(true));
     }
 
     @Test
     public void testGeoShapeConversion() throws Exception {
-        DataType<?> objectType = DataTypes.UNTYPED_OBJECT;
-        assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_SHAPE), is(true));
-        assertThat(objectType.isConvertableTo(DataTypes.GEO_SHAPE), is(true));
+        assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_SHAPE, false), is(true));
+        assertThat(DataTypes.UNTYPED_OBJECT.isConvertableTo(DataTypes.GEO_SHAPE, false), is(true));
     }
 
     @Test
     public void testTimestampToDoubleConversion() {
-        assertThat(TimestampType.INSTANCE_WITH_TZ.isConvertableTo(DoubleType.INSTANCE),
+        assertThat(TimestampType.INSTANCE_WITH_TZ.isConvertableTo(DoubleType.INSTANCE, false),
             is(true));
-        assertThat(TimestampType.INSTANCE_WITHOUT_TZ.isConvertableTo(DoubleType.INSTANCE),
+        assertThat(TimestampType.INSTANCE_WITHOUT_TZ.isConvertableTo(DoubleType.INSTANCE, false),
             is(true));
 
     }
@@ -251,8 +250,8 @@ public class TypeConversionTest extends CrateUnitTest {
         var objectTypeWithInner = ObjectType.builder().setInnerType("field", DataTypes.STRING).build();
         var objectTypeWithoutInner = DataTypes.UNTYPED_OBJECT;
 
-        assertThat(objectTypeWithInner.isConvertableTo(objectTypeWithoutInner), is(true));
-        assertThat(objectTypeWithoutInner.isConvertableTo(objectTypeWithInner), is(true));
+        assertThat(objectTypeWithInner.isConvertableTo(objectTypeWithoutInner, false), is(true));
+        assertThat(objectTypeWithoutInner.isConvertableTo(objectTypeWithInner, false), is(true));
     }
 
     @Test
@@ -260,7 +259,7 @@ public class TypeConversionTest extends CrateUnitTest {
         var thisObj = ObjectType.builder().setInnerType("field", DataTypes.GEO_POINT).build();
         var thatObj = ObjectType.builder().setInnerType("field", DataTypes.INTEGER).build();
 
-        assertThat(thisObj.isConvertableTo(thatObj), is(false));
+        assertThat(thisObj.isConvertableTo(thatObj, false), is(false));
     }
 
     @Test
@@ -268,6 +267,6 @@ public class TypeConversionTest extends CrateUnitTest {
         var thisObj = ObjectType.builder().setInnerType("field1", DataTypes.INTEGER).build();
         var thatObj = ObjectType.builder().setInnerType("field2", DataTypes.INTEGER).build();
 
-        assertThat(thisObj.isConvertableTo(thatObj), is(false));
+        assertThat(thisObj.isConvertableTo(thatObj, false), is(false));
     }
 }

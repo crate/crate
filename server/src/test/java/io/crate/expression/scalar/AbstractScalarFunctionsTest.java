@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
@@ -285,17 +284,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
     protected FunctionImplementation getFunction(String functionName, List<DataType> argTypes) {
         return functions.get(
             null, functionName, Lists2.map(argTypes, t -> new InputColumn(0, t)), SearchPath.pathWithPGCatalogAndDoc());
-    }
-
-    protected Symbol normalize(CoordinatorTxnCtx coordinatorTxnCtx, String functionName, Symbol... args) {
-        List<Symbol> argList = Arrays.asList(args);
-        FunctionImplementation function = functions.get(null, functionName, argList, SearchPath.pathWithPGCatalogAndDoc());
-        return function.normalizeSymbol(new Function(function.info(),
-            argList), coordinatorTxnCtx);
-    }
-
-    protected Symbol normalize(String functionName, Symbol... args) {
-        return normalize(new CoordinatorTxnCtx(SessionContext.systemSessionContext()), functionName, args);
     }
 
     private static class AssertMax1ValueCallInput implements Input {

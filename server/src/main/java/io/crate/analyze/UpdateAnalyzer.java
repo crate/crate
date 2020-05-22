@@ -177,7 +177,8 @@ public final class UpdateAnalyzer {
             Symbol source = ValueNormalizer.normalizeInputForReference(
                 normalizer.normalize(sourceExprAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
                 targetCol,
-                tableInfo
+                tableInfo,
+                s -> normalizer.normalize(s, txnCtx)
             );
             if (assignmentByTargetCol.put(targetCol, source) != null) {
                 throw new IllegalArgumentException("Target expression repeated: " + targetCol.column().sqlFqn());

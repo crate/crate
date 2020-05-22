@@ -40,6 +40,7 @@ import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AllOperator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
@@ -215,7 +216,12 @@ public class ExpressionAnalyzer {
      * Functions with constants will be normalized.
      */
     public Symbol convert(Expression expression, ExpressionAnalysisContext expressionAnalysisContext) {
-        return expression.accept(innerAnalyzer, expressionAnalysisContext);
+        var symbol = expression.accept(innerAnalyzer, expressionAnalysisContext);
+        var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
+            functions,
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.info().isDeterministic()
+        );
+        return normalizer.normalize(symbol, coordinatorTxnCtx);
     }
 
     public Symbol generateQuerySymbol(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
@@ -403,7 +409,7 @@ public class ExpressionAnalyzer {
             if (targetType.id() == UndefinedType.ID) {
                 castList.add(symbolToCast);
             } else {
-                castList.add(symbolToCast.cast(targetType, false));
+                castList.add(symbolToCast.cast(targetType, false, false));
             }
         }
         return castList;
@@ -562,7 +568,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
             DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
-            return node.getExpression().accept(this, context).cast(returnType, false);
+            return node.getExpression().accept(this, context).cast(returnType, false, true);
         }
 
         @Override
@@ -571,7 +577,7 @@ public class ExpressionAnalyzer {
 
             if (CastFunctionResolver.supportsExplicitConversion(returnType)) {
                 try {
-                    return node.getExpression().accept(this, context).cast(returnType, true);
+                    return node.getExpression().accept(this, context).cast(returnType, true, true);
                 } catch (ConversionException e) {
                     return Literal.NULL;
                 }
@@ -1139,9 +1145,6 @@ public class ExpressionAnalyzer {
                 castArguments,
                 filter,
                 windowDefinition);
-        }
-        if (context.isEagerNormalizationAllowed() && functionInfo.isDeterministic()) {
-            return funcImpl.normalizeSymbol(newFunction, coordinatorTxnCtx);
         }
         return newFunction;
     }

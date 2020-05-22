@@ -198,7 +198,10 @@ public class InsertFromValues implements LogicalPlan {
             updateColumnNames = null;
             assignmentSources = null;
         } else {
-            Assignments assignments = Assignments.convert(writerProjection.onDuplicateKeyAssignments());
+            Assignments assignments = Assignments.convert(
+                writerProjection.onDuplicateKeyAssignments(),
+                plannerContext.functions()
+            );
             assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
             updateColumnNames = assignments.targetNames();
         }
@@ -306,7 +309,7 @@ public class InsertFromValues implements LogicalPlan {
             assignments = null;
             updateColumnNames = null;
         } else {
-            assignments = Assignments.convert(writerProjection.onDuplicateKeyAssignments());
+            assignments = Assignments.convert(writerProjection.onDuplicateKeyAssignments(), plannerContext.functions());
             updateColumnNames = assignments.targetNames();
         }
 

@@ -178,9 +178,12 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public boolean isConvertableTo(DataType<?> o) {
+    public boolean isConvertableTo(DataType<?> o, boolean explicitCast) {
         Set<Integer> conversions = ALLOWED_CONVERSIONS.getOrDefault(id(), Set.of());
         if (conversions.contains(o.id())) {
+            return true;
+        }
+        if (explicitCast && o.id() == DataTypes.STRING.id()) {
             return true;
         }
 
@@ -195,7 +198,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                 var thisInnerType = thisInnerField.getValue();
                 var thatInnerType = that.innerTypes().get(thisInnerField.getKey());
                 if (thatInnerType == null
-                    || !thisInnerType.isConvertableTo(thatInnerType)) {
+                    || !thisInnerType.isConvertableTo(thatInnerType, explicitCast)) {
                     return false;
                 }
             }

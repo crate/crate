@@ -43,8 +43,8 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'1'` of type `text` to type `geo_point`");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: distance(bigint, text)");
         assertNormalize("distance(1, 'POINT (11 21)')", null);
     }
 

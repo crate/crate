@@ -136,7 +136,13 @@ public final class UpdatePlanner {
             normalizer, query, tableInfo, plannerCtx.transactionContext());
 
         if (detailedQuery.docKeys().isPresent()) {
-            return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get(), returnValues);
+            return new UpdateById(
+                tableInfo,
+                assignmentByTargetCol,
+                detailedQuery.docKeys().get(),
+                returnValues,
+                plannerCtx.functions()
+            );
         }
 
         return new Update((plannerContext, params, subQueryValues) ->
@@ -257,7 +263,7 @@ public final class UpdatePlanner {
         DocTableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
                                                "Table must have a _id column");
-        Assignments assignments = Assignments.convert(assignmentByTargetCol);
+        Assignments assignments = Assignments.convert(assignmentByTargetCol, functions);
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
         Symbol[] outputSymbols;
         if (returnValues == null) {

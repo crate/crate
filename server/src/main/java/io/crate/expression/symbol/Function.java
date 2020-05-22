@@ -22,6 +22,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.any.AnyOperator;
@@ -167,7 +168,7 @@ public class Function extends Symbol implements Cloneable {
     }
 
     @Override
-    public Symbol cast(DataType<?> targetType, boolean tryCast) {
+    public Symbol cast(DataType<?> targetType, boolean tryCast, boolean explicitCast) {
         if (targetType instanceof ArrayType && info.ident().name().equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
              * This allows us to do proper type inference for inserts/updates where there are assignments like
@@ -176,17 +177,21 @@ public class Function extends Symbol implements Cloneable {
              * or
              *      some_array = array_cat([?, ?], [1, 2])
              */
-            return castArrayElements(targetType, tryCast);
+            return castArrayElements(targetType, tryCast, explicitCast);
         } else {
-            return super.cast(targetType, tryCast);
+            return super.cast(targetType, tryCast, explicitCast);
         }
     }
 
-    private Symbol castArrayElements(DataType<?> newDataType, boolean tryCast) {
+    private Symbol castArrayElements(DataType<?> newDataType, boolean tryCast, boolean explicitCast) {
         DataType<?> innerType = ((ArrayType<?>) newDataType).innerType();
         ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
         for (Symbol arg : arguments) {
-            newArgs.add(arg.cast(innerType, tryCast));
+            try {
+                newArgs.add(arg.cast(innerType, tryCast, explicitCast));
+            } catch (ConversionException e) {
+                throw new ConversionException(info.returnType(), newDataType);
+            }
         }
         return new Function(
             new FunctionInfo(new FunctionIdent(info.ident().name(), Symbols.typeView(newArgs)), newDataType),

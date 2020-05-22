@@ -27,11 +27,11 @@ import io.crate.data.Input;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.scalar.arithmetic.MapFunction;
-import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
@@ -45,8 +45,10 @@ import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 
 /**
@@ -66,9 +68,28 @@ public class EvaluatingNormalizer {
     private final ReferenceResolver<? extends Input<?>> referenceResolver;
     private final FieldResolver fieldResolver;
     private final BaseVisitor visitor;
+    private final Predicate<Function> onFunctionCondition;
 
     public static EvaluatingNormalizer functionOnlyNormalizer(Functions functions) {
         return new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, null);
+    }
+
+    public static EvaluatingNormalizer functionOnlyNormalizer(Functions functions,
+                                                              Predicate<Function> onFunctionCondition) {
+        return new EvaluatingNormalizer(
+            functions,
+            RowGranularity.CLUSTER,
+            null,
+            null,
+            onFunctionCondition
+        );
+    }
+
+    public EvaluatingNormalizer(Functions functions,
+                                RowGranularity granularity,
+                                @Nullable ReferenceResolver<? extends Input<?>> referenceResolver,
+                                @Nullable FieldResolver fieldResolver) {
+        this(functions, granularity, referenceResolver, fieldResolver, function -> true);
     }
 
     /**
@@ -80,12 +101,14 @@ public class EvaluatingNormalizer {
     public EvaluatingNormalizer(Functions functions,
                                 RowGranularity granularity,
                                 @Nullable ReferenceResolver<? extends Input<?>> referenceResolver,
-                                @Nullable FieldResolver fieldResolver) {
+                                @Nullable FieldResolver fieldResolver,
+                                Predicate<Function> onFunctionCondition) {
         this.functions = functions;
         this.granularity = granularity;
         this.referenceResolver = referenceResolver;
         this.fieldResolver = fieldResolver;
         this.visitor = new BaseVisitor();
+        this.onFunctionCondition = onFunctionCondition;
     }
 
     private class BaseVisitor extends FunctionCopyVisitor<TransactionContext> {
@@ -133,7 +156,20 @@ public class EvaluatingNormalizer {
                     ));
                 return ((Symbol) function).accept(this, context);
             }
-            return matchPredicate;
+
+            HashMap<Symbol, Symbol> fieldBoostMap = new HashMap<>(matchPredicate.identBoostMap().size());
+            for (var entry : matchPredicate.identBoostMap().entrySet()) {
+                fieldBoostMap.put(
+                    entry.getKey().accept(this, context),
+                    entry.getValue().accept(this, context)
+                );
+            }
+            return new MatchPredicate(
+                fieldBoostMap,
+                matchPredicate.queryTerm().accept(this, context),
+                matchPredicate.matchType(),
+                matchPredicate.options().accept(this, context)
+            );
         }
 
         @Override
@@ -159,6 +195,9 @@ public class EvaluatingNormalizer {
         }
 
         private Symbol normalizeFunction(Function function, TransactionContext context) {
+            if (onFunctionCondition.test(function) == false) {
+                return function;
+            }
             function = processAndMaybeCopy(function, context);
             var ident = function.info().ident();
             var signature = function.signature();

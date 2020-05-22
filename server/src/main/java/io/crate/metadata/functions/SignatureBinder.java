@@ -441,7 +441,7 @@ public class SignatureBinder {
                                              TypeSignature toTypeSignature) {
         switch (coercionType) {
             case FULL:
-                return fromType.isConvertableTo(toTypeSignature.createType());
+                return fromType.isConvertableTo(toTypeSignature.createType(), false);
             case PRECEDENCE_ONLY:
                 var toType = toTypeSignature.createType();
                 return fromType.equals(toType) || toType.precedes(fromType);
