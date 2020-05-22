@@ -22,9 +22,9 @@
 
 package io.crate.protocols.postgres;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.user.User;
+import io.crate.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.SecureString;
 

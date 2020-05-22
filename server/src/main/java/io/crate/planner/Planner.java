@@ -22,7 +22,6 @@
 
 package io.crate.planner;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -77,6 +76,7 @@ import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.UserManager;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.LicenseViolationException;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.license.LicenseService;

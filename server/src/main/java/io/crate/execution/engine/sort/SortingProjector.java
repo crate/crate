@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.base.Preconditions;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
@@ -69,7 +68,9 @@ public class SortingProjector implements Projector {
                             int numOutputs,
                             Comparator<Object[]> comparator,
                             int offset) {
-        Preconditions.checkArgument(offset >= 0, "invalid offset %s", offset);
+        if (offset < 0) {
+            throw new IllegalArgumentException("invalid offset " + offset);
+        }
         this.rowAccounting = rowAccounting;
         this.numOutputs = numOutputs;
         this.inputs = inputs;

@@ -21,7 +21,6 @@
 
 package io.crate.expression.symbol;
 
-import com.google.common.base.MoreObjects;
 import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -33,6 +32,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A symbol which represents a column of a result array
@@ -69,7 +69,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     public InputColumn(int index, @Nullable DataType<?> dataType) {
         assert index >= 0 : "index must be >= 0";
         this.index = index;
-        this.dataType = MoreObjects.firstNonNull(dataType, DataTypes.UNDEFINED);
+        this.dataType = Objects.requireNonNullElse(dataType, DataTypes.UNDEFINED);
     }
 
     public InputColumn(StreamInput in) throws IOException {

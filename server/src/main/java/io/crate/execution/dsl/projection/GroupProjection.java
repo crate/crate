@@ -21,8 +21,8 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.SelectSymbol;
@@ -117,20 +117,23 @@ public class GroupProjection extends Projection {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         GroupProjection that = (GroupProjection) o;
-
-        if (!keys.equals(that.keys)) return false;
-        if (values != null ? !values.equals(that.values) : that.values != null) return false;
-
-        return true;
+        return Objects.equals(keys, that.keys) &&
+               Objects.equals(values, that.values) &&
+               Objects.equals(outputs, that.outputs) &&
+               mode == that.mode &&
+               requiredGranularity == that.requiredGranularity;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), keys, values);
+        return Objects.hash(super.hashCode(), keys, values, outputs, mode, requiredGranularity);
     }
 
     @Override
@@ -144,10 +147,10 @@ public class GroupProjection extends Projection {
 
     @Override
     public Map<String, Object> mapRepresentation() {
-        return ImmutableMap.of(
-            "type", "HashAggregation",
-            "keys", Lists2.joinOn(", ", keys, Symbol::toString),
-            "aggregations", Lists2.joinOn(", ", values, Symbol::toString)
-        );
+        return MapBuilder.<String, Object>newMapBuilder()
+            .put("type", "HashAggregation")
+            .put("keys", Lists2.joinOn(", ", keys, Symbol::toString))
+            .put("aggregations", Lists2.joinOn(", ", values, Symbol::toString))
+            .map();
     }
 }

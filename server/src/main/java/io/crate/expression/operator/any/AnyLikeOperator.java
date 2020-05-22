@@ -39,7 +39,6 @@ import io.crate.types.ObjectType;
 
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
 
 public class AnyLikeOperator extends Operator<Object> {
@@ -116,11 +115,14 @@ public class AnyLikeOperator extends Operator<Object> {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            DataType<?> innerType = ((ArrayType) dataTypes.get(1)).innerType();
-            checkArgument(innerType.equals(dataTypes.get(0)),
-                          "The inner type of the array/set passed to ANY must match its left expression");
-            checkArgument(innerType.id() != ObjectType.ID,
-                          "ANY on object arrays is not supported");
+            DataType<?> innerType = ((ArrayType<?>) dataTypes.get(1)).innerType();
+            if (!innerType.equals(dataTypes.get(0))) {
+                throw new IllegalArgumentException(
+                    "The inner type of the array/set passed to ANY must match its left expression");
+            }
+            if (innerType.id() == ObjectType.ID) {
+                throw new IllegalArgumentException("ANY on object arrays is not supported");
+            }
 
             return new AnyLikeOperator(
                 new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.BOOLEAN),

@@ -21,8 +21,8 @@
 
 package io.crate.planner.node.management;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RowAccounting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 
 /**

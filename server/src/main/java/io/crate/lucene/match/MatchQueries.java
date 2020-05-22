@@ -21,7 +21,6 @@
 
 package io.crate.lucene.match;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -36,14 +35,13 @@ import java.util.Map;
 public final class MatchQueries {
 
 
-    private static final Map<String, MultiMatchQueryType> SUPPORTED_TYPES =
-        ImmutableMap.<String, MultiMatchQueryType>builder()
-            .put("best_fields", MultiMatchQueryType.BEST_FIELDS)
-            .put("most_fields", MultiMatchQueryType.MOST_FIELDS)
-            .put("cross_fields", MultiMatchQueryType.CROSS_FIELDS)
-            .put("phrase", MultiMatchQueryType.PHRASE)
-            .put("phrase_prefix", MultiMatchQueryType.PHRASE_PREFIX)
-            .build();
+    private static final Map<String, MultiMatchQueryType> SUPPORTED_TYPES = Map.of(
+            "best_fields", MultiMatchQueryType.BEST_FIELDS,
+            "most_fields", MultiMatchQueryType.MOST_FIELDS,
+            "cross_fields", MultiMatchQueryType.CROSS_FIELDS,
+            "phrase", MultiMatchQueryType.PHRASE,
+            "phrase_prefix", MultiMatchQueryType.PHRASE_PREFIX
+        );
 
     public static Query singleMatch(QueryShardContext queryShardContext,
                                     String fieldName,

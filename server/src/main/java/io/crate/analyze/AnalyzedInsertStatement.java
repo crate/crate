@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -44,6 +43,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import static java.util.Objects.requireNonNull;
@@ -80,7 +80,7 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
         this.targetColumns = targetColumns;
         Map<ColumnIdent, Integer> columnPositions = toPositionMap(targetColumns);
 
-        int clusteredByIdx = MoreObjects.firstNonNull(columnPositions.get(tableInfo.clusteredBy()), -1);
+        int clusteredByIdx = Objects.requireNonNullElse(columnPositions.get(tableInfo.clusteredBy()), -1);
         if (clusteredByIdx > -1) {
             clusteredBySymbol = new InputColumn(clusteredByIdx, targetColumns.get(clusteredByIdx).valueType());
         } else {

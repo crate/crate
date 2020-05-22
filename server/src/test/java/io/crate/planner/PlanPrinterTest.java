@@ -57,11 +57,12 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
             is("{Collect={type=executionPlan, " +
                "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
                    "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=[x, a], " +
+
                    "projections=[" +
-                       "{type=HashAggregation, keys=INPUT(1), aggregations=max(INPUT(0))}, " +
-                       "{type=HashAggregation, keys=INPUT(0), aggregations=max(INPUT(1))}, " +
-                       "{type=Filter, filter=(INPUT(1) > 10)}, " +
-                       "{type=OrderByTopN, limit=-1, offset=0, outputs=INPUT(0), INPUT(1), orderBy=[INPUT(0) ASC]}], " +
+                       "{keys=INPUT(1), type=HashAggregation, aggregations=max(INPUT(0))}, " +
+                       "{keys=INPUT(0), type=HashAggregation, aggregations=max(INPUT(1))}, " +
+                       "{filter=(INPUT(1) > 10), type=Filter}, " +
+                       "{outputs=INPUT(0), INPUT(1), offset=0, limit=-1, orderBy=[INPUT(0) ASC], type=OrderByTopN}], " +
                     "routing={n1={t1=[0, 1, 2, 3]}}, where=true}}}}"));
     }
 
@@ -103,7 +104,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                    "routing={n1={t2=[0, 1, 2, 3]}}, where=true, orderBy=y ASC}}}}, " +
                "mergePhase={MERGE={type=executionPhase, id=2, executionNodes=[n1], " +
                    "distribution={distributedByColumn=0, type=BROADCAST}, " +
-                   "projections=[{type=TopN, limit=10, offset=0, outputs=INPUT(0)}]}}}}"));
+                   "projections=[{outputs=INPUT(0), offset=0, limit=10, type=TopN}]}}}}"));
     }
 
     @Test

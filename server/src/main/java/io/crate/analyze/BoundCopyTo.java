@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.MoreObjects;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -31,6 +30,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class BoundCopyTo {
 
@@ -68,7 +68,7 @@ public class BoundCopyTo {
         this.compressionType = compressionType;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
-        this.overwrites = MoreObjects.firstNonNull(overwrites, Map.of());
+        this.overwrites = Objects.requireNonNullElse(overwrites, Map.of());
     }
 
     public List<Symbol> outputs() {

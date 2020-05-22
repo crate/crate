@@ -32,12 +32,11 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 
+import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 public class PGTypes {
 

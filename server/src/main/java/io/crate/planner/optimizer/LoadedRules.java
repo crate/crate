@@ -22,8 +22,8 @@
 
 package io.crate.planner.optimizer;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CaseFormat;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingProvider;

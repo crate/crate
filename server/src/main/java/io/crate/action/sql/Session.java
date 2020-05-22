@@ -22,7 +22,6 @@
 
 package io.crate.action.sql;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedStatement;
@@ -30,6 +29,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.Relations;
 import io.crate.auth.user.AccessControl;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.Row1;

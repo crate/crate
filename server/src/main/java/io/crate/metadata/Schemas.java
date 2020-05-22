@@ -23,11 +23,11 @@
 package io.crate.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.analyze.user.Privilege;
 import io.crate.auth.user.User;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Tuple;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
@@ -50,7 +50,6 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -78,7 +77,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     private static final Logger LOGGER = LogManager.getLogger(Schemas.class);
 
-    public static final Collection<String> READ_ONLY_SCHEMAS = ImmutableSet.of(
+    public static final Collection<String> READ_ONLY_SCHEMAS = Set.of(
         SysSchemaInfo.NAME,
         InformationSchemaInfo.NAME,
         PgCatalogSchemaInfo.NAME

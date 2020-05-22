@@ -22,10 +22,11 @@
 
 package io.crate.planner.node.ddl;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -42,7 +43,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;

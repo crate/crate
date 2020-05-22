@@ -21,7 +21,6 @@
 
 package io.crate.metadata.blob;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.WhereClause;
@@ -69,11 +68,11 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     private final Map<ColumnIdent, Reference> infos = new LinkedHashMap<>();
 
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("digest"));
-    private static final List<Tuple<String, DataType>> STATIC_COLUMNS = ImmutableList.<Tuple<String, DataType>>builder()
-        .add(new Tuple<>("digest", DataTypes.STRING))
-        .add(new Tuple<>("last_modified", DataTypes.TIMESTAMPZ))
-        .build();
+    private static final List<ColumnIdent> PRIMARY_KEY = List.of(new ColumnIdent("digest"));
+    private static final List<Tuple<String, DataType>> STATIC_COLUMNS = List.of(
+        new Tuple<>("digest", DataTypes.STRING),
+        new Tuple<>("last_modified", DataTypes.TIMESTAMPZ)
+    );
 
     public BlobTableInfo(RelationName ident,
                          String index,

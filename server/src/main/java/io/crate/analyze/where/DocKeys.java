@@ -21,10 +21,9 @@
 
 package io.crate.analyze.where;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.collections.LazyMapList;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
@@ -62,10 +61,11 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
         public String getId(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
             return idFunction.apply(
-                Lists.transform(
+                LazyMapList.of(
                     key.subList(0, width),
                     s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(txnCtx, functions, s, params, subQueryResults))
-                ));
+                )
+            );
         }
 
         public Optional<Long> version(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
@@ -100,7 +100,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             if (partitionIdx == null || partitionIdx.isEmpty()) {
                 return Collections.emptyList();
             }
-            return Lists.transform(
+            return Lists2.map(
                 partitionIdx,
                 pIdx -> DataTypes.STRING.value(SymbolEvaluator.evaluate(txnCtx, functions, key.get(pIdx), params, subQueryResults)));
 
@@ -136,7 +136,9 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
     }
 
     public DocKey getOnlyKey() {
-        Preconditions.checkState(size() == 1);
+        if (size() != 1) {
+            throw new IllegalArgumentException("must contain only one key");
+        }
         return new DocKey(0);
     }
 
@@ -146,7 +148,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
     @Override
     public Iterator<DocKey> iterator() {
-        return new Iterator<DocKey>() {
+        return new Iterator<>() {
             int i = 0;
 
             @Override

@@ -22,7 +22,6 @@
 
 package io.crate.analyze.user;
 
-import com.google.common.collect.ImmutableList;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -41,7 +40,7 @@ public class Privilege implements Writeable {
         DENY,
         REVOKE;
 
-        public static final List<State> VALUES = ImmutableList.copyOf(values());
+        public static final List<State> VALUES = List.of(values());
     }
 
     public enum Type {
@@ -53,7 +52,7 @@ public class Privilege implements Writeable {
          */
         AL;
 
-        public static final List<Type> VALUES = ImmutableList.copyOf(values());
+        public static final List<Type> VALUES = List.of(values());
     }
 
     public enum Clazz {
@@ -62,7 +61,7 @@ public class Privilege implements Writeable {
         TABLE,
         VIEW;
 
-        public static final List<Clazz> VALUES = ImmutableList.copyOf(values());
+        public static final List<Clazz> VALUES = List.of(values());
     }
 
 

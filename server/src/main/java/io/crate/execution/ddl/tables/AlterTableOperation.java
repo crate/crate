@@ -22,14 +22,14 @@
 
 package io.crate.execution.ddl.tables;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.BoundAddColumn;
 import io.crate.analyze.BoundAlterTable;
-import io.crate.analyze.AnalyzedAlterTableRename;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
@@ -51,12 +51,12 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

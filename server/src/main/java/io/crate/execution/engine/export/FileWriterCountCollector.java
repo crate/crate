@@ -23,7 +23,7 @@
 package io.crate.execution.engine.export;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;

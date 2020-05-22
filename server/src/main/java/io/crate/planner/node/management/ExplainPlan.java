@@ -22,10 +22,10 @@
 
 package io.crate.planner.node.management;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.MapBuilder;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -50,8 +50,6 @@ import io.crate.planner.statement.CopyFromPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
 import io.crate.types.DataTypes;
-
-import io.crate.common.collections.MapBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -242,7 +240,7 @@ public class ExplainPlan implements Plan {
         Map<String, Object> phaseTimingsAcrossNodes = getPhaseTimingsAcrossNodes(phaseName, timingsByNodeId);
 
         if (!phaseTimingsAcrossNodes.isEmpty()) {
-            allPhases.put(phaseName, ImmutableMap.of("nodes", phaseTimingsAcrossNodes));
+            allPhases.put(phaseName, Map.of("nodes", phaseTimingsAcrossNodes));
         }
     }
 

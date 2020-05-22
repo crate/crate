@@ -21,7 +21,6 @@
 
 package io.crate.exceptions;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
 import io.crate.auth.user.AccessControl;
@@ -50,6 +49,7 @@ import org.elasticsearch.transport.TransportException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -100,9 +100,9 @@ public class SQLExceptions {
         if (t == null) {
             return "Unknown";
         }
-        @SuppressWarnings("all") // throwable not thrown
-            Throwable unwrappedT = unwrap(t);
-        return MoreObjects.firstNonNull(unwrappedT.getMessage(), unwrappedT.toString());
+        // throwable not thrown
+        Throwable unwrappedT = unwrap(t);
+        return Objects.requireNonNullElse(unwrappedT.getMessage(), unwrappedT.toString());
     }
 
     public static boolean isShardFailure(Throwable e) {

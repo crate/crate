@@ -22,12 +22,12 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Objects;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.join.JoinType;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class JoinPair {
 
@@ -75,17 +75,21 @@ public class JoinPair {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         JoinPair joinPair = (JoinPair) o;
-        return Objects.equal(left, joinPair.left) &&
-               Objects.equal(right, joinPair.right) &&
-               joinType == joinPair.joinType &&
-               Objects.equal(condition, joinPair.condition);
+        return joinType == joinPair.joinType &&
+               Objects.equals(left, joinPair.left) &&
+               Objects.equals(right, joinPair.right) &&
+               Objects.equals(condition, joinPair.condition);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(left, right, joinType, condition);
+        return Objects.hash(joinType, left, right, condition);
     }
 }

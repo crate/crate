@@ -22,12 +22,12 @@
 
 package io.crate.user;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;

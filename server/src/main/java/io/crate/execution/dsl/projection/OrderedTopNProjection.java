@@ -22,9 +22,9 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -168,13 +168,13 @@ public class OrderedTopNProjection extends Projection {
 
     @Override
     public Map<String, Object> mapRepresentation() {
-        return ImmutableMap.of(
-            "type", "OrderByTopN",
-            "limit", limit,
-            "offset", offset,
-            "outputs", Lists2.joinOn(", ", outputs, Symbol::toString),
-            "orderBy", OrderBy.explainRepresentation(
-                new StringBuilder("["), orderBy, reverseFlags, nullsFirst, Symbol::toString).append("]").toString()
-        );
+        return MapBuilder.<String, Object>newMapBuilder()
+            .put("type", "OrderByTopN")
+            .put("limit", limit)
+            .put("offset", offset)
+            .put("outputs", Lists2.joinOn(", ", outputs, Symbol::toString))
+            .put("orderBy", OrderBy.explainRepresentation(
+                new StringBuilder("["), orderBy, reverseFlags, nullsFirst, Symbol::toString).append("]").toString())
+            .map();
     }
 }

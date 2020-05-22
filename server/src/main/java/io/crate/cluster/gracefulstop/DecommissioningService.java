@@ -22,9 +22,11 @@
 
 package io.crate.cluster.gracefulstop;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.SQLOperations;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.MapBuilder;
+import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
 import io.crate.settings.CrateSetting;
@@ -43,14 +45,12 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
-import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;

@@ -21,7 +21,6 @@
 
 package io.crate.expression.symbol;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
@@ -60,7 +59,7 @@ public enum SymbolType {
         throw new UnsupportedEncodingException("FetchStub is not streamable");
     });
 
-    public static final List<SymbolType> VALUES = ImmutableList.copyOf(values());
+    public static final List<SymbolType> VALUES = List.of(values());
 
     private final Writeable.Reader<Symbol> reader;
 

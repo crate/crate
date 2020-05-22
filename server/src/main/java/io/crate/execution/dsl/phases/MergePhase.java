@@ -22,9 +22,6 @@
 
 package io.crate.execution.dsl.phases;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.PositionalOrderBy;
@@ -93,9 +90,9 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         this.numUpstreams = numUpstreams;
         this.distributionInfo = distributionInfo;
         if (projections.isEmpty()) {
-            outputTypes = Lists.newArrayList(inputTypes);
+            outputTypes = List.copyOf(inputTypes);
         } else {
-            outputTypes = Symbols.typeView(Iterables.getLast(projections).outputs());
+            outputTypes = Symbols.typeView(projections.get(projections.size() - 1).outputs());
         }
         this.positionalOrderBy = positionalOrderBy;
         this.executionNodes = executionNodes;
@@ -199,18 +196,18 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
 
     @Override
     public String toString() {
-        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
-            .add("executionPhaseId", phaseId())
-            .add("name", name())
-            .add("projections", projections)
-            .add("outputTypes", outputTypes)
-            .add("jobId", jobId())
-            .add("numUpstreams", numUpstreams)
-            .add("numInputs", numInputs)
-            .add("nodeOperations", executionNodes)
-            .add("inputTypes", inputTypes)
-            .add("orderBy", positionalOrderBy);
-        return helper.toString();
+        return "MergePhase{" +
+               "executionPhaseId=" + phaseId() +
+               ", name=" + name() +
+               ", projections=" + projections +
+               ", outputTypes=" + outputTypes +
+               ", jobId=" + jobId() +
+               ", numUpstreams=" + numUpstreams +
+               ", numInputs=" + numInputs +
+               ", nodeOperations=" + executionNodes +
+               ", inputTypes=" + inputTypes +
+               ", orderBy=" + positionalOrderBy +
+               '}';
     }
 
     @Override

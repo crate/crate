@@ -21,19 +21,19 @@
 
 package io.crate.planner.node.ddl;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;

@@ -22,11 +22,12 @@
 
 package io.crate.planner.operators;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -48,7 +49,6 @@ import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.TableStats;
-import io.crate.common.collections.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

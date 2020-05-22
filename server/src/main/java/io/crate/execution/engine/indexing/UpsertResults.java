@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.indexing;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 
@@ -37,13 +36,13 @@ import java.util.stream.Stream;
 class UpsertResults {
 
     private final Map<String, Result> resultsByUri = new HashMap<>(1);
-    private final ImmutableMap<String, String> nodeInfo;
+    private final Map<String, String> nodeInfo;
 
     UpsertResults() {
         this.nodeInfo = null;
     }
 
-    UpsertResults(ImmutableMap<String, String> nodeInfo) {
+    UpsertResults(Map<String, String> nodeInfo) {
         this.nodeInfo = nodeInfo;
     }
 

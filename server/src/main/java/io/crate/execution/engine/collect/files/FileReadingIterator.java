@@ -21,17 +21,15 @@
 
 package io.crate.execution.engine.collect.files;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
+import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputRow;
-import org.apache.logging.log4j.Logger;
-import io.crate.common.collections.Tuple;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -50,6 +48,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -376,16 +375,16 @@ public class FileReadingIterator implements BatchIterator<Row> {
         if (preGlobUri != null) {
             uris = fileInput.listUris(preGlobUri, uriPredicate);
         } else if (uriPredicate.test(fileUri)) {
-            uris = ImmutableList.of(fileUri);
+            uris = List.of(fileUri);
         } else {
-            uris = ImmutableList.of();
+            uris = List.of();
         }
         return uris;
     }
 
     private Predicate<URI> generateUriPredicate(FileInput fileInput, @Nullable Predicate<URI> globPredicate) {
         Predicate<URI> moduloPredicate;
-        boolean sharedStorage = MoreObjects.firstNonNull(shared, fileInput.sharedStorageDefault());
+        boolean sharedStorage = Objects.requireNonNullElse(shared, fileInput.sharedStorageDefault());
         if (sharedStorage) {
             moduloPredicate = input -> {
                 int hash = input.hashCode();

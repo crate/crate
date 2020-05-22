@@ -21,13 +21,12 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
+import io.crate.common.Booleans;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import io.crate.common.Booleans;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 public class NumberOfReplicas {
@@ -53,8 +52,9 @@ public class NumberOfReplicas {
     }
 
     private static void validateExpandReplicaSetting(String replicas) {
-        Preconditions.checkArgument(EXPAND_REPLICA_PATTERN.matcher(replicas).matches(),
-            "The \"number_of_replicas\" range \"%s\" isn't valid", replicas);
+        if (!EXPAND_REPLICA_PATTERN.matcher(replicas).matches()) {
+            throw new IllegalArgumentException("The \"number_of_replicas\" range \"" + replicas + "\" isn't valid");
+        }
     }
 
     public String esSettingKey() {
@@ -72,7 +72,7 @@ public class NumberOfReplicas {
             validateExpandReplicaSetting(autoExpandReplicas);
             numberOfReplicas = autoExpandReplicas;
         } else {
-            numberOfReplicas = MoreObjects.firstNonNull(settings.get(NUMBER_OF_REPLICAS), "1");
+            numberOfReplicas = Objects.requireNonNullElse(settings.get(NUMBER_OF_REPLICAS), "1");
         }
         return numberOfReplicas;
     }

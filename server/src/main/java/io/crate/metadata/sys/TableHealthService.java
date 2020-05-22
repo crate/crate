@@ -22,10 +22,10 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;

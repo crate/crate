@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.distribution;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
