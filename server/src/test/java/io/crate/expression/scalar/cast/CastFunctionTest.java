@@ -84,6 +84,11 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void test_cast_string_literal_text_with_length_truncates_exceeding_chars() {
+        assertEvaluate("'abcde'::varchar(2)", "ab");
+    }
+
+    @Test
     public void test_cannot_cast_text_to_object_array() {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast expressions from type `text` to type `object_array`");

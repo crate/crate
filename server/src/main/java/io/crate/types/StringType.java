@@ -55,7 +55,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     public static StringType of(int lengthLimit) {
-        if (lengthLimit < 0) {
+        if (lengthLimit <= 0) {
             throw new IllegalArgumentException(
                 "Invalid text data type length limit: " + lengthLimit);
         }
@@ -123,39 +123,37 @@ public class StringType extends DataType<String> implements Streamer<String> {
         if (value == null) {
             return null;
         }
+        final String str;
         if (value instanceof String) {
-            return (String) value;
-        }
-        if (value instanceof BytesRef) {
-            return ((BytesRef) value).utf8ToString();
-        }
-        if (value instanceof Boolean) {
-            if ((boolean) value) {
-                return T;
-            } else {
-                return F;
-            }
-        }
-        if (value instanceof Map) {
+            str = (String) value;
+        } else if (value instanceof BytesRef) {
+            str = ((BytesRef) value).utf8ToString();
+        } else if (value instanceof Boolean) {
+            str = (boolean) value ? T : F;
+        } else if (value instanceof Map) {
             try {
                 //noinspection unchecked
-                return Strings.toString(XContentFactory.jsonBuilder().map((Map<String, ?>) value));
+                str = Strings.toString(XContentFactory.jsonBuilder().map((Map<String, ?>) value));
             } catch (IOException e) {
                 throw new IllegalArgumentException("Cannot cast `" + value + "` to type TEXT", e);
             }
-        }
-        if (value instanceof Collection) {
+        } else if (value instanceof Collection) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", value));
-        }
-        if (value.getClass().isArray()) {
+        } else if (value.getClass().isArray()) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", Arrays.toString((Object[]) value)));
+        } else if (value instanceof TimeValue) {
+            str = ((TimeValue) value).getStringRep();
+        } else {
+            str = value.toString();
         }
-        if (value instanceof TimeValue) {
-            return ((TimeValue) value).getStringRep();
+
+        if (unbound() || str.length() <= lengthLimit) {
+            return str;
+        } else {
+            return str.substring(0, lengthLimit);
         }
-        return value.toString();
     }
 
     @Override
