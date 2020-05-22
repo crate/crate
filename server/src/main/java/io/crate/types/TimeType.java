@@ -118,10 +118,10 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
     public static long parseTime(@Nonnull String time) {
         try {
             return Long.parseLong(time);
-        } catch (NumberFormatException eLong) {
+        } catch (NumberFormatException e0) {
             try {
                 return (long) Math.floor(Double.parseDouble(time) * 1000);
-            } catch (NumberFormatException eDouble) {
+            } catch (NumberFormatException e1) {
                 // the time zone is ignored if present
                 LocalTime lt = LocalTime.parse(time, TIME_PARSER);
                 return LocalDateTime
