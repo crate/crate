@@ -37,7 +37,7 @@ public class DataTypeAnalyzerTest {
     @Test
     public void testCastToNestedArrayExpressionReturnsArrayType() {
         Cast cast = (Cast) SqlParser.createExpression("xs::array(array(int))");
-        DataType dataType = DataTypeAnalyzer.convert(cast.getType());
-        assertThat(dataType, is(new ArrayType(new ArrayType(DataTypes.INTEGER))));
+        DataType<?> dataType = DataTypeAnalyzer.convert(cast.getType());
+        assertThat(dataType, is(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER))));
     }
 }
