@@ -65,7 +65,7 @@ public class TimeTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
-        expectedException.expect(DateTimeParseException.class);
+        expectedException.expect(IllegalArgumentException.class);
         TimeType.INSTANCE.decodeUTF8Text("00:00:00.0000000001".getBytes(StandardCharsets.UTF_8));
     }
 }
