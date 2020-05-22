@@ -21,7 +21,7 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
@@ -33,6 +33,7 @@ import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
 import java.util.List;
+
 import static io.crate.common.collections.Lists2.concat;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {

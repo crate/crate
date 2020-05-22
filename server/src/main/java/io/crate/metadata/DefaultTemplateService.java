@@ -22,8 +22,8 @@
 
 package io.crate.metadata;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.Constants;
+import io.crate.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;

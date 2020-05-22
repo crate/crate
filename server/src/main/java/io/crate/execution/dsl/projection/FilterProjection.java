@@ -21,7 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableMap;
+import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -110,9 +110,9 @@ public class FilterProjection extends Projection {
 
     @Override
     public Map<String, Object> mapRepresentation() {
-        return ImmutableMap.of(
-            "type", "Filter",
-            "filter", query.toString()
-        );
+        return MapBuilder.<String, Object>newMapBuilder()
+            .put("type", "Filter")
+            .put("filter", query.toString())
+            .map();
     }
 }

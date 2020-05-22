@@ -21,7 +21,6 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.FormatFunction;
 import io.crate.expression.symbol.Function;
@@ -54,7 +53,7 @@ import java.util.Objects;
 public class WriterProjection extends Projection {
 
     // number of lines written
-    private static final List<Symbol> OUTPUTS = ImmutableList.of(new InputColumn(0, DataTypes.LONG));
+    private static final List<Symbol> OUTPUTS = List.of(new InputColumn(0, DataTypes.LONG));
 
     private static final Reference SHARD_ID_REF = new Reference(
         new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),

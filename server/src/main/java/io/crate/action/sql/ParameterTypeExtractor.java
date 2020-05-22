@@ -22,7 +22,6 @@
 
 package io.crate.action.sql;
 
-import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Relations;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
@@ -69,12 +68,12 @@ class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> i
      * @return A sorted array with the parameters ($1 comes first, then $2, etc.) or null if
      *         parameters can't be obtained.
      */
-    DataType[] getParameterTypes(@Nonnull Consumer<Consumer<? super Symbol>> consumer) {
+    DataType<?>[] getParameterTypes(@Nonnull Consumer<Consumer<? super Symbol>> consumer) {
         consumer.accept(this);
-        Preconditions.checkState(parameterSymbols.isEmpty() ||
-                                 parameterSymbols.last().index() == parameterSymbols.size() - 1,
-                                 "The assembled list of ParameterSymbols is invalid. Missing parameters.");
-        DataType[] dataTypes = parameterSymbols.stream()
+        if (!parameterSymbols.isEmpty() && parameterSymbols.last().index() != parameterSymbols.size() - 1) {
+            throw new IllegalStateException("The assembled list of ParameterSymbols is invalid. Missing parameters.");
+        }
+        DataType<?>[] dataTypes = parameterSymbols.stream()
             .map(ParameterSymbol::getBoundType)
             .toArray(DataType[]::new);
         parameterSymbols.clear();

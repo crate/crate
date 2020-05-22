@@ -22,7 +22,6 @@
 
 package io.crate.planner.node.ddl;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedTableElements;
@@ -32,6 +31,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.TablePropertiesAnalyzer;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;

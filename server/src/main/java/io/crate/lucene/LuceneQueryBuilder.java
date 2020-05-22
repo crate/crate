@@ -21,9 +21,6 @@
 
 package io.crate.lucene;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioninigValidationException;
@@ -96,6 +93,7 @@ import java.util.stream.Collectors;
 
 import static io.crate.expression.eval.NullEliminator.eliminateNullsIfPossible;
 import static io.crate.metadata.DocReferences.inverseSourceLookup;
+import static java.util.Map.entry;
 
 
 @Singleton
@@ -212,7 +210,7 @@ public class LuceneQueryBuilder {
          * If a filtered field is encountered the value of the literal is written into filteredFieldValues
          * (only applies to Function with 2 arguments and if left == reference and right == literal)
          */
-        static final Set<String> FILTERED_FIELDS = ImmutableSet.of("_score");
+        static final Set<String> FILTERED_FIELDS = Set.of("_score");
 
         /**
          * key = columnName
@@ -221,11 +219,11 @@ public class LuceneQueryBuilder {
          * (in the _version case if the primary key is present a GetPlan is built from the planner and
          * the LuceneQueryBuilder is never used)
          */
-        static final Map<String, String> UNSUPPORTED_FIELDS = ImmutableMap.<String, String>builder()
-            .put("_version", VersioninigValidationException.VERSION_COLUMN_USAGE_MSG)
-            .put("_seq_no", VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG)
-            .put("_primary_term", VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG)
-            .build();
+        static final Map<String, String> UNSUPPORTED_FIELDS = Map.of(
+            "_version", VersioninigValidationException.VERSION_COLUMN_USAGE_MSG,
+            "_seq_no", VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG,
+            "_primary_term", VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
+        );
 
         @Nullable
         MappedFieldType getFieldTypeOrNull(String fqColumnName) {
@@ -284,45 +282,43 @@ public class LuceneQueryBuilder {
         private static final RangeQuery GTE_QUERY = new RangeQuery("gte");
         private static final CIDRRangeQuery LLT_QUERY = new CIDRRangeQuery();
         private static final WithinQuery WITHIN_QUERY = new WithinQuery();
-        private final ImmutableMap<String, FunctionToQuery> functions =
-            ImmutableMap.<String, FunctionToQuery>builder()
-                .put(WithinFunction.NAME, WITHIN_QUERY)
-                .put(AndOperator.NAME, new AndQuery())
-                .put(OrOperator.NAME, new OrQuery())
-                .put(EqOperator.NAME, EQ_QUERY)
-                .put(LtOperator.NAME, LT_QUERY)
-                .put(LteOperator.NAME, LTE_QUERY)
-                .put(GteOperator.NAME, GTE_QUERY)
-                .put(GtOperator.NAME, GT_QUERY)
-                .put(CIDROperator.CONTAINED_WITHIN, LLT_QUERY)
-                .put(LikeOperators.OP_LIKE, new LikeQuery(false))
-                .put(LikeOperators.OP_ILIKE, new LikeQuery(true))
-                .put(NotPredicate.NAME, new NotQuery(this))
-                .put(Ignore3vlFunction.NAME, new Ignore3vlQuery())
-                .put(IsNullPredicate.NAME, new IsNullQuery())
-                .put(MatchPredicate.NAME, new ToMatchQuery())
-                .put(AnyOperators.Names.EQ, new AnyEqQuery())
-                .put(AnyOperators.Names.NEQ, new AnyNeqQuery())
-                .put(AnyOperators.Names.LT, new AnyRangeQuery("gt", "lt"))
-                .put(AnyOperators.Names.LTE, new AnyRangeQuery("gte", "lte"))
-                .put(AnyOperators.Names.GTE, new AnyRangeQuery("lte", "gte"))
-                .put(AnyOperators.Names.GT, new AnyRangeQuery("lt", "gt"))
-                .put(LikeOperators.ANY_LIKE, new AnyLikeQuery(false))
-                .put(LikeOperators.ANY_NOT_LIKE, new AnyNotLikeQuery(false))
-                .put(LikeOperators.ANY_ILIKE, new AnyLikeQuery(true))
-                .put(LikeOperators.ANY_NOT_ILIKE, new AnyNotLikeQuery(true))
-                .put(RegexpMatchOperator.NAME, new RegexpMatchQuery())
-                .put(RegexpMatchCaseInsensitiveOperator.NAME, new RegexMatchQueryCaseInsensitive())
-                .build();
+        private final Map<String, FunctionToQuery> functions = Map.ofEntries(
+            entry(WithinFunction.NAME, WITHIN_QUERY),
+            entry(AndOperator.NAME, new AndQuery()),
+            entry(OrOperator.NAME, new OrQuery()),
+            entry(EqOperator.NAME, EQ_QUERY),
+            entry(LtOperator.NAME, LT_QUERY),
+            entry(LteOperator.NAME, LTE_QUERY),
+            entry(GteOperator.NAME, GTE_QUERY),
+            entry(GtOperator.NAME, GT_QUERY),
+            entry(CIDROperator.CONTAINED_WITHIN, LLT_QUERY),
+            entry(LikeOperators.OP_LIKE, new LikeQuery(false)),
+            entry(LikeOperators.OP_ILIKE, new LikeQuery(true)),
+            entry(NotPredicate.NAME, new NotQuery(this)),
+            entry(Ignore3vlFunction.NAME, new Ignore3vlQuery()),
+            entry(IsNullPredicate.NAME, new IsNullQuery()),
+            entry(MatchPredicate.NAME, new ToMatchQuery()),
+            entry(AnyOperators.Names.EQ, new AnyEqQuery()),
+            entry(AnyOperators.Names.NEQ, new AnyNeqQuery()),
+            entry(AnyOperators.Names.LT, new AnyRangeQuery("gt", "lt")),
+            entry(AnyOperators.Names.LTE, new AnyRangeQuery("gte", "lte")),
+            entry(AnyOperators.Names.GTE, new AnyRangeQuery("lte", "gte")),
+            entry(AnyOperators.Names.GT, new AnyRangeQuery("lt", "gt")),
+            entry(LikeOperators.ANY_LIKE, new AnyLikeQuery(false)),
+            entry(LikeOperators.ANY_NOT_LIKE, new AnyNotLikeQuery(false)),
+            entry(LikeOperators.ANY_ILIKE, new AnyLikeQuery(true)),
+            entry(LikeOperators.ANY_NOT_ILIKE, new AnyNotLikeQuery(true)),
+            entry(RegexpMatchOperator.NAME, new RegexpMatchQuery()),
+            entry(RegexpMatchCaseInsensitiveOperator.NAME, new RegexMatchQueryCaseInsensitive())
+        );
 
-        private final ImmutableMap<String, InnerFunctionToQuery> innerFunctions =
-            ImmutableMap.<String, InnerFunctionToQuery>builder()
-                .put(DistanceFunction.NAME, new DistanceQuery())
-                .put(WithinFunction.NAME, WITHIN_QUERY)
-                .put(SubscriptFunction.NAME, new SubscriptQuery())
-                .put(ArrayUpperFunction.ARRAY_LENGTH, new ArrayLengthQuery())
-                .put(ArrayUpperFunction.ARRAY_UPPER, new ArrayLengthQuery())
-                .build();
+        private final Map<String, InnerFunctionToQuery> innerFunctions = Map.of(
+            DistanceFunction.NAME, new DistanceQuery(),
+            WithinFunction.NAME, WITHIN_QUERY,
+            SubscriptFunction.NAME, new SubscriptQuery(),
+            ArrayUpperFunction.ARRAY_LENGTH, new ArrayLengthQuery(),
+            ArrayUpperFunction.ARRAY_UPPER, new ArrayLengthQuery()
+        );
 
         @Override
         public Query visitFunction(Function function, Context context) {
@@ -405,7 +401,7 @@ public class LuceneQueryBuilder {
                         return new Function(
                             function.info(),
                             function.signature(),
-                            ImmutableList.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right)
+                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right)
                         );
                     } else {
                         String unsupportedMessage = context.unsupportedMessage(ref.column().name());

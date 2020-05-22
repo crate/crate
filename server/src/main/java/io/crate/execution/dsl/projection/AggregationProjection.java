@@ -22,6 +22,7 @@
 package io.crate.execution.dsl.projection;
 
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.SelectSymbol;
@@ -101,18 +102,21 @@ public class AggregationProjection extends Projection {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         AggregationProjection that = (AggregationProjection) o;
-        if (aggregations != null ? !aggregations.equals(that.aggregations) : that.aggregations != null) return false;
-
-        return true;
+        return contextGranularity == that.contextGranularity &&
+               mode == that.mode &&
+               Objects.equals(aggregations, that.aggregations);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), aggregations);
+        return Objects.hash(super.hashCode(), contextGranularity, mode, aggregations);
     }
 
     public AggregateMode mode() {
@@ -121,9 +125,9 @@ public class AggregationProjection extends Projection {
 
     @Override
     public Map<String, Object> mapRepresentation() {
-        return Map.of(
-            "type", "HashAggregation",
-            "aggregations", '[' + Lists2.joinOn(", ", aggregations, Aggregation::toString) + ']'
-        );
+        return MapBuilder.<String, Object>newMapBuilder()
+            .put("type", "HashAggregation")
+            .put("aggregations", '[' + Lists2.joinOn(", ", aggregations, Aggregation::toString) + ']')
+            .map();
     }
 }

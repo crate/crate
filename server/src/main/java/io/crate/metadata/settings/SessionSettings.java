@@ -22,7 +22,7 @@
 
 package io.crate.metadata.settings;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.SearchPath;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

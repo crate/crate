@@ -22,7 +22,6 @@
 package io.crate.lucene.match;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
 import io.crate.types.BooleanType;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.FuzzyQuery;
@@ -41,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class OptionParser {
 
@@ -61,12 +61,12 @@ public class OptionParser {
         static final String FUZZY_TRANSPOSITIONS = "fuzzy_transpositions";
     }
 
-    private static final ImmutableSet<String> SUPPORTED_OPTIONS = ImmutableSet.<String>builder().add(
+    private static final Set<String> SUPPORTED_OPTIONS = Set.of(
         OPTIONS.ANALYZER, OPTIONS.BOOST, OPTIONS.OPERATOR, OPTIONS.CUTOFF_FREQUENCY,
         OPTIONS.MINIMUM_SHOULD_MATCH, OPTIONS.FUZZINESS, OPTIONS.PREFIX_LENGTH,
         OPTIONS.MAX_EXPANSIONS, OPTIONS.REWRITE, OPTIONS.SLOP, OPTIONS.TIE_BREAKER,
         OPTIONS.ZERO_TERMS_QUERY, OPTIONS.FUZZY_REWRITE, OPTIONS.FUZZY_TRANSPOSITIONS
-    ).build();
+    );
 
     public static ParsedOptions parse(MultiMatchQueryType matchType,
                                       @Nullable Map options) throws IllegalArgumentException {

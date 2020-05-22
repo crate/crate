@@ -21,10 +21,10 @@
 
 package io.crate.execution.jobs;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;

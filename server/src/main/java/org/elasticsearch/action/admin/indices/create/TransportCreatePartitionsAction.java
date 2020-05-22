@@ -23,9 +23,8 @@ package org.elasticsearch.action.admin.indices.create;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.PartitionName;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
@@ -236,7 +235,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 }
 
                 // now, update the mappings with the actual source
-                Map<String, MappingMetaData> mappingsMetaData = Maps.newHashMap();
+                HashMap<String, MappingMetaData> mappingsMetaData = new HashMap<>();
                 for (DocumentMapper mapper : mapperService.docMappers(true)) {
                     MappingMetaData mappingMd = new MappingMetaData(mapper);
                     mappingsMetaData.put(mapper.type(), mappingMd);

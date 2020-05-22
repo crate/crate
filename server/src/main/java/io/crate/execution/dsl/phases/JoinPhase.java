@@ -22,8 +22,6 @@
 
 package io.crate.execution.dsl.phases;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
@@ -40,6 +38,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 public abstract class JoinPhase extends AbstractProjectionsPhase implements UpstreamPhase {
@@ -87,11 +86,7 @@ public abstract class JoinPhase extends AbstractProjectionsPhase implements Upst
 
     @Override
     public Collection<String> nodeIds() {
-        if (executionNodes == null) {
-            return ImmutableSet.of();
-        } else {
-            return executionNodes;
-        }
+        return Objects.requireNonNullElseGet(executionNodes, Set::of);
     }
 
     @Nullable
@@ -180,15 +175,16 @@ public abstract class JoinPhase extends AbstractProjectionsPhase implements Upst
 
     @Override
     public String toString() {
-        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
-            .add("executionPhaseId", phaseId())
-            .add("name", name())
-            .add("joinType", joinType)
-            .add("joinCondition", joinCondition)
-            .add("outputTypes", outputTypes)
-            .add("jobId", jobId())
-            .add("executionNodes", executionNodes);
-        return helper.toString();
+        return "JoinPhase{" +
+               "executionNodes=" + executionNodes +
+               ", executionPhaseId=" + phaseId() +
+               ", name=" + name() +
+               ", joinType=" + joinType +
+               ", joinCondition=" + joinCondition +
+               ", outputTypes=" + outputTypes +
+               ", jobId=" + jobId() +
+               ", executionNodes=" + executionNodes +
+               '}';
     }
 
     @Override

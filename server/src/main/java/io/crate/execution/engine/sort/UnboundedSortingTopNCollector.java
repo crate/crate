@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.base.Preconditions;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
@@ -77,11 +76,15 @@ public class UnboundedSortingTopNCollector implements Collector<Row, PriorityQue
                                          int initialCapacity,
                                          int limit,
                                          int offset) {
-        Preconditions.checkArgument(
-            initialCapacity > 0, "Invalid initial capacity: value must be > 0; got: " + initialCapacity);
-        Preconditions.checkArgument(limit > 0, "Invalid LIMIT: value must be > 0; got: " + limit);
-        Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
-
+        if (initialCapacity <= 0) {
+            throw new IllegalArgumentException("Invalid initial capacity: value must be > 0; got: " + initialCapacity);
+        }
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Invalid LIMIT: value must be > 0; got: " + limit);
+        }
+        if (offset < 0) {
+            throw new IllegalArgumentException("Invalid OFFSET: value must be >= 0; got: " + offset);
+        }
         this.rowAccounting = rowAccounting;
         this.inputs = inputs;
         this.expressions = expressions;

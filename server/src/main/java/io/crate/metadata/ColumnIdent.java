@@ -21,9 +21,7 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists2;
@@ -38,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
@@ -60,22 +59,22 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
                 path.add(in.readString());
             }
         } else {
-            path = ImmutableList.of();
+            path = List.of();
         }
     }
 
     public ColumnIdent(String name) {
         this.name = name;
-        this.path = ImmutableList.of();
+        this.path = List.of();
     }
 
     public ColumnIdent(String name, String childName) {
-        this(name, ImmutableList.of(childName));
+        this(name, List.of(childName));
     }
 
     public ColumnIdent(String name, @Nullable List<String> path) {
         this.name = name;
-        this.path = MoreObjects.firstNonNull(path, ImmutableList.of());
+        this.path = Objects.requireNonNullElse(path, List.of());
     }
 
     /**
@@ -139,7 +138,9 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
         if (parent.isTopLevel()) {
             return new ColumnIdent(parent.name, name);
         }
-        List<String> childPath = ImmutableList.<String>builder().addAll(parent.path).add(name).build();
+        ArrayList<String> childPath = new ArrayList<>();
+        childPath.addAll(parent.path);
+        childPath.add(name);
         return new ColumnIdent(parent.name, childPath);
     }
 

@@ -22,8 +22,8 @@
 
 package io.crate.planner.node.dml;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.where.DocKeys;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;

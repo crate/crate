@@ -22,8 +22,6 @@
 
 package io.crate.execution.dsl.projection;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -34,10 +32,11 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 public abstract class DMLProjection extends Projection {
 
-    private static final List<Symbol> OUTPUTS = ImmutableList.of(
+    private static final List<Symbol> OUTPUTS = List.of(
         new InputColumn(0, DataTypes.LONG)  // number of rows updated
     );
 
@@ -62,15 +61,19 @@ public abstract class DMLProjection extends Projection {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         DMLProjection that = (DMLProjection) o;
-        return Objects.equal(uidSymbol, that.uidSymbol);
+        return Objects.equals(uidSymbol, that.uidSymbol);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), uidSymbol);
+        return Objects.hash(super.hashCode(), uidSymbol);
     }
 
     @Override

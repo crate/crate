@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.collect;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.expression.InputFactory;
@@ -88,9 +87,9 @@ public class RowShardResolver {
 
     private static List<String> pkValues(List<Input<?>> primaryKeyInputs) {
         if (primaryKeyInputs.isEmpty()) {
-            return ImmutableList.of(); // avoid object creation in Lists.transform if the list is empty
+            return List.of(); // avoid object creation in Lists.transform if the list is empty
         }
-        return Lists.transform(primaryKeyInputs, input -> nullOrString(input.value()));
+        return Lists2.map(primaryKeyInputs, input -> nullOrString(input.value()));
     }
 
     /**

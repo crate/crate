@@ -22,7 +22,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Objects;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
@@ -35,6 +34,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class GeneratedReference extends Reference {
 
@@ -103,19 +103,24 @@ public class GeneratedReference extends Reference {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         GeneratedReference that = (GeneratedReference) o;
-        return Objects.equal(formattedGeneratedExpression, that.formattedGeneratedExpression) &&
-               Objects.equal(generatedExpression, that.generatedExpression) &&
-               Objects.equal(referencedReferences, that.referencedReferences);
+        return Objects.equals(formattedGeneratedExpression, that.formattedGeneratedExpression) &&
+               Objects.equals(generatedExpression, that.generatedExpression) &&
+               Objects.equals(referencedReferences, that.referencedReferences);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), formattedGeneratedExpression,
-            generatedExpression, referencedReferences);
+        return Objects.hash(super.hashCode(), formattedGeneratedExpression, generatedExpression, referencedReferences);
     }
 
     @Override

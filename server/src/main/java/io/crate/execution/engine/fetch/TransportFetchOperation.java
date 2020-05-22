@@ -24,11 +24,11 @@ package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Bucket;
 
 import java.util.Map;

@@ -22,8 +22,8 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.NodeOperation;

@@ -22,7 +22,6 @@
 
 package io.crate.expression.symbol;
 
-import com.google.common.base.Preconditions;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.format.Style;
@@ -58,7 +57,9 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
     public static final Literal<Map<String, Object>> EMPTY_OBJECT = Literal.of(Collections.emptyMap());
 
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
-        Preconditions.checkArgument(DataTypes.isArray(collectionLiteral.valueType()));
+        if (!DataTypes.isArray(collectionLiteral.valueType())) {
+            throw new IllegalArgumentException("collectionLiteral must have have an array type");
+        }
         Iterable values;
         int size;
         Object literalValue = collectionLiteral.value();

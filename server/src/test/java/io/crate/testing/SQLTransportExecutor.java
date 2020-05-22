@@ -22,7 +22,6 @@
 package io.crate.testing;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
-import com.google.common.base.MoreObjects;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
@@ -30,6 +29,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.user.User;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.exceptions.SQLExceptions;
@@ -56,7 +56,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -87,6 +86,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -102,7 +102,7 @@ public class SQLTransportExecutor {
     private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
 
     public static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
-        MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
+        Objects.requireNonNullElse(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
 
     private static final Logger LOGGER = LogManager.getLogger(SQLTransportExecutor.class);
 

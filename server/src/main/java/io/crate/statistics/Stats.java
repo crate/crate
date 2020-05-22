@@ -22,7 +22,7 @@
 
 package io.crate.statistics;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;

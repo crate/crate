@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;

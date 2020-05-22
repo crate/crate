@@ -23,11 +23,11 @@
 package io.crate.execution.ddl;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -53,7 +53,6 @@ import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -242,7 +241,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
     }
 
     private static boolean isUpdateIgnored(List<String> path) {
-        List<String> versionMeta = ImmutableList.of("default", "_meta", IndexMappings.VERSION_STRING);
+        List<String> versionMeta = List.of("default", "_meta", IndexMappings.VERSION_STRING);
         return path.size() > 3 && path.subList(0, 3).equals(versionMeta);
     }
 

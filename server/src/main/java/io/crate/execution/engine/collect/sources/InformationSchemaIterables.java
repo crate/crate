@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeaturesIterable;
 import io.crate.expression.reference.information.ColumnContext;
@@ -78,8 +77,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public static final String PK_SUFFIX = "_pk";
 
-    private static final Set<String> IGNORED_SCHEMAS =
-        ImmutableSet.of(InformationSchemaInfo.NAME, SysSchemaInfo.NAME, BlobSchemaInfo.NAME, PgCatalogSchemaInfo.NAME);
+    private static final Set<String> IGNORED_SCHEMAS = Set.of(
+        InformationSchemaInfo.NAME,
+        SysSchemaInfo.NAME,
+        BlobSchemaInfo.NAME,
+        PgCatalogSchemaInfo.NAME);
 
     private final Schemas schemas;
     private final Iterable<RelationInfo> relations;

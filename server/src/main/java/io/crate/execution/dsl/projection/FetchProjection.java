@@ -25,10 +25,10 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import io.crate.Streamer;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.MapBuilder;
 import io.crate.data.Paging;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
@@ -162,11 +162,11 @@ public class FetchProjection extends Projection {
 
     @Override
     public Map<String, Object> mapRepresentation() {
-        return ImmutableMap.of(
-            "type", "Fetch",
-            "outputs", Lists2.joinOn(", ", outputSymbols, Symbol::toString),
-            "fetchSize", fetchSize
-        );
+        return MapBuilder.<String, Object>newMapBuilder()
+            .put("type", "Fetch")
+            .put("outputs", Lists2.joinOn(", ", outputSymbols, Symbol::toString))
+            .put("fetchSize", fetchSize)
+            .map();
     }
 
     @SuppressWarnings({"rawtypes"})

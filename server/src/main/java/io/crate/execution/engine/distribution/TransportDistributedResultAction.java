@@ -22,7 +22,8 @@
 
 package io.crate.execution.engine.distribution;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.jobs.DownstreamRXTask;
@@ -43,7 +44,6 @@ import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 

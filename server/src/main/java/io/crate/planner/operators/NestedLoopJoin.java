@@ -22,13 +22,13 @@
 
 package io.crate.planner.operators;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
+import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
@@ -48,7 +48,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.TableStats;
-import io.crate.common.collections.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -58,6 +57,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
@@ -328,7 +328,7 @@ public class NestedLoopJoin implements LogicalPlan {
                                                                            ExecutionPlan right,
                                                                            PlannerContext plannerContext,
                                                                            boolean isDistributed) {
-        Collection<String> nlExecutionNodes = ImmutableSet.of(plannerContext.handlerNode());
+        Collection<String> nlExecutionNodes = Set.of(plannerContext.handlerNode());
         ResultDescription leftResultDesc = left.resultDescription();
         ResultDescription rightResultDesc = right.resultDescription();
         MergePhase leftMerge = null;

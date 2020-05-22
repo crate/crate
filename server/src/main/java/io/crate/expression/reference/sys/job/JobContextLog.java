@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys.job;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.planner.operators.StatementClassifier;
 
 import javax.annotation.Nullable;

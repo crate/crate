@@ -23,7 +23,6 @@
 package io.crate.execution.dsl.phases;
 
 
-import com.google.common.collect.ImmutableList;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 
@@ -52,7 +51,7 @@ public interface ExecutionPhase extends Writeable {
             throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); }),
         PKLookup(PKLookupPhase::new);
 
-        public static final List<Type> VALUES = ImmutableList.copyOf(values());
+        public static final List<Type> VALUES = List.of(values());
 
         private final Writeable.Reader<ExecutionPhase> reader;
 

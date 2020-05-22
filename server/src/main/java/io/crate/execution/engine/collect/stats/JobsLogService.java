@@ -22,31 +22,6 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import com.google.common.annotations.VisibleForTesting;
-
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -55,6 +30,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.breaker.JobContextLogSizeEstimator;
 import io.crate.breaker.OperationContextLogSizeEstimator;
 import io.crate.breaker.SizeEstimator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Input;
@@ -75,6 +51,28 @@ import io.crate.metadata.table.Operation;
 import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The JobsLogService is available on each node and holds the meta data of the cluster, such as active jobs and operations.

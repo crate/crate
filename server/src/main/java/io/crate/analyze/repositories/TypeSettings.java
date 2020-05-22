@@ -22,12 +22,12 @@
 
 package io.crate.analyze.repositories;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,10 +35,12 @@ import java.util.stream.Collectors;
 
 public class TypeSettings {
 
-    private static final Map<String, Setting<?>> GENERIC = ImmutableMap.<String, Setting<?>>builder()
-        .put("max_restore_bytes_per_sec", Setting.byteSizeSetting("max_restore_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Setting.Property.NodeScope))
-        .put("max_snapshot_bytes_per_sec", Setting.byteSizeSetting("max_snapshot_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Setting.Property.NodeScope))
-        .build();
+    private static final Map<String, Setting<?>> GENERIC = Map.of(
+        "max_restore_bytes_per_sec", Setting.byteSizeSetting(
+            "max_restore_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Setting.Property.NodeScope),
+        "max_snapshot_bytes_per_sec", Setting.byteSizeSetting(
+            "max_snapshot_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Setting.Property.NodeScope)
+    );
 
     private final Map<String, Setting<?>> required;
     private final Map<String, Setting<?>> all;
@@ -52,11 +54,10 @@ public class TypeSettings {
 
     public TypeSettings(Map<String, Setting<?>> required, Map<String, Setting<?>> optional) {
         this.required = required;
-        this.all = ImmutableMap.<String, Setting<?>>builder()
-            .putAll(required)
-            .putAll(optional)
-            .putAll(GENERIC)
-            .build();
+        all = new HashMap<>(required.size() + optional.size() + GENERIC.size());
+        all.putAll(required);
+        all.putAll(optional);
+        all.putAll(GENERIC);
     }
 
     public Map<String, Setting<?>> required() {

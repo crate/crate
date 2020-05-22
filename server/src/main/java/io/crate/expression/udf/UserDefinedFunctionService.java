@@ -21,8 +21,9 @@
 
 package io.crate.expression.udf;
 
-import com.google.common.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.FuncResolver;
@@ -42,7 +43,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import io.crate.common.unit.TimeValue;
 
 import javax.annotation.Nullable;
 import javax.script.ScriptException;

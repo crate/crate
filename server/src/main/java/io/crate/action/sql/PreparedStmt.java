@@ -22,7 +22,6 @@
 
 package io.crate.action.sql;
 
-import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.sql.tree.Statement;
@@ -74,8 +73,9 @@ public class PreparedStmt {
         if (describedParameterTypes == null) {
             return paramTypeHints.getType(idx);
         }
-        Preconditions.checkState(idx < describedParameterTypes.length,
-            "Requested parameter index exceeds the number of parameters: " + idx);
+        if (idx >= describedParameterTypes.length) {
+            throw new IllegalStateException("Requested parameter index exceeds the number of parameters: " + idx);
+        }
         return describedParameterTypes[idx];
     }
 

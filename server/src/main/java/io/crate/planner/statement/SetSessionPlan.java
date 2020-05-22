@@ -22,9 +22,9 @@
 
 package io.crate.planner.statement;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -37,8 +37,8 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 import java.util.Locale;

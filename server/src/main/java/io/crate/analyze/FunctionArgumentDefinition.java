@@ -26,7 +26,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.MoreObjects;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.types.DataType;
@@ -104,9 +103,10 @@ public class FunctionArgumentDefinition implements Writeable, ToXContent {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("type", type).toString();
+        return "FunctionArgumentDefinition{" +
+               "name='" + name + '\'' +
+               ", type=" + type +
+               '}';
     }
 
     @Override

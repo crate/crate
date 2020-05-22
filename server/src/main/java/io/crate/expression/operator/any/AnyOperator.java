@@ -38,7 +38,6 @@ import io.crate.types.DataTypes;
 import java.util.List;
 import java.util.function.IntPredicate;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
 
 public final class AnyOperator extends Operator<Object> {
@@ -110,9 +109,11 @@ public final class AnyOperator extends Operator<Object> {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            DataType<?> innerType = ((ArrayType) dataTypes.get(1)).innerType();
-            checkArgument(innerType.equals(dataTypes.get(0)),
-                "The inner type of the array/set passed to ANY must match its left expression");
+            DataType<?> innerType = ((ArrayType<?>) dataTypes.get(1)).innerType();
+            if (!innerType.equals(dataTypes.get(0))) {
+                throw new IllegalArgumentException(
+                    "The inner type of the array/set passed to ANY must match its left expression");
+            }
 
             return new AnyOperator(
                 new FunctionInfo(new FunctionIdent(name, dataTypes), BooleanType.INSTANCE), cmpIsMatch);

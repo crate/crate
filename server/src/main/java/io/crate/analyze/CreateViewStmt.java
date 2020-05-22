@@ -22,9 +22,9 @@
 
 package io.crate.analyze;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.User;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.Query;
 

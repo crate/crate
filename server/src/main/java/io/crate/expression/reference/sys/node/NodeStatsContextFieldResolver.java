@@ -22,8 +22,7 @@
 
 package io.crate.expression.reference.sys.node;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
@@ -61,6 +60,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import static io.crate.expression.reference.sys.node.Ports.portFromAddress;
+import static java.util.Map.entry;
 
 @Singleton
 public class NodeStatsContextFieldResolver {
@@ -157,115 +157,114 @@ public class NodeStatsContextFieldResolver {
         return consumer;
     }
 
-    private final Map<ColumnIdent, Consumer<NodeStatsContext>> columnIdentToContext =
-        ImmutableMap.<ColumnIdent, Consumer<NodeStatsContext>>builder()
-            .put(SysNodesTableInfo.Columns.ID, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.id(localNode.get().getId());
+    private final Map<ColumnIdent, Consumer<NodeStatsContext>> columnIdentToContext = Map.ofEntries(
+        entry(SysNodesTableInfo.Columns.ID, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.id(localNode.get().getId());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.NAME, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.name(localNode.get().getName());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.HOSTNAME, context -> {
+            try {
+                context.hostname(InetAddress.getLocalHost().getHostName());
+            } catch (UnknownHostException e) {
+                LOGGER.warn("Cannot resolve the hostname.", e);
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.REST_URL, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                DiscoveryNode node = localNode.get();
+                if (node != null) {
+                    String url = node.getAttributes().get("http_address");
+                    context.restUrl(url);
                 }
-            })
-            .put(SysNodesTableInfo.Columns.NAME, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.name(localNode.get().getName());
-                }
-            })
-            .put(SysNodesTableInfo.Columns.HOSTNAME, context -> {
-                try {
-                    context.hostname(InetAddress.getLocalHost().getHostName());
-                } catch (UnknownHostException e) {
-                    LOGGER.warn("Cannot resolve the hostname.", e);
-                }
-            })
-            .put(SysNodesTableInfo.Columns.REST_URL, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    DiscoveryNode node = localNode.get();
-                    if (node != null) {
-                        String url = node.getAttributes().get("http_address");
-                        context.restUrl(url);
-                    }
-                }
-            })
-            .put(SysNodesTableInfo.Columns.PORT, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    Integer http = portFromAddress(boundHttpAddress.get());
-                    Integer transport = portFromAddress(localNode.get().getAddress());
-                    Integer pgsql = portFromAddress(boundPostgresAddress.get());
-                    context.httpPort(http);
-                    context.transportPort(transport);
-                    context.pgPort(pgsql);
-                }
-            })
-            .put(SysNodesTableInfo.Columns.CLUSTER_STATE_VERSION, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.clusterStateVersion(clusterStateVersion.getAsLong());
-                }
-            })
-            .put(SysNodesTableInfo.Columns.LOAD, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.extendedOsStats(extendedNodeInfo.osStats());
-                }
-            })
-            .put(SysNodesTableInfo.Columns.MEM, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.osStats(osService.stats());
-                }
-            })
-            .put(SysNodesTableInfo.Columns.HEAP, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.jvmStats(jvmService.stats());
-                }
-            })
-            .put(SysNodesTableInfo.Columns.VERSION, context -> {
-                context.version(Version.CURRENT);
-                context.build(Build.CURRENT);
-            })
-            .put(SysNodesTableInfo.Columns.THREAD_POOLS, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.threadPools(threadPool.stats());
-                }
-            })
-            .put(SysNodesTableInfo.Columns.NETWORK, context -> {
-            })
-            .put(SysNodesTableInfo.Columns.CONNECTIONS, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext nodeStatsContext) {
-                    nodeStatsContext.httpStats(httpStatsSupplier.get());
-                    nodeStatsContext.psqlStats(psqlStats.get());
-                    nodeStatsContext.openTransportConnections(numOpenTransportConnections.getAsLong());
-                }
-            })
-            .put(SysNodesTableInfo.Columns.OS, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.timestamp(System.currentTimeMillis());
-                    context.extendedOsStats(extendedNodeInfo.osStats());
-                }
-            })
-            .put(SysNodesTableInfo.Columns.OS_INFO, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.osInfo(osService.info());
-                }
-            })
-            .put(SysNodesTableInfo.Columns.PROCESS, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.processStats(processService.stats());
-                }
-            })
-            .put(SysNodesTableInfo.Columns.FS, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.fsInfo(fsService.stats());
-                }
-            }).build();
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.PORT, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                Integer http = portFromAddress(boundHttpAddress.get());
+                Integer transport = portFromAddress(localNode.get().getAddress());
+                Integer pgsql = portFromAddress(boundPostgresAddress.get());
+                context.httpPort(http);
+                context.transportPort(transport);
+                context.pgPort(pgsql);
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.CLUSTER_STATE_VERSION, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.clusterStateVersion(clusterStateVersion.getAsLong());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.LOAD, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.extendedOsStats(extendedNodeInfo.osStats());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.MEM, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.osStats(osService.stats());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.HEAP, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.jvmStats(jvmService.stats());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.VERSION, context -> {
+            context.version(Version.CURRENT);
+            context.build(Build.CURRENT);
+        }),
+        entry(SysNodesTableInfo.Columns.THREAD_POOLS, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.threadPools(threadPool.stats());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.NETWORK, context -> {
+        }),
+        entry(SysNodesTableInfo.Columns.CONNECTIONS, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext nodeStatsContext) {
+                nodeStatsContext.httpStats(httpStatsSupplier.get());
+                nodeStatsContext.psqlStats(psqlStats.get());
+                nodeStatsContext.openTransportConnections(numOpenTransportConnections.getAsLong());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.OS, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.timestamp(System.currentTimeMillis());
+                context.extendedOsStats(extendedNodeInfo.osStats());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.OS_INFO, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.osInfo(osService.info());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.PROCESS, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.processStats(processService.stats());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.FS, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.fsInfo(fsService.stats());
+            }
+        }));
 }
