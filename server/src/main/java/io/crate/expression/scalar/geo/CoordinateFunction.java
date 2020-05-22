@@ -35,7 +35,7 @@ import static io.crate.metadata.functions.Signature.scalar;
 public final class CoordinateFunction {
 
     private static final List<DataType<?>> SUPPORTED_INPUT_TYPES =
-        List.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY, DataTypes.UNDEFINED);
+        List.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY);
 
     private static void register(ScalarFunctionModule module, String name, Function<Object, Double> func) {
         for (DataType<?> inputType : SUPPORTED_INPUT_TYPES) {

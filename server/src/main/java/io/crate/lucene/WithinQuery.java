@@ -79,7 +79,7 @@ class WithinQuery implements FunctionToQuery, InnerFunctionToQuery {
             innerPair.reference().column().fqn(),
             context.mapperService);
 
-        Map<String, Object> geoJSON = (Map<String, Object>) innerPair.literal().value();
+        Map<String, Object> geoJSON = DataTypes.GEO_SHAPE.value(innerPair.literal().value());
         Geometry geometry;
         Shape shape = GeoJSONUtils.map2Shape(geoJSON);
         if (shape instanceof ShapeCollection) {

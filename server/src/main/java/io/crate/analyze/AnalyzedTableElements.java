@@ -387,14 +387,19 @@ public class AnalyzedTableElements<T> {
             } else {
                 columnDataType = definedType;
             }
-            if (!valueType.isConvertableTo(columnDataType)) {
+            if (!valueType.isConvertableTo(columnDataType, false)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "expression value type '%s' not supported for conversion to '%s'",
                     valueType, columnDataType.getName())
                 );
             }
 
-            Symbol castFunction = CastFunctionResolver.generateCastFunction(function, columnDataType, false);
+            Symbol castFunction = CastFunctionResolver.generateCastFunction(
+                function,
+                columnDataType,
+                false,
+                false
+            );
             formattedExpression = castFunction.toString(Style.UNQUALIFIED);
         } else {
             if (valueType instanceof ArrayType) {

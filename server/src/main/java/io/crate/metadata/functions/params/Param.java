@@ -224,7 +224,7 @@ public final class Param {
     }
 
     private static FuncArg convert(FuncArg source, DataType target) {
-        if (source.canBeCasted() && source.valueType().isConvertableTo(target)) {
+        if (source.canBeCasted() && source.valueType().isConvertableTo(target, false)) {
             return new ConvertedArg(source, target);
         }
         return null;
@@ -296,10 +296,10 @@ public final class Param {
         final DataType higherPrecedenceType = higherPrecedenceArg.valueType();
 
         final boolean lowerPrecedenceCastable =
-            lowerPrecedenceArg.canBeCasted() && lowerPrecedenceType.isConvertableTo(higherPrecedenceType) &&
+            lowerPrecedenceArg.canBeCasted() && lowerPrecedenceType.isConvertableTo(higherPrecedenceType, false) &&
             isTypeValid(higherPrecedenceType);
         final boolean higherPrecedenceCastable =
-            higherPrecedenceArg.canBeCasted() && higherPrecedenceType.isConvertableTo(lowerPrecedenceType) &&
+            higherPrecedenceArg.canBeCasted() && higherPrecedenceType.isConvertableTo(lowerPrecedenceType, false) &&
             isTypeValid(lowerPrecedenceType);
 
         // Check if one of the two arguments is a value symbol which can be converted easily, e.g. Literal
@@ -319,9 +319,9 @@ public final class Param {
 
         // if neither the source, nor the target can be casted, yet either one *IS* convertible to the other, we will
         // try to do the conversion (comparing two columns will never utilize the index anyway)
-        if (lowerPrecedenceType.isConvertableTo(higherPrecedenceType)) {
+        if (lowerPrecedenceType.isConvertableTo(higherPrecedenceType, false)) {
             return higherPrecedenceArg;
-        } else if (higherPrecedenceType.isConvertableTo(lowerPrecedenceType)) {
+        } else if (higherPrecedenceType.isConvertableTo(lowerPrecedenceType, false)) {
             return lowerPrecedenceArg;
         }
 

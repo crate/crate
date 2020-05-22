@@ -681,7 +681,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 stmt.executeQuery();
                 fail("Should've raised PSQLException");
             } catch (PSQLException e) {
-                assertThat(e.getMessage(), Matchers.containsString("Cannot cast `[10.3, 20.2]` of type `double precision_array` to type `integer`"));
+                assertThat(e.getMessage(), Matchers.containsString("Cannot cast expressions from type `double precision_array` to type `integer`"));
             }
 
             assertSelectNameFromSysClusterWorks(conn);

@@ -21,9 +21,8 @@
 
 package io.crate.expression.scalar.geo;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 

@@ -102,8 +102,10 @@ public class ArbitraryAggregationTest extends AggregationTest {
         assertThat(result, is(oneOf(data[0][0], data[1][0])));
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testUnsupportedType() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: arbitrary(object)");
         executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}});
     }
 }

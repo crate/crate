@@ -32,7 +32,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.shape.Point;
@@ -40,7 +39,6 @@ import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.SpatialRelation;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -48,46 +46,39 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     public static final String NAME = "within";
 
-    private static final List<DataType<?>> LEFT_TYPES = List.of(
-        DataTypes.GEO_POINT,
-        DataTypes.GEO_SHAPE,
-        DataTypes.UNTYPED_OBJECT,
-        DataTypes.STRING,
-        DataTypes.UNDEFINED
-    );
-
-    private static final List<DataType<?>> RIGHT_TYPES = List.of(
-        DataTypes.GEO_SHAPE,
-        DataTypes.UNTYPED_OBJECT,
-        DataTypes.STRING,
-        DataTypes.UNDEFINED
-    );
-
     public static void register(ScalarFunctionModule module) {
-        for (DataType<?> left : LEFT_TYPES) {
-            for (DataType<?> right : RIGHT_TYPES) {
-                module.register(
-                    Signature.scalar(
-                        NAME,
-                        left.getTypeSignature(),
-                        right.getTypeSignature(),
-                        DataTypes.BOOLEAN.getTypeSignature()
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.GEO_SHAPE.getTypeSignature(),
+                DataTypes.GEO_SHAPE.getTypeSignature(),
+                DataTypes.BOOLEAN.getTypeSignature()
+            ),
+            (signature, args) ->
+                new WithinFunction(
+                    new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.BOOLEAN),
+                    signature
+                )
+        );
+        // Needed to avoid casts on references of `geo_point` and thus to avoid generic function filter on lucene.
+        // Coercion must be forbidden, as string representation could be a `geo_shape` and thus must match
+        // the other signature
+        for (var type : List.of(DataTypes.GEO_SHAPE, DataTypes.STRING, DataTypes.UNTYPED_OBJECT, DataTypes.UNDEFINED)) {
+            module.register(
+                Signature.scalar(
+                    NAME,
+                    DataTypes.GEO_POINT.getTypeSignature(),
+                    type.getTypeSignature(),
+                    DataTypes.BOOLEAN.getTypeSignature()
+                ).withForbiddenCoercion(),
+                (signature, args) ->
+                    new WithinFunction(
+                        new FunctionInfo(new FunctionIdent(NAME, args), DataTypes.BOOLEAN),
+                        signature
                     )
-                        .withForbiddenCoercion(),
-                    (signature, args) -> new WithinFunction(info(left, right), signature)
-                );
-            }
+            );
         }
     }
-
-    private static FunctionInfo info(DataType<?> pointType, DataType<?> shapeType) {
-        return new FunctionInfo(
-            new FunctionIdent(NAME, List.of(pointType, shapeType)),
-            DataTypes.BOOLEAN
-        );
-    }
-
-    private static final FunctionInfo SHAPE_INFO = info(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE);
 
     private final FunctionInfo info;
     private final Signature signature;
@@ -155,29 +146,18 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         Symbol left = symbol.arguments().get(0);
         Symbol right = symbol.arguments().get(1);
 
-        boolean literalConverted = false;
         short numLiterals = 0;
 
         if (left.symbolType().isValueSymbol()) {
             numLiterals++;
-            Symbol converted = left.cast(DataTypes.GEO_POINT);
-            literalConverted = converted != right;
-            left = converted;
         }
 
         if (right.symbolType().isValueSymbol()) {
             numLiterals++;
-            Symbol converted = right.cast(DataTypes.GEO_SHAPE);
-            literalConverted = literalConverted || converted != right;
-            right = converted;
         }
 
         if (numLiterals == 2) {
             return Literal.of(evaluate((Input) left, (Input) right));
-        }
-
-        if (literalConverted) {
-            return new Function(SHAPE_INFO, signature, Arrays.asList(left, right));
         }
 
         return symbol;

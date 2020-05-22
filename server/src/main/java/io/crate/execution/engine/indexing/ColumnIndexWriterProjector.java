@@ -92,7 +92,7 @@ public class ColumnIndexWriterProjector implements Projector {
             updateColumnNames = null;
             assignments = null;
         } else {
-            Assignments convert = Assignments.convert(updateAssignments);
+            Assignments convert = Assignments.convert(updateAssignments, functions);
             updateColumnNames = convert.targetNames();
             assignments = convert.sources();
         }

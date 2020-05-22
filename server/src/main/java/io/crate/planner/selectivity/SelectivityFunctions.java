@@ -86,6 +86,9 @@ public class SelectivityFunctions {
                 Boolean val = (Boolean) value;
                 return !val ? 0.0 : 1.0;
             }
+            if (value == null) {
+                return 0.0;
+            }
             return super.visitLiteral(literal, context);
         }
 

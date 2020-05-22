@@ -26,7 +26,9 @@ import io.crate.geo.GeoJSONUtils;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 
 import java.io.IOException;
@@ -69,6 +71,10 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         try {
             if (value instanceof String) {
                 return GeoJSONUtils.wkt2Map(BytesRefs.toString(value));
+            }
+            if (value instanceof Point) {
+                Point point = (Point) value;
+                return GeoJSONUtils.shape2Map(SpatialContext.GEO.getShapeFactory().pointXY(point.getX(), point.getY()));
             }
             if (value instanceof Shape) {
                 return GeoJSONUtils.shape2Map((Shape) value);

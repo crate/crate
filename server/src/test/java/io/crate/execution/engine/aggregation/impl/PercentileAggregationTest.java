@@ -145,8 +145,10 @@ public class PercentileAggregationTest extends AggregationTest {
         });
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testUnsupportedType() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: percentile(geo_point, double precision)");
         execSingleFractionPercentile(DataTypes.GEO_POINT, new Object[][]{});
     }
 

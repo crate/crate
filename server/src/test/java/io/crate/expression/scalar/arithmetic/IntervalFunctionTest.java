@@ -75,7 +75,7 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void test_unallowed_operations() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'PT1S'` of type `interval` to any of the types");
+        expectedException.expectMessage("Cannot cast `cast('1 second' AS interval)` of type `interval` to any of the types");
         assertEvaluate("interval '1 second' - '86401000'::timestamp", Matchers.is(86400000L));
     }
 }

@@ -48,7 +48,7 @@ public abstract class Symbol implements FuncArg, Writeable {
      * @return An instance of {@link Function} which casts this symbol.
      */
     public final Symbol cast(DataType<?> targetType) {
-        return cast(targetType, false);
+        return cast(targetType, false, false);
     }
 
     /**
@@ -58,14 +58,14 @@ public abstract class Symbol implements FuncArg, Writeable {
      * @param tryCast If set to true, will return null the symbol cannot be casted.
      * @return An instance of {@link Function} which casts this symbol.
      */
-    public Symbol cast(DataType<?> targetType, boolean tryCast) {
+    public Symbol cast(DataType<?> targetType, boolean tryCast, boolean explicitCast) {
         if (targetType.equals(valueType())) {
             return this;
         } else if (ArrayType.unnest(targetType).equals(DataTypes.UNTYPED_OBJECT)
                    && valueType().id() == targetType.id()) {
             return this;
         }
-        return CastFunctionResolver.generateCastFunction(this, targetType, tryCast);
+        return CastFunctionResolver.generateCastFunction(this, targetType, tryCast, explicitCast);
     }
 
     @Override

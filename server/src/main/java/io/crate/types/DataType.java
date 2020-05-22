@@ -107,7 +107,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * @param other the DataType to check conversion to
      * @return true or false
      */
-    public boolean isConvertableTo(DataType<?> other) {
+    public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
         if (this.equals(other)) {
             return true;
         }

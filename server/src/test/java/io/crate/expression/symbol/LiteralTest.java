@@ -21,6 +21,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.expression.scalar.cast.CastFunction;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
@@ -32,6 +33,7 @@ import org.locationtech.spatial4j.shape.Point;
 
 import java.util.List;
 
+import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 
@@ -111,6 +113,6 @@ public class LiteralTest extends CrateUnitTest {
     @Test
     public void testCasting() {
         Symbol intLiteral = Literal.of(1);
-        assertThat(intLiteral.cast(DataTypes.LONG), isLiteral(1L));
+        assertThat(intLiteral.cast(DataTypes.LONG), isFunction("to_bigint"));
     }
 }
