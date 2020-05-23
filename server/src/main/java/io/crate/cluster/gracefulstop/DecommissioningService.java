@@ -71,9 +71,18 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     public static final CrateSetting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = CrateSetting.of(Setting.groupSetting(
         DECOMMISSION_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.UNTYPED_OBJECT);
 
-    public static final CrateSetting<DataAvailability> GRACEFUL_STOP_MIN_AVAILABILITY_SETTING = CrateSetting.of(new Setting<>(
-        "cluster.graceful_stop.min_availability", DataAvailability.PRIMARIES.name(), DataAvailability::of,
-        Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.STRING);
+    public static final CrateSetting<DataAvailability> GRACEFUL_STOP_MIN_AVAILABILITY_SETTING = CrateSetting.of(
+        // Explicit generic is required for eclipse JDT, otherwise it won't compile
+        new Setting<DataAvailability>(
+            "cluster.graceful_stop.min_availability",
+            DataAvailability.PRIMARIES.name(),
+            DataAvailability::of,
+            Setting.Property.Dynamic,
+            Setting.Property.NodeScope
+        ),
+        DataTypes.STRING
+    );
+
     public static final CrateSetting<Boolean> GRACEFUL_STOP_FORCE_SETTING = CrateSetting.of(Setting.boolSetting(
         "cluster.graceful_stop.force", false, Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.BOOLEAN);
     public static final CrateSetting<TimeValue> GRACEFUL_STOP_TIMEOUT_SETTING = CrateSetting.of(Setting.positiveTimeSetting(

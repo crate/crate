@@ -63,7 +63,8 @@ public final class MemoryManagerFactory implements Function<RamAccounting, Memor
 
     private static final Set<String> TYPES = Set.of(MemoryType.OFF_HEAP.value(), MemoryType.ON_HEAP.value());
     public static final CrateSetting<String> MEMORY_ALLOCATION_TYPE = CrateSetting.of(
-        new Setting<>(
+        // Explicit generic is required for eclipse JDT, otherwise it won't compile
+        new Setting<String>(
             "memory.allocation.type",
             MemoryType.ON_HEAP.value(),
             input -> {

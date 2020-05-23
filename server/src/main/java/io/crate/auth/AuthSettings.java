@@ -43,9 +43,16 @@ public final class AuthSettings {
     public static final CrateSetting<Settings> AUTH_HOST_BASED_CONFIG_SETTING = CrateSetting.of(Setting.groupSetting(
         "auth.host_based.config.", Setting.Property.NodeScope), DataTypes.UNTYPED_OBJECT);
 
-    public static final CrateSetting<String> AUTH_TRUST_HTTP_DEFAULT_HEADER = CrateSetting.of(new Setting<>(
-        "auth.trust.http_default_user", "crate", Function.identity(), Setting.Property.NodeScope),
-        DataTypes.STRING);
+    public static final CrateSetting<String> AUTH_TRUST_HTTP_DEFAULT_HEADER = CrateSetting.of(
+        // Explicit generic is required for eclipse JDT, otherwise it won't compile
+        new Setting<String>(
+            "auth.trust.http_default_user",
+            "crate",
+            Function.identity(),
+            Setting.Property.NodeScope
+        ),
+        DataTypes.STRING
+    );
 
     public static final String HTTP_HEADER_REAL_IP = "X-Real-Ip";
 }
