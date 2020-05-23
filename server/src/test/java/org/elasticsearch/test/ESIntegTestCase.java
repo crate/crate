@@ -1202,8 +1202,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     public static final class AssertActionNamePlugin extends Plugin implements NetworkPlugin {
         @Override
-        public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry,
-                                                                   ThreadContext threadContext) {
+        public List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry) {
             return Arrays.asList(new TransportInterceptor() {
                 @Override
                 public <T extends TransportRequest> TransportRequestHandler<T> interceptHandler(String action, String executor,

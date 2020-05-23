@@ -49,9 +49,14 @@ public class PrioritizedEsThreadPoolExecutor extends EsThreadPoolExecutor {
     private final Queue<Runnable> current = ConcurrentCollections.newQueue();
     private final ScheduledExecutorService timer;
 
-    public PrioritizedEsThreadPoolExecutor(String name, int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
-                                    ThreadFactory threadFactory, ThreadContext contextHolder, ScheduledExecutorService timer) {
-        super(name, corePoolSize, maximumPoolSize, keepAliveTime, unit, new PriorityBlockingQueue<>(), threadFactory, contextHolder);
+    public PrioritizedEsThreadPoolExecutor(String name,
+                                           int corePoolSize,
+                                           int maximumPoolSize,
+                                           long keepAliveTime,
+                                           TimeUnit unit,
+                                           ThreadFactory threadFactory,
+                                           ScheduledExecutorService timer) {
+        super(name, corePoolSize, maximumPoolSize, keepAliveTime, unit, new PriorityBlockingQueue<>(), threadFactory);
         this.timer = timer;
     }
 

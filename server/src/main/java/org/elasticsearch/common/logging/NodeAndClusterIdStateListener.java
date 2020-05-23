@@ -25,7 +25,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 
 /**
  * The {@link NodeAndClusterIdStateListener} listens to cluster state changes and ONLY when receives the first update
@@ -43,9 +42,9 @@ public class NodeAndClusterIdStateListener implements ClusterStateObserver.Liste
      * Subscribes for the first cluster state update where nodeId and clusterId is present
      * and sets these values in {@link NodeAndClusterIdConverter}.
      */
-    public static void getAndSetNodeIdAndClusterId(ClusterService clusterService, ThreadContext threadContext) {
+    public static void getAndSetNodeIdAndClusterId(ClusterService clusterService) {
         ClusterState clusterState = clusterService.state();
-        ClusterStateObserver observer = new ClusterStateObserver(clusterState, clusterService, null, LOGGER, threadContext);
+        ClusterStateObserver observer = new ClusterStateObserver(clusterState, clusterService, null, LOGGER);
 
         observer.waitForNextChange(new NodeAndClusterIdStateListener(), NodeAndClusterIdStateListener::isNodeAndClusterIdPresent);
     }

@@ -130,7 +130,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
                 .coordinationMetaData(CoordinationMetaData.builder().lastAcceptedConfiguration(allNodesConfig)
                     .lastCommittedConfiguration(allNodesConfig).build())));
 
-        clusterStateObserver = new ClusterStateObserver(clusterService, null, logger, threadPool.getThreadContext());
+        clusterStateObserver = new ClusterStateObserver(clusterService, null, logger);
     }
 
     public void testWithdrawsVoteFromANode() throws InterruptedException {

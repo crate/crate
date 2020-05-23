@@ -75,7 +75,7 @@ public final class StepListener<Response> implements ActionListener<Response> {
      * @param onFailure  is called when this step is completed with a failure
      */
     public void whenComplete(CheckedConsumer<Response, Exception> onResponse, Consumer<Exception> onFailure) {
-        delegate.addListener(ActionListener.wrap(onResponse, onFailure), EsExecutors.directExecutor(), null);
+        delegate.addListener(ActionListener.wrap(onResponse, onFailure), EsExecutors.directExecutor());
     }
 
     /**

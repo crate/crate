@@ -57,7 +57,6 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.discovery.PeerFinder;
@@ -354,7 +353,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         ClusterName.CLUSTER_NAME_SETTING,
         ClusterModule.SHARDS_ALLOCATOR_TYPE_SETTING,
         EsExecutors.PROCESSORS_SETTING,
-        ThreadContext.DEFAULT_HEADERS_SETTING,
         Loggers.LOG_DEFAULT_LEVEL_SETTING,
         Loggers.LOG_LEVEL_SETTING,
         NodeEnvironment.MAX_LOCAL_STORAGE_NODES_SETTING,

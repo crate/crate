@@ -44,7 +44,6 @@ import org.elasticsearch.common.transport.TransportAddress;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import io.crate.common.io.IOUtils;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskCancelledException;
@@ -67,7 +66,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 import static org.elasticsearch.common.settings.Setting.timeSetting;
 import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_EXCLUDE_SETTING;
@@ -595,8 +593,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
         DiscoveryNode node = connection.getNode();
 
-        Supplier<ThreadContext.StoredContext> storedContextSupplier = threadPool.getThreadContext().newRestorableContext(true);
-        ContextRestoreResponseHandler<T> responseHandler = new ContextRestoreResponseHandler<>(storedContextSupplier, handler);
+        TimeoutResponseHandler<T> responseHandler = new TimeoutResponseHandler<>(handler);
         // TODO we can probably fold this entire request ID dance into connection.sendReqeust but it will be a bigger refactoring
         final long requestId = responseHandlers.add(new Transport.ResponseContext<>(responseHandler, connection, action));
         final TimeoutHandler timeoutHandler;
@@ -1070,15 +1067,13 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      * This handler wrapper ensures that the response thread executes with the correct thread context. Before any of the handle methods
      * are invoked we restore the context.
      */
-    public static final class ContextRestoreResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
+    public static final class TimeoutResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
 
         private final TransportResponseHandler<T> delegate;
-        private final Supplier<ThreadContext.StoredContext> contextSupplier;
         private volatile TimeoutHandler handler;
 
-        public ContextRestoreResponseHandler(Supplier<ThreadContext.StoredContext> contextSupplier, TransportResponseHandler<T> delegate) {
+        public TimeoutResponseHandler(TransportResponseHandler<T> delegate) {
             this.delegate = delegate;
-            this.contextSupplier = contextSupplier;
         }
 
         @Override
@@ -1091,9 +1086,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             if (handler != null) {
                 handler.cancel();
             }
-            try (ThreadContext.StoredContext ignore = contextSupplier.get()) {
-                delegate.handleResponse(response);
-            }
+            delegate.handleResponse(response);
         }
 
         @Override
@@ -1101,9 +1094,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             if (handler != null) {
                 handler.cancel();
             }
-            try (ThreadContext.StoredContext ignore = contextSupplier.get()) {
-                delegate.handleException(exp);
-            }
+            delegate.handleException(exp);
         }
 
         @Override

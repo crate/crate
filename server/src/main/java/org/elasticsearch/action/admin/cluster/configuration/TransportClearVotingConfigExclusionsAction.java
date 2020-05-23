@@ -84,8 +84,11 @@ public class TransportClearVotingConfigExclusionsAction
         };
 
         if (request.getWaitForRemoval() && allExclusionsRemoved.test(initialState) == false) {
-            final ClusterStateObserver clusterStateObserver = new ClusterStateObserver(initialState, clusterService, request.getTimeout(),
-                logger, threadPool.getThreadContext());
+            final ClusterStateObserver clusterStateObserver = new ClusterStateObserver(
+                initialState,
+                clusterService,
+                request.getTimeout(),
+                logger);
 
             clusterStateObserver.waitForNextChange(new Listener() {
                 @Override

@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
@@ -43,11 +42,9 @@ public final class ShardStateObserver {
     private static final Logger LOGGER = LogManager.getLogger(ShardStateObserver.class);
 
     private final ClusterService clusterService;
-    private final ThreadContext threadContext;
 
-    public ShardStateObserver(ClusterService clusterService, ThreadContext threadContext) {
+    public ShardStateObserver(ClusterService clusterService) {
         this.clusterService = clusterService;
-        this.threadContext = threadContext;
     }
 
     public CompletableFuture<ShardRouting> waitForActiveShard(ShardId shardId) {
@@ -72,7 +69,7 @@ public final class ShardStateObserver {
 
     private CompletableFuture<ShardRouting> waitForActiveShard(ShardId shardId, ClusterState state) {
         var stateObserver = new ClusterStateObserver(
-            state, clusterService, MAX_WAIT_TIME_FOR_NEW_STATE, LOGGER, threadContext);
+            state, clusterService, MAX_WAIT_TIME_FOR_NEW_STATE, LOGGER);
         var listener = new RetryIsShardActive(shardId);
         stateObserver.waitForNextChange(listener, newState -> shardStartedOrIndexDeleted(newState, shardId));
         return listener.result();

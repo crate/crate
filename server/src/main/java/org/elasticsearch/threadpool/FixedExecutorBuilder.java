@@ -23,7 +23,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.SizeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.node.Node;
 
 import java.util.Arrays;
@@ -88,12 +87,16 @@ public final class FixedExecutorBuilder extends ExecutorBuilder<FixedExecutorBui
     }
 
     @Override
-    ThreadPool.ExecutorHolder build(final FixedExecutorSettings settings, final ThreadContext threadContext) {
+    ThreadPool.ExecutorHolder build(final FixedExecutorSettings settings) {
         int size = settings.size;
         int queueSize = settings.queueSize;
         final ThreadFactory threadFactory = EsExecutors.daemonThreadFactory(EsExecutors.threadName(settings.nodeName, name()));
-        final ExecutorService executor =
-                EsExecutors.newFixed(settings.nodeName + "/" + name(), size, queueSize, threadFactory, threadContext);
+        final ExecutorService executor = EsExecutors.newFixed(
+            settings.nodeName + "/" + name(),
+            size,
+            queueSize,
+            threadFactory
+        );
         final ThreadPool.Info info =
             new ThreadPool.Info(name(), ThreadPool.ThreadPoolType.FIXED, size, size, null, queueSize < 0 ? null : new SizeValue(queueSize));
         return new ThreadPool.ExecutorHolder(executor, info);

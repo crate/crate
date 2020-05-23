@@ -60,16 +60,12 @@ public class FakeThreadPoolMasterService extends MasterService {
     }
 
     private static ThreadPool createMockThreadPool() {
-        final ThreadContext context = new ThreadContext(Settings.EMPTY);
-        final ThreadPool mockThreadPool = mock(ThreadPool.class);
-        when(mockThreadPool.getThreadContext()).thenReturn(context);
-        return mockThreadPool;
+        return mock(ThreadPool.class);
     }
 
     @Override
     protected PrioritizedEsThreadPoolExecutor createThreadPoolExecutor() {
-        return new PrioritizedEsThreadPoolExecutor(name, 1, 1, 1, TimeUnit.SECONDS, EsExecutors.daemonThreadFactory(name),
-            null, null) {
+        return new PrioritizedEsThreadPoolExecutor(name, 1, 1, 1, TimeUnit.SECONDS, EsExecutors.daemonThreadFactory(name), null) {
 
             @Override
             public void execute(Runnable command, final TimeValue timeout, final Runnable timeoutCallback) {

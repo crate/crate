@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
  */
 public class EsThreadPoolExecutor extends ThreadPoolExecutor {
 
-    private final ThreadContext contextHolder;
     private volatile ShutdownListener listener;
 
     private final Object monitor = new Object();
@@ -45,18 +44,27 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
         return name;
     }
 
-    EsThreadPoolExecutor(String name, int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
-            BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, ThreadContext contextHolder) {
-        this(name, corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, new EsAbortPolicy(), contextHolder);
+    EsThreadPoolExecutor(String name,
+                         int corePoolSize,
+                         int maximumPoolSize,
+                         long keepAliveTime,
+                         TimeUnit unit,
+                         BlockingQueue<Runnable> workQueue,
+                         ThreadFactory threadFactory) {
+        this(name, corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, new EsAbortPolicy());
     }
 
     @SuppressForbidden(reason = "properly rethrowing errors, see EsExecutors.rethrowErrors")
-    EsThreadPoolExecutor(String name, int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
-            BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, XRejectedExecutionHandler handler,
-            ThreadContext contextHolder) {
+    EsThreadPoolExecutor(String name,
+                         int corePoolSize,
+                         int maximumPoolSize,
+                         long keepAliveTime,
+                         TimeUnit unit,
+                         BlockingQueue<Runnable> workQueue,
+                         ThreadFactory threadFactory,
+                         XRejectedExecutionHandler handler) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
         this.name = name;
-        this.contextHolder = contextHolder;
     }
 
     @Override
@@ -102,23 +110,8 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
         EsExecutors.rethrowErrors(unwrap(r));
-        assert assertDefaultContext(r);
     }
 
-    private boolean assertDefaultContext(Runnable r) {
-        try {
-            assert contextHolder.isDefaultContext() : "the thread context is not the default context and the thread [" +
-                Thread.currentThread().getName() + "] is being returned to the pool after executing [" + r + "]";
-        } catch (IllegalStateException ex) {
-            // sometimes we execute on a closed context and isDefaultContext doen't bypass the ensureOpen checks
-            // this must not trigger an exception here since we only assert if the default is restored and
-            // we don't really care if we are closed
-            if (contextHolder.isClosed() == false) {
-                throw ex;
-            }
-        }
-        return true;
-    }
 
     @Override
     public final String toString() {
@@ -139,10 +132,13 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
     }
 
     protected Runnable wrapRunnable(Runnable command) {
-        return contextHolder.preserveContext(command);
+        return command;
     }
 
     protected Runnable unwrap(Runnable runnable) {
-        return contextHolder.unwrap(runnable);
+        if (runnable instanceof WrappedRunnable) {
+            return ((WrappedRunnable) runnable).unwrap();
+        }
+        return runnable;
     }
 }

@@ -50,7 +50,6 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -62,7 +61,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.elasticsearch.cluster.service.ClusterService.CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING;
@@ -117,7 +115,6 @@ public class MasterService extends AbstractLifecycleComponent {
         return EsExecutors.newSinglePrioritizing(
                 nodeName + "/" + MASTER_UPDATE_THREAD_NAME,
                 daemonThreadFactory(nodeName, MASTER_UPDATE_THREAD_NAME),
-                threadPool.getThreadContext(),
                 threadPool.scheduler());
     }
 
@@ -474,28 +471,26 @@ public class MasterService extends AbstractLifecycleComponent {
         return threadPoolExecutor.getMaxTaskWaitTime();
     }
 
-    private SafeClusterStateTaskListener safe(ClusterStateTaskListener listener, Supplier<ThreadContext.StoredContext> contextSupplier) {
+    private SafeClusterStateTaskListener safe(ClusterStateTaskListener listener) {
         if (listener instanceof AckedClusterStateTaskListener) {
-            return new SafeAckedClusterStateTaskListener((AckedClusterStateTaskListener) listener, contextSupplier, LOGGER);
+            return new SafeAckedClusterStateTaskListener((AckedClusterStateTaskListener) listener, LOGGER);
         } else {
-            return new SafeClusterStateTaskListener(listener, contextSupplier, LOGGER);
+            return new SafeClusterStateTaskListener(listener, LOGGER);
         }
     }
 
     private static class SafeClusterStateTaskListener implements ClusterStateTaskListener {
         private final ClusterStateTaskListener listener;
-        protected final Supplier<ThreadContext.StoredContext> context;
         private final Logger logger;
 
-        SafeClusterStateTaskListener(ClusterStateTaskListener listener, Supplier<ThreadContext.StoredContext> context, Logger logger) {
+        SafeClusterStateTaskListener(ClusterStateTaskListener listener, Logger logger) {
             this.listener = listener;
-            this.context = context;
             this.logger = logger;
         }
 
         @Override
         public void onFailure(String source, Exception e) {
-            try (ThreadContext.StoredContext ignore = context.get()) {
+            try {
                 listener.onFailure(source, e);
             } catch (Exception inner) {
                 inner.addSuppressed(e);
@@ -506,7 +501,7 @@ public class MasterService extends AbstractLifecycleComponent {
 
         @Override
         public void onNoLongerMaster(String source) {
-            try (ThreadContext.StoredContext ignore = context.get()) {
+            try {
                 listener.onNoLongerMaster(source);
             } catch (Exception e) {
                 logger.error(() -> new ParameterizedMessage(
@@ -516,7 +511,7 @@ public class MasterService extends AbstractLifecycleComponent {
 
         @Override
         public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-            try (ThreadContext.StoredContext ignore = context.get()) {
+            try {
                 listener.clusterStateProcessed(source, oldState, newState);
             } catch (Exception e) {
                 logger.error(() -> new ParameterizedMessage(
@@ -530,9 +525,8 @@ public class MasterService extends AbstractLifecycleComponent {
         private final AckedClusterStateTaskListener listener;
         private final Logger logger;
 
-        SafeAckedClusterStateTaskListener(AckedClusterStateTaskListener listener, Supplier<ThreadContext.StoredContext> context,
-                                          Logger logger) {
-            super(listener, context, logger);
+        SafeAckedClusterStateTaskListener(AckedClusterStateTaskListener listener, Logger logger) {
+            super(listener, logger);
             this.listener = listener;
             this.logger = logger;
         }
@@ -544,7 +538,7 @@ public class MasterService extends AbstractLifecycleComponent {
 
         @Override
         public void onAllNodesAcked(@Nullable Exception e) {
-            try (ThreadContext.StoredContext ignore = context.get()) {
+            try {
                 listener.onAllNodesAcked(e);
             } catch (Exception inner) {
                 inner.addSuppressed(e);
@@ -554,7 +548,7 @@ public class MasterService extends AbstractLifecycleComponent {
 
         @Override
         public void onAckTimeout() {
-            try (ThreadContext.StoredContext ignore = context.get()) {
+            try {
                 listener.onAckTimeout();
             } catch (Exception e) {
                 logger.error("exception thrown by listener while notifying on ack timeout", e);
@@ -777,13 +771,9 @@ public class MasterService extends AbstractLifecycleComponent {
         if (!lifecycle.started()) {
             return;
         }
-        final ThreadContext threadContext = threadPool.getThreadContext();
-        final Supplier<ThreadContext.StoredContext> supplier = threadContext.newRestorableContext(true);
-        try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
-            threadContext.markAsSystemContext();
-
+        try {
             List<Batcher.UpdateTask> safeTasks = tasks.entrySet().stream()
-                .map(e -> taskBatcher.new UpdateTask(config.priority(), source, e.getKey(), safe(e.getValue(), supplier), executor))
+                .map(e -> taskBatcher.new UpdateTask(config.priority(), source, e.getKey(), safe(e.getValue()), executor))
                 .collect(Collectors.toList());
             taskBatcher.submitTasks(safeTasks, config.timeout());
         } catch (EsRejectedExecutionException e) {

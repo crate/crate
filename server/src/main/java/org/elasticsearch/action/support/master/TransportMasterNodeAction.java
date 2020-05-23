@@ -130,8 +130,7 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
 
         public void start() {
             ClusterState state = clusterService.state();
-            this.observer
-                = new ClusterStateObserver(state, clusterService, request.masterNodeTimeout(), logger, threadPool.getThreadContext());
+            this.observer = new ClusterStateObserver(state, clusterService, request.masterNodeTimeout(), logger);
             doStart(state);
         }
 

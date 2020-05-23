@@ -69,7 +69,6 @@ public class RemoteCollectorFactory {
     private final ClusterService clusterService;
     private final TasksService tasksService;
     private final TransportActionProvider transportActionProvider;
-    private final ThreadPool threadPool;
     private final IndicesService indicesService;
     private final Executor searchTp;
 
@@ -83,7 +82,6 @@ public class RemoteCollectorFactory {
         this.tasksService = tasksService;
         this.transportActionProvider = transportActionProvider;
         this.indicesService = indicesService;
-        this.threadPool = threadPool;
         searchTp = threadPool.executor(ThreadPool.Names.SEARCH);
     }
 
@@ -97,7 +95,7 @@ public class RemoteCollectorFactory {
                                               RoutedCollectPhase collectPhase,
                                               CollectTask collectTask,
                                               ShardCollectorProviderFactory shardCollectorProviderFactory) {
-        ShardStateObserver shardStateObserver = new ShardStateObserver(clusterService, threadPool.getThreadContext());
+        ShardStateObserver shardStateObserver = new ShardStateObserver(clusterService);
         CompletableFuture<ShardRouting> shardBecameActive = shardStateObserver.waitForActiveShard(shardId);
         Runnable onClose = () -> {};
         Consumer<Throwable> kill = killReason -> {

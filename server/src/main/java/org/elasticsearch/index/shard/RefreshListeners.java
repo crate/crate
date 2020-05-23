@@ -22,7 +22,6 @@ package org.elasticsearch.index.shard;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.ReferenceManager;
 import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.translog.Translog;
 
 import java.io.Closeable;
@@ -47,7 +46,6 @@ public final class RefreshListeners implements ReferenceManager.RefreshListener,
     private final Runnable forceRefresh;
     private final Executor listenerExecutor;
     private final Logger logger;
-    private final ThreadContext threadContext;
 
     /**
      * Is this closed? If true then we won't add more listeners and have flushed all pending listeners.
@@ -66,13 +64,11 @@ public final class RefreshListeners implements ReferenceManager.RefreshListener,
      */
     private volatile Translog.Location lastRefreshedLocation;
 
-    public RefreshListeners(IntSupplier getMaxRefreshListeners, Runnable forceRefresh, Executor listenerExecutor, Logger logger,
-                            ThreadContext threadContext) {
+    public RefreshListeners(IntSupplier getMaxRefreshListeners, Runnable forceRefresh, Executor listenerExecutor, Logger logger) {
         this.getMaxRefreshListeners = getMaxRefreshListeners;
         this.forceRefresh = forceRefresh;
         this.listenerExecutor = listenerExecutor;
         this.logger = logger;
-        this.threadContext = threadContext;
     }
 
     /**
@@ -103,15 +99,8 @@ public final class RefreshListeners implements ReferenceManager.RefreshListener,
                 refreshListeners = listeners;
             }
             if (listeners.size() < getMaxRefreshListeners.getAsInt()) {
-                ThreadContext.StoredContext storedContext = threadContext.newStoredContext(true);
-                Consumer<Boolean> contextPreservingListener = forced -> {
-                    try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
-                        storedContext.restore();
-                        listener.accept(forced);
-                    }
-                };
                 // We have a free slot so register the listener
-                listeners.add(new Tuple<>(location, contextPreservingListener));
+                listeners.add(new Tuple<>(location, listener));
                 return false;
             }
         }

@@ -165,7 +165,7 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
         }
 
         final ClusterState state = clusterService.state();
-        final ClusterStateObserver observer = new ClusterStateObserver(state, clusterService, null, logger, threadPool.getThreadContext());
+        final ClusterStateObserver observer = new ClusterStateObserver(state, clusterService, null, logger);
         if (request.timeout().millis() == 0) {
             listener.onResponse(getResponse(request, state, waitFor, request.timeout().millis() == 0));
             return;

@@ -51,7 +51,7 @@ public class MockSinglePrioritizingExecutor extends PrioritizedEsThreadPoolExecu
                     });
                 }
             },
-            deterministicTaskQueue.getThreadPool().getThreadContext(), deterministicTaskQueue.getThreadPool().scheduler());
+            deterministicTaskQueue.getThreadPool().scheduler());
     }
 
     @Override

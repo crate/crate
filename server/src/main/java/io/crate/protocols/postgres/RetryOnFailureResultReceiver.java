@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.apache.logging.log4j.LogManager;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -49,7 +48,6 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
 
     private final ClusterService clusterService;
     private final ClusterState initialState;
-    private final ThreadContext threadContext;
     private final Predicate<String> hasIndex;
     private final ResultReceiver delegate;
     private final UUID jobId;
@@ -58,14 +56,12 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
 
     public RetryOnFailureResultReceiver(ClusterService clusterService,
                                         ClusterState initialState,
-                                        ThreadContext threadContext,
                                         Predicate<String> hasIndex,
                                         ResultReceiver delegate,
                                         UUID jobId,
                                         BiConsumer<UUID, ResultReceiver> retryAction) {
         this.clusterService = clusterService;
         this.initialState = initialState;
-        this.threadContext = threadContext;
         this.hasIndex = hasIndex;
         this.delegate = delegate;
         this.jobId = jobId;
@@ -96,8 +92,7 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
             if (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
                 delegate.fail(error);
             } else {
-                ClusterStateObserver clusterStateObserver =
-                    new ClusterStateObserver(initialState, clusterService, null, LOGGER, threadContext);
+                ClusterStateObserver clusterStateObserver = new ClusterStateObserver(initialState, clusterService, null, LOGGER);
                 clusterStateObserver.waitForNextChange(new ClusterStateObserver.Listener() {
                     @Override
                     public void onNewClusterState(ClusterState state) {
