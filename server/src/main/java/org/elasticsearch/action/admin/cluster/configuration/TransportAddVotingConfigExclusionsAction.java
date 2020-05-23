@@ -106,8 +106,7 @@ public class TransportAddVotingConfigExclusionsAction
             @Override
             public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
 
-                final ClusterStateObserver observer
-                    = new ClusterStateObserver(clusterService, request.getTimeout(), logger, threadPool.getThreadContext());
+                final ClusterStateObserver observer = new ClusterStateObserver(clusterService, request.getTimeout(), logger);
 
                 final Set<String> excludedNodeIds = resolvedExclusions.stream().map(VotingConfigExclusion::getNodeId)
                     .collect(Collectors.toSet());

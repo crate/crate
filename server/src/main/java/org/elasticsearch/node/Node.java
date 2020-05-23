@@ -63,7 +63,6 @@ import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.logging.NodeAndClusterIdStateListener;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkModule;
@@ -268,9 +267,6 @@ public class Node implements Closeable {
 
             final ThreadPool threadPool = new ThreadPool(settings);
             resourcesToClose.add(() -> ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS));
-            // adds the context to the DeprecationLogger so that it does not need to be injected everywhere
-            DeprecationLogger.setThreadContext(threadPool.getThreadContext());
-            resourcesToClose.add(() -> DeprecationLogger.removeThreadContext(threadPool.getThreadContext()));
 
             final List<Setting<?>> additionalSettings = new ArrayList<>(pluginsService.getPluginSettings());
             for (final ExecutorBuilder<?> builder : threadPool.builders()) {
@@ -689,8 +685,7 @@ public class Node implements Closeable {
         if (initialStateTimeout.millis() > 0) {
             final ThreadPool thread = injector.getInstance(ThreadPool.class);
             ClusterState clusterState = clusterService.state();
-            ClusterStateObserver observer =
-                new ClusterStateObserver(clusterState, clusterService, null, logger, thread.getThreadContext());
+            ClusterStateObserver observer = new ClusterStateObserver(clusterState, clusterService, null, logger);
 
             if (clusterState.nodes().getMasterNodeId() == null) {
                 logger.debug("waiting to join the cluster. timeout [{}]", initialStateTimeout);
@@ -741,8 +736,7 @@ public class Node implements Closeable {
     }
 
     protected void configureNodeAndClusterIdStateListener(ClusterService clusterService) {
-        NodeAndClusterIdStateListener.getAndSetNodeIdAndClusterId(clusterService,
-            injector.getInstance(ThreadPool.class).getThreadContext());
+        NodeAndClusterIdStateListener.getAndSetNodeIdAndClusterId(clusterService);
     }
 
     private Node stop() {

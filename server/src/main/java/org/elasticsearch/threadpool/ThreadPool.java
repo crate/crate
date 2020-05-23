@@ -131,8 +131,6 @@ public class ThreadPool implements Scheduler, Closeable {
 
     private final CachedTimeThread cachedTimeThread;
 
-    private final ThreadContext threadContext;
-
     private final Map<String, ExecutorBuilder> builders;
 
     private final ScheduledThreadPoolExecutor scheduler;
@@ -172,12 +170,10 @@ public class ThreadPool implements Scheduler, Closeable {
                 new ScalingExecutorBuilder(Names.FETCH_SHARD_STORE, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)));
         this.builders = Collections.unmodifiableMap(builders);
 
-        threadContext = new ThreadContext(settings);
-
         final Map<String, ExecutorHolder> executors = new HashMap<>();
         for (final Map.Entry<String, ExecutorBuilder> entry : builders.entrySet()) {
             final ExecutorBuilder.ExecutorSettings executorSettings = entry.getValue().getSettings(settings);
-            final ExecutorHolder executorHolder = entry.getValue().build(executorSettings, threadContext);
+            final ExecutorHolder executorHolder = entry.getValue().build(executorSettings);
             if (executors.containsKey(executorHolder.info.getName())) {
                 throw new IllegalStateException("duplicate executors with name [" + executorHolder.info.getName() + "] registered");
             }
@@ -322,11 +318,6 @@ public class ThreadPool implements Scheduler, Closeable {
             }
         }, (e) -> LOGGER.warn(() -> new ParameterizedMessage("failed to run scheduled task [{}] on thread pool [{}]",
                 command, executor), e));
-    }
-
-    @Override
-    public Runnable preserveContext(Runnable command) {
-        return getThreadContext().preserveContext(command);
     }
 
     protected final void stopCachedTimeThread() {
@@ -658,11 +649,6 @@ public class ThreadPool implements Scheduler, Closeable {
 
     @Override
     public void close() {
-        threadContext.close();
-    }
-
-    public ThreadContext getThreadContext() {
-        return threadContext;
     }
 
     public static boolean assertNotScheduleThread(String reason) {

@@ -37,7 +37,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -129,21 +128,13 @@ public class TemplateUpgradeService implements ClusterStateListener {
                     changes.get().v1().size(),
                     changes.get().v2().size());
 
-                final ThreadContext threadContext = threadPool.getThreadContext();
-                try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
-                    threadContext.markAsSystemContext();
-                    threadPool.generic().execute(() -> upgradeTemplates(changes.get().v1(), changes.get().v2()));
-                }
+                threadPool.generic().execute(() -> upgradeTemplates(changes.get().v1(), changes.get().v2()));
             }
         }
     }
 
     void upgradeTemplates(Map<String, BytesReference> changes, Set<String> deletions) {
         final AtomicBoolean anyUpgradeFailed = new AtomicBoolean(false);
-        if (threadPool.getThreadContext().isSystemContext() == false) {
-            throw new IllegalStateException("template updates from the template upgrade service should always happen in a system context");
-        }
-
         for (Map.Entry<String, BytesReference> change : changes.entrySet()) {
             PutIndexTemplateRequest request =
                 new PutIndexTemplateRequest(change.getKey()).source(change.getValue(), XContentType.JSON);

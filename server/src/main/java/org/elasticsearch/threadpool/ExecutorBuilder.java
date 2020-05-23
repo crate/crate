@@ -22,7 +22,6 @@ package org.elasticsearch.threadpool;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 
 import java.util.List;
 
@@ -77,7 +76,7 @@ public abstract class ExecutorBuilder<U extends ExecutorBuilder.ExecutorSettings
      * @param threadContext the current thread context
      * @return a new executor built from the specified executor settings
      */
-    abstract ThreadPool.ExecutorHolder build(U settings, ThreadContext threadContext);
+    abstract ThreadPool.ExecutorHolder build(U settings);
 
     /**
      * Format the thread pool info object for this executor.

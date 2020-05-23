@@ -23,12 +23,10 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ContextPreservingActionListener;
 import org.elasticsearch.common.CheckedRunnable;
 import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.util.concurrent.ThreadContext.StoredContext;
 import io.crate.common.io.IOUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -43,7 +41,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -248,14 +245,16 @@ final class IndexShardOperationPermits implements Closeable {
         try {
             synchronized (this) {
                 if (queuedBlockOperations > 0) {
-                    final Supplier<StoredContext> contextSupplier = threadPool.getThreadContext().newRestorableContext(false);
                     final ActionListener<Releasable> wrappedListener;
                     if (executorOnDelay != null) {
-                        wrappedListener =
-                            new PermitAwareThreadedActionListener(threadPool, executorOnDelay,
-                                        new ContextPreservingActionListener<>(contextSupplier, onAcquired), forceExecution);
+                        wrappedListener = new PermitAwareThreadedActionListener(
+                            threadPool,
+                            executorOnDelay,
+                            onAcquired,
+                            forceExecution
+                        );
                     } else {
-                        wrappedListener = new ContextPreservingActionListener<>(contextSupplier, onAcquired);
+                        wrappedListener = onAcquired;
                     }
                     delayedOperations.add(new DelayedOperation(wrappedListener, debugInfo, stackTrace));
                     return;

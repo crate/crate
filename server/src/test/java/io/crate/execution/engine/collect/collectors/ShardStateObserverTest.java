@@ -50,7 +50,7 @@ public class ShardStateObserverTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
             .addTable("create table t1 (x int) clustered into 1 shards");
 
-        var observer = new ShardStateObserver(clusterService, new ThreadContext(Settings.EMPTY));
+        var observer = new ShardStateObserver(clusterService);
         IndexShardRoutingTable routingTable = clusterService.state().routingTable().shardRoutingTable("t1", 0);
         ShardId shardId = routingTable.shardId();
         CompletableFuture<ShardRouting> shard0Active = observer.waitForActiveShard(shardId);

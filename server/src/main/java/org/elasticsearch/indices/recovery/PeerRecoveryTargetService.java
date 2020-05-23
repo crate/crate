@@ -350,8 +350,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                             }
 
                             @Override
-                            public void handleException(
-                                TransportException e) {
+                            public void handleException(TransportException e) {
                                 handleException.accept(e);
                             }
 
@@ -552,8 +551,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                                     Task task) throws IOException {
             try (RecoveryRef recoveryRef =
                      onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
-                final ClusterStateObserver observer =
-                    new ClusterStateObserver(clusterService, null, LOGGER, threadPool.getThreadContext());
+                final ClusterStateObserver observer = new ClusterStateObserver(clusterService, null, LOGGER);
                 final RecoveryTarget recoveryTarget = recoveryRef.target();
                 final ActionListener<RecoveryTranslogOperationsResponse> listener =
                     new HandledTransportAction.ChannelActionListener<>(channel, Actions.TRANSLOG_OPS, request);
@@ -612,8 +610,8 @@ public class PeerRecoveryTargetService implements IndexEventListener {
             clusterState,
             clusterService,
             TimeValue.timeValueMinutes(5),
-            LOGGER,
-            threadPool.getThreadContext());
+            LOGGER
+        );
         if (clusterState.getVersion() >= clusterStateVersion) {
             LOGGER.trace("node has cluster state with version higher than {} (current: {})",
                          clusterStateVersion, clusterState.getVersion());

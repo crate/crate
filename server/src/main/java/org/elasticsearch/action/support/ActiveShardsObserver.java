@@ -72,7 +72,7 @@ public class ActiveShardsObserver {
         }
 
         final ClusterState state = clusterService.state();
-        final ClusterStateObserver observer = new ClusterStateObserver(state, clusterService, null, LOGGER, threadPool.getThreadContext());
+        final ClusterStateObserver observer = new ClusterStateObserver(state, clusterService, null, LOGGER);
         if (activeShardCount.enoughShardsActive(state, indexNames)) {
             onResult.accept(true);
         } else {

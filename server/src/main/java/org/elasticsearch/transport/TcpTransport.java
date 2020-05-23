@@ -850,7 +850,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             Version version = Version.min(getCurrentVersion(), channelVersion);
 
             stream.setVersion(version);
-            threadPool.getThreadContext().writeTo(stream);
+            ThreadContext.bwcWriteHeaders(stream);
             stream.writeStringArray(features);
             stream.writeString(action);
             BytesReference message = buildMessage(requestId, status, node.getVersion(), request, stream);
@@ -902,7 +902,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             stream.setFeatures(features);
             RemoteTransportException tx = new RemoteTransportException(
                 nodeName, new TransportAddress(channel.getLocalAddress()), action, error);
-            threadPool.getThreadContext().writeTo(stream);
+            ThreadContext.bwcWriteHeaders(stream);
             stream.writeException(tx);
             byte status = 0;
             status = TransportStatus.setResponse(status);
@@ -952,7 +952,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             if (options.compress()) {
                 status = TransportStatus.setCompress(status);
             }
-            threadPool.getThreadContext().writeTo(stream);
+            ThreadContext.bwcWriteHeaders(stream);
             stream.setVersion(nodeVersion);
             stream.setFeatures(features);
             BytesReference message = buildMessage(requestId, status, nodeVersion, response, stream);
@@ -1120,7 +1120,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         boolean hasMessageBytesToRead = (totalMessageSize - TcpHeader.HEADER_SIZE) > 0;
         StreamInput streamIn = reference.streamInput();
         boolean success = false;
-        try (ThreadContext.StoredContext tCtx = threadPool.getThreadContext().stashContext()) {
+        try {
             long requestId = streamIn.readLong();
             byte status = streamIn.readByte();
             Version version = Version.fromId(streamIn.readInt());
@@ -1146,8 +1146,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             ensureVersionCompatibility(version, getCurrentVersion(), isHandshake);
             streamIn = new NamedWriteableAwareStreamInput(streamIn, namedWriteableRegistry);
             streamIn.setVersion(version);
-            threadPool.getThreadContext().readHeaders(streamIn);
-            threadPool.getThreadContext().putTransient("_remote_address", remoteAddress);
+            ThreadContext.bwcReadHeaders(streamIn);
             if (TransportStatus.isRequest(status)) {
                 handleRequest(channel, profileName, streamIn, requestId, messageLengthBytes, version, remoteAddress, status);
             } else {
@@ -1155,7 +1154,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                 if (isHandshake) {
                     handler = pendingHandshakes.remove(requestId);
                 } else {
-                    TransportResponseHandler theHandler = responseHandlers.onResponseReceived(requestId, messageListener);
+                    TransportResponseHandler<?> theHandler = responseHandlers.onResponseReceived(requestId, messageListener);
                     if (theHandler == null && TransportStatus.isError(status)) {
                         handler = pendingHandshakes.remove(requestId);
                     } else {

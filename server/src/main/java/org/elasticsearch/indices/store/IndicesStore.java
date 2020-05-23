@@ -317,7 +317,7 @@ public class IndicesStore implements ClusterStateListener, Closeable {
                 // in general, using a cluster state observer here is a workaround for the fact that we cannot listen on shard state changes explicitly.
                 // instead we wait for the cluster state changes because we know any shard state change will trigger or be
                 // triggered by a cluster state change.
-                ClusterStateObserver observer = new ClusterStateObserver(clusterService, request.timeout, LOGGER, threadPool.getThreadContext());
+                ClusterStateObserver observer = new ClusterStateObserver(clusterService, request.timeout, LOGGER);
                 // check if shard is active. if so, all is good
                 boolean shardActive = shardActive(indexShard);
                 if (shardActive) {

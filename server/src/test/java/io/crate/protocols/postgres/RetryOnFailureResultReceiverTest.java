@@ -48,7 +48,6 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
         RetryOnFailureResultReceiver retryOnFailureResultReceiver = new RetryOnFailureResultReceiver(
             clusterService,
             initialState,
-            THREAD_POOL.getThreadContext(),
             indexName -> true,
             baseResultReceiver,
             UUID.randomUUID(),
@@ -72,7 +71,6 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
         RetryOnFailureResultReceiver retryOnFailureResultReceiver = new RetryOnFailureResultReceiver(
             clusterService,
             initialState,
-            THREAD_POOL.getThreadContext(),
             indexName -> true,
             resultReceiver,
             UUID.randomUUID(),

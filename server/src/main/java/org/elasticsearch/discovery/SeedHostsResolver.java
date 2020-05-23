@@ -147,8 +147,14 @@ public class SeedHostsResolver extends AbstractLifecycleComponent implements Con
     protected void doStart() {
         LOGGER.debug("using max_concurrent_resolvers [{}], resolver timeout [{}]", concurrentConnects, resolveTimeout);
         final ThreadFactory threadFactory = EsExecutors.daemonThreadFactory(settings, "[unicast_configured_hosts_resolver]");
-        executorService.set(EsExecutors.newScaling(nodeName + "/" + "unicast_configured_hosts_resolver",
-            0, concurrentConnects, 60, TimeUnit.SECONDS, threadFactory, transportService.getThreadPool().getThreadContext()));
+        executorService.set(EsExecutors.newScaling(
+            nodeName + "/" + "unicast_configured_hosts_resolver",
+            0,
+            concurrentConnects,
+            60,
+            TimeUnit.SECONDS,
+            threadFactory
+        ));
     }
 
     @Override

@@ -20,7 +20,6 @@
 package org.elasticsearch.common.util.concurrent;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ContextPreservingActionListener;
 import io.crate.common.collections.Tuple;
 
 import java.util.ArrayList;
@@ -49,7 +48,7 @@ public final class ListenableFuture<V> extends BaseFuture<V> implements ActionLi
      * If the future has completed, the listener will be notified immediately without forking to
      * a different thread.
      */
-    public void addListener(ActionListener<V> listener, Executor executor, ThreadContext threadContext) {
+    public void addListener(ActionListener<V> listener, Executor executor) {
         if (done) {
             // run the callback directly, we don't hold the lock and don't need to fork!
             notifyListener(listener, EsExecutors.directExecutor());
@@ -61,13 +60,7 @@ public final class ListenableFuture<V> extends BaseFuture<V> implements ActionLi
                 if (done) {
                     run = true;
                 } else {
-                    final ActionListener<V> wrappedListener;
-                    if (threadContext == null) {
-                        wrappedListener = listener;
-                    } else {
-                        wrappedListener = ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);
-                    }
-                    listeners.add(new Tuple<>(wrappedListener, executor));
+                    listeners.add(new Tuple<>(listener, executor));
                     run = false;
                 }
             }

@@ -51,7 +51,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static org.elasticsearch.action.support.ContextPreservingActionListener.wrapPreservingContext;
 import static org.elasticsearch.index.IndexSettings.same;
 
 /**
@@ -111,7 +110,7 @@ public class MetaDataUpdateSettingsService {
             new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(
                 Priority.URGENT,
                 request,
-                wrapPreservingContext(listener, threadPool.getThreadContext())) {
+                listener) {
 
                     @Override
                     protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
@@ -263,38 +262,39 @@ public class MetaDataUpdateSettingsService {
             new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(
                 Priority.URGENT,
                 request,
-                wrapPreservingContext(listener, threadPool.getThreadContext())) {
+                listener
+            ) {
 
-                    @Override
-                    protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
-                        return new ClusterStateUpdateResponse(acknowledged);
-                    }
+                @Override
+                protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+                    return new ClusterStateUpdateResponse(acknowledged);
+                }
 
-                    @Override
-                    public ClusterState execute(ClusterState currentState) {
-                        MetaData.Builder metaDataBuilder = MetaData.builder(currentState.metaData());
-                        for (Map.Entry<String, Tuple<Version, String>> entry : request.versions().entrySet()) {
-                            String index = entry.getKey();
-                            IndexMetaData indexMetaData = metaDataBuilder.get(index);
-                            if (indexMetaData != null) {
-                                if (Version.CURRENT.equals(indexMetaData.getCreationVersion()) == false) {
-                                    // no reason to pollute the settings, we didn't really upgrade anything
-                                    metaDataBuilder.put(
-                                        IndexMetaData
-                                            .builder(indexMetaData)
-                                            .settings(
-                                                Settings
-                                                .builder()
-                                                .put(indexMetaData.getSettings())
-                                                .put(IndexMetaData.SETTING_VERSION_UPGRADED, entry.getValue().v1()))
-                                            .settingsVersion(1 + indexMetaData.getSettingsVersion())
-                                    );
-                                }
+                @Override
+                public ClusterState execute(ClusterState currentState) {
+                    MetaData.Builder metaDataBuilder = MetaData.builder(currentState.metaData());
+                    for (Map.Entry<String, Tuple<Version, String>> entry : request.versions().entrySet()) {
+                        String index = entry.getKey();
+                        IndexMetaData indexMetaData = metaDataBuilder.get(index);
+                        if (indexMetaData != null) {
+                            if (Version.CURRENT.equals(indexMetaData.getCreationVersion()) == false) {
+                                // no reason to pollute the settings, we didn't really upgrade anything
+                                metaDataBuilder.put(
+                                    IndexMetaData
+                                        .builder(indexMetaData)
+                                        .settings(
+                                            Settings
+                                            .builder()
+                                            .put(indexMetaData.getSettings())
+                                            .put(IndexMetaData.SETTING_VERSION_UPGRADED, entry.getValue().v1()))
+                                        .settingsVersion(1 + indexMetaData.getSettingsVersion())
+                                );
                             }
                         }
-                        return ClusterState.builder(currentState).metaData(metaDataBuilder).build();
                     }
+                    return ClusterState.builder(currentState).metaData(metaDataBuilder).build();
                 }
+            }
         );
     }
 }

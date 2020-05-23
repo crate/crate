@@ -51,8 +51,7 @@ public interface NetworkPlugin {
      * @param threadContext a {@link ThreadContext} of the current nodes or clients {@link ThreadPool} that can be used to set additional
      *                      headers in the interceptors
      */
-    default List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry,
-                                                                ThreadContext threadContext) {
+    default List<TransportInterceptor> getTransportInterceptors(NamedWriteableRegistry namedWriteableRegistry) {
         return Collections.emptyList();
     }
 
