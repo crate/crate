@@ -23,7 +23,16 @@
 package io.crate.metadata.pgcatalog;
 
 
-import io.crate.common.collections.MapBuilder;
+import java.util.Collections;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.SystemTable;
@@ -31,16 +40,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.statistics.TableStats;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-
-import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.TreeMap;
 
 @Singleton
 public class PgCatalogSchemaInfo implements SchemaInfo {
@@ -54,22 +53,22 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
     public PgCatalogSchemaInfo(UserDefinedFunctionService udfService, TableStats tableStats) {
         this.udfService = udfService;
         this.pgClassTable = PgClassTable.create(tableStats);
-        tableInfoMap = MapBuilder.<String, TableInfo>newMapBuilder(new TreeMap<>(Comparator.naturalOrder()))
-            .put(PgStatsTable.NAME.name(), PgStatsTable.create())
-            .put(PgTypeTable.IDENT.name(), PgTypeTable.create())
-            .put(PgClassTable.IDENT.name(), pgClassTable)
-            .put(PgNamespaceTable.IDENT.name(), PgNamespaceTable.create())
-            .put(PgAttrDefTable.IDENT.name(), PgAttrDefTable.create())
-            .put(PgAttributeTable.IDENT.name(), PgAttributeTable.create())
-            .put(PgIndexTable.IDENT.name(), PgIndexTable.create())
-            .put(PgConstraintTable.IDENT.name(), PgConstraintTable.create())
-            .put(PgDatabaseTable.NAME.name(), PgDatabaseTable.create())
-            .put(PgDescriptionTable.NAME.name(), PgDescriptionTable.create())
-            .put(PgSettingsTable.IDENT.name(), PgSettingsTable.create())
-            .put(PgProcTable.IDENT.name(), PgProcTable.create())
-            .put(PgRangeTable.IDENT.name(), PgRangeTable.create())
-            .put(PgEnumTable.IDENT.name(), PgEnumTable.create())
-            .immutableMap();
+        tableInfoMap = Map.<String, TableInfo>ofEntries(
+            Map.entry(PgStatsTable.NAME.name(), PgStatsTable.create()),
+            Map.entry(PgTypeTable.IDENT.name(), PgTypeTable.create()),
+            Map.entry(PgClassTable.IDENT.name(), pgClassTable),
+            Map.entry(PgNamespaceTable.IDENT.name(), PgNamespaceTable.create()),
+            Map.entry(PgAttrDefTable.IDENT.name(), PgAttrDefTable.create()),
+            Map.entry(PgAttributeTable.IDENT.name(), PgAttributeTable.create()),
+            Map.entry(PgIndexTable.IDENT.name(), PgIndexTable.create()),
+            Map.entry(PgConstraintTable.IDENT.name(), PgConstraintTable.create()),
+            Map.entry(PgDatabaseTable.NAME.name(), PgDatabaseTable.create()),
+            Map.entry(PgDescriptionTable.NAME.name(), PgDescriptionTable.create()),
+            Map.entry(PgSettingsTable.IDENT.name(), PgSettingsTable.create()),
+            Map.entry(PgProcTable.IDENT.name(), PgProcTable.create()),
+            Map.entry(PgRangeTable.IDENT.name(), PgRangeTable.create()),
+            Map.entry(PgEnumTable.IDENT.name(), PgEnumTable.create())
+        );
     }
 
     SystemTable<PgClassTable.Entry> pgClassTable() {
