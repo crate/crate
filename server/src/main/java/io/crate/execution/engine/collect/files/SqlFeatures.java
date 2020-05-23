@@ -30,27 +30,23 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-public class SqlFeaturesIterable implements Iterable<SqlFeatureContext> {
+public final class SqlFeatures {
 
     private static final int NUM_COLS = 7;
 
-    private final List<SqlFeatureContext> featuresList;
-
-    public SqlFeaturesIterable() throws IOException {
-        try (InputStream sqlFeatures = SqlFeaturesIterable.class.getResourceAsStream("/sql_features.tsv")) {
+    public static Iterable<SqlFeatureContext> loadFeatures() throws IOException {
+        try (InputStream sqlFeatures = SqlFeatures.class.getResourceAsStream("/sql_features.tsv")) {
             if (sqlFeatures == null) {
                 throw new ResourceNotFoundException("sql_features.tsv file not found");
             }
+            ArrayList<SqlFeatureContext> featuresList = new ArrayList<>();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(sqlFeatures, StandardCharsets.UTF_8))) {
-                featuresList = new ArrayList<>();
-                SqlFeatureContext ctx;
                 String next;
                 while ((next = reader.readLine()) != null) {
                     List<String> parts = List.of(next.split("\t", NUM_COLS));
-                    ctx = new SqlFeatureContext(parts.get(0),
+                    var ctx = new SqlFeatureContext(parts.get(0),
                         parts.get(1),
                         parts.get(2),
                         parts.get(3),
@@ -60,11 +56,7 @@ public class SqlFeaturesIterable implements Iterable<SqlFeatureContext> {
                     featuresList.add(ctx);
                 }
             }
+            return featuresList;
         }
-    }
-
-    @Override
-    public Iterator<SqlFeatureContext> iterator() {
-        return featuresList.iterator();
     }
 }
