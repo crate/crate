@@ -22,7 +22,7 @@
 package io.crate.execution.engine.collect.sources;
 
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
-import io.crate.execution.engine.collect.files.SqlFeaturesIterable;
+import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.ColumnIdent;
@@ -58,6 +58,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -90,7 +91,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final Iterable<ColumnContext> columns;
     private final Iterable<RelationInfo> primaryKeys;
     private final Iterable<ConstraintInfo> constraints;
-    private final SqlFeaturesIterable sqlFeatures;
     private final Iterable<Void> referentialConstraints;
     private final Iterable<PgIndexTable.Entry> pgIndices;
     private final Iterable<PgClassTable.Entry> pgClasses;
@@ -144,7 +144,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
             .iterator();
 
         partitionInfos = new PartitionInfos(clusterService);
-        sqlFeatures = new SqlFeaturesIterable();
 
         referentialConstraints = emptyList();
         // these are initialized on a clusterState change
@@ -265,7 +264,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     public Iterable<SqlFeatureContext> features() {
-        return sqlFeatures;
+        try {
+            return SqlFeatures.loadFeatures();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public Iterable<PgClassTable.Entry> pgClasses() {

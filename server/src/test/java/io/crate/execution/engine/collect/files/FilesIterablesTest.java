@@ -38,10 +38,9 @@ public class FilesIterablesTest {
 
     @Test
     public void testSqlFeatureIterable() throws Exception {
-        SqlFeaturesIterable featuresIterable = new SqlFeaturesIterable();
-        Iterator iterator = featuresIterable.iterator();
+        Iterator<SqlFeatureContext> iterator = SqlFeatures.loadFeatures().iterator();
         assertTrue(iterator.hasNext());
-        SqlFeatureContext context = (SqlFeatureContext) iterator.next();
+        SqlFeatureContext context = iterator.next();
         assertEquals("B011", context.featureId);
         assertEquals("Embedded Ada", context.featureName);
         assertEquals("", context.subFeatureId);
@@ -56,7 +55,7 @@ public class FilesIterablesTest {
     @Test
     public void testSummitsIterable() throws Exception {
         SummitsIterable summitsIterable = new SummitsIterable();
-        Iterator iterator = summitsIterable.iterator();
+        var iterator = summitsIterable.iterator();
         assertTrue(iterator.hasNext());
         assertThat(Iterators.size(iterator), is(1605));
         assertFalse(iterator.hasNext());
