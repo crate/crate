@@ -40,10 +40,38 @@ import java.util.Locale;
 import java.util.function.Supplier;
 
 /**
- * All literal formats are interpreted as UTC, ignoring time zone if present.
- * Internally stored as a long (milli seconds from epoch, ignoring date).
+ * Represents time as milliseconds from Jan 1st 1970 (EPOCH), ignoring
+ * the date portion, the time zone, and storing the value as UTC long.
+ * <p>
+ * Accepts two kinds of literal:
+ * <ol>
+ *    <li><b>numeric:</b>
+ *      <ul>
+ *        <li>short, integer and long values are taken at face value
+ *        and range checked.</li>
+ *        <li>double and float values are interpreted as seconds.millis
+ *        and are range checked. float values loose some precision (milliseconds).
+ *        </li>
+ *      </ul>
+ *    </li>
+ *
+ *    <li>text:
+ *      <ul>
+ *        <li>hhmmss: e.g. 23:12:21</li>
+ *        <li>hhmm: e.g. 23:12:00</li>
+ *        <li>hh: e.g. 23:00:00</li>
+ *        <li>hhmmss.ffffff: e.g. 23:12:21.999</li>
+ *        <li>hhmm.ffffff: e.g. 23:12:00.999</li>
+ *        <li>hh.ffffff: e.g. 23:00:00.999</li>
+ *        <li>any ISO-8601 extended local time format</li>
+ *      </ul>
+ *    </li>
+ * </ol>
+ *
  * Precision is milli seconds (10e3 in a second, unlike postgres which is
  * micro seconds 10e6) see TimestampType.
+ * <p>
+ * Accepted range for time values is 0 .. 86400000 (max number of millis in a day).
  */
 public final class TimeType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
@@ -101,49 +129,35 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
         if (value == null) {
             return null;
         }
-        if (value instanceof Double || value instanceof Float) {
-            // we treat float and double values as seconds with milliseconds as fractions
-            // 123.456789 -> 123456
-            return (long) Math.floor(((Number) value).doubleValue() * 1000L);
+        if (value instanceof Double) {
+            return checkRange((long) Math.floor(((Number) value).doubleValue() * 1000L));
+        }
+        if (value instanceof Float) {
+            return checkRange((long) Math.floor(((Number) value).floatValue() * 1000L));
         }
         if (value instanceof Long || value instanceof Number) {
-            return ((Number) value).longValue();
+            return checkRange(((Number) value).longValue());
         }
         if (value instanceof String) {
             return parseTime((String) value);
         }
         throw new IllegalArgumentException(String.format(
             Locale.ENGLISH,
-            "unexpected value [%s], does not fit TimeType's literal syntax",
+            "unexpected value [%s] is not a valid literal for TimeType",
             value));
     }
 
-    /**
-     * The more expensive literal representation.
-     * Supported formats:
-     *
-     * <ul>
-     *     <li>'hhmmss'</li>
-     *     <li></li>
-     *     <li></li>
-     *     <li></li>
-     *     <li></li>
-     *     <li></li>
-     *     <li></li>
-     * </ul>
-     *
-     * @param time
-     * @return
-     */
     public static long parseTime(@Nonnull String time) {
         try {
-            return toEpochMilli(time, 000, () -> Long.parseLong(time));
+            long epochMilli = Long.parseLong(time);
+            return toEpochMilli(time, 000, () -> epochMilli);
         } catch (NumberFormatException e0) {
             try {
                 long epochMilli = (long) Math.floor(Double.parseDouble(time) * 1000L);
-                long hhmmss = Math.floorDiv(epochMilli, 1000L);
-                int millis = Math.floorMod(epochMilli, 1000);
-                return toEpochMilli(String.valueOf(hhmmss), millis, () -> epochMilli);
+                return toEpochMilli(
+                    time.substring(0, time.indexOf(".")),
+                    Math.floorMod(epochMilli, 1000),
+                    () -> epochMilli);
             } catch (NumberFormatException e1) {
                 try {
                     // the time zone is ignored if present
@@ -167,34 +181,34 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
                 int hh = Integer.parseInt(time.substring(0, 2));
                 int mm = Integer.parseInt(time.substring(2, 4));
                 int ss = Integer.parseInt(time.substring(4));
-                return toEpochMilli(time, "hhmmss", hh, mm, ss, millis);
+                return toEpochMilli(hh, mm, ss, millis);
 
             case 4:
                 // hhmm
                 hh = Integer.parseInt(time.substring(0, 2));
                 mm = Integer.parseInt(time.substring(2, 4));
-                return toEpochMilli(time, "hhmm", hh, mm, 00, millis);
+                return toEpochMilli(hh, mm, 0, millis);
 
             case 2:
                 // hh
                 hh = Integer.parseInt(time.substring(0, 2));
-                return toEpochMilli(time, "hh", hh, 00, 00, millis);
+                return toEpochMilli(hh, 0, 0, millis);
 
             default:
-                long epochMilli = defaultSupplier.get();
-                if (epochMilli < 0 || epochMilli > MAX_MILLIS) {
-                    throw new IllegalArgumentException(String.format(
-                        Locale.ENGLISH, "value [%s] is out of range", time));
-                }
-                return epochMilli;
+                return checkRange(defaultSupplier.get());
         }
     }
 
-    private static long toEpochMilli(String time, String format, int hh, int mm, int ss, int millis) {
-        long epochMilli = (((hh * 60 + mm) * 60) + ss) * 1000L + millis;
-        if (epochMilli < 0 || epochMilli > MAX_MILLIS) {
+    private static long toEpochMilli(int hh, int mm, int ss, int millis) {
+        return checkRange((((hh * 60 + mm) * 60) + ss) * 1000L + millis);
+    }
+
+    private static long checkRange(long epochMilli) {
+        if (epochMilli < 0 || epochMilli >= MAX_MILLIS) {
             throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH, "value [%s] as '%s' is out of range", time, format));
+                Locale.ENGLISH,
+                "value [%d] is out of range for TimeType [0, %d]",
+                epochMilli, MAX_MILLIS));
         }
         return epochMilli;
     }
