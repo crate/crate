@@ -119,9 +119,25 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             this.useShardGenerations = useShardGenerations;
         }
 
-        public Entry(Snapshot snapshot, boolean includeGlobalState, boolean partial, State state, List<IndexId> indices,
-                     long startTime, long repositoryStateId, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards, boolean useShardGenerations) {
-            this(snapshot, includeGlobalState, partial, state, indices, startTime, repositoryStateId, shards, null, useShardGenerations);
+        public Entry(Snapshot snapshot,
+                     boolean includeGlobalState,
+                     boolean partial,
+                     State state,
+                     List<IndexId> indices,
+                     long startTime,
+                     long repositoryStateId,
+                     ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards,
+                     boolean useShardGenerations) {
+            this(snapshot,
+                 includeGlobalState,
+                 partial,
+                 state,
+                 indices,
+                 startTime,
+                 repositoryStateId,
+                 shards,
+                 null,
+                 useShardGenerations);
         }
 
         public Entry(Entry entry, State state, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
@@ -491,25 +507,25 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
     }
 
     public SnapshotsInProgress(StreamInput in) throws IOException {
-        Entry[] entries = new Entry[in.readVInt()];
+        final Entry[] entries = new Entry[in.readVInt()];
         for (int i = 0; i < entries.length; i++) {
-            Snapshot snapshot = new Snapshot(in);
-            boolean includeGlobalState = in.readBoolean();
-            boolean partial = in.readBoolean();
-            State state = State.fromValue(in.readByte());
-            int indices = in.readVInt();
+            final Snapshot snapshot = new Snapshot(in);
+            final boolean includeGlobalState = in.readBoolean();
+            final boolean partial = in.readBoolean();
+            final State state = State.fromValue(in.readByte());
+            final int indices = in.readVInt();
             List<IndexId> indexBuilder = new ArrayList<>();
             for (int j = 0; j < indices; j++) {
                 indexBuilder.add(new IndexId(in.readString(), in.readString()));
             }
-            long startTime = in.readLong();
-            ImmutableOpenMap.Builder<ShardId, ShardSnapshotStatus> builder = ImmutableOpenMap.builder();
-            int shards = in.readVInt();
+            final long startTime = in.readLong();
+            final ImmutableOpenMap.Builder<ShardId, ShardSnapshotStatus> builder = ImmutableOpenMap.builder();
+            final int shards = in.readVInt();
             for (int j = 0; j < shards; j++) {
                 ShardId shardId = new ShardId(in);
                 builder.put(shardId, new ShardSnapshotStatus(in));
             }
-            long repositoryStateId = in.readLong();
+            final long repositoryStateId = in.readLong();
             final String failure = in.readOptionalString();
             final boolean useShardGenerations;
             if (in.getVersion().onOrAfter(SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION)) {
@@ -517,7 +533,8 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             } else {
                 useShardGenerations = false;
             }
-            entries[i] = new Entry(snapshot,
+            entries[i] = new Entry(
+                snapshot,
                 includeGlobalState,
                 partial,
                 state,
@@ -526,7 +543,8 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                 repositoryStateId,
                 builder.build(),
                 failure,
-                useShardGenerations);
+                useShardGenerations
+            );
         }
         this.entries = Arrays.asList(entries);
     }
