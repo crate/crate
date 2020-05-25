@@ -68,21 +68,21 @@ public class StringTypeTest extends CrateUnitTest {
     @Test
     public void test_create_text_type_with_negative_length_limit_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid text data type length limit: -1");
+        expectedException.expectMessage("The text type length must be at least 1, received: -1");
         StringType.of(-1);
     }
 
     @Test
     public void test_create_text_type_with_zero_length_limit_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid text data type length limit: 0");
+        expectedException.expectMessage("The text type length must be at least 1, received: 0");
         StringType.of(0);
     }
 
     @Test
     public void test_create_text_type_with_wrong_number_of_parameters_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The number of parameters for the text data is wrong: 2");
+        expectedException.expectMessage("The text type can only have a single parameter value, received: 2");
         StringType.of(List.of(1, 2));
     }
 }

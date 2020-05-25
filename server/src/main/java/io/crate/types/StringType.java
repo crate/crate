@@ -49,7 +49,9 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public static StringType of(List<Integer> parameters) {
         if (parameters.size() != 1) {
             throw new IllegalArgumentException(
-                "The number of parameters for the text data is wrong: " + parameters.size());
+                "The text type can only have a single parameter value, received: " +
+                parameters.size()
+            );
         }
         return StringType.of(parameters.get(0));
     }
@@ -57,7 +59,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public static StringType of(int lengthLimit) {
         if (lengthLimit <= 0) {
             throw new IllegalArgumentException(
-                "Invalid text data type length limit: " + lengthLimit);
+                "The text type length must be at least 1, received: " + lengthLimit);
         }
         return new StringType(lengthLimit);
     }
