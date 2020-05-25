@@ -32,7 +32,7 @@ public class NotSupportedType extends DataType<Void> {
     }
 
     @Override
-    public boolean isConvertableTo(DataType other) {
+    public boolean isConvertableTo(DataType other, boolean explicitCast) {
         return false;
     }
 

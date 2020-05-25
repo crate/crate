@@ -22,21 +22,13 @@
 package io.crate.expression.scalar.geo;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsEqual.equalTo;
 
 public class WithinFunctionTest extends AbstractScalarFunctionsTest {
 
@@ -82,9 +74,7 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeWithReferenceAndLiteral() throws Exception {
-        Symbol normalizedSymbol = normalize(FNAME, createReference("foo", DataTypes.GEO_POINT),
-            Literal.newGeoShape("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"));
-        assertThat(normalizedSymbol, isFunction(FNAME));
+        assertNormalize("within(geopoint, 'POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))')", isFunction(FNAME));
     }
 
     @Test
@@ -93,31 +83,13 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNormalizeWithStringLiteralAndReference() throws Exception {
-        Symbol normalized = normalize(FNAME,
-            createReference("point", DataTypes.GEO_POINT),
-            Literal.of("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"));
-        assertThat(normalized, instanceOf(Function.class));
-        Function function = (Function) normalized;
-        Symbol symbol = function.arguments().get(1);
-        assertThat(symbol.valueType(), equalTo(DataTypes.GEO_SHAPE));
-    }
-
-    @Test
     public void testNormalizeWithFirstArgAsStringReference() throws Exception {
-        Symbol normalized = normalize(FNAME,
-            createReference("location", DataTypes.STRING),
-            Literal.newGeoShape("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"));
-        assertThat(normalized.symbolType(), is(SymbolType.FUNCTION));
+        assertNormalize("within(geostring, 'POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))')", isFunction(FNAME));
     }
 
     @Test
     public void testNormalizeWithSecondArgAsStringReference() throws Exception {
-        Symbol normalized = normalize(FNAME,
-            Literal.newGeoPoint(new Double[]{0.0d, 0.0d}),
-            createReference("location", DataTypes.STRING));
-        assertThat(normalized.symbolType(), is(SymbolType.FUNCTION));
-        assertThat(((Function) normalized).info().ident().name(), is(WithinFunction.NAME));
+        assertNormalize("within('POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))', geostring)", isFunction(FNAME));
     }
 
     @Test
@@ -136,10 +108,7 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeFromObject() throws Exception {
-        Symbol normalized = normalize(FNAME,
-            Literal.of("POINT (1.0 0.0)"),
-            Literal.of(ImmutableMap.<String, Object>of("type", "Point", "coordinates", new double[]{0.0, 1.0})));
-        assertThat(normalized.symbolType(), is(SymbolType.LITERAL));
-        assertThat(((Literal) normalized).value(), is(Boolean.FALSE));
+        assertNormalize("within('POINT (1.0 0.0)', {type='Point', coordinates=[0.0, 1.0]})",
+                        isLiteral(Boolean.FALSE));
     }
 }

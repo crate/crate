@@ -66,17 +66,15 @@ public final class TrigonometricFunctions {
     }
 
     private static void register(ScalarFunctionModule module, String name, DoubleUnaryOperator func) {
-        for (DataType<?> inputType : NUMERIC_PRIMITIVE_TYPES) {
-            module.register(
-                scalar(
-                    name,
-                    inputType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ),
-                (signature, argumentTypes) ->
-                    new DoubleScalar(name, signature, inputType, func)
-            );
-        }
+        module.register(
+            scalar(
+                name,
+                DataTypes.DOUBLE.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            (signature, argumentTypes) ->
+                new DoubleScalar(name, signature, argumentTypes.get(0), func)
+        );
     }
 
     private static double checkRange(double value) {

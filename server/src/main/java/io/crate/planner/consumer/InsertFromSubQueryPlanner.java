@@ -116,12 +116,12 @@ public final class InsertFromSubQueryPlanner {
             Symbol output = sourceCols.get(i);
             Reference targetCol = targetCols.get(i);
             InputColumn inputColumn = new InputColumn(i, output.valueType());
-            DataType targetType = targetCol.valueType();
+            DataType<?> targetType = targetCol.valueType();
             if (targetType.id() == DataTypes.UNDEFINED.id() || targetType.equals(output.valueType())) {
                 casts.add(inputColumn);
             } else {
                 requiresCasts = true;
-                casts.add(inputColumn.cast(targetType, false));
+                casts.add(inputColumn.cast(targetType, false, false));
             }
         }
         return requiresCasts ? new EvalProjection(casts) : null;

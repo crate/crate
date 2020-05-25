@@ -87,8 +87,10 @@ public class MinimumAggregationTest extends AggregationTest {
         assertEquals("Ruben", result);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testUnsupportedType() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: min(object)");
         executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}});
     }
 }

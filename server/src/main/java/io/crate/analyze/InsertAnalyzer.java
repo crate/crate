@@ -267,7 +267,7 @@ class InsertAnalyzer {
             Reference targetCol = targetColumns.get(i);
             Symbol source = sources.get(i);
             DataType<?> targetType = targetCol.valueType();
-            if (targetType.id() == DataTypes.UNDEFINED.id() || source.valueType().isConvertableTo(targetType)) {
+            if (targetType.id() == DataTypes.UNDEFINED.id() || source.valueType().isConvertableTo(targetType, false)) {
                 continue;
             }
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -307,7 +307,8 @@ class InsertAnalyzer {
             Symbol valueSymbol = ValueNormalizer.normalizeInputForReference(
                 normalizer.normalize(expressionAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
                 targetCol,
-                targetTable.tableInfo()
+                targetTable.tableInfo(),
+                s -> normalizer.normalize(s, txnCtx)
             );
             updateAssignments.put(targetCol, valueSymbol);
         }

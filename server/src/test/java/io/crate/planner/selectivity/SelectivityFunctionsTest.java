@@ -41,7 +41,6 @@ public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_eq_null_value_is_always_0() {
         SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
-        expressions.context().allowEagerNormalize(false);
         Symbol query = expressions.asSymbol("x = null");
         var numbers = IntStream.range(1, 50)
             .boxed()

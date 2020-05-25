@@ -102,13 +102,17 @@ public final class TransportAnalyzeAction {
             INVOKE_ANALYZE,
             AnalyzeRequest::new,
             ThreadPool.Names.SAME, // goes async right away
-            new NodeActionRequestHandler<>(req -> fetchSamplesThenGenerateAndPublishStats())
+            // Explicit generic is required for eclipse JDT, otherwise it won't compile
+            new NodeActionRequestHandler<AnalyzeRequest, AcknowledgedResponse>(
+                req -> fetchSamplesThenGenerateAndPublishStats()
+            )
         );
         transportService.registerRequestHandler(
             FETCH_SAMPLES,
             FetchSampleRequest::new,
             ThreadPool.Names.SEARCH,
-            new NodeActionRequestHandler<>(
+            // Explicit generic is required for eclipse JDT, otherwise it won't compile
+            new NodeActionRequestHandler<FetchSampleRequest, FetchSampleResponse>(
                 req -> completedFuture(new FetchSampleResponse(
                     reservoirSampler.getSamples(req.relation(), req.columns(), req.maxSamples())))
             )
@@ -117,7 +121,8 @@ public final class TransportAnalyzeAction {
             RECEIVE_TABLE_STATS,
             PublishTableStatsRequest::new,
             ThreadPool.Names.SAME, // cheap operation
-            new NodeActionRequestHandler<>(
+            // Explicit generic is required for eclipse JDT, otherwise it won't compile
+            new NodeActionRequestHandler<PublishTableStatsRequest, AcknowledgedResponse>(
                 req -> {
                     tableStats.updateTableStats(req.tableStats());
                     return completedFuture(new AcknowledgedResponse(true));

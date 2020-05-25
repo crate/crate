@@ -44,7 +44,6 @@ public class NullEliminatorTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws Exception {
         sqlExpressions = new SqlExpressions(T3.sources(clusterService));
-        sqlExpressions.context().allowEagerNormalize(false);
     }
 
     private void assertReplaced(String expression, String expectedString) {
@@ -65,12 +64,13 @@ public class NullEliminatorTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNullsReplaced() throws Exception {
-        assertReplaced("null and x = null", "false and x = null");
-        assertReplaced("null or x = 1 or null", "false or x = 1 or false");
-        assertReplaced("not(null and x = 1)", "not(true and x = 1)");
-        assertReplaced("not(null or not(null and x = 1))", "not(true or not(false and x = 1))");
-        assertReplaced("not(null and x = 1) and not(null or x = 2)", "not(true and x = 1) and not(true or x = 2)");
-        assertReplaced("null or coalesce(null or x = 1, true)", "false or coalesce(null or x = 1, true)");
+        sqlExpressions.context().allowEagerNormalize(false);
+        assertReplaced("null and x = null", "cast(NULL AS boolean) AND (x = cast(NULL AS integer))");
+        assertReplaced("null or x = 1 or null", "(cast(NULL AS boolean) OR (x = cast(1 AS integer))) OR cast(NULL AS boolean)");
+        assertReplaced("not(null and x = 1)", "NOT (cast(NULL AS boolean) AND (x = cast(1 AS integer)))");
+        assertReplaced("not(null or not(null and x = 1))", "NOT (cast(NULL AS boolean) OR (NOT (cast(NULL AS boolean) AND (x = cast(1 AS integer)))))");
+        assertReplaced("not(null and x = 1) and not(null or x = 2)", "(NOT (cast(NULL AS boolean) AND (x = cast(1 AS integer)))) AND (NOT (cast(NULL AS boolean) OR (x = cast(2 AS integer))))");
+        assertReplaced("null or coalesce(null or x = 1, true)", "cast(NULL AS boolean) OR coalesce((cast(NULL AS boolean) OR (x = cast(1 AS integer))), true)");
     }
 
     @Test

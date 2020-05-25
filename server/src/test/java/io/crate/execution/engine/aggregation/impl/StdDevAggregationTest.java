@@ -103,8 +103,10 @@ public class StdDevAggregationTest extends AggregationTest {
         assertEquals(0d, result);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testUnsupportedType() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: stddev(geo_point)");
         executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
     }
 }

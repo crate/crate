@@ -94,7 +94,8 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
 
     private static final FilterValidator FILTER_VALIDATOR = new FilterValidator();
     public static final CrateSetting<String> STATS_JOBS_LOG_FILTER = CrateSetting.of(
-        new Setting<>(
+        // Explicit generic is required for eclipse JDT, otherwise it won't compile
+        new Setting<String>(
             "stats.jobs_log_filter",
             "true",
             Function.identity(),
@@ -104,7 +105,8 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         DataTypes.STRING
     );
     public static final CrateSetting<String> STATS_JOBS_LOG_PERSIST_FILTER = CrateSetting.of(
-        new Setting<>(
+        // Explicit generic is required for eclipse JDT, otherwise it won't compile
+        new Setting<String>(
             "stats.jobs_log_persistent_filter",
             "false",
             Function.identity(),

@@ -63,7 +63,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         AnalyzedUpdateStatement update = e.analyze("update t set x = x + p");
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
             e.functions(),
@@ -102,7 +102,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (y int)")
             .build();
         AnalyzedUpdateStatement update = e.analyze("update t set y = _id::integer * 2");
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
             e.functions(),
@@ -138,7 +138,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x int, obj object as (y as x + 1))")
             .build();
         AnalyzedUpdateStatement update = e.analyze("update t set x = 4");
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
             e.functions(),
@@ -170,7 +170,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x int, gen as current_schema)")
             .build();
         AnalyzedUpdateStatement update = e.analyze("update t set x = 1");
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen sourceGen = new UpdateSourceGen(
             e.functions(),
@@ -194,7 +194,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x int, obj object as (y as 'foo'))")
             .build();
         AnalyzedUpdateStatement update = e.analyze("update t set x = 4, obj = {y='bar'}");
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
             e.functions(),
@@ -227,7 +227,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (x int, obj object as (y as 'foo'))")
             .build();
         AnalyzedUpdateStatement update = e.analyze("update t set x = 4, obj = {y='foo'}");
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
             e.functions(),
@@ -258,7 +258,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (obj object as (x int))")
             .build();
         AnalyzedUpdateStatement update = e.analyze("update t set obj['x'] = 10");
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
             e.functions(),

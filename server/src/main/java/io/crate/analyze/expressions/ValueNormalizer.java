@@ -44,6 +44,7 @@ import io.crate.types.ObjectType;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
 public final class ValueNormalizer {
 
@@ -58,16 +59,15 @@ public final class ValueNormalizer {
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
-    public static Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference, TableInfo tableInfo) {
+    public static Symbol normalizeInputForReference(Symbol valueSymbol,
+                                                    Reference reference,
+                                                    TableInfo tableInfo,
+                                                    Function<Symbol, Symbol> normalizer) {
         assert valueSymbol != null : "valueSymbol must not be null";
 
         DataType<?> targetType = getTargetType(valueSymbol, reference);
-        if (!(valueSymbol instanceof Literal)) {
-            return valueSymbol.cast(targetType);
-        }
-        Literal<?> literal;
         try {
-            literal = (Literal<?>) valueSymbol.cast(reference.valueType());
+            valueSymbol = normalizer.apply(valueSymbol.cast(reference.valueType()));
         } catch (PgArrayParsingException | ConversionException e) {
             throw new ColumnValidationException(
                 reference.column().name(),
@@ -81,9 +81,12 @@ public final class ValueNormalizer {
                 )
             );
         }
-        Object value = literal.value();
+        if (!(valueSymbol instanceof Literal)) {
+            return valueSymbol.cast(targetType);
+        }
+        Object value = ((Literal<?>) valueSymbol).value();
         if (value == null) {
-            return literal;
+            return valueSymbol;
         }
         try {
             if (targetType.id() == ObjectType.ID) {
@@ -99,11 +102,11 @@ public final class ValueNormalizer {
                     Symbols.format(
                     "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" +
                     reference.valueType().getName() + ")",
-                    literal,
+                    valueSymbol,
                     reference
                 ));
         }
-        return literal;
+        return valueSymbol;
     }
 
     private static DataType<?> getTargetType(Symbol valueSymbol, Reference reference) {

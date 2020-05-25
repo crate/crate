@@ -25,9 +25,11 @@ import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -53,9 +55,15 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final RelationName TEST_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "test1");
     private TableInfo userTableInfo;
+    private EvaluatingNormalizer normalizer;
 
     private Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference) {
-        return ValueNormalizer.normalizeInputForReference(valueSymbol, reference, userTableInfo);
+        return ValueNormalizer.normalizeInputForReference(
+            valueSymbol,
+            reference,
+            userTableInfo,
+            s -> normalizer.normalize(s, CoordinatorTxnCtx.systemTransactionContext())
+        );
     }
 
     @Before
@@ -80,6 +88,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
                       "clustered by (id)")
             .build();
         userTableInfo = e.resolveTableInfo("doc.test1");
+        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions());
     }
 
     @Test

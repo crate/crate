@@ -73,8 +73,8 @@ public final class TypeCompatibility {
             lowerPrecedenceArg = arg1;
         }
 
-        final boolean lowerPrecedenceCastable = lowerPrecedenceArg.isConvertableTo(higherPrecedenceArg);
-        final boolean higherPrecedenceCastable = higherPrecedenceArg.isConvertableTo(lowerPrecedenceArg);
+        final boolean lowerPrecedenceCastable = lowerPrecedenceArg.isConvertableTo(higherPrecedenceArg, false);
+        final boolean higherPrecedenceCastable = higherPrecedenceArg.isConvertableTo(lowerPrecedenceArg, false);
 
         if (lowerPrecedenceCastable) {
             return higherPrecedenceArg;

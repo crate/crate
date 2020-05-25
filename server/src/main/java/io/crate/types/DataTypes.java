@@ -81,6 +81,7 @@ public final class DataTypes {
     public static final ArrayType<Integer> INTEGER_ARRAY = new ArrayType<>(INTEGER);
     public static final ArrayType<Short> SHORT_ARRAY = new ArrayType<>(SHORT);
     public static final ArrayType<Long> BIGINT_ARRAY = new ArrayType<>(LONG);
+    public static final ArrayType<Boolean> BOOLEAN_ARRAY = new ArrayType<>(BOOLEAN);
 
     public static final IntervalType INTERVAL = IntervalType.INSTANCE;
 

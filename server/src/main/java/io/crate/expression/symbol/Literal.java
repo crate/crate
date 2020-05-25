@@ -23,7 +23,6 @@
 package io.crate.expression.symbol;
 
 import io.crate.data.Input;
-import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.format.Style;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -135,19 +134,6 @@ public class Literal<T> extends Symbol implements Input<T>, Comparable<Literal<T
     @Override
     public SymbolType symbolType() {
         return SymbolType.LITERAL;
-    }
-
-    @Override
-    public Symbol cast(DataType<?> targetType, boolean tryCast) {
-        if (type.equals(targetType)) {
-            return this;
-        }
-        try {
-            //noinspection unchecked
-            return new Literal<>((DataType<Object>) targetType, targetType.value(value));
-        } catch (IllegalArgumentException | ClassCastException e) {
-            throw new ConversionException(this, targetType);
-        }
     }
 
     @Override

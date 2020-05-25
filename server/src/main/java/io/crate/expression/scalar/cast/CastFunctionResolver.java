@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.cast;
 
 import io.crate.common.collections.Lists2;
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -55,7 +56,7 @@ public class CastFunctionResolver {
     static {
         List<DataType> CAST_FUNC_TYPES = Lists2.concat(
             PRIMITIVE_TYPES,
-            List.of(GEO_SHAPE, GEO_POINT, DataTypes.UNTYPED_OBJECT));
+            List.of(GEO_SHAPE, GEO_POINT, DataTypes.UNTYPED_OBJECT, DataTypes.UNDEFINED));
 
         CAST_SIGNATURES = new HashMap<>((CAST_FUNC_TYPES.size()) * 2);
         for (var type : CAST_FUNC_TYPES) {
@@ -70,8 +71,14 @@ public class CastFunctionResolver {
         return TO_PREFIX + type.getName();
     }
 
-    public static Symbol generateCastFunction(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
-        DataType sourceType = sourceSymbol.valueType();
+    public static Symbol generateCastFunction(Symbol sourceSymbol,
+                                              DataType<?> targetType,
+                                              boolean tryCast,
+                                              boolean explicitCast) {
+        DataType<?> sourceType = sourceSymbol.valueType();
+        if (!sourceType.isConvertableTo(targetType, explicitCast)) {
+            throw new ConversionException(sourceType, targetType);
+        }
         // Currently, it is not possible to resolve a function based on
         // its return type. For instance, it is not possible to generate
         // an object cast function with the object return type which inner
@@ -82,8 +89,8 @@ public class CastFunctionResolver {
         return new Function(
             info,
             createSignature(info),
-            // the null literal is passed as an argument to match the method signature
-            List.of(sourceSymbol, Literal.NULL),
+            // a literal with a NULL value is passed as an argument to match the method signature
+            List.of(sourceSymbol, Literal.of(targetType, null)),
             null);
     }
 
@@ -110,9 +117,9 @@ public class CastFunctionResolver {
         return Signature.scalar(
             functionInfo.ident().fqnName(),
             parseTypeSignature("E"),
-            parseTypeSignature("V"),
+            parseTypeSignature("E"),
             returnTypeSignature
-        ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
+        ).withTypeVariableConstraints(typeVariable("E"));
     }
 
     public static boolean supportsExplicitConversion(DataType returnType) {

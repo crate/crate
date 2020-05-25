@@ -47,9 +47,12 @@ public class UDCService extends AbstractLifecycleComponent {
     public static final CrateSetting<Boolean> UDC_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
         "udc.enabled", true,
         Setting.Property.NodeScope), DataTypes.BOOLEAN);
-    public static final CrateSetting<String> UDC_URL_SETTING = CrateSetting.of(new Setting<>(
+
+    // Explicit generic is required for eclipse JDT, otherwise it won't compile
+    public static final CrateSetting<String> UDC_URL_SETTING = CrateSetting.of(new Setting<String>(
         "udc.url", "https://udc.crate.io/",
         Function.identity(), Setting.Property.NodeScope), DataTypes.STRING);
+
     public static final CrateSetting<TimeValue> UDC_INITIAL_DELAY_SETTING = CrateSetting.of(Setting.positiveTimeSetting(
         "udc.initial_delay", new TimeValue(10, TimeUnit.MINUTES),
         Setting.Property.NodeScope), DataTypes.STRING);

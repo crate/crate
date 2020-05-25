@@ -86,7 +86,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeDoesNotRemoveOrderBy() throws Exception {
-        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER, false);
+        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER, false, false);
         RoutedCollectPhase collect = new RoutedCollectPhase(
             UUID.randomUUID(),
             1,
@@ -108,7 +108,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
 
     @Test
     public void testNormalizePreservesNodePageSizeHint() throws Exception {
-        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER, false);
+        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER, false, false);
         RoutedCollectPhase collect = new RoutedCollectPhase(
             UUID.randomUUID(),
             1,

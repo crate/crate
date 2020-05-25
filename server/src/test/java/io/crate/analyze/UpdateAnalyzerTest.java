@@ -219,7 +219,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(ref, not(instanceOf(DynamicReference.class)));
         assertEquals(DataTypes.LONG, ref.valueType());
 
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         Symbol[] sources = assignments.bindSources(
             ((DocTableInfo) update.table().tableInfo()), Row.EMPTY, SubQueryResults.EMPTY);
         assertThat(sources[0], isLiteral(9L));
@@ -282,7 +282,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new Long[]{1L, 2L, 3L}};
         AnalyzedUpdateStatement update = analyze("update users set name=?, friends=? where other_id=?");
 
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot cast [{}] to type TEXT");
         assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
@@ -293,7 +293,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Object[] params = {new Map[0], 0};
         AnalyzedUpdateStatement update = analyze("update users set friends=? where other_id=0");
 
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         Symbol[] sources = assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
 
 
@@ -401,7 +401,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             }
         };
         AnalyzedUpdateStatement update = analyze("update users set new=? where id=1");
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         Symbol[] sources = assignments.bindSources(
             ((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
 
@@ -420,7 +420,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot cast [a, b] to type TEXT");
-        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.functions());
         assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
     }
 

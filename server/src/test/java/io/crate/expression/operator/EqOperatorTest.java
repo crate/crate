@@ -16,8 +16,8 @@ public class EqOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEqArrayLeftSideIsNull_RightSideNull() throws Exception {
-        assertEvaluate("[ [1, 1], [10] ] = null", null);
-        assertEvaluate("null = [ [1, 1], [10] ]", null);
+        assertEvaluate("[1, 10] = null", null);
+        assertEvaluate("null = [1, 10]", null);
     }
 
     @Test

@@ -96,7 +96,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             assertThat(subQueryColumn, instanceOf(Symbol.class));
             Reference insertColumn = statement.columns().get(i);
             assertThat(
-                subQueryColumn.valueType().isConvertableTo(insertColumn.valueType()),
+                subQueryColumn.valueType().isConvertableTo(insertColumn.valueType(), false),
                 is(true)
             );
         }

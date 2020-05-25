@@ -59,16 +59,12 @@ public class CastFunction extends Scalar<Object, Object> {
                 Signature.builder()
                     .name(new FunctionName(null, function.getKey()))
                     .kind(FunctionInfo.Type.SCALAR)
-                    .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
-                    .argumentTypes(parseTypeSignature("E"), parseTypeSignature("V"))
+                    .typeVariableConstraints(typeVariable("E"))
+                    .argumentTypes(parseTypeSignature("E"), parseTypeSignature("E"))
                     .returnType(function.getValue().getTypeSignature())
                     .build(),
                 (signature, args) -> {
-                    DataType<?> sourceType = args.get(0);
                     DataType<?> targetType = args.get(1);
-                    if (!sourceType.isConvertableTo(targetType)) {
-                        throw new ConversionException(sourceType, targetType);
-                    }
                     return new CastFunction(
                         new FunctionInfo(new FunctionIdent(function.getKey(), args), targetType),
                         signature,
@@ -94,9 +90,6 @@ public class CastFunction extends Scalar<Object, Object> {
                 (signature, args) -> {
                     DataType<?> sourceType = args.get(0);
                     DataType<?> targetType = function.getValue();
-                    if (!sourceType.isConvertableTo(targetType)) {
-                        throw new ConversionException(sourceType, targetType);
-                    }
                     return new CastFunction(
                         new FunctionInfo(new FunctionIdent(function.getKey(), args), targetType),
                         signature,
@@ -115,8 +108,8 @@ public class CastFunction extends Scalar<Object, Object> {
                 Signature.builder()
                     .name(new FunctionName(null, tryCastName))
                     .kind(FunctionInfo.Type.SCALAR)
-                    .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
-                    .argumentTypes(parseTypeSignature("E"), parseTypeSignature("V"))
+                    .typeVariableConstraints(typeVariable("E"))
+                    .argumentTypes(parseTypeSignature("E"), parseTypeSignature("E"))
                     .returnType(function.getValue().getTypeSignature())
                     .build(),
                 (signature, args) -> new CastFunction(
@@ -189,6 +182,10 @@ public class CastFunction extends Scalar<Object, Object> {
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx) {
         Symbol argument = symbol.arguments().get(0);
+        if (argument.valueType().equals(returnType)) {
+            return argument;
+        }
+
         if (argument instanceof Input) {
             Object value = ((Input<?>) argument).value();
             try {

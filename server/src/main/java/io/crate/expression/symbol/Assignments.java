@@ -26,6 +26,9 @@ import io.crate.analyze.ConstraintsValidator;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
@@ -39,6 +42,7 @@ public final class Assignments {
     private final String[] targetNames;
     private final Reference[] targetColumns;
     private final Symbol[] sources;
+    private final EvaluatingNormalizer normalizer;
 
     /**
      * convert assignments into a tuple of fqn column names and the symbols.
@@ -57,7 +61,7 @@ public final class Assignments {
      *
      * @return a tuple or null if the input is null.
      */
-    public static Assignments convert(@Nonnull Map<Reference, ? extends Symbol> assignments) {
+    public static Assignments convert(@Nonnull Map<Reference, ? extends Symbol> assignments, Functions functions) {
         String[] targetNames = new String[assignments.size()];
         Reference[] targetColumns = new Reference[assignments.size()];
         Symbol[] assignmentSymbols = new Symbol[assignments.size()];
@@ -69,13 +73,14 @@ public final class Assignments {
             targetColumns[i] = key;
             i++;
         }
-        return new Assignments(targetNames, targetColumns, assignmentSymbols);
+        return new Assignments(targetNames, targetColumns, assignmentSymbols, functions);
     }
 
-    private Assignments(String[] targetNames, Reference[] targetColumns, Symbol[] sources) {
+    private Assignments(String[] targetNames, Reference[] targetColumns, Symbol[] sources, Functions functions) {
         this.targetNames = targetNames;
         this.targetColumns = targetColumns;
         this.sources = sources;
+        this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
     }
 
     public String[] targetNames() {
@@ -93,7 +98,8 @@ public final class Assignments {
             Symbol source = ValueNormalizer.normalizeInputForReference(
                 binder.apply(sources[i]),
                 targetColumns[i],
-                tableInfo
+                tableInfo,
+                s -> normalizer.normalize(s, CoordinatorTxnCtx.systemTransactionContext())
             );
             if (source instanceof Input) {
                 ConstraintsValidator.validate(

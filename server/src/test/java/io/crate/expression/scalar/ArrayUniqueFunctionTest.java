@@ -105,7 +105,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testConvertNonNumericStringToNumber() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `['foo', 'bar']` of type `text_array` to type `bigint_array`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `bigint`");
         assertEvaluate("array_unique([10, 20], ['foo', 'bar'])", null);
     }
 
