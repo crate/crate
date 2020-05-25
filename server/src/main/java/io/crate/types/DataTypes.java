@@ -164,7 +164,7 @@ public final class DataTypes {
         );
 
     private static final Set<Integer> NUMBER_CONVERSIONS = Stream.concat(
-        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, IP),
+        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, TIME, IP),
         NUMERIC_PRIMITIVE_TYPES.stream()
     ).map(DataType::id).collect(toSet());
 
