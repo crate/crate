@@ -13,8 +13,6 @@ compileJava {
     options.warnings = false
     options.deprecation = false
     options.compilerArgs << '-XDignore.symbol.file'
-
-    finalizedBy checkstyleMain
 }
 
 
