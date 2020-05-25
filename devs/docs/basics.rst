@@ -42,7 +42,7 @@ To compile the CrateDB sources, run::
 
 Run CrateDB like so::
 
-    $ ./gradlew run
+    $ ./gradlew app:run
 
 The ``run`` command will set the HOME to ``sandbox/crate`` and so use the
 configuration files located there.
