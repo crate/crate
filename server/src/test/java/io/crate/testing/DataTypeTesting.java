@@ -104,8 +104,10 @@ public class DataTypeTesting {
             case IntegerType.ID:
                 return () -> (T) (Integer) random.nextInt();
 
-            case LongType.ID:
             case TimeType.ID:
+                return () -> (T) (Long) Math.min(Math.abs(random.nextLong()), TimeType.MAX_MILLIS);
+
+            case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return () -> (T) (Long) random.nextLong();

@@ -37,6 +37,18 @@ public class TimeTypeTest {
     }
 
     @Test
+    public void test_parse_time_midnight_when_ISO_parser_does_not_like_it() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("value [24:00:00.000] is not a valid literal for TimeType");
+        TimeType.parseTime("24:00:00.000");
+    }
+
+    @Test
+    public void test_parse_time_midnight_when_ISO_parser_does_like_it() {
+        assertThat(TimeType.parseTime("240000.000"), is(24 * 60 * 60 * 1000L));
+    }
+
+    @Test
     public void test_parse_time_should_always_ignore_time_zone() {
         assertThat(TimeType.parseTime("01:00:00Z"), is(3600000L));
         assertThat(TimeType.parseTime("01:00:00+00"), is(3600000L));
@@ -79,6 +91,7 @@ public class TimeTypeTest {
         assertThat(fun.apply("000001.000"), is(1000L));
         assertThat(fun.apply("000000.000"), is(0L));
         assertThat(fun.apply("235959.998"), is(24 * 60 * 60 * 1000 - 2L));
+        assertThat(fun.apply("240000.000"), is(24 * 60 * 60 * 1000L));
 
         assertThat(fun.apply("010000"), is(3600000L)); // same as 01:00:00.000
         assertThat(fun.apply("000100"), is(60000L));

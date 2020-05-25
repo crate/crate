@@ -78,7 +78,7 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
     public static final int ID = 19;
     public static final String NAME = "time without time zone";
     public static final TimeType INSTANCE = new TimeType();
-    private static final long MAX_MILLIS = 24 * 60 * 60 * 1000L;
+    public static final int MAX_MILLIS = 24 * 60 * 60 * 1000;
 
 
     @Override
@@ -204,7 +204,7 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
     }
 
     private static long checkRange(long epochMilli) {
-        if (epochMilli < 0 || epochMilli >= MAX_MILLIS) {
+        if (epochMilli < 0 || epochMilli > MAX_MILLIS) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
                 "value [%d] is out of range for TimeType [0, %d]",

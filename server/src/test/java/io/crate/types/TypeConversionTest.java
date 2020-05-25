@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.Function;
 
 import static org.hamcrest.core.Is.is;
 
@@ -81,13 +82,22 @@ public class TypeConversionTest extends CrateUnitTest {
         }, num);
     }
 
-    private Iterable<Integer> integers(final int lower, final int upper, int num) {
-        return new Repeater<>(new Callable<Integer>() {
-            @Override
-            public Integer call() throws Exception {
-                return randomIntBetween(lower, upper);
+    private static Iterable<Integer> integers(final int lower, final int upper, int num) {
+        return new Repeater<>(() -> randomIntBetween(lower, upper), num);
+    }
+
+    private static <T> void testConversion(DataType<?> targetType, Function<Number, T> transform) {
+        for (Integer value : integers(Byte.MIN_VALUE, Byte.MAX_VALUE, 10)) {
+            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(targetType.id())) {
+                var t = DataTypes.fromId(id);
+                if (t.equals(DataTypes.IP)) {
+                    value = Math.abs(value);
+                } else if (t.equals(DataTypes.TIME)) {
+                    value = Math.min(Math.abs(value), DataTypes.TIME.MAX_MILLIS);
+                }
+                t.value(transform.apply(value));
             }
-        }, num);
+        }
     }
 
     @Test
@@ -95,52 +105,18 @@ public class TypeConversionTest extends CrateUnitTest {
         for (Byte byteVal : bytes(10)) {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.BYTE.id())) {
                 var t = DataTypes.fromId(id);
-                if (t.equals(DataTypes.IP)) {
+                if (t.equals(DataTypes.IP) || t.equals(DataTypes.TIME)) {
                     byteVal = (byte) Math.abs(byteVal == Byte.MIN_VALUE ? byteVal >> 1 : byteVal);
                 }
                 t.value(byteVal);
             }
         }
 
-        for (Integer shortVal : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
-            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
-                var t = DataTypes.fromId(id);
-                shortVal = t.equals(DataTypes.IP) ? Math.abs(shortVal) : shortVal;
-                t.value(shortVal.shortValue());
-            }
-        }
-
-        for (Integer intValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
-            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.INTEGER.id())) {
-                var t = DataTypes.fromId(id);
-                intValue = t.equals(DataTypes.IP) ? Math.abs(intValue) : intValue;
-                t.value(intValue);
-            }
-        }
-
-        for (Integer longValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
-            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.LONG.id())) {
-                var t = DataTypes.fromId(id);
-                longValue = t.equals(DataTypes.IP) ? Math.abs(longValue) : longValue;
-                t.value(longValue.longValue());
-            }
-        }
-
-        for (Integer floatValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
-            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.FLOAT.id())) {
-                var t = DataTypes.fromId(id);
-                floatValue = t.equals(DataTypes.IP) ? Math.abs(floatValue) : floatValue;
-                t.value(floatValue.floatValue());
-            }
-        }
-
-        for (Integer doubleValue : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
-            for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.DOUBLE.id())) {
-                var t = DataTypes.fromId(id);
-                doubleValue = t.equals(DataTypes.IP) ? Math.abs(doubleValue) : doubleValue;
-                t.value(doubleValue.doubleValue());
-            }
-        }
+        testConversion(DataTypes.SHORT, (n) -> n.shortValue());
+        testConversion(DataTypes.INTEGER, (n) -> n.intValue());
+        testConversion(DataTypes.LONG, (n) -> n.longValue());
+        testConversion(DataTypes.FLOAT, (n) -> n.floatValue());
+        testConversion(DataTypes.DOUBLE, (n) -> n.doubleValue());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -247,22 +223,25 @@ public class TypeConversionTest extends CrateUnitTest {
 
     @Test
     public void test_time_to_double_conversion() {
-        assertThat(TimeType.INSTANCE.isConvertableTo(DoubleType.INSTANCE),
+        assertThat(TimeType.INSTANCE.isConvertableTo(DoubleType.INSTANCE, false),
                    is(true));
-
-        assertThat(DoubleType.INSTANCE.isConvertableTo(TimeType.INSTANCE),
+        assertThat(DoubleType.INSTANCE.isConvertableTo(TimeType.INSTANCE, false),
                    is(true));
     }
 
     @Test
     public void test_time_to_long_conversion() {
-        assertThat(TimeType.INSTANCE.isConvertableTo(LongType.INSTANCE),
+        assertThat(TimeType.INSTANCE.isConvertableTo(LongType.INSTANCE, false),
+                   is(true));
+        assertThat(LongType.INSTANCE.isConvertableTo(TimeType.INSTANCE, false),
                    is(true));
     }
 
     @Test
     public void test_time_to_string_conversion() {
-        assertThat(TimeType.INSTANCE.isConvertableTo(StringType.INSTANCE),
+        assertThat(TimeType.INSTANCE.isConvertableTo(StringType.INSTANCE, false),
+                   is(true));
+        assertThat(StringType.INSTANCE.isConvertableTo(TimeType.INSTANCE, false),
                    is(true));
     }
 
