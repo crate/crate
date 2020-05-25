@@ -71,6 +71,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
@@ -177,6 +178,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         Settings.Builder builder = Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(SETTING_HTTP_COMPRESSION.getKey(), false)
+            .put(Netty4HttpServerTransport.SETTING_HTTP_WORKER_COUNT.getKey(), 1)
             .put(PSQL_PORT_SETTING.getKey(), 0);
         if (randomBoolean()) {
             builder.put("memory.allocation.type", "off-heap");
