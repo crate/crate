@@ -116,6 +116,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
     private static final Logger LOGGER = LogManager.getLogger(SnapshotsService.class);
 
+    public static final Version SHARD_GEN_IN_REPO_DATA_VERSION = Version.V_4_1_0;
+
     public static final Version NO_REPO_INITIALIZE_VERSION = Version.V_4_1_0;
 
     private final ClusterService clusterService;
@@ -292,7 +294,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         snapshotIndices,
                         System.currentTimeMillis(),
                         repositoryData.getGenId(),
-                        null);
+                        null,
+                        clusterService.state().nodes().getMinNodeVersion().onOrAfter(SHARD_GEN_IN_REPO_DATA_VERSION));
                     initializingSnapshots.add(newSnapshot.snapshot());
                     snapshots = new SnapshotsInProgress(newSnapshot);
                 } else {
