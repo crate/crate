@@ -35,7 +35,6 @@ import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.scalar.SubscriptRecordFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
-import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
@@ -61,9 +60,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-import static io.crate.expression.scalar.cast.CastFunction.CAST_SQL_NAME;
-import static io.crate.expression.scalar.cast.CastFunction.TRY_CAST_SQL_NAME;
-import static io.crate.expression.scalar.cast.CastFunctionResolver.TRY_CAST_PREFIX;
+import static io.crate.expression.scalar.cast.CastFunction.CAST_NAME;
+import static io.crate.expression.scalar.cast.CastFunction.TRY_CAST_NAME;
 import static java.util.Objects.requireNonNull;
 
 public class Function extends Symbol implements Cloneable {
@@ -311,7 +309,8 @@ public class Function extends Symbol implements Cloneable {
             default:
                 if (name.startsWith(AnyOperator.OPERATOR_PREFIX)) {
                     printAnyOperator(builder, style);
-                } else if (CastFunctionResolver.isCastFunction(name)) {
+                } else if (name.equalsIgnoreCase(CAST_NAME) ||
+                           name.equalsIgnoreCase(TRY_CAST_NAME)) {
                     printCastFunction(builder, style);
                 } else if (name.startsWith(Operator.PREFIX)) {
                     printOperator(builder, style, null);
@@ -353,9 +352,6 @@ public class Function extends Symbol implements Cloneable {
     }
 
     private void printCastFunction(StringBuilder builder, Style style) {
-        String prefix = info.ident().name().startsWith(TRY_CAST_PREFIX)
-            ? TRY_CAST_SQL_NAME
-            : CAST_SQL_NAME;
         final String asTypeName;
         DataType<?> dataType = info.returnType();
         if (DataTypes.isArray(dataType)) {
@@ -368,7 +364,7 @@ public class Function extends Symbol implements Cloneable {
         } else {
             asTypeName = " AS " + dataType.getName();
         }
-        builder.append(prefix)
+        builder.append(info.ident().name())
             .append("(");
         builder.append(arguments().get(0).toString(style));
         builder
