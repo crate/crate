@@ -21,23 +21,37 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.BinaryOperator;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.index.mapper.MappedFieldType;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-
-import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.BinaryOperator;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
 
 public class SumAggregation<T extends Number> extends AggregationFunction<T, T> {
 
@@ -170,5 +184,100 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     @Override
     public T removeFromAggregatedState(RamAccounting ramAccounting, T previousAggState, Input[] stateToRemove) {
         return subtraction.apply(previousAggState, returnType.value(stateToRemove[0].value()));
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public DocValueAggregator<?> getDocValueAggregator(List<DataType> argumentTypes, List<MappedFieldType> fieldTypes) {
+        switch (argumentTypes.get(0).id()) {
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+                return new SumLong(fieldTypes.get(0).name());
+
+            case FloatType.ID:
+            case DoubleType.ID:
+                return new SumDouble(fieldTypes.get(0).name());
+
+            default:
+                return null;
+        }
+    }
+
+    static class SumLongState {
+        private long sum = 0L;
+        private boolean hadValue = false;
+    }
+
+    static class SumLong implements DocValueAggregator<SumLongState> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        SumLong(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public SumLongState initialState() {
+            return new SumLongState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(SumLongState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                state.sum = Math.addExact(state.sum, values.nextValue());
+                state.hadValue = true;
+            }
+        }
+
+        @Override
+        public Long partialResult(SumLongState state) {
+            return state.hadValue ? state.sum : null;
+        }
+    }
+
+    static class SumDoubleState {
+
+        private double sum = 0.0;
+        private boolean hadValue = false;
+    }
+
+    static class SumDouble implements DocValueAggregator<SumDoubleState> {
+
+        private final String columnName;
+        private SortedNumericDocValues values;
+
+        SumDouble(String columnName) {
+            this.columnName = columnName;
+        }
+
+        @Override
+        public SumDoubleState initialState() {
+            return new SumDoubleState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReader reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader, columnName);
+        }
+
+        @Override
+        public void apply(SumDoubleState state, int doc) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                state.sum += NumericUtils.sortableLongToDouble(values.nextValue());
+                state.hadValue = true;
+            }
+        }
+
+        @Override
+        public Object partialResult(SumDoubleState state) {
+            return state.hadValue ? state.sum : null;
+        }
     }
 }
