@@ -124,3 +124,7 @@ class S3SnapshotIntegrationTest(unittest.TestCase):
                 c.execute('SELECT COUNT(*) FROM t1')
                 rowcount = c.fetchone()[0]
                 self.assertEqual(rowcount, 3)
+                c.execute('DROP SNAPSHOT r1.s1')
+                c.execute('''SELECT COUNT(*) FROM sys.snapshots WHERE name = 's1' ''')
+                rowcount = c.fetchone()[0]
+                self.assertEqual(rowcount, 0)
