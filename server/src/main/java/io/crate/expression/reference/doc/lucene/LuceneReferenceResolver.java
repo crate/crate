@@ -165,13 +165,13 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case IpType.ID:
                 return new IpColumnReference(fqn);
             case StringType.ID:
-                return new BytesRefColumnReference(fqn, fieldType);
+                return new BytesRefColumnReference(fqn);
             case DoubleType.ID:
-                return new DoubleColumnReference(fqn, fieldType);
+                return new DoubleColumnReference(fqn);
             case BooleanType.ID:
                 return new BooleanColumnReference(fqn);
             case FloatType.ID:
-                return new FloatColumnReference(fqn, fieldType);
+                return new FloatColumnReference(fqn);
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
@@ -179,7 +179,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case IntegerType.ID:
                 return new IntegerColumnReference(fqn);
             case GeoPointType.ID:
-                return new GeoPointColumnReference(fqn, fieldType);
+                return new GeoPointColumnReference(fqn);
             case ArrayType.ID:
                 return DocCollectorExpression.create(toSourceLookup(ref));
             default:

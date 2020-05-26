@@ -30,8 +30,6 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.NumericUtils;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -55,9 +53,7 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        MappedFieldType fieldType = new NumberFieldMapper.NumberFieldType(NumberFieldMapper.NumberType.FLOAT);
-        fieldType.setName(column);
-        FloatColumnReference floatColumn = new FloatColumnReference(column, fieldType);
+        FloatColumnReference floatColumn = new FloatColumnReference(column);
         floatColumn.startCollect(ctx);
         floatColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
