@@ -1,5 +1,4 @@
 apply plugin: 'java'
-apply plugin: 'maven'
 apply plugin: 'de.thetaphi.forbiddenapis'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'checkstyle'
@@ -14,8 +13,6 @@ compileJava {
     options.warnings = false
     options.deprecation = false
     options.compilerArgs << '-XDignore.symbol.file'
-
-    finalizedBy checkstyleMain
 }
 
 
@@ -51,7 +48,7 @@ forbiddenApisMain {
 
 
 checkstyle {
-    toolVersion = "8.30"
+    toolVersion = "8.32"
     def checkstyle_dir = "$rootDir/gradle/checkstyle/"
     configProperties = [
         'checkstyleDir' : checkstyle_dir,
