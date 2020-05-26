@@ -27,21 +27,19 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
+import java.time.temporal.ChronoField;
 import java.util.Locale;
 import java.util.function.Supplier;
 
 /**
- * Represents time as milliseconds from Jan 1st 1970 (EPOCH), ignoring
- * the date portion, the time zone, and storing the value as UTC long.
+ * Represents time as microseconds from midnight, ignoring the time zone
+ * and storing the value as UTC long.
  * <p>
  * Accepts two kinds of literal:
  * <ol>
@@ -49,8 +47,8 @@ import java.util.function.Supplier;
  *      <ul>
  *        <li>short, integer and long values are taken at face value
  *        and range checked.</li>
- *        <li>double and float values are interpreted as seconds.millis
- *        and are range checked. float values loose some precision (milliseconds).
+ *        <li>double and float values are converted to text and parsed
+ *        as defined bellow.
  *        </li>
  *      </ul>
  *    </li>
@@ -68,17 +66,18 @@ import java.util.function.Supplier;
  *    </li>
  * </ol>
  *
- * Precision is milli seconds (10e3 in a second, unlike postgres which is
- * micro seconds 10e6) see TimestampType.
+ * Precision is microseconds (10e6 in a second, unlike TimestampType which is
+ * milli seconds 10e3).
  * <p>
- * Accepted range for time values is 0 .. 86400000 (max number of millis in a day).
+ * Accepted range for time values is 0 .. 86400000000 (max number of micros in a day),
+ * where both extremes are equivalent ('00:00:00:000000', '24:00:00.000000').
  */
 public final class TimeType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
     public static final int ID = 19;
     public static final String NAME = "time without time zone";
     public static final TimeType INSTANCE = new TimeType();
-    public static final int MAX_MILLIS = 24 * 60 * 60 * 1000;
+    public static final long MAX_MICROS = 24 * 60 * 60 * 1000_000L;
 
 
     @Override
@@ -130,13 +129,14 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
             return null;
         }
         if (value instanceof Double) {
-            return checkRange((long) Math.floor(((Number) value).doubleValue() * 1000L));
+            return parseTimeFromFloatingPoint(String.valueOf(((Number) value).doubleValue()));
         }
         if (value instanceof Float) {
-            return checkRange((long) Math.floor(((Number) value).floatValue() * 1000L));
+            return parseTimeFromFloatingPoint(String.valueOf(((Number) value).floatValue()));
         }
         if (value instanceof Long || value instanceof Number) {
-            return checkRange(((Number) value).longValue());
+            long v = ((Number) value).longValue();
+            return parseFormattedTime(String.valueOf(v), 0L, () -> v);
         }
         if (value instanceof String) {
             return parseTime((String) value);
@@ -147,75 +147,98 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
             value));
     }
 
-    public static long parseTime(@Nonnull String time) {
-        try {
-            long epochMilli = Long.parseLong(time);
-            return toEpochMilli(time, 000, () -> epochMilli);
-        } catch (NumberFormatException e0) {
-            try {
-                long epochMilli = (long) Math.floor(Double.parseDouble(time) * 1000L);
-                return toEpochMilli(
-                    time.substring(0, time.indexOf(".")),
-                    Math.floorMod(epochMilli, 1000),
-                    () -> epochMilli);
-            } catch (NumberFormatException e1) {
-                try {
-                    // the time zone is ignored if present
-                    LocalTime lt = LocalTime.parse(time, TIME_PARSER);
-                    return LocalDateTime
-                        .of(ZERO_DATE, lt)
-                        .toInstant(ZoneOffset.UTC)
-                        .toEpochMilli();
-                } catch (DateTimeParseException e2) {
-                    throw new IllegalArgumentException(String.format(
-                        Locale.ENGLISH, "value [%s] is not a valid literal for TimeType", time));
-                }
+    private static long parseTimeFromFloatingPoint(@Nonnull String time) {
+        int dot = time.indexOf(".");
+        String format = time.substring(0, dot);
+        String microsStr = time.substring(dot + 1);
+        int padding = 6 - microsStr.length();
+        if (padding > 0) {
+            StringBuilder sb = new StringBuilder(6);
+            sb.append(microsStr);
+            for (int i = 0; i < padding; i++) {
+                sb.append("0");
             }
+            microsStr = sb.toString();
         }
+        long micros = Integer.valueOf(microsStr);
+        return parseFormattedTime(format, micros, () -> {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,"value [%s] is not a valid literal for TimeType", time));
+        });
     }
 
-    private static long toEpochMilli(@Nonnull String time, int millis, Supplier<Long> defaultSupplier) {
+    private static long parseFormattedTime(@Nonnull String time, long micros, Supplier<Long> defaultSupplier) {
         switch (time.length()) {
             case 6:
                 // hhmmss
                 int hh = Integer.parseInt(time.substring(0, 2));
                 int mm = Integer.parseInt(time.substring(2, 4));
                 int ss = Integer.parseInt(time.substring(4));
-                return toEpochMilli(hh, mm, ss, millis);
+                return toEpochMicro(hh, mm, ss, micros);
 
             case 4:
                 // hhmm
                 hh = Integer.parseInt(time.substring(0, 2));
                 mm = Integer.parseInt(time.substring(2, 4));
-                return toEpochMilli(hh, mm, 0, millis);
+                return toEpochMicro(hh, mm, 0, micros);
 
             case 2:
                 // hh
                 hh = Integer.parseInt(time.substring(0, 2));
-                return toEpochMilli(hh, 0, 0, millis);
+                return toEpochMicro(hh, 0, 0, micros);
 
             default:
                 return checkRange(defaultSupplier.get());
         }
     }
 
-    private static long toEpochMilli(int hh, int mm, int ss, int millis) {
-        return checkRange((((hh * 60 + mm) * 60) + ss) * 1000L + millis);
+    private static long toEpochMicro(int hh, int mm, int ss, long micros) {
+        checkRange("hh", hh, 0, 24);
+        checkRange("mm", mm, 0, 59);
+        checkRange("ss", ss, 0, 59);
+        checkRange("micros", micros, 0, 999999L);
+        return checkRange(((((hh * 60 + mm) * 60) + ss) * 1000_000L + micros));
     }
 
-    private static long checkRange(long epochMilli) {
-        if (epochMilli < 0 || epochMilli > MAX_MILLIS) {
+    private static long checkRange(long epochMicro) {
+        return checkRange(TimeType.class.getSimpleName(), epochMicro, 0, MAX_MICROS);
+    }
+
+    private static long checkRange(String name, long value, long min, long max) {
+        if (value < min || value > max) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
-                "value [%d] is out of range for TimeType [0, %d]",
-                epochMilli, MAX_MILLIS));
+                "value [%d] is out of range for '%s' [0, %d]",
+                value, name, max));
         }
-        return epochMilli;
+        return value;
+    }
+
+    public static long parseTime(@Nonnull String format) {
+        try {
+            long v = Long.parseLong(format);
+            return parseFormattedTime(format, 0L, () -> v);
+        } catch (NumberFormatException e0) {
+            try {
+                Double.parseDouble(format);
+                return parseTimeFromFloatingPoint(format);
+            } catch (NumberFormatException e1) {
+                try {
+                    // the time zone is ignored if present
+                    return LocalTime
+                        .parse(format, TIME_PARSER)
+                        .getLong(ChronoField.MICRO_OF_DAY);
+                } catch (DateTimeParseException e2) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH, "value [%s] is not a valid literal for TimeType", format));
+                }
+            }
+        }
     }
 
     public static String formatTime(@Nonnull Long time) {
-        return LocalDateTime
-            .ofInstant(Instant.ofEpochMilli(time), ZoneOffset.UTC)
+        return LocalTime
+            .ofNanoOfDay(time * 1000L)
             .format(DateTimeFormatter.ISO_LOCAL_TIME);
     }
 

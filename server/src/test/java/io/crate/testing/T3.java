@@ -70,8 +70,7 @@ public class T3 {
         "  i int," +
         "  w bigint," +
         "  ts_z timestamp with time zone," +
-        "  ts timestamp without time zone," +
-        "  t time without time zone" +
+        "  ts timestamp without time zone" +
         ")";
 
     public static final RelationName T1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");

@@ -368,12 +368,6 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_time_without_timezone_type_can_be_casted_to_long() {
-        Symbol symbol = executor.asSymbol("doc.t5.t::long");
-        assertThat(symbol.valueType(), is(DataTypes.LONG));
-    }
-
-    @Test
     public void testBetweenIsEagerlyEvaluatedIfPossible() throws Exception {
         Symbol x = expressions.asSymbol("5 between 1 and 10");
         assertThat(x, isLiteral(true));
