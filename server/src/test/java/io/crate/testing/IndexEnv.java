@@ -22,20 +22,22 @@
 
 package io.crate.testing;
 
-import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
+import static org.mockito.Mockito.mock;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -70,13 +72,8 @@ import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.mockito.Mockito.mock;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.metadata.doc.DocTableInfo;
 
 public final class IndexEnv implements AutoCloseable {
 
@@ -138,7 +135,6 @@ public final class IndexEnv implements AutoCloseable {
             bitsetFilterCache
         );
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, new InternalEngineFactory(), Collections.emptyMap());
-        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
         nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
         luceneReferenceResolver = new LuceneReferenceResolver(
             indexName,
@@ -164,8 +160,7 @@ public final class IndexEnv implements AutoCloseable {
             threadPool,
             new IndicesQueryCache(Settings.EMPTY),
             mapperRegistry,
-            new IndicesFieldDataCache(Settings.EMPTY, mock(IndexFieldDataCache.Listener.class)),
-            namedWriteableRegistry
+            new IndicesFieldDataCache(Settings.EMPTY, mock(IndexFieldDataCache.Listener.class))
         );
         indexFieldDataService = indexService.fieldData();
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());

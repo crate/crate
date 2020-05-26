@@ -92,19 +92,6 @@ public class IndexFieldDataService extends AbstractIndexComponent implements Clo
         ExceptionsHelper.maybeThrowRuntimeAndSuppress(exceptions);
     }
 
-    public synchronized void clearField(final String fieldName) {
-        List<Exception> exceptions = new ArrayList<>(0);
-        final IndexFieldDataCache cache = fieldDataCaches.remove(fieldName);
-        if (cache != null) {
-            try {
-                cache.clear(fieldName);
-            } catch (Exception e) {
-                exceptions.add(e);
-            }
-        }
-        ExceptionsHelper.maybeThrowRuntimeAndSuppress(exceptions);
-    }
-
     public <IFD extends IndexFieldData<?>> IFD getForField(MappedFieldType fieldType) {
         return getForField(fieldType, index().getName());
     }
