@@ -155,13 +155,25 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     @Nullable
     @Override
     protected BatchIterator<Row> getProjectionFusedIterator(RoutedCollectPhase normalizedPhase, CollectTask collectTask) {
-        return GroupByOptimizedIterator.tryOptimizeSingleStringKey(
+        var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
             indexShard,
             table,
             luceneQueryBuilder,
             fieldTypeLookup,
             bigArrays,
             new InputFactory(functions),
+            docInputFactory,
+            normalizedPhase,
+            collectTask
+        );
+        if (it != null) {
+            return it;
+        }
+        return DocValuesAggregates.tryOptimize(
+            indexShard,
+            table,
+            luceneQueryBuilder,
+            fieldTypeLookup,
             docInputFactory,
             normalizedPhase,
             collectTask
