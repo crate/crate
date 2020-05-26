@@ -57,26 +57,4 @@ public interface IndexFieldDataCache {
         default void onRemoval(ShardId shardId, String fieldName, boolean wasEvicted, long sizeInBytes) {
         }
     }
-
-    class None implements IndexFieldDataCache {
-
-        @Override
-        public <FD extends AtomicFieldData, IFD extends IndexFieldData<FD>> FD load(LeafReaderContext context, IFD indexFieldData) throws Exception {
-            return indexFieldData.loadDirect(context);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public <FD extends AtomicFieldData, IFD extends IndexFieldData.Global<FD>> IFD load(DirectoryReader indexReader, IFD indexFieldData) throws Exception {
-            return (IFD) indexFieldData.localGlobalDirect(indexReader);
-        }
-
-        @Override
-        public void clear() {
-        }
-
-        @Override
-        public void clear(String fieldName) {
-        }
-    }
 }

@@ -19,18 +19,6 @@
 
 package org.elasticsearch.index.fielddata;
 
-import org.apache.lucene.util.Accountable;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.index.AbstractIndexComponent;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.fielddata.cache.IndicesFieldDataCache;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,18 +27,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.util.Accountable;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.index.AbstractIndexComponent;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.fielddata.cache.IndicesFieldDataCache;
+
 public class IndexFieldDataService extends AbstractIndexComponent implements Closeable {
-    public static final String FIELDDATA_CACHE_VALUE_NODE = "node";
-    public static final String FIELDDATA_CACHE_KEY = "index.fielddata.cache";
-    public static final Setting<String> INDEX_FIELDDATA_CACHE_KEY = new Setting<>(FIELDDATA_CACHE_KEY, (s) -> FIELDDATA_CACHE_VALUE_NODE, (s) -> {
-        switch (s) {
-            case "node":
-            case "none":
-                return s;
-            default:
-                throw new IllegalArgumentException("failed to parse [" + s + "] must be one of [node,none]");
-        }
-    }, Property.IndexScope);
 
     private final CircuitBreakerService circuitBreakerService;
 
@@ -105,14 +92,7 @@ public class IndexFieldDataService extends AbstractIndexComponent implements Clo
         synchronized (this) {
             cache = fieldDataCaches.get(fieldName);
             if (cache == null) {
-                String cacheType = indexSettings.getValue(INDEX_FIELDDATA_CACHE_KEY);
-                if (FIELDDATA_CACHE_VALUE_NODE.equals(cacheType)) {
-                    cache = indicesFieldDataCache.buildIndexFieldDataCache(listener, index(), fieldName);
-                } else if ("none".equals(cacheType)) {
-                    cache = new IndexFieldDataCache.None();
-                } else {
-                    throw new IllegalArgumentException("cache type not supported [" + cacheType + "] for field [" + fieldName + "]");
-                }
+                cache = indicesFieldDataCache.buildIndexFieldDataCache(listener, index(), fieldName);
                 fieldDataCaches.put(fieldName, cache);
             }
         }
