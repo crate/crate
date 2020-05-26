@@ -24,10 +24,24 @@ package io.crate.integrationtests;
 
 import org.junit.Test;
 
+import io.crate.testing.TestingHelpers;
+
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 
 public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationTest {
+
+    @Test
+    public void test_sum_int() throws Exception {
+        execute("create table tbl (x int)");
+        execute("insert into tbl (x) values (1), (2), (3)");
+        execute("refresh table tbl");
+
+        execute("select sum(x) from tbl");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("6\n")
+        );
+    }
 
     @Test
     public void test_filter_in_aggregate_expr_with_group_by() {
