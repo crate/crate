@@ -81,8 +81,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
     public static class AverageState implements Comparable<AverageState> {
 
-        private double sum = 0;
-        private long count = 0;
+        public double sum = 0;
+        public long count = 0;
 
         public Double value() {
             if (count > 0) {
