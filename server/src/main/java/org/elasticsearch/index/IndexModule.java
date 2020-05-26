@@ -23,7 +23,6 @@ import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SetOnce;
 import io.crate.common.Booleans;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -324,8 +323,7 @@ public final class IndexModule {
             ThreadPool threadPool,
             IndicesQueryCache indicesQueryCache,
             MapperRegistry mapperRegistry,
-            IndicesFieldDataCache indicesFieldDataCache,
-            NamedWriteableRegistry namedWriteableRegistry)
+            IndicesFieldDataCache indicesFieldDataCache)
         throws IOException {
         final IndexEventListener eventListener = freeze();
         IndexSearcherWrapperFactory searcherWrapperFactory = indexSearcherWrapper.get() == null
@@ -359,8 +357,7 @@ public final class IndexModule {
             searcherWrapperFactory,
             mapperRegistry,
             indicesFieldDataCache,
-            indexOperationListeners,
-            namedWriteableRegistry
+            indexOperationListeners
         );
     }
 

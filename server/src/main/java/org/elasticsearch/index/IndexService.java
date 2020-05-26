@@ -28,7 +28,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -99,7 +98,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final IndexCache indexCache;
     private final MapperService mapperService;
     private final NamedXContentRegistry xContentRegistry;
-    private final NamedWriteableRegistry namedWriteableRegistry;
     private final EngineFactory engineFactory;
     private final IndexWarmer warmer;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
@@ -135,12 +133,10 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             IndexModule.IndexSearcherWrapperFactory wrapperFactory,
             MapperRegistry mapperRegistry,
             IndicesFieldDataCache indicesFieldDataCache,
-            List<IndexingOperationListener> indexingOperationListeners,
-            NamedWriteableRegistry namedWriteableRegistry) throws IOException {
+            List<IndexingOperationListener> indexingOperationListeners) throws IOException {
         super(indexSettings);
         this.indexSettings = indexSettings;
         this.xContentRegistry = xContentRegistry;
-        this.namedWriteableRegistry = namedWriteableRegistry;
         this.circuitBreakerService = circuitBreakerService;
         this.mapperService = new MapperService(
             indexSettings,
@@ -918,38 +914,4 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     AsyncGlobalCheckpointTask getGlobalCheckpointTask() {
         return globalCheckpointTask;
     }
-
-    /**
-     * Clears the caches for the given shard id if the shard is still allocated on this node
-     */
-    public boolean clearCaches(boolean queryCache, boolean fieldDataCache, String...fields) {
-        boolean clearedAtLeastOne = false;
-        if (queryCache) {
-            clearedAtLeastOne = true;
-            indexCache.query().clear("api");
-        }
-        if (fieldDataCache) {
-            clearedAtLeastOne = true;
-            if (fields.length == 0) {
-                indexFieldData.clear();
-            } else {
-                for (String field : fields) {
-                    indexFieldData.clearField(field);
-                }
-            }
-        }
-        if (clearedAtLeastOne == false) {
-            if (fields.length == 0) {
-                indexCache.clear("api");
-                indexFieldData.clear();
-            } else {
-                // only clear caches relating to the specified fields
-                for (String field : fields) {
-                    indexFieldData.clearField(field);
-                }
-            }
-        }
-        return clearedAtLeastOne;
-    }
-
 }
