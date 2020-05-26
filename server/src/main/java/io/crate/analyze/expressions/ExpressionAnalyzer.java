@@ -57,7 +57,6 @@ import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.scalar.arithmetic.NegateFunctions;
-import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.Function;
@@ -574,16 +573,11 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitTryCast(TryCast node, ExpressionAnalysisContext context) {
             DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
-
-            if (CastFunctionResolver.supportsExplicitConversion(returnType)) {
-                try {
-                    return node.getExpression().accept(this, context).cast(returnType, true, true);
-                } catch (ConversionException e) {
-                    return Literal.NULL;
-                }
+            try {
+                return node.getExpression().accept(this, context).cast(returnType, true, true);
+            } catch (ConversionException e) {
+                return Literal.NULL;
             }
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "No cast function found for return type %s", returnType.getName()));
         }
 
         @Override
