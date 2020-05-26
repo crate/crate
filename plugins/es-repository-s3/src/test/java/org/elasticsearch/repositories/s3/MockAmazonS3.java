@@ -57,7 +57,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-class MockAmazonS3 extends AbstractAmazonS3 {
+    class MockAmazonS3 extends AbstractAmazonS3 {
 
     private final ConcurrentMap<String, byte[]> blobs;
     private final String bucket;
