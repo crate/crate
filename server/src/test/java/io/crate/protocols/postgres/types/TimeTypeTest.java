@@ -41,7 +41,7 @@ public class TimeTypeTest extends BasePGTypeTest<Long> {
     public void testBinaryRoundTrip() {
         ByteBuf buffer = Unpooled.buffer();
         try {
-            long value = 53005278L;
+            long value = 53005278000L;
             int written = pgType.writeAsBinary(buffer, value);
             int length = buffer.readInt();
             assertThat(written - 4, is(length));
@@ -54,13 +54,13 @@ public class TimeTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(TimeType.INSTANCE.encodeAsUTF8Text(53005278L), StandardCharsets.UTF_8),
+        assertThat(new String(TimeType.INSTANCE.encodeAsUTF8Text(53005278000L), StandardCharsets.UTF_8),
             is("14:43:25.278"));
     }
 
     @Test
     public void testDecodeAsUTF8Text() {
-        assertThat(TimeType.INSTANCE.decodeUTF8Text("14:43:25.278-02".getBytes()), is(53005278L));
+        assertThat(TimeType.INSTANCE.decodeUTF8Text("14:43:25.278-02".getBytes()), is(53005278000L));
     }
 
     @Test
