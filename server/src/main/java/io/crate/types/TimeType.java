@@ -54,7 +54,7 @@ import java.util.function.Supplier;
  *
  * <p>
  *
- * Accepts four kinds of literal:
+ * Accepts three kinds of literal:
  * <ol>
  *    <li>text:
  *      <ul>
@@ -62,14 +62,6 @@ import java.util.function.Supplier;
  *        <li>'hhmm': e.g. '2312', equivalent to '23:12:00'</li>
  *        <li>'hh': e.g. '23', equivalent to '23:00:00'</li>
  *      </ul>
- *    </li>
- *
- *    <li>numeric:
- *      <ul>
- *        <li>integer and long values are first interpreted as
- *        'text'. Failing this they are kept as is, representing
- *        microseconds from midnight, ignoring the time zone
- *        and storing the value as UTC.
  *    </li>
  *
  *    <li>text high precision:
@@ -82,15 +74,6 @@ import java.util.function.Supplier;
  *        <li>'hhmmss.ffffff': e.g. '231221.999', equivalent to '23:12:21.999'</li>
  *        <li>'hhmm.ffffff': e.g. '2312.999', equivalent to '23:12:00.999'</li>
  *        <li>'hh.ffffff': e.g. '23.999', equivalent to '23:00:00.999'</li>
- *      </ul>
- *    </li>
- *
- *    <li>numeric high precision:
- *      <ul>
- *        <li>double and float values are interpreted as
- *        'text high precision'. Failing this, the number is not
- *        accepted as a valid literal for time.
- *        </li>
  *      </ul>
  *    </li>
  *
@@ -143,6 +126,10 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
         }
     }
 
+    private static void checkIsSupportedLiteral(Object value) {
+
+    }
+
     @Override
     public int fixedSize() {
         return LongType.LONG_SIZE;
@@ -153,15 +140,8 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
         if (value == null) {
             return null;
         }
-        if (value instanceof Double) {
-            return parseTimeFromFloatingPoint(String.valueOf(((Number) value).doubleValue()));
-        }
-        if (value instanceof Float) {
-            return parseTimeFromFloatingPoint(String.valueOf(((Number) value).floatValue()));
-        }
-        if (value instanceof Long || value instanceof Number) {
-            long v = ((Number) value).longValue();
-            return parseFormattedTime(String.valueOf(v), 0L, () -> v);
+        if (value instanceof Long) {
+            return checkRange(((Long) value).longValue());
         }
         if (value instanceof String) {
             return parseTime((String) value);
@@ -170,74 +150,6 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
             Locale.ENGLISH,
             "unexpected value [%s] is not a valid literal for type %s",
             value, TimeType.class.getSimpleName()));
-    }
-
-    private static long parseTimeFromFloatingPoint(@Nonnull String time) {
-        int dotIdx = time.indexOf(".");
-        String format = time.substring(0, dotIdx);
-        String micros = time.substring(dotIdx + 1);
-        int padding = 6 - micros.length();
-        if (padding > 0) {
-            StringBuilder sb = new StringBuilder(6);
-            sb.append(micros);
-            for (int i = 0; i < padding; i++) {
-                sb.append("0");
-            }
-            micros = sb.toString();
-        }
-        return parseFormattedTime(format, Integer.valueOf(micros), () -> {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,
-                "value [%s] is not a valid literal for type %s",
-                time, TimeType.class.getSimpleName()));
-        });
-    }
-
-    private static long parseFormattedTime(@Nonnull String time, long micros, Supplier<Long> defaultSupplier) {
-        switch (time.length()) {
-            case 6:
-                // hhmmss
-                int hh = Integer.parseInt(time.substring(0, 2));
-                int mm = Integer.parseInt(time.substring(2, 4));
-                int ss = Integer.parseInt(time.substring(4));
-                return toEpochMicro(hh, mm, ss, micros);
-
-            case 4:
-                // hhmm
-                hh = Integer.parseInt(time.substring(0, 2));
-                mm = Integer.parseInt(time.substring(2, 4));
-                return toEpochMicro(hh, mm, 0, micros);
-
-            case 2:
-                // hh
-                hh = Integer.parseInt(time.substring(0, 2));
-                return toEpochMicro(hh, 0, 0, micros);
-
-            default:
-                return checkRange(defaultSupplier.get());
-        }
-    }
-
-    private static long toEpochMicro(int hh, int mm, int ss, long micros) {
-        checkRange("hh", hh, 0, 24);
-        checkRange("mm", mm, 0, 59);
-        checkRange("ss", ss, 0, 59);
-        checkRange("micros", micros, 0, 999999L);
-        return checkRange(((((hh * 60 + mm) * 60) + ss) * 1000_000L + micros));
-    }
-
-    private static long checkRange(long epochMicro) {
-        return checkRange(TimeType.class.getSimpleName(), epochMicro, 0, MAX_MICROS);
-    }
-
-    private static long checkRange(String name, long value, long min, long max) {
-        if (value < min || value > max) {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,
-                "value [%d] is out of range for '%s' [0, %d]",
-                value, name, max));
-        }
-        return value;
     }
 
     public static long parseTime(@Nonnull String format) {
@@ -271,7 +183,75 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
     private static final DateTimeFormatter TIME_PARSER = new DateTimeFormatterBuilder()
         .append(DateTimeFormatter.ISO_LOCAL_TIME)
         .optionalStart()
-            .appendPattern("[Z][VV][x][xx][xxx]")
+        .appendPattern("[Z][VV][x][xx][xxx]")
         .toFormatter(Locale.ENGLISH)
         .withResolverStyle(ResolverStyle.STRICT);
+
+    private static long parseFormattedTime(@Nonnull String time, long micros, Supplier<Long> defaultSupplier) {
+        switch (time.length()) {
+            case 6:
+                // hhmmss
+                int hh = Integer.parseInt(time.substring(0, 2));
+                int mm = Integer.parseInt(time.substring(2, 4));
+                int ss = Integer.parseInt(time.substring(4));
+                return toEpochMicro(hh, mm, ss, micros);
+
+            case 4:
+                // hhmm
+                hh = Integer.parseInt(time.substring(0, 2));
+                mm = Integer.parseInt(time.substring(2, 4));
+                return toEpochMicro(hh, mm, 0, micros);
+
+            case 2:
+                // hh
+                hh = Integer.parseInt(time.substring(0, 2));
+                return toEpochMicro(hh, 0, 0, micros);
+
+            default:
+                return checkRange(defaultSupplier.get());
+        }
+    }
+
+    private static long parseTimeFromFloatingPoint(@Nonnull String time) {
+        int dotIdx = time.indexOf(".");
+        String format = time.substring(0, dotIdx);
+        String micros = time.substring(dotIdx + 1);
+        int padding = 6 - micros.length();
+        if (padding > 0) {
+            StringBuilder sb = new StringBuilder(6);
+            sb.append(micros);
+            for (int i = 0; i < padding; i++) {
+                sb.append("0");
+            }
+            micros = sb.toString();
+        }
+        return parseFormattedTime(format, Integer.valueOf(micros), () -> {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "value [%s] is not a valid literal for type %s",
+                time, TimeType.class.getSimpleName()));
+        });
+    }
+
+    private static long toEpochMicro(int hh, int mm, int ss, long micros) {
+        checkRange("hh", hh, 0, 24);
+        checkRange("mm", mm, 0, 59);
+        checkRange("ss", ss, 0, 59);
+        checkRange("micros", micros, 0, 999999L);
+        return checkRange(((((hh * 60 + mm) * 60) + ss) * 1000_000L + micros));
+    }
+
+    private static long checkRange(long epochMicro) {
+        return checkRange(TimeType.class.getSimpleName(), epochMicro, 0, MAX_MICROS);
+    }
+
+    private static long checkRange(String name, long value, long min, long max) {
+        if (value < min || value > max) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "value [%d] is out of range for '%s' [0, %d]",
+                value, name, max));
+        }
+        return value;
+    }
 }

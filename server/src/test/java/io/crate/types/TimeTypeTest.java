@@ -156,24 +156,6 @@ public class TimeTypeTest {
         assertThat(fun.apply("000000000"), is(0L));
         assertThat(fun.apply(String.valueOf(24 * 60 * 60 * 1000L - 1L)), is(24 * 60 * 60 * 1000 - 1L));
 
-        assertThat(fun.apply(100000.987), is(36000987000L));
-        assertThat(fun.apply(100100.987), is(36060987000L));
-        assertThat(fun.apply(100003.14159), is(36003141590L));
-        assertThat(fun.apply(100000.321), is(36000321000L));
-
-        // floats drop precision, but you can still use them
-        assertThat(fun.apply(100000.987F), is(36000984000L));
-        assertThat(fun.apply(100100.987F), is(36060984000L));
-        assertThat(fun.apply(100003.14159F), is(36003140000L));
-        assertThat(fun.apply(100000.321F), is(36000320000L));
-
-        assertThat(fun.apply(10000), is(10000L));
-        assertThat(fun.apply(100), is(100L));
-        assertThat(fun.apply(1), is(1L));
-        assertThat(fun.apply(0), is(0L));
-        assertThat(fun.apply(25959), is(25959L));
-        assertThat(fun.apply((short) 144), is(144L));
-
         assertThat(fun.apply("01:00:00Z"), is(3600000000L));
         assertThat(fun.apply("01:00:00+00"), is(3600000000L));
         assertThat(fun.apply("04:00:00-03:00"), is(14400000000L));

@@ -180,7 +180,7 @@ public final class DataTypes {
         entry(DOUBLE.id(), NUMBER_CONVERSIONS),
         entry(BOOLEAN.id(), Set.of(STRING.id())),
         entry(STRING.id(), Stream.concat(
-            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID),
+            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID, TimeType.ID),
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
         entry(IP.id(), Set.of(STRING.id())),
