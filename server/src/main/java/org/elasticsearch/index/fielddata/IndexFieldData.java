@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index.fielddata;
 
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.SortField;
@@ -57,16 +56,6 @@ public interface IndexFieldData<FD extends AtomicFieldData> extends IndexCompone
      * The field name.
      */
     String getFieldName();
-
-    /**
-     * Loads the atomic field data for the reader, possibly cached.
-     */
-    FD load(LeafReaderContext context);
-
-    /**
-     * Loads directly the atomic field data for the reader, ignoring any caching involved.
-     */
-    FD loadDirect(LeafReaderContext context) throws Exception;
 
     /**
      * Returns the {@link SortField} to used for sorting.
@@ -132,15 +121,13 @@ public interface IndexFieldData<FD extends AtomicFieldData> extends IndexCompone
 
     interface Builder {
 
-        IndexFieldData<?> build(IndexSettings indexSettings, MappedFieldType fieldType, IndexFieldDataCache cache,
-                             CircuitBreakerService breakerService, MapperService mapperService);
+        IndexFieldData<?> build(IndexSettings indexSettings,
+                                MappedFieldType fieldType,
+                                CircuitBreakerService breakerService,
+                                MapperService mapperService);
     }
 
     interface Global<FD extends AtomicFieldData> extends IndexFieldData<FD> {
-
-        IndexFieldData<FD> loadGlobal(DirectoryReader indexReader);
-
-        IndexFieldData<FD> localGlobalDirect(DirectoryReader indexReader) throws Exception;
 
     }
 

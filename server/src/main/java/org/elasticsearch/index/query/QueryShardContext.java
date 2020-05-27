@@ -23,13 +23,11 @@ import org.apache.lucene.analysis.Analyzer;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ObjectMapper;
 
 import java.util.Collection;
-import java.util.function.BiFunction;
 
 /**
  * Context object used to create lucene queries on the shard level.
@@ -37,26 +35,19 @@ import java.util.function.BiFunction;
 public class QueryShardContext {
 
     private final MapperService mapperService;
-    private final BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataService;
     private final Index fullyQualifiedIndex;
 
     private boolean allowUnmappedFields;
 
     public QueryShardContext(IndexSettings indexSettings,
-                             BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataLookup,
                              MapperService mapperService) {
         this.mapperService = mapperService;
-        this.indexFieldDataService = indexFieldDataLookup;
         this.allowUnmappedFields = indexSettings.isDefaultAllowUnmappedFields();
         this.fullyQualifiedIndex = indexSettings.getIndex();
     }
 
     public IndexAnalyzers getIndexAnalyzers() {
         return mapperService.getIndexAnalyzers();
-    }
-
-    public <IFD extends IndexFieldData<?>> IFD getForField(MappedFieldType fieldType) {
-        return (IFD) indexFieldDataService.apply(fieldType, fullyQualifiedIndex.getName());
     }
 
     /**

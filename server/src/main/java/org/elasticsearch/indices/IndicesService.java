@@ -19,65 +19,10 @@
 
 package org.elasticsearch.indices;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.util.CollectionUtil;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ResourceAlreadyExistsException;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.routing.RecoverySource;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.io.FileSystemUtils;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.iterable.Iterables;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentType;
-import io.crate.common.io.IOUtils;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.env.ShardLock;
-import org.elasticsearch.env.ShardLockObtainFailedException;
-import org.elasticsearch.gateway.MetaDataStateFormat;
-import org.elasticsearch.gateway.MetaStateService;
-import org.elasticsearch.index.AbstractIndexComponent;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
-import org.elasticsearch.index.engine.EngineFactory;
-import org.elasticsearch.index.engine.InternalEngineFactory;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.shard.IndexEventListener;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexingOperationListener;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.store.IndexStore;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.cluster.IndicesClusterStateService;
-import org.elasticsearch.indices.fielddata.cache.IndicesFieldDataCache;
-import org.elasticsearch.indices.mapper.MapperRegistry;
-import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
-import org.elasticsearch.indices.recovery.RecoveryState;
-import org.elasticsearch.plugins.PluginsService;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.threadpool.ThreadPool;
+import static io.crate.common.collections.MapBuilder.newMapBuilder;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -96,17 +41,67 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
-import static io.crate.common.collections.MapBuilder.newMapBuilder;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.util.CollectionUtil;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ResourceAlreadyExistsException;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.routing.RecoverySource;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.io.FileSystemUtils;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.common.util.iterable.Iterables;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.env.ShardLock;
+import org.elasticsearch.env.ShardLockObtainFailedException;
+import org.elasticsearch.gateway.MetaDataStateFormat;
+import org.elasticsearch.gateway.MetaStateService;
+import org.elasticsearch.index.AbstractIndexComponent;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexModule;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
+import org.elasticsearch.index.engine.EngineFactory;
+import org.elasticsearch.index.engine.InternalEngineFactory;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.shard.IndexEventListener;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexingOperationListener;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.store.IndexStore;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.cluster.IndicesClusterStateService;
+import org.elasticsearch.indices.mapper.MapperRegistry;
+import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
+import org.elasticsearch.indices.recovery.RecoveryState;
+import org.elasticsearch.plugins.PluginsService;
+import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public class IndicesService extends AbstractLifecycleComponent
     implements IndicesClusterStateService.AllocatedIndices<IndexShard, IndexService>, IndexService.ShardStoreDeleter {
@@ -114,8 +109,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private static final Logger LOGGER = LogManager.getLogger(IndicesService.class);
 
     public static final String INDICES_SHARDS_CLOSED_TIMEOUT = "indices.shards_closed_timeout";
-    public static final Setting<TimeValue> INDICES_CACHE_CLEAN_INTERVAL_SETTING =
-        Setting.positiveTimeSetting("indices.cache.cleanup_interval", TimeValue.timeValueMinutes(1), Property.NodeScope);
 
     private final PluginsService pluginsService;
     private final NodeEnvironment nodeEnv;
@@ -123,8 +116,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private final TimeValue shardsClosedTimeout;
     private final AnalysisRegistry analysisRegistry;
     private final IndexScopedSettings indexScopedSettings;
-    private final IndicesFieldDataCache indicesFieldDataCache;
-    private final CacheCleaner cacheCleaner;
     private final ThreadPool threadPool;
     private final CircuitBreakerService circuitBreakerService;
     private final BigArrays bigArrays;
@@ -134,9 +125,7 @@ public class IndicesService extends AbstractLifecycleComponent
     private final Map<Index, List<PendingDelete>> pendingDeletes = new HashMap<>();
     private final AtomicInteger numUncompletedDeletes = new AtomicInteger();
     private final MapperRegistry mapperRegistry;
-    private final NamedWriteableRegistry namedWriteableRegistry;
     private final IndexingMemoryController indexingMemoryController;
-    private final TimeValue cleanInterval;
     private final IndicesQueryCache indicesQueryCache;
     private final MetaStateService metaStateService;
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
@@ -144,8 +133,6 @@ public class IndicesService extends AbstractLifecycleComponent
 
     @Override
     protected void doStart() {
-        // Start thread that will manage cleaning the field data cache periodically
-        threadPool.schedule(this.cacheCleaner, this.cleanInterval, ThreadPool.Names.SAME);
     }
 
     public IndicesService(Settings settings,
@@ -172,7 +159,6 @@ public class IndicesService extends AbstractLifecycleComponent
         this.analysisRegistry = analysisRegistry;
         this.indicesQueryCache = new IndicesQueryCache(settings);
         this.mapperRegistry = mapperRegistry;
-        this.namedWriteableRegistry = namedWriteableRegistry;
         indexingMemoryController = new IndexingMemoryController(
             settings,
             threadPool,
@@ -183,15 +169,6 @@ public class IndicesService extends AbstractLifecycleComponent
         this.circuitBreakerService = circuitBreakerService;
         this.bigArrays = bigArrays;
         this.client = client;
-        this.indicesFieldDataCache = new IndicesFieldDataCache(settings, new IndexFieldDataCache.Listener() {
-            @Override
-            public void onRemoval(ShardId shardId, String fieldName, boolean wasEvicted, long sizeInBytes) {
-                assert sizeInBytes >= 0 : "When reducing circuit breaker, it should be adjusted with a number higher or equal to 0 and not [" + sizeInBytes + "]";
-                circuitBreakerService.getBreaker(CircuitBreaker.FIELDDATA).addWithoutBreaking(-sizeInBytes);
-            }
-        });
-        this.cleanInterval = INDICES_CACHE_CLEAN_INTERVAL_SETTING.get(settings);
-        this.cacheCleaner = new CacheCleaner(indicesFieldDataCache, LOGGER, threadPool, this.cleanInterval);
         this.metaStateService = metaStateService;
         this.engineFactoryProviders = engineFactoryProviders;
 
@@ -234,7 +211,7 @@ public class IndicesService extends AbstractLifecycleComponent
 
     @Override
     protected void doClose() {
-        IOUtils.closeWhileHandlingException(analysisRegistry, indexingMemoryController, indicesFieldDataCache, cacheCleaner, indicesQueryCache);
+        IOUtils.closeWhileHandlingException(analysisRegistry, indexingMemoryController, indicesQueryCache);
     }
 
     /**
@@ -305,14 +282,12 @@ public class IndicesService extends AbstractLifecycleComponent
             }
         };
         finalListeners.add(onStoreClose);
-        final IndexService indexService =
-                createIndexService(
-                        "create index",
-                        indexMetaData,
-                        indicesQueryCache,
-                        indicesFieldDataCache,
-                        finalListeners,
-                        indexingMemoryController);
+        final IndexService indexService = createIndexService(
+            "create index",
+            indexMetaData,
+            indicesQueryCache,
+            finalListeners,
+            indexingMemoryController);
         boolean success = false;
         try {
             indexService.getIndexEventListener().afterIndexCreated(indexService);
@@ -332,7 +307,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private synchronized IndexService createIndexService(final String reason,
                                                          IndexMetaData indexMetaData,
                                                          IndicesQueryCache indicesQueryCache,
-                                                         IndicesFieldDataCache indicesFieldDataCache,
                                                          List<IndexEventListener> builtInListeners,
                                                          IndexingOperationListener... indexingOperationListeners) throws IOException {
         final IndexSettings idxSettings = new IndexSettings(indexMetaData, this.settings, indexScopedSettings);
@@ -360,8 +334,7 @@ public class IndicesService extends AbstractLifecycleComponent
             bigArrays,
             threadPool,
             indicesQueryCache,
-            mapperRegistry,
-            indicesFieldDataCache
+            mapperRegistry
         );
     }
 
@@ -415,13 +388,11 @@ public class IndicesService extends AbstractLifecycleComponent
     public synchronized void verifyIndexMetadata(IndexMetaData metaData, IndexMetaData metaDataUpdate) throws IOException {
         final List<Closeable> closeables = new ArrayList<>();
         try {
-            IndicesFieldDataCache indicesFieldDataCache = new IndicesFieldDataCache(settings, new IndexFieldDataCache.Listener() {});
-            closeables.add(indicesFieldDataCache);
             IndicesQueryCache indicesQueryCache = new IndicesQueryCache(settings);
             closeables.add(indicesQueryCache);
             // this will also fail if some plugin fails etc. which is nice since we can verify that early
             final IndexService service =
-                createIndexService("metadata verification", metaData, indicesQueryCache, indicesFieldDataCache, emptyList());
+                createIndexService("metadata verification", metaData, indicesQueryCache, emptyList());
             closeables.add(() -> service.close("metadata verification", false));
             service.mapperService().merge(metaData, MapperService.MergeReason.MAPPING_RECOVERY, true);
             if (metaData.equals(metaDataUpdate) == false) {
@@ -486,10 +457,6 @@ public class IndicesService extends AbstractLifecycleComponent
         } catch (Exception e) {
             LOGGER.warn(() -> new ParameterizedMessage("failed to remove index {} ([{}][{}])", index, reason, extraInfo), e);
         }
-    }
-
-    public IndicesFieldDataCache getIndicesFieldDataCache() {
-        return indicesFieldDataCache;
     }
 
     public CircuitBreakerService getCircuitBreakerService() {
@@ -917,53 +884,6 @@ public class IndicesService extends AbstractLifecycleComponent
 
     public AnalysisRegistry getAnalysis() {
         return analysisRegistry;
-    }
-
-    /**
-     * FieldDataCacheCleaner is a scheduled Runnable used to clean a Guava cache
-     * periodically. In this case it is the field data cache, because a cache that
-     * has an entry invalidated may not clean up the entry if it is not read from
-     * or written to after invalidation.
-     */
-    private static final class CacheCleaner implements Runnable, Releasable {
-
-        private final IndicesFieldDataCache cache;
-        private final Logger logger;
-        private final ThreadPool threadPool;
-        private final TimeValue interval;
-        private final AtomicBoolean closed = new AtomicBoolean(false);
-
-        CacheCleaner(IndicesFieldDataCache cache, Logger logger, ThreadPool threadPool, TimeValue interval) {
-            this.cache = cache;
-            this.logger = logger;
-            this.threadPool = threadPool;
-            this.interval = interval;
-        }
-
-        @Override
-        public void run() {
-            long startTimeNS = System.nanoTime();
-            if (logger.isTraceEnabled()) {
-                logger.trace("running periodic field data cache cleanup");
-            }
-            try {
-                this.cache.getCache().refresh();
-            } catch (Exception e) {
-                logger.warn("Exception during periodic field data cache cleanup:", e);
-            }
-            if (logger.isTraceEnabled()) {
-                logger.trace("periodic field data cache cleanup finished in {} milliseconds", TimeValue.nsecToMSec(System.nanoTime() - startTimeNS));
-            }
-            // Reschedule itself to run again if not closed
-            if (closed.get() == false) {
-                threadPool.schedule(this, interval, ThreadPool.Names.SAME);
-            }
-        }
-
-        @Override
-        public void close() {
-            closed.compareAndSet(false, true);
-        }
     }
 
     public ByteSizeValue getTotalIndexingBufferBytes() {

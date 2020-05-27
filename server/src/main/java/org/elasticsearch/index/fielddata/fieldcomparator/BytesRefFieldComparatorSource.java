@@ -20,6 +20,7 @@
 package org.elasticsearch.index.fielddata.fieldcomparator;
 
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -27,6 +28,7 @@ import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
@@ -61,10 +63,6 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
         }
     }
 
-    protected SortedBinaryDocValues getValues(LeafReaderContext context) throws IOException {
-        return indexFieldData.load(context).getBytesValues();
-    }
-
     protected void setScorer(Scorable scorer) {
     }
 
@@ -79,8 +77,7 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
 
                 @Override
                 protected SortedDocValues getSortedDocValues(LeafReaderContext context, String field) throws IOException {
-                    final SortedSetDocValues values = ((IndexOrdinalsFieldData) indexFieldData).load(context).getOrdinalsValues();
-                    return sortMode.select(values);
+                    return sortMode.select(DocValues.getSortedSet(context.reader(), field));
                 }
 
                 @Override
@@ -95,7 +92,7 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
 
             @Override
             protected BinaryDocValues getBinaryDocValues(LeafReaderContext context, String field) throws IOException {
-                final SortedBinaryDocValues values = getValues(context);
+                final SortedBinaryDocValues values = FieldData.toString(DocValues.getSortedSet(context.reader(), field));
                 return sortMode.select(values, missingBytes);
             }
 

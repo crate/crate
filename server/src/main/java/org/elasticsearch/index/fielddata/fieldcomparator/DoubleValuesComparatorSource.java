@@ -19,8 +19,12 @@
 
 package org.elasticsearch.index.fielddata.fieldcomparator;
 
+import java.io.IOException;
+
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SortField;
@@ -31,8 +35,6 @@ import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.NumericDoubleValues;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 import org.elasticsearch.search.MultiValueMode;
-
-import java.io.IOException;
 
 /**
  * Comparator source for double values.
@@ -51,10 +53,6 @@ public class DoubleValuesComparatorSource extends IndexFieldData.XFieldComparato
         return SortField.Type.DOUBLE;
     }
 
-    protected SortedNumericDoubleValues getValues(LeafReaderContext context) throws IOException {
-        return indexFieldData.load(context).getDoubleValues();
-    }
-
     protected void setScorer(Scorer scorer) {
     }
 
@@ -68,7 +66,8 @@ public class DoubleValuesComparatorSource extends IndexFieldData.XFieldComparato
         return new FieldComparator.DoubleComparator(numHits, null, null) {
             @Override
             protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
-                final SortedNumericDoubleValues values = getValues(context);
+                SortedNumericDocValues raw = DocValues.getSortedNumeric(context.reader(), field);
+                final SortedNumericDoubleValues values = FieldData.sortableLongBitsToDoubles(raw);
                 final NumericDoubleValues selectedValues = FieldData.replaceMissing(sortMode.select(values), dMissingValue);
                 return selectedValues.getRawDoubleValues();
             }

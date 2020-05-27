@@ -21,16 +21,7 @@ package org.elasticsearch.index.fielddata.plain;
 
 import org.apache.lucene.index.IndexReader;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
-import org.elasticsearch.index.fielddata.IndexNumericFieldData.NumericType;
-import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-
-import java.util.Set;
 
 /** {@link IndexFieldData} impl based on Lucene's doc values. Caching is done on the Lucene side. */
 public abstract class DocValuesIndexFieldData {
@@ -59,32 +50,4 @@ public abstract class DocValuesIndexFieldData {
     public final Index index() {
         return index;
     }
-
-    public static class Builder implements IndexFieldData.Builder {
-        private static final Set<String> BINARY_INDEX_FIELD_NAMES = Set.of(IdFieldMapper.NAME);
-
-        private NumericType numericType;
-
-        public Builder numericType(NumericType type) {
-            this.numericType = type;
-            return this;
-        }
-
-        @Override
-        public IndexFieldData<?> build(IndexSettings indexSettings, MappedFieldType fieldType, IndexFieldDataCache cache,
-                                       CircuitBreakerService breakerService, MapperService mapperService) {
-            // Ignore Circuit Breaker
-            final String fieldName = fieldType.name();
-            if (BINARY_INDEX_FIELD_NAMES.contains(fieldName)) {
-                assert numericType == null;
-                return new BinaryDVIndexFieldData(indexSettings.getIndex(), fieldName);
-            } else if (numericType != null) {
-                return new SortedNumericDVIndexFieldData(indexSettings.getIndex(), fieldName, numericType);
-            } else {
-                return new SortedSetDVOrdinalsIndexFieldData(indexSettings, cache, fieldName, breakerService);
-            }
-        }
-
-    }
-
 }

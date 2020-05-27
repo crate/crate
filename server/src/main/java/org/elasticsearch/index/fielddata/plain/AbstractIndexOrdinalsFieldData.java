@@ -19,23 +19,17 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
-import org.apache.lucene.index.DirectoryReader;
+import java.io.IOException;
+
 import org.apache.lucene.index.FilteredTermsEnum;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.OrdinalMap;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
-import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-
-import java.io.IOException;
 
 public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldData<AtomicOrdinalsFieldData> implements IndexOrdinalsFieldData {
 
@@ -44,54 +38,17 @@ public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldD
     private final int minSegmentSize;
     protected final CircuitBreakerService breakerService;
 
-    protected AbstractIndexOrdinalsFieldData(IndexSettings indexSettings, String fieldName,
-            IndexFieldDataCache cache, CircuitBreakerService breakerService,
-            double minFrequency, double maxFrequency, int minSegmentSize) {
-        super(indexSettings, fieldName, cache);
+    protected AbstractIndexOrdinalsFieldData(IndexSettings indexSettings,
+                                             String fieldName,
+                                             CircuitBreakerService breakerService,
+                                             double minFrequency,
+                                             double maxFrequency,
+                                             int minSegmentSize) {
+        super(indexSettings, fieldName);
         this.breakerService = breakerService;
         this.minFrequency = minFrequency;
         this.maxFrequency = maxFrequency;
         this.minSegmentSize = minSegmentSize;
-    }
-
-    @Override
-    public IndexOrdinalsFieldData loadGlobal(DirectoryReader indexReader) {
-        if (indexReader.leaves().size() <= 1) {
-            // ordinals are already global
-            return this;
-        }
-        boolean fieldFound = false;
-        for (LeafReaderContext context : indexReader.leaves()) {
-            if (context.reader().getFieldInfos().fieldInfo(getFieldName()) != null) {
-                fieldFound = true;
-                break;
-            }
-        }
-        if (fieldFound == false) {
-            // Some directory readers may be wrapped and report different set of fields and use the same cache key.
-            // If a field can't be found then it doesn't mean it isn't there,
-            // so if a field doesn't exist then we don't cache it and just return an empty field data instance.
-            // The next time the field is found, we do cache.
-            try {
-                return GlobalOrdinalsBuilder.buildEmpty(indexSettings, indexReader, this);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        try {
-            return cache.load(indexReader, this);
-        } catch (Exception e) {
-            if (e instanceof ElasticsearchException) {
-                throw (ElasticsearchException) e;
-            } else {
-                throw new ElasticsearchException(e);
-            }
-        }
-    }
-
-    @Override
-    public IndexOrdinalsFieldData localGlobalDirect(DirectoryReader indexReader) throws Exception {
-        return GlobalOrdinalsBuilder.build(indexReader, this, indexSettings, breakerService, logger);
     }
 
     @Override

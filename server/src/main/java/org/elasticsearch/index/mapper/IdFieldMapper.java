@@ -19,34 +19,23 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.lucene.document.Field;
-import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.SortField;
-import org.apache.lucene.search.TermInSetQuery;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.fielddata.AtomicFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
-import org.elasticsearch.index.fielddata.NullValueOrder;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
-import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
-import org.elasticsearch.index.fielddata.plain.PagedBytesIndexFieldData;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.search.MultiValueMode;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.IndexOptions;
+import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.Lucene;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.query.QueryShardContext;
 
 /**
  * A mapper for the _id field. It does nothing since _id is neither indexed nor
@@ -140,99 +129,8 @@ public class IdFieldMapper extends MetadataFieldMapper {
 
         @Override
         public IndexFieldData.Builder fielddataBuilder(String fullyQualifiedIndexName) {
-            if (indexOptions() == IndexOptions.NONE) {
-                throw new IllegalArgumentException("Fielddata access on the _id field is disallowed");
-            }
-            final IndexFieldData.Builder fieldDataBuilder = new PagedBytesIndexFieldData.Builder(
-                    TextFieldMapper.Defaults.FIELDDATA_MIN_FREQUENCY,
-                    TextFieldMapper.Defaults.FIELDDATA_MAX_FREQUENCY,
-                    TextFieldMapper.Defaults.FIELDDATA_MIN_SEGMENT_SIZE);
-            return new IndexFieldData.Builder() {
-                @Override
-                public IndexFieldData<?> build(IndexSettings indexSettings, MappedFieldType fieldType, IndexFieldDataCache cache,
-                        CircuitBreakerService breakerService, MapperService mapperService) {
-                    final IndexFieldData<?> fieldData = fieldDataBuilder.build(indexSettings, fieldType, cache, breakerService, mapperService);
-                    return new IndexFieldData<AtomicFieldData>() {
-
-                        @Override
-                        public Index index() {
-                            return fieldData.index();
-                        }
-
-                        @Override
-                        public String getFieldName() {
-                            return fieldData.getFieldName();
-                        }
-
-                        @Override
-                        public AtomicFieldData load(LeafReaderContext context) {
-                            return wrap(fieldData.load(context));
-                        }
-
-                        @Override
-                        public AtomicFieldData loadDirect(LeafReaderContext context) throws Exception {
-                            return wrap(fieldData.loadDirect(context));
-                        }
-
-                        @Override
-                        public SortField sortField(NullValueOrder nullValueOrder, MultiValueMode sortMode, boolean reverse) {
-                            XFieldComparatorSource source = new BytesRefFieldComparatorSource(this,
-                                                                                              nullValueOrder, sortMode);
-                            return new SortField(getFieldName(), source, reverse);
-                        }
-
-                        @Override
-                        public void clear() {
-                            fieldData.clear();
-                        }
-
-                    };
-                }
-            };
+            throw new IllegalArgumentException("Fielddata access on the _id field is disallowed");
         }
-    }
-
-    private static AtomicFieldData wrap(AtomicFieldData in) {
-        return new AtomicFieldData() {
-
-            @Override
-            public void close() {
-                in.close();
-            }
-
-            @Override
-            public long ramBytesUsed() {
-                return in.ramBytesUsed();
-            }
-
-            @Override
-            public SortedBinaryDocValues getBytesValues() {
-                SortedBinaryDocValues inValues = in.getBytesValues();
-                return new SortedBinaryDocValues() {
-
-                    @Override
-                    public BytesRef nextValue() throws IOException {
-                        BytesRef encoded = inValues.nextValue();
-                        return new BytesRef(Uid.decodeId(
-                                Arrays.copyOfRange(encoded.bytes, encoded.offset, encoded.offset + encoded.length)));
-                    }
-
-                    @Override
-                    public int docValueCount() {
-                        final int count = inValues.docValueCount();
-                        // If the count is not 1 then the impl is not correct as the binary representation
-                        // does not preserve order. But id fields only have one value per doc so we are good.
-                        assert count == 1;
-                        return inValues.docValueCount();
-                    }
-
-                    @Override
-                    public boolean advanceExact(int doc) throws IOException {
-                        return inValues.advanceExact(doc);
-                    }
-                };
-            }
-        };
     }
 
     static MappedFieldType defaultFieldType(IndexSettings indexSettings) {

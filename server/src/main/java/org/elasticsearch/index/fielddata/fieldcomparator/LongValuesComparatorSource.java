@@ -19,6 +19,9 @@
 
 package org.elasticsearch.index.fielddata.fieldcomparator;
 
+import java.io.IOException;
+
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -29,8 +32,6 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.search.MultiValueMode;
-
-import java.io.IOException;
 
 /**
  * Comparator source for long values.
@@ -59,7 +60,7 @@ public class LongValuesComparatorSource extends IndexFieldData.XFieldComparatorS
         return new FieldComparator.LongComparator(numHits, null, null) {
             @Override
             protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
-                final SortedNumericDocValues values = indexFieldData.load(context).getLongValues();
+                final SortedNumericDocValues values = DocValues.getSortedNumeric(context.reader(), field);
                 return FieldData.replaceMissing(sortMode.select(values), dMissingValue);
             }
 

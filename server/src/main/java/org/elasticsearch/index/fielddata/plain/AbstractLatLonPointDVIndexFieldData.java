@@ -53,21 +53,6 @@ public abstract class AbstractLatLonPointDVIndexFieldData extends DocValuesIndex
             super(index, fieldName);
         }
 
-        @Override
-        public AtomicGeoPointFieldData load(LeafReaderContext context) {
-            LeafReader reader = context.reader();
-            FieldInfo info = reader.getFieldInfos().fieldInfo(fieldName);
-            if (info != null) {
-                checkCompatible(info);
-            }
-            return new LatLonPointDVAtomicFieldData(reader, fieldName);
-        }
-
-        @Override
-        public AtomicGeoPointFieldData loadDirect(LeafReaderContext context) throws Exception {
-            return load(context);
-        }
-
         /** helper: checks a fieldinfo and throws exception if its definitely not a LatLonDocValuesField */
         static void checkCompatible(FieldInfo fieldInfo) {
             // dv properties could be "unset", if you e.g. used only StoredField with this same name in the segment.

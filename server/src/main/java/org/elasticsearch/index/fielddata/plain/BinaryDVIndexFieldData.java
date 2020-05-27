@@ -35,16 +35,6 @@ public class BinaryDVIndexFieldData extends DocValuesIndexFieldData implements I
     }
 
     @Override
-    public BinaryDVAtomicFieldData load(LeafReaderContext context) {
-        return new BinaryDVAtomicFieldData(context.reader(), fieldName);
-    }
-
-    @Override
-    public BinaryDVAtomicFieldData loadDirect(LeafReaderContext context) throws Exception {
-        return load(context);
-    }
-
-    @Override
     public SortField sortField(NullValueOrder nullValueOrder, MultiValueMode sortMode, boolean reverse) {
         SortField sortField = new SortedSetSortField(fieldName, reverse,
             sortMode == MultiValueMode.MAX ? SortedSetSelector.Type.MAX : SortedSetSelector.Type.MIN);

@@ -19,36 +19,27 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
+import java.io.IOException;
+
 import org.apache.lucene.codecs.blocktree.FieldReader;
 import org.apache.lucene.codecs.blocktree.Stats;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.PagedBytes;
-import org.apache.lucene.util.packed.PackedInts;
-import org.apache.lucene.util.packed.PackedLongValues;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.RamAccountingTermsEnum;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
-import org.elasticsearch.index.fielddata.ordinals.Ordinals;
-import org.elasticsearch.index.fielddata.ordinals.OrdinalsBuilder;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.search.MultiValueMode;
-
-import java.io.IOException;
 
 public class PagedBytesIndexFieldData extends AbstractIndexOrdinalsFieldData {
 
@@ -66,77 +57,34 @@ public class PagedBytesIndexFieldData extends AbstractIndexOrdinalsFieldData {
         }
 
         @Override
-        public IndexOrdinalsFieldData build(IndexSettings indexSettings, MappedFieldType fieldType,
-                                                               IndexFieldDataCache cache, CircuitBreakerService breakerService, MapperService mapperService) {
-            return new PagedBytesIndexFieldData(indexSettings, fieldType.name(), cache, breakerService,
-                    minFrequency, maxFrequency, minSegmentSize);
+        public IndexOrdinalsFieldData build(IndexSettings indexSettings,
+                                            MappedFieldType fieldType,
+                                            CircuitBreakerService breakerService,
+                                            MapperService mapperService) {
+            return new PagedBytesIndexFieldData(
+                indexSettings,
+                fieldType.name(),
+                breakerService,
+                minFrequency,
+                maxFrequency,
+                minSegmentSize
+            );
         }
     }
 
-    public PagedBytesIndexFieldData(IndexSettings indexSettings, String fieldName,
-                                    IndexFieldDataCache cache, CircuitBreakerService breakerService,
-                                    double minFrequency, double maxFrequency, int minSegmentSize) {
-        super(indexSettings, fieldName, cache, breakerService, minFrequency, maxFrequency, minSegmentSize);
+    public PagedBytesIndexFieldData(IndexSettings indexSettings,
+                                    String fieldName,
+                                    CircuitBreakerService breakerService,
+                                    double minFrequency,
+                                    double maxFrequency,
+                                    int minSegmentSize) {
+        super(indexSettings, fieldName, breakerService, minFrequency, maxFrequency, minSegmentSize);
     }
 
     @Override
     public SortField sortField(NullValueOrder nullValueOrder, MultiValueMode sortMode, boolean reverse) {
         XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, nullValueOrder, sortMode);
         return new SortField(getFieldName(), source, reverse);
-    }
-
-    @Override
-    public AtomicOrdinalsFieldData loadDirect(LeafReaderContext context) throws Exception {
-        LeafReader reader = context.reader();
-        AtomicOrdinalsFieldData data = null;
-
-        PagedBytesEstimator estimator = new PagedBytesEstimator(context, breakerService.getBreaker(CircuitBreaker.FIELDDATA), getFieldName());
-        Terms terms = reader.terms(getFieldName());
-        if (terms == null) {
-            data = AbstractAtomicOrdinalsFieldData.empty();
-            estimator.afterLoad(null, data.ramBytesUsed());
-            return data;
-        }
-
-        final PagedBytes bytes = new PagedBytes(15);
-
-        final PackedLongValues.Builder termOrdToBytesOffset = PackedLongValues.monotonicBuilder(PackedInts.COMPACT);
-        final float acceptableTransientOverheadRatio = OrdinalsBuilder.DEFAULT_ACCEPTABLE_OVERHEAD_RATIO;
-
-        // Wrap the context in an estimator and use it to either estimate
-        // the entire set, or wrap the TermsEnum so it can be calculated
-        // per-term
-
-        TermsEnum termsEnum = estimator.beforeLoad(terms);
-        boolean success = false;
-
-        try (OrdinalsBuilder builder = new OrdinalsBuilder(reader.maxDoc(), acceptableTransientOverheadRatio)) {
-            PostingsEnum docsEnum = null;
-            for (BytesRef term = termsEnum.next(); term != null; term = termsEnum.next()) {
-                final long termOrd = builder.nextOrdinal();
-                assert termOrd == termOrdToBytesOffset.size();
-                termOrdToBytesOffset.add(bytes.copyUsingLengthPrefix(term));
-                docsEnum = termsEnum.postings(docsEnum, PostingsEnum.NONE);
-                for (int docId = docsEnum.nextDoc(); docId != DocIdSetIterator.NO_MORE_DOCS; docId = docsEnum.nextDoc()) {
-                    builder.addDoc(docId);
-                }
-            }
-            PagedBytes.Reader bytesReader = bytes.freeze(true);
-            final Ordinals ordinals = builder.build();
-
-            data = new PagedBytesAtomicFieldData(bytesReader, termOrdToBytesOffset.build(), ordinals);
-            success = true;
-            return data;
-        } finally {
-            if (!success) {
-                // If something went wrong, unwind any current estimations we've made
-                estimator.afterLoad(termsEnum, 0);
-            } else {
-                // Call .afterLoad() to adjust the breaker now that we have an exact size
-                estimator.afterLoad(termsEnum, data.ramBytesUsed());
-            }
-
-        }
     }
 
     /**

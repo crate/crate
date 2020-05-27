@@ -45,20 +45,6 @@ public class BytesBinaryDVIndexFieldData extends DocValuesIndexFieldData impleme
         throw new IllegalArgumentException("can't sort on binary field");
     }
 
-    @Override
-    public BytesBinaryDVAtomicFieldData load(LeafReaderContext context) {
-        try {
-            return new BytesBinaryDVAtomicFieldData(DocValues.getBinary(context.reader(), fieldName));
-        } catch (IOException e) {
-            throw new IllegalStateException("Cannot load doc values", e);
-        }
-    }
-
-    @Override
-    public BytesBinaryDVAtomicFieldData loadDirect(LeafReaderContext context) throws Exception {
-        return load(context);
-    }
-
     public static class Builder implements IndexFieldData.Builder {
 
         @Override

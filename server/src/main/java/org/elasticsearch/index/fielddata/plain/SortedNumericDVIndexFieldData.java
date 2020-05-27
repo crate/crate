@@ -107,12 +107,6 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
         return numericType;
     }
 
-    @Override
-    public AtomicNumericFieldData loadDirect(LeafReaderContext context) throws Exception {
-        return load(context);
-    }
-
-    @Override
     public AtomicNumericFieldData load(LeafReaderContext context) {
         final LeafReader reader = context.reader();
         final String field = fieldName;

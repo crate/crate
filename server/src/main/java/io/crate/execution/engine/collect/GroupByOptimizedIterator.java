@@ -52,6 +52,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
+
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
@@ -183,7 +185,6 @@ final class GroupByOptimizedIterator {
             return getIterator(
                 bigArrays,
                 indexSearcher,
-                leaf -> keyIndexFieldData.load(leaf).getOrdinalsValues(),
                 keyIndexFieldData.getFieldName(),
                 aggregations,
                 expressions,
@@ -203,7 +204,6 @@ final class GroupByOptimizedIterator {
 
     static BatchIterator<Row> getIterator(BigArrays bigArrays,
                                           IndexSearcher indexSearcher,
-                                          Function<LeafReaderContext, SortedSetDocValues> ordinalsFunction,
                                           String keyColumnName,
                                           List<AggregationContext> aggregations,
                                           List<? extends LuceneCollectorExpression<?>> expressions,
@@ -231,7 +231,6 @@ final class GroupByOptimizedIterator {
                             applyAggregatesGroupedByKey(
                                 bigArrays,
                                 indexSearcher,
-                                ordinalsFunction,
                                 keyColumnName,
                                 aggregations,
                                 expressions,
@@ -284,7 +283,6 @@ final class GroupByOptimizedIterator {
 
     private static Map<BytesRef, Object[]> applyAggregatesGroupedByKey(BigArrays bigArrays,
                                                                        IndexSearcher indexSearcher,
-                                                                       Function<LeafReaderContext, SortedSetDocValues> ordinalsFunction,
                                                                        String keyColumnName,
                                                                        List<AggregationContext> aggregations,
                                                                        List<? extends LuceneCollectorExpression<?>> expressions,
@@ -310,7 +308,7 @@ final class GroupByOptimizedIterator {
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                 expressions.get(i).setNextReader(leaf);
             }
-            SortedSetDocValues values = ordinalsFunction.apply(leaf);
+            SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {
                 DocIdSetIterator docs = scorer.iterator();
                 Bits liveDocs = leaf.reader().getLiveDocs();

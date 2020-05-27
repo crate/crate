@@ -19,21 +19,9 @@
 
 package org.elasticsearch.index.fielddata;
 
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.OrdinalMap;
-
-
 /**
  * Specialization of {@link IndexFieldData} for data that is indexed with ordinals.
  */
 public interface IndexOrdinalsFieldData extends IndexFieldData.Global<AtomicOrdinalsFieldData> {
-
-    /**
-     * Load a global view of the ordinals for the given {@link IndexReader},
-     * potentially from a cache.
-     */
-    @Override
-    IndexOrdinalsFieldData loadGlobal(DirectoryReader indexReader);
 
 }
