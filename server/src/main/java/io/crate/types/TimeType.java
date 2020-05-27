@@ -27,7 +27,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -38,39 +37,65 @@ import java.util.Locale;
 import java.util.function.Supplier;
 
 /**
- * Represents time as microseconds from midnight, ignoring the time zone
- * and storing the value as UTC long.
+ * Represents time as microseconds from midnight, ignoring the time
+ * zone and storing the value as UTC <b>long</b>.
+ *
  * <p>
- * Accepts two kinds of literal:
+ *
+ * There are 1000_000 microseconds in one second:
+ *
+ * <pre>
+ *     (24 * 3600 + 59 * 60 + 59) * 1000_000L > Integer.MAX_VALUE
+ * </pre>
+ *
+ * Thus the range for time values is 0 .. 86400000000 (max number
+ * of micros in a day), where both extremes are equivalent to
+ * '00:00:00:000000' and '24:00:00.000000' respectively.
+ *
+ * <p>
+ *
+ * Accepts four kinds of literal:
  * <ol>
- *    <li><b>numeric:</b>
+ *    <li>text:
  *      <ul>
- *        <li>short, integer and long values are taken at face value
- *        and range checked.</li>
- *        <li>double and float values are converted to text and parsed
- *        as defined bellow.
+ *        <li>'hhmmss': e.g. '232121', equivalent to '23:12:21'</li>
+ *        <li>'hhmm': e.g. '2312', equivalent to '23:12:00'</li>
+ *        <li>'hh': e.g. '23', equivalent to '23:00:00'</li>
+ *      </ul>
+ *    </li>
+ *
+ *    <li>numeric:
+ *      <ul>
+ *        <li>integer and long values are first interpreted as
+ *        'text'. Failing this they are kept as is, representing
+ *        microseconds from midnight, ignoring the time zone
+ *        and storing the value as UTC.
+ *    </li>
+ *
+ *    <li>text high precision:
+ *      <p>
+ *      Expects up to six digits after the floating point (number of
+ *      micro seconds), and it will right pad with zeroes if this is
+ *      not the case. For instance the examples below are all padded
+ *      to 999000 micro seconds.
+ *      <ul>
+ *        <li>'hhmmss.ffffff': e.g. '231221.999', equivalent to '23:12:21.999'</li>
+ *        <li>'hhmm.ffffff': e.g. '2312.999', equivalent to '23:12:00.999'</li>
+ *        <li>'hh.ffffff': e.g. '23.999', equivalent to '23:00:00.999'</li>
+ *      </ul>
+ *    </li>
+ *
+ *    <li>numeric high precision:
+ *      <ul>
+ *        <li>double and float values are interpreted as
+ *        'text high precision'. Failing this, the number is not
+ *        accepted as a valid literal for time.
  *        </li>
  *      </ul>
  *    </li>
  *
- *    <li>text:
- *      <ul>
- *        <li>hhmmss: e.g. 23:12:21</li>
- *        <li>hhmm: e.g. 23:12:00</li>
- *        <li>hh: e.g. 23:00:00</li>
- *        <li>hhmmss.ffffff: e.g. 23:12:21.999</li>
- *        <li>hhmm.ffffff: e.g. 23:12:00.999</li>
- *        <li>hh.ffffff: e.g. 23:00:00.999</li>
- *        <li>any ISO-8601 extended local time format</li>
- *      </ul>
- *    </li>
+ *    <li>All ISO-8601 extended local time format.</li>
  * </ol>
- *
- * Precision is microseconds (10e6 in a second, unlike TimestampType which is
- * milli seconds 10e3).
- * <p>
- * Accepted range for time values is 0 .. 86400000000 (max number of micros in a day),
- * where both extremes are equivalent ('00:00:00:000000', '24:00:00.000000').
  */
 public final class TimeType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
@@ -143,27 +168,28 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
         }
         throw new IllegalArgumentException(String.format(
             Locale.ENGLISH,
-            "unexpected value [%s] is not a valid literal for TimeType",
-            value));
+            "unexpected value [%s] is not a valid literal for type %s",
+            value, TimeType.class.getSimpleName()));
     }
 
     private static long parseTimeFromFloatingPoint(@Nonnull String time) {
-        int dot = time.indexOf(".");
-        String format = time.substring(0, dot);
-        String microsStr = time.substring(dot + 1);
-        int padding = 6 - microsStr.length();
+        int dotIdx = time.indexOf(".");
+        String format = time.substring(0, dotIdx);
+        String micros = time.substring(dotIdx + 1);
+        int padding = 6 - micros.length();
         if (padding > 0) {
             StringBuilder sb = new StringBuilder(6);
-            sb.append(microsStr);
+            sb.append(micros);
             for (int i = 0; i < padding; i++) {
                 sb.append("0");
             }
-            microsStr = sb.toString();
+            micros = sb.toString();
         }
-        long micros = Integer.valueOf(microsStr);
-        return parseFormattedTime(format, micros, () -> {
+        return parseFormattedTime(format, Integer.valueOf(micros), () -> {
             throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,"value [%s] is not a valid literal for TimeType", time));
+                Locale.ENGLISH,
+                "value [%s] is not a valid literal for type %s",
+                time, TimeType.class.getSimpleName()));
         });
     }
 
@@ -248,6 +274,4 @@ public final class TimeType extends DataType<Long> implements FixedWidthType, St
             .appendPattern("[Z][VV][x][xx][xxx]")
         .toFormatter(Locale.ENGLISH)
         .withResolverStyle(ResolverStyle.STRICT);
-
-    private static final LocalDate ZERO_DATE = LocalDate.of(1970, 1, 1);
 }
