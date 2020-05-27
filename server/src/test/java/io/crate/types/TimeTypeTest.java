@@ -1,19 +1,11 @@
 package io.crate.types;
 
-import org.junit.Rule;
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import java.util.function.Function;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
-public class TimeTypeTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class TimeTypeTest extends CrateUnitTest {
 
     @Test
     public void test_parse_time_range_overflow() {
@@ -27,6 +19,13 @@ public class TimeTypeTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("value [-86400000000] is out of range for 'TimeType' [0, 86400000000]");
         TimeType.parseTime(String.valueOf(-24 * 3600 * 1000_000L));
+    }
+
+    @Test
+    public void test_parse_time_unsupported_literal_floating_point() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("value [234.9999] is not a valid literal for type TimeType");
+        TimeType.parseTime("234.9999");
     }
 
     @Test
@@ -98,18 +97,6 @@ public class TimeTypeTest {
     }
 
     @Test
-    public void test_parse_time_should_always_ignore_time_zone() {
-        assertThat(TimeType.parseTime("01:00:00Z"), is(3600000000L));
-        assertThat(TimeType.parseTime("01:00:00+00"), is(3600000000L));
-        assertThat(TimeType.parseTime("04:00:00-03:00"), is(14400000000L));
-        assertThat(TimeType.parseTime("04:00:00+0300"), is(14400000000L));
-        assertThat(TimeType.parseTime("04:00:00+03:00"), is(14400000000L));
-        assertThat(TimeType.parseTime("04:00:00.123456789+03:00"), is(14400123456L));
-        assertThat(TimeType.parseTime("04:00:00+0000"), is(14400000000L));
-        assertThat(TimeType.parseTime("04:00:00.123456789-0000"), is(14400123456L));
-    }
-
-    @Test
     public void test_parse_time_no_time_zone_explicitly_mentioned() {
         assertThat(TimeType.parseTime("04:00:00"), is(14400000000L));
         assertThat(TimeType.parseTime("14400000"), is(14400000L));
@@ -124,45 +111,49 @@ public class TimeTypeTest {
     }
 
     @Test
-    public void test_value() {
+    public void test_value_null() {
+        assertNull(TimeType.INSTANCE.value(null));
+    }
 
-        Function<Object, Long> fun = TimeType.INSTANCE::value;
+    @Test
+    public void test_value_ISO_formats_with_time_zone() {
+        assertThat(TimeType.INSTANCE.value("01:00:00Z"), is(3600000000L));
+        assertThat(TimeType.INSTANCE.value("01:00:00+00"), is(3600000000L));
+        assertThat(TimeType.INSTANCE.value("04:00:00-03:00"), is(14400000000L));
+        assertThat(TimeType.INSTANCE.value("04:00:00+0300"), is(14400000000L));
+        assertThat(TimeType.INSTANCE.value("04:00:00+03:00"), is(14400000000L));
+        assertThat(TimeType.INSTANCE.value("04:00:00.123456789+03:00"), is(14400123456L));
+        assertThat(TimeType.INSTANCE.value("04:00:00+0000"), is(14400000000L));
+        assertThat(TimeType.INSTANCE.value("04:00:00.123456789-0000"), is(14400123456L));
+    }
 
-        assertNull(fun.apply(null));
-        assertThat(fun.apply("01:00:00.000"), is(3600000000L));
-        assertThat(fun.apply("00:01:00.000"), is(60000000L));
-        assertThat(fun.apply("00:00:01.000"), is(1000000L));
-        assertThat(fun.apply("00:00:00.000"), is(0L));
-        assertThat(fun.apply("23:59:59.999998"), is(24 * 60 * 60 * 1000_000L - 2L));
+    @Test
+    public void test_value_ISO_formats_without_time_zone() {
+        assertThat(TimeType.INSTANCE.value("01:00:00.000"), is(3600000000L));
+        assertThat(TimeType.INSTANCE.value("00:00:00.000"), is(0L));
+        assertThat(TimeType.INSTANCE.value("23:59:59.999998"), is(24 * 60 * 60 * 1000_000L - 2L));
+    }
 
-        assertThat(fun.apply("010000.000"), is(3600000000L));
-        assertThat(fun.apply("000100.000"), is(60000000L));
-        assertThat(fun.apply("000001.000"), is(1000000L));
-        assertThat(fun.apply("000000.000"), is(0L));
-        assertThat(fun.apply("235959.999998"), is(24 * 60 * 60 * 1000_000L - 2L));
+    @Test
+    public void test_value_short_hand_format_floating_point() {
+        assertThat(TimeType.INSTANCE.value("010000.000"), is(3600000000L));
+        assertThat(TimeType.INSTANCE.value("000000.000"), is(0L));
+        assertThat(TimeType.INSTANCE.value("235959.999998"), is(24 * 60 * 60 * 1000_000L - 2L));
+        assertThat(TimeType.INSTANCE.value("235959.998"), is(24 * 60 * 60 * 1000_000L - 2000L));
+        assertThat(TimeType.INSTANCE.value("240000.000"), is(24 * 60 * 60 * 1000_000L));
+    }
 
-        assertThat(fun.apply("235959.998"), is(24 * 60 * 60 * 1000_000L - 2000L));
-        assertThat(fun.apply("240000.000"), is(24 * 60 * 60 * 1000_000L));
+    @Test
+    public void test_value_short_hand_format_long() {
+        assertThat(TimeType.INSTANCE.value("010000"), is(3600000000L)); // same as 01:00:00.000
+        assertThat(TimeType.INSTANCE.value("000000"), is(0L));
+        assertThat(TimeType.INSTANCE.value("235959"), is(24 * 60 * 60 * 1000_000L - 1000_000L));
+    }
 
-        assertThat(fun.apply("010000"), is(3600000000L)); // same as 01:00:00.000
-        assertThat(fun.apply("000100"), is(60000000L));
-        assertThat(fun.apply("000001"), is(1000000L));
-        assertThat(fun.apply("000000"), is(0L));
-        assertThat(fun.apply("235959"), is(24 * 60 * 60 * 1000_000L - 1000_000L));
-
-        assertThat(fun.apply("010000000"), is(10000000L));
-        assertThat(fun.apply("000100000"), is(100000L));
-        assertThat(fun.apply("000001000"), is(1000L));
-        assertThat(fun.apply("000000000"), is(0L));
-        assertThat(fun.apply(String.valueOf(24 * 60 * 60 * 1000L - 1L)), is(24 * 60 * 60 * 1000 - 1L));
-
-        assertThat(fun.apply("01:00:00Z"), is(3600000000L));
-        assertThat(fun.apply("01:00:00+00"), is(3600000000L));
-        assertThat(fun.apply("04:00:00-03:00"), is(14400000000L));
-        assertThat(fun.apply("04:00:00+0300"), is(14400000000L));
-        assertThat(fun.apply("04:00:00+03:00"), is(14400000000L));
-        assertThat(fun.apply("04:00:00.123456789+03:00"), is(14400123456L));
-        assertThat(fun.apply("04:00:00+0000"), is(14400000000L));
-        assertThat(fun.apply("04:00:00.123456789-0000"), is(14400123456L));
+    @Test
+    public void test_value_is_a_long_in_range() {
+        assertThat(TimeType.INSTANCE.value("010000000"), is(10000000L));
+        assertThat(TimeType.INSTANCE.value("000000000"), is(0L));
+        assertThat(TimeType.INSTANCE.value(String.valueOf(24 * 60 * 60 * 1000L - 1L)), is(24 * 60 * 60 * 1000 - 1L));
     }
 }
