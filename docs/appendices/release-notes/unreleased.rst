@@ -198,5 +198,8 @@ Performance improvements
 Fixes
 =====
 
+- Fixed an issue that caused the ``ANALYZE`` statement to fail if there are
+  tables with object arrays in the cluster.
+
 - Fixed a performance issue that can lead to queries like ``SELECT text_column
   FROM tbl GROUP BY 1`` to run more than 150% faster.
