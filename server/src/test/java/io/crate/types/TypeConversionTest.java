@@ -261,25 +261,25 @@ public class TypeConversionTest extends CrateUnitTest {
     @Test
     public void test_time_to_double_conversion() {
         assertThat(TimeType.INSTANCE.isConvertableTo(DoubleType.INSTANCE, false),
-                   is(true));
+                   is(false));
         assertThat(DoubleType.INSTANCE.isConvertableTo(TimeType.INSTANCE, false),
-                   is(true));
+                   is(false));
     }
 
     @Test
     public void test_time_to_long_conversion() {
         assertThat(TimeType.INSTANCE.isConvertableTo(LongType.INSTANCE, false),
-                   is(true));
+                   is(false));
         assertThat(LongType.INSTANCE.isConvertableTo(TimeType.INSTANCE, false),
-                   is(true));
+                   is(false));
     }
 
     @Test
     public void test_time_to_string_conversion() {
         assertThat(TimeType.INSTANCE.isConvertableTo(StringType.INSTANCE, false),
-                   is(true));
+                   is(false));
         assertThat(StringType.INSTANCE.isConvertableTo(TimeType.INSTANCE, false),
-                   is(true));
+                   is(false));
     }
 
     @Test
