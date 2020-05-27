@@ -35,6 +35,7 @@ import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.scalar.SubscriptRecordFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
@@ -166,7 +167,7 @@ public class Function extends Symbol implements Cloneable {
     }
 
     @Override
-    public Symbol cast(DataType<?> targetType, boolean tryCast, boolean explicitCast) {
+    public Symbol cast(DataType<?> targetType, CastMode... modes) {
         if (targetType instanceof ArrayType && info.ident().name().equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
              * This allows us to do proper type inference for inserts/updates where there are assignments like
@@ -175,18 +176,18 @@ public class Function extends Symbol implements Cloneable {
              * or
              *      some_array = array_cat([?, ?], [1, 2])
              */
-            return castArrayElements(targetType, tryCast, explicitCast);
+            return castArrayElements(targetType, modes);
         } else {
-            return super.cast(targetType, tryCast, explicitCast);
+            return super.cast(targetType, modes);
         }
     }
 
-    private Symbol castArrayElements(DataType<?> newDataType, boolean tryCast, boolean explicitCast) {
+    private Symbol castArrayElements(DataType<?> newDataType, CastMode... modes) {
         DataType<?> innerType = ((ArrayType<?>) newDataType).innerType();
         ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
         for (Symbol arg : arguments) {
             try {
-                newArgs.add(arg.cast(innerType, tryCast, explicitCast));
+                newArgs.add(arg.cast(innerType, modes));
             } catch (ConversionException e) {
                 throw new ConversionException(info.returnType(), newDataType);
             }

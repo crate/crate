@@ -121,7 +121,7 @@ public final class InsertFromSubQueryPlanner {
                 casts.add(inputColumn);
             } else {
                 requiresCasts = true;
-                casts.add(inputColumn.cast(targetType, false, false));
+                casts.add(inputColumn.cast(targetType));
             }
         }
         return requiresCasts ? new EvalProjection(casts) : null;
