@@ -57,6 +57,7 @@ import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.scalar.arithmetic.NegateFunctions;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.Function;
@@ -408,7 +409,7 @@ public class ExpressionAnalyzer {
             if (targetType.id() == UndefinedType.ID) {
                 castList.add(symbolToCast);
             } else {
-                castList.add(symbolToCast.cast(targetType, false, false));
+                castList.add(symbolToCast.cast(targetType));
             }
         }
         return castList;
@@ -567,14 +568,25 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
             DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
-            return node.getExpression().accept(this, context).cast(returnType, false, true);
+            return node.getExpression()
+                .accept(this, context)
+                .cast(
+                    returnType,
+                    CastMode.EXPLICIT
+                );
         }
 
         @Override
         protected Symbol visitTryCast(TryCast node, ExpressionAnalysisContext context) {
             DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
             try {
-                return node.getExpression().accept(this, context).cast(returnType, true, true);
+                return node.getExpression()
+                    .accept(this, context)
+                    .cast(
+                        returnType,
+                        CastMode.EXPLICIT,
+                        CastMode.TRY
+                    );
             } catch (ConversionException e) {
                 return Literal.NULL;
             }

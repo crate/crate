@@ -22,6 +22,7 @@
 package io.crate.expression.symbol;
 
 import io.crate.expression.scalar.cast.CastFunctionResolver;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.format.Style;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -42,30 +43,23 @@ public abstract class Symbol implements FuncArg, Writeable {
     public abstract DataType<?> valueType();
 
     /**
-     * Casts this Symbol to a new {@link DataType} by wrapping a cast function around it.
+     * Casts this Symbol to a new {@link DataType} by wrapping an implicit cast
+     * function around it if no {@link CastMode} modes are provided.
+     * <p>
      * Subclasses of this class may provide another cast methods.
+     *
      * @param targetType The resulting data type after applying the cast
+     * @param modes      One of the {@link CastMode} types.
      * @return An instance of {@link Function} which casts this symbol.
      */
-    public final Symbol cast(DataType<?> targetType) {
-        return cast(targetType, false, false);
-    }
-
-    /**
-     * Casts this Symbol to a new {@link DataType} by wrapping a cast function around it.
-     * Subclasses of this class may provide another cast methods.
-     * @param targetType The resulting data type after applying the cast
-     * @param tryCast If set to true, will return null the symbol cannot be casted.
-     * @return An instance of {@link Function} which casts this symbol.
-     */
-    public Symbol cast(DataType<?> targetType, boolean tryCast, boolean explicitCast) {
+    public Symbol cast(DataType<?> targetType, CastMode... modes) {
         if (targetType.equals(valueType())) {
             return this;
         } else if (ArrayType.unnest(targetType).equals(DataTypes.UNTYPED_OBJECT)
                    && valueType().id() == targetType.id()) {
             return this;
         }
-        return CastFunctionResolver.generateCastFunction(this, targetType, tryCast, explicitCast);
+        return CastFunctionResolver.generateCastFunction(this, targetType, modes);
     }
 
     @Override

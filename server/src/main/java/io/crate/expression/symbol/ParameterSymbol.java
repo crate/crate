@@ -22,6 +22,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -66,7 +67,7 @@ public class ParameterSymbol extends Symbol {
     }
 
     @Override
-    public ParameterSymbol cast(DataType<?> targetType, boolean tryCast, boolean explicitCast) {
+    public ParameterSymbol cast(DataType<?> targetType, CastMode... modes) {
         return new ParameterSymbol(index, boundType, targetType);
     }
 

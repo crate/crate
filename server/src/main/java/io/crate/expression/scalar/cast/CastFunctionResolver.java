@@ -29,6 +29,8 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 
 import static io.crate.expression.scalar.cast.CastFunction.CAST_NAME;
@@ -40,10 +42,14 @@ public class CastFunctionResolver {
 
     public static Symbol generateCastFunction(Symbol sourceSymbol,
                                               DataType<?> targetType,
-                                              boolean tryCast,
-                                              boolean explicitCast) {
+                                              CastMode... castModes) {
+        var modes = EnumSet.copyOf(Arrays.asList(castModes));
+        assert modes.contains(CastMode.EXPLICIT) &&
+               modes.contains(CastMode.IMPLICIT)
+            : "explicit and implicit cast modes are mutually exclusive";
+
         DataType<?> sourceType = sourceSymbol.valueType();
-        if (!sourceType.isConvertableTo(targetType, explicitCast)) {
+        if (!sourceType.isConvertableTo(targetType, modes.contains(CastMode.EXPLICIT))) {
             throw new ConversionException(sourceType, targetType);
         }
 
@@ -54,7 +60,9 @@ public class CastFunctionResolver {
         // limitation we encode the return type info as the second function
         // argument.
         var info = FunctionInfo.of(
-            tryCast ? TRY_CAST_NAME : CAST_NAME,
+            modes.contains(CastMode.TRY)
+                ? TRY_CAST_NAME
+                : CAST_NAME,
             List.of(sourceType, targetType),
             targetType
         );
