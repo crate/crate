@@ -58,4 +58,14 @@ public class AnalyzeITest extends SQLTransportIntegrationTest{
         assertThat(((List<Double>) row[4]), Matchers.empty());
         assertThat(((List<String>) row[5]), Matchers.contains("1", "2", "3"));
     }
+
+    @Test
+    public void test_analyze_statement_works_on_tables_with_object_arrays() throws Exception {
+        execute("create table doc.tbl (objs array(object as (y int)))");
+        execute("insert into doc.tbl (objs) values ([{y=1}, {y=2}])");
+        execute("refresh table doc.tbl");
+        execute("analyze");
+        execute("select reltuples from pg_class where relname = 'tbl'");
+        assertThat(response.rows()[0][0], is(1.0f));
+    }
 }
