@@ -35,6 +35,7 @@ import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.expression.scalar.cast.CastFunction;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
@@ -356,7 +357,16 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
         EvalProjection collectTopN = (EvalProjection) collectPhase.projections().get(1);
-        assertThat(collectTopN.outputs(), contains(isInputColumn(0), isFunction("to_text")));
+        assertThat(
+            collectTopN.outputs(),
+            contains(
+                isInputColumn(0),
+                isFunction(
+                    CastFunction.CAST_NAME,
+                    List.of(DataTypes.LONG, DataTypes.STRING)
+                )
+            )
+        );
 
         ColumnIndexWriterProjection columnIndexWriterProjection = (ColumnIndexWriterProjection) collectPhase.projections().get(2);
         assertThat(columnIndexWriterProjection.columnReferencesExclPartition(), contains(isReference("id"), isReference("name")));
@@ -421,7 +431,10 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(projections.get(0).outputs(),
             contains(
-                isFunction("to_bigint"),
+                isFunction(
+                    CastFunction.CAST_NAME,
+                    List.of(DataTypes.INTEGER, DataTypes.LONG)
+                ),
                 isInputColumn(1)
             )
         );

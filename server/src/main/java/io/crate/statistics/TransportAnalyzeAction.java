@@ -141,6 +141,7 @@ public final class TransportAnalyzeAction {
                 List<Reference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
                     .filter(x -> !x.column().isSystemColumn())
                     .filter(x -> DataTypes.PRIMITIVE_TYPES.contains(x.valueType()))
+                    .map(x -> table.getReadReference(x.column()))
                     .collect(Collectors.toList());
 
                 futures.add(fetchSamples(
