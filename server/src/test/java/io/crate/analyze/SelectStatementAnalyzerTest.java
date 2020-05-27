@@ -42,6 +42,7 @@ import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.expression.scalar.cast.CastFunction;
 import io.crate.expression.scalar.geo.DistanceFunction;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
@@ -1396,8 +1397,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testCastExpression() {
         AnalyzedRelation relation = analyze("select cast(other_id as text) from users");
-        assertThat(relation.outputs().get(0),
-            isFunction("to_text", List.of(DataTypes.LONG, DataTypes.STRING)));
+        assertThat(
+            relation.outputs().get(0),
+            isFunction(
+                CastFunction.CAST_NAME,
+                List.of(DataTypes.LONG, DataTypes.STRING)
+            )
+        );
 
         relation = analyze("select cast(1+1 as string) from users");
         assertThat(relation.outputs().get(0), isLiteral("2", DataTypes.STRING));
@@ -1406,15 +1412,22 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(
             relation.outputs().get(0),
             isFunction(
-                "to_text_array",
-                List.of(new ArrayType<>(DataTypes.LONG), DataTypes.STRING_ARRAY)));
+                CastFunction.CAST_NAME,
+                List.of(new ArrayType<>(DataTypes.LONG), DataTypes.STRING_ARRAY)
+            )
+        );
     }
 
     @Test
     public void testTryCastExpression() {
         AnalyzedRelation relation = analyze("select try_cast(other_id as text) from users");
-        assertThat(relation.outputs().get(0), isFunction(
-            "try_to_text", List.of(DataTypes.LONG, DataTypes.STRING)));
+        assertThat(
+            relation.outputs().get(0),
+            isFunction(
+                CastFunction.TRY_CAST_NAME,
+                List.of(DataTypes.LONG, DataTypes.STRING)
+            )
+        );
 
         relation = analyze("select try_cast(1+1 as string) from users");
         assertThat(relation.outputs().get(0), isLiteral("2", DataTypes.STRING));
@@ -1426,8 +1439,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(
             relation.outputs().get(0),
             isFunction(
-                "try_to_boolean_array",
-                List.of(new ArrayType<>(DataTypes.LONG), DataTypes.BOOLEAN_ARRAY)));
+                CastFunction.TRY_CAST_NAME,
+                List.of(DataTypes.BIGINT_ARRAY, DataTypes.BOOLEAN_ARRAY)
+            )
+        );
     }
 
     @Test
@@ -1511,7 +1526,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
 
         Symbol argument = ((Function) symbol).arguments().get(0);
-        assertThat(argument, isFunction("to_timestamp with time zone"));
+        assertThat(
+            argument,
+            isFunction(
+                CastFunction.CAST_NAME,
+                List.of(DataTypes.STRING, DataTypes.TIMESTAMPZ)
+            )
+        );
     }
 
     @Test
@@ -1623,7 +1644,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation relation = analyze("select sys.jobs.* from sys.jobs");
         List<Symbol> outputs = relation.outputs();
         assertThat(outputs.size(), is(5));
-        //noinspection unchecked
         assertThat(outputs, Matchers.contains(isReference("id"),
             isReference("node"),
             isReference("started"),
@@ -1874,7 +1894,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testCastToNestedArrayCanBeUsed() {
         AnalyzedRelation relation = analyze("select [[1, 2, 3]]::array(array(int))");
-        assertThat(relation.outputs().get(0).valueType(), is(new ArrayType(new ArrayType(DataTypes.INTEGER))));
+        assertThat(relation.outputs().get(0).valueType(), is(new ArrayType<>(DataTypes.INTEGER_ARRAY)));
     }
 
     @Test

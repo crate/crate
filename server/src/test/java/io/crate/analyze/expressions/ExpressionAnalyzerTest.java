@@ -39,6 +39,7 @@ import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.scalar.cast.CastFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -325,16 +326,26 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Function symbol2 = (Function) executor.asSymbol("doc.t5.w = doc.t2.i + 1.2");
         assertThat(symbol2, isFunction(EqOperator.NAME));
         assertThat(symbol2.arguments().get(0), isReference("w"));
-        assertThat(symbol2.arguments().get(1), isFunction("to_bigint"));
-        assertThat(symbol2.arguments().get(1).valueType(), is(DataTypes.LONG));
+        assertThat(
+            symbol2.arguments().get(1),
+            isFunction(
+                CastFunction.CAST_NAME,
+                List.of(DataTypes.INTEGER, DataTypes.LONG)
+            )
+        );
     }
 
     @Test
     public void testColumnsCanBeCastedWhenOnBothSidesOfOperator() {
         Function symbol = (Function) executor.asSymbol("doc.t5.i < doc.t5.w");
         assertThat(symbol, isFunction(LtOperator.NAME));
-        assertThat(symbol.arguments().get(0), isFunction("to_bigint"));
-        assertThat(symbol.arguments().get(0).valueType(), is(DataTypes.LONG));
+        assertThat(
+            symbol.arguments().get(0),
+            isFunction(
+                CastFunction.CAST_NAME,
+                List.of(DataTypes.INTEGER, DataTypes.LONG)
+            )
+        );
         assertThat(symbol.arguments().get(1).valueType(), is(DataTypes.LONG));
     }
 

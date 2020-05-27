@@ -30,116 +30,58 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 import java.util.function.BiFunction;
 
-import static io.crate.expression.scalar.cast.CastFunctionResolver.CAST_SIGNATURES;
-import static io.crate.expression.scalar.cast.CastFunctionResolver.TRY_CAST_PREFIX;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class CastFunction extends Scalar<Object, Object> {
 
-    public static void register(ScalarFunctionModule module) {
-        // We still maintain the cast function to type mapping to stay
-        // bwc by keeping the old `to_<type>` and `try_<type>` function signatures.
-        //
-        // We can drop the per type cast function already in 4.2. This change
-        // would require handling the metadata for the places where the old
-        // signature of the cast function were used, e.g. generated columns.
-        for (Map.Entry<String, DataType> function : CAST_SIGNATURES.entrySet()) {
-            module.register(
-                Signature.builder()
-                    .name(new FunctionName(null, function.getKey()))
-                    .kind(FunctionInfo.Type.SCALAR)
-                    .typeVariableConstraints(typeVariable("E"))
-                    .argumentTypes(parseTypeSignature("E"), parseTypeSignature("E"))
-                    .returnType(function.getValue().getTypeSignature())
-                    .build(),
-                (signature, args) -> {
-                    DataType<?> targetType = args.get(1);
-                    return new CastFunction(
-                        new FunctionInfo(new FunctionIdent(function.getKey(), args), targetType),
-                        signature,
-                        (argument, returnType) -> {
-                            throw new ConversionException(argument, returnType);
-                        },
-                        (argument, returnType) -> {
-                            throw new ConversionException(argument, returnType);
-                        }
-                    );
-                }
-            );
-            // for internal cast functions invocations, e.g. to_bigint(<any type>) -> bigint
-            module.register(
-                Signature.builder()
-                    .name(new FunctionName(null, function.getKey()))
-                    .kind(FunctionInfo.Type.SCALAR)
-                    .typeVariableConstraints(typeVariable("E"))
-                    .argumentTypes(parseTypeSignature("E"))
-                    .returnType(function.getValue().getTypeSignature())
-                    .forbidCoercion()
-                    .build(),
-                (signature, args) -> {
-                    DataType<?> sourceType = args.get(0);
-                    DataType<?> targetType = function.getValue();
-                    return new CastFunction(
-                        new FunctionInfo(new FunctionIdent(function.getKey(), args), targetType),
-                        signature,
-                        (argument, returnType) -> {
-                            throw new ConversionException(argument, returnType);
-                        },
-                        (argument, returnType) -> {
-                            throw new ConversionException(argument, returnType);
-                        }
-                    );
-                }
-            );
+    public static final String CAST_NAME = "cast";
+    public static final String TRY_CAST_NAME = "try_cast";
 
-            var tryCastName = TRY_CAST_PREFIX + function.getKey();
-            module.register(
-                Signature.builder()
-                    .name(new FunctionName(null, tryCastName))
-                    .kind(FunctionInfo.Type.SCALAR)
-                    .typeVariableConstraints(typeVariable("E"))
-                    .argumentTypes(parseTypeSignature("E"), parseTypeSignature("E"))
-                    .returnType(function.getValue().getTypeSignature())
-                    .build(),
-                (signature, args) -> new CastFunction(
-                    new FunctionInfo(new FunctionIdent(tryCastName, args), args.get(1)),
-                    signature,
-                    (argument, returnType) -> Literal.NULL,
-                    (argument, returnType) -> null
-                )
-            );
-            // for internal cast functions invocations
-            module.register(
-                Signature.builder()
-                    .name(new FunctionName(null, tryCastName))
-                    .kind(FunctionInfo.Type.SCALAR)
-                    .typeVariableConstraints(typeVariable("E"))
-                    .argumentTypes(parseTypeSignature("E"))
-                    .returnType(function.getValue().getTypeSignature())
-                    .build(),
-                (signature, args) -> new CastFunction(
-                    new FunctionInfo(new FunctionIdent(tryCastName, args), function.getValue()),
-                    signature,
-                    (argument, returnType) -> Literal.NULL,
-                    (argument, returnType) -> null
-                )
-            );
-        }
+    public static void register(ScalarFunctionModule module) {
+        module.register(
+            Signature
+                .scalar(
+                    CAST_NAME,
+                    parseTypeSignature("E"),
+                    parseTypeSignature("V"),
+                    parseTypeSignature("V"))
+                .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
+            (signature, args) -> new CastFunction(
+                new FunctionInfo(new FunctionIdent(CAST_NAME, args), args.get(1)),
+                signature,
+                (argument, returnType) -> {
+                    throw new ConversionException(argument, returnType);
+                },
+                (argument, returnType) -> {
+                    throw new ConversionException(argument, returnType);
+                }
+            )
+        );
+        module.register(
+            Signature
+                .scalar(TRY_CAST_NAME,
+                        parseTypeSignature("E"),
+                        parseTypeSignature("V"),
+                        parseTypeSignature("V"))
+                .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
+            (signature, args) -> new CastFunction(
+                new FunctionInfo(new FunctionIdent(TRY_CAST_NAME, args), args.get(1)),
+                signature,
+                (argument, returnType) -> Literal.NULL,
+                (argument, returnType) -> null
+            )
+        );
     }
 
-    public static final String TRY_CAST_SQL_NAME = "try_cast";
-    public static final String CAST_SQL_NAME = "cast";
 
     private final DataType<?> returnType;
     private final FunctionInfo info;
