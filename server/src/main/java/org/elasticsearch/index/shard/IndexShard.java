@@ -148,7 +148,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final Object mutex = new Object();
     private final String checkIndexOnStartup;
     private final CodecService codecService;
-    private final Engine.Warmer warmer;
     private final TranslogConfig translogConfig;
     private final IndexEventListener indexEventListener;
     private final QueryCachingPolicy cachingPolicy;
@@ -219,7 +218,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             IndexSearcherWrapper indexSearcherWrapper,
             ThreadPool threadPool,
             BigArrays bigArrays,
-            Engine.Warmer warmer,
             List<IndexingOperationListener> listeners,
             Runnable globalCheckpointSyncer,
             CircuitBreakerService circuitBreakerService) throws IOException {
@@ -228,7 +226,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.shardRouting = shardRouting;
         final Settings settings = indexSettings.getSettings();
         this.codecService = new CodecService(mapperService, logger);
-        this.warmer = warmer;
         Objects.requireNonNull(store, "Store must be provided to the index shard");
         this.engineFactory = Objects.requireNonNull(engineFactory);
         this.store = store;
@@ -2209,14 +2206,28 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     private EngineConfig newEngineConfig() {
-        return new EngineConfig(shardId, shardRouting.allocationId().getId(),
-            threadPool, indexSettings, warmer, store, indexSettings.getMergePolicy(),
-            mapperService.indexAnalyzer(), codecService, shardEventListener,
-            indexCache.query(), cachingPolicy, translogConfig,
+        return new EngineConfig(
+            shardId,
+            shardRouting.allocationId().getId(),
+            threadPool,
+            indexSettings,
+            store,
+            indexSettings.getMergePolicy(),
+            mapperService.indexAnalyzer(),
+            codecService,
+            shardEventListener,
+            indexCache.query(),
+            cachingPolicy,
+            translogConfig,
             IndexingMemoryController.SHARD_INACTIVE_TIME_SETTING.get(indexSettings.getSettings()),
             Collections.singletonList(refreshListeners),
-            Collections.singletonList(new RefreshMetricUpdater(refreshMetric)),
-             circuitBreakerService, replicationTracker, () -> operationPrimaryTerm, tombstoneDocSupplier());
+            Collections.singletonList(
+                new RefreshMetricUpdater(refreshMetric)),
+            circuitBreakerService,
+            replicationTracker,
+            () -> operationPrimaryTerm,
+            tombstoneDocSupplier()
+        );
     }
 
     /**

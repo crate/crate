@@ -30,7 +30,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
-import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
@@ -108,7 +107,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING,
         MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING,
         MapperService.INDEX_MAPPING_DEPTH_LIMIT_SETTING,
-        BitsetFilterCache.INDEX_LOAD_RANDOM_ACCESS_FILTERS_EAGERLY_SETTING,
         IndexModule.INDEX_STORE_TYPE_SETTING,
         IndexModule.INDEX_STORE_PRE_LOAD_SETTING,
         IndexModule.INDEX_QUERY_CACHE_ENABLED_SETTING,

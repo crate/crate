@@ -413,18 +413,28 @@ public abstract class IndexShardTestCase extends ESTestCase {
         final Store store = storeProvider.apply(indexSettings);
         boolean success = false;
         try {
-            IndexCache indexCache = new IndexCache(indexSettings, new DisabledQueryCache(indexSettings), null);
+            IndexCache indexCache = new IndexCache(indexSettings, new DisabledQueryCache(indexSettings));
             MapperService mapperService = MapperTestUtils.newMapperService(xContentRegistry(), createTempDir(),
                     indexSettings.getSettings(), "index");
             mapperService.merge(indexMetaData, MapperService.MergeReason.MAPPING_RECOVERY, true);
-            final Engine.Warmer warmer = searcher -> {
-            };
             ClusterSettings clusterSettings = new ClusterSettings(nodeSettings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
             CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(nodeSettings, clusterSettings);
-            indexShard = new IndexShard(routing, indexSettings, shardPath, store, indexCache, mapperService,
-                engineFactory, indexEventListener, indexSearcherWrapper, threadPool,
-                BigArrays.NON_RECYCLING_INSTANCE, warmer, Arrays.asList(listeners), globalCheckpointSyncer,
-                breakerService);
+            indexShard = new IndexShard(
+                routing,
+                indexSettings,
+                shardPath,
+                store,
+                indexCache,
+                mapperService,
+                engineFactory,
+                indexEventListener,
+                indexSearcherWrapper,
+                threadPool,
+                BigArrays.NON_RECYCLING_INSTANCE,
+                Arrays.asList(listeners),
+                globalCheckpointSyncer,
+                breakerService
+            );
             indexShard.addShardFailureCallback(DEFAULT_SHARD_FAILURE_HANDLER);
             success = true;
         } finally {

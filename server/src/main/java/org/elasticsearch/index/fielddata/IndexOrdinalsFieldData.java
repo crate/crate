@@ -36,15 +36,4 @@ public interface IndexOrdinalsFieldData extends IndexFieldData.Global<AtomicOrdi
     @Override
     IndexOrdinalsFieldData loadGlobal(DirectoryReader indexReader);
 
-    /**
-     * Load a global view of the ordinals for the given {@link IndexReader}.
-     */
-    @Override
-    IndexOrdinalsFieldData localGlobalDirect(DirectoryReader indexReader) throws Exception;
-
-    /**
-     * Returns the underlying {@link OrdinalMap} for this fielddata
-     * or null if global ordinals are not needed (constant value or single segment).
-     */
-    OrdinalMap getOrdinalMap();
 }

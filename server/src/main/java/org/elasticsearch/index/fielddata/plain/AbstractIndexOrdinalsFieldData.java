@@ -55,11 +55,6 @@ public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldD
     }
 
     @Override
-    public OrdinalMap getOrdinalMap() {
-        return null;
-    }
-
-    @Override
     public IndexOrdinalsFieldData loadGlobal(DirectoryReader indexReader) {
         if (indexReader.leaves().size() <= 1) {
             // ordinals are already global

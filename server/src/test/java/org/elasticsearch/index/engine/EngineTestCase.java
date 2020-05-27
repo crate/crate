@@ -202,7 +202,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
     public EngineConfig copy(EngineConfig config, LongSupplier globalCheckpointSupplier) {
         return new EngineConfig(config.getShardId(), config.getAllocationId(), config.getThreadPool(), config.getIndexSettings(),
-            config.getWarmer(), config.getStore(), config.getMergePolicy(), config.getAnalyzer(),
+            config.getStore(), config.getMergePolicy(), config.getAnalyzer(),
             new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
             config.getTranslogConfig(), config.getFlushMergesAfter(),
             config.getExternalRefreshListener(), Collections.emptyList(),
@@ -211,7 +211,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
     public EngineConfig copy(EngineConfig config, Analyzer analyzer) {
         return new EngineConfig(config.getShardId(), config.getAllocationId(), config.getThreadPool(), config.getIndexSettings(),
-            config.getWarmer(), config.getStore(), config.getMergePolicy(), analyzer,
+            config.getStore(), config.getMergePolicy(), analyzer,
             new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
             config.getTranslogConfig(), config.getFlushMergesAfter(),
             config.getExternalRefreshListener(), Collections.emptyList(),
@@ -221,7 +221,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
     public EngineConfig copy(EngineConfig config, MergePolicy mergePolicy) {
         return new EngineConfig(config.getShardId(), config.getAllocationId(), config.getThreadPool(), config.getIndexSettings(),
-            config.getWarmer(), config.getStore(), mergePolicy, config.getAnalyzer(),
+            config.getStore(), mergePolicy, config.getAnalyzer(),
             new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
             config.getTranslogConfig(), config.getFlushMergesAfter(),
             config.getExternalRefreshListener(), Collections.emptyList(),
@@ -567,7 +567,6 @@ public abstract class EngineTestCase extends ESTestCase {
             allocationId.getId(),
             threadPool,
             indexSettings,
-            null,
             store,
             mergePolicy,
             iwc.getAnalyzer(),
@@ -603,7 +602,6 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getAllocationId(),
             config.getThreadPool(),
             indexSettings,
-            config.getWarmer(),
             store,
             config.getMergePolicy(),
             config.getAnalyzer(),

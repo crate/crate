@@ -114,9 +114,4 @@ public class SortedSetDVOrdinalsIndexFieldData extends DocValuesIndexFieldData i
     public IndexOrdinalsFieldData localGlobalDirect(DirectoryReader indexReader) throws Exception {
         return GlobalOrdinalsBuilder.build(indexReader, this, indexSettings, breakerService, LOGGER);
     }
-
-    @Override
-    public OrdinalMap getOrdinalMap() {
-        return null;
-    }
 }

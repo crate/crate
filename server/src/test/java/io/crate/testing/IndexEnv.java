@@ -51,7 +51,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
@@ -124,16 +123,8 @@ public final class IndexEnv implements AutoCloseable {
             MapperService.MergeReason.MAPPING_UPDATE,
             true
         );
-        BitsetFilterCache bitsetFilterCache = new BitsetFilterCache(
-            idxSettings,
-            mock(BitsetFilterCache.Listener.class)
-        );
         DisabledQueryCache queryCache = new DisabledQueryCache(idxSettings);
-        indexCache = new IndexCache(
-            idxSettings,
-            queryCache,
-            bitsetFilterCache
-        );
+        indexCache = new IndexCache(idxSettings, queryCache);
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, new InternalEngineFactory(), Collections.emptyMap());
         nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
         luceneReferenceResolver = new LuceneReferenceResolver(

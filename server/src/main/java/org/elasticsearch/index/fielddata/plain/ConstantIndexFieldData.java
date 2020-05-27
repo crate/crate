@@ -161,11 +161,6 @@ public class ConstantIndexFieldData extends AbstractIndexOrdinalsFieldData {
         return this;
     }
 
-    @Override
-    public IndexOrdinalsFieldData localGlobalDirect(DirectoryReader indexReader) throws Exception {
-        return loadGlobal(indexReader);
-    }
-
     public String getValue() {
         return atomicFieldData.value;
     }

@@ -19,30 +19,45 @@
 
 package org.elasticsearch.index;
 
+import static io.crate.common.collections.MapBuilder.newMapBuilder;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
-import org.apache.lucene.util.Accountable;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import io.crate.common.io.IOUtils;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.cache.query.QueryCache;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineFactory;
@@ -68,29 +83,13 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
-import static io.crate.common.collections.MapBuilder.newMapBuilder;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
 
     private final IndexEventListener eventListener;
     private final IndexFieldDataService indexFieldData;
-    private final BitsetFilterCache bitsetFilterCache;
     private final NodeEnvironment nodeEnv;
     private final ShardStoreDeleter shardStoreDeleter;
     private final IndexStore indexStore;
@@ -99,7 +98,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final MapperService mapperService;
     private final NamedXContentRegistry xContentRegistry;
     private final EngineFactory engineFactory;
-    private final IndexWarmer warmer;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicBoolean deleted = new AtomicBoolean(false);
@@ -153,9 +151,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.eventListener = eventListener;
         this.nodeEnv = nodeEnv;
         this.indexStore = indexStore;
-        this.bitsetFilterCache = new BitsetFilterCache(indexSettings, new BitsetCacheListener(this));
-        this.warmer = new IndexWarmer(threadPool, indexFieldData, bitsetFilterCache.createListener(threadPool));
-        this.indexCache = new IndexCache(indexSettings, queryCache, bitsetFilterCache);
+        this.indexCache = new IndexCache(indexSettings, queryCache);
         this.engineFactory = Objects.requireNonNull(engineFactory);
         // initialize this last -- otherwise if the wrapper requires any other member to be non-null we fail with an NPE
         this.searcherWrapper = wrapperFactory.newWrapper(this);
@@ -238,14 +234,13 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 }
             } finally {
                 IOUtils.close(
-                        bitsetFilterCache,
-                        indexCache,
-                        indexFieldData,
-                        mapperService,
-                        refreshTask,
-                        fsyncTask,
-                        trimTranslogTask,
-                        globalCheckpointTask);
+                    indexCache,
+                    indexFieldData,
+                    mapperService,
+                    refreshTask,
+                    fsyncTask,
+                    trimTranslogTask,
+                    globalCheckpointTask);
             }
         }
     }
@@ -329,22 +324,26 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             }
 
             logger.debug("creating shard_id {}", shardId);
-            // if we are on a shared FS we only own the shard (ie. we can safely delete it) if we are the primary.
-            final Engine.Warmer engineWarmer = (searcher) -> {
-                IndexShard shard = getShardOrNull(shardId.getId());
-                if (shard != null) {
-                    warmer.warm(searcher, shard, IndexService.this.indexSettings);
-                }
-            };
             // TODO we can remove either IndexStore or DirectoryService. All we need is a simple Supplier<Directory>
             DirectoryService directoryService = indexStore.newDirectoryService(path);
             store = new Store(shardId, this.indexSettings, directoryService.newDirectory(), lock,
                     new StoreCloseListener(shardId, () -> eventListener.onStoreClosed(shardId)));
-            indexShard = new IndexShard(routing, this.indexSettings, path, store,
-                indexCache, mapperService, engineFactory,
-                eventListener, searcherWrapper, threadPool, bigArrays, engineWarmer,
-                indexingOperationListeners, () -> globalCheckpointSyncer.accept(shardId),
-                circuitBreakerService);
+            indexShard = new IndexShard(
+                routing,
+                this.indexSettings,
+                path,
+                store,
+                indexCache,
+                mapperService,
+                engineFactory,
+                eventListener,
+                searcherWrapper,
+                threadPool,
+                bigArrays,
+                indexingOperationListeners,
+                () -> globalCheckpointSyncer.accept(shardId),
+                circuitBreakerService
+            );
             eventListener.indexShardStateChanged(indexShard, null, indexShard.state(), "shard created");
             eventListener.afterIndexShardCreated(indexShard);
             shards = newMapBuilder(shards).put(shardId.id(), indexShard).immutableMap();
@@ -490,36 +489,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 }
             }
 
-        }
-    }
-
-    private static final class BitsetCacheListener implements BitsetFilterCache.Listener {
-        final IndexService indexService;
-
-        private BitsetCacheListener(IndexService indexService) {
-            this.indexService = indexService;
-        }
-
-        @Override
-        public void onCache(ShardId shardId, Accountable accountable) {
-            if (shardId != null) {
-                final IndexShard shard = indexService.getShardOrNull(shardId.id());
-                if (shard != null) {
-                    long ramBytesUsed = accountable != null ? accountable.ramBytesUsed() : 0L;
-                    shard.shardBitsetFilterCache().onCached(ramBytesUsed);
-                }
-            }
-        }
-
-        @Override
-        public void onRemoval(ShardId shardId, Accountable accountable) {
-            if (shardId != null) {
-                final IndexShard shard = indexService.getShardOrNull(shardId.id());
-                if (shard != null) {
-                    long ramBytesUsed = accountable != null ? accountable.ramBytesUsed() : 0L;
-                    shard.shardBitsetFilterCache().onRemoval(ramBytesUsed);
-                }
-            }
         }
     }
 

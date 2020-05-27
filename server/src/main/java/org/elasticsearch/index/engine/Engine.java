@@ -1535,18 +1535,6 @@ public abstract class Engine implements Closeable {
     }
 
     /**
-     * Called for each new opened engine searcher to warm new segments
-     *
-     * @see EngineConfig#getWarmer()
-     */
-    public interface Warmer {
-        /**
-         * Called once a new Searcher is opened on the top-level searcher.
-         */
-        void warm(Engine.Searcher searcher);
-    }
-
-    /**
      * Request that this engine throttle incoming indexing requests to one thread.  Must be matched by a later call to {@link #deactivateThrottling()}.
      */
     public abstract void activateThrottling();

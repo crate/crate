@@ -107,11 +107,6 @@ public class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent impleme
         return atomicReaders[context.ord];
     }
 
-    @Override
-    public OrdinalMap getOrdinalMap() {
-        return ordinalMap;
-    }
-
     private final class Atomic extends AbstractAtomicOrdinalsFieldData {
 
         private final AtomicOrdinalsFieldData afd;

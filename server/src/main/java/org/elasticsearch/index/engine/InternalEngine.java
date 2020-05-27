@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index.engine;
 
-import org.apache.logging.log4j.Logger;
 import org.apache.lucene.codecs.blocktree.BlockTreeTermsReader;
 import org.apache.lucene.codecs.blocktree.BlockTreeTermsReader.FSTLoadMode;
 import org.apache.lucene.document.Field;
@@ -31,7 +30,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.LiveIndexWriterConfig;
 import org.apache.lucene.index.MergePolicy;
@@ -240,7 +238,7 @@ public class InternalEngine extends Engine {
                     throw e;
                 }
             }
-            externalSearcherManager = createSearcherManager(new SearchFactory(logger, isClosed, engineConfig));
+            externalSearcherManager = createSearcherManager(new EngineSearcherFactory(engineConfig));
             internalSearcherManager = externalSearcherManager.internalSearcherManager;
             this.internalSearcherManager = internalSearcherManager;
             this.externalSearcherManager = externalSearcherManager;
@@ -602,7 +600,7 @@ public class InternalEngine extends Engine {
         return uuid;
     }
 
-    private ExternalSearcherManager createSearcherManager(SearchFactory externalSearcherFactory) throws EngineException {
+    private ExternalSearcherManager createSearcherManager(EngineSearcherFactory externalSearcherFactory) throws EngineException {
         boolean success = false;
         SearcherManager internalSearcherManager = null;
         try {
@@ -2286,42 +2284,6 @@ public class InternalEngine extends Engine {
         iwc.setCodec(engineConfig.getCodec());
         iwc.setUseCompoundFile(true); // always use compound on flush - reduces # of file-handles on refresh
         return iwc;
-    }
-
-    /** Extended SearcherFactory that warms the segments if needed when acquiring a new searcher */
-    static final class SearchFactory extends EngineSearcherFactory {
-        private final Engine.Warmer warmer;
-        private final Logger logger;
-        private final AtomicBoolean isEngineClosed;
-
-        SearchFactory(Logger logger, AtomicBoolean isEngineClosed, EngineConfig engineConfig) {
-            super(engineConfig);
-            warmer = engineConfig.getWarmer();
-            this.logger = logger;
-            this.isEngineClosed = isEngineClosed;
-        }
-
-        @Override
-        public IndexSearcher newSearcher(IndexReader reader, IndexReader previousReader) throws IOException {
-            IndexSearcher searcher = super.newSearcher(reader, previousReader);
-            if (reader instanceof LeafReader && isMergedSegment((LeafReader) reader)) {
-                // we call newSearcher from the IndexReaderWarmer which warms segments during merging
-                // in that case the reader is a LeafReader and all we need to do is to build a new Searcher
-                // and return it since it does it's own warming for that particular reader.
-                return searcher;
-            }
-            if (warmer != null) {
-                try {
-                    assert searcher.getIndexReader() instanceof ElasticsearchDirectoryReader : "this class needs an ElasticsearchDirectoryReader but got: " + searcher.getIndexReader().getClass();
-                    warmer.warm(new Searcher("top_reader_warming", searcher, () -> {}));
-                } catch (Exception e) {
-                    if (isEngineClosed.get() == false) {
-                        logger.warn("failed to prepare/warm", e);
-                    }
-                }
-            }
-            return searcher;
-        }
     }
 
     @Override
