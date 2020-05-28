@@ -185,7 +185,7 @@ table available in CrateDB::
     | 1021 | _float4                      |        0 |     700 |     -1 | b       | A           |
     | 1022 | _float8                      |        0 |     701 |     -1 | b       | A           |
     | 1043 | varchar                      |     1015 |       0 |     -1 | b       | S           |
-    | 1083 | time without time zone       |     1183 |       0 |      8 | b       | D           |
+    | 1083 | time with time zone          |     1183 |       0 |      8 | b       | D           |
     | 1114 | timestamp without time zone  |     1115 |       0 |      8 | b       | D           |
     | 1115 | _timestamp without time zone |        0 |    1114 |     -1 | b       | A           |
     | 1183 | _time without time zone      |        0 |    1083 |     -1 | b       | A           |

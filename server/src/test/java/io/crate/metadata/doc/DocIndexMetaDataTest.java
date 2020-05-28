@@ -1512,18 +1512,18 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject(Constants.DEFAULT_MAPPING_TYPE)
             .startObject("properties")
             .startObject("t0")
-            .field("type", "time without time zone")
+            .field("type", "time with time zone")
             .endObject()
             .startObject("t1")
-            .field("type", "time")
+            .field("type", "timez")
             .endObject()
             .endObject()
             .endObject()
             .endObject();
         DocIndexMetaData md = newMeta(getIndexMetaData("test", builder), "test");
         assertThat(md.columns().size(), is(2));
-        assertThat(md.references().get(new ColumnIdent("t0")).valueType(), is(DataTypes.TIME));
-        assertThat(md.references().get(new ColumnIdent("t1")).valueType(), is(DataTypes.TIME));
+        assertThat(md.references().get(new ColumnIdent("t0")).valueType(), is(DataTypes.TIMEZ));
+        assertThat(md.references().get(new ColumnIdent("t1")).valueType(), is(DataTypes.TIMEZ));
     }
 
     @Test

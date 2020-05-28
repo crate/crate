@@ -30,7 +30,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import io.crate.types.TimeType;
+import io.crate.types.TimeZType;
 import io.crate.types.TimestampType;
 import io.netty.util.collection.ByteObjectHashMap;
 import io.netty.util.collection.IntObjectHashMap;
@@ -80,7 +80,7 @@ public final class GroupByMaps {
                 return () -> (Map) new PrimitiveMapWithNulls<>(new IntObjectHashMap<>());
 
             case LongType.ID:
-            case TimeType.ID:
+            case TimeZType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return () -> (Map) new PrimitiveMapWithNulls<>(new LongObjectHashMap<>());

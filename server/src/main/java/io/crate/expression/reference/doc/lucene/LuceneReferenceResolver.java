@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.crate.types.TimeType;
+import io.crate.types.TimeZType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Scorable;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -174,7 +174,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case FloatType.ID:
                 return new FloatColumnReference(fqn);
             case LongType.ID:
-            case TimeType.ID:
+            case TimeZType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return new LongColumnReference(fqn);

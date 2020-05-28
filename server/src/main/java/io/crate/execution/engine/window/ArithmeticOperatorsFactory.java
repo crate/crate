@@ -32,7 +32,7 @@ import io.crate.types.IntegerType;
 import io.crate.types.IntervalType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import io.crate.types.TimeType;
+import io.crate.types.TimeZType;
 import io.crate.types.TimestampType;
 
 import java.util.List;
@@ -54,7 +54,7 @@ class ArithmeticOperatorsFactory {
     static BiFunction getAddFunction(DataType fstArgDataType, DataType sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
-            case TimeType.ID:
+            case TimeZType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {
@@ -84,7 +84,7 @@ class ArithmeticOperatorsFactory {
     static BiFunction getSubtractFunction(DataType fstArgDataType, DataType sndArgDataType) {
         switch (fstArgDataType.id()) {
             case LongType.ID:
-            case TimeType.ID:
+            case TimeZType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 if (IntervalType.ID == sndArgDataType.id()) {

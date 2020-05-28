@@ -30,7 +30,7 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import io.crate.types.TimeType;
+import io.crate.types.TimeZType;
 import io.crate.types.TimestampType;
 
 import org.apache.lucene.search.SortField;
@@ -84,7 +84,7 @@ public class NullSentinelValues {
             case IntegerType.ID:
             case BooleanType.ID:
             case LongType.ID:
-            case TimeType.ID:
+            case TimeZType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return min ? Long.MIN_VALUE : Long.MAX_VALUE;
@@ -118,7 +118,7 @@ public class NullSentinelValues {
                 return min ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
             case LongType.ID:
-            case TimeType.ID:
+            case TimeZType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return min ? Long.MIN_VALUE : Long.MAX_VALUE;

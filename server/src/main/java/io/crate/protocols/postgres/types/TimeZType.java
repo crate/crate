@@ -28,22 +28,22 @@ import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-import static io.crate.types.TimeType.parseTime;
-import static io.crate.types.TimeType.formatTime;
+import static io.crate.types.TimeZType.parseTime;
+import static io.crate.types.TimeZType.formatTime;
+import static io.crate.types.TimeZType.NAME;
 
 
-final class TimeType extends PGType<Long> {
+final class TimeZType extends PGType<Long> {
 
-    public static final PGType<Long> INSTANCE = new TimeType();
+    public static final PGType<Long> INSTANCE = new TimeZType();
 
     private static final int OID = 1083;
     private static final int TYPE_MOD = -1;
     private static final int TYPE_LEN = 8;
-    private static final String TYPE_NAME = "time without time zone";
 
 
-    TimeType() {
-        super(OID, TYPE_LEN, TYPE_MOD, TYPE_NAME);
+    TimeZType() {
+        super(OID, TYPE_LEN, TYPE_MOD, NAME);
     }
 
     @Override

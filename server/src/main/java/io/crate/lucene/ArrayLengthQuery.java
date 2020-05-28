@@ -47,7 +47,7 @@ import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
-import io.crate.types.TimeType;
+import io.crate.types.TimeZType;
 import io.crate.types.TimestampType;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
@@ -247,7 +247,7 @@ public final class ArrayLengthQuery implements InnerFunctionToQuery {
             case ShortType.ID:
             case IntegerType.ID:
             case LongType.ID:
-            case TimeType.ID:
+            case TimeZType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
             case FloatType.ID:

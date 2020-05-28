@@ -1912,11 +1912,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_cast_time_from_string_literal()  {
-        AnalyzedRelation relation = analyze("select time without time zone '23:59:59.999+02'");
-        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIME));
+        AnalyzedRelation relation = analyze("select time with time zone '23:59:59.999+02'");
+        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMEZ));
 
         relation = analyze("select time '23:59:59.999+02'");
-        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIME));
+        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMEZ));
         assertThat(relation.outputs().get(0).toString(), is("86399999000"));
     }
 

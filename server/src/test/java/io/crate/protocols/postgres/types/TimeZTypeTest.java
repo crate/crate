@@ -27,14 +27,13 @@ import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.time.format.DateTimeParseException;
 
 import static org.hamcrest.Matchers.is;
 
-public class TimeTypeTest extends BasePGTypeTest<Long> {
+public class TimeZTypeTest extends BasePGTypeTest<Long> {
 
-    public TimeTypeTest() {
-        super(TimeType.INSTANCE);
+    public TimeZTypeTest() {
+        super(TimeZType.INSTANCE);
     }
 
     @Test
@@ -54,18 +53,18 @@ public class TimeTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(TimeType.INSTANCE.encodeAsUTF8Text(53005278000L), StandardCharsets.UTF_8),
+        assertThat(new String(TimeZType.INSTANCE.encodeAsUTF8Text(53005278000L), StandardCharsets.UTF_8),
             is("14:43:25.278"));
     }
 
     @Test
     public void testDecodeAsUTF8Text() {
-        assertThat(TimeType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes()), is(14400123456L));
+        assertThat(TimeZType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes()), is(14400123456L));
     }
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
         expectedException.expect(IllegalArgumentException.class);
-        TimeType.INSTANCE.decodeUTF8Text("00:0000.0000000001".getBytes(StandardCharsets.UTF_8));
+        TimeZType.INSTANCE.decodeUTF8Text("00:0000.0000000001".getBytes(StandardCharsets.UTF_8));
     }
 }
