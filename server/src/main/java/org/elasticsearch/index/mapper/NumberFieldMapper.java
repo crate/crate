@@ -22,7 +22,6 @@ package org.elasticsearch.index.mapper;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FloatPoint;
-import org.apache.lucene.document.HalfFloatPoint;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -181,84 +180,6 @@ public class NumberFieldMapper extends FieldMapper {
     }
 
     public enum NumberType {
-        HALF_FLOAT("half_float", NumericType.HALF_FLOAT) {
-            @Override
-            public Float parse(Object value, boolean coerce) {
-                return (Float) FLOAT.parse(value, false);
-            }
-
-            @Override
-            public Number parsePoint(byte[] value) {
-                return HalfFloatPoint.decodeDimension(value, 0);
-            }
-
-            @Override
-            public Float parse(XContentParser parser, boolean coerce) throws IOException {
-                return parser.floatValue(coerce);
-            }
-
-            @Override
-            public Query termQuery(String field, Object value) {
-                float v = parse(value, false);
-                return HalfFloatPoint.newExactQuery(field, v);
-            }
-
-            @Override
-            public Query termsQuery(String field, List<Object> values) {
-                float[] v = new float[values.size()];
-                for (int i = 0; i < values.size(); ++i) {
-                    v[i] = parse(values.get(i), false);
-                }
-                return HalfFloatPoint.newSetQuery(field, v);
-            }
-
-            @Override
-            public Query rangeQuery(String field, Object lowerTerm, Object upperTerm,
-                             boolean includeLower, boolean includeUpper,
-                             boolean hasDocValues) {
-                float l = Float.NEGATIVE_INFINITY;
-                float u = Float.POSITIVE_INFINITY;
-                if (lowerTerm != null) {
-                    l = parse(lowerTerm, false);
-                    if (includeLower) {
-                        l = HalfFloatPoint.nextDown(l);
-                    }
-                    l = HalfFloatPoint.nextUp(l);
-                }
-                if (upperTerm != null) {
-                    u = parse(upperTerm, false);
-                    if (includeUpper) {
-                        u = HalfFloatPoint.nextUp(u);
-                    }
-                    u = HalfFloatPoint.nextDown(u);
-                }
-                Query query = HalfFloatPoint.newRangeQuery(field, l, u);
-                if (hasDocValues) {
-                    Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(field,
-                            HalfFloatPoint.halfFloatToSortableShort(l),
-                            HalfFloatPoint.halfFloatToSortableShort(u));
-                    query = new IndexOrDocValuesQuery(query, dvQuery);
-                }
-                return query;
-            }
-
-            @Override
-            public List<Field> createFields(String name, Number value,
-                                            boolean indexed, boolean docValued, boolean stored) {
-                List<Field> fields = new ArrayList<>();
-                if (indexed) {
-                    fields.add(new HalfFloatPoint(name, value.floatValue()));
-                }
-                if (docValued) {
-                    fields.add(new SortedNumericDocValuesField(name,
-                        HalfFloatPoint.halfFloatToSortableShort(value.floatValue())));
-                }
-                if (stored) {
-                    fields.add(new StoredField(name, value.floatValue()));
-                }
-                return fields;
-            }
-        },
         FLOAT("float", NumericType.FLOAT) {
             @Override
             public Float parse(Object value, boolean coerce) {
