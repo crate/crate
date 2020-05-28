@@ -19,6 +19,8 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
+import java.io.IOException;
+
 import org.apache.lucene.codecs.blocktree.FieldReader;
 import org.apache.lucene.codecs.blocktree.Stats;
 import org.apache.lucene.index.LeafReader;
@@ -27,6 +29,7 @@ import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.PagedBytes;
@@ -47,8 +50,6 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.search.MultiValueMode;
-
-import java.io.IOException;
 
 public class PagedBytesIndexFieldData extends AbstractIndexOrdinalsFieldData {
 
@@ -81,7 +82,7 @@ public class PagedBytesIndexFieldData extends AbstractIndexOrdinalsFieldData {
 
     @Override
     public SortField sortField(NullValueOrder nullValueOrder, MultiValueMode sortMode, boolean reverse) {
-        XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, nullValueOrder, sortMode);
+        FieldComparatorSource source = new BytesRefFieldComparatorSource(this, nullValueOrder, sortMode);
         return new SortField(getFieldName(), source, reverse);
     }
 
