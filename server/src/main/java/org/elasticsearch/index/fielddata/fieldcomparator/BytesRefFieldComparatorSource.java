@@ -19,13 +19,15 @@
 
 package org.elasticsearch.index.fielddata.fieldcomparator;
 
+import java.io.IOException;
+
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.Scorable;
-import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
@@ -33,39 +35,23 @@ import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.search.MultiValueMode;
 
-import java.io.IOException;
-
 /**
  * Comparator source for string/binary values.
  */
-public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
+public class BytesRefFieldComparatorSource extends FieldComparatorSource {
 
     private final IndexFieldData<?> indexFieldData;
+    private final NullValueOrder nullValueOrder;
+    private final MultiValueMode sortMode;
 
     public BytesRefFieldComparatorSource(IndexFieldData<?> indexFieldData, NullValueOrder nullValueOrder, MultiValueMode sortMode) {
-        super(nullValueOrder, sortMode);
         this.indexFieldData = indexFieldData;
-    }
-
-    @Override
-    public SortField.Type reducedType() {
-        return SortField.Type.STRING;
-    }
-
-    @Override
-    public Object missingValue(boolean reversed) {
-        if (nullValueOrder == NullValueOrder.LAST ^ reversed) {
-            return SortField.STRING_LAST;
-        } else {
-            return SortField.STRING_FIRST;
-        }
+        this.nullValueOrder = nullValueOrder;
+        this.sortMode = sortMode;
     }
 
     protected SortedBinaryDocValues getValues(LeafReaderContext context) throws IOException {
         return indexFieldData.load(context).getBytesValues();
-    }
-
-    protected void setScorer(Scorable scorer) {
     }
 
     @Override
@@ -73,7 +59,7 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
         assert indexFieldData == null || fieldname.equals(indexFieldData.getFieldName());
 
         final boolean sortMissingLast = nullValueOrder == NullValueOrder.LAST ^ reversed;
-        final BytesRef missingBytes = (BytesRef) missingObject(nullValueOrder, reversed);
+        final BytesRef missingBytes = null;
         if (indexFieldData instanceof IndexOrdinalsFieldData) {
             return new FieldComparator.TermOrdValComparator(numHits, null, sortMissingLast) {
 
@@ -85,9 +71,7 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
 
                 @Override
                 public void setScorer(Scorable scorer) {
-                    BytesRefFieldComparatorSource.this.setScorer(scorer);
                 }
-
             };
         }
 
@@ -101,9 +85,7 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
 
             @Override
             public void setScorer(Scorable scorer) {
-                BytesRefFieldComparatorSource.this.setScorer(scorer);
             }
-
         };
     }
 }
