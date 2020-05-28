@@ -37,13 +37,13 @@ import java.util.function.BiFunction;
 public class QueryShardContext {
 
     private final MapperService mapperService;
-    private final BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataService;
+    private final BiFunction<MappedFieldType, String, IndexFieldData> indexFieldDataService;
     private final Index fullyQualifiedIndex;
 
     private boolean allowUnmappedFields;
 
     public QueryShardContext(IndexSettings indexSettings,
-                             BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataLookup,
+                             BiFunction<MappedFieldType, String, IndexFieldData> indexFieldDataLookup,
                              MapperService mapperService) {
         this.mapperService = mapperService;
         this.indexFieldDataService = indexFieldDataLookup;
@@ -55,8 +55,8 @@ public class QueryShardContext {
         return mapperService.getIndexAnalyzers();
     }
 
-    public <IFD extends IndexFieldData<?>> IFD getForField(MappedFieldType fieldType) {
-        return (IFD) indexFieldDataService.apply(fieldType, fullyQualifiedIndex.getName());
+    public IndexFieldData getForField(MappedFieldType fieldType) {
+        return indexFieldDataService.apply(fieldType, fullyQualifiedIndex.getName());
     }
 
     /**

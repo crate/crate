@@ -28,16 +28,16 @@ import java.util.function.Function;
 
 public class CollectorContext {
 
-    private final Function<MappedFieldType, IndexFieldData<?>> fieldDataGetter;
+    private final Function<MappedFieldType, IndexFieldData> fieldDataGetter;
     private final int jobSearchContextId;
 
     private SourceLookup sourceLookup;
 
-    public CollectorContext(Function<MappedFieldType, IndexFieldData<?>> fieldDataGetter) {
+    public CollectorContext(Function<MappedFieldType, IndexFieldData> fieldDataGetter) {
         this(fieldDataGetter, -1);
     }
 
-    public CollectorContext(Function<MappedFieldType, IndexFieldData<?>> fieldDataGetter,
+    public CollectorContext(Function<MappedFieldType, IndexFieldData> fieldDataGetter,
                             int jobSearchContextId) {
         this.fieldDataGetter = fieldDataGetter;
         this.jobSearchContextId = jobSearchContextId;
@@ -47,7 +47,7 @@ public class CollectorContext {
         return jobSearchContextId;
     }
 
-    public IndexFieldData<?> getFieldData(MappedFieldType fieldType) {
+    public IndexFieldData getFieldData(MappedFieldType fieldType) {
         return fieldDataGetter.apply(fieldType);
     }
 

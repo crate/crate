@@ -19,26 +19,14 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-
-import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSelector;
 import org.apache.lucene.search.SortedNumericSortField;
-import org.apache.lucene.util.Accountable;
-import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
-import org.elasticsearch.index.fielddata.NumericDoubleValues;
-import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 import org.elasticsearch.search.MultiValueMode;
 
 import io.crate.expression.reference.doc.lucene.NullSentinelValues;
@@ -93,173 +81,5 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
     @Override
     public NumericType getNumericType() {
         return numericType;
-    }
-
-
-    /**
-     * FieldData implementation for integral types.
-     * <p>
-     * Order of values within a document is consistent with
-     * {@link Long#compareTo(Long)}.
-     * <p>
-     * Although the API is multi-valued, most codecs in Lucene specialize
-     * for the case where documents have at most one value. In this case
-     * {@link DocValues#unwrapSingleton(SortedNumericDocValues)} will return
-     * the underlying single-valued NumericDocValues representation.
-     */
-    static final class SortedNumericLongFieldData extends AtomicLongFieldData {
-        final LeafReader reader;
-        final String field;
-
-        SortedNumericLongFieldData(LeafReader reader, String field) {
-            super(0L);
-            this.reader = reader;
-            this.field = field;
-        }
-
-        @Override
-        public SortedNumericDocValues getLongValues() {
-            try {
-                return DocValues.getSortedNumeric(reader, field);
-            } catch (IOException e) {
-                throw new IllegalStateException("Cannot load doc values", e);
-            }
-        }
-
-        @Override
-        public Collection<Accountable> getChildResources() {
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * FieldData implementation for 32-bit float values.
-     * <p>
-     * Order of values within a document is consistent with
-     * {@link Float#compareTo(Float)}, hence the following reversible
-     * transformation is applied at both index and search:
-     * {@code bits ^ (bits >> 31) & 0x7fffffff}
-     * <p>
-     * Although the API is multi-valued, most codecs in Lucene specialize
-     * for the case where documents have at most one value. In this case
-     * {@link FieldData#unwrapSingleton(SortedNumericDoubleValues)} will return
-     * the underlying single-valued NumericDoubleValues representation.
-     */
-    static final class SortedNumericFloatFieldData extends AtomicDoubleFieldData {
-        final LeafReader reader;
-        final String field;
-
-        SortedNumericFloatFieldData(LeafReader reader, String field) {
-            super(0L);
-            this.reader = reader;
-            this.field = field;
-        }
-
-        @Override
-        public SortedNumericDoubleValues getDoubleValues() {
-            try {
-                SortedNumericDocValues raw = DocValues.getSortedNumeric(reader, field);
-
-                NumericDocValues single = DocValues.unwrapSingleton(raw);
-                if (single != null) {
-                    return FieldData.singleton(new SingleFloatValues(single));
-                } else {
-                    return new MultiFloatValues(raw);
-                }
-            } catch (IOException e) {
-                throw new IllegalStateException("Cannot load doc values", e);
-            }
-        }
-
-        @Override
-        public Collection<Accountable> getChildResources() {
-            return Collections.emptyList();
-        }
-    }
-
-    /**
-     * Wraps a NumericDocValues and exposes a single 32-bit float per document.
-     */
-    static final class SingleFloatValues extends NumericDoubleValues {
-        final NumericDocValues in;
-
-        SingleFloatValues(NumericDocValues in) {
-            this.in = in;
-        }
-
-        @Override
-        public double doubleValue() throws IOException {
-            return NumericUtils.sortableIntToFloat((int) in.longValue());
-        }
-
-        @Override
-        public boolean advanceExact(int doc) throws IOException {
-            return in.advanceExact(doc);
-        }
-    }
-
-    /**
-     * Wraps a SortedNumericDocValues and exposes multiple 32-bit floats per document.
-     */
-    static final class MultiFloatValues extends SortedNumericDoubleValues {
-        final SortedNumericDocValues in;
-
-        MultiFloatValues(SortedNumericDocValues in) {
-            this.in = in;
-        }
-
-        @Override
-        public boolean advanceExact(int target) throws IOException {
-            return in.advanceExact(target);
-        }
-
-        @Override
-        public double nextValue() throws IOException {
-            return NumericUtils.sortableIntToFloat((int) in.nextValue());
-        }
-
-        @Override
-        public int docValueCount() {
-            return in.docValueCount();
-        }
-    }
-
-    /**
-     * FieldData implementation for 64-bit double values.
-     * <p>
-     * Order of values within a document is consistent with
-     * {@link Double#compareTo(Double)}, hence the following reversible
-     * transformation is applied at both index and search:
-     * {@code bits ^ (bits >> 63) & 0x7fffffffffffffffL}
-     * <p>
-     * Although the API is multi-valued, most codecs in Lucene specialize
-     * for the case where documents have at most one value. In this case
-     * {@link FieldData#unwrapSingleton(SortedNumericDoubleValues)} will return
-     * the underlying single-valued NumericDoubleValues representation.
-     */
-    static final class SortedNumericDoubleFieldData extends AtomicDoubleFieldData {
-        final LeafReader reader;
-        final String field;
-
-        SortedNumericDoubleFieldData(LeafReader reader, String field) {
-            super(0L);
-            this.reader = reader;
-            this.field = field;
-        }
-
-        @Override
-        public SortedNumericDoubleValues getDoubleValues() {
-            try {
-                SortedNumericDocValues raw = DocValues.getSortedNumeric(reader, field);
-                return FieldData.sortableLongBitsToDoubles(raw);
-            } catch (IOException e) {
-                throw new IllegalStateException("Cannot load doc values", e);
-            }
-        }
-
-        @Override
-        public Collection<Accountable> getChildResources() {
-            return Collections.emptyList();
-        }
     }
 }

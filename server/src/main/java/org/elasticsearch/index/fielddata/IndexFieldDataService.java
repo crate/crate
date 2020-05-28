@@ -31,8 +31,6 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 public class IndexFieldDataService extends AbstractIndexComponent implements Closeable {
 
     private final CircuitBreakerService circuitBreakerService;
-
-    // the below map needs to be modified under a lock
     private final MapperService mapperService;
 
     public IndexFieldDataService(IndexSettings indexSettings,
@@ -44,14 +42,13 @@ public class IndexFieldDataService extends AbstractIndexComponent implements Clo
     }
 
 
-    public <IFD extends IndexFieldData<?>> IFD getForField(MappedFieldType fieldType) {
+    public IndexFieldData getForField(MappedFieldType fieldType) {
         return getForField(fieldType, index().getName());
     }
 
-    @SuppressWarnings("unchecked")
-    public <IFD extends IndexFieldData<?>> IFD getForField(MappedFieldType fieldType, String fullyQualifiedIndexName) {
+    public IndexFieldData getForField(MappedFieldType fieldType, String fullyQualifiedIndexName) {
         IndexFieldData.Builder builder = fieldType.fielddataBuilder(fullyQualifiedIndexName);
-        return (IFD) builder.build(indexSettings, fieldType, circuitBreakerService, mapperService);
+        return builder.build(indexSettings, fieldType, circuitBreakerService, mapperService);
     }
 
     @Override

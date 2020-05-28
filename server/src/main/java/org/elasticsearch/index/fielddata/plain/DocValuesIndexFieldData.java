@@ -70,10 +70,10 @@ public abstract class DocValuesIndexFieldData {
         }
 
         @Override
-        public IndexFieldData<?> build(IndexSettings indexSettings,
-                                       MappedFieldType fieldType,
-                                       CircuitBreakerService breakerService,
-                                       MapperService mapperService) {
+        public IndexFieldData build(IndexSettings indexSettings,
+                                    MappedFieldType fieldType,
+                                    CircuitBreakerService breakerService,
+                                    MapperService mapperService) {
             // Ignore Circuit Breaker
             final String fieldName = fieldType.name();
             if (BINARY_INDEX_FIELD_NAMES.contains(fieldName)) {

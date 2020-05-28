@@ -26,11 +26,10 @@ import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.RamAccountingTermsEnum;
 
-public abstract class AbstractIndexFieldData<FD extends AtomicFieldData> extends AbstractIndexComponent implements IndexFieldData<FD> {
+public abstract class AbstractIndexFieldData extends AbstractIndexComponent implements IndexFieldData {
 
     private final String fieldName;
 
@@ -47,12 +46,6 @@ public abstract class AbstractIndexFieldData<FD extends AtomicFieldData> extends
     @Override
     public void clear() {
     }
-
-    /**
-     * @param maxDoc of the current reader
-     * @return an empty field data instances for field data lookups of empty segments (returning no values)
-     */
-    protected abstract FD empty(int maxDoc);
 
     /**
      * A {@code PerValueEstimator} is a sub-class that can be used to estimate

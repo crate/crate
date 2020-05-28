@@ -32,7 +32,7 @@ import org.elasticsearch.search.MultiValueMode;
  * Thread-safe utility class that allows to get per-segment values via the
  * {@link #load(LeafReaderContext)} method.
  */
-public interface IndexFieldData<FD extends AtomicFieldData> extends IndexComponent {
+public interface IndexFieldData extends IndexComponent {
 
     /**
      * The field name.
@@ -51,9 +51,9 @@ public interface IndexFieldData<FD extends AtomicFieldData> extends IndexCompone
 
     interface Builder {
 
-        IndexFieldData<?> build(IndexSettings indexSettings,
-                                MappedFieldType fieldType,
-                                CircuitBreakerService breakerService,
-                                MapperService mapperService);
+        IndexFieldData build(IndexSettings indexSettings,
+                             MappedFieldType fieldType,
+                             CircuitBreakerService breakerService,
+                             MapperService mapperService);
     }
 }
