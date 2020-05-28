@@ -1915,7 +1915,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation relation = analyze("select time with time zone '23:59:59.999+02'");
         assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMEZ));
 
-        relation = analyze("select time '23:59:59.999+02'");
+        relation = analyze("select '23:59:59.999+02'::time with time zone");
         assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMEZ));
         assertThat(relation.outputs().get(0).toString(), is("86399999000"));
     }

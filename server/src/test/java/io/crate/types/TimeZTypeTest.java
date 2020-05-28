@@ -151,6 +151,7 @@ public class TimeZTypeTest extends CrateUnitTest {
     public void test_value_is_a_long_in_range() {
         assertThat(TimeZType.INSTANCE.value("010000000"), is(10000000L));
         assertThat(TimeZType.INSTANCE.value("000000000"), is(0L));
-        assertThat(TimeZType.INSTANCE.value(String.valueOf(24 * 60 * 60 * 1000L - 1L)), is(24 * 60 * 60 * 1000 - 1L));
+        assertThat(TimeZType.INSTANCE.value(
+            String.valueOf(24 * 60 * 60 * 1000L - 1L)), is(24 * 60 * 60 * 1000 - 1L));
     }
 }
