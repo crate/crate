@@ -188,7 +188,7 @@ table available in CrateDB::
     | 1083 | time with time zone          |     1183 |       0 |      8 | b       | D           |
     | 1114 | timestamp without time zone  |     1115 |       0 |      8 | b       | D           |
     | 1115 | _timestamp without time zone |        0 |    1114 |     -1 | b       | A           |
-    | 1183 | _time without time zone      |        0 |    1083 |     -1 | b       | A           |
+    | 1183 | _time with time zone         |        0 |    1083 |     -1 | b       | A           |
     | 1184 | timestamptz                  |     1185 |       0 |      8 | b       | D           |
     | 1185 | _timestamptz                 |        0 |    1184 |     -1 | b       | A           |
     | 1186 | interval                     |     1187 |       0 |     16 | b       | T           |
