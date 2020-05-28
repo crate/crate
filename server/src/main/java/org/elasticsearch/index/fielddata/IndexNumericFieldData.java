@@ -28,7 +28,6 @@ public interface IndexNumericFieldData extends IndexFieldData<AtomicNumericField
         INT(false),
         LONG(false),
         DATE(false),
-        HALF_FLOAT(true),
         FLOAT(true),
         DOUBLE(true);
 
