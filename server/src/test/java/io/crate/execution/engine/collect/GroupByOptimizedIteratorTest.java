@@ -22,26 +22,27 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.execution.engine.aggregation.AggregationContext;
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.expression.InputRow;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.FunctionIdent;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.BatchIteratorTester;
+import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.ByteBuffersDirectory;
@@ -53,18 +54,18 @@ import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import io.crate.breaker.RamAccounting;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.execution.engine.aggregation.AggregationContext;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.expression.InputRow;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.memory.OnHeapMemoryManager;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.BatchIteratorTester;
 
 public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {
 
@@ -97,21 +98,24 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         aggregationContexts = List.of(new AggregationContext(aggregation, () -> true, List.of()));
     }
 
-    private Supplier<BatchIterator<Row>> createBatchIterator(Runnable onOrdinalsValues) {
-        return () -> GroupByOptimizedIterator.getIterator(
+    private BatchIterator<Row> createBatchIterator(Runnable onNextReader) {
+        return GroupByOptimizedIterator.getIterator(
             BigArrays.NON_RECYCLING_INSTANCE,
             indexSearcher,
-            leaf -> {
-                    try {
-                        onOrdinalsValues.run();
-                        return DocValues.getSortedSet(leaf.reader(), columnName);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                },
             columnName,
             aggregationContexts,
-            Collections.emptyList(),
+            List.of(new LuceneCollectorExpression<Object>() {
+
+                @Override
+                public void setNextReader(LeafReaderContext context) throws IOException {
+                    onNextReader.run();
+                }
+
+                @Override
+                public Object value() {
+                    return null;
+                }
+            }),
             Collections.singletonList(inExpr),
             RamAccounting.NO_ACCOUNTING,
             new OnHeapMemoryManager(usedBytes -> {}),
@@ -120,7 +124,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             new MatchAllDocsQuery(),
             new CollectorContext(mappedFieldType -> null),
             AggregateMode.ITER_FINAL
-            );
+        );
     }
 
     @Test
@@ -165,7 +169,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void test_optimized_iterator_behaviour() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(createBatchIterator(() -> {}));
+        BatchIteratorTester tester = new BatchIteratorTester(() -> createBatchIterator(() -> {}));
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -181,22 +185,14 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         assertThat(expectedException, instanceOf(IllegalStateException.class));
     }
 
-    private Throwable stopOnInterrupting(Consumer<BatchIterator<Row>> interruptingConsumer) throws Exception {
-        CountDownLatch waitForLoadNextBatch = new CountDownLatch(1);
-        CountDownLatch pauseOnDocumentCollecting = new CountDownLatch(1);
+    private Throwable stopOnInterrupting(Consumer<BatchIterator<Row>> interrupt) throws Exception {
+        CountDownLatch collectStarted = new CountDownLatch(1);
         CountDownLatch batchLoadingCompleted = new CountDownLatch(1);
 
-        Supplier<BatchIterator<Row>> itSupplier = createBatchIterator(() -> {
-            waitForLoadNextBatch.countDown();
-            try {
-                pauseOnDocumentCollecting.await(5, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+        BatchIterator<Row> it = createBatchIterator(() -> {
+            collectStarted.countDown();
         });
-
         AtomicReference<Throwable> exception = new AtomicReference<>();
-        BatchIterator<Row> it = itSupplier.get();
         Thread t = new Thread(() -> {
             try {
                 it.loadNextBatch().whenComplete((r, e) -> {
@@ -210,9 +206,8 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             }
         });
         t.start();
-        waitForLoadNextBatch.await(5, TimeUnit.SECONDS);
-        interruptingConsumer.accept(it);
-        pauseOnDocumentCollecting.countDown();
+        collectStarted.await(5, TimeUnit.SECONDS);
+        interrupt.accept(it);
         batchLoadingCompleted.await(5, TimeUnit.SECONDS);
         return exception.get();
     }

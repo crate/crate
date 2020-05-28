@@ -52,6 +52,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
+
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
@@ -68,7 +70,6 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ObjectArray;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
@@ -147,13 +148,12 @@ final class GroupByOptimizedIterator {
         Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
 
         try {
-            QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+            final QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
             IndexSearcher indexSearcher = searcher.searcher();
 
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
             docCtx.add(collectPhase.toCollect().stream()::iterator);
-            IndexOrdinalsFieldData keyIndexFieldData = queryShardContext.getForField(keyFieldType);
 
             InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations(collectTask.txnCtx());
             ctxForAggregations.add(groupProjection.values());
@@ -182,8 +182,7 @@ final class GroupByOptimizedIterator {
             return getIterator(
                 bigArrays,
                 indexSearcher,
-                leaf -> keyIndexFieldData.load(leaf).getOrdinalsValues(),
-                keyIndexFieldData.getFieldName(),
+                keyRef.column().fqn(),
                 aggregations,
                 expressions,
                 aggExpressions,
@@ -202,7 +201,6 @@ final class GroupByOptimizedIterator {
 
     static BatchIterator<Row> getIterator(BigArrays bigArrays,
                                           IndexSearcher indexSearcher,
-                                          Function<LeafReaderContext, SortedSetDocValues> ordinalsFunction,
                                           String keyColumnName,
                                           List<AggregationContext> aggregations,
                                           List<? extends LuceneCollectorExpression<?>> expressions,
@@ -229,7 +227,6 @@ final class GroupByOptimizedIterator {
                             applyAggregatesGroupedByKey(
                                 bigArrays,
                                 indexSearcher,
-                                ordinalsFunction,
                                 keyColumnName,
                                 aggregations,
                                 expressions,
@@ -281,7 +278,6 @@ final class GroupByOptimizedIterator {
 
     private static Map<BytesRef, Object[]> applyAggregatesGroupedByKey(BigArrays bigArrays,
                                                                        IndexSearcher indexSearcher,
-                                                                       Function<LeafReaderContext, SortedSetDocValues> ordinalsFunction,
                                                                        String keyColumnName,
                                                                        List<AggregationContext> aggregations,
                                                                        List<? extends LuceneCollectorExpression<?>> expressions,
@@ -306,7 +302,7 @@ final class GroupByOptimizedIterator {
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                 expressions.get(i).setNextReader(leaf);
             }
-            SortedSetDocValues values = ordinalsFunction.apply(leaf);
+            SortedSetDocValues values = DocValues.getSortedSet(leaf.reader(), keyColumnName);
             try (ObjectArray<Object[]> statesByOrd = bigArrays.newObjectArray(values.getValueCount())) {
                 DocIdSetIterator docs = scorer.iterator();
                 Bits liveDocs = leaf.reader().getLiveDocs();
