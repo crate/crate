@@ -19,11 +19,12 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.OrdinalMap;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.search.SortedSetSortField;
@@ -36,8 +37,6 @@ import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.search.MultiValueMode;
-
-import java.io.IOException;
 
 public class SortedSetDVOrdinalsIndexFieldData extends DocValuesIndexFieldData implements IndexOrdinalsFieldData {
 
@@ -115,8 +114,4 @@ public class SortedSetDVOrdinalsIndexFieldData extends DocValuesIndexFieldData i
         return GlobalOrdinalsBuilder.build(indexReader, this, indexSettings, breakerService, LOGGER);
     }
 
-    @Override
-    public OrdinalMap getOrdinalMap() {
-        return null;
-    }
 }

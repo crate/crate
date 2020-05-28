@@ -19,11 +19,12 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
+import java.io.IOException;
+
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FilteredTermsEnum;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.OrdinalMap;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
@@ -34,8 +35,6 @@ import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-
-import java.io.IOException;
 
 public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldData<AtomicOrdinalsFieldData> implements IndexOrdinalsFieldData {
 
@@ -52,11 +51,6 @@ public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldD
         this.minFrequency = minFrequency;
         this.maxFrequency = maxFrequency;
         this.minSegmentSize = minSegmentSize;
-    }
-
-    @Override
-    public OrdinalMap getOrdinalMap() {
-        return null;
     }
 
     @Override
