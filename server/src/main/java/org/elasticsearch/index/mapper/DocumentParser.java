@@ -709,12 +709,6 @@ final class DocumentParser {
                 builder = new BooleanFieldMapper.Builder(currentFieldName);
             }
             return builder;
-        } else if (token == XContentParser.Token.VALUE_EMBEDDED_OBJECT) {
-            Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.BINARY);
-            if (builder == null) {
-                builder = new BinaryFieldMapper.Builder(currentFieldName);
-            }
-            return builder;
         } else if (token == XContentParser.Token.START_OBJECT) {
             Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.OBJECT);
             if (builder == null) {
