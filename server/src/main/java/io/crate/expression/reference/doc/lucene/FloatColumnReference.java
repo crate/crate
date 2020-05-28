@@ -21,23 +21,23 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
-import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.index.fielddata.IndexNumericFieldData;
-import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
-import org.elasticsearch.index.mapper.MappedFieldType;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-public class FloatColumnReference extends FieldCacheExpression<IndexNumericFieldData, Float> {
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
+
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+
+public class FloatColumnReference extends LuceneCollectorExpression<Float> {
 
     private final String columnName;
-    private SortedNumericDoubleValues values;
+    private SortedNumericDocValues values;
     private int docId;
 
-    public FloatColumnReference(String columnName, MappedFieldType fieldType) {
-        super(fieldType);
+    public FloatColumnReference(String columnName) {
         this.columnName = columnName;
     }
 
@@ -47,7 +47,7 @@ public class FloatColumnReference extends FieldCacheExpression<IndexNumericField
             if (values.advanceExact(docId)) {
                 switch (values.docValueCount()) {
                     case 1:
-                        return (float) values.nextValue();
+                        return NumericUtils.sortableIntToFloat((int) values.nextValue());
 
                     default:
                         throw new GroupByOnArrayUnsupportedException(columnName);
@@ -69,6 +69,6 @@ public class FloatColumnReference extends FieldCacheExpression<IndexNumericField
     @Override
     public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getDoubleValues();
+        values = DocValues.getSortedNumeric(context.reader(), columnName);
     }
 }

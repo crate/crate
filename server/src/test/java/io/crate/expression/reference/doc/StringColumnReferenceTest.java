@@ -32,8 +32,6 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -60,10 +58,7 @@ public class StringColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        MappedFieldType fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE.clone();
-        fieldType.setHasDocValues(true);
-        fieldType.setName(column);
-        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(column, fieldType);
+        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(column);
         bytesRefColumn.startCollect(ctx);
         bytesRefColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

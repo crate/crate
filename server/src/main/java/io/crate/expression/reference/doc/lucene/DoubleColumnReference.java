@@ -21,23 +21,24 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
-import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.index.fielddata.IndexNumericFieldData;
-import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
-import org.elasticsearch.index.mapper.MappedFieldType;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFieldData, Double> {
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.elasticsearch.index.fielddata.FieldData;
+import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
+
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+
+public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
 
     private final String columnName;
     private SortedNumericDoubleValues values;
     private int docId;
 
-    public DoubleColumnReference(String columnName, MappedFieldType mappedFieldType) {
-        super(mappedFieldType);
+    public DoubleColumnReference(String columnName) {
         this.columnName = columnName;
     }
 
@@ -68,7 +69,8 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     @Override
     public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getDoubleValues();
+        SortedNumericDocValues raw = DocValues.getSortedNumeric(context.reader(), columnName);
+        values = FieldData.sortableLongBitsToDoubles(raw);
     }
 }
 

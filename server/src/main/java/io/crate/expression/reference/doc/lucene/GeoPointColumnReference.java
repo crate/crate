@@ -21,27 +21,26 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+
+import org.apache.lucene.geo.GeoEncodingUtils;
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.common.geo.GeoPoint;
-import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.fielddata.MultiGeoPointValues;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 
-public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointFieldData, Point> {
+public class GeoPointColumnReference extends LuceneCollectorExpression<Point> {
 
     private final String columnName;
-    private MultiGeoPointValues values;
+    private SortedNumericDocValues values;
     private int docId;
 
-    public GeoPointColumnReference(String columnName, MappedFieldType mappedFieldType) {
-        super(mappedFieldType);
+    public GeoPointColumnReference(String columnName) {
         this.columnName = columnName;
     }
 
@@ -51,8 +50,12 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
             if (values.advanceExact(docId)) {
                 switch (values.docValueCount()) {
                     case 1:
-                        GeoPoint gp = values.nextValue();
-                        return new PointImpl(gp.lon(), gp.lat(), JtsSpatialContext.GEO);
+                        long encoded = values.nextValue();
+                        return new PointImpl(
+                            GeoEncodingUtils.decodeLongitude((int) encoded),
+                            GeoEncodingUtils.decodeLatitude((int) (encoded >>> 32)),
+                            JtsSpatialContext.GEO
+                        );
 
                     default:
                         throw new GroupByOnArrayUnsupportedException(columnName);
@@ -73,6 +76,6 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
     @Override
     public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getGeoPointValues();
+        values = DocValues.getSortedNumeric(context.reader(), columnName);
     }
 }
