@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index.fielddata;
 
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.IndexComponent;
@@ -64,10 +63,5 @@ public interface IndexFieldData<FD extends AtomicFieldData> extends IndexCompone
 
         IndexFieldData<?> build(IndexSettings indexSettings, MappedFieldType fieldType, IndexFieldDataCache cache,
                              CircuitBreakerService breakerService, MapperService mapperService);
-    }
-
-    interface Global<FD extends AtomicFieldData> extends IndexFieldData<FD> {
-
-        IndexFieldData<FD> localGlobalDirect(DirectoryReader indexReader) throws Exception;
     }
 }

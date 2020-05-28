@@ -22,6 +22,6 @@ package org.elasticsearch.index.fielddata;
 /**
  * Specialization of {@link IndexFieldData} for data that is indexed with ordinals.
  */
-public interface IndexOrdinalsFieldData extends IndexFieldData.Global<AtomicOrdinalsFieldData> {
+public interface IndexOrdinalsFieldData extends IndexFieldData<AtomicOrdinalsFieldData> {
 
 }

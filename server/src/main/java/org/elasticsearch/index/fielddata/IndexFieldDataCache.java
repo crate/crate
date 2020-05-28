@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index.fielddata;
 
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.index.shard.ShardId;
@@ -30,8 +29,6 @@ import org.elasticsearch.index.shard.ShardId;
 public interface IndexFieldDataCache {
 
     <FD extends AtomicFieldData, IFD extends IndexFieldData<FD>> FD load(LeafReaderContext context, IFD indexFieldData) throws Exception;
-
-    <FD extends AtomicFieldData, IFD extends IndexFieldData.Global<FD>> IFD load(DirectoryReader indexReader, IFD indexFieldData) throws Exception;
 
     /**
      * Clears all the field data stored cached in on this index.

@@ -22,7 +22,6 @@ package org.elasticsearch.index.fielddata.plain;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedSetSelector;
@@ -31,7 +30,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
-import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.search.MultiValueMode;
 
@@ -67,10 +65,4 @@ public class SortedSetDVOrdinalsIndexFieldData extends DocValuesIndexFieldData i
     public AtomicOrdinalsFieldData loadDirect(LeafReaderContext context) throws Exception {
         return load(context);
     }
-
-    @Override
-    public IndexOrdinalsFieldData localGlobalDirect(DirectoryReader indexReader) throws Exception {
-        return GlobalOrdinalsBuilder.build(indexReader, this, indexSettings, breakerService, LOGGER);
-    }
-
 }
