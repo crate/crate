@@ -69,7 +69,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
         .put(new ArrayType<>(DataTypes.TIMESTAMPZ), PGArray.TIMESTAMPZ_ARRAY)
         .put(new ArrayType<>(DataTypes.TIMESTAMP), PGArray.TIMESTAMP_ARRAY)
-        .put(new ArrayType<>(DataTypes.TIMETZ), PGArray.TIME_ARRAY)
+        .put(new ArrayType<>(DataTypes.TIMETZ), PGArray.TIMETZ_ARRAY)
         .put(new ArrayType<>(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.IP), PGArray.VARCHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.UNTYPED_OBJECT), PGArray.JSON_ARRAY)

@@ -37,7 +37,7 @@ final class TimeTZType extends PGType<Long> {
 
     public static final PGType<Long> INSTANCE = new TimeTZType();
 
-    private static final int OID = 1083;
+    private static final int OID = 1266;
     private static final int TYPE_MOD = -1;
     private static final int TYPE_LEN = 8;
 
@@ -48,7 +48,7 @@ final class TimeTZType extends PGType<Long> {
 
     @Override
     public int typArray() {
-        return PGArray.TIME_ARRAY.oid();
+        return PGArray.TIMETZ_ARRAY.oid();
     }
 
     @Override
