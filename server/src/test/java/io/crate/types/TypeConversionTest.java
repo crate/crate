@@ -279,7 +279,7 @@ public class TypeConversionTest extends CrateUnitTest {
         assertThat(TimeType.INSTANCE.isConvertableTo(StringType.INSTANCE, false),
                    is(false));
         assertThat(StringType.INSTANCE.isConvertableTo(TimeType.INSTANCE, false),
-                   is(false));
+                   is(true));
     }
 
     @Test
