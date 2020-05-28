@@ -27,7 +27,7 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.search.MultiValueMode;
 
-public class BinaryDVIndexFieldData extends DocValuesIndexFieldData implements IndexFieldData<BinaryDVAtomicFieldData> {
+public class BinaryDVIndexFieldData extends DocValuesIndexFieldData implements IndexFieldData {
 
     public BinaryDVIndexFieldData(Index index, String fieldName) {
         super(index, fieldName);

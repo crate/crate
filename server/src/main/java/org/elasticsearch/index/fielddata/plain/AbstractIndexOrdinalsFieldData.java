@@ -27,10 +27,9 @@ import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
-public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldData<AtomicOrdinalsFieldData> {
+public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldData {
 
     private final double minFrequency;
     private final double maxFrequency;
@@ -48,11 +47,6 @@ public abstract class AbstractIndexOrdinalsFieldData extends AbstractIndexFieldD
         this.minFrequency = minFrequency;
         this.maxFrequency = maxFrequency;
         this.minSegmentSize = minSegmentSize;
-    }
-
-    @Override
-    protected AtomicOrdinalsFieldData empty(int maxDoc) {
-        return AbstractAtomicOrdinalsFieldData.empty();
     }
 
     protected TermsEnum filter(Terms terms, TermsEnum iterator, LeafReader reader) throws IOException {

@@ -238,7 +238,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     }
 
     static CollectorContext getCollectorContext(int readerId,
-                                                Function<MappedFieldType, IndexFieldData<?>> getFieldData) {
+                                                Function<MappedFieldType, IndexFieldData> getFieldData) {
         return new CollectorContext(getFieldData, readerId);
     }
 }
