@@ -10,109 +10,100 @@ public class TimeTypeTest extends CrateUnitTest {
     @Test
     public void test_parse_time_range_overflow() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [86400000001] is out of range for 'TimeType' [0, 86400000000]");
-        TimeType.parseTime(String.valueOf(24 * 3600 * 1000_000L + 1));
+        expectedException.expectMessage("value [86400000001] is out of range for '24:00:00.000001' [0, 86400000000]");
+        TimeType.parseTime("24:00:00.000001");
     }
 
     @Test
-    public void test_parse_time_range_underflow() {
+    public void test_parse_time_range_overflow_take_two() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [-86400000000] is out of range for 'TimeType' [0, 86400000000]");
-        TimeType.parseTime(String.valueOf(-24 * 3600 * 1000_000L));
+        expectedException.expectMessage("value [86400999000] is out of range for '240000.999' [0, 86400000000]");
+        TimeType.parseTime("240000.999");
+    }
+
+    @Test
+    public void test_parse_time_unsupported_literal_long() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("value [234] is not a valid literal for TimeType");
+        TimeType.parseTime("234");
     }
 
     @Test
     public void test_parse_time_unsupported_literal_floating_point() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [234.9999] is not a valid literal for type TimeType");
+        expectedException.expectMessage("value [234.9999] is not a valid literal for TimeType");
         TimeType.parseTime("234.9999");
     }
 
     @Test
     public void test_parse_time_out_of_range_hh() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [25] is out of range for 'hh' [0, 24]");
+        expectedException.expectMessage("value [25] is out of range for 'HH' [0, 24]");
         TimeType.parseTime("25");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmm() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [78] is out of range for 'mm' [0, 59]");
+        expectedException.expectMessage("value [78] is out of range for 'MM' [0, 59]");
         TimeType.parseTime("1778");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmmss() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [78] is out of range for 'ss' [0, 59]");
+        expectedException.expectMessage("value [78] is out of range for 'SS' [0, 59]");
         TimeType.parseTime("175978");
     }
 
     @Test
     public void test_parse_time_out_of_range_hh_floating_point() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [25] is out of range for 'hh' [0, 24]");
+        expectedException.expectMessage("value [25] is out of range for 'HH' [0, 24]");
         TimeType.parseTime("25.999999");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmm_floating_point() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [78] is out of range for 'mm' [0, 59]");
+        expectedException.expectMessage("value [78] is out of range for 'MM' [0, 59]");
         TimeType.parseTime("1778.999999");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmmss_floating_point() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [78] is out of range for 'ss' [0, 59]");
+        expectedException.expectMessage("value [78] is out of range for 'SS' [0, 59]");
         TimeType.parseTime("175978.999999");
     }
 
     @Test
-    public void test_parse_time_out_of_range_micros_floating_point() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [9999999] is out of range for 'micros' [0, 999999]");
-        TimeType.parseTime("00.9999999");
-    }
-
-    @Test
-    public void test_parse_time_range_overflow_take_two() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [86400999000] is out of range for 'TimeType' [0, 86400000000]");
-        TimeType.parseTime("240000.999");
-    }
-
-    @Test
-    public void test_parse_time_midnight_when_ISO_parser_does_not_like_it() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [24:00:00.000] is not a valid literal for TimeType");
-        TimeType.parseTime("24:00:00.000");
-    }
-
-    @Test
-    public void test_parse_time_midnight_when_ISO_parser_does_like_it() {
-        assertThat(TimeType.parseTime("240000.000"), is(24 * 60 * 60 * 1000_000L));
-    }
-
-    @Test
-    public void test_parse_time_no_time_zone_explicitly_mentioned() {
-        assertThat(TimeType.parseTime("04:00:00"), is(14400000000L));
-        assertThat(TimeType.parseTime("14400000"), is(14400000L));
-        assertThat(TimeType.parseTime("04:00:00.123456789"), is(14400123456L));
-        assertThat(TimeType.parseTime("14400123"), is(14400123L));
+    public void test_parse_time() {
+        assertThat(TimeType.parseTime("04"), is(4 * 60 * 60 * 1000_000L));
+        assertEquals(TimeType.parseTime("04"), TimeType.parseTime("0400"));
+        assertEquals(TimeType.parseTime("04"), TimeType.parseTime("04:00"));
+        assertEquals(TimeType.parseTime("04"), TimeType.parseTime("040000"));
+        assertEquals(TimeType.parseTime("04"), TimeType.parseTime("04:00:00"));
+        assertEquals(TimeType.parseTime("04"), TimeType.parseTime("040000.0"));
+        assertEquals(TimeType.parseTime("04"), TimeType.parseTime("04:00:00.0"));
     }
 
     @Test
     public void test_format_time() {
         assertThat(TimeType.formatTime(14400000000L), is("04:00:00"));
         assertThat(TimeType.formatTime(14400123000L), is("04:00:00.123"));
+        assertThat(TimeType.formatTime(14400123666L), is("04:00:00.123666"));
     }
 
     @Test
     public void test_value_null() {
         assertNull(TimeType.INSTANCE.value(null));
+    }
+
+    @Test
+    public void test_value_long() {
+        assertThat(TimeType.INSTANCE.value(0), is(TimeType.parseTime("00")));
+        assertThat(TimeType.INSTANCE.value(TimeType.MAX_MICROS), is(TimeType.parseTime("24")));
     }
 
     @Test
@@ -129,14 +120,20 @@ public class TimeTypeTest extends CrateUnitTest {
 
     @Test
     public void test_value_ISO_formats_without_time_zone() {
+        assertThat(TimeType.INSTANCE.value("01.99999"), is(3600999990L));
+        assertThat(TimeType.INSTANCE.value("0110.99999"), is(4200999990L));
+        assertThat(TimeType.INSTANCE.value("011101.99999"), is(4261999990L));
+
         assertThat(TimeType.INSTANCE.value("01:00:00.000"), is(3600000000L));
-        assertThat(TimeType.INSTANCE.value("00:00:00.000"), is(0L));
         assertThat(TimeType.INSTANCE.value("23:59:59.999998"), is(24 * 60 * 60 * 1000_000L - 2L));
+        assertThat(TimeType.INSTANCE.value("24:00:00.000"), is(TimeType.MAX_MICROS));
+
     }
 
     @Test
     public void test_value_short_hand_format_floating_point() {
         assertThat(TimeType.INSTANCE.value("010000.000"), is(3600000000L));
+        assertThat(TimeType.INSTANCE.value("01:00:00.000"), is(3600000000L));
         assertThat(TimeType.INSTANCE.value("000000.000"), is(0L));
         assertThat(TimeType.INSTANCE.value("235959.999998"), is(24 * 60 * 60 * 1000_000L - 2L));
         assertThat(TimeType.INSTANCE.value("235959.998"), is(24 * 60 * 60 * 1000_000L - 2000L));

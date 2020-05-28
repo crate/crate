@@ -60,12 +60,12 @@ public class TimeTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testDecodeAsUTF8Text() {
-        assertThat(TimeType.INSTANCE.decodeUTF8Text("14:43:25.278-02".getBytes()), is(53005278000L));
+        assertThat(TimeType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes()), is(14400123456L));
     }
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
         expectedException.expect(IllegalArgumentException.class);
-        TimeType.INSTANCE.decodeUTF8Text("00:00:00.0000000001".getBytes(StandardCharsets.UTF_8));
+        TimeType.INSTANCE.decodeUTF8Text("00:0000.0000000001".getBytes(StandardCharsets.UTF_8));
     }
 }
