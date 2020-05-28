@@ -45,7 +45,6 @@ public class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent impleme
     private final String fieldName;
     private final long memorySizeInBytes;
 
-    private final OrdinalMap ordinalMap;
     private final Atomic[] atomicReaders;
 
 
@@ -54,7 +53,6 @@ public class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent impleme
         super(indexSettings);
         this.fieldName = fieldName;
         this.memorySizeInBytes = memorySizeInBytes;
-        this.ordinalMap = ordinalMap;
         this.atomicReaders = new Atomic[segmentAfd.length];
         for (int i = 0; i < segmentAfd.length; i++) {
             atomicReaders[i] = new Atomic(segmentAfd[i], ordinalMap, i);
@@ -105,11 +103,6 @@ public class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent impleme
     @Override
     public AtomicOrdinalsFieldData load(LeafReaderContext context) {
         return atomicReaders[context.ord];
-    }
-
-    @Override
-    public OrdinalMap getOrdinalMap() {
-        return ordinalMap;
     }
 
     private final class Atomic extends AbstractAtomicOrdinalsFieldData {
