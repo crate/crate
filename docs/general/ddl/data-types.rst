@@ -202,8 +202,8 @@ Example::
     SQLActionException[SQLParseException: Cannot cast `'not.a.real.ip'` of type `text` to type `ip`]
 
 Ip addresses support the binary operator `<<`, which checks for subnet inclusion
-using `CIDR notation`_ [ip address/prefix_length]. The left operand must be of
-type ``ip`` and the right of ``text`` e.g. `'192.168.1.5' << '192.168.1/24'`.
+using `CIDR notation`_ [ip address/prefix_length]. The left and right operands
+must be of type ``ip``.
 
 .. _date-time-types:
 

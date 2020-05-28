@@ -24,7 +24,6 @@ package io.crate.expression.operator;
 
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -40,7 +39,6 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -49,7 +47,6 @@ public final class CIDROperator {
     public static final String CONTAINED_WITHIN = Operator.PREFIX + "<<";
 
     private static final int IPV4_ADDRESS_LEN = 4;
-    private static final int IPV6_ADDRESS_LEN = 16;
 
     public static void register(OperatorModule module) {
         module.registerDynamicOperatorFunction(CONTAINED_WITHIN, new CIDRResolver());
@@ -98,23 +95,40 @@ public final class CIDROperator {
 
     private static class CIDRResolver extends BaseFunctionResolver {
 
-        private static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(CONTAINED_WITHIN, Arrays.asList(DataTypes.IP, DataTypes.STRING)),
-            DataTypes.BOOLEAN);
-
         private CIDRResolver() {
-            super(FuncParams.builder(Param.of(DataTypes.IP), Param.of(DataTypes.STRING)).build());
+            super(
+                FuncParams.builder(
+                    Param.of(DataTypes.IP, DataTypes.STRING, DataTypes.LONG),
+                    Param.of(DataTypes.IP, DataTypes.STRING, DataTypes.LONG)
+                ).build());
         }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new ContainedWithinOperator();
+            return new ContainedWithinOperator(
+                FunctionInfo.of(
+                    CONTAINED_WITHIN,
+                    List.of(DataTypes.IP, DataTypes.STRING),
+                    DataTypes.BOOLEAN
+                )
+            );
         }
 
         private static class ContainedWithinOperator extends Scalar<Boolean, Object> {
 
+            private final FunctionInfo info;
+
+            private ContainedWithinOperator(FunctionInfo info) {
+                this.info = info;
+            }
+
             @Override
-            public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
+            public FunctionInfo info() {
+                return info;
+            }
+
+            @Override
+            public Boolean evaluate(TransactionContext txnCtx, Input<Object>[] args) {
                 assert args.length == 2 : "number of args must be 2";
                 String left = (String) args[0].value();
                 if (null == left) {
@@ -125,11 +139,6 @@ public final class CIDROperator {
                     return null;
                 }
                 return containedWithin(left, right);
-            }
-
-            @Override
-            public FunctionInfo info() {
-                return INFO;
             }
         }
     }

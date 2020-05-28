@@ -131,6 +131,9 @@ SQL Standard and PostgreSQL compatibility improvements
 Functions and operators
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+- Added the :ref:`ip <ip-type>` data type support for the right operand of
+  the ``CIDR`` operator.
+
 - Replaced the ``Nashorn`` JavaScript engine with ``GraalVM`` for JavaScript
   :ref:`user-defined functions <sql_administration_udf>`. This change upgrades
   ``ECMAScript`` support from ``5.1`` to ``10.0``.
