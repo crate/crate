@@ -81,7 +81,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -220,9 +219,8 @@ final class GroupByOptimizedIterator {
         }
 
         AtomicReference<Throwable> killed = new AtomicReference<>();
-        AtomicBoolean closed = new AtomicBoolean();
         return CollectingBatchIterator.newInstance(
-            () -> closed.set(true),
+            () -> killed.set(BatchIterator.CLOSED),
             killed::set,
             () -> {
                 try {
@@ -241,8 +239,7 @@ final class GroupByOptimizedIterator {
                                 minNodeVersion,
                                 inputRow,
                                 query,
-                                killed,
-                                closed
+                                killed
                             ),
                             ramAccounting,
                             aggregations,
@@ -294,15 +291,14 @@ final class GroupByOptimizedIterator {
                                                                        Version minNodeVersion,
                                                                        InputRow inputRow,
                                                                        Query query,
-                                                                       AtomicReference<Throwable> killed,
-                                                                       AtomicBoolean closed) throws IOException {
+                                                                       AtomicReference<Throwable> killed) throws IOException {
         final HashMap<BytesRef, Object[]> statesByKey = new HashMap<>();
         final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
         Object[] nullStates = null;
 
         for (LeafReaderContext leaf: leaves) {
-            raiseIfClosedOrKilled(killed, closed);
+            raiseIfClosedOrKilled(killed);
             Scorer scorer = weight.scorer(leaf);
             if (scorer == null) {
                 continue;
@@ -315,7 +311,7 @@ final class GroupByOptimizedIterator {
                 DocIdSetIterator docs = scorer.iterator();
                 Bits liveDocs = leaf.reader().getLiveDocs();
                 for (int doc = docs.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = docs.nextDoc()) {
-                    raiseIfClosedOrKilled(killed, closed);
+                    raiseIfClosedOrKilled(killed);
                     if (docDeleted(liveDocs, doc)) {
                         continue;
                     }
@@ -345,7 +341,7 @@ final class GroupByOptimizedIterator {
                     }
                 }
                 for (long ord = 0; ord < statesByOrd.size(); ord++) {
-                    raiseIfClosedOrKilled(killed, closed);
+                    raiseIfClosedOrKilled(killed);
                     Object[] states = statesByOrd.get(ord);
                     if (states == null) {
                         continue;
@@ -468,13 +464,10 @@ final class GroupByOptimizedIterator {
         return groupProjection;
     }
 
-    private static void raiseIfClosedOrKilled(AtomicReference<Throwable> killed, AtomicBoolean closed) {
+    private static void raiseIfClosedOrKilled(AtomicReference<Throwable> killed) {
         Throwable killedException = killed.get();
         if (killedException != null) {
             Exceptions.rethrowUnchecked(killedException);
-        }
-        if (closed.get()) {
-            throw new IllegalStateException("BatchIterator is closed");
         }
     }
 }
