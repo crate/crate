@@ -26,6 +26,7 @@ import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
@@ -33,18 +34,25 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.unit.TimeValue;
+import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -484,5 +492,85 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     public void test_cannot_create_snapshot_in_read_only_repo() {
         expectedException.expectMessage("cannot create snapshot in a readonly repository");
         execute("create snapshot my_repo_ro.s1 ALL WITH (wait_for_completion=true)");
+    }
+
+    public void test_snapshot_with_corrupted_shard_index_file() throws Exception {
+        execute("CREATE TABLE t1 (x int)");
+        var numberOfDocs = randomLongBetween(0, 10);
+        for (int i = 0; i < numberOfDocs; i++) {
+            execute("INSERT INTO t1 (x) VALUES (?)", new Object[]{randomInt()});
+        }
+        execute("REFRESH TABLE t1");
+
+        var snapShotName1 = "s1";
+        var fullSnapShotName1 =  REPOSITORY_NAME + "." + snapShotName1;
+        execute("CREATE SNAPSHOT " + fullSnapShotName1 + " ALL WITH (wait_for_completion=true)");
+
+        var repositoryData = getRepositoryData();
+        var indexIds = repositoryData.getIndices();
+        assertThat(indexIds.size(), equalTo(1));
+
+        var corruptedIndex = indexIds.entrySet().iterator().next().getValue();
+        var shardIndexFile = defaultRepositoryLocation.toPath().resolve("indices")
+            .resolve(corruptedIndex.getId()).resolve("0")
+            .resolve("index-0");
+
+        // Truncating shard index file
+        try (var outChan = Files.newByteChannel(shardIndexFile, StandardOpenOption.WRITE)) {
+            outChan.truncate(randomInt(10));
+        }
+
+        assertSnapShotState(snapShotName1);
+
+        execute("drop table t1");
+        execute("RESTORE SNAPSHOT " +  fullSnapShotName1 + " TABLE t1 with (wait_for_completion=true)");
+        ensureYellow();
+
+        execute("SELECT COUNT(*) FROM t1");
+        assertThat(response.rows()[0][0], is(numberOfDocs));
+
+        var numberOfAdditionalDocs = randomLongBetween(0, 10);
+        for (int i = 0; i < numberOfAdditionalDocs; i++) {
+            execute("INSERT INTO t1 (x) VALUES (?)", new Object[]{randomInt()});
+        }
+        execute("REFRESH TABLE t1");
+
+        var snapShotName2 = "s2";
+        var fullSnapShotName2 = REPOSITORY_NAME + ".s2";
+
+        execute("CREATE SNAPSHOT " + fullSnapShotName2 + " ALL WITH (wait_for_completion=true)");
+
+        assertSnapShotState(snapShotName2);
+
+        execute("drop table t1");
+        execute("RESTORE SNAPSHOT " + fullSnapShotName2 + " TABLE t1 with (wait_for_completion=true)");
+        ensureYellow();
+
+        execute("SELECT COUNT(*) FROM t1");
+        assertThat(response.rows()[0][0], is(numberOfDocs + numberOfAdditionalDocs));
+
+    }
+
+    private void assertSnapShotState(String snapShotName) {
+        execute(
+            "SELECT state, array_length(concrete_indices, 1) FROM sys.snapshots where name = ? and repository = ?",
+            new Object[]{snapShotName, REPOSITORY_NAME});
+
+        assertThat(response.rows()[0][0], is("SUCCESS"));
+        assertThat(response.rows()[0][1], is(1));
+    }
+
+    private RepositoryData getRepositoryData() throws Exception {
+        RepositoriesService service = internalCluster().getInstance(RepositoriesService.class, internalCluster().getMasterName());
+        Repository repository = service.repository(REPOSITORY_NAME);
+        ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class, internalCluster().getMasterName());
+        final SetOnce<RepositoryData> repositoryData = new SetOnce<>();
+        final CountDownLatch latch = new CountDownLatch(1);
+        threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
+            repositoryData.set(repository.getRepositoryData());
+            latch.countDown();
+        });
+        latch.await();
+        return repositoryData.get();
     }
 }
