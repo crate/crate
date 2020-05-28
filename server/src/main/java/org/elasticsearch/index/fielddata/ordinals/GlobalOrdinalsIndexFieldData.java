@@ -65,11 +65,6 @@ public class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent impleme
     }
 
     @Override
-    public IndexOrdinalsFieldData loadGlobal(DirectoryReader indexReader) {
-        return this;
-    }
-
-    @Override
     public IndexOrdinalsFieldData localGlobalDirect(DirectoryReader indexReader) throws Exception {
         return this;
     }

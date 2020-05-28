@@ -64,7 +64,9 @@ Breaking Changes
 Deprecations
 ============
 
-None
+- The ``index.warmer.enabled`` setting has been deprecated and doesn't have any
+  effect anymore.
+
 
 Changes
 =======

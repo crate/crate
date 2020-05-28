@@ -2794,12 +2794,27 @@ public class InternalEngineTests extends EngineTestCase {
         TranslogConfig translogConfig = new TranslogConfig(shardId, translog.location(), config.getIndexSettings(),
                                                            BigArrays.NON_RECYCLING_INSTANCE);
 
-        EngineConfig brokenConfig = new EngineConfig(shardId, allocationId.getId(),
-                                                     threadPool, config.getIndexSettings(), null, store, newMergePolicy(), config.getAnalyzer(),
-                                                     new CodecService(null, logger), config.getEventListener(), IndexSearcher.getDefaultQueryCache(),
-                                                     IndexSearcher.getDefaultQueryCachingPolicy(), translogConfig, TimeValue.timeValueMinutes(5),
-                                                     config.getExternalRefreshListener(), config.getInternalRefreshListener(),
-                                                     new NoneCircuitBreakerService(), () -> UNASSIGNED_SEQ_NO, primaryTerm::get, tombstoneDocSupplier());
+        EngineConfig brokenConfig = new EngineConfig(
+            shardId,
+            allocationId.getId(),
+            threadPool,
+            config.getIndexSettings(),
+            store,
+            newMergePolicy(),
+            config.getAnalyzer(),
+            new CodecService(null, logger),
+            config.getEventListener(),
+            IndexSearcher.getDefaultQueryCache(),
+            IndexSearcher.getDefaultQueryCachingPolicy(),
+            translogConfig,
+            TimeValue.timeValueMinutes(5),
+            config.getExternalRefreshListener(),
+            config.getInternalRefreshListener(),
+            new NoneCircuitBreakerService(),
+            () -> UNASSIGNED_SEQ_NO,
+            primaryTerm::get,
+            tombstoneDocSupplier()
+        );
         expectThrows(EngineCreationFailureException.class, () -> new InternalEngine(brokenConfig));
 
         engine = createEngine(store, primaryTranslogDir); // and recover again!

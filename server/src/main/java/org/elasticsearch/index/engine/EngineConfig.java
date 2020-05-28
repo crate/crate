@@ -58,7 +58,6 @@ public final class EngineConfig {
     private final TimeValue flushMergesAfter;
     private final String codecName;
     private final ThreadPool threadPool;
-    private final Engine.Warmer warmer;
     private final Store store;
     private final MergePolicy mergePolicy;
     private final Analyzer analyzer;
@@ -112,21 +111,29 @@ public final class EngineConfig {
     /**
      * Creates a new {@link org.elasticsearch.index.engine.EngineConfig}
      */
-    public EngineConfig(ShardId shardId, String allocationId, ThreadPool threadPool,
-                        IndexSettings indexSettings, Engine.Warmer warmer, Store store,
-                        MergePolicy mergePolicy, Analyzer analyzer,
-                        CodecService codecService, Engine.EventListener eventListener,
-                        QueryCache queryCache, QueryCachingPolicy queryCachingPolicy,
-                        TranslogConfig translogConfig, TimeValue flushMergesAfter,
+    public EngineConfig(ShardId shardId,
+                        String allocationId,
+                        ThreadPool threadPool,
+                        IndexSettings indexSettings,
+                        Store store,
+                        MergePolicy mergePolicy,
+                        Analyzer analyzer,
+                        CodecService codecService,
+                        Engine.EventListener eventListener,
+                        QueryCache queryCache,
+                        QueryCachingPolicy queryCachingPolicy,
+                        TranslogConfig translogConfig,
+                        TimeValue flushMergesAfter,
                         List<ReferenceManager.RefreshListener> externalRefreshListener,
                         List<ReferenceManager.RefreshListener> internalRefreshListener,
-                        CircuitBreakerService circuitBreakerService, LongSupplier globalCheckpointSupplier,
-                        LongSupplier primaryTermSupplier, TombstoneDocSupplier tombstoneDocSupplier) {
+                        CircuitBreakerService circuitBreakerService,
+                        LongSupplier globalCheckpointSupplier,
+                        LongSupplier primaryTermSupplier,
+                        TombstoneDocSupplier tombstoneDocSupplier) {
         this.shardId = shardId;
         this.allocationId = allocationId;
         this.indexSettings = indexSettings;
         this.threadPool = threadPool;
-        this.warmer = warmer == null ? (a) -> {} : warmer;
         this.store = store;
         this.mergePolicy = mergePolicy;
         this.analyzer = analyzer;
@@ -207,13 +214,6 @@ public final class EngineConfig {
      */
     public ThreadPool getThreadPool() {
         return threadPool;
-    }
-
-    /**
-     * Returns an {@link org.elasticsearch.index.engine.Engine.Warmer} used to warm new searchers before they are used for searching.
-     */
-    public Engine.Warmer getWarmer() {
-        return warmer;
     }
 
     /**
