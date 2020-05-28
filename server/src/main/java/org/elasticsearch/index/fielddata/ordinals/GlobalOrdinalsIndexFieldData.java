@@ -19,7 +19,9 @@
 
 package org.elasticsearch.index.fielddata.ordinals;
 
-import org.apache.lucene.index.DirectoryReader;
+import java.util.Collection;
+import java.util.Collections;
+
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.OrdinalMap;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -33,9 +35,6 @@ import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.plain.AbstractAtomicOrdinalsFieldData;
 import org.elasticsearch.search.MultiValueMode;
-
-import java.util.Collection;
-import java.util.Collections;
 
 /**
  * {@link IndexFieldData} base class for concrete global ordinals implementations.
@@ -62,11 +61,6 @@ public class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent impleme
     @Override
     public AtomicOrdinalsFieldData loadDirect(LeafReaderContext context) throws Exception {
         return load(context);
-    }
-
-    @Override
-    public IndexOrdinalsFieldData localGlobalDirect(DirectoryReader indexReader) throws Exception {
-        return this;
     }
 
     @Override

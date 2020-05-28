@@ -19,20 +19,25 @@
 
 package org.elasticsearch.indices.fielddata.cache;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.ToLongBiFunction;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexReader.CacheKey;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.util.Accountable;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.cache.Cache;
 import org.elasticsearch.common.cache.CacheBuilder;
 import org.elasticsearch.common.cache.RemovalListener;
 import org.elasticsearch.common.cache.RemovalNotification;
 import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -43,12 +48,6 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardUtils;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.ToLongBiFunction;
 
 public class IndicesFieldDataCache implements RemovalListener<IndicesFieldDataCache.Key, Accountable>, Releasable {
 
@@ -149,32 +148,6 @@ public class IndicesFieldDataCache implements RemovalListener<IndicesFieldDataCa
                 return fieldData;
             });
             return (FD) accountable;
-        }
-
-        @Override
-        public <FD extends AtomicFieldData, IFD extends IndexFieldData.Global<FD>> IFD load(final DirectoryReader indexReader, final IFD indexFieldData) throws Exception {
-            final ShardId shardId = ShardUtils.extractShardId(indexReader);
-            final IndexReader.CacheHelper cacheHelper = indexReader.getReaderCacheHelper();
-            if (cacheHelper == null) {
-                throw new IllegalArgumentException("Reader " + indexReader + " does not support caching");
-            }
-            final Key key = new Key(this, cacheHelper.getKey(), shardId);
-            //noinspection unchecked
-            final Accountable accountable = cache.computeIfAbsent(key, k -> {
-                ElasticsearchDirectoryReader.addReaderCloseListener(indexReader, IndexFieldCache.this);
-                Collections.addAll(k.listeners, this.listeners);
-                final Accountable ifd = (Accountable) indexFieldData.localGlobalDirect(indexReader);
-                for (Listener listener : k.listeners) {
-                    try {
-                        listener.onCache(shardId, fieldName, ifd);
-                    } catch (Exception e) {
-                        // load anyway since listeners should not throw exceptions
-                        logger.error("Failed to call listener on global ordinals loading", e);
-                    }
-                }
-                return ifd;
-            });
-            return (IFD) accountable;
         }
 
         @Override
