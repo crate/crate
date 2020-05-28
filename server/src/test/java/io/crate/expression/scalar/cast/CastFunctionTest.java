@@ -22,7 +22,6 @@
 
 package io.crate.expression.scalar.cast;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
@@ -219,7 +218,6 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
      * {@link ClassCastException} and {@link IllegalArgumentException}.
      * Ensure that this works as expected by try_cast random values for all primitive types.
      */
-    @Seed("90428EA39AE46AF2")
     @Test
     public void test_try_cast_for_all_data_types() {
         for (DataType<?> dataType : DataTypes.PRIMITIVE_TYPES) {
