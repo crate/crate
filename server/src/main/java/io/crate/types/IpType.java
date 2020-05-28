@@ -21,11 +21,14 @@
 
 package io.crate.types;
 
+import io.crate.Streamer;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.network.InetAddresses;
 
-import java.util.Locale;
+import java.io.IOException;
 
-public class IpType extends StringType {
+public class IpType extends DataType<String> implements Streamer<String> {
 
     public static final int ID = 5;
     public static final IpType INSTANCE = new IpType();
@@ -33,6 +36,21 @@ public class IpType extends StringType {
     @Override
     public int id() {
         return ID;
+    }
+
+    @Override
+    public String getName() {
+        return "ip";
+    }
+
+    @Override
+    public Streamer<String> streamer() {
+        return this;
+    }
+
+    @Override
+    public Precedence precedence() {
+        return Precedence.IP;
     }
 
     @Override
@@ -46,8 +64,8 @@ public class IpType extends StringType {
         } else {
             long longIp = ((Number) value).longValue();
             if (longIp < 0) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Failed to convert long value: %s to ipv4 address)",
-                    longIp));
+                throw new IllegalArgumentException(
+                    "Failed to convert long value: " + longIp + " to ipv4 address");
             }
             return longToIp(longIp);
         }
@@ -69,8 +87,17 @@ public class IpType extends StringType {
     }
 
     @Override
-    public String getName() {
-        return "ip";
+    public int compare(String val1, String val2) {
+        return val1.compareTo(val2);
     }
 
+    @Override
+    public String readValueFrom(StreamInput in) throws IOException {
+        return in.readOptionalString();
+    }
+
+    @Override
+    public void writeValueTo(StreamOutput out, String v) throws IOException {
+        out.writeOptionalString(v);
+    }
 }
