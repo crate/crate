@@ -1515,7 +1515,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .field("type", "time with time zone")
             .endObject()
             .startObject("t1")
-            .field("type", "time with time zone")
+            .field("type", "timetz")
             .endObject()
             .endObject()
             .endObject()
