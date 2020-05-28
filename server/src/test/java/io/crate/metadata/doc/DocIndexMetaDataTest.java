@@ -1522,8 +1522,8 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         DocIndexMetaData md = newMeta(getIndexMetaData("test", builder), "test");
         assertThat(md.columns().size(), is(2));
-        assertThat(md.references().get(new ColumnIdent("t0")).valueType(), is(DataTypes.TIMEZ));
-        assertThat(md.references().get(new ColumnIdent("t1")).valueType(), is(DataTypes.TIMEZ));
+        assertThat(md.references().get(new ColumnIdent("t0")).valueType(), is(DataTypes.TIMETZ));
+        assertThat(md.references().get(new ColumnIdent("t1")).valueType(), is(DataTypes.TIMETZ));
     }
 
     @Test

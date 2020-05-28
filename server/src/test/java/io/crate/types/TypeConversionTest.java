@@ -99,7 +99,7 @@ public class TypeConversionTest extends CrateUnitTest {
                 var t = DataTypes.fromId(id);
                 if (t.equals(DataTypes.IP)) {
                     byteVal = (byte) Math.abs(byteVal == Byte.MIN_VALUE ? byteVal >> 1 : byteVal);
-                } else if (t.equals(DataTypes.TIMEZ)) {
+                } else if (t.equals(DataTypes.TIMETZ)) {
                     byteVal = (byte) ThreadLocalRandom.current().nextInt(25);
                 }
                 t.value(byteVal);
@@ -110,7 +110,7 @@ public class TypeConversionTest extends CrateUnitTest {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
                 var t = DataTypes.fromId(id);
                 shortVal = t.equals(DataTypes.IP) ? Math.abs(shortVal) : shortVal;
-                if (t.equals(DataTypes.TIMEZ)) {
+                if (t.equals(DataTypes.TIMETZ)) {
                     shortVal = ThreadLocalRandom.current().nextInt(25);
                 }
                 t.value(shortVal.shortValue());
@@ -121,7 +121,7 @@ public class TypeConversionTest extends CrateUnitTest {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.INTEGER.id())) {
                 var t = DataTypes.fromId(id);
                 intValue = t.equals(DataTypes.IP) ? Math.abs(intValue) : intValue;
-                if (t.equals(DataTypes.TIMEZ)) {
+                if (t.equals(DataTypes.TIMETZ)) {
                     intValue = ThreadLocalRandom.current().nextInt(25);
                 }
                 t.value(intValue);
@@ -132,7 +132,7 @@ public class TypeConversionTest extends CrateUnitTest {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.LONG.id())) {
                 var t = DataTypes.fromId(id);
                 longValue = t.equals(DataTypes.IP) ? Math.abs(longValue) : longValue;
-                if (t.equals(DataTypes.TIMEZ)) {
+                if (t.equals(DataTypes.TIMETZ)) {
                     longValue = ThreadLocalRandom.current().nextInt(25);
                 }
                 t.value(longValue.longValue());
@@ -143,7 +143,7 @@ public class TypeConversionTest extends CrateUnitTest {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.FLOAT.id())) {
                 var t = DataTypes.fromId(id);
                 floatValue = t.equals(DataTypes.IP) ? Math.abs(floatValue) : floatValue;
-                t.value(t.equals(DataTypes.TIMEZ) ? 123456.789f : floatValue.floatValue());
+                t.value(t.equals(DataTypes.TIMETZ) ? 123456.789f : floatValue.floatValue());
             }
         }
 
@@ -151,7 +151,7 @@ public class TypeConversionTest extends CrateUnitTest {
             for (int id : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.DOUBLE.id())) {
                 var t = DataTypes.fromId(id);
                 doubleValue = t.equals(DataTypes.IP) ? Math.abs(doubleValue) : doubleValue;
-                t.value(t.equals(DataTypes.TIMEZ) ? 123456.789876 : doubleValue.doubleValue());
+                t.value(t.equals(DataTypes.TIMETZ) ? 123456.789876 : doubleValue.doubleValue());
             }
         }
     }
