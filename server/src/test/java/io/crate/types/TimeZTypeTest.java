@@ -24,14 +24,14 @@ public class TimeZTypeTest extends CrateUnitTest {
     @Test
     public void test_parse_time_unsupported_literal_long() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [234] is not a valid literal for TimeType");
+        expectedException.expectMessage("value [234] is not a valid literal for TimeZType");
         TimeZType.parseTime("234");
     }
 
     @Test
     public void test_parse_time_unsupported_literal_floating_point() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("value [234.9999] is not a valid literal for TimeType");
+        expectedException.expectMessage("value [234.9999] is not a valid literal for TimeZType");
         TimeZType.parseTime("234.9999");
     }
 
