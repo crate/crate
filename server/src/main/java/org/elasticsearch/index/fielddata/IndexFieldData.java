@@ -68,10 +68,6 @@ public interface IndexFieldData<FD extends AtomicFieldData> extends IndexCompone
 
     interface Global<FD extends AtomicFieldData> extends IndexFieldData<FD> {
 
-        IndexFieldData<FD> loadGlobal(DirectoryReader indexReader);
-
         IndexFieldData<FD> localGlobalDirect(DirectoryReader indexReader) throws Exception;
-
     }
-
 }

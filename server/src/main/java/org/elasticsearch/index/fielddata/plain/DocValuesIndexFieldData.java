@@ -81,7 +81,7 @@ public abstract class DocValuesIndexFieldData {
             } else if (numericType != null) {
                 return new SortedNumericDVIndexFieldData(indexSettings.getIndex(), fieldName, numericType);
             } else {
-                return new SortedSetDVOrdinalsIndexFieldData(indexSettings, cache, fieldName, breakerService);
+                return new SortedSetDVOrdinalsIndexFieldData(indexSettings, fieldName, breakerService);
             }
         }
 

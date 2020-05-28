@@ -30,6 +30,11 @@ import org.junit.Test;
 
 public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitTest {
 
+    @Override
+    protected boolean enableWarningsCheck() {
+        return false;
+    }
+
     @Test
     public void testBuildCreateTableColumns() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
