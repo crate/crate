@@ -3,7 +3,6 @@
 
 package io.crate.planner.selectivity;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row1;
 import io.crate.expression.symbol.Symbol;
@@ -25,7 +24,6 @@ import java.util.stream.IntStream;
 
 public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
 
-    @Seed("BAAF67D01CA68AAE")
     @Test
     public void test_eq_not_in_mcv_is_based_on_approx_distinct() {
         SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
