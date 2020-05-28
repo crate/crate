@@ -146,18 +146,6 @@ public class DynamicTemplate implements ToXContentObject {
             public String toString() {
                 return "date";
             }
-        },
-        BINARY {
-
-            @Override
-            public String defaultMappingType() {
-                return BinaryFieldMapper.CONTENT_TYPE;
-            }
-
-            @Override
-            public String toString() {
-                return "binary";
-            }
         };
 
         public static XContentFieldType fromString(String value) {
