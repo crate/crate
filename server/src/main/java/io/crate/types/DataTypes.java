@@ -69,7 +69,7 @@ public final class DataTypes {
     public static final IntegerType INTEGER = IntegerType.INSTANCE;
     public static final LongType LONG = LongType.INSTANCE;
 
-    public static final TimeZType TIMEZ = TimeZType.INSTANCE;
+    public static final TimeTZType TIMEZ = TimeTZType.INSTANCE;
 
     public static final TimestampType TIMESTAMPZ = TimestampType.INSTANCE_WITH_TZ;
     public static final TimestampType TIMESTAMP = TimestampType.INSTANCE_WITHOUT_TZ;
@@ -151,7 +151,7 @@ public final class DataTypes {
             entry(ShortType.ID, in -> SHORT),
             entry(IntegerType.ID, in -> INTEGER),
             entry(LongType.ID, in -> LONG),
-            entry(TimeZType.ID, in -> TIMEZ),
+            entry(TimeTZType.ID, in -> TIMEZ),
             entry(TimestampType.ID_WITH_TZ, in -> TIMESTAMPZ),
             entry(TimestampType.ID_WITHOUT_TZ, in -> TIMESTAMP),
             entry(ObjectType.ID, ObjectType::new),
@@ -179,7 +179,7 @@ public final class DataTypes {
         entry(DOUBLE.id(), NUMBER_CONVERSIONS),
         entry(BOOLEAN.id(), Set.of(STRING.id())),
         entry(STRING.id(), Stream.concat(
-            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID, TimeZType.ID),
+            Stream.of(GEO_SHAPE.id(), GEO_POINT.id(), ObjectType.ID, TimeTZType.ID),
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
         entry(IP.id(), Set.of(STRING.id())),

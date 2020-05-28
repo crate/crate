@@ -28,21 +28,21 @@ import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-import static io.crate.types.TimeZType.parseTime;
-import static io.crate.types.TimeZType.formatTime;
-import static io.crate.types.TimeZType.NAME;
+import static io.crate.types.TimeTZType.parseTime;
+import static io.crate.types.TimeTZType.formatTime;
+import static io.crate.types.TimeTZType.NAME;
 
 
-final class TimeZType extends PGType<Long> {
+final class TimeTZType extends PGType<Long> {
 
-    public static final PGType<Long> INSTANCE = new TimeZType();
+    public static final PGType<Long> INSTANCE = new TimeTZType();
 
     private static final int OID = 1083;
     private static final int TYPE_MOD = -1;
     private static final int TYPE_LEN = 8;
 
 
-    TimeZType() {
+    TimeTZType() {
         super(OID, TYPE_LEN, TYPE_MOD, NAME);
     }
 

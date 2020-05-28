@@ -52,7 +52,7 @@ public class PGTypes {
         .put(DataTypes.LONG, BigIntType.INSTANCE)
         .put(DataTypes.FLOAT, RealType.INSTANCE)
         .put(DataTypes.DOUBLE, DoubleType.INSTANCE)
-        .put(DataTypes.TIMEZ, TimeZType.INSTANCE)
+        .put(DataTypes.TIMEZ, TimeTZType.INSTANCE)
         .put(DataTypes.TIMESTAMPZ, TimestampZType.INSTANCE)
         .put(DataTypes.TIMESTAMP, TimestampType.INSTANCE)
         .put(DataTypes.IP, VarCharType.INSTANCE) // postgres has no IP type, so map it to varchar - it matches the client representation

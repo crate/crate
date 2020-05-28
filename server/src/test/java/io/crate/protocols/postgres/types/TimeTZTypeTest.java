@@ -30,10 +30,10 @@ import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.Matchers.is;
 
-public class TimeZTypeTest extends BasePGTypeTest<Long> {
+public class TimeTZTypeTest extends BasePGTypeTest<Long> {
 
-    public TimeZTypeTest() {
-        super(TimeZType.INSTANCE);
+    public TimeTZTypeTest() {
+        super(TimeTZType.INSTANCE);
     }
 
     @Test
@@ -53,18 +53,18 @@ public class TimeZTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(TimeZType.INSTANCE.encodeAsUTF8Text(53005278000L), StandardCharsets.UTF_8),
+        assertThat(new String(TimeTZType.INSTANCE.encodeAsUTF8Text(53005278000L), StandardCharsets.UTF_8),
             is("14:43:25.278"));
     }
 
     @Test
     public void testDecodeAsUTF8Text() {
-        assertThat(TimeZType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes()), is(14400123456L));
+        assertThat(TimeTZType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes()), is(14400123456L));
     }
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
         expectedException.expect(IllegalArgumentException.class);
-        TimeZType.INSTANCE.decodeUTF8Text("00:0000.0000000001".getBytes(StandardCharsets.UTF_8));
+        TimeTZType.INSTANCE.decodeUTF8Text("00:0000.0000000001".getBytes(StandardCharsets.UTF_8));
     }
 }

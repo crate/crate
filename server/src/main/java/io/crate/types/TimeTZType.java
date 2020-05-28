@@ -77,11 +77,11 @@ import java.util.Locale;
  *    <li>All ISO-8601 extended local time format.</li>
  * </ol>
  */
-public final class TimeZType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
+public final class TimeTZType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
     public static final int ID = 19;
     public static final String NAME = "time with time zone";
-    public static final TimeZType INSTANCE = new TimeZType();
+    public static final TimeTZType INSTANCE = new TimeTZType();
     public static final long MAX_MICROS = 24 * 60 * 60 * 1000_000L;
 
 
@@ -97,7 +97,7 @@ public final class TimeZType extends DataType<Long> implements FixedWidthType, S
 
     @Override
     public Precedence precedence() {
-        return Precedence.TIME;
+        return Precedence.TIMETZ;
     }
 
     @Override
@@ -135,7 +135,7 @@ public final class TimeZType extends DataType<Long> implements FixedWidthType, S
         }
         if (value instanceof Long || value instanceof Integer) {
             return checkRange(
-                TimeZType.class.getSimpleName(),
+                TimeTZType.class.getSimpleName(),
                 ((Number) value).longValue(),
                 MAX_MICROS);
         }
@@ -255,7 +255,7 @@ public final class TimeZType extends DataType<Long> implements FixedWidthType, S
         throw new IllegalArgumentException(String.format(
             Locale.ENGLISH,
             "value [%s] is not a valid literal for %s",
-            literal, TimeZType.class.getSimpleName()));
+            literal, TimeTZType.class.getSimpleName()));
     }
 
     private static long checkRange(String name, long value, long max) {
