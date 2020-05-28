@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.search.SortedSetSortField;
@@ -32,16 +31,6 @@ public class BinaryDVIndexFieldData extends DocValuesIndexFieldData implements I
 
     public BinaryDVIndexFieldData(Index index, String fieldName) {
         super(index, fieldName);
-    }
-
-    @Override
-    public BinaryDVAtomicFieldData load(LeafReaderContext context) {
-        return new BinaryDVAtomicFieldData(context.reader(), fieldName);
-    }
-
-    @Override
-    public BinaryDVAtomicFieldData loadDirect(LeafReaderContext context) throws Exception {
-        return load(context);
     }
 
     @Override

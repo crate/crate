@@ -23,7 +23,6 @@ import org.apache.lucene.index.IndexReader;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData.NumericType;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -71,8 +70,10 @@ public abstract class DocValuesIndexFieldData {
         }
 
         @Override
-        public IndexFieldData<?> build(IndexSettings indexSettings, MappedFieldType fieldType, IndexFieldDataCache cache,
-                                       CircuitBreakerService breakerService, MapperService mapperService) {
+        public IndexFieldData<?> build(IndexSettings indexSettings,
+                                       MappedFieldType fieldType,
+                                       CircuitBreakerService breakerService,
+                                       MapperService mapperService) {
             // Ignore Circuit Breaker
             final String fieldName = fieldType.name();
             if (BINARY_INDEX_FIELD_NAMES.contains(fieldName)) {

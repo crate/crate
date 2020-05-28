@@ -19,29 +19,24 @@
 
 package org.elasticsearch.index.fielddata.plain;
 
-import org.apache.lucene.index.LeafReaderContext;
+import java.io.IOException;
+
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.RamAccountingTermsEnum;
-
-import java.io.IOException;
 
 public abstract class AbstractIndexFieldData<FD extends AtomicFieldData> extends AbstractIndexComponent implements IndexFieldData<FD> {
 
     private final String fieldName;
-    protected final IndexFieldDataCache cache;
 
-    public AbstractIndexFieldData(IndexSettings indexSettings, String fieldName, IndexFieldDataCache cache) {
+    public AbstractIndexFieldData(IndexSettings indexSettings, String fieldName) {
         super(indexSettings);
         this.fieldName = fieldName;
-        this.cache = cache;
     }
 
     @Override
@@ -51,29 +46,6 @@ public abstract class AbstractIndexFieldData<FD extends AtomicFieldData> extends
 
     @Override
     public void clear() {
-        cache.clear(fieldName);
-    }
-
-    @Override
-    public FD load(LeafReaderContext context) {
-        if (context.reader().getFieldInfos().fieldInfo(fieldName) == null) {
-            // Some leaf readers may be wrapped and report different set of fields and use the same cache key.
-            // If a field can't be found then it doesn't mean it isn't there,
-            // so if a field doesn't exist then we don't cache it and just return an empty field data instance.
-            // The next time the field is found, we do cache.
-            return empty(context.reader().maxDoc());
-        }
-
-        try {
-            FD fd = cache.load(context, this);
-            return fd;
-        } catch (Exception e) {
-            if (e instanceof ElasticsearchException) {
-                throw (ElasticsearchException) e;
-            } else {
-                throw new ElasticsearchException(e);
-            }
-        }
     }
 
     /**

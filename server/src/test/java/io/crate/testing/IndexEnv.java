@@ -22,7 +22,6 @@
 
 package io.crate.testing;
 
-import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -53,7 +52,6 @@ import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.InternalEngineFactory;
-import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.ArrayTypeParser;
@@ -65,7 +63,6 @@ import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.elasticsearch.indices.fielddata.cache.IndicesFieldDataCache;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.test.IndexSettingsModule;
@@ -150,8 +147,7 @@ public final class IndexEnv implements AutoCloseable {
             BigArrays.NON_RECYCLING_INSTANCE,
             threadPool,
             new IndicesQueryCache(Settings.EMPTY),
-            mapperRegistry,
-            new IndicesFieldDataCache(Settings.EMPTY, mock(IndexFieldDataCache.Listener.class))
+            mapperRegistry
         );
         indexFieldDataService = indexService.fieldData();
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());

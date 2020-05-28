@@ -78,7 +78,6 @@ public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUn
 
     @After
     public void cleanUp() throws Exception {
-        ifd.clear();
         indexEnv.close();
     }
 

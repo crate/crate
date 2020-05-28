@@ -23,13 +23,11 @@
 package org.elasticsearch.common.settings;
 
 import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.indices.IndexingMemoryController;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.indices.fielddata.cache.IndicesFieldDataCache;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -71,11 +69,6 @@ public class MemorySizeSettingsTests extends ESTestCase {
                 "network.breaker.inflight_requests.limit", new ByteSizeValue((JvmInfo.jvmInfo().getMem().getHeapMax().getBytes())));
     }
 
-    @Test
-    public void testIndicesFieldDataCacheSetting() {
-        assertMemorySizeSetting(IndicesFieldDataCache.INDICES_FIELDDATA_CACHE_SIZE_KEY, "indices.fielddata.cache.size",
-                new ByteSizeValue(-1));
-    }
 
     private void assertMemorySizeSetting(Setting<ByteSizeValue> setting, String settingKey, ByteSizeValue defaultValue) {
         assertThat(setting, notNullValue());

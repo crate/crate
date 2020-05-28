@@ -40,16 +40,6 @@ public interface IndexFieldData<FD extends AtomicFieldData> extends IndexCompone
     String getFieldName();
 
     /**
-     * Loads the atomic field data for the reader, possibly cached.
-     */
-    FD load(LeafReaderContext context);
-
-    /**
-     * Loads directly the atomic field data for the reader, ignoring any caching involved.
-     */
-    FD loadDirect(LeafReaderContext context) throws Exception;
-
-    /**
      * Returns the {@link SortField} to used for sorting.
      */
     SortField sortField(NullValueOrder nullValueOrder, MultiValueMode sortMode, boolean reverse);
@@ -61,7 +51,9 @@ public interface IndexFieldData<FD extends AtomicFieldData> extends IndexCompone
 
     interface Builder {
 
-        IndexFieldData<?> build(IndexSettings indexSettings, MappedFieldType fieldType, IndexFieldDataCache cache,
-                             CircuitBreakerService breakerService, MapperService mapperService);
+        IndexFieldData<?> build(IndexSettings indexSettings,
+                                MappedFieldType fieldType,
+                                CircuitBreakerService breakerService,
+                                MapperService mapperService);
     }
 }
