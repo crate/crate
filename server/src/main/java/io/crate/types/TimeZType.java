@@ -167,7 +167,7 @@ public final class TimeZType extends DataType<Long> implements FixedWidthType, S
         SS(59),
         MICRO(999999) {
             @Override
-            long validate (String value, int start, int end) {
+            long validate(String value, int start, int end) {
                 String s = value.substring(start, Math.min(start + 6, end));
                 try {
                     int v = Integer.parseInt(s);
@@ -192,7 +192,7 @@ public final class TimeZType extends DataType<Long> implements FixedWidthType, S
             return st[(ordinal() + 1) % st.length];
         }
 
-        long validate (String value, int start, int end) {
+        long validate(String value, int start, int end) {
             try {
                 return checkRange(name(), Integer.valueOf(value.substring(start, end)), max);
             } catch (NumberFormatException e) {
