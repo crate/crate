@@ -297,7 +297,7 @@ final class GroupByOptimizedIterator {
                                                                        AtomicReference<Throwable> killed,
                                                                        AtomicBoolean closed) throws IOException {
         final HashMap<BytesRef, Object[]> statesByKey = new HashMap<>();
-        final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE, 1f);
+        final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
         Object[] nullStates = null;
 
